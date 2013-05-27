@@ -1,1 +1,2 @@
 numpydoc==0.4
+contextlib2==0.4.0
