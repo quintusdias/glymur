@@ -4,10 +4,10 @@ glymur: a Python interface for JPEG 2000
 
 **glymur** contains a Python interface to the OpenJPEG library
 which allows linux and mac users to read and write JPEG 2000 files.  For more
-information about OpenJPEG, please consult http://www.openjpeg.org.  **glymur**
+information about OpenJPEG, please consult http://www.openjpeg.org.  glymur
 should be considered to be alpha-quality software.
 
-**glymur** tries to support reading (including all metadata) and writing of
+glymur tries to support reading (including all metadata) and writing of
 JP2 and J2C files.  Writing J2C/JP2 files is currently limited to images that
 can fit in memory, however.
 
@@ -18,7 +18,7 @@ metadata can be retrieved from such JPX files.
 ------------
 Requirements
 ------------
-**glymur** works on Python 2.7 and 3.3.  Python 3.3 is strongly recommended.
+glymur works on Python 2.7 and 3.3.  Python 3.3 is strongly recommended.
 
 OpenJPEG
 ========
@@ -26,7 +26,7 @@ OpenJPEG must be built as a shared library.  In addition, you
 currently must compile OpenJPEG from the developmental source that
 you can retrieve via subversion.  As of this time of writing, svn 
 revision 2345 works.  In addition, you should also retrieve their test data, as
-you will need it when running **glymur**'s test suite.
+you will need it when running glymur's test suite.
 
 Earlier versions of OpenJPEG through the 2.0 official release are not supported.
 
@@ -50,7 +50,7 @@ OS
 
 Mac OS X
 --------
-All the necessary packages are available to use **glymur** with Python 3.3 via
+All the necessary packages are available to use glymur with Python 3.3 via
 MacPorts.  A minimal set of ports includes
 
       * python33
@@ -83,12 +83,12 @@ combinations of RPMs / Python packages is installed.
       * scikit-image and either Pillow or freeimage
       * matplotlib and Pillow
 
-The 2nd route is probably the easiest, so go ahead and install **Pillow**
-via **pip** since **Pillow** is not yet available in Fedora 18 default
+The 2nd route is probably the easiest, so go ahead and install Pillow
+via pip since Pillow is not yet available in Fedora 18 default
 repositories::
 
     $ yum install python3-devel       # pip needs this in order to compile Pillow
-    $ yum install python3-pip         # First one must install pip of course!
+    $ yum install python3-pip
     $ pip-python3 install Pillow --user
     $ export PYTHONPATH=$HOME/.local/lib/python3.3/site-packages:$PYTHONPATH
 
@@ -105,7 +105,7 @@ Required RPMs include::
       * python-setuptools
       * numpy
 
-In addition, you must install **contextlib2** via pip.
+In addition, you must install contextlib2 via pip.
 
 A few tests still will not run, however, unless one of the following 
 combinations of RPMs / Python packages is installed.
@@ -113,8 +113,8 @@ combinations of RPMs / Python packages is installed.
       * scikit-image and either Pillow or freeimage
       * matplotlib and Pillow
 
-**scikit-image** is not available in the Fedora 17 default repositories, but 
-it may be installed via **pip**::
+scikit-image is not available in the Fedora 17 default repositories, but 
+it may be installed via pip::
 
     $ yum install Cython       # pip needs this in order to compile scikit-image
     $ yum install python-devel # pip needs this in order to compile scikit-image
@@ -137,7 +137,7 @@ From this point forward, python3 will be referred to as just "python".
 Installation
 ============
 
-In addition to merely installing **glymur**, you should adjust your **$PATH**
+In addition to merely installing glymur, you should adjust your **$PATH**
 environment variable in order to be able to use the **jp2dump** script from
 the unix command line.
 
@@ -150,8 +150,8 @@ the unix command line.
 
 Configuration
 =============
-glymur uses **ctypes** (for the moment) to access the openjp2 library, and
-because **ctypes** access libraries in a platform-dependent manner, it is 
+glymur uses ctypes (for the moment) to access the openjp2 library, and
+because ctypes access libraries in a platform-dependent manner, it is 
 recommended that you create a configuration file to help glymur properly find
 the openjp2 library.  You may create the configuration file as follows::
 
