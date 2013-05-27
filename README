@@ -1,9 +1,5 @@
-JPTOOLS
+GLYMUR
 =======
 
-JPTOOLS provides a suite of JPEG2000 tools, including a bridge from Python to 
+GLYMUR provides a suite of JPEG2000 tools, including a bridge from Python to 
 the OpenJPEG library.
-
-Please read the docs.
-=====================
-Yes.  Please.
