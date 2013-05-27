@@ -1,1 +1,5 @@
+May 27, 2013 - v0.1.1, Changed write example to not rely on matplotlib.  Fixed
+    readthedocs.org setup to build documentation automatically.  Can import 
+    glymur without libopenjp2 actually being present.
+
 May 27, 2013 - Changed write example to not rely on matplotlib.
