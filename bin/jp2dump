@@ -1,0 +1,15 @@
+#!/usr/bin/env python
+
+import argparse
+import sys
+import glymur
+
+description='Print JPEG2000 metadata.'
+parser = argparse.ArgumentParser(description=description)
+parser.add_argument('-c', '--codestream', help='dump codestream',
+            action='store_true')
+parser.add_argument('filename')
+args = parser.parse_args()
+
+filename = args.filename
+glymur.jp2dump(args.filename, codestream=args.codestream)
