@@ -1,0 +1,1 @@
+May 27, 2013 - Changed write example to not rely on matplotlib.

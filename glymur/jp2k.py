@@ -194,16 +194,13 @@ class Jp2k(Jp2kBox):
 
         Examples
         --------
-        >>> import numpy as np
-        >>> import matplotlib as mpl
-        >>> import matplotlib.pyplot as plt
-        >>> import os
-        >>> file = os.path.join(mpl.get_data_path(), 'sample_data', 'lena.png')
-        >>> data = plt.imread(file)
-        >>> data = data * 255
+        >>> import glymur
+        >>> import pkg_resources as pkg
+        >>> jfile = pkg.resource_filename(glymur.__name__, "data/nemo.jp2")
+        >>> jp2 = glymur.Jp2k(jfile)
+        >>> data = jp2.read(reduce=3)
         >>> from tempfile import NamedTemporaryFile
         >>> tfile = NamedTemporaryFile(suffix='.jp2', delete=False)
-        >>> from glymur import Jp2k
         >>> j = Jp2k(tfile.name, mode='wb')
         >>> j.write(data.astype(np.uint8))
         """
