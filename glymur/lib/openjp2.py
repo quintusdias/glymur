@@ -528,105 +528,110 @@ class _codestream_info_v2_t(ctypes.Structure):
 
 # Restrict the input and output argument types for each function used in the
 # API.
-_OPENJP2.opj_create_compress.argtypes = [_codec_format_t]
-_OPENJP2.opj_create_compress.restype = _codec_t_p
+if _OPENJP2 is not None:
+    _OPENJP2.opj_create_compress.argtypes = [_codec_format_t]
+    _OPENJP2.opj_create_compress.restype = _codec_t_p
 
-_OPENJP2.opj_create_decompress.argtypes = [_codec_format_t]
-_OPENJP2.opj_create_decompress.restype = _codec_t_p
+    _OPENJP2.opj_create_decompress.argtypes = [_codec_format_t]
+    _OPENJP2.opj_create_decompress.restype = _codec_t_p
 
-_argtypes = [_codec_t_p, _stream_t_p, ctypes.POINTER(_image_t)]
-_OPENJP2.opj_decode.argtypes = _argtypes
+    _argtypes = [_codec_t_p, _stream_t_p, ctypes.POINTER(_image_t)]
+    _OPENJP2.opj_decode.argtypes = _argtypes
 
-_argtypes = [_codec_t_p, ctypes.c_uint32,
-             ctypes.POINTER(ctypes.c_uint8),
-             ctypes.c_uint32,
-             _stream_t_p]
-_OPENJP2.opj_decode_tile_data.argtypes = _argtypes
+    _argtypes = [_codec_t_p, ctypes.c_uint32,
+                 ctypes.POINTER(ctypes.c_uint8),
+                 ctypes.c_uint32,
+                 _stream_t_p]
+    _OPENJP2.opj_decode_tile_data.argtypes = _argtypes
 
-_argtypes = [ctypes.POINTER(ctypes.POINTER(_codestream_info_v2_t))]
-_OPENJP2.opj_destroy_cstr_info.argtypes = _argtypes
-_OPENJP2.opj_destroy_cstr_info.restype = ctypes.c_void_p
+    _argtypes = [ctypes.POINTER(ctypes.POINTER(_codestream_info_v2_t))]
+    _OPENJP2.opj_destroy_cstr_info.argtypes = _argtypes
+    _OPENJP2.opj_destroy_cstr_info.restype = ctypes.c_void_p
 
-_argtypes = [_codec_t_p, _stream_t_p]
-_OPENJP2.opj_encode.argtypes = _argtypes
+    _argtypes = [_codec_t_p, _stream_t_p]
+    _OPENJP2.opj_encode.argtypes = _argtypes
 
-_OPENJP2.opj_get_cstr_info.argtypes = [_codec_t_p]
-_OPENJP2.opj_get_cstr_info.restype = ctypes.POINTER(_codestream_info_v2_t)
+    _OPENJP2.opj_get_cstr_info.argtypes = [_codec_t_p]
+    _OPENJP2.opj_get_cstr_info.restype = ctypes.POINTER(_codestream_info_v2_t)
 
-_argtypes = [_codec_t_p,
-             _stream_t_p,
-             ctypes.POINTER(_image_t),
-             ctypes.c_uint32]
-_OPENJP2.opj_get_decoded_tile.argtypes = _argtypes
+    _argtypes = [_codec_t_p,
+                 _stream_t_p,
+                 ctypes.POINTER(_image_t),
+                 ctypes.c_uint32]
+    _OPENJP2.opj_get_decoded_tile.argtypes = _argtypes
 
-_argtypes = [ctypes.c_uint32,
-             ctypes.POINTER(_image_comptparm_t),
-             color_space_t]
-_OPENJP2.opj_image_create.argtypes = _argtypes
-_OPENJP2.opj_image_create.restype = ctypes.POINTER(_image_t)
+    _argtypes = [ctypes.c_uint32,
+                 ctypes.POINTER(_image_comptparm_t),
+                 color_space_t]
+    _OPENJP2.opj_image_create.argtypes = _argtypes
+    _OPENJP2.opj_image_create.restype = ctypes.POINTER(_image_t)
 
-_argtypes = [ctypes.c_uint32,
-             ctypes.POINTER(_image_comptparm_t),
-             color_space_t]
-_OPENJP2.opj_image_tile_create.argtypes = _argtypes
-_OPENJP2.opj_image_tile_create.restype = ctypes.POINTER(_image_t)
+    _argtypes = [ctypes.c_uint32,
+                 ctypes.POINTER(_image_comptparm_t),
+                 color_space_t]
+    _OPENJP2.opj_image_tile_create.argtypes = _argtypes
+    _OPENJP2.opj_image_tile_create.restype = ctypes.POINTER(_image_t)
 
-_OPENJP2.opj_image_destroy.argtypes = [ctypes.POINTER(_image_t)]
+    _OPENJP2.opj_image_destroy.argtypes = [ctypes.POINTER(_image_t)]
 
-_argtypes = [_stream_t_p, _codec_t_p, ctypes.POINTER(ctypes.POINTER(_image_t))]
-_OPENJP2.opj_read_header.argtypes = _argtypes
+    _argtypes = [_stream_t_p, _codec_t_p,
+                 ctypes.POINTER(ctypes.POINTER(_image_t))]
+    _OPENJP2.opj_read_header.argtypes = _argtypes
 
-_argtypes = [_codec_t_p,
-             _stream_t_p,
-             ctypes.POINTER(ctypes.c_uint32), ctypes.POINTER(ctypes.c_uint32),
-             ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32),
-             ctypes.POINTER(ctypes.c_int32), ctypes.POINTER(ctypes.c_int32),
-             ctypes.POINTER(ctypes.c_uint32),
-             ctypes.POINTER(_bool_t)]
-_OPENJP2.opj_read_tile_header.argtypes = _argtypes
+    _argtypes = [_codec_t_p,
+                 _stream_t_p,
+                 ctypes.POINTER(ctypes.c_uint32),
+                 ctypes.POINTER(ctypes.c_uint32),
+                 ctypes.POINTER(ctypes.c_int32),
+                 ctypes.POINTER(ctypes.c_int32),
+                 ctypes.POINTER(ctypes.c_int32),
+                 ctypes.POINTER(ctypes.c_int32),
+                 ctypes.POINTER(ctypes.c_uint32),
+                 ctypes.POINTER(_bool_t)]
+    _OPENJP2.opj_read_tile_header.argtypes = _argtypes
 
-_argtypes = [_codec_t_p, ctypes.POINTER(_image_t), ctypes.c_int32,
-             ctypes.c_int32, ctypes.c_int32, ctypes.c_int32]
-_OPENJP2.opj_set_decode_area.argtypes = _argtypes
+    _argtypes = [_codec_t_p, ctypes.POINTER(_image_t), ctypes.c_int32,
+                 ctypes.c_int32, ctypes.c_int32, ctypes.c_int32]
+    _OPENJP2.opj_set_decode_area.argtypes = _argtypes
 
-_argtypes = [ctypes.POINTER(_cparameters_t)]
-_OPENJP2.opj_set_default_encoder_parameters.argtypes = _argtypes
+    _argtypes = [ctypes.POINTER(_cparameters_t)]
+    _OPENJP2.opj_set_default_encoder_parameters.argtypes = _argtypes
 
-_argtypes = [ctypes.POINTER(_dparameters_t)]
-_OPENJP2.opj_set_default_decoder_parameters.argtypes = _argtypes
+    _argtypes = [ctypes.POINTER(_dparameters_t)]
+    _OPENJP2.opj_set_default_decoder_parameters.argtypes = _argtypes
 
-_argtypes = [_codec_t_p, ctypes.c_void_p, ctypes.c_void_p]
-_OPENJP2.opj_set_error_handler.argtypes = _argtypes
-_OPENJP2.opj_set_info_handler.argtypes = _argtypes
-_OPENJP2.opj_set_warning_handler.argtypes = _argtypes
+    _argtypes = [_codec_t_p, ctypes.c_void_p, ctypes.c_void_p]
+    _OPENJP2.opj_set_error_handler.argtypes = _argtypes
+    _OPENJP2.opj_set_info_handler.argtypes = _argtypes
+    _OPENJP2.opj_set_warning_handler.argtypes = _argtypes
 
-_argtypes = [_codec_t_p, ctypes.POINTER(_dparameters_t)]
-_OPENJP2.opj_setup_decoder.argtypes = _argtypes
+    _argtypes = [_codec_t_p, ctypes.POINTER(_dparameters_t)]
+    _OPENJP2.opj_setup_decoder.argtypes = _argtypes
 
-_argtypes = [_codec_t_p,
-             ctypes.POINTER(_cparameters_t),
-             ctypes.POINTER(_image_t)]
-_OPENJP2.opj_setup_encoder.argtypes = _argtypes
+    _argtypes = [_codec_t_p,
+                 ctypes.POINTER(_cparameters_t),
+                 ctypes.POINTER(_image_t)]
+    _OPENJP2.opj_setup_encoder.argtypes = _argtypes
 
-_argtypes = [ctypes.c_char_p, ctypes.c_int32]
-_OPENJP2.opj_stream_create_default_file_stream_v3.argtypes = _argtypes
-_OPENJP2.opj_stream_create_default_file_stream_v3.restype = _stream_t_p
+    _argtypes = [ctypes.c_char_p, ctypes.c_int32]
+    _OPENJP2.opj_stream_create_default_file_stream_v3.argtypes = _argtypes
+    _OPENJP2.opj_stream_create_default_file_stream_v3.restype = _stream_t_p
 
-_argtypes = [_codec_t_p, ctypes.POINTER(_image_t), _stream_t_p]
-_OPENJP2.opj_start_compress.argtypes = _argtypes
+    _argtypes = [_codec_t_p, ctypes.POINTER(_image_t), _stream_t_p]
+    _OPENJP2.opj_start_compress.argtypes = _argtypes
 
-_OPENJP2.opj_end_compress.argtypes = [_codec_t_p, _stream_t_p]
-_OPENJP2.opj_end_decompress.argtypes = [_codec_t_p, _stream_t_p]
+    _OPENJP2.opj_end_compress.argtypes = [_codec_t_p, _stream_t_p]
+    _OPENJP2.opj_end_decompress.argtypes = [_codec_t_p, _stream_t_p]
 
-_OPENJP2.opj_stream_destroy_v3.argtypes = [_stream_t_p]
-_OPENJP2.opj_destroy_codec.argtypes = [_codec_t_p]
+    _OPENJP2.opj_stream_destroy_v3.argtypes = [_stream_t_p]
+    _OPENJP2.opj_destroy_codec.argtypes = [_codec_t_p]
 
-_argtypes = [_codec_t_p,
-             ctypes.c_uint32,
-             ctypes.POINTER(ctypes.c_uint8),
-             ctypes.c_uint32,
-             _stream_t_p]
-_OPENJP2.opj_write_tile.argtypes = _argtypes
+    _argtypes = [_codec_t_p,
+                 ctypes.c_uint32,
+                 ctypes.POINTER(ctypes.c_uint8),
+                 ctypes.c_uint32,
+                 _stream_t_p]
+    _OPENJP2.opj_write_tile.argtypes = _argtypes
 
 
 def _check_error(status):
@@ -655,9 +660,10 @@ _fcns = ['opj_decode', 'opj_decode_tile_data', 'opj_end_compress',
          'opj_set_warning_handler',
          'opj_setup_decoder', 'opj_setup_encoder', 'opj_start_compress',
          'opj_write_tile']
-for _fcn in _fcns:
-    _attr = getattr(_OPENJP2, _fcn)
-    setattr(_attr, 'restype', _check_error)
+if _OPENJP2 is not None:
+    for _fcn in _fcns:
+        _attr = getattr(_OPENJP2, _fcn)
+        setattr(_attr, 'restype', _check_error)
 
 
 def _create_compress(codec_format):
