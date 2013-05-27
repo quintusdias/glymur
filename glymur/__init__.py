@@ -55,6 +55,9 @@ def _config():
         from ctypes.util import find_library
         libopenjp2_path = find_library('openjp2')
 
+    if libopenjp2_path is None:
+        return None
+
     try:
         _OPENJP2 = ctypes.CDLL(libopenjp2_path)
     except OSError:
