@@ -152,7 +152,7 @@ class Jp2k(Jp2kBox):
         data : array
             Image data to be written to file.
         callbacks : bool, optional
-            If true, enable default info handler such that INFO messages 
+            If true, enable default info handler such that INFO messages
             produced by the OpenJPEG library are output to the console.  By
             default, OpenJPEG warning and error messages are captured by
             Python's own warning and error mechanisms.
