@@ -50,19 +50,13 @@ def chdir(dirname=None):
 
 class TestJp2k(unittest.TestCase):
 
-    def setUp(self):
-        self.jp2file = pkg_resources.resource_filename(glymur.__name__,
+    @classmethod
+    def setUpClass(cls):
+        jp2file = pkg_resources.resource_filename(glymur.__name__,
                                                        "data/nemo.jp2")
-
-    def tearDown(self):
-        pass
-
-    @unittest.skipIf(sys.hexversion < 0x03020000,
-                     "Uses features introduced in 3.2.")
-    def test_invalid_xml_box(self):
-        # Should be able to recover from xml box with bad xml.
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-            with open(self.jp2file, 'rb') as ifile:
+        with tempfile.NamedTemporaryFile(suffix='.jp2', delete=False) as tfile:
+            cls._bad_xml_file = tfile.name
+            with open(jp2file, 'rb') as ifile:
                 # Everything up until the jp2c box.
                 buffer = ifile.read(77)
                 tfile.write(buffer)
@@ -81,13 +75,35 @@ class TestJp2k(unittest.TestCase):
                 tfile.write(buffer)
                 tfile.flush()
 
-            with self.assertWarns(UserWarning) as cw:
-                jp2k = Jp2k(tfile.name)
+    @classmethod
+    def tearDownClass(cls):
+        os.unlink(cls._bad_xml_file)
 
-            self.assertEqual(jp2k.box[3].id, 'xml ')
-            self.assertEqual(jp2k.box[3].offset, 77)
-            self.assertEqual(jp2k.box[3].length, 28)
-            self.assertIsNone(jp2k.box[3].xml)
+    def setUp(self):
+        self.jp2file = pkg_resources.resource_filename(glymur.__name__,
+                                                       "data/nemo.jp2")
+
+    def tearDown(self):
+        pass
+
+    @unittest.skipIf(sys.hexversion < 0x03020000,
+                     "Uses features introduced in 3.2.")
+    def test_invalid_xml_box_warning(self):
+        # Should be able to recover from xml box with bad xml.
+        # Just verify that a warning is issued on 3.2+
+        with self.assertWarns(UserWarning) as cw:
+            jp2k = Jp2k(self._bad_xml_file)
+
+    def test_invalid_xml_box(self):
+        # Should be able to recover from xml box with bad xml.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            jp2k = Jp2k(self._bad_xml_file)
+
+        self.assertEqual(jp2k.box[3].id, 'xml ')
+        self.assertEqual(jp2k.box[3].offset, 77)
+        self.assertEqual(jp2k.box[3].length, 28)
+        self.assertIsNone(jp2k.box[3].xml)
 
     def test_bad_area_parameter(self):
         # Verify that we error out appropriately if given a bad area parameter.
