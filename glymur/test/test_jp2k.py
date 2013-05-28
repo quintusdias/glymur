@@ -597,6 +597,17 @@ class TestJp2k(unittest.TestCase):
                 with self.assertWarns(UserWarning) as cw:
                     imp.reload(glymur)
 
+    @unittest.skipIf(sys.hexversion < 0x03020000,
+                     "Uses features introduced in 3.2.")
+    def test_home_dir_missing_config_dir(self):
+        # Verify no exception is raised if $HOME is missing .glymur directory.
+        with tempfile.TemporaryDirectory() as tdir:
+            with patch.dict('os.environ', {'HOME': tdir}):
+                # Misconfigured new configuration file should
+                # be rejected.
+                with self.assertWarns(UserWarning) as cw:
+                    imp.reload(glymur)
+
 
 if __name__ == "__main__":
     unittest.main()
