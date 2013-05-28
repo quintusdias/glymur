@@ -582,7 +582,7 @@ class TestJp2k(unittest.TestCase):
                     with patch.dict('os.environ', {'GLYMURCONFIGDIR': tdir}):
                         # Misconfigured new configuration file should
                         # be rejected.
-                        with self.assertRaises(ImportError) as ce:
+                        with self.assertWarns(UserWarning) as cw:
                             imp.reload(glymur)
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
@@ -594,7 +594,7 @@ class TestJp2k(unittest.TestCase):
             with patch.dict('os.environ', {'GLYMURCONFIGDIR': tdir}):
                 # Misconfigured new configuration file should
                 # be rejected.
-                with self.assertRaises(ImportError) as ce:
+                with self.assertWarns(UserWarning) as cw:
                     imp.reload(glymur)
 
 

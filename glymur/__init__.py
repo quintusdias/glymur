@@ -23,8 +23,12 @@ def _glymurrc_fname():
             fname = os.path.join(path, 'glymurrc')
             if os.path.exists(fname):
                 return fname
+            else:
+                msg = "glymurrc file hinted at by GLYMURCONFIGDIR does not "
+                msg += "exist."
+                warnings.warn(msg, UserWarning)
 
-    # HOME/.glymur/jptoolrsc
+    # HOME/.glymur/glymurrc
     confdir = _get_configdir()
     if confdir is not None:
         fname = os.path.join(_get_configdir(), 'glymurrc')
@@ -45,26 +49,22 @@ def _config():
         # Read the configuration file for the library location.
         parser = ConfigParser()
         parser.read(filename)
-        try:
-            libopenjp2_path = parser.get('library', 'openjp2')
-            if not os.path.exists(libopenjp2_path):
-                msg = 'OpenJP2 library path specified by configuration file '
-                msg += 'does not exist.'
-                raise ImportError(msg)
-        except NoOptionError as e:
-            msg = "Error parsing configuration file '{0}':  {1}"
-            msg = msg.format(fname, e.message)
-            warnings.warn(msg, UserWarning)
-        except:
-            raise
+        libopenjp2_path = parser.get('library', 'openjp2')
     else:
         # No help from the config file, try to find it ourselves.
         from ctypes.util import find_library
         libopenjp2_path = find_library('openjp2')
-        if libopenjp2_path is None:
-            raise ImportError('OpenJP2 library not found.')
 
-    _OPENJP2 = ctypes.CDLL(libopenjp2_path)
+    if libopenjp2_path is None:
+        return None
+
+    try:
+        _OPENJP2 = ctypes.CDLL(libopenjp2_path)
+    except OSError:
+        msg = '"Library {0}" could not be loaded.  Operating in degraded mode.'
+        msg = msg.format(libopenjp2_path)
+        warnings.warn(msg, UserWarning)
+        _OPENJP2 = None
     return _OPENJP2
 
 
@@ -81,6 +81,7 @@ def _get_configdir():
     if 'HOME' in os.environ:
         return os.path.join(os.environ['HOME'], '.glymur')
 
+import warnings
 import sys
 if sys.hexversion <= 0x03000000:
     from ConfigParser import SafeConfigParser as ConfigParser
