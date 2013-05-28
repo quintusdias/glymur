@@ -1,6 +1,14 @@
 """Classes for individual JPEG 2000 boxes.
 
-Contains classes for each individual JPEG2000 boxes.
+References
+----------
+.. [JP2K15444-1i] International Organization for Standardication.  ISO/IEC
+   15444-1:2004 - Information technology -- JPEG 2000 image coding system:
+   Core coding system"
+
+.. [JP2K15444-2m] International Organization for Standardication.  ISO/IEC
+   15444-2:2004 - Information technology -- JPEG 2000 image coding system:
+   Extensions
 """
 
 import copy
@@ -28,7 +36,7 @@ class Jp2kBox:
     Attributes
     ----------
     id : str
-        4-byte identifier for the box.
+        4-character identifier for the box.
     length : int
         length of the box in bytes.
     offset : int
@@ -127,7 +135,7 @@ class ColourSpecificationBox(Jp2kBox):
     Attributes
     ----------
     id : str
-        4-byte identifier for the box.
+        4-character identifier for the box.
     length : int
         Length of the box in bytes.
     offset : int
@@ -147,12 +155,6 @@ class ColourSpecificationBox(Jp2kBox):
     icc_profile : byte array or None
         ICC profile according to ICC profile specification.  If not None, then
         color_space must be None.
-
-    References
-    ----------
-    .. [JP2K15444-1i] International Organization for Standardication.  ISO/IEC
-       15444-1:2004 - Information technology -- JPEG 2000 image coding system:
-       Core coding system"
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='Colour Specification')
@@ -230,7 +232,7 @@ class ComponentDefinitionBox(Jp2kBox):
     Attributes
     ----------
     id : str
-        4-byte identifier for the box.
+        4-character identifier for the box.
     length : numeric scalar
         length of the box in bytes.
     offset : int
@@ -243,12 +245,6 @@ class ComponentDefinitionBox(Jp2kBox):
         type of the component
     association : int
         number of the associated color
-
-    References
-    ----------
-    .. [JP2K15444-1i] International Organization for Standardication.  ISO/IEC
-       15444-1:2004 - Information technology -- JPEG 2000 image coding system:
-       Core coding system"
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='Component Definition')
@@ -314,7 +310,7 @@ class ComponentMappingBox(Jp2kBox):
     Attributes
     ----------
     id : str
-        4-byte identifier for the box.
+        4-character identifier for the box.
     length : numeric scalar
         Length of the box in bytes.
     offset : int
@@ -327,12 +323,6 @@ class ComponentMappingBox(Jp2kBox):
         mapping type, either direct use (0) or palette (1)
     palette_index : int
         Index component from palette
-
-    References
-    ----------
-    .. [JP2K15444-1i] International Organization for Standardication.  ISO/IEC
-       15444-1:2004 - Information technology -- JPEG 2000 image coding system:
-       Core coding system"
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='Component Mapping')
@@ -395,7 +385,7 @@ class ContiguousCodestreamBox(Jp2kBox):
     Attributes
     ----------
     id : str
-        4-byte identifier for the box.
+        4-character identifier for the box.
     length : int
         length of the box in bytes.
     offset : int
@@ -404,12 +394,6 @@ class ContiguousCodestreamBox(Jp2kBox):
         more verbose description of the box.
     main_header : list
         List of segments in the codestream header.
-
-    References
-    ----------
-    .. [JP2K15444-1i] International Organization for Standardication.  ISO/IEC
-       15444-1:2004 - Information technology -- JPEG 2000 image coding system:
-       Core coding system"
     """
 
     def __init__(self, **kwargs):
@@ -463,7 +447,7 @@ class FileTypeBox(Jp2kBox):
     Attributes
     ----------
     id : str
-        4-byte identifier for the box.
+        4-character identifier for the box.
     length : int
         length of the box in bytes.
     offset : int
@@ -477,12 +461,6 @@ class FileTypeBox(Jp2kBox):
         Minor version number identifying the JP2 specification used.
     compatibility_list: list
         List of file conformance profiles.
-
-    References
-    ----------
-    .. [JP2K15444-1i] International Organization for Standardication.  ISO/IEC
-       15444-1:2004 - Information technology -- JPEG 2000 image coding system:
-       Core coding system"
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='File Type')
@@ -552,7 +530,7 @@ class ImageHeaderBox(Jp2kBox):
     Attributes
     ----------
     id : str
-        4-byte identifier for the box.
+        4-character identifier for the box.
     length : int
         length of the box in bytes.
     offset : int
@@ -573,12 +551,6 @@ class ImageHeaderBox(Jp2kBox):
         0 if the color space is known and correctly specified.
     ip_provided : int
         0 if the file does not contain intellectual propery rights information.
-
-    References
-    ----------
-    .. [JP2K15444-1i] International Organization for Standardication.  ISO/IEC
-       15444-1:2004 - Information technology -- JPEG 2000 image coding system:
-       Core coding system"
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='Image Header')
@@ -643,7 +615,7 @@ class AssociationBox(Jp2kBox):
     Attributes
     ----------
     id : str
-        4-byte identifier for the box.
+        4-character identifier for the box.
     length : int
         length of the box in bytes.
     offset : int
@@ -652,12 +624,6 @@ class AssociationBox(Jp2kBox):
         more verbose description of the box.
     box : list
         List of boxes contained in this superbox.
-
-    References
-    ----------
-    .. [JP2K15444-2m] International Organization for Standardication.  ISO/IEC
-       15444-2:2004 - Information technology -- JPEG 2000 image coding system:
-       Extensions
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='Association')
@@ -713,7 +679,7 @@ class JP2HeaderBox(Jp2kBox):
     Attributes
     ----------
     id : str
-        4-byte identifier for the box.
+        4-character identifier for the box.
     length : int
         length of the box in bytes.
     offset : int
@@ -722,12 +688,6 @@ class JP2HeaderBox(Jp2kBox):
         more verbose description of the box.
     box : list
         List of boxes contained in this superbox.
-
-    References
-    ----------
-    .. [JP2K15444-1i] International Organization for Standardication.  ISO/IEC
-       15444-1:2004 - Information technology -- JPEG 2000 image coding system:
-       Core coding system"
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='JP2 Header')
@@ -783,7 +743,7 @@ class JPEG2000SignatureBox(Jp2kBox):
     Attributes
     ----------
     id : str
-        4-byte identifier for the box.
+        4-character identifier for the box.
     length : int
         length of the box in bytes.
     offset : int
@@ -792,12 +752,6 @@ class JPEG2000SignatureBox(Jp2kBox):
         more verbose description of the box.
     signature : byte
         Four-byte tuple identifying the file as JPEG 2000.
-
-    References
-    ----------
-    .. [JP2K15444-1i] International Organization for Standardication.  ISO/IEC
-       15444-1:2004 - Information technology -- JPEG 2000 image coding system:
-       Core coding system"
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='JPEG 2000 Signature')
@@ -846,7 +800,7 @@ class PaletteBox(Jp2kBox):
     Attributes
     ----------
     id : str
-        4-byte identifier for the box.
+        4-character identifier for the box.
     length : int
         length of the box in bytes.
     offset : int
@@ -855,12 +809,6 @@ class PaletteBox(Jp2kBox):
         more verbose description of the box.
     palette : list
         Colormap represented as list of 1D arrays, one per color component.
-
-    References
-    ----------
-    .. [JP2K15444-1i] International Organization for Standardication.  ISO/IEC
-       15444-1:2004 - Information technology -- JPEG 2000 image coding system:
-       Core coding system"
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='Palette')
@@ -953,7 +901,7 @@ class ReaderRequirementsBox(Jp2kBox):
     Attributes
     ----------
     id : str
-        4-byte identifier for the box.
+        4-character identifier for the box.
     length : int
         length of the box in bytes.
     offset : int
@@ -974,12 +922,6 @@ class ReaderRequirementsBox(Jp2kBox):
     vendor_mask : list
         Specifies the compatibility mask for each corresponding vendor
         feature.
-
-    References
-    ----------
-    .. [JP2K15444-2m] International Organization for Standardication.  ISO/IEC
-       15444-2:2004 - Information technology -- JPEG 2000 image coding system:
-       Extensions
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='Reader Requirements')
@@ -1090,7 +1032,7 @@ class ResolutionBox(Jp2kBox):
     Attributes
     ----------
     id : str
-        4-byte identifier for the box.
+        4-character identifier for the box.
     length : int
         length of the box in bytes.
     offset : int
@@ -1099,12 +1041,6 @@ class ResolutionBox(Jp2kBox):
         more verbose description of the box.
     box : list
         List of boxes contained in this superbox.
-
-    References
-    ----------
-    .. [JP2K15444-1i] International Organization for Standardication.  ISO/IEC
-       15444-1:2004 - Information technology -- JPEG 2000 image coding system:
-       Core coding system"
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='Resolution')
@@ -1160,7 +1096,7 @@ class CaptureResolutionBox(ResolutionBox):
     Attributes
     ----------
     id : str
-        4-byte identifier for the box.
+        4-character identifier for the box.
     length : int
         length of the box in bytes.
     offset : int
@@ -1169,12 +1105,6 @@ class CaptureResolutionBox(ResolutionBox):
         more verbose description of the box.
     VR, HR : float
         Vertical, horizontal resolution.
-
-    References
-    ----------
-    .. [JP2K15444-1i] International Organization for Standardication.  ISO/IEC
-       15444-1:2004 - Information technology -- JPEG 2000 image coding system:
-       Core coding system"
     """
     def __init__(self, **kwargs):
         ResolutionBox.__init__(self, id='', longname='Capture Resolution')
@@ -1227,7 +1157,7 @@ class DisplayResolutionBox(ResolutionBox):
     Attributes
     ----------
     id : str
-        4-byte identifier for the box.
+        4-character identifier for the box.
     length : int
         length of the box in bytes.
     offset : int
@@ -1236,12 +1166,6 @@ class DisplayResolutionBox(ResolutionBox):
         more verbose description of the box.
     VR, HR : float
         Vertical, horizontal resolution.
-
-    References
-    ----------
-    .. [JP2K15444-1i] International Organization for Standardication.  ISO/IEC
-       15444-1:2004 - Information technology -- JPEG 2000 image coding system:
-       Core coding system"
     """
     def __init__(self, **kwargs):
         ResolutionBox.__init__(self, id='', longname='Display Resolution')
@@ -1294,7 +1218,7 @@ class LabelBox(Jp2kBox):
     Attributes
     ----------
     id : str
-        4-byte identifier for the box.
+        4-character identifier for the box.
     length : int
         length of the box in bytes.
     offset : int
@@ -1303,12 +1227,6 @@ class LabelBox(Jp2kBox):
         more verbose description of the box.
     label : str
         Label
-
-    References
-    ----------
-    .. [JP2K15444-2m] International Organization for Standardication.  ISO/IEC
-       15444-2:2004 - Information technology -- JPEG 2000 image coding system:
-       Extensions
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='Label')
@@ -1356,7 +1274,7 @@ class XMLBox(Jp2kBox):
     Attributes
     ----------
     id : str
-        4-byte identifier for the box.
+        4-character identifier for the box.
     length : int
         length of the box in bytes.
     offset : int
@@ -1365,18 +1283,12 @@ class XMLBox(Jp2kBox):
         more verbose description of the box.
     xml : ElementTree.Element
         XML section.
-
-    References
-    ----------
-    .. [JP2K15444-1i] International Organization for Standardication.  ISO/IEC
-       15444-1:2004 - Information technology -- JPEG 2000 image coding system:
-       Core coding system"
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='XML')
         self.__dict__.update(**kwargs)
 
-    def indent(self, elem, level=0):
+    def _indent(self, elem, level=0):
         """recipe for pretty printing XML.  Please see
 
         http://effbot.org/zone/element-lib.htm#prettyprint
@@ -1388,7 +1300,7 @@ class XMLBox(Jp2kBox):
             if not elem.tail or not elem.tail.strip():
                 elem.tail = i
             for elem in elem:
-                self.indent(elem, level + 1)
+                self._indent(elem, level + 1)
             if not elem.tail or not elem.tail.strip():
                 elem.tail = i
         else:
@@ -1400,7 +1312,7 @@ class XMLBox(Jp2kBox):
         xml = self.xml
         if self.xml is not None:
             xml = copy.deepcopy(self.xml)
-            self.indent(xml)
+            self._indent(xml)
             xmltext = ET.tostring(xml).decode('utf-8')
 
             # Indent it a bit.
@@ -1460,7 +1372,7 @@ class UUIDListBox(Jp2kBox):
     Attributes
     ----------
     id : str
-        4-byte identifier for the box.
+        4-character identifier for the box.
     length : int
         length of the box in bytes.
     offset : int
@@ -1469,12 +1381,6 @@ class UUIDListBox(Jp2kBox):
         more verbose description of the box.
     ulst : list
         List of UUIDs.
-
-    References
-    ----------
-    .. [JP2K15444-1i] International Organization for Standardication.  ISO/IEC
-       15444-1:2004 - Information technology -- JPEG 2000 image coding system:
-       Core coding system"
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='UUID List')
@@ -1528,7 +1434,7 @@ class UUIDInfoBox(Jp2kBox):
     Attributes
     ----------
     id : str
-        4-byte identifier for the box.
+        4-character identifier for the box.
     length : int
         length of the box in bytes.
     offset : int
@@ -1537,12 +1443,6 @@ class UUIDInfoBox(Jp2kBox):
         more verbose description of the box.
     box : list
         List of boxes contained in this superbox.
-
-    References
-    ----------
-    .. [JP2K15444-1i] International Organization for Standardication.  ISO/IEC
-       15444-1:2004 - Information technology -- JPEG 2000 image coding system:
-       Core coding system"
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='UUIDInfo')
@@ -1599,7 +1499,7 @@ class DataEntryURLBox(Jp2kBox):
     Attributes
     ----------
     id : str
-        4-byte identifier for the box.
+        4-character identifier for the box.
     length : int
         length of the box in bytes.
     offset : int
@@ -1612,12 +1512,6 @@ class DataEntryURLBox(Jp2kBox):
         Particular attributes of this box, consists of three bytes.
     URL : str
         Associated URL.
-
-    References
-    ----------
-    .. [JP2K15444-1i] International Organization for Standardication.  ISO/IEC
-       15444-1:2004 - Information technology -- JPEG 2000 image coding system:
-       Core coding system"
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='Data Entry URL')
@@ -1678,7 +1572,7 @@ class UUIDBox(Jp2kBox):
     Attributes
     ----------
     id : str
-        4-byte identifier for the box.
+        4-character identifier for the box.
     length : int
         length of the box in bytes.
     offset : int
@@ -1689,12 +1583,6 @@ class UUIDBox(Jp2kBox):
         16-byte UUID
     data : bytes
         Vendor-specific UUID data.
-
-    References
-    ----------
-    .. [JP2K15444-1i] International Organization for Standardication.  ISO/IEC
-       15444-1:2004 - Information technology -- JPEG 2000 image coding system:
-       Core coding system"
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='UUID')
