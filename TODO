@@ -1,4 +1,0 @@
-Test -c options with multiple values.
-Test -b options with h*w>4096
-Test -b options with h or w > 1024
-Test -b options with h or w < 4
