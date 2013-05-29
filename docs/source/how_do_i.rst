@@ -2,6 +2,11 @@
 How do I...?
 ************
 
+Get the code?
+=============
+Go to http://github.com/quintusdias/glymur
+
+
 Display metadata?
 =================
 There are two ways.  From the unix command line, the script **jp2dump** is
