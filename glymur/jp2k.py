@@ -8,6 +8,7 @@ if sys.hexversion >= 0x03030000:
 else:
     from contextlib2 import ExitStack
 import ctypes
+import math
 import os
 import struct
 import warnings
@@ -181,7 +182,8 @@ class Jp2k(Jp2kBox):
         psnr : list, optional
             Different PSNR for successive layers.
         psizes : list, optional
-            List of precinct sizes.
+            List of precinct sizes.  Each precinct size tuple is defined in
+            (height x width).
         sop : bool, optional
             If true, write SOP marker before each packet.
         subsam : tuple, optional
@@ -266,9 +268,15 @@ class Jp2k(Jp2kBox):
             cparams.cp_fixed_quality = 1
 
         if psizes is not None:
-            for j, precinct in enumerate(psizes):
-                cparams.prcw_init[j] = precinct[0]
-                cparams.prch_init[j] = precinct[1]
+            for j, (prch, prcw) in enumerate(psizes):
+                if ((math.log(prch, 2) != math.floor(math.log(prch, 2)) or
+                     math.log(prcw, 2) != math.floor(math.log(prcw, 2)))):
+                    msg = "Bad precinct size ({0}, {1}), "
+                    msg += "must be multiple of 2."
+                    raise IOError(msg.format(prch, prcw))
+
+                cparams.prcw_init[j] = prcw
+                cparams.prch_init[j] = prch
             cparams.csty |= 0x01
             cparams.res_spec = len(psizes)
 
