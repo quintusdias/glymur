@@ -10,11 +10,11 @@ Go to http://github.com/quintusdias/glymur
 Display metadata?
 =================
 There are two ways.  From the unix command line, the script **jp2dump** is
-available.::
+available. ::
 
     $ jp2dump /path/to/glymur/installation/data/nemo.jp2
 
-From within Python, it is as simple as printing the Jp2k object, i.e.::
+From within Python, it is as simple as printing the Jp2k object, i.e. ::
 
     >>> import pkg_resources
     >>> from glymur import Jp2k
@@ -23,7 +23,7 @@ From within Python, it is as simple as printing the Jp2k object, i.e.::
     >>> print(j)
 
 The primary emphasis is on JP2 metadata, but it is possible to
-display raw codestream as well::
+display just raw codestream as well. This will display metadata present in the 
+codestream's main header only. ::
 
     >>> print(j.get_codestream())
-
