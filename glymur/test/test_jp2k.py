@@ -53,7 +53,7 @@ class TestJp2k(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         jp2file = pkg_resources.resource_filename(glymur.__name__,
-                                                       "data/nemo.jp2")
+                                                  "data/nemo.jp2")
         with tempfile.NamedTemporaryFile(suffix='.jp2', delete=False) as tfile:
             cls._bad_xml_file = tfile.name
             with open(jp2file, 'rb') as ifile:
