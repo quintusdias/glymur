@@ -537,10 +537,9 @@ class TestJp2k(unittest.TestCase):
 
                 # Now append the codestream.
                 tfile2.write(codestream)
+                tfile2.flush()
 
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    jasoc = Jp2k(tfile2.name)
+                jasoc = Jp2k(tfile2.name)
                 self.assertEqual(jasoc.box[3].id, 'asoc')
                 self.assertEqual(jasoc.box[3].box[0].id, 'lbl ')
                 self.assertEqual(jasoc.box[3].box[0].label, 'label')
