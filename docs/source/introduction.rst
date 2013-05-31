@@ -7,9 +7,9 @@ which allows linux and mac users to read and write JPEG 2000 files.  For more
 information about OpenJPEG, please consult http://www.openjpeg.org.  glymur
 should be considered to be alpha-quality software.
 
-glymur tries to support reading (including all metadata) and writing of
-JP2 and J2C files.  Writing J2C/JP2 files is currently limited to images that
-can fit in memory, however.
+glymur tries to support reading and writing of JP2 and J2C files.  Writing
+J2C/JP2 files is currently limited to images that can fit in memory, however.
+Of particular focus is metadata retrieval, such as XMP packets.
 
 There is some very limited support for reading JPX
 metadata.  For instance, **asoc** and **labl** boxes are recognized, so GMLJP2

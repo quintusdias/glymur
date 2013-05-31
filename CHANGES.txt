@@ -1,8 +1,8 @@
-May 30, 2013 - Added jp2 boxes to rst docs, XMLBox.indent method made private.
-    Precinct sizes must be multiples of two.
+May 30, 2013 - v0.2.0.  Added XMP UUID read support.  Added jp2 boxes to rst
+    docs, XMLBox.indent method made into a private module method.  Precinct
+    sizes restricted to be multiples of two.
 
-May 27, 2013 - v0.1.1, Changed write example to not rely on matplotlib.  Fixed
+May 27, 2013 - v0.1.1.  Changed write example to not rely on matplotlib.  Fixed
     readthedocs.org setup to build documentation automatically.  Can import 
-    glymur without libopenjp2 actually being present.
-
-May 27, 2013 - Changed write example to not rely on matplotlib.
+    glymur without libopenjp2 actually being present.  Changed write example
+    to not rely on matplotlib.
