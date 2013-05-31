@@ -1,4 +1,4 @@
-May 30, 2013 - v0.2.0.  Added XMP UUID read support.  Added jp2 boxes to rst
+May 30, 2013 - v0.1.2.  Added XMP UUID read support.  Added jp2 boxes to rst
     docs, XMLBox.indent method made into a private module method.  Precinct
     sizes restricted to be multiples of two.
 
