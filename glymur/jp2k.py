@@ -642,7 +642,7 @@ class Jp2k(Jp2kBox):
         >>> jp = glymur.Jp2k(jfile)
         >>> codestream = jp.get_codestream()
         >>> print(codestream.segment[1])
-        SIZ marker segment @ (87, 47)
+        SIZ marker segment @ (3137, 47)
             Profile:  2
             Reference Grid Height, Width:  (1456 x 2592)
             Vertical, Horizontal Reference Grid Offset:  (0 x 0)
