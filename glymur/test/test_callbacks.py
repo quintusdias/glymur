@@ -53,7 +53,7 @@ class TestCallbacks(unittest.TestCase):
         d = j.read(reduce=3, verbose=True, area=(0, 0, 512, 1024))
         actual = sys.stdout.getvalue().strip()
 
-        lines = ['[INFO] Start to read j2k main header (85).',
+        lines = ['[INFO] Start to read j2k main header (3135).',
                  '[INFO] Main header has been correctly decoded.',
                  '[INFO] Setting decoding area to 0,0,1024,512',
                  '[INFO] Header of tile 0 / 17 has been read.',
