@@ -21,7 +21,7 @@ clssfrs = ["Programming Language :: Python",
            "Development Status :: 3 - Alpha",
            "Operating System :: MacOS",
            "Operating System :: POSIX :: Linux",
-           "Intended Audience :: Scientific/Research",
+           "Intended Audience :: Science/Research",
            "Intended Audience :: Information Technology",
            "Topic :: Software Development :: Libraries :: Python Modules"]
 kwargs['classifiers'] = clssfrs
