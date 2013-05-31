@@ -1288,37 +1288,11 @@ class XMLBox(Jp2kBox):
         Jp2kBox.__init__(self, id='', longname='XML')
         self.__dict__.update(**kwargs)
 
-    def _indent(self, elem, level=0):
-        """recipe for pretty printing XML.  Please see
-
-        http://effbot.org/zone/element-lib.htm#prettyprint
-        """
-        i = "\n" + level * "  "
-        if len(elem):
-            if not elem.text or not elem.text.strip():
-                elem.text = i + "  "
-            if not elem.tail or not elem.tail.strip():
-                elem.tail = i
-            for elem in elem:
-                self._indent(elem, level + 1)
-            if not elem.tail or not elem.tail.strip():
-                elem.tail = i
-        else:
-            if level and (not elem.tail or not elem.tail.strip()):
-                elem.tail = i
-
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         xml = self.xml
         if self.xml is not None:
-            xml = copy.deepcopy(self.xml)
-            self._indent(xml)
-            xmltext = ET.tostring(xml).decode('utf-8')
-
-            # Indent it a bit.
-            lst = [('    ' + x) for x in xmltext.split('\n')]
-            xml = '\n'.join(lst)
-            msg += '\n{0}'.format(xml)
+            msg += _pretty_print_xml(self.xml)
         else:
             msg += '\n    {0}'.format(xml)
         return msg
@@ -1581,17 +1555,30 @@ class UUIDBox(Jp2kBox):
         more verbose description of the box.
     uuid : uuid.UUID
         16-byte UUID
-    data : bytes
-        Vendor-specific UUID data.
+    data : bytes or ElementTree.Element
+        Vendor-specific UUID data.  XMP UUIDs are interpreted as standard XML.
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='UUID')
         self.__dict__.update(**kwargs)
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
-        msg += '\n    UUID:  {0}'.format(self.uuid)
-        msg += '\n    UUID Data:  {0} bytes'.format(len(self.data))
+        msg = '{0}\n'
+        msg += '    UUID:  {1}{2}\n'
+        msg += '    UUID Data:  {3}'
+
+        if self.uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
+            uuid_type = ' (XMP)'
+            uuid_data = _pretty_print_xml(self.data)
+        else:
+            uuid_type = ''
+            uuid_data = '{0} bytes'.format(len(self.data))
+
+        msg = msg.format(Jp2kBox.__str__(self),
+                         self.uuid,
+                         uuid_type,
+                         uuid_data)
+
         return msg
 
     @staticmethod
@@ -1622,7 +1609,17 @@ class UUIDBox(Jp2kBox):
 
         n = offset + length - f.tell()
         buffer = f.read(n)
-        kwargs['data'] = buffer
+        if kwargs['uuid'] == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
+            # XMP data.  Parse as XML.  Seems to be a difference between 
+            # ElementTree in version 2.7 and 3.3.
+            if sys.hexversion < 0x03000000:
+                parser = ET.XMLParser(encoding='utf-8')
+                kwargs['data'] = ET.fromstringlist(buffer, parser=parser)
+            else:
+                text = buffer.decode('utf-8')
+                kwargs['data'] = ET.fromstring(text)
+        else:
+            kwargs['data'] = buffer
         box = UUIDBox(**kwargs)
         return box
 
@@ -1649,3 +1646,34 @@ _box_with_id = {
     'url ': DataEntryURLBox,
     'uuid': UUIDBox,
     'xml ': XMLBox}
+
+def _indent(elem, level=0):
+    """Recipe for pretty printing XML.  Please see
+
+    http://effbot.org/zone/element-lib.htm#prettyprint
+    """
+    i = "\n" + level * "  "
+    if len(elem):
+        if not elem.text or not elem.text.strip():
+            elem.text = i + "  "
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+        for elem in elem:
+            _indent(elem, level + 1)
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+    else:
+        if level and (not elem.tail or not elem.tail.strip()):
+            elem.tail = i
+
+def _pretty_print_xml(xml, level=0):
+    """Pretty print XML data.
+    """
+    xml = copy.deepcopy(xml)
+    _indent(xml, level=level)
+    xmltext = ET.tostring(xml).decode('utf-8')
+
+    # Indent it a bit.
+    lst = [('    ' + x) for x in xmltext.split('\n')]
+    xml = '\n'.join(lst)
+    return '\n{0}'.format(xml)

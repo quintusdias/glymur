@@ -50,19 +50,13 @@ def chdir(dirname=None):
 
 class TestJp2k(unittest.TestCase):
 
-    def setUp(self):
-        self.jp2file = pkg_resources.resource_filename(glymur.__name__,
-                                                       "data/nemo.jp2")
-
-    def tearDown(self):
-        pass
-
-    @unittest.skipIf(sys.hexversion < 0x03020000,
-                     "Uses features introduced in 3.2.")
-    def test_invalid_xml_box(self):
-        # Should be able to recover from xml box with bad xml.
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-            with open(self.jp2file, 'rb') as ifile:
+    @classmethod
+    def setUpClass(cls):
+        jp2file = pkg_resources.resource_filename(glymur.__name__,
+                                                  "data/nemo.jp2")
+        with tempfile.NamedTemporaryFile(suffix='.jp2', delete=False) as tfile:
+            cls._bad_xml_file = tfile.name
+            with open(jp2file, 'rb') as ifile:
                 # Everything up until the jp2c box.
                 buffer = ifile.read(77)
                 tfile.write(buffer)
@@ -81,13 +75,35 @@ class TestJp2k(unittest.TestCase):
                 tfile.write(buffer)
                 tfile.flush()
 
-            with self.assertWarns(UserWarning) as cw:
-                jp2k = Jp2k(tfile.name)
+    @classmethod
+    def tearDownClass(cls):
+        os.unlink(cls._bad_xml_file)
 
-            self.assertEqual(jp2k.box[3].id, 'xml ')
-            self.assertEqual(jp2k.box[3].offset, 77)
-            self.assertEqual(jp2k.box[3].length, 28)
-            self.assertIsNone(jp2k.box[3].xml)
+    def setUp(self):
+        self.jp2file = pkg_resources.resource_filename(glymur.__name__,
+                                                       "data/nemo.jp2")
+
+    def tearDown(self):
+        pass
+
+    @unittest.skipIf(sys.hexversion < 0x03020000,
+                     "Uses features introduced in 3.2.")
+    def test_invalid_xml_box_warning(self):
+        # Should be able to recover from xml box with bad xml.
+        # Just verify that a warning is issued on 3.2+
+        with self.assertWarns(UserWarning) as cw:
+            jp2k = Jp2k(self._bad_xml_file)
+
+    def test_invalid_xml_box(self):
+        # Should be able to recover from xml box with bad xml.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            jp2k = Jp2k(self._bad_xml_file)
+
+        self.assertEqual(jp2k.box[3].id, 'xml ')
+        self.assertEqual(jp2k.box[3].offset, 77)
+        self.assertEqual(jp2k.box[3].length, 28)
+        self.assertIsNone(jp2k.box[3].xml)
 
     def test_bad_area_parameter(self):
         # Verify that we error out appropriately if given a bad area parameter.
@@ -139,7 +155,7 @@ class TestJp2k(unittest.TestCase):
         jp2k = Jp2k(self.jp2file)
 
         # top-level boxes
-        self.assertEqual(len(jp2k.box), 4)
+        self.assertEqual(len(jp2k.box), 6)
 
         self.assertEqual(jp2k.box[0].id, 'jP  ')
         self.assertEqual(jp2k.box[0].offset, 0)
@@ -156,9 +172,17 @@ class TestJp2k(unittest.TestCase):
         self.assertEqual(jp2k.box[2].length, 45)
         self.assertEqual(jp2k.box[2].longname, 'JP2 Header')
 
-        self.assertEqual(jp2k.box[3].id, 'jp2c')
+        self.assertEqual(jp2k.box[3].id, 'uuid')
         self.assertEqual(jp2k.box[3].offset, 77)
-        self.assertEqual(jp2k.box[3].length, 1133427)
+        self.assertEqual(jp2k.box[3].length, 638)
+
+        self.assertEqual(jp2k.box[4].id, 'uuid')
+        self.assertEqual(jp2k.box[4].offset, 715)
+        self.assertEqual(jp2k.box[4].length, 2412)
+
+        self.assertEqual(jp2k.box[5].id, 'jp2c')
+        self.assertEqual(jp2k.box[5].offset, 3127)
+        self.assertEqual(jp2k.box[5].length, 1133427)
 
         # jp2h super box
         self.assertEqual(len(jp2k.box[2].box), 2)
@@ -200,7 +224,7 @@ class TestJp2k(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             with open(self.jp2file, 'rb') as ifile:
                 # Everything up until the jp2c box.
-                buffer = ifile.read(77)
+                buffer = ifile.read(3127)
                 tfile.write(buffer)
 
                 # The L field must be 1 in order to signal the presence of the
@@ -221,9 +245,9 @@ class TestJp2k(unittest.TestCase):
 
             jp2k = Jp2k(tfile.name)
 
-            self.assertEqual(jp2k.box[3].id, 'jp2c')
-            self.assertEqual(jp2k.box[3].offset, 77)
-            self.assertEqual(jp2k.box[3].length, 1133427 + 8)
+            self.assertEqual(jp2k.box[5].id, 'jp2c')
+            self.assertEqual(jp2k.box[5].offset, 3127)
+            self.assertEqual(jp2k.box[5].length, 1133427 + 8)
 
     def test_L_is_zero(self):
         # Verify that boxes with the L field as zero are correctly read.
@@ -513,10 +537,9 @@ class TestJp2k(unittest.TestCase):
 
                 # Now append the codestream.
                 tfile2.write(codestream)
+                tfile2.flush()
 
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    jasoc = Jp2k(tfile2.name)
+                jasoc = Jp2k(tfile2.name)
                 self.assertEqual(jasoc.box[3].id, 'asoc')
                 self.assertEqual(jasoc.box[3].box[0].id, 'lbl ')
                 self.assertEqual(jasoc.box[3].box[0].label, 'label')
@@ -528,17 +551,19 @@ class TestJp2k(unittest.TestCase):
         with open(self.jp2file, 'rb') as fp:
             data = fp.read()
             with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-                tfile.write(data[0:129])
+                # Codestream starts at byte 3127. SIZ marker at 3137.
+                # COD marker at 3186.  Subsampling at 3180.
+                tfile.write(data[0:3179])
 
                 # Make the DY bytes of the SIZ segment zero.  That means that
                 # a subsampling factor is zero, which is illegal.
                 tfile.write(b'\x00')
-                tfile.write(data[130:132])
+                tfile.write(data[3180:3182])
                 tfile.write(b'\x00')
-                tfile.write(data[134:136])
+                tfile.write(data[3184:3186])
                 tfile.write(b'\x00')
 
-                tfile.write(data[136:])
+                tfile.write(data[3186:])
                 tfile.flush()
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
@@ -592,6 +617,17 @@ class TestJp2k(unittest.TestCase):
         # specified via environment variable is not found.
         with tempfile.TemporaryDirectory() as tdir:
             with patch.dict('os.environ', {'GLYMURCONFIGDIR': tdir}):
+                # Misconfigured new configuration file should
+                # be rejected.
+                with self.assertWarns(UserWarning) as cw:
+                    imp.reload(glymur)
+
+    @unittest.skipIf(sys.hexversion < 0x03020000,
+                     "Uses features introduced in 3.2.")
+    def test_home_dir_missing_config_dir(self):
+        # Verify no exception is raised if $HOME is missing .glymur directory.
+        with tempfile.TemporaryDirectory() as tdir:
+            with patch.dict('os.environ', {'HOME': tdir}):
                 # Misconfigured new configuration file should
                 # be rejected.
                 with self.assertWarns(UserWarning) as cw:

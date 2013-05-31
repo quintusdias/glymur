@@ -16,24 +16,15 @@ def _glymurrc_fname():
     if os.path.exists(fname):
         return fname
 
-    # environ var GLYMURCONFIGDIR
-    if 'GLYMURCONFIGDIR' in os.environ:
-        path = os.environ['GLYMURCONFIGDIR']
-        if os.path.exists(path):
-            fname = os.path.join(path, 'glymurrc')
-            if os.path.exists(fname):
-                return fname
-            else:
-                msg = "glymurrc file hinted at by GLYMURCONFIGDIR does not "
-                msg += "exist."
-                warnings.warn(msg, UserWarning)
-
-    # HOME/.glymur/glymurrc
+    # Either GLYMURCONFIGDIR/glymurrc or $HOME/.glymur/glymurrc
     confdir = _get_configdir()
     if confdir is not None:
-        fname = os.path.join(_get_configdir(), 'glymurrc')
+        fname = os.path.join(confdir, 'glymurrc')
         if os.path.exists(fname):
             return fname
+        else:
+            msg = "Configuration file '{0}' does not exist.".format(confdir)
+            warnings.warn(msg, UserWarning)
 
     # didn't find a configuration file.
     return None
