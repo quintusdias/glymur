@@ -1,6 +1,6 @@
 from distutils.core import setup
 
-kwargs = {'name': 'glymur',
+kwargs = {'name': 'Glymur',
           'version': '0.2.0',
           'description': 'Tools for manipulating JPEG2000 files',
           'long_description': open('README').read(),
