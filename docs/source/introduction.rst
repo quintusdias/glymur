@@ -1,19 +1,23 @@
 =========================================
-glymur: a Python interface for JPEG 2000
+Glymur: a Python interface for JPEG 2000
 =========================================
 
-**glymur** contains a Python interface to the OpenJPEG library
+**Glymur** contains a Python interface to the OpenJPEG library
 which allows linux and mac users to read and write JPEG 2000 files.  For more
-information about OpenJPEG, please consult http://www.openjpeg.org.  glymur
-should be considered to be alpha-quality software.
+information about OpenJPEG, please consult http://www.openjpeg.org.  Glymur
+currently relies upon a development version of the OpenJPEG library, and so,
+while useable, it is totally at the mercy of any upstream changes
+made to the development version of OpenJPEG.
 
-glymur tries to support reading and writing of JP2 and J2C files.  Writing
-J2C/JP2 files is currently limited to images that can fit in memory, however.
-Of particular focus is metadata retrieval, such as XMP packets.
+Glymur supports both reading and writing of JPEG 2000 images (part 1).  Writing
+JPEG 2000 images is currently limited to images that can fit in memory,
+however.
 
-There is some very limited support for reading JPX
-metadata.  For instance, **asoc** and **labl** boxes are recognized, so GMLJP2
-metadata can be retrieved from such JPX files.
+Of particular focus is retrieval of metadata.  Reading XMP UUID
+boxes is supported, as the data block consists of XML.  There is
+some very limited support for reading JPX metadata.  For instance,
+**asoc** and **labl** boxes are recognized, so GMLJP2 metadata can
+be retrieved from such JPX files.
 
 ------------
 Requirements

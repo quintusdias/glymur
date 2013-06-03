@@ -233,6 +233,11 @@ class Jp2k(Jp2kBox):
                 msg = "Code block area cannot exceed 4096.  "
                 msg += "Code block height and width must be larger than 4."
                 raise RuntimeError(msg)
+            if ((math.log(h, 2) != math.floor(math.log(h, 2)) or
+                 math.log(w, 2) != math.floor(math.log(w, 2)))):
+                msg = "Bad code block size ({0}, {1}), "
+                msg += "must be powers of 2."
+                raise IOError(msg.format(h, w))
             cparams.cblockw_init = w
             cparams.cblockh_init = h
 
@@ -269,10 +274,16 @@ class Jp2k(Jp2kBox):
 
         if psizes is not None:
             for j, (prch, prcw) in enumerate(psizes):
+                if j == 0 and cbsize is not None:
+                    cblkh, cblkw = cbsize
+                    if cblkh * 2 > prch or cblkw * 2 > prcw:
+                        msg = "Highest Resolution precinct size must be at "
+                        msg += "least twice that of the code block dimensions."
+                        raise IOError(msg)
                 if ((math.log(prch, 2) != math.floor(math.log(prch, 2)) or
                      math.log(prcw, 2) != math.floor(math.log(prcw, 2)))):
-                    msg = "Bad precinct size ({0}, {1}), "
-                    msg += "must be multiple of 2."
+                    msg = "Bad precinct sizes ({0}, {1}), "
+                    msg += "must be powers of 2."
                     raise IOError(msg.format(prch, prcw))
 
                 cparams.prcw_init[j] = prcw
