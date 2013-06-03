@@ -153,13 +153,34 @@ class TestSuiteNegative(unittest.TestCase):
             j = Jp2k(infile)
 
     def test_precinct_size_not_multiple_of_two(self):
-        # Seems like precinct size should be a multiple of two.
+        # Seems like precinct sizes should be powers of two.
         ifile = Jp2k(self.jp2file)
         data = ifile.read(reduce=3)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             ofile = Jp2k(tfile.name, 'wb')
             with self.assertRaises(IOError) as ce:
                 ofile.write(data, psizes=[(13, 13)])
+
+    def test_codeblock_size_not_multiple_of_two(self):
+        # Seems like code block sizes should be powers of two.
+        ifile = Jp2k(self.jp2file)
+        data = ifile.read(reduce=3)
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            ofile = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(IOError) as ce:
+                ofile.write(data, cbsize=(13, 12))
+
+    def test_codeblock_size_with_precinct_size(self):
+        # Seems like code block sizes should never exceed half that of 
+        # precinct size.
+        ifile = Jp2k(self.jp2file)
+        data = ifile.read(reduce=3)
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            ofile = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(IOError) as ce:
+                ofile.write(data,
+                            cbsize=(64, 64),
+                            psizes=[(64, 64)])
 
 if __name__ == "__main__":
     unittest.main()
