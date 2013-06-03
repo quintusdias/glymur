@@ -1,4 +1,4 @@
-Jun 02, 2013 - v0.1.3.  Raising IOErrors when code block size and precinct
+Jun 02, 2013 - v0.1.3p1  Raising IOErrors when code block size and precinct
     sizes are not in harmony.  Added statement to docs about upstream library
     dependence.  Added roadmap to docs.
 
