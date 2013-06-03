@@ -14,6 +14,7 @@ Contents:
    introduction
    api
    how_do_i
+   roadmap
 
 
 Indices and tables
