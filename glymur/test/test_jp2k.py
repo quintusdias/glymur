@@ -150,6 +150,19 @@ class TestJp2k(unittest.TestCase):
         subsetdata = j.read(area=(0, 0, 512, 512))
         np.testing.assert_array_equal(tiledata, subsetdata)
 
+    def test_write_cprl(self):
+        # Issue 17
+        j = Jp2k(self.jp2file)
+        expdata = j.read(reduce=2)
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            ofile = Jp2k(tfile.name, 'wb')
+            ofile.write(expdata, prog='CPRL')
+            actdata = ofile.read()
+            np.testing.assert_array_equal(actdata, expdata)
+
+            c = ofile.get_codestream()
+            self.assertEqual(c.segment[2].SPcod[0], glymur.core.CPRL)
+
     def test_jp2_boxes(self):
         # Verify the boxes of a JP2 file.
         jp2k = Jp2k(self.jp2file)
