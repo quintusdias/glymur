@@ -1618,6 +1618,8 @@ class UUIDBox(Jp2kBox):
             else:
                 text = buffer.decode('utf-8')
                 kwargs['data'] = ET.fromstring(text)
+        elif kwargs['uuid'].bytes == b'JpgTiffExif->JP2':
+            kwargs['data'] = _parse_exif(buffer)
         else:
             kwargs['data'] = buffer
         box = UUIDBox(**kwargs)
@@ -1665,6 +1667,73 @@ def _indent(elem, level=0):
     else:
         if level and (not elem.tail or not elem.tail.strip()):
             elem.tail = i
+
+_tagnum2name = {271: 'Make', 272: 'Model',
+         282: 'XResolution', 283:  'YResolution',
+         296: 'ResolutionUnit',
+         531: 'YCbCrPositioning',
+         34665: 'ExifTag',
+         34853: 'GPSTag'}
+
+def _parse_exif(buffer):
+    """Interpret raw buffer consisting of Exif IFD.
+    """
+    # Ignore the first six bytes.
+    # Next six should be (73, 73, 42, 8, numtags)
+    data = struct.unpack('<BBHIH', buffer[6:16])
+    num_tags = data[4]
+
+    fmt = '<' + 'HHII' * num_tags
+    data = struct.unpack(fmt, buffer[16:16 + num_tags * 12])
+    exif = {}
+    for j, tag in enumerate(data[0::4]):
+        offset_bytes = buffer[16 + j * 12 + 8:16 + j * 12 + 8 + 4]
+        exif[_tagnum2name[tag]] = _parse_exif_image_tag(data[j * 4 + 1],
+                                                        data[j * 4 + 2],
+                                                        offset_bytes,
+                                                        buffer)
+    print(exif)
+    return exif 
+
+# Map the TIFF enumerated datatype to the python datatype and data width.
+_datatype2fmt = {1: ('B', 1),
+                 2: ('B', 1),
+                 3: ('H', 2),
+                 4: ('I', 4),
+                 5: ('II', 8),
+                 7: ('B', 1),
+                 9: ('i', 4),
+                 10: ('ii', 8)}
+
+def _parse_exif_image_tag(datatype, count, offset_buffer, exif_buffer):
+    """Interpret an Exif image tag data payload.
+    """
+    fmt = _datatype2fmt[datatype][0] * count
+    payload_size = _datatype2fmt[datatype][1] * count
+
+    if payload_size <= 4:
+        # Interpret the payload from the 4 bytes in the tag entry.
+        target_buffer = offset_buffer[:payload_size]
+    else:
+        # Interpret the payload at the offset specified by the 4 bytes in the
+        # tag entry.
+        offset, = struct.unpack('<I', offset_buffer)
+        target_buffer = exif_buffer[6 + offset:6 + offset + payload_size]
+
+    if datatype == 2:
+        payload = target_buffer.decode('utf-8').rstrip()
+    else:
+        payload = struct.unpack('<' + fmt, target_buffer)
+        if datatype == 5:
+            rational_payload = []
+            for j in range(count):
+                value = float(payload[j * 2]) / float(payload[j * 2 + 1])
+                rational_payload.append(value)
+            payload = rational_payload
+        if count == 1:
+            payload = payload[0]
+
+    return payload                                            
 
 def _pretty_print_xml(xml, level=0):
     """Pretty print XML data.
