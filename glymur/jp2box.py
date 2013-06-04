@@ -1610,7 +1610,7 @@ class UUIDBox(Jp2kBox):
         n = offset + length - f.tell()
         buffer = f.read(n)
         if kwargs['uuid'] == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
-            # XMP data.  Parse as XML.  Seems to be a difference between 
+            # XMP data.  Parse as XML.  Seems to be a difference between
             # ElementTree in version 2.7 and 3.3.
             if sys.hexversion < 0x03000000:
                 parser = ET.XMLParser(encoding='utf-8')
@@ -1647,6 +1647,7 @@ _box_with_id = {
     'uuid': UUIDBox,
     'xml ': XMLBox}
 
+
 def _indent(elem, level=0):
     """Recipe for pretty printing XML.  Please see
 
@@ -1665,6 +1666,7 @@ def _indent(elem, level=0):
     else:
         if level and (not elem.tail or not elem.tail.strip()):
             elem.tail = i
+
 
 def _pretty_print_xml(xml, level=0):
     """Pretty print XML data.

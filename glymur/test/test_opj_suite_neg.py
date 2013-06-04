@@ -171,7 +171,7 @@ class TestSuiteNegative(unittest.TestCase):
                 ofile.write(data, cbsize=(13, 12))
 
     def test_codeblock_size_with_precinct_size(self):
-        # Seems like code block sizes should never exceed half that of 
+        # Seems like code block sizes should never exceed half that of
         # precinct size.
         ifile = Jp2k(self.jp2file)
         data = ifile.read(reduce=3)
