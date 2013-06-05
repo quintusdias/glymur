@@ -1619,12 +1619,238 @@ class UUIDBox(Jp2kBox):
                 text = buffer.decode('utf-8')
                 kwargs['data'] = ET.fromstring(text)
         elif kwargs['uuid'].bytes == b'JpgTiffExif->JP2':
-            kwargs['data'] = _parse_exif(buffer)
+            kwargs['data'] = Exif(buffer).exif_image
         else:
             kwargs['data'] = buffer
         box = UUIDBox(**kwargs)
         return box
 
+class Exif:
+    """
+    Attributes
+    ----------
+    buffer : bytes
+        Raw byte stream consisting of the UUID data. 
+    endian : str
+        Either '<' for big-endian, or '>' for little-endian.
+    """
+
+    def __init__(self, buffer):
+        """Interpret raw buffer consisting of Exif IFD.
+        """
+        self.exif_image = None
+        self.exif_photo = None
+        self.exif_gpsinfo = None
+        self.exif_iop = None
+
+        self.buffer = buffer
+
+        # Ignore the first six bytes.
+        # Next 8 should be (73, 73, 42, 8)
+        data = struct.unpack('<BBHI', buffer[6:14])
+        if data[0] == 73 and data[1] == 73:
+            # little endian
+            self.endian = '<'
+        else:
+            # big endian
+            self.endian = '>'
+        offset = data[3]
+
+        # This is the 'Exif Image' portion.
+        exif = ExifImageIfd(self.endian, buffer[6:], offset) 
+        self.exif_image = exif.ifd
+
+        if 'ExifTag' in self.exif_image.keys():
+            offset = self.exif_image['ExifTag']
+            photo = ExifPhotoIfd(self.endian, buffer[6:], offset)
+            self.exif_photo = photo.ifd
+
+            if 'InteroperabilityTag' in self.exif_photo.keys():
+                offset = self.exif_photo['InteroperabilityTag']
+                interop = ExifInteroperabilityIfd(self.endian,
+                                                  buffer[6:],
+                                                  offset)
+                self.iop = interop.ifd
+
+        if 'GPSTag' in self.exif_image.keys():
+            offset = self.exif_image['GPSTag']
+            gps = ExifGPSInfoIfd(self.endian, buffer[6:], offset)
+            self.exif_gpsinfo = gps.ifd
+
+class Ifd:
+    """
+    Attributes
+    ----------
+    buffer : bytes
+        Raw byte stream consisting of the UUID data. 
+    datatype2fmt : dictionary
+        Class attribute, maps the TIFF enumerated datatype to the python
+        datatype and data width.
+    endian : str
+        Either '<' for big-endian, or '>' for little-endian.
+    num_tags : int
+        Number of tags in the IFD.
+    raw_ifd : dictionary
+        Maps tag number to "mildly-interpreted" tag value.
+    """
+    datatype2fmt = {1: ('B', 1),
+                    2: ('B', 1),
+                    3: ('H', 2),
+                    4: ('I', 4),
+                    5: ('II', 8),
+                    7: ('B', 1),
+                    9: ('i', 4),
+                    10: ('ii', 8)}
+
+    def __init__(self, endian, buffer, offset):
+        self.endian = endian
+        self.buffer = buffer
+
+        self.num_tags, = struct.unpack(endian + 'H', buffer[offset:offset + 2])
+    
+        fmt = self.endian + 'HHII' * self.num_tags
+        data = struct.unpack(fmt, buffer[offset + 2:offset + 2 + self.num_tags * 12])
+        self.raw_ifd = {}
+        for j, tag in enumerate(data[0::4]):
+            tag_entry = buffer[offset + 2 + j * 12 + 8:offset + 2 + j * 12 + 8 + 4]
+            payload = self.parse_tag(data[j * 4 + 1],
+                                     data[j * 4 + 2],
+                                     tag_entry)
+            self.raw_ifd[tag] = payload
+
+    def parse_tag(self, dtype, count, offset_buf):
+        """Interpret an Exif image tag data payload.
+        """
+        fmt = self.datatype2fmt[dtype][0] * count
+        payload_size = self.datatype2fmt[dtype][1] * count
+    
+        if payload_size <= 4:
+            # Interpret the payload from the 4 bytes in the tag entry.
+            target_buffer = offset_buf[:payload_size]
+        else:
+            # Interpret the payload at the offset specified by the 4 bytes in the
+            # tag entry.
+            offset, = struct.unpack(self.endian + 'I', offset_buf)
+            target_buffer = self.buffer[offset:offset + payload_size]
+    
+        if dtype == 2:
+            # ASCII
+            payload = target_buffer.decode('utf-8').rstrip()
+        else:
+            payload = struct.unpack(self.endian + fmt, target_buffer)
+            if dtype == 5 or dtype == 10:
+                # Rational or Signed Rational.  Construct the list of values.
+                rational_payload = []
+                for j in range(count):
+                    value = float(payload[j * 2]) / float(payload[j * 2 + 1])
+                    rational_payload.append(value)
+                payload = rational_payload
+            if count == 1:
+                # If just a single value, then return a scalar instead of a 
+                # tuple.
+                payload = payload[0]
+    
+        return payload                                            
+
+
+class ExifImageIfd(Ifd):
+    tagnum2name = {271: 'Make',
+                   272: 'Model',
+                   282: 'XResolution',
+                   283:  'YResolution',
+                   296: 'ResolutionUnit',
+                   531: 'YCbCrPositioning',
+                   34665: 'ExifTag',
+                   34853: 'GPSTag'}
+
+    def __init__(self, endian, buffer, offset):
+        Ifd.__init__(self, endian, buffer, offset)
+
+        # Now post process the raw IFD.
+        self.ifd = {}
+        for tag, value in self.raw_ifd.items():
+            tag_name = self.tagnum2name[tag]
+            self.ifd[tag_name] = value
+
+class ExifPhotoIfd(Ifd):
+    tagnum2name = {34855: 'ISOSpeedRatings',
+                   36864: 'ExifVersion',
+                   36867: 'DateTimeOriginal',
+                   36868: 'DateTimeDigitized',
+                   37121: 'ComponentsConfiguration',
+                   37386: 'FocalLength',
+                   40960: 'FlashpixVersion',
+                   40961: 'ColorSpace',
+                   40962: 'PixelXDimension',
+                   40963: 'PixelYDimension',
+                   40965: 'InteroperabilityTag'}
+
+    def __init__(self, endian, buffer, offset):
+        Ifd.__init__(self, endian, buffer, offset)
+
+        # Now post process the raw IFD.
+        self.ifd = {}
+        for tag, value in self.raw_ifd.items():
+            tag_name = self.tagnum2name[tag]
+            self.ifd[tag_name] = value
+
+class ExifGPSInfoIfd(Ifd):
+    tagnum2name = {0: 'GPSVersionID',
+                   1: 'GPSLatitudeRef',
+                   2: 'GPSLatitude',
+                   3: 'GPSLongitudeRef',
+                   4: 'GPSLongitude',
+                   5: 'GPSAltitudeRef',
+                   6: 'GPSAltitude',
+                   7: 'GPSTimeStamp',
+                   8: 'GPSSatellites',
+                   9: 'GPSStatus',
+                   10: 'GPSMeasureMode',
+                   11: 'GPSDOP',
+                   12: 'GPSSpeedRef',
+                   13: 'GPSSpeed',
+                   14: 'GPSTrackRef',
+                   15: 'GPSTrack',
+                   16: 'GPSImgDirectionRef',
+                   17: 'GPSImgDirection',
+                   18: 'GPSMapDatum',
+                   19: 'GPSDestLatitudeRef',
+                   20: 'GPSDestLatitude',
+                   21: 'GPSDestLongitudeRef',
+                   22: 'GPSDestLongitude',
+                   23: 'GPSDestBearingRef',
+                   24: 'GPSDestBearing',
+                   25: 'GPSDestDistanceRef',
+                   26: 'GPSDestDistance',
+                   27: 'GPSProcessingMethod',
+                   28: 'GPSAreaInformation',
+                   29: 'GPSDateStamp',
+                   30: 'GPSDifferential'}
+
+    def __init__(self, endian, buffer, offset):
+        Ifd.__init__(self, endian, buffer, offset)
+
+        # Now post process the raw IFD.
+        self.ifd = {}
+        for tag, value in self.raw_ifd.items():
+            tag_name = self.tagnum2name[tag]
+            self.ifd[tag_name] = value
+
+class ExifInteroperabilityIfd(Ifd):
+    tagnum2name = {1: 'InteroperabilityIndex',
+                   2: 'InteroperabilityVersion',
+                   4096: 'RelatedImageFileFormat',
+                   4097: 'RelatedImageWidth',
+                   4098: 'RelatedImageLength'}
+
+    def __init__(self, endian, buffer, offset):
+        Ifd.__init__(self, endian, buffer, offset)
+
+        # Now post process the raw IFD.
+        self.ifd = {}
+        for tag, value in self.raw_ifd.items():
+            tag_name = self.tagnum2name[tag]
+            self.ifd[tag_name] = value
 
 # Map each box ID to the corresponding class.
 _box_with_id = {
@@ -1667,73 +1893,6 @@ def _indent(elem, level=0):
     else:
         if level and (not elem.tail or not elem.tail.strip()):
             elem.tail = i
-
-_tagnum2name = {271: 'Make', 272: 'Model',
-         282: 'XResolution', 283:  'YResolution',
-         296: 'ResolutionUnit',
-         531: 'YCbCrPositioning',
-         34665: 'ExifTag',
-         34853: 'GPSTag'}
-
-def _parse_exif(buffer):
-    """Interpret raw buffer consisting of Exif IFD.
-    """
-    # Ignore the first six bytes.
-    # Next six should be (73, 73, 42, 8, numtags)
-    data = struct.unpack('<BBHIH', buffer[6:16])
-    num_tags = data[4]
-
-    fmt = '<' + 'HHII' * num_tags
-    data = struct.unpack(fmt, buffer[16:16 + num_tags * 12])
-    exif = {}
-    for j, tag in enumerate(data[0::4]):
-        offset_bytes = buffer[16 + j * 12 + 8:16 + j * 12 + 8 + 4]
-        exif[_tagnum2name[tag]] = _parse_exif_image_tag(data[j * 4 + 1],
-                                                        data[j * 4 + 2],
-                                                        offset_bytes,
-                                                        buffer)
-    print(exif)
-    return exif 
-
-# Map the TIFF enumerated datatype to the python datatype and data width.
-_datatype2fmt = {1: ('B', 1),
-                 2: ('B', 1),
-                 3: ('H', 2),
-                 4: ('I', 4),
-                 5: ('II', 8),
-                 7: ('B', 1),
-                 9: ('i', 4),
-                 10: ('ii', 8)}
-
-def _parse_exif_image_tag(datatype, count, offset_buffer, exif_buffer):
-    """Interpret an Exif image tag data payload.
-    """
-    fmt = _datatype2fmt[datatype][0] * count
-    payload_size = _datatype2fmt[datatype][1] * count
-
-    if payload_size <= 4:
-        # Interpret the payload from the 4 bytes in the tag entry.
-        target_buffer = offset_buffer[:payload_size]
-    else:
-        # Interpret the payload at the offset specified by the 4 bytes in the
-        # tag entry.
-        offset, = struct.unpack('<I', offset_buffer)
-        target_buffer = exif_buffer[6 + offset:6 + offset + payload_size]
-
-    if datatype == 2:
-        payload = target_buffer.decode('utf-8').rstrip()
-    else:
-        payload = struct.unpack('<' + fmt, target_buffer)
-        if datatype == 5:
-            rational_payload = []
-            for j in range(count):
-                value = float(payload[j * 2]) / float(payload[j * 2 + 1])
-                rational_payload.append(value)
-            payload = rational_payload
-        if count == 1:
-            payload = payload[0]
-
-    return payload                                            
 
 def _pretty_print_xml(xml, level=0):
     """Pretty print XML data.
