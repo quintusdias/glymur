@@ -11,6 +11,7 @@ else:
     from io import StringIO
 
 import glymur
+from glymur import Jp2k
 
 try:
     data_root = os.environ['OPJ_DATA_ROOT']
@@ -22,6 +23,22 @@ except:
 
 class TestPrinting(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        # Setup a plain JP2 file without the two UUID boxes.
+        jp2file = pkg_resources.resource_filename(glymur.__name__,
+                                                  "data/nemo.jp2")
+        with tempfile.NamedTemporaryFile(suffix='.jp2', delete=False) as tfile:
+            cls._plain_nemo_file = tfile.name
+            ijfile = Jp2k(jp2file)
+            data = ijfile.read(reduce=3)
+            ojfile = Jp2k(cls._plain_nemo_file, 'wb')
+            ojfile.write(data)
+
+    @classmethod
+    def tearDownClass(cls):
+        os.unlink(cls._plain_nemo_file)
+
     def setUp(self):
         # Save sys.stdout.
         self.stdout = sys.stdout
@@ -30,15 +47,14 @@ class TestPrinting(unittest.TestCase):
                                                        "data/nemo.jp2")
 
         # Save the output of dumping nemo.jp2 for more than one test.
-        lines = ['File:  nemo.jp2',
-                 'JPEG 2000 Signature Box (jP  ) @ (0, 12)',
+        lines = ['JPEG 2000 Signature Box (jP  ) @ (0, 12)',
                  '    Signature:  0d0a870a',
                  'File Type Box (ftyp) @ (12, 20)',
                  '    Brand:  jp2 ',
                  "    Compatibility:  ['jp2 ']",
                  'JP2 Header Box (jp2h) @ (32, 45)',
                  '    Image Header Box (ihdr) @ (40, 22)',
-                 '        Size:  [1456 2592 3]',
+                 '        Size:  [182 324 3]',
                  '        Bitdepth:  8',
                  '        Signed:  False',
                  '        Compression:  wavelet',
@@ -47,45 +63,29 @@ class TestPrinting(unittest.TestCase):
                  '        Method:  enumerated colorspace',
                  '        Precedence:  0',
                  '        Colorspace:  sRGB',
-                 'UUID Box (uuid) @ (77, 638)',
-                 '    UUID:  4a706754-6966-6645-7869-662d3e4a5032',
-                 '    UUID Data:  614 bytes',
-                 'UUID Box (uuid) @ (715, 2412)',
-                 '    UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)',
-                 '    UUID Data:  ',
-                 '    <ns0:xmpmeta xmlns:ns0="adobe:ns:meta/" '
-                 + 'xmlns:ns2="http://ns.adobe.com/xap/1.0/" '
-                 + 'xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" '
-                 + 'ns0:xmptk="XMP Core 4.4.0-Exiv2">',
-                 '      <rdf:RDF>',
-                 '        <rdf:Description ns2:CreatorTool="glymur" '
-                 + 'rdf:about="" />',
-                 '      </rdf:RDF>',
-                 '    </ns0:xmpmeta>',
-                 '    ',
-                 'Contiguous Codestream Box (jp2c) @ (3127, 1133427)',
+                 'Contiguous Codestream Box (jp2c) @ (77, 112814)',
                  '    Main header:',
-                 '        SOC marker segment @ (3135, 0)',
-                 '        SIZ marker segment @ (3137, 47)',
+                 '        SOC marker segment @ (85, 0)',
+                 '        SIZ marker segment @ (87, 47)',
                  '            Profile:  2',
-                 '            Reference Grid Height, Width:  (1456 x 2592)',
+                 '            Reference Grid Height, Width:  (182 x 324)',
                  '            Vertical, Horizontal Reference Grid Offset:  '
                  + '(0 x 0)',
-                 '            Reference Tile Height, Width:  (512 x 512)',
+                 '            Reference Tile Height, Width:  (182 x 324)',
                  '            Vertical, Horizontal Reference Tile Offset:  '
                  + '(0 x 0)',
                  '            Bitdepth:  (8, 8, 8)',
                  '            Signed:  (False, False, False)',
                  '            Vertical, Horizontal Subsampling:  '
                  + '((1, 1), (1, 1), (1, 1))',
-                 '        COD marker segment @ (3186, 12)',
+                 '        COD marker segment @ (136, 12)',
                  '            Coding style:',
                  '                Entropy coder, without partitions',
                  '                SOP marker segments:  False',
                  '                EPH marker segments:  False',
                  '            Coding style parameters:',
                  '                Progression order:  LRCP',
-                 '                Number of layers:  3',
+                 '                Number of layers:  1',
                  '                Multiple component transformation usage:  '
                  + 'reversible',
                  '                Number of resolutions:  6',
@@ -102,26 +102,29 @@ class TestPrinting(unittest.TestCase):
                  + 'False',
                  '                    Predictable termination:  False',
                  '                    Segmentation symbols:  False',
-                 '        QCD marker segment @ (3200, 19)',
+                 '        QCD marker segment @ (150, 19)',
                  '            Quantization style:  no quantization, '
                  + '2 guard bits',
                  '            Step size:  [(0, 8), (0, 9), (0, 9), '
                  + '(0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), '
                  + '(0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), '
                  + '(0, 10)]']
-        self.expectedNemo = '\n'.join(lines)
+        self.expectedPlain = '\n'.join(lines)
 
     def tearDown(self):
         # Restore stdout.
         sys.stdout = self.stdout
-        #import pdb; pdb.set_trace()
 
     def test_jp2dump(self):
-        glymur.jp2dump(self.jp2file)
+        glymur.jp2dump(self._plain_nemo_file)
         actual = sys.stdout.getvalue().strip()
-        self.actual = actual
-        self.expected = self.expectedNemo
-        self.assertEqual(actual, self.expectedNemo)
+
+        # Get rid of the filename line, as it is not set in stone.
+        lst = actual.split('\n')
+        lst = lst[1:]
+        actual = '\n'.join(lst)
+
+        self.assertEqual(actual, self.expectedPlain)
 
     def test_COC_segment(self):
         j = glymur.Jp2k(self.jp2file)
@@ -429,17 +432,42 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    def test_entire_file(self):
+    def test_xmp(self):
+        # Verify the printing of a UUID/XMP box.
         j = glymur.Jp2k(self.jp2file)
+        print(j.box[4])
+        actual = sys.stdout.getvalue().strip()
+        lst = ['UUID Box (uuid) @ (715, 2412)',
+               '    UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)',
+               '    UUID Data:  ',
+               '    <ns0:xmpmeta xmlns:ns0="adobe:ns:meta/" '
+               + 'xmlns:ns2="http://ns.adobe.com/xap/1.0/" '
+               + 'xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" '
+               + 'ns0:xmptk="XMP Core 4.4.0-Exiv2">',
+               '      <rdf:RDF>',
+               '        <rdf:Description ns2:CreatorTool="glymur" '
+               + 'rdf:about="" />',
+               '      </rdf:RDF>',
+               '    </ns0:xmpmeta>']
+        expected = '\n'.join(lst)
+        self.assertEqual(actual, expected)
+
+    def test_entire_file(self):
+        j = glymur.Jp2k(self._plain_nemo_file)
         print(j)
         actual = sys.stdout.getvalue().strip()
-        self.assertEqual(actual, self.expectedNemo)
+
+        # Get rid of the filename line, as it is not set in stone.
+        lst = actual.split('\n')
+        lst = lst[1:]
+        actual = '\n'.join(lst)
+
+        self.assertEqual(actual, self.expectedPlain)
 
     def test_codestream(self):
         j = glymur.Jp2k(self.jp2file)
         print(j.get_codestream())
         actual = sys.stdout.getvalue().strip()
-
         lst = ['Codestream:',
                '    SOC marker segment @ (3135, 0)',
                '    SIZ marker segment @ (3137, 47)',
