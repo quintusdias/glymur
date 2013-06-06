@@ -472,8 +472,6 @@ class Codestream:
         SPcod = f.read(n)
         kwargs['SPcod'] = np.frombuffer(SPcod, dtype=np.uint8)
 
-        # 0: 
-        # 1: layers
         params = struct.unpack('>BHBBBBBB', SPcod[0:9])
         kwargs['_layers'] = params[1]
         kwargs['_numresolutions'] = params[3]

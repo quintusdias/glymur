@@ -1,9 +1,9 @@
 from distutils.core import setup
 
-kwargs = {'name': 'glymur',
-          'version': '0.1.1',
-          'description': 'Tools for manipulating JPEG2000 files',
-          'long_description': open('README').read(),
+kwargs = {'name': 'Glymur',
+          'version': '0.1.6',
+          'description': 'Tools for accessing JPEG2000 files',
+          'long_description': open('README.md').read(),
           'author': 'John Evans',
           'author_email': 'johnevans938 at gmail dot com',
           'url': 'https://github.com/quintusdias/glymur',
@@ -18,10 +18,10 @@ clssfrs = ["Programming Language :: Python",
            "Programming Language :: Python :: 3.3",
            "Programming Language :: Python :: Implementation :: CPython",
            "License :: OSI Approved :: MIT License",
-           "Development Status :: 1 - Alpha",
+           "Development Status :: 3 - Alpha",
            "Operating System :: MacOS",
            "Operating System :: POSIX :: Linux",
-           "Intended Audience :: Scientific/Research",
+           "Intended Audience :: Science/Research",
            "Intended Audience :: Information Technology",
            "Topic :: Software Development :: Libraries :: Python Modules"]
 kwargs['classifiers'] = clssfrs

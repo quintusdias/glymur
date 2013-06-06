@@ -1,23 +1,27 @@
-=========================================
-glymur: a Python interface for JPEG 2000
-=========================================
+----------------------------------------
+Glymur: a Python interface for JPEG 2000
+----------------------------------------
 
-**glymur** contains a Python interface to the OpenJPEG library
+**Glymur** contains a Python interface to the OpenJPEG library
 which allows linux and mac users to read and write JPEG 2000 files.  For more
-information about OpenJPEG, please consult http://www.openjpeg.org.  glymur
-should be considered to be alpha-quality software.
+information about OpenJPEG, please consult http://www.openjpeg.org.  Glymur
+currently relies upon a development version of the OpenJPEG library, and so,
+while useable, it is totally at the mercy of any upstream changes
+made to the development version of OpenJPEG.
 
-glymur tries to support reading (including all metadata) and writing of
-JP2 and J2C files.  Writing J2C/JP2 files is currently limited to images that
-can fit in memory, however.
+Glymur supports both reading and writing of JPEG 2000 images (part 1).  Writing
+JPEG 2000 images is currently limited to images that can fit in memory,
+however.
 
-There is some very limited support for reading JPX
-metadata.  For instance, **asoc** and **labl** boxes are recognized, so GMLJP2
-metadata can be retrieved from such JPX files.
+Of particular focus is retrieval of metadata.  Reading Exif UUIDs is supported,
+as is reading XMP UUIDs as the XMP data packet is just XML.  There is
+some very limited support for reading JPX metadata.  For instance,
+**asoc** and **labl** boxes are recognized, so GMLJP2 metadata can
+be retrieved from such JPX files.
 
-------------
+''''''''''''
 Requirements
-------------
+''''''''''''
 glymur works on Python 2.7 and 3.3.  Python 3.3 is strongly recommended.
 
 OpenJPEG
@@ -28,7 +32,8 @@ you can retrieve via subversion.  As of this time of writing, svn
 revision 2345 works.  In addition, you should also retrieve their test data, as
 you will need it when running glymur's test suite.
 
-Earlier versions of OpenJPEG through the 2.0 official release are not supported.
+Earlier versions of OpenJPEG through the 2.0 official release will **NOT**
+work and are not supported.
 
 Be sure to have the following ports/RPMs/debs installed.
 
@@ -128,22 +133,34 @@ Windows
 -------
 Not currently supported.
 
-------------------------------------
+''''''''''''''''''''''''''''''''''''
 Installation, Testing, Configuration
-------------------------------------
+''''''''''''''''''''''''''''''''''''
 
 From this point forward, python3 will be referred to as just "python".
 
 Installation
 ============
 
+You can install glymur via pip from the command line::
+
+    $ pip install glymur
+
+or manually retrieve the code from either of GitHub or PyPI
+
+    * https://pypi.python.org/pypi/Glymur/ (stable releases)
+    * http://github.com/quintusdias/glymur (bleeding edge)
+
+and then unpack and install with::
+
+    $ python setup.py install --prefix=/install/path
+
 In addition to merely installing glymur, you should adjust your **$PATH**
-environment variable in order to be able to use the **jp2dump** script from
+environment variable in order to be able to use the *jp2dump* script from
 the unix command line.
 
 ::
 
-    $ python setup.py install --prefix=/install/path
     $ export PYTHONPATH=/install/path/lib/python3.3/site-packages
     $ export PATH=/install/path/bin:$PATH
 
@@ -181,7 +198,10 @@ The test suite may then be run with::
     $ cd /back/to/glymur/unpacking/directory
     $ python -m unittest discover
 
-At the moment, the development version of the library prints quite a few 
-warnings to stderr, which you may ignore.  There are also more skipped tests
-on Python 2.7 than on Python 3.3.  The important thing will be whether
-or not any test errors are reported at the end.
+Quite a few tests are currently skipped.  These include tests whose
+OpenJPEG counterparts are already failing, and others which do pass but
+still produce heaps of output on stderr.  Rather than let this swamp
+the signal (that most of the tests are actually passing), they've been
+filtered out for now.  There are also more skipped tests on Python 2.7
+than on Python 3.3.  The important point to remember is whether or not any test
+errors are reported at the end.

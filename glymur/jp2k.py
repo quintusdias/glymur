@@ -8,6 +8,7 @@ if sys.hexversion >= 0x03030000:
 else:
     from contextlib2 import ExitStack
 import ctypes
+import math
 import os
 import struct
 import warnings
@@ -152,7 +153,7 @@ class Jp2k(Jp2kBox):
         data : array
             Image data to be written to file.
         callbacks : bool, optional
-            If true, enable default info handler such that INFO messages 
+            If true, enable default info handler such that INFO messages
             produced by the OpenJPEG library are output to the console.  By
             default, OpenJPEG warning and error messages are captured by
             Python's own warning and error mechanisms.
@@ -181,7 +182,8 @@ class Jp2k(Jp2kBox):
         psnr : list, optional
             Different PSNR for successive layers.
         psizes : list, optional
-            List of precinct sizes.
+            List of precinct sizes.  Each precinct size tuple is defined in
+            (height x width).
         sop : bool, optional
             If true, write SOP marker before each packet.
         subsam : tuple, optional
@@ -231,6 +233,11 @@ class Jp2k(Jp2kBox):
                 msg = "Code block area cannot exceed 4096.  "
                 msg += "Code block height and width must be larger than 4."
                 raise RuntimeError(msg)
+            if ((math.log(h, 2) != math.floor(math.log(h, 2)) or
+                 math.log(w, 2) != math.floor(math.log(w, 2)))):
+                msg = "Bad code block size ({0}, {1}), "
+                msg += "must be powers of 2."
+                raise IOError(msg.format(h, w))
             cparams.cblockw_init = w
             cparams.cblockh_init = h
 
@@ -266,9 +273,21 @@ class Jp2k(Jp2kBox):
             cparams.cp_fixed_quality = 1
 
         if psizes is not None:
-            for j, precinct in enumerate(psizes):
-                cparams.prcw_init[j] = precinct[0]
-                cparams.prch_init[j] = precinct[1]
+            for j, (prch, prcw) in enumerate(psizes):
+                if j == 0 and cbsize is not None:
+                    cblkh, cblkw = cbsize
+                    if cblkh * 2 > prch or cblkw * 2 > prcw:
+                        msg = "Highest Resolution precinct size must be at "
+                        msg += "least twice that of the code block dimensions."
+                        raise IOError(msg)
+                if ((math.log(prch, 2) != math.floor(math.log(prch, 2)) or
+                     math.log(prcw, 2) != math.floor(math.log(prcw, 2)))):
+                    msg = "Bad precinct sizes ({0}, {1}), "
+                    msg += "must be powers of 2."
+                    raise IOError(msg.format(prch, prcw))
+
+                cparams.prcw_init[j] = prcw
+                cparams.prch_init[j] = prch
             cparams.csty |= 0x01
             cparams.res_spec = len(psizes)
 
@@ -634,7 +653,7 @@ class Jp2k(Jp2kBox):
         >>> jp = glymur.Jp2k(jfile)
         >>> codestream = jp.get_codestream()
         >>> print(codestream.segment[1])
-        SIZ marker segment @ (87, 47)
+        SIZ marker segment @ (3137, 47)
             Profile:  2
             Reference Grid Height, Width:  (1456 x 2592)
             Vertical, Horizontal Reference Grid Offset:  (0 x 0)
