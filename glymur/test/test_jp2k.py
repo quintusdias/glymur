@@ -220,7 +220,7 @@ class TestJp2k(unittest.TestCase):
         self.assertEqual(jp2k.box[2].box[1].longname, 'Colour Specification')
         self.assertEqual(jp2k.box[2].box[1].precedence, 0)
         self.assertEqual(jp2k.box[2].box[1].approximation, 0)
-        self.assertEqual(jp2k.box[2].box[1].color_space, glymur.core.SRGB)
+        self.assertEqual(jp2k.box[2].box[1].colorspace, glymur.core.SRGB)
         self.assertIsNone(jp2k.box[2].box[1].icc_profile)
 
     @unittest.skipIf(data_root is None,
@@ -370,14 +370,14 @@ class TestJp2k(unittest.TestCase):
             j = Jp2k(tfile.name, 'wb')
             data = np.zeros((128, 128, 3), dtype=np.uint8)
             j.write(data, colorspace='rgb')
-            self.assertEqual(j.box[2].box[1].color_space, glymur.core.SRGB)
+            self.assertEqual(j.box[2].box[1].colorspace, glymur.core.SRGB)
 
     def test_specify_gray(self):
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             j = Jp2k(tfile.name, 'wb')
             data = np.zeros((128, 128), dtype=np.uint8)
             j.write(data, colorspace='gray')
-            self.assertEqual(j.box[2].box[1].color_space,
+            self.assertEqual(j.box[2].box[1].colorspace,
                              glymur.core.GREYSCALE)
 
     def test_specify_grey(self):
@@ -385,7 +385,7 @@ class TestJp2k(unittest.TestCase):
             j = Jp2k(tfile.name, 'wb')
             data = np.zeros((128, 128), dtype=np.uint8)
             j.write(data, colorspace='grey')
-            self.assertEqual(j.box[2].box[1].color_space,
+            self.assertEqual(j.box[2].box[1].colorspace,
                              glymur.core.GREYSCALE)
 
     def test_grey_with_extra_component(self):
@@ -396,7 +396,7 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(j.box[2].box[0].height, 128)
             self.assertEqual(j.box[2].box[0].width, 128)
             self.assertEqual(j.box[2].box[0].num_components, 2)
-            self.assertEqual(j.box[2].box[1].color_space,
+            self.assertEqual(j.box[2].box[1].colorspace,
                              glymur.core.GREYSCALE)
 
     def test_grey_with_two_extra_components(self):
@@ -407,7 +407,7 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(j.box[2].box[0].height, 128)
             self.assertEqual(j.box[2].box[0].width, 128)
             self.assertEqual(j.box[2].box[0].num_components, 3)
-            self.assertEqual(j.box[2].box[1].color_space,
+            self.assertEqual(j.box[2].box[1].colorspace,
                              glymur.core.GREYSCALE)
 
     def test_rgb_with_extra_component(self):
@@ -418,7 +418,7 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(j.box[2].box[0].height, 128)
             self.assertEqual(j.box[2].box[0].width, 128)
             self.assertEqual(j.box[2].box[0].num_components, 4)
-            self.assertEqual(j.box[2].box[1].color_space, glymur.core.SRGB)
+            self.assertEqual(j.box[2].box[1].colorspace, glymur.core.SRGB)
 
     def test_specify_ycc(self):
         # We don't support writing YCC at the moment.

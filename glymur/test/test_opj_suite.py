@@ -3403,7 +3403,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[1].method, 1)
         self.assertEqual(jp2.box[3].box[1].precedence, 0)
         self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact ??
-        self.assertEqual(jp2.box[3].box[1].color_space, glymur.core.SRGB)
+        self.assertEqual(jp2.box[3].box[1].colorspace, glymur.core.SRGB)
 
         # XML box
         tags = [x.tag for x in jp2.box[4].xml]
@@ -3445,7 +3445,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].method, 1)
         self.assertEqual(jp2.box[2].box[1].precedence, 0)
         self.assertEqual(jp2.box[2].box[1].approximation, 1)  # JPX exact??
-        self.assertEqual(jp2.box[2].box[1].color_space, glymur.core.YCC)
+        self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.YCC)
 
         # Jp2 Header
         # Channel Definition
@@ -3491,7 +3491,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].method, 1)
         self.assertEqual(jp2.box[2].box[1].precedence, 0)
         self.assertEqual(jp2.box[2].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(jp2.box[2].box[1].color_space, glymur.core.YCC)
+        self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.YCC)
 
         # sub-sampling
         codestream = jp2.get_codestream()
@@ -3537,7 +3537,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].method, 1)
         self.assertEqual(jp2.box[2].box[1].precedence, 0)
         self.assertEqual(jp2.box[2].box[1].approximation, 1)  # JPX exact?
-        self.assertEqual(jp2.box[2].box[1].color_space, glymur.core.GREYSCALE)
+        self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.GREYSCALE)
 
     def test_NR_file5_dump(self):
         # Three 8-bit components in the ROMM-RGB colourspace, encapsulated in a
@@ -3580,7 +3580,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[1].precedence, 0)
         self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact
         self.assertEqual(len(jp2.box[3].box[1].icc_profile), 546)
-        self.assertIsNone(jp2.box[3].box[1].color_space)
+        self.assertIsNone(jp2.box[3].box[1].colorspace)
 
         # Jp2 Header
         # Colour specification
@@ -3588,7 +3588,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[2].precedence, 1)
         self.assertEqual(jp2.box[3].box[2].approximation, 1)  # JPX exact
         self.assertIsNone(jp2.box[3].box[2].icc_profile)
-        self.assertEqual(jp2.box[3].box[2].color_space,
+        self.assertEqual(jp2.box[3].box[2].colorspace,
                          glymur.core.ROMM_RGB)
 
     def test_NR_file6_dump(self):
@@ -3626,7 +3626,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].precedence, 0)
         self.assertEqual(jp2.box[2].box[1].approximation, 1)  # JPX exact
         self.assertIsNone(jp2.box[2].box[1].icc_profile)
-        self.assertEqual(jp2.box[2].box[1].color_space,
+        self.assertEqual(jp2.box[2].box[1].colorspace,
                          glymur.core.GREYSCALE)
 
     def test_NR_file7_dump(self):
@@ -3675,7 +3675,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[1].precedence, 0)
         self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact
         self.assertEqual(len(jp2.box[3].box[1].icc_profile), 13332)
-        self.assertIsNone(jp2.box[3].box[1].color_space)
+        self.assertIsNone(jp2.box[3].box[1].colorspace)
 
         # Jp2 Header
         # Colour specification
@@ -3683,7 +3683,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[2].precedence, 1)
         self.assertEqual(jp2.box[3].box[2].approximation, 1)  # JPX exact
         self.assertIsNone(jp2.box[3].box[2].icc_profile)
-        self.assertEqual(jp2.box[3].box[2].color_space,
+        self.assertEqual(jp2.box[3].box[2].colorspace,
                          glymur.core.E_SRGB)
 
     def test_NR_file8_dump(self):
@@ -3724,7 +3724,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].precedence, 0)
         self.assertEqual(jp2.box[2].box[1].approximation, 1)  # JPX exact
         self.assertEqual(len(jp2.box[2].box[1].icc_profile), 414)
-        self.assertIsNone(jp2.box[2].box[1].color_space)
+        self.assertIsNone(jp2.box[2].box[1].colorspace)
 
         # XML box
         tags = [x.tag for x in jp2.box[3].xml]
@@ -3796,7 +3796,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[3].precedence, 0)
         self.assertEqual(jp2.box[2].box[3].approximation, 1)  # JPX exact
         self.assertIsNone(jp2.box[2].box[3].icc_profile)
-        self.assertEqual(jp2.box[2].box[3].color_space, glymur.core.SRGB)
+        self.assertEqual(jp2.box[2].box[3].colorspace, glymur.core.SRGB)
 
     def test_NR_00042_j2k_dump(self):
         # Profile 3.
@@ -5272,7 +5272,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].method, 1)
         self.assertEqual(jp2.box[2].box[1].precedence, 0)
         self.assertEqual(jp2.box[2].box[1].approximation, 0)  # not allowed?
-        self.assertEqual(jp2.box[2].box[1].color_space, glymur.core.SRGB)
+        self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.SRGB)
 
         c = jp2.box[3].main_header
 
@@ -5405,7 +5405,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].method, 1)
         self.assertEqual(jp2.box[2].box[1].precedence, 0)
         self.assertEqual(jp2.box[2].box[1].approximation, 0)  # JP2
-        self.assertEqual(jp2.box[2].box[1].color_space, glymur.core.SRGB)
+        self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.SRGB)
 
         c = jp2.box[3].main_header
 
@@ -5533,7 +5533,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].method, 1)
         self.assertEqual(jp2.box[2].box[1].precedence, 0)
         self.assertEqual(jp2.box[2].box[1].approximation, 0)  # JP2
-        self.assertEqual(jp2.box[2].box[1].color_space, glymur.core.YCC)
+        self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.YCC)
 
         c = jp2.box[3].main_header
 
@@ -5673,7 +5673,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[1].method, 1)  # enumerated
         self.assertEqual(jp2.box[3].box[1].precedence, 2)
         self.assertEqual(jp2.box[3].box[1].approximation, 1)  # exact
-        self.assertEqual(jp2.box[3].box[1].color_space, glymur.core.SRGB)
+        self.assertEqual(jp2.box[3].box[1].colorspace, glymur.core.SRGB)
 
         # Jp2 Header
         # Palette box.
@@ -5784,7 +5784,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].method, 1)
         self.assertEqual(jp2.box[2].box[1].precedence, 0)
         self.assertEqual(jp2.box[2].box[1].approximation, 0)
-        self.assertEqual(jp2.box[2].box[1].color_space, glymur.core.SRGB)
+        self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.SRGB)
 
         # Skip the 4th box, it is uknown.
 
@@ -5884,7 +5884,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[1].method, 1)  # ICC
         self.assertEqual(jp2.box[3].box[1].precedence, 2)
         self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(jp2.box[3].box[1].color_space, glymur.core.SRGB)
+        self.assertEqual(jp2.box[3].box[1].colorspace, glymur.core.SRGB)
 
         c = jp2.box[4].main_header
 
@@ -5981,7 +5981,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].method, 1)
         self.assertEqual(jp2.box[2].box[1].precedence, 0)
         self.assertEqual(jp2.box[2].box[1].approximation, 0)  # JP2
-        self.assertEqual(jp2.box[2].box[1].color_space, glymur.core.GREYSCALE)
+        self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.GREYSCALE)
 
         # Jp2 Header
         # Channel Definition
@@ -6100,7 +6100,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[1].method, 1)  # enumerated
         self.assertEqual(jp2.box[3].box[1].precedence, 2)
         self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(jp2.box[3].box[1].color_space, glymur.core.CMYK)
+        self.assertEqual(jp2.box[3].box[1].colorspace, glymur.core.CMYK)
 
         # Jp2 Header
         # Palette box.
@@ -6214,7 +6214,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[1].method, 1)  # enumerated
         self.assertEqual(jp2.box[3].box[1].precedence, 2)
         self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(jp2.box[3].box[1].color_space, glymur.core.SRGB)
+        self.assertEqual(jp2.box[3].box[1].colorspace, glymur.core.SRGB)
 
         # Jp2 Header
         # Palette box.
@@ -6322,7 +6322,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].method, 1)
         self.assertEqual(jp2.box[2].box[1].precedence, 0)
         self.assertEqual(jp2.box[2].box[1].approximation, 0)  # JP2
-        self.assertEqual(jp2.box[2].box[1].color_space, glymur.core.YCC)
+        self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.YCC)
 
         c = jp2.box[3].main_header
 
@@ -6427,7 +6427,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].precedence, 0)
         self.assertEqual(jp2.box[2].box[1].approximation, 0)  # JP2
         self.assertEqual(len(jp2.box[2].box[1].icc_profile), 1)
-        self.assertIsNone(jp2.box[2].box[1].color_space)
+        self.assertIsNone(jp2.box[2].box[1].colorspace)
 
         c = jp2.box[3].main_header
 
@@ -6523,7 +6523,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].precedence, 0)
         self.assertEqual(jp2.box[2].box[1].approximation, 0)  # JP2
         self.assertEqual(len(jp2.box[2].box[1].icc_profile), 1)
-        self.assertIsNone(jp2.box[2].box[1].color_space)
+        self.assertIsNone(jp2.box[2].box[1].colorspace)
 
         c = jp2.box[3].main_header
 
@@ -6625,7 +6625,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[1].precedence, 2)
         self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact
         self.assertEqual(len(jp2.box[3].box[1].icc_profile), 1328)
-        self.assertIsNone(jp2.box[3].box[1].color_space)
+        self.assertIsNone(jp2.box[3].box[1].colorspace)
 
         # UUID boxes.  All mentioned in the RREQ box.
         self.assertEqual(jp2.box[2].vendor_feature[0], jp2.box[4].uuid)
