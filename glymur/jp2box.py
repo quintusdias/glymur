@@ -1556,8 +1556,9 @@ class UUIDBox(Jp2kBox):
         more verbose description of the box.
     uuid : uuid.UUID
         16-byte UUID
-    data : bytes or ElementTree.Element
-        Vendor-specific UUID data.  XMP UUIDs are interpreted as standard XML.
+    data : bytes or dictionary or ElementTree.Element
+        Vendor-specific UUID data.  Exif UUIDs are interpreted as dictionaries.
+        XMP UUIDs are interpreted as standard XML.
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='UUID')
