@@ -689,6 +689,7 @@ class TestPrinting(unittest.TestCase):
 
                 # Now append the codestream.
                 tfile2.write(codestream)
+                tfile2.flush()
 
                 jasoc = glymur.Jp2k(tfile2.name)
                 print(jasoc.box[3])

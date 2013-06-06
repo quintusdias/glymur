@@ -150,7 +150,7 @@ class ColourSpecificationBox(Jp2kBox):
         boxes.
     approximation : int
         Measure of colorspace accuracy.
-    color_space : int or None
+    colorspace : int or None
         Enumerated colorspace, corresponds to one of 'sRGB', 'greyscale', or
         'YCC'.  If not None, then icc_profile must be None.
     icc_profile : byte array or None
@@ -170,8 +170,8 @@ class ColourSpecificationBox(Jp2kBox):
         if self.approximation is not 0:
             x = _approximation_display[self.approximation]
             msg += '\n    Approximation:  {0}'.format(x)
-        if self.color_space is not None:
-            x = _colorspace_map_display[self.color_space]
+        if self.colorspace is not None:
+            x = _colorspace_map_display[self.colorspace]
             msg += '\n    Colorspace:  {0}'.format(x)
         else:
             x = len(self.icc_profile)
@@ -214,12 +214,12 @@ class ColourSpecificationBox(Jp2kBox):
         if method == 1:
             # enumerated colour space
             buffer = f.read(4)
-            kwargs['color_space'], = struct.unpack('>I', buffer)
+            kwargs['colorspace'], = struct.unpack('>I', buffer)
             kwargs['icc_profile'] = None
 
         else:
             # ICC profile
-            kwargs['color_space'] = None
+            kwargs['colorspace'] = None
             n = offset + length - f.tell()
             kwargs['icc_profile'] = f.read(n)
 
