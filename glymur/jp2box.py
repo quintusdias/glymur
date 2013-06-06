@@ -1669,28 +1669,28 @@ class Exif:
         offset = data[3]
 
         # This is the 'Exif Image' portion.
-        exif = ExifImageIfd(self.endian, buffer[6:], offset)
+        exif = _ExifImageIfd(self.endian, buffer[6:], offset)
         self.exif_image = exif.ifd
 
         if 'ExifTag' in self.exif_image.keys():
             offset = self.exif_image['ExifTag']
-            photo = ExifPhotoIfd(self.endian, buffer[6:], offset)
+            photo = _ExifPhotoIfd(self.endian, buffer[6:], offset)
             self.exif_photo = photo.ifd
 
             if 'InteroperabilityTag' in self.exif_photo.keys():
                 offset = self.exif_photo['InteroperabilityTag']
-                interop = ExifInteroperabilityIfd(self.endian,
+                interop = _ExifInteroperabilityIfd(self.endian,
                                                   buffer[6:],
                                                   offset)
                 self.iop = interop.ifd
 
         if 'GPSTag' in self.exif_image.keys():
             offset = self.exif_image['GPSTag']
-            gps = ExifGPSInfoIfd(self.endian, buffer[6:], offset)
+            gps = _ExifGPSInfoIfd(self.endian, buffer[6:], offset)
             self.exif_gpsinfo = gps.ifd
 
 
-class Ifd:
+class _Ifd:
     """
     Attributes
     ----------
@@ -1775,7 +1775,7 @@ class Ifd:
         return payload
 
 
-class ExifImageIfd(Ifd):
+class _ExifImageIfd(_Ifd):
     """
     Attributes
     ----------
@@ -1990,7 +1990,7 @@ class ExifImageIfd(Ifd):
                    51041: 'NoiseProfile'}
 
     def __init__(self, endian, buffer, offset):
-        Ifd.__init__(self, endian, buffer, offset)
+        _Ifd.__init__(self, endian, buffer, offset)
 
         # Now post process the raw IFD.
         self.ifd = {}
@@ -1999,7 +1999,7 @@ class ExifImageIfd(Ifd):
             self.ifd[tag_name] = value
 
 
-class ExifPhotoIfd(Ifd):
+class _ExifPhotoIfd(_Ifd):
     tagnum2name = {33434: 'ExposureTime',
                    33437: 'FNumber',
                    34850: 'ExposureProgram',
@@ -2071,7 +2071,7 @@ class ExifPhotoIfd(Ifd):
                    42037: 'LensSerialNumber'}
 
     def __init__(self, endian, buffer, offset):
-        Ifd.__init__(self, endian, buffer, offset)
+        _Ifd.__init__(self, endian, buffer, offset)
 
         # Now post process the raw IFD.
         self.ifd = {}
@@ -2080,7 +2080,7 @@ class ExifPhotoIfd(Ifd):
             self.ifd[tag_name] = value
 
 
-class ExifGPSInfoIfd(Ifd):
+class _ExifGPSInfoIfd(_Ifd):
     tagnum2name = {0: 'GPSVersionID',
                    1: 'GPSLatitudeRef',
                    2: 'GPSLatitude',
@@ -2114,7 +2114,7 @@ class ExifGPSInfoIfd(Ifd):
                    30: 'GPSDifferential'}
 
     def __init__(self, endian, buffer, offset):
-        Ifd.__init__(self, endian, buffer, offset)
+        _Ifd.__init__(self, endian, buffer, offset)
 
         # Now post process the raw IFD.
         self.ifd = {}
@@ -2123,7 +2123,7 @@ class ExifGPSInfoIfd(Ifd):
             self.ifd[tag_name] = value
 
 
-class ExifInteroperabilityIfd(Ifd):
+class _ExifInteroperabilityIfd(_Ifd):
     tagnum2name = {1: 'InteroperabilityIndex',
                    2: 'InteroperabilityVersion',
                    4096: 'RelatedImageFileFormat',
@@ -2131,7 +2131,7 @@ class ExifInteroperabilityIfd(Ifd):
                    4098: 'RelatedImageLength'}
 
     def __init__(self, endian, buffer, offset):
-        Ifd.__init__(self, endian, buffer, offset)
+        _Ifd.__init__(self, endian, buffer, offset)
 
         # Now post process the raw IFD.
         self.ifd = {}
