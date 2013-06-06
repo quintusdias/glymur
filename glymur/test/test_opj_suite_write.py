@@ -693,7 +693,7 @@ class TestSuiteWrite(unittest.TestCase):
             self.assertEqual(jp2.box[2].box[1].precedence, 0)
             self.assertEqual(jp2.box[2].box[1].approximation, 0)
             self.assertIsNone(jp2.box[2].box[1].icc_profile)
-            self.assertEqual(jp2.box[2].box[1].color_space, glymur.core.SRGB)
+            self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.SRGB)
 
             c = jp2.box[3].main_header
 
