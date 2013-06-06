@@ -2,13 +2,6 @@
 How do I...?
 ------------
 
-Get the code?
-=============
-Go to either of
-
-    * http://github.com/quintusdias/glymur (bleeding edge)
-    * https://pypi.python.org/pypi/Glymur/ (stable releases)
-
 
 Display metadata?
 =================
