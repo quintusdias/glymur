@@ -142,8 +142,13 @@ From this point forward, python3 will be referred to as just "python".
 Installation
 ============
 
+First, get the code by going to either of
+
+    * https://pypi.python.org/pypi/Glymur/ (stable releases)
+    * http://github.com/quintusdias/glymur (bleeding edge)
+
 In addition to merely installing glymur, you should adjust your **$PATH**
-environment variable in order to be able to use the **jp2dump** script from
+environment variable in order to be able to use the *jp2dump* script from
 the unix command line.
 
 ::
