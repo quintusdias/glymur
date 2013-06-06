@@ -5,7 +5,7 @@ API
 Jp2k
 ----
 .. autoclass:: glymur.Jp2k
-   :members:
+   :members: read, write, read_bands, get_codestream
 
 Individual Boxes
 ----------------
