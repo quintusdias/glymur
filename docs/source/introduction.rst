@@ -1,6 +1,6 @@
-=========================================
+----------------------------------------
 Glymur: a Python interface for JPEG 2000
-=========================================
+----------------------------------------
 
 **Glymur** contains a Python interface to the OpenJPEG library
 which allows linux and mac users to read and write JPEG 2000 files.  For more
@@ -13,15 +13,15 @@ Glymur supports both reading and writing of JPEG 2000 images (part 1).  Writing
 JPEG 2000 images is currently limited to images that can fit in memory,
 however.
 
-Of particular focus is retrieval of metadata.  Reading XMP UUID
-boxes is supported, as the data block consists of XML.  There is
+Of particular focus is retrieval of metadata.  Reading Exif UUIDs is supported,
+as is reading XMP UUIDs as the XMP data packet is just XML.  There is
 some very limited support for reading JPX metadata.  For instance,
 **asoc** and **labl** boxes are recognized, so GMLJP2 metadata can
 be retrieved from such JPX files.
 
-------------
+''''''''''''
 Requirements
-------------
+''''''''''''
 glymur works on Python 2.7 and 3.3.  Python 3.3 is strongly recommended.
 
 OpenJPEG
@@ -32,7 +32,8 @@ you can retrieve via subversion.  As of this time of writing, svn
 revision 2345 works.  In addition, you should also retrieve their test data, as
 you will need it when running glymur's test suite.
 
-Earlier versions of OpenJPEG through the 2.0 official release are not supported.
+Earlier versions of OpenJPEG through the 2.0 official release will **NOT**
+work and are not supported.
 
 Be sure to have the following ports/RPMs/debs installed.
 
@@ -132,9 +133,9 @@ Windows
 -------
 Not currently supported.
 
-------------------------------------
+''''''''''''''''''''''''''''''''''''
 Installation, Testing, Configuration
-------------------------------------
+''''''''''''''''''''''''''''''''''''
 
 From this point forward, python3 will be referred to as just "python".
 
@@ -185,7 +186,10 @@ The test suite may then be run with::
     $ cd /back/to/glymur/unpacking/directory
     $ python -m unittest discover
 
-At the moment, the development version of the library prints quite a few 
-warnings to stderr, which you may ignore.  There are also more skipped tests
-on Python 2.7 than on Python 3.3.  The important thing will be whether
-or not any test errors are reported at the end.
+Quite a few tests are currently skipped.  These include tests whose
+OpenJPEG counterparts are already failing, and others which do pass but
+still produce heaps of output on stderr.  Rather than let this swamp
+the signal (that most of the tests are actually passing), they've been
+filtered out for now.  There are also more skipped tests on Python 2.7
+than on Python 3.3.  The important point to remember is whether or not any test
+errors are reported at the end.

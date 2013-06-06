@@ -52,6 +52,7 @@ class TestJp2k(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
+        # Setup a JP2 file with a bad XML box.
         jp2file = pkg_resources.resource_filename(glymur.__name__,
                                                   "data/nemo.jp2")
         with tempfile.NamedTemporaryFile(suffix='.jp2', delete=False) as tfile:
@@ -646,6 +647,16 @@ class TestJp2k(unittest.TestCase):
                 with self.assertWarns(UserWarning) as cw:
                     imp.reload(glymur)
 
+    def test_xmp_attribute(self):
+        # Verify that we can read the XMP packet in our shipping example file.
+        j = Jp2k(self.jp2file)
+        xmp = j.box[4].data
+        ns0 = '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}'
+        ns1 = '{http://ns.adobe.com/xap/1.0/}'
+        name = '{0}RDF/{0}Description'.format(ns0)
+        elt = xmp.find(name)
+        attr_value = elt.attrib['{0}CreatorTool'.format(ns1)]
+        self.assertEqual(attr_value, 'glymur')
 
 if __name__ == "__main__":
     unittest.main()
