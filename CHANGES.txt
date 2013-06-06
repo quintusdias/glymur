@@ -1,3 +1,6 @@
+Jun 06, 2013 - v0.1.5  Changed ColourSpecificationBox attribute "color_space"
+    to "colorspace".  Fixed MANIFEST issue affecting PyPI installs.
+
 Jun 05, 2013 - v0.1.4  Added Exif UUID read support.
 
 Jun 02, 2013 - v0.1.3p1  Raising IOErrors when code block size and precinct
