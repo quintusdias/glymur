@@ -1,6 +1,6 @@
-=========================================
+----------------------------------------
 Glymur: a Python interface for JPEG 2000
-=========================================
+----------------------------------------
 
 **Glymur** contains a Python interface to the OpenJPEG library
 which allows linux and mac users to read and write JPEG 2000 files.  For more
@@ -13,15 +13,15 @@ Glymur supports both reading and writing of JPEG 2000 images (part 1).  Writing
 JPEG 2000 images is currently limited to images that can fit in memory,
 however.
 
-Of particular focus is retrieval of metadata.  Reading XMP UUID
-boxes is supported, as the data block consists of XML.  There is
+Of particular focus is retrieval of metadata.  Reading Exif UUIDs is supported,
+as is reading XMP UUIDs as the XMP data packet is just XML.  There is
 some very limited support for reading JPX metadata.  For instance,
 **asoc** and **labl** boxes are recognized, so GMLJP2 metadata can
 be retrieved from such JPX files.
 
-------------
+''''''''''''
 Requirements
-------------
+''''''''''''
 glymur works on Python 2.7 and 3.3.  Python 3.3 is strongly recommended.
 
 OpenJPEG
@@ -132,9 +132,9 @@ Windows
 -------
 Not currently supported.
 
-------------------------------------
+''''''''''''''''''''''''''''''''''''
 Installation, Testing, Configuration
-------------------------------------
+''''''''''''''''''''''''''''''''''''
 
 From this point forward, python3 will be referred to as just "python".
 
