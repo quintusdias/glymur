@@ -1669,28 +1669,28 @@ class Exif:
         offset = data[3]
 
         # This is the 'Exif Image' portion.
-        exif = ExifImageIfd(self.endian, buffer[6:], offset)
-        self.exif_image = exif.ifd
+        exif = _ExifImageIfd(self.endian, buffer[6:], offset)
+        self.exif_image = exif.processed_ifd
 
         if 'ExifTag' in self.exif_image.keys():
             offset = self.exif_image['ExifTag']
-            photo = ExifPhotoIfd(self.endian, buffer[6:], offset)
-            self.exif_photo = photo.ifd
+            photo = _ExifPhotoIfd(self.endian, buffer[6:], offset)
+            self.exif_photo = photo.processed_ifd
 
             if 'InteroperabilityTag' in self.exif_photo.keys():
                 offset = self.exif_photo['InteroperabilityTag']
-                interop = ExifInteroperabilityIfd(self.endian,
-                                                  buffer[6:],
-                                                  offset)
-                self.iop = interop.ifd
+                interop = _ExifInteroperabilityIfd(self.endian,
+                                                   buffer[6:],
+                                                   offset)
+                self.iop = interop.processed_ifd
 
         if 'GPSTag' in self.exif_image.keys():
             offset = self.exif_image['GPSTag']
-            gps = ExifGPSInfoIfd(self.endian, buffer[6:], offset)
-            self.exif_gpsinfo = gps.ifd
+            gps = _ExifGPSInfoIfd(self.endian, buffer[6:], offset)
+            self.exif_gpsinfo = gps.processed_ifd
 
 
-class Ifd:
+class _Ifd:
     """
     Attributes
     ----------
@@ -1705,6 +1705,8 @@ class Ifd:
         Number of tags in the IFD.
     raw_ifd : dictionary
         Maps tag number to "mildly-interpreted" tag value.
+    processed_ifd : dictionary
+        Maps tag name to "mildly-interpreted" tag value.
     """
     datatype2fmt = {1: ('B', 1),
                     2: ('B', 1),
@@ -1718,6 +1720,7 @@ class Ifd:
     def __init__(self, endian, buffer, offset):
         self.endian = endian
         self.buffer = buffer
+        self.processed_ifd = {}
 
         self.num_tags, = struct.unpack(endian + 'H',
                                        buffer[offset:offset + 2])
@@ -1774,8 +1777,13 @@ class Ifd:
 
         return payload
 
+    def post_process(self, tagnum2name):
+        for tag, value in self.raw_ifd.items():
+            tag_name = tagnum2name[tag]
+            self.processed_ifd[tag_name] = value
 
-class ExifImageIfd(Ifd):
+
+class _ExifImageIfd(_Ifd):
     """
     Attributes
     ----------
@@ -1990,16 +1998,11 @@ class ExifImageIfd(Ifd):
                    51041: 'NoiseProfile'}
 
     def __init__(self, endian, buffer, offset):
-        Ifd.__init__(self, endian, buffer, offset)
-
-        # Now post process the raw IFD.
-        self.ifd = {}
-        for tag, value in self.raw_ifd.items():
-            tag_name = self.tagnum2name[tag]
-            self.ifd[tag_name] = value
+        _Ifd.__init__(self, endian, buffer, offset)
+        self.post_process(self.tagnum2name)
 
 
-class ExifPhotoIfd(Ifd):
+class _ExifPhotoIfd(_Ifd):
     tagnum2name = {33434: 'ExposureTime',
                    33437: 'FNumber',
                    34850: 'ExposureProgram',
@@ -2071,16 +2074,11 @@ class ExifPhotoIfd(Ifd):
                    42037: 'LensSerialNumber'}
 
     def __init__(self, endian, buffer, offset):
-        Ifd.__init__(self, endian, buffer, offset)
-
-        # Now post process the raw IFD.
-        self.ifd = {}
-        for tag, value in self.raw_ifd.items():
-            tag_name = self.tagnum2name[tag]
-            self.ifd[tag_name] = value
+        _Ifd.__init__(self, endian, buffer, offset)
+        self.post_process(self.tagnum2name)
 
 
-class ExifGPSInfoIfd(Ifd):
+class _ExifGPSInfoIfd(_Ifd):
     tagnum2name = {0: 'GPSVersionID',
                    1: 'GPSLatitudeRef',
                    2: 'GPSLatitude',
@@ -2114,16 +2112,11 @@ class ExifGPSInfoIfd(Ifd):
                    30: 'GPSDifferential'}
 
     def __init__(self, endian, buffer, offset):
-        Ifd.__init__(self, endian, buffer, offset)
-
-        # Now post process the raw IFD.
-        self.ifd = {}
-        for tag, value in self.raw_ifd.items():
-            tag_name = self.tagnum2name[tag]
-            self.ifd[tag_name] = value
+        _Ifd.__init__(self, endian, buffer, offset)
+        self.post_process(self.tagnum2name)
 
 
-class ExifInteroperabilityIfd(Ifd):
+class _ExifInteroperabilityIfd(_Ifd):
     tagnum2name = {1: 'InteroperabilityIndex',
                    2: 'InteroperabilityVersion',
                    4096: 'RelatedImageFileFormat',
@@ -2131,13 +2124,9 @@ class ExifInteroperabilityIfd(Ifd):
                    4098: 'RelatedImageLength'}
 
     def __init__(self, endian, buffer, offset):
-        Ifd.__init__(self, endian, buffer, offset)
+        _Ifd.__init__(self, endian, buffer, offset)
+        self.post_process(self.tagnum2name)
 
-        # Now post process the raw IFD.
-        self.ifd = {}
-        for tag, value in self.raw_ifd.items():
-            tag_name = self.tagnum2name[tag]
-            self.ifd[tag_name] = value
 
 # Map each box ID to the corresponding class.
 _box_with_id = {

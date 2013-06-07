@@ -142,10 +142,18 @@ From this point forward, python3 will be referred to as just "python".
 Installation
 ============
 
-First, get the code by going to either of
+You can install glymur via pip from the command line::
+
+    $ pip install glymur
+
+or manually retrieve the code from either of GitHub or PyPI
 
     * https://pypi.python.org/pypi/Glymur/ (stable releases)
     * http://github.com/quintusdias/glymur (bleeding edge)
+
+and then unpack and install with::
+
+    $ python setup.py install --prefix=/install/path
 
 In addition to merely installing glymur, you should adjust your **$PATH**
 environment variable in order to be able to use the *jp2dump* script from
@@ -153,7 +161,6 @@ the unix command line.
 
 ::
 
-    $ python setup.py install --prefix=/install/path
     $ export PYTHONPATH=/install/path/lib/python3.3/site-packages
     $ export PATH=/install/path/bin:$PATH
 
