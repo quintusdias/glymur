@@ -820,15 +820,7 @@ class TestPrinting(unittest.TestCase):
         lines = ["UUID Box (uuid) @ (77, 638)",
                  "    UUID:  4a706754-6966-6645-7869-662d3e4a5032 (Exif)",
                  "    UUID Data:  ",
-                 "{'Exif': {'ExifTag': 138,",
-                 "          'GPSTag': 354,",
-                 "          'Make': 'HTC',",
-                 "          'Model': 'HTC Glacier',",
-                 "          'ResolutionUnit': 2,",
-                 "          'XResolution': 72.0,",
-                 "          'YCbCrPositioning': 1,",
-                 "          'YResolution': 72.0},",
-                 " 'GPSInfo': {'GPSAltitude': 0.0,",
+                 "{'GPSInfo': {'GPSAltitude': 0.0,",
                  "             'GPSAltitudeRef': 0,",
                  "             'GPSDateStamp': '2013:02:09',",
                  "             'GPSLatitude': [42.0, 20.0, 33.61],",
@@ -853,6 +845,14 @@ class TestPrinting(unittest.TestCase):
                  "                                     75),",
                  "             'GPSTimeStamp': [19.0, 47.0, 53.0],",
                  "             'GPSVersionID': (2, 2, 0)},",
+                 " 'Image': {'ExifTag': 138,",
+                 "           'GPSTag': 354,",
+                 "           'Make': 'HTC',",
+                 "           'Model': 'HTC Glacier',",
+                 "           'ResolutionUnit': 2,",
+                 "           'XResolution': 72.0,",
+                 "           'YCbCrPositioning': 1,",
+                 "           'YResolution': 72.0},",
                  " 'Iop': None,",
                  " 'Photo': {'ColorSpace': 1,",
                  "           'ComponentsConfiguration': (1, 2, 3, 0),",
@@ -867,6 +867,7 @@ class TestPrinting(unittest.TestCase):
                  "           'PixelYDimension': 1424}}"]
 
         expected = '\n'.join(lines)
+
         self.assertEqual(actual, expected)
 
 if __name__ == "__main__":
