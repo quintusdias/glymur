@@ -1626,7 +1626,7 @@ class UUIDBox(Jp2kBox):
         elif kwargs['uuid'].bytes == b'JpgTiffExif->JP2':
             e = Exif(buffer)
             d = {}
-            d['Exif'] = e.exif_image
+            d['Image'] = e.exif_image
             d['Photo'] = e.exif_photo
             d['GPSInfo'] = e.exif_gpsinfo
             d['Iop'] = e.exif_iop
@@ -1779,7 +1779,13 @@ class _Ifd:
 
     def post_process(self, tagnum2name):
         for tag, value in self.raw_ifd.items():
-            tag_name = tagnum2name[tag]
+            try:
+                tag_name = tagnum2name[tag]
+            except KeyError:
+                # Ok, we don't recognize this tag.  Just use the numeric id.
+                msg = 'Unrecognized Exif tag "{0}".'.format(tag)
+                warnings.warn(msg, UserWarning)
+                tag_name = tag
             self.processed_ifd[tag_name] = value
 
 

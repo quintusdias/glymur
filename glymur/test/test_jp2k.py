@@ -4,6 +4,7 @@ import doctest
 import imp
 import os
 import re
+import shutil
 import struct
 import sys
 import tempfile
@@ -657,6 +658,38 @@ class TestJp2k(unittest.TestCase):
         elt = xmp.find(name)
         attr_value = elt.attrib['{0}CreatorTool'.format(ns1)]
         self.assertEqual(attr_value, 'glymur')
+
+    def test_unrecognized_exif_tag(self):
+        # An unrecognized exif tag should be handled gracefully.
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            shutil.copyfile(self.jp2file, tfile.name)
+
+            # The Exif UUID starts at byte 77.  There are 8 bytes for the L and
+            # T fields, then 16 bytes for the UUID identifier, then 6 exif
+            # header bytes, then 8 bytes for the TIFF header, then 2 bytes
+            # the the Image IFD number of tags, where we finally find the first
+            # tag, "Make" (271).  We'll corrupt it by changing it into 171,
+            # which does not correspond to any known Exif Image tag.
+            with open(tfile.name, 'r+b') as fp:
+                fp.seek(117)
+                buffer = struct.pack('<H', int(171))
+                fp.write(buffer)
+
+            # Verify that a warning is issued, but only on python3.
+            # On python2, just suppress the warning.
+            if sys.hexversion < 0x03030000:
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    j = Jp2k(tfile.name)
+            else:
+                with self.assertWarns(UserWarning) as cw:
+                    j = Jp2k(tfile.name)
+
+            exif = j.box[3].data
+            # Were the tag == 271, 'Make' would be in the keys instead.
+            self.assertTrue(171 in exif['Image'].keys())
+            self.assertFalse('Make' in exif['Image'].keys())
+
 
 if __name__ == "__main__":
     unittest.main()
