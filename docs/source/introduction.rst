@@ -187,7 +187,7 @@ Testing
 In order to run all of the test suite, you will first need the OpenJPEG test
 data that you previously retrieved.
 Then you should set the **OPJ_DATA_ROOT** environment variable to
-point to this directory, e.g.::
+point to this directory, e.g. ::
 
     $ cd /somewhere/outside/the/glymur/unpacking/directory
     $ svn co http://openjpeg.googlecode.com/svn/data
@@ -203,5 +203,5 @@ OpenJPEG counterparts are already failing, and others which do pass but
 still produce heaps of output on stderr.  Rather than let this swamp
 the signal (that most of the tests are actually passing), they've been
 filtered out for now.  There are also more skipped tests on Python 2.7
-than on Python 3.3.  The important point to remember is whether or not any test
+than on Python 3.3.  The important part is whether or not any test
 errors are reported at the end.
