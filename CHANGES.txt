@@ -1,5 +1,5 @@
-Jun 07, 2013 - Changed Exif dictionary names from ['Exif', 'Photo', 'Iop', 
-    'GPSInfo'] to ['Image', 'Photo', 'Iop', 'GPSInfo'].  
+Jun 07, 2013 - v0.1.7  Changed Exif dictionary names from ['Exif', 'Photo',
+    'Iop', 'GPSInfo'] to ['Image', 'Photo', 'Iop', 'GPSInfo'].  
 
 Jun 06, 2013 - v0.1.6  Exif classes made private.  Refactored IFD post
     processing.  Corrected omission of Exif in UUIDBox docstring.
