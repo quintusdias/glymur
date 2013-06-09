@@ -268,9 +268,25 @@ class ICCProfile:
 
     def __init__(self, buffer):
         self._raw_buffer = buffer
-        self.parse_header()
+        self.parse_header(buffer)
+        self.parse_tag_table(buffer)
 
-    def parse_header(self):
+    def parse_tag_table(self, buffer):
+        """
+        See section 7.3 of ICC1V4.2.
+        """
+        num_tags, = struct.unpack('>I', buffer[128:132])
+        tag_table = buffer[132:132 + num_tags * 12]
+        data = struct.unpack('>' + 'III' * num_tags, tag_table)
+        signature = data[0::3]
+        offset = data[1::3]
+        size = data[2::3]
+        for j in range(num_tags):
+            print("{0} at {1} of length {2}".format(signature[j],
+                                                    offset[j],
+                                                    size[j]))
+
+    def parse_header(self, buffer):
         """See section 7.2"""
         self.size, = struct.unpack('>I', self._raw_buffer[0:4])
         self.preferred_cmm_type, = struct.unpack('>I', self._raw_buffer[4:8])
@@ -287,8 +303,29 @@ class ICCProfile:
 
         data = struct.unpack('>HHHHHH', self._raw_buffer[24:36])
         self.datetime = datetime.datetime(*data)
+        self.file_signature = buffer[36:40].decode('utf-8')
+        if buffer[40:44] == b'\x00\x00\x00\x00':
+            self.platform = 'unrecognized'
+        else:
+            self.platform = buffer[40:44].decode('utf-8')
+        
+        self.flags, = struct.unpack('>I', buffer[44:48])
                                      
-        print(self._raw_buffer[24:36])
+        self.device_manufacturer = buffer[48:52].decode('utf-8')
+        self.device_model = buffer[52:56].decode('utf-8')
+        self.device_attributes, = struct.unpack('>Q', buffer[56:64])
+        self.rendering_intent, = struct.unpack('>I', buffer[64:68])
+
+        data = struct.unpack('>iii', buffer[68:80])
+        self.illuminant = np.array(data, dtype=np.float64) / 65536
+
+        if buffer[80:84] == b'\x00\x00\x00\x00':
+            self.creator = 'unrecognized'
+        else:
+            self.creator = buffer[80:84].decode('utf-8')
+    
+        self.profile_id = buffer[84:100]
+        self.reserved = buffer[100:127]
 
     def __str__(self):
         msg = "Profile size:  {0}"
