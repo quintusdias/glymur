@@ -12,6 +12,7 @@ References
 """
 
 import copy
+import datetime
 import math
 import os
 import pprint
@@ -221,11 +222,79 @@ class ColourSpecificationBox(Jp2kBox):
             # ICC profile
             kwargs['colorspace'] = None
             n = offset + length - f.tell()
-            kwargs['icc_profile'] = f.read(n)
+            icc_profile = ICCProfile(f.read(n))
+            kwargs['icc_profile'] = icc_profile
 
         box = ColourSpecificationBox(**kwargs)
         return box
 
+
+class ICCProfile:
+    """
+    """
+    profile_class = {b'scnr': 'input device profile',
+                     b'mntr': 'display device profile',
+                     b'prtr': 'output device profile',
+                     b'link': 'devicelink profile',
+                     b'spac': 'colorspace conversion profile',
+                     b'abst': 'abstract profile',
+                     b'nmcl': 'name colour profile'}
+
+    colour_space_dict = {b'XYZ ': 'XYZ',
+                         b'Lab ': 'Lab',
+                         b'Luv ': 'Luv',
+                         b'YCbr': 'YCbCr',
+                         b'Yxy ': 'Yxy',
+                         b'RGB ': 'RGB',
+                         b'GRAY': 'gray',
+                         b'HSV ': 'hsv',
+                         b'HLS ': 'hls',
+                         b'CMYK': 'CMYK',
+                         b'CMY ': 'cmy',
+                         b'2CLR': '2colour',
+                         b'3CLR': '3colour',
+                         b'4CLR': '4colour',
+                         b'5CLR': '5colour',
+                         b'6CLR': '6colour',
+                         b'7CLR': '7colour',
+                         b'8CLR': '8colour',
+                         b'9CLR': '9colour',
+                         b'ACLR': '10colour',
+                         b'BCLR': '11colour',
+                         b'CCLR': '12colour',
+                         b'DCLR': '13colour',
+                         b'ECLR': '14colour',
+                         b'FCLR': '15colour'}
+
+    def __init__(self, buffer):
+        self._raw_buffer = buffer
+        self.parse_header()
+
+    def parse_header(self):
+        """See section 7.2"""
+        self.size, = struct.unpack('>I', self._raw_buffer[0:4])
+        self.preferred_cmm_type, = struct.unpack('>I', self._raw_buffer[4:8])
+
+        data = struct.unpack('>BB', self._raw_buffer[8:10])
+        major = data[0]
+        minor = (data[1] & 0xf0) >> 4
+        bugfix = (data[1] & 0x0f)
+        self.version = '{0}.{1}.{2}'.format(major, minor, bugfix)
+
+        self.device_class = self.profile_class[self._raw_buffer[12:16]]
+        self.colour_space = self.colour_space_dict[self._raw_buffer[16:20]]
+        self.connection_space = self.colour_space_dict[self._raw_buffer[20:24]]
+
+        data = struct.unpack('>HHHHHH', self._raw_buffer[24:36])
+        self.datetime = datetime.datetime(*data)
+                                     
+        print(self._raw_buffer[24:36])
+
+    def __str__(self):
+        msg = "Profile size:  {0}"
+        msg = "Preferred CMM type:  {1}"
+        msg = msg.format(self.size,
+                         self.preferred_cmm_type)
 
 class ComponentDefinitionBox(Jp2kBox):
     """Container for component definition box information.
