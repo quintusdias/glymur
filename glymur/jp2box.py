@@ -282,9 +282,12 @@ class ICCProfile:
         offset = data[1::3]
         size = data[2::3]
         for j in range(num_tags):
-            print("{0} at {1} of length {2}".format(signature[j],
-                                                    offset[j],
-                                                    size[j]))
+            sig = buffer[132 + j * 4:132 + (j + 1) * 4]
+            print(sig)
+            import pdb; pdb.set_trace()
+            tag_buffer = buffer[offset[j]:offset[j] + size[j]]
+            if sig == b'desc':
+                table['desc'] = _MultiLocalizedUnicodeType(tag_buffer)
 
     def parse_header(self, buffer):
         """See section 7.2"""
@@ -332,6 +335,19 @@ class ICCProfile:
         msg = "Preferred CMM type:  {1}"
         msg = msg.format(self.size,
                          self.preferred_cmm_type)
+
+class _MultiLocalizedUnicodeType:
+    def __init__(self, buffer):
+        import pdb; pdb.set_trace()
+        self.id = buffer[0:4].decode('utf-8')
+        data = struct.unpack('>II', buffer[8:16])
+        num_names = data[0]
+        self.record_size = data[1]
+
+        data = struct.unpack('>' + 'HHII' * num_names,
+                             buffer[16:16 + 12 * num_names])
+        for j in range(num_names):
+            print(j)
 
 class ComponentDefinitionBox(Jp2kBox):
     """Container for component definition box information.
