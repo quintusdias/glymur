@@ -53,7 +53,8 @@ class TestJp2k(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        # Setup a JP2 file with a bad XML box.
+        # Setup a JP2 file with a bad XML box.  We only need to do this once
+        # per class rather than once per test.
         jp2file = pkg_resources.resource_filename(glymur.__name__,
                                                   "data/nemo.jp2")
         with tempfile.NamedTemporaryFile(suffix='.jp2', delete=False) as tfile:
@@ -92,9 +93,17 @@ class TestJp2k(unittest.TestCase):
                      "Uses features introduced in 3.2.")
     def test_invalid_xml_box_warning(self):
         # Should be able to recover from xml box with bad xml.
-        # Just verify that a warning is issued on 3.2+
+        # Just verify that a warning is issued on 3.3+
         with self.assertWarns(UserWarning) as cw:
             jp2k = Jp2k(self._bad_xml_file)
+
+    def test_reduce_max(self):
+        # Verify that reduce=-1 gets us the lowest resolution image
+        j = Jp2k(self.jp2file)
+        thumbnail1 = j.read(reduce=-1)
+        thumbnail2 = j.read(reduce=5)
+        np.testing.assert_array_equal(thumbnail1, thumbnail2)
+        self.assertEqual(thumbnail1.shape, (46, 81, 3))
 
     def test_invalid_xml_box(self):
         # Should be able to recover from xml box with bad xml.
