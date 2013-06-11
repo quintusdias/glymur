@@ -407,7 +407,8 @@ class Jp2k(Jp2kBox):
         layer : int, optional
             Number of quality layer to decode.
         reduce : int, optional
-            Factor by which to reduce output resolution.
+            Factor by which to reduce output resolution.  Use -1 to get the
+            lowest resolution thumbnail.
         area : tuple, optional
             Specifies decoding image area,
             (first_row, first_col, last_row, last_col)
@@ -432,7 +433,15 @@ class Jp2k(Jp2kBox):
         >>> import pkg_resources as pkg
         >>> jfile = pkg.resource_filename(glymur.__name__, "data/nemo.jp2")
         >>> jp = glymur.Jp2k(jfile)
-        >>> data = jp.read(reduce=1)
+        >>> image = jp.read()
+        >>> image.shape
+        (1456, 2592, 3)
+
+        Read the lowest resolution thumbnail.
+
+        >>> thumbnail = jp.read(reduce=-1)
+        >>> thumbnail.shape
+        (46, 81, 3)
         """
         # Check for differing subsample factors.
         codestream = self.get_codestream(header_only=True)
@@ -490,6 +499,12 @@ class Jp2k(Jp2kBox):
         dparam.decod_format = self._codec_format
 
         dparam.cp_layer = layer
+
+        if reduce == -1:
+            # Get the lowest resolution thumbnail.
+            codestream = self.get_codestream()
+            reduce = codestream.segment[2].SPcod[4]
+
         dparam.cp_reduce = reduce
         if area is not None:
             if area[0] < 0 or area[1] < 0:

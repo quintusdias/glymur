@@ -3,6 +3,18 @@ How do I...?
 ------------
 
 
+Read the lowest resolution thumbnail?
+=====================================
+Printing the Jp2k object should reveal the number of resolutions (look in the
+COD segment section), but you can take a shortcut by supplying -1 as the reduce
+level.
+
+    >>> import pkg_resources
+    >>> import glymur
+    >>> file = pkg_resources.resource_filename(glymur.__name__, "data/nemo.jp2")
+    >>> j = glymur.Jp2k(file)
+    >>> thumbnail = j.read(reduce=-1)
+
 Display metadata?
 =================
 There are two ways.  From the unix command line, the script *jp2dump* is
