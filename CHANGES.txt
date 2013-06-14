@@ -1,4 +1,5 @@
-Jun 11, 2013 - Added reduce=-1 option to get lowest resolution thumbnail
+Jun 11, 2013 - v0.1.8  Added reduce=-1 option to get lowest resolution
+    thumbnail.
 
 Jun 07, 2013 - v0.1.7  Changed Exif dictionary names from ['Exif', 'Photo',
     'Iop', 'GPSInfo'] to ['Image', 'Photo', 'Iop', 'GPSInfo'].  
