@@ -7,7 +7,7 @@ Read the lowest resolution thumbnail?
 =====================================
 Printing the Jp2k object should reveal the number of resolutions (look in the
 COD segment section), but you can take a shortcut by supplying -1 as the reduce
-level.
+level. ::
 
     >>> import pkg_resources
     >>> import glymur
@@ -38,7 +38,7 @@ codestream box, only the main header is printed.  It is possible to print
 
 Work with XMP UUIDs?
 ====================
-The example JP2 file shipped with glymur has an XMP UUID::
+The example JP2 file shipped with glymur has an XMP UUID. ::
 
     >>> import pkg_resources
     >>> from glymur import Jp2k
