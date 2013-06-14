@@ -13,9 +13,9 @@ Contents:
    :maxdepth: 2
 
    introduction
-   api
    how_do_i
    roadmap
+   api
 
 ------------------
 Indices and tables
