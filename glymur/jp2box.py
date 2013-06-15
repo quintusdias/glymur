@@ -11,6 +11,7 @@ References
    Extensions
 """
 
+import collections
 import copy
 import datetime
 import math
@@ -1713,8 +1714,8 @@ class UUIDBox(Jp2kBox):
         more verbose description of the box.
     uuid : uuid.UUID
         16-byte UUID
-    data : bytes or dictionary or ElementTree.Element
-        Vendor-specific UUID data.  Exif UUIDs are interpreted as dictionaries.
+    data : bytes or dict or ElementTree.Element
+        Vendor-specific data.  Exif UUIDs are interpreted as dictionaries.
         XMP UUIDs are interpreted as standard XML.
     """
     def __init__(self, **kwargs):
@@ -1782,7 +1783,7 @@ class UUIDBox(Jp2kBox):
                 kwargs['data'] = ET.fromstring(text)
         elif kwargs['uuid'].bytes == b'JpgTiffExif->JP2':
             e = Exif(buffer)
-            d = {}
+            d = collections.OrderedDict()
             d['Image'] = e.exif_image
             d['Photo'] = e.exif_photo
             d['GPSInfo'] = e.exif_gpsinfo
@@ -1877,7 +1878,7 @@ class _Ifd:
     def __init__(self, endian, buffer, offset):
         self.endian = endian
         self.buffer = buffer
-        self.processed_ifd = {}
+        self.processed_ifd = collections.OrderedDict()
 
         self.num_tags, = struct.unpack(endian + 'H',
                                        buffer[offset:offset + 2])
@@ -1885,7 +1886,7 @@ class _Ifd:
         fmt = self.endian + 'HHII' * self.num_tags
         ifd_buffer = buffer[offset + 2:offset + 2 + self.num_tags * 12]
         data = struct.unpack(fmt, ifd_buffer)
-        self.raw_ifd = {}
+        self.raw_ifd = collections.OrderedDict()
         for j, tag in enumerate(data[0::4]):
             # The offset to the tag offset/payload is the offset to the IFD
             # plus 2 bytes for the number of tags plus 12 bytes for each
