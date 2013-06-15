@@ -3579,7 +3579,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[1].method, 2)  # enumerated
         self.assertEqual(jp2.box[3].box[1].precedence, 0)
         self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(jp2.box[3].box[1].icc_profile.size, 546)
+        self.assertEqual(jp2.box[3].box[1].icc_profile['Size'], 546)
         self.assertIsNone(jp2.box[3].box[1].colorspace)
 
         # Jp2 Header
@@ -3674,7 +3674,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[1].method, 2)
         self.assertEqual(jp2.box[3].box[1].precedence, 0)
         self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(jp2.box[3].box[1].icc_profile.size, 13332)
+        self.assertEqual(jp2.box[3].box[1].icc_profile['Size'], 13332)
         self.assertIsNone(jp2.box[3].box[1].colorspace)
 
         # Jp2 Header
@@ -3723,7 +3723,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].method, 2)  # enumerated
         self.assertEqual(jp2.box[2].box[1].precedence, 0)
         self.assertEqual(jp2.box[2].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(jp2.box[2].box[1].icc_profile.size, 414)
+        self.assertEqual(jp2.box[2].box[1].icc_profile['Size'], 414)
         self.assertIsNone(jp2.box[2].box[1].colorspace)
 
         # XML box
@@ -6630,7 +6630,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[1].method, 3)  # any icc
         self.assertEqual(jp2.box[3].box[1].precedence, 2)
         self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(jp2.box[3].box[1].icc_profile.size, 1328)
+        self.assertEqual(jp2.box[3].box[1].icc_profile['Size'], 1328)
         self.assertIsNone(jp2.box[3].box[1].colorspace)
 
         # UUID boxes.  All mentioned in the RREQ box.
