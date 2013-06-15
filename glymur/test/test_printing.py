@@ -775,6 +775,8 @@ class TestPrinting(unittest.TestCase):
             expected = '\n'.join(lines)
             self.assertEqual(actual, expected)
 
+    @unittest.skipIf(sys.hexversion < 0x03000000,
+                     "Ordered dicts not printing well in 2.7")
     @unittest.skipIf(data_root is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_jpx_approximation_with_icc_profile(self):
@@ -785,29 +787,32 @@ class TestPrinting(unittest.TestCase):
 
         print(j.box[3].box[1])
         actual = sys.stdout.getvalue().strip()
-        lines = ['Colour Specification Box (colr) @ (179, 1339)',
-                 '    Method:  any ICC profile',
-                 '    Precedence:  2',
-                 '    Approximation:  accurately represents '
-                 + 'correct colorspace definition',
-                 '    ICC Profile:  ',
-                 '        Size:  1328',
-                 '        Preferred CMM type:  6170706c',
-                 '        Version:  2.2.0',
-                 '        Device class signature:  display device profile',
-                 '        Color space:  RGB',
-                 '        Connection space:  XYZ',
-                 '        Creation time:  2009-02-25 11:26:11',
-                 '        File signature:  acsp',
-                 '        Platform:  APPL',
-                 '        Flags:  not embedded, can be used independently',
-                 '        Device manufacturer:  appl',
-                 '        Device model:  ',
-                 '        Device attributes:  '
-                 + 'reflective, glossy, positive media polarity, color media',
-                 '        Rendering intent:  perceptual',
-                 '        Illuminant:  [ 0.96420288  1.          0.8249054 ]',
-                 '        Creator signature:  appl']
+        lines = ["Colour Specification Box (colr) @ (179, 1339)",
+                 "    Method:  any ICC profile",
+                 "    Precedence:  2",
+                 "    Approximation:  accurately represents "
+                 + "correct colorspace definition",
+                 "    ICC Profile:",
+                 "        {'Size': 1328,",
+                 "         'Preferred CMM Type': 1634758764,",
+                 "         'Version': '2.2.0',",
+                 "         'Device Class': 'display device profile',",
+                 "         'Color Space': 'RGB',",
+                 "         'Connection Space': 'XYZ',",
+                 "         'Datetime': "
+                 + "datetime.datetime(2009, 2, 25, 11, 26, 11),",
+                 "         'File Signature': 'acsp',",
+                 "         'Platform': 'APPL',",
+                 "         'Flags': 'not embedded, "
+                 + "can be used independently',",
+                 "         'Device Manufacturer': 'appl',",
+                 "         'Device Model': '',",
+                 "         'Device Attributes': 'reflective, glossy, "
+                 + "positive media polarity, color media',",
+                 "         'Rendering Intent': 'perceptual',",
+                 "         'Illuminant': array([ 0.96420288,  1.        ,"
+                 + "  0.8249054 ]),",
+                 "         'Creator': 'appl'}"]
 
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
@@ -828,6 +833,8 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
+    @unittest.skipIf(sys.hexversion < 0x03000000,
+                     "Ordered dicts not printing well in 2.7")
     def test_exif_uuid(self):
         j = glymur.Jp2k(self.jp2file)
 
