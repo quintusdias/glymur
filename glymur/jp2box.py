@@ -176,7 +176,13 @@ class ColourSpecificationBox(Jp2kBox):
             x = _colorspace_map_display[self.colorspace]
             msg += '\n    Colorspace:  {0}'.format(x)
         else:
-            x = pprint.pformat(self.icc_profile)
+            # 2.7 has trouble pretty-printing ordered dicts so we just have
+            # to print as a regular dict in this case.
+            if sys.hexversion < 0x03000000:
+                icc_profile = dict(self.icc_profile)
+            else:
+                icc_profile = self.icc_profile
+            x = pprint.pformat(icc_profile)
             lines = [' ' * 8 + y for y in x.split('\n')]
             msg += '\n    ICC Profile:\n{0}'.format('\n'.join(lines))
 
@@ -1695,7 +1701,10 @@ class UUIDBox(Jp2kBox):
             uuid_data = _pretty_print_xml(self.data)
         elif self.uuid.bytes == b'JpgTiffExif->JP2':
             uuid_type = ' (Exif)'
-            uuid_data = '\n' + pprint.pformat(self.data)
+            # 2.7 has trouble pretty-printing ordered dicts, so print them
+            # as regular dicts.  Not ideal, but at least it's good on 3.3+.
+            x = self.data if sys.hexversion >= 0x03000000 else dict(self.data)
+            uuid_data = '\n' + pprint.pformat(x)
         else:
             uuid_type = ''
             uuid_data = '{0} bytes'.format(len(self.data))

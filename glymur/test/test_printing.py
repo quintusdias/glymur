@@ -188,6 +188,70 @@ class TestPrinting(unittest.TestCase):
 
     @unittest.skipIf(data_root is None,
                      "OPJ_DATA_ROOT environment variable not set")
+    def test_icc_profile(self):
+        filename = os.path.join(data_root, 'input/nonregression/text_GBR.jp2')
+        j = glymur.Jp2k(filename)
+        print(j.box[3].box[1])
+        actual = sys.stdout.getvalue().strip()
+        lin27 = ["Colour Specification Box (colr) @ (179, 1339)",
+                 "    Method:  any ICC profile",
+                 "    Precedence:  2",
+                 "    Approximation:  accurately represents correct "
+                 + "colorspace definition",
+                 "    ICC Profile:",
+                 "        {'Color Space': 'RGB',",
+                 "         'Connection Space': 'XYZ',",
+                 "         'Creator': u'appl',",
+                 "         'Datetime': "
+                 + "datetime.datetime(2009, 2, 25, 11, 26, 11),",
+                 "         'Device Attributes': 'reflective, glossy, "
+                 + "positive media polarity, color media',",
+                 "         'Device Class': 'display device profile',",
+                 "         'Device Manufacturer': u'appl',",
+                 "         'Device Model': '',",
+                 "         'File Signature': u'acsp',",
+                 "         'Flags': "
+                 + "'not embedded, can be used independently',",
+                 "         'Illuminant': "
+                 + "array([ 0.96420288,  1.        ,  0.8249054 ]),",
+                 "         'Platform': u'APPL',",
+                 "         'Preferred CMM Type': 1634758764,",
+                 "         'Rendering Intent': 'perceptual',",
+                 "         'Size': 1328,",
+                 "         'Version': '2.2.0'}"]
+        lin33 = ["Colour Specification Box (colr) @ (179, 1339)",
+                 "    Method:  any ICC profile",
+                 "    Precedence:  2",
+                 "    Approximation:  accurately represents correct "
+                 + "colorspace definition",
+                 "    ICC Profile:",
+                 "        {'Size': 1328,",
+                 "         'Preferred CMM Type': 1634758764,",
+                 "         'Version': '2.2.0',",
+                 "         'Device Class': 'display device profile',",
+                 "         'Color Space': 'RGB',",
+                 "         'Connection Space': 'XYZ',",
+                 "         'Datetime': "
+                 + "datetime.datetime(2009, 2, 25, 11, 26, 11),",
+                 "         'File Signature': 'acsp',",
+                 "         'Platform': 'APPL',",
+                 "         'Flags': 'not embedded, can be used "
+                 + "independently',",
+                 "         'Device Manufacturer': 'appl',",
+                 "         'Device Model': '',",
+                 "         'Device Attributes': 'reflective, glossy, "
+                 + "positive media polarity, color media',",
+                 "         'Rendering Intent': 'perceptual',",
+                 "         'Illuminant': "
+                 + "array([ 0.96420288,  1.        ,  0.8249054 ]),",
+                 "         'Creator': 'appl'}"]
+
+        lines = lin27 if sys.hexversion < 0x03000000 else lin33
+        expected = '\n'.join(lines)
+        self.assertEqual(actual, expected)
+
+    @unittest.skipIf(data_root is None,
+                     "OPJ_DATA_ROOT environment variable not set")
     def test_CRG(self):
         filename = os.path.join(data_root, 'input/conformance/p0_03.j2k')
         j = glymur.Jp2k(filename)
