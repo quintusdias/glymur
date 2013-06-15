@@ -12,6 +12,7 @@ References
 """
 
 import copy
+import datetime
 import math
 import os
 import pprint
@@ -153,9 +154,9 @@ class ColourSpecificationBox(Jp2kBox):
     colorspace : int or None
         Enumerated colorspace, corresponds to one of 'sRGB', 'greyscale', or
         'YCC'.  If not None, then icc_profile must be None.
-    icc_profile : byte array or None
-        ICC profile according to ICC profile specification.  If not None, then
-        color_space must be None.
+    icc_profile : _ICCProfile or None
+        ICC profile header according to ICC profile specification.  If not
+        None, then color_space must be None.
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='Colour Specification')
@@ -174,8 +175,7 @@ class ColourSpecificationBox(Jp2kBox):
             x = _colorspace_map_display[self.colorspace]
             msg += '\n    Colorspace:  {0}'.format(x)
         else:
-            x = len(self.icc_profile)
-            msg += '\n    ICC Profile:  {0} bytes'.format(x)
+            msg += '\n    ICC Profile:  {0}'.format(self.icc_profile.__str__())
 
         return msg
 
@@ -221,10 +221,167 @@ class ColourSpecificationBox(Jp2kBox):
             # ICC profile
             kwargs['colorspace'] = None
             n = offset + length - f.tell()
-            kwargs['icc_profile'] = f.read(n)
+            if n < 128:
+                msg = "ICC profile header is corrupt, length is "
+                msg += "only {0} instead of 128."
+                warnings.warn(msg.format(n), UserWarning)
+                kwargs['icc_profile'] = None
+            else:
+                icc_profile = _ICCProfile(f.read(n))
+                kwargs['icc_profile'] = icc_profile
 
         box = ColourSpecificationBox(**kwargs)
         return box
+
+
+class _ICCProfile:
+    """
+    """
+    profile_class = {b'scnr': 'input device profile',
+                     b'mntr': 'display device profile',
+                     b'prtr': 'output device profile',
+                     b'link': 'devicelink profile',
+                     b'spac': 'colorspace conversion profile',
+                     b'abst': 'abstract profile',
+                     b'nmcl': 'name colour profile'}
+
+    colour_space_dict = {b'XYZ ': 'XYZ',
+                         b'Lab ': 'Lab',
+                         b'Luv ': 'Luv',
+                         b'YCbr': 'YCbCr',
+                         b'Yxy ': 'Yxy',
+                         b'RGB ': 'RGB',
+                         b'GRAY': 'gray',
+                         b'HSV ': 'hsv',
+                         b'HLS ': 'hls',
+                         b'CMYK': 'CMYK',
+                         b'CMY ': 'cmy',
+                         b'2CLR': '2colour',
+                         b'3CLR': '3colour',
+                         b'4CLR': '4colour',
+                         b'5CLR': '5colour',
+                         b'6CLR': '6colour',
+                         b'7CLR': '7colour',
+                         b'8CLR': '8colour',
+                         b'9CLR': '9colour',
+                         b'ACLR': '10colour',
+                         b'BCLR': '11colour',
+                         b'CCLR': '12colour',
+                         b'DCLR': '13colour',
+                         b'ECLR': '14colour',
+                         b'FCLR': '15colour'}
+
+    rendering_intent_dict = {0: 'perceptual',
+                             1: 'media-relative colorimetric',
+                             2: 'saturation',
+                             3: 'ICC-absolute colorimetric'}
+
+    def __init__(self, buffer):
+        self._raw_buffer = buffer
+
+        self.size, = struct.unpack('>I', self._raw_buffer[0:4])
+        self.preferred_cmm_type, = struct.unpack('>I', self._raw_buffer[4:8])
+
+        data = struct.unpack('>BB', self._raw_buffer[8:10])
+        major = data[0]
+        minor = (data[1] & 0xf0) >> 4
+        bugfix = (data[1] & 0x0f)
+        self.version = '{0}.{1}.{2}'.format(major, minor, bugfix)
+
+        self.device_class = self.profile_class[self._raw_buffer[12:16]]
+        self.colour_space = self.colour_space_dict[self._raw_buffer[16:20]]
+        self.connection_space = self.colour_space_dict[self._raw_buffer[20:24]]
+
+        data = struct.unpack('>HHHHHH', self._raw_buffer[24:36])
+        self.datetime = datetime.datetime(*data)
+        self.file_signature = buffer[36:40].decode('utf-8')
+        if buffer[40:44] == b'\x00\x00\x00\x00':
+            self.platform = 'unrecognized'
+        else:
+            self.platform = buffer[40:44].decode('utf-8')
+
+        self.flags, = struct.unpack('>I', buffer[44:48])
+
+        self.device_manufacturer = buffer[48:52].decode('utf-8')
+        if buffer[52:56] == b'\x00\x00\x00\x00':
+            self.device_model = ''
+        else:
+            self.device_model = buffer[52:56].decode('utf-8')
+        self.device_attributes, = struct.unpack('>Q', buffer[56:64])
+        self.rendering_intent, = struct.unpack('>I', buffer[64:68])
+
+        data = struct.unpack('>iii', buffer[68:80])
+        self.illuminant = np.array(data, dtype=np.float64) / 65536
+
+        if buffer[80:84] == b'\x00\x00\x00\x00':
+            self.creator = 'unrecognized'
+        else:
+            self.creator = buffer[80:84].decode('utf-8')
+
+        self.profile_id = buffer[84:100]
+        self.reserved = buffer[100:127]
+
+    def __str__(self):
+        msg = "\n        Size:  {0}"
+        msg += "\n        Preferred CMM type:  {1:x}"
+        msg += "\n        Version:  {2}"
+        msg += "\n        Device class signature:  {3}"
+        msg += "\n        Color space:  {4}"
+        msg += "\n        Connection space:  {5}"
+        msg += "\n        Creation time:  {6}"
+        msg += "\n        File signature:  {7}"
+        msg += "\n        Platform:  {8}"
+        msg += "\n        Flags:  {9}"
+        msg += "\n        Device manufacturer:  {10}"
+        msg += "\n        Device model:  {11}"
+        msg += "\n        Device attributes:  {12}"
+        msg += "\n        Rendering intent:  {13}"
+        msg += "\n        Illuminant:  {14}"
+        msg += "\n        Creator signature:  {15}"
+
+        if self.flags & 0x01:
+            flag_string = 'embedded, '
+        else:
+            flag_string = 'not embedded, '
+        if self.flags & 0x02:
+            flag_string += 'cannot be used independently'
+        else:
+            flag_string += 'can be used independently'
+
+        if self.device_attributes & 0x01:
+            attr_string = 'transparency, '
+        else:
+            attr_string = 'reflective, '
+        if self.device_attributes & 0x02:
+            attr_string += 'matte, '
+        else:
+            attr_string += 'glossy, '
+        if self.device_attributes & 0x04:
+            attr_string += 'negative media polarity, '
+        else:
+            attr_string += 'positive media polarity, '
+        if self.device_attributes & 0x08:
+            attr_string += 'black and white media'
+        else:
+            attr_string += 'color media'
+
+        msg = msg.format(self.size,
+                         self.preferred_cmm_type,
+                         self.version,
+                         self.device_class,
+                         self.colour_space,
+                         self.connection_space,
+                         self.datetime,
+                         self.file_signature,
+                         self.platform,
+                         flag_string,
+                         self.device_manufacturer,
+                         self.device_model,
+                         attr_string,
+                         self.rendering_intent_dict[self.rendering_intent],
+                         self.illuminant,
+                         self.creator)
+        return(msg)
 
 
 class ComponentDefinitionBox(Jp2kBox):

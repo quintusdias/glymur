@@ -3579,7 +3579,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[1].method, 2)  # enumerated
         self.assertEqual(jp2.box[3].box[1].precedence, 0)
         self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(len(jp2.box[3].box[1].icc_profile), 546)
+        self.assertEqual(jp2.box[3].box[1].icc_profile.size, 546)
         self.assertIsNone(jp2.box[3].box[1].colorspace)
 
         # Jp2 Header
@@ -3674,7 +3674,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[1].method, 2)
         self.assertEqual(jp2.box[3].box[1].precedence, 0)
         self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(len(jp2.box[3].box[1].icc_profile), 13332)
+        self.assertEqual(jp2.box[3].box[1].icc_profile.size, 13332)
         self.assertIsNone(jp2.box[3].box[1].colorspace)
 
         # Jp2 Header
@@ -3723,7 +3723,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].method, 2)  # enumerated
         self.assertEqual(jp2.box[2].box[1].precedence, 0)
         self.assertEqual(jp2.box[2].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(len(jp2.box[2].box[1].icc_profile), 414)
+        self.assertEqual(jp2.box[2].box[1].icc_profile.size, 414)
         self.assertIsNone(jp2.box[2].box[1].colorspace)
 
         # XML box
@@ -6394,7 +6394,10 @@ class TestSuite(unittest.TestCase):
     def test_NR_orb_blue10_lin_jp2_dump(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/orb-blue10-lin-jp2.jp2')
-        jp2 = Jp2k(jfile)
+        with warnings.catch_warnings():
+            # This file has an invalid ICC profile
+            warnings.simplefilter("ignore")
+            jp2 = Jp2k(jfile)
 
         ids = [box.id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
@@ -6426,7 +6429,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].method, 2)  # res icc
         self.assertEqual(jp2.box[2].box[1].precedence, 0)
         self.assertEqual(jp2.box[2].box[1].approximation, 0)  # JP2
-        self.assertEqual(len(jp2.box[2].box[1].icc_profile), 1)
+        self.assertIsNone(jp2.box[2].box[1].icc_profile)
         self.assertIsNone(jp2.box[2].box[1].colorspace)
 
         c = jp2.box[3].main_header
@@ -6490,7 +6493,10 @@ class TestSuite(unittest.TestCase):
     def test_NR_orb_blue10_win_jp2_dump(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/orb-blue10-win-jp2.jp2')
-        jp2 = Jp2k(jfile)
+        with warnings.catch_warnings():
+            # This file has an invalid ICC profile
+            warnings.simplefilter("ignore")
+            jp2 = Jp2k(jfile)
 
         ids = [box.id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
@@ -6522,7 +6528,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].method, 2)  # restricted icc
         self.assertEqual(jp2.box[2].box[1].precedence, 0)
         self.assertEqual(jp2.box[2].box[1].approximation, 0)  # JP2
-        self.assertEqual(len(jp2.box[2].box[1].icc_profile), 1)
+        self.assertIsNone(jp2.box[2].box[1].icc_profile)
         self.assertIsNone(jp2.box[2].box[1].colorspace)
 
         c = jp2.box[3].main_header
@@ -6624,7 +6630,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[1].method, 3)  # any icc
         self.assertEqual(jp2.box[3].box[1].precedence, 2)
         self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(len(jp2.box[3].box[1].icc_profile), 1328)
+        self.assertEqual(jp2.box[3].box[1].icc_profile.size, 1328)
         self.assertIsNone(jp2.box[3].box[1].colorspace)
 
         # UUID boxes.  All mentioned in the RREQ box.
@@ -6859,7 +6865,10 @@ class TestSuite(unittest.TestCase):
     def test_NR_DEC_orb_blue_lin_jp2_25_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/orb-blue10-lin-jp2.jp2')
-        data = Jp2k(jfile).read()
+        with warnings.catch_warnings():
+            # This file has an invalid ICC profile
+            warnings.simplefilter("ignore")
+            data = Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_orb_blue_win_jp2_26_decode(self):
