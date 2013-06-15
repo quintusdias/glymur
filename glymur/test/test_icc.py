@@ -21,17 +21,16 @@ except:
     raise
 
 
+@unittest.skipIf(data_root is None,
+                 "OPJ_DATA_ROOT environment variable not set")
 class TestICC(unittest.TestCase):
 
     def setUp(self):
-        self.jp2file = pkg_resources.resource_filename(glymur.__name__,
-                                                       "data/nemo.jp2")
+        pass
 
     def tearDown(self):
         pass
 
-    @unittest.skipIf(data_root is None,
-                     "OPJ_DATA_ROOT environment variable not set")
     def test_file5(self):
         filename = os.path.join(data_root, 'input/conformance/file5.jp2')
         j = Jp2k(filename)
@@ -42,7 +41,7 @@ class TestICC(unittest.TestCase):
         self.assertEqual(profile.device_class, 'input device profile')
         self.assertEqual(profile.colour_space, 'RGB')
         self.assertEqual(profile.datetime,
-                         datetime.datetime(2001,8,30,13,32,37))
+                         datetime.datetime(2001, 8, 30, 13, 32, 37))
         self.assertEqual(profile.file_signature, 'acsp')
         self.assertEqual(profile.platform, 'unrecognized')
         self.assertTrue(profile.flags & 0x01)  # embedded
@@ -63,6 +62,13 @@ class TestICC(unittest.TestCase):
 
         self.assertEqual(profile.creator, 'JPEG')
 
+    @unittest.skipIf(sys.hexversion < 0x03020000,
+                     "Uses features introduced in 3.2.")
+    def test_invalid_profile_header(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/orb-blue10-lin-jp2.jp2')
+        with self.assertWarns(UserWarning) as cw:
+            data = Jp2k(jfile).read()
+
 if __name__ == "__main__":
     unittest.main()
-

@@ -154,9 +154,9 @@ class ColourSpecificationBox(Jp2kBox):
     colorspace : int or None
         Enumerated colorspace, corresponds to one of 'sRGB', 'greyscale', or
         'YCC'.  If not None, then icc_profile must be None.
-    icc_profile : byte array or None
-        ICC profile according to ICC profile specification.  If not None, then
-        color_space must be None.
+    icc_profile : _ICCProfile or None
+        ICC profile header according to ICC profile specification.  If not
+        None, then color_space must be None.
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='Colour Specification')
@@ -175,8 +175,7 @@ class ColourSpecificationBox(Jp2kBox):
             x = _colorspace_map_display[self.colorspace]
             msg += '\n    Colorspace:  {0}'.format(x)
         else:
-            x = len(self.icc_profile)
-            msg += '\n    ICC Profile:  {0} bytes'.format(x)
+            msg += '\n    ICC Profile:  {0}'.format(self.icc_profile.__str__())
 
         return msg
 
@@ -222,14 +221,20 @@ class ColourSpecificationBox(Jp2kBox):
             # ICC profile
             kwargs['colorspace'] = None
             n = offset + length - f.tell()
-            icc_profile = ICCProfile(f.read(n))
-            kwargs['icc_profile'] = icc_profile
+            if n < 128:
+                msg = "ICC profile header is corrupt, length is "
+                msg += "only {0} instead of 128."
+                warnings.warn(msg.format(n), UserWarning)
+                kwargs['icc_profile'] = None
+            else:
+                icc_profile = _ICCProfile(f.read(n))
+                kwargs['icc_profile'] = icc_profile
 
         box = ColourSpecificationBox(**kwargs)
         return box
 
 
-class ICCProfile:
+class _ICCProfile:
     """
     """
     profile_class = {b'scnr': 'input device profile',
@@ -266,31 +271,14 @@ class ICCProfile:
                          b'ECLR': '14colour',
                          b'FCLR': '15colour'}
 
+    rendering_intent_dict = {0: 'perceptual',
+                             1: 'media-relative colorimetric',
+                             2: 'saturation',
+                             3: 'ICC-absolute colorimetric'}
+
     def __init__(self, buffer):
         self._raw_buffer = buffer
-        self.parse_header(buffer)
-        self.parse_tag_table(buffer)
 
-    def parse_tag_table(self, buffer):
-        """
-        See section 7.3 of ICC1V4.2.
-        """
-        num_tags, = struct.unpack('>I', buffer[128:132])
-        tag_table = buffer[132:132 + num_tags * 12]
-        data = struct.unpack('>' + 'III' * num_tags, tag_table)
-        signature = data[0::3]
-        offset = data[1::3]
-        size = data[2::3]
-        for j in range(num_tags):
-            sig = buffer[132 + j * 4:132 + (j + 1) * 4]
-            print(sig)
-            import pdb; pdb.set_trace()
-            tag_buffer = buffer[offset[j]:offset[j] + size[j]]
-            if sig == b'desc':
-                table['desc'] = _MultiLocalizedUnicodeType(tag_buffer)
-
-    def parse_header(self, buffer):
-        """See section 7.2"""
         self.size, = struct.unpack('>I', self._raw_buffer[0:4])
         self.preferred_cmm_type, = struct.unpack('>I', self._raw_buffer[4:8])
 
@@ -311,11 +299,14 @@ class ICCProfile:
             self.platform = 'unrecognized'
         else:
             self.platform = buffer[40:44].decode('utf-8')
-        
+
         self.flags, = struct.unpack('>I', buffer[44:48])
-                                     
+
         self.device_manufacturer = buffer[48:52].decode('utf-8')
-        self.device_model = buffer[52:56].decode('utf-8')
+        if buffer[52:56] == b'\x00\x00\x00\x00':
+            self.device_model = ''
+        else:
+            self.device_model = buffer[52:56].decode('utf-8')
         self.device_attributes, = struct.unpack('>Q', buffer[56:64])
         self.rendering_intent, = struct.unpack('>I', buffer[64:68])
 
@@ -326,28 +317,72 @@ class ICCProfile:
             self.creator = 'unrecognized'
         else:
             self.creator = buffer[80:84].decode('utf-8')
-    
+
         self.profile_id = buffer[84:100]
         self.reserved = buffer[100:127]
 
     def __str__(self):
-        msg = "Profile size:  {0}"
-        msg = "Preferred CMM type:  {1}"
+        msg = "\n        Size:  {0}"
+        msg += "\n        Preferred CMM type:  {1:x}"
+        msg += "\n        Version:  {2}"
+        msg += "\n        Device class signature:  {3}"
+        msg += "\n        Color space:  {4}"
+        msg += "\n        Connection space:  {5}"
+        msg += "\n        Creation time:  {6}"
+        msg += "\n        File signature:  {7}"
+        msg += "\n        Platform:  {8}"
+        msg += "\n        Flags:  {9}"
+        msg += "\n        Device manufacturer:  {10}"
+        msg += "\n        Device model:  {11}"
+        msg += "\n        Device attributes:  {12}"
+        msg += "\n        Rendering intent:  {13}"
+        msg += "\n        Illuminant:  {14}"
+        msg += "\n        Creator signature:  {15}"
+
+        if self.flags & 0x01:
+            flag_string = 'embedded, '
+        else:
+            flag_string = 'not embedded, '
+        if self.flags & 0x02:
+            flag_string += 'cannot be used independently'
+        else:
+            flag_string += 'can be used independently'
+
+        if self.device_attributes & 0x01:
+            attr_string = 'transparency, '
+        else:
+            attr_string = 'reflective, '
+        if self.device_attributes & 0x02:
+            attr_string += 'matte, '
+        else:
+            attr_string += 'glossy, '
+        if self.device_attributes & 0x04:
+            attr_string += 'negative media polarity, '
+        else:
+            attr_string += 'positive media polarity, '
+        if self.device_attributes & 0x08:
+            attr_string += 'black and white media'
+        else:
+            attr_string += 'color media'
+
         msg = msg.format(self.size,
-                         self.preferred_cmm_type)
+                         self.preferred_cmm_type,
+                         self.version,
+                         self.device_class,
+                         self.colour_space,
+                         self.connection_space,
+                         self.datetime,
+                         self.file_signature,
+                         self.platform,
+                         flag_string,
+                         self.device_manufacturer,
+                         self.device_model,
+                         attr_string,
+                         self.rendering_intent_dict[self.rendering_intent],
+                         self.illuminant,
+                         self.creator)
+        return(msg)
 
-class _MultiLocalizedUnicodeType:
-    def __init__(self, buffer):
-        import pdb; pdb.set_trace()
-        self.id = buffer[0:4].decode('utf-8')
-        data = struct.unpack('>II', buffer[8:16])
-        num_names = data[0]
-        self.record_size = data[1]
-
-        data = struct.unpack('>' + 'HHII' * num_names,
-                             buffer[16:16 + 12 * num_names])
-        for j in range(num_names):
-            print(j)
 
 class ComponentDefinitionBox(Jp2kBox):
     """Container for component definition box information.
