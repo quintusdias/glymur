@@ -790,7 +790,24 @@ class TestPrinting(unittest.TestCase):
                  '    Precedence:  2',
                  '    Approximation:  accurately represents '
                  + 'correct colorspace definition',
-                 '    ICC Profile:  1328 bytes']
+                 '    ICC Profile:  ',
+                 '        Size:  1328',
+                 '        Preferred CMM type:  6170706c',
+                 '        Version:  2.2.0',
+                 '        Device class signature:  display device profile',
+                 '        Color space:  RGB',
+                 '        Connection space:  XYZ',
+                 '        Creation time:  2009-02-25 11:26:11',
+                 '        File signature:  acsp',
+                 '        Platform:  APPL',
+                 '        Flags:  not embedded, can be used independently',
+                 '        Device manufacturer:  appl',
+                 '        Device model:  ',
+                 '        Device attributes:  '
+                 + 'reflective, glossy, positive media polarity, color media',
+                 '        Rendering intent:  perceptual',
+                 '        Illuminant:  [ 0.96420288  1.          0.8249054 ]',
+                 '        Creator signature:  appl']
 
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
