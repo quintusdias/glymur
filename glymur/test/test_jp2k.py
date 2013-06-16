@@ -34,21 +34,13 @@ except:
 
 # Doc tests should be run as well.
 def load_tests(loader, tests, ignore):
-    tests.addTests(doctest.DocTestSuite('glymur.jp2k'))
+    if glymur.lib.openjp2._OPENJP2 is not None:
+        tests.addTests(doctest.DocTestSuite('glymur.jp2k'))
     return tests
 
 
-@contextlib.contextmanager
-def chdir(dirname=None):
-    curdir = os.getcwd()
-    try:
-        if dirname is not None:
-            os.chdir(dirname)
-        yield
-    finally:
-        os.chdir(curdir)
-
-
+@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+                 "Missing openjp2 library.")
 class TestJp2k(unittest.TestCase):
 
     @classmethod

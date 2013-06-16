@@ -21,7 +21,11 @@ except:
     raise
 
 
-class TestPrinting(unittest.TestCase):
+@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+                 "Missing openjp2 library.")
+class TestPrintingNeedsLib(unittest.TestCase):
+    """These tests require the library, mostly in order to just setup the test.
+    """
 
     @classmethod
     def setUpClass(cls):
@@ -40,11 +44,11 @@ class TestPrinting(unittest.TestCase):
         os.unlink(cls._plain_nemo_file)
 
     def setUp(self):
+        self.jp2file = pkg_resources.resource_filename(glymur.__name__,
+                                                       "data/nemo.jp2")
         # Save sys.stdout.
         self.stdout = sys.stdout
         sys.stdout = StringIO()
-        self.jp2file = pkg_resources.resource_filename(glymur.__name__,
-                                                       "data/nemo.jp2")
 
         # Save the output of dumping nemo.jp2 for more than one test.
         lines = ['JPEG 2000 Signature Box (jP  ) @ (0, 12)',
@@ -115,6 +119,57 @@ class TestPrinting(unittest.TestCase):
         # Restore stdout.
         sys.stdout = self.stdout
 
+    def test_asoc_label_box(self):
+        # Construct a fake file with an asoc and a label box, as
+        # OpenJPEG doesn't have such a file.
+        data = glymur.Jp2k(self.jp2file).read(reduce=3)
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            j = glymur.Jp2k(tfile.name, 'wb')
+            j.write(data)
+
+            with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile2:
+
+                # Offset of the codestream is where we start.
+                buffer = tfile.read(77)
+                tfile2.write(buffer)
+
+                # read the rest of the file, it's the codestream.
+                codestream = tfile.read()
+
+                # Write the asoc superbox.
+                # Length = 36, id is 'asoc'.
+                buffer = struct.pack('>I4s', int(56), b'asoc')
+                tfile2.write(buffer)
+
+                # Write the contained label box
+                buffer = struct.pack('>I4s', int(13), b'lbl ')
+                tfile2.write(buffer)
+                tfile2.write('label'.encode())
+
+                # Write the xml box
+                # Length = 36, id is 'xml '.
+                buffer = struct.pack('>I4s', int(35), b'xml ')
+                tfile2.write(buffer)
+
+                buffer = '<test>this is a test</test>'
+                buffer = buffer.encode()
+                tfile2.write(buffer)
+
+                # Now append the codestream.
+                tfile2.write(codestream)
+                tfile2.flush()
+
+                jasoc = glymur.Jp2k(tfile2.name)
+                print(jasoc.box[3])
+                actual = sys.stdout.getvalue().strip()
+                lines = ['Association Box (asoc) @ (77, 56)',
+                         '    Label Box (lbl ) @ (85, 13)',
+                         '        Label:  label',
+                         '    XML Box (xml ) @ (98, 35)',
+                         '        <test>this is a test</test>']
+                expected = '\n'.join(lines)
+                self.assertEqual(actual, expected)
+
     def test_jp2dump(self):
         glymur.jp2dump(self._plain_nemo_file)
         actual = sys.stdout.getvalue().strip()
@@ -125,6 +180,32 @@ class TestPrinting(unittest.TestCase):
         actual = '\n'.join(lst)
 
         self.assertEqual(actual, self.expectedPlain)
+
+    def test_entire_file(self):
+        j = glymur.Jp2k(self._plain_nemo_file)
+        print(j)
+        actual = sys.stdout.getvalue().strip()
+
+        # Get rid of the filename line, as it is not set in stone.
+        lst = actual.split('\n')
+        lst = lst[1:]
+        actual = '\n'.join(lst)
+
+        self.assertEqual(actual, self.expectedPlain)
+
+
+class TestPrinting(unittest.TestCase):
+
+    def setUp(self):
+        # Save sys.stdout.
+        self.stdout = sys.stdout
+        sys.stdout = StringIO()
+        self.jp2file = pkg_resources.resource_filename(glymur.__name__,
+                                                       "data/nemo.jp2")
+
+    def tearDown(self):
+        # Restore stdout.
+        sys.stdout = self.stdout
 
     def test_COC_segment(self):
         j = glymur.Jp2k(self.jp2file)
@@ -516,18 +597,6 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lst)
         self.assertEqual(actual, expected)
 
-    def test_entire_file(self):
-        j = glymur.Jp2k(self._plain_nemo_file)
-        print(j)
-        actual = sys.stdout.getvalue().strip()
-
-        # Get rid of the filename line, as it is not set in stone.
-        lst = actual.split('\n')
-        lst = lst[1:]
-        actual = '\n'.join(lst)
-
-        self.assertEqual(actual, self.expectedPlain)
-
     def test_codestream(self):
         j = glymur.Jp2k(self.jp2file)
         print(j.get_codestream())
@@ -714,57 +783,6 @@ class TestPrinting(unittest.TestCase):
                  '    Size:  (256 x 3)']
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
-
-    def test_asoc_label_box(self):
-        # Construct a fake file with an asoc and a label box, as
-        # OpenJPEG doesn't have such a file.
-        data = glymur.Jp2k(self.jp2file).read(reduce=3)
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-            j = glymur.Jp2k(tfile.name, 'wb')
-            j.write(data)
-
-            with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile2:
-
-                # Offset of the codestream is where we start.
-                buffer = tfile.read(77)
-                tfile2.write(buffer)
-
-                # read the rest of the file, it's the codestream.
-                codestream = tfile.read()
-
-                # Write the asoc superbox.
-                # Length = 36, id is 'asoc'.
-                buffer = struct.pack('>I4s', int(56), b'asoc')
-                tfile2.write(buffer)
-
-                # Write the contained label box
-                buffer = struct.pack('>I4s', int(13), b'lbl ')
-                tfile2.write(buffer)
-                tfile2.write('label'.encode())
-
-                # Write the xml box
-                # Length = 36, id is 'xml '.
-                buffer = struct.pack('>I4s', int(35), b'xml ')
-                tfile2.write(buffer)
-
-                buffer = '<test>this is a test</test>'
-                buffer = buffer.encode()
-                tfile2.write(buffer)
-
-                # Now append the codestream.
-                tfile2.write(codestream)
-                tfile2.flush()
-
-                jasoc = glymur.Jp2k(tfile2.name)
-                print(jasoc.box[3])
-                actual = sys.stdout.getvalue().strip()
-                lines = ['Association Box (asoc) @ (77, 56)',
-                         '    Label Box (lbl ) @ (85, 13)',
-                         '        Label:  label',
-                         '    XML Box (xml ) @ (98, 35)',
-                         '        <test>this is a test</test>']
-                expected = '\n'.join(lines)
-                self.assertEqual(actual, expected)
 
     def test_less_common_boxes(self):
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
