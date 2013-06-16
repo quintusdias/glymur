@@ -12,14 +12,9 @@ else:
 
 import glymur
 
-try:
-    data_root = os.environ['OPJ_DATA_ROOT']
-except KeyError:
-    data_root = None
-except:
-    raise
 
-
+@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+                 "Missing openjp2 library.")
 class TestCallbacks(unittest.TestCase):
 
     def setUp(self):

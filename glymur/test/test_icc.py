@@ -67,7 +67,7 @@ class TestICC(unittest.TestCase):
         jfile = os.path.join(data_root,
                              'input/nonregression/orb-blue10-lin-jp2.jp2')
         with self.assertWarns(UserWarning) as cw:
-            data = Jp2k(jfile).read()
+            j = Jp2k(jfile)
 
 if __name__ == "__main__":
     unittest.main()
