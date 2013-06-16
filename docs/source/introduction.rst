@@ -172,8 +172,8 @@ because ctypes access libraries in a platform-dependent manner, it is
 recommended that you create a configuration file to help glymur properly find
 the openjp2 library.  You may create the configuration file as follows::
 
-    $ mkdir ~/.glymur
-    $ cd ~/.glymur
+    $ mkdir -p ~/.config/glymur
+    $ cd ~/.config/glymur
     $ cat > glymurrc << EOF
     > [library]
     > openjp2: /opt/openjp2-svn/lib/libopenjp2.so

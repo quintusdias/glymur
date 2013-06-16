@@ -34,21 +34,13 @@ except:
 
 # Doc tests should be run as well.
 def load_tests(loader, tests, ignore):
-    tests.addTests(doctest.DocTestSuite('glymur.jp2k'))
+    if glymur.lib.openjp2._OPENJP2 is not None:
+        tests.addTests(doctest.DocTestSuite('glymur.jp2k'))
     return tests
 
 
-@contextlib.contextmanager
-def chdir(dirname=None):
-    curdir = os.getcwd()
-    try:
-        if dirname is not None:
-            os.chdir(dirname)
-        yield
-    finally:
-        os.chdir(curdir)
-
-
+@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+                 "Missing openjp2 library.")
 class TestJp2k(unittest.TestCase):
 
     @classmethod
@@ -649,13 +641,31 @@ class TestJp2k(unittest.TestCase):
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
     def test_home_dir_missing_config_dir(self):
-        # Verify no exception is raised if $HOME is missing .glymur directory.
+        # Verify no exception is raised if $HOME is missing .config directory.
         with tempfile.TemporaryDirectory() as tdir:
             with patch.dict('os.environ', {'HOME': tdir}):
                 # Misconfigured new configuration file should
                 # be rejected.
                 with self.assertWarns(UserWarning) as cw:
                     imp.reload(glymur)
+
+    @unittest.skipIf(sys.hexversion < 0x03020000,
+                     "Uses features introduced in 3.2.")
+    def test_home_dir_missing_glymur_rc_dir(self):
+        # Should warn but not error if $HOME/.config but no glymurrc dir.
+        with tempfile.TemporaryDirectory() as tdir:
+            # We need the subdirectory to be specifically named as ".config"
+            # in order for this test to work.  A specifically-named temporary
+            # directory does not seem to be possible, so try to symlink it.
+            # Supposedly the symlink gets cleaned up with tdir gets cleaned up.
+            with tempfile.TemporaryDirectory(suffix=".config", dir=tdir) \
+                    as tdir_config:
+                os.symlink(tdir_config, os.path.join(tdir, '.config'))
+                with patch.dict('os.environ', {'HOME': tdir}):
+                    # Misconfigured new configuration file should
+                    # be rejected.
+                    with self.assertWarns(UserWarning) as cw:
+                        imp.reload(glymur)
 
     def test_xmp_attribute(self):
         # Verify that we can read the XMP packet in our shipping example file.

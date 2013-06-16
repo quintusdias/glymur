@@ -35,32 +35,31 @@ class TestICC(unittest.TestCase):
         filename = os.path.join(data_root, 'input/conformance/file5.jp2')
         j = Jp2k(filename)
         profile = j.box[3].box[1].icc_profile
-        self.assertEqual(profile.size, 546)
-        self.assertEqual(profile.preferred_cmm_type, 0)
-        self.assertEqual(profile.version, '2.2.0')
-        self.assertEqual(profile.device_class, 'input device profile')
-        self.assertEqual(profile.colour_space, 'RGB')
-        self.assertEqual(profile.datetime,
+        self.assertEqual(profile['Size'], 546)
+        self.assertEqual(profile['Preferred CMM Type'], 0)
+        self.assertEqual(profile['Version'], '2.2.0')
+        self.assertEqual(profile['Device Class'], 'input device profile')
+        self.assertEqual(profile['Color Space'], 'RGB')
+        self.assertEqual(profile['Datetime'],
                          datetime.datetime(2001, 8, 30, 13, 32, 37))
-        self.assertEqual(profile.file_signature, 'acsp')
-        self.assertEqual(profile.platform, 'unrecognized')
-        self.assertTrue(profile.flags & 0x01)  # embedded
-        self.assertFalse(profile.flags & 0x02)  # use anywhere
+        self.assertEqual(profile['File Signature'], 'acsp')
+        self.assertEqual(profile['Platform'], 'unrecognized')
+        self.assertEqual(profile['Flags'],
+                         'embedded, can be used independently')
 
-        self.assertEqual(profile.device_manufacturer, 'KODA')
-        self.assertEqual(profile.device_model, 'ROMM')
+        self.assertEqual(profile['Device Manufacturer'], 'KODA')
+        self.assertEqual(profile['Device Model'], 'ROMM')
 
-        self.assertFalse(profile.device_attributes & 0x01)  # reflective
-        self.assertFalse(profile.device_attributes & 0x02)  # glossy
-        self.assertFalse(profile.device_attributes & 0x04)  # positive
-        self.assertFalse(profile.device_attributes & 0x08)  # colour
-        self.assertEqual(profile.rendering_intent & 0x00ff, 0)  # perceptual
+        self.assertEqual(profile['Device Attributes'],
+                         'reflective, glossy, positive media polarity, '
+                         + 'color media')
+        self.assertEqual(profile['Rendering Intent'], 'perceptual')
 
-        np.testing.assert_almost_equal(profile.illuminant,
+        np.testing.assert_almost_equal(profile['Illuminant'],
                                        (0.964203, 1.000000, 0.824905),
                                        decimal=6)
 
-        self.assertEqual(profile.creator, 'JPEG')
+        self.assertEqual(profile['Creator'], 'JPEG')
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
@@ -68,7 +67,7 @@ class TestICC(unittest.TestCase):
         jfile = os.path.join(data_root,
                              'input/nonregression/orb-blue10-lin-jp2.jp2')
         with self.assertWarns(UserWarning) as cw:
-            data = Jp2k(jfile).read()
+            j = Jp2k(jfile)
 
 if __name__ == "__main__":
     unittest.main()
