@@ -9,9 +9,8 @@ Printing the Jp2k object should reveal the number of resolutions (look in the
 COD segment section), but you can take a shortcut by supplying -1 as the reduce
 level. ::
 
-    >>> import pkg_resources
     >>> import glymur
-    >>> file = pkg_resources.resource_filename(glymur.__name__, "data/nemo.jp2")
+    >>> file = glymur.data.nemo()
     >>> j = glymur.Jp2k(file)
     >>> thumbnail = j.read(reduce=-1)
 
@@ -24,9 +23,8 @@ available. ::
 
 From within Python, it is as simple as printing the Jp2k object, i.e. ::
 
-    >>> import pkg_resources
     >>> from glymur import Jp2k
-    >>> file = pkg_resources.resource_filename(glymur.__name__, "data/nemo.jp2")
+    >>> file = glymur.data.nemo()
     >>> j = Jp2k(file)
     >>> print(j)
 
@@ -40,9 +38,8 @@ Work with XMP UUIDs?
 ====================
 The example JP2 file shipped with glymur has an XMP UUID. ::
 
-    >>> import pkg_resources
     >>> from glymur import Jp2k
-    >>> file = pkg_resources.resource_filename(glymur.__name__, "data/nemo.jp2")
+    >>> file = glymur.data.nemo()
     >>> j = Jp2k(file)
     >>> print(j.box[4])
     UUID Box (uuid) @ (715, 2412)
