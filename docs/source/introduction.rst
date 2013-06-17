@@ -180,6 +180,7 @@ the openjp2 library.  You may create the configuration file as follows::
     > EOF
 
 That assumes, of course, that you've installed OpenJPEG into /opt/openjp2-svn.
+You may also replace **$HOME/.config** with **$XDG_CONFIG_HOME**.
 
 
 Testing
