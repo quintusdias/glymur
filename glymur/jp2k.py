@@ -197,8 +197,7 @@ class Jp2k(Jp2kBox):
         Examples
         --------
         >>> import glymur
-        >>> import pkg_resources as pkg
-        >>> jfile = pkg.resource_filename(glymur.__name__, "data/nemo.jp2")
+        >>> jfile = glymur.data.nemo()
         >>> jp2 = glymur.Jp2k(jfile)
         >>> data = jp2.read(reduce=3)
         >>> from tempfile import NamedTemporaryFile
@@ -430,8 +429,7 @@ class Jp2k(Jp2kBox):
         Examples
         --------
         >>> import glymur
-        >>> import pkg_resources as pkg
-        >>> jfile = pkg.resource_filename(glymur.__name__, "data/nemo.jp2")
+        >>> jfile = glymur.data.nemo()
         >>> jp = glymur.Jp2k(jfile)
         >>> image = jp.read()
         >>> image.shape
@@ -633,8 +631,7 @@ class Jp2k(Jp2kBox):
         Examples
         --------
         >>> import glymur
-        >>> import pkg_resources as pkg
-        >>> jfile = pkg.resource_filename(glymur.__name__, "data/nemo.jp2")
+        >>> jfile = glymur.data.nemo()
         >>> jp = glymur.Jp2k(jfile)
         >>> components_lst = jp.read_bands(reduce=1)
         """
@@ -663,8 +660,7 @@ class Jp2k(Jp2kBox):
         Examples
         --------
         >>> import glymur
-        >>> import pkg_resources as pkg
-        >>> jfile = pkg.resource_filename(glymur.__name__, "data/nemo.jp2")
+        >>> jfile = glymur.data.nemo()
         >>> jp = glymur.Jp2k(jfile)
         >>> codestream = jp.get_codestream()
         >>> print(codestream.segment[1])

@@ -1,7 +1,6 @@
 """glymur - read, write, and interrogate JPEG 2000 files
 """
 
-
 def _glymurrc_fname():
     """Return the path to the configuration file.
 
@@ -88,4 +87,5 @@ _OPENJP2 = _config()
 from .jp2k import Jp2k
 from .jp2dump import jp2dump
 
+from . import data
 from . import test
