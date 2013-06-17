@@ -4,7 +4,7 @@ References
 ----------
 .. [JP2K15444-1i] International Organization for Standardication.  ISO/IEC
    15444-1:2004 - Information technology -- JPEG 2000 image coding system:
-   Core coding system"
+   Core coding system
 
 .. [JP2K15444-2m] International Organization for Standardication.  ISO/IEC
    15444-2:2004 - Information technology -- JPEG 2000 image coding system:
@@ -1686,6 +1686,12 @@ class UUIDBox(Jp2kBox):
     data : bytes or dict or ElementTree.Element
         Vendor-specific data.  Exif UUIDs are interpreted as dictionaries.
         XMP UUIDs are interpreted as standard XML.
+
+    References
+    ----------
+    .. [XMP] International Organization for Standardication.  ISO/IEC
+       16684-1:2012 - Graphic technology -- Extensible metadata platform (XMP)
+       specification -- Part 1:  Data model, serialization and core properties
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='UUID')
