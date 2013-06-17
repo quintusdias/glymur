@@ -12,12 +12,14 @@ import numpy as np
 import glymur
 
 
-# Doc tests should be run as well.
 def load_tests(loader, tests, ignore):
-    tests.addTests(doctest.DocTestSuite('glymur.lib.openjp2'))
+    if glymur.lib.openjp2._OPENJP2 is not None:
+        tests.addTests(doctest.DocTestSuite('glymur.lib.openjp2'))
     return tests
 
 
+@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+                 "Missing openjp2 library.")
 class TestOpenJP2(unittest.TestCase):
 
     def setUp(self):
