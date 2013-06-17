@@ -599,13 +599,15 @@ class TestJp2k(unittest.TestCase):
     def test_config_file_via_environ(self):
         """Verify that we can read a configuration file set via environ var."""
         with tempfile.TemporaryDirectory() as tdir:
-            filename = os.path.join(tdir, 'glymurrc')
+            configdir = os.path.join(tdir, 'glymur')
+            os.mkdir(configdir)
+            filename = os.path.join(configdir, 'glymurrc')
             with open(filename, 'wb') as tfile:
                 tfile.write('[library]\n'.encode())
                 line = 'openjp2: {0}\n'.format(glymur._OPENJP2._name)
                 tfile.write(line.encode())
                 tfile.flush()
-                with patch.dict('os.environ', {'GLYMURCONFIGDIR': tdir}):
+                with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
                     imp.reload(glymur)
                     j = Jp2k(self.jp2file)
 
@@ -614,13 +616,15 @@ class TestJp2k(unittest.TestCase):
     def test_config_file_via_environ_is_wrong(self):
         # A non-existant library location should be rejected.
         with tempfile.TemporaryDirectory() as tdir:
-            fname = os.path.join(tdir, 'glymurrc')
+            configdir = os.path.join(tdir, 'glymur')
+            os.mkdir(configdir)
+            fname = os.path.join(configdir, 'glymurrc')
             with open(fname, 'w') as fp:
                 with tempfile.NamedTemporaryFile(suffix='.dylib') as tfile:
                     fp.write('[library]\n')
                     fp.write('openjp2: {0}.not.there\n'.format(tfile.name))
                     fp.flush()
-                    with patch.dict('os.environ', {'GLYMURCONFIGDIR': tdir}):
+                    with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
                         # Misconfigured new configuration file should
                         # be rejected.
                         with self.assertWarns(UserWarning) as cw:
@@ -632,7 +636,7 @@ class TestJp2k(unittest.TestCase):
         # Verify that we error out properly if the configuration file
         # specified via environment variable is not found.
         with tempfile.TemporaryDirectory() as tdir:
-            with patch.dict('os.environ', {'GLYMURCONFIGDIR': tdir}):
+            with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
                 # Misconfigured new configuration file should
                 # be rejected.
                 with self.assertWarns(UserWarning) as cw:
