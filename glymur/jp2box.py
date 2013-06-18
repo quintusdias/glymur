@@ -532,7 +532,7 @@ class ContiguousCodestreamBox(Jp2kBox):
         msg = Jp2kBox.__str__(self)
         msg += '\n    Main header:'
         for segment in self.main_header.segment:
-            segstr = segment.__str__()
+            segstr = str(segment)
 
             # Add indentation.
             strs = [('\n        ' + x) for x in segstr.split('\n')]
@@ -760,7 +760,7 @@ class AssociationBox(Jp2kBox):
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         for box in self.box:
-            boxstr = box.__str__()
+            boxstr = str(box)
 
             # Add indentation.
             strs = [('\n    ' + x) for x in boxstr.split('\n')]
@@ -824,7 +824,7 @@ class JP2HeaderBox(Jp2kBox):
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         for box in self.box:
-            boxstr = box.__str__()
+            boxstr = str(box)
 
             # Add indentation.
             strs = [('\n    ' + x) for x in boxstr.split('\n')]
@@ -1177,7 +1177,7 @@ class ResolutionBox(Jp2kBox):
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         for box in self.box:
-            boxstr = box.__str__()
+            boxstr = str(box)
 
             # Add indentation.
             strs = [('\n    ' + x) for x in boxstr.split('\n')]
@@ -1554,7 +1554,7 @@ class UUIDInfoBox(Jp2kBox):
         msg = Jp2kBox.__str__(self)
 
         for box in self.box:
-            box_str = box.__str__()
+            box_str = str(box)
 
             # Add indentation.
             lst = [('\n    ' + x) for x in box_str.split('\n')]

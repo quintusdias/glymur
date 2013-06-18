@@ -1,6 +1,7 @@
 """glymur - read, write, and interrogate JPEG 2000 files
 """
 
+
 def _glymurrc_fname():
     """Return the path to the configuration file.
 
@@ -61,7 +62,7 @@ def _config():
 def _get_configdir():
     """Return string representing the configuration directory.
 
-    Default is $HOME/.config/glymur.  You can override this with the 
+    Default is $HOME/.config/glymur.  You can override this with the
     XDG_CONFIG_HOME environment variable.
     """
 

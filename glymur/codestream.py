@@ -226,7 +226,7 @@ class Codestream:
     def __str__(self):
         msg = 'Codestream:\n'
         for segment in self.segment:
-            strs = segment.__str__()
+            strs = str(segment)
 
             # Add indentation
             strs = [('    ' + x + '\n') for x in strs.split('\n')]

@@ -87,10 +87,10 @@ class Jp2k(Jp2kBox):
         metadata = ['File:  ' + os.path.basename(self.filename)]
         if len(self.box) > 0:
             for box in self.box:
-                metadata.append(box.__str__())
+                metadata.append(str(box))
         else:
             c = self.get_codestream()
-            metadata.append(c.__str__())
+            metadata.append(str(c))
         return '\n'.join(metadata)
 
     def _parse(self):
