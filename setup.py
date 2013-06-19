@@ -1,4 +1,5 @@
-from distutils.core import setup
+from setuptools import setup, find_packages
+import sys
 
 kwargs = {'name': 'Glymur',
           'version': '0.1.8',
@@ -13,6 +14,13 @@ kwargs = {'name': 'Glymur',
           'scripts': ['bin/jp2dump'],
           'license': 'LICENSE.txt',
           'platforms': ['darwin']}
+
+instllrqrs = ['numpy>1.6.2']
+if sys.hexversion < 0x03030000:
+    instllrqrs.append('contextlib2>=0.4')
+    instllrqrs.append('mock>=1.0.1')
+kwargs['install_requires'] = instllrqrs
+
 clssfrs = ["Programming Language :: Python",
            "Programming Language :: Python :: 2.7",
            "Programming Language :: Python :: 3.3",
