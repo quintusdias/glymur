@@ -13,6 +13,7 @@ Contents:
    :maxdepth: 2
 
    introduction
+   detailed_installation
    how_do_i
    roadmap
    api
