@@ -33,7 +33,7 @@ from .core import _method_display
 from .core import _reader_requirements_display
 
 
-class Jp2kBox:
+class Jp2kBox(object):
     """Superclass for JPEG 2000 boxes.
 
     Attributes
@@ -243,7 +243,7 @@ class ColourSpecificationBox(Jp2kBox):
         return box
 
 
-class _ICCProfile:
+class _ICCProfile(object):
     """
     """
     profile_class = {b'scnr': 'input device profile',
@@ -1773,7 +1773,7 @@ class UUIDBox(Jp2kBox):
         return box
 
 
-class Exif:
+class Exif(object):
     """
     Attributes
     ----------
@@ -1826,7 +1826,7 @@ class Exif:
             self.exif_gpsinfo = gps.processed_ifd
 
 
-class _Ifd:
+class _Ifd(object):
     """
     Attributes
     ----------
