@@ -7,8 +7,8 @@ def _glymurrc_fname():
 
     Search order:
         1) current working directory
-        2) environ var GLYMURCONFIGDIR
-        3) HOME/.glymur/glymurrc
+        2) environ var XDG_CONFIG_HOME
+        3) $HOME/.config/glymur/glymurrc
     """
 
     # Current directory.
@@ -62,15 +62,15 @@ def _config():
 def _get_configdir():
     """Return string representing the configuration directory.
 
-    Default is HOME/.glymur.  You can override this with the GLYMURCONFIGDIR
-    environment variable.
+    Default is $HOME/.config/glymur.  You can override this with the
+    XDG_CONFIG_HOME environment variable.
     """
 
-    if 'GLYMURCONFIGDIR' in os.environ:
-        return os.environ['GLYMURCONFIGDIR']
+    if 'XDG_CONFIG_HOME' in os.environ:
+        return os.path.join(os.environ['XDG_CONFIG_HOME'], 'glymur')
 
     if 'HOME' in os.environ:
-        return os.path.join(os.environ['HOME'], '.glymur')
+        return os.path.join(os.environ['HOME'], '.config', 'glymur')
 
 import warnings
 import sys
@@ -88,4 +88,5 @@ _OPENJP2 = _config()
 from .jp2k import Jp2k
 from .jp2dump import jp2dump
 
+from . import data
 from . import test

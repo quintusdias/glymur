@@ -29,7 +29,7 @@ for _marker in range(0xff90, 0xff94):
     _valid_markers.append(_marker)
 
 
-class Codestream:
+class Codestream(object):
     """Container for codestream information.
 
     Attributes
@@ -226,7 +226,7 @@ class Codestream:
     def __str__(self):
         msg = 'Codestream:\n'
         for segment in self.segment:
-            strs = segment.__str__()
+            strs = str(segment)
 
             # Add indentation
             strs = [('    ' + x + '\n') for x in strs.split('\n')]
@@ -869,7 +869,7 @@ class Codestream:
         return TLMsegment(**kwargs)
 
 
-class Segment:
+class Segment(object):
     """Segment information.
 
     Attributes

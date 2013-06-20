@@ -1,3 +1,10 @@
+Jun 16, 2013 - v0.1.9  Reading ICC profile headers as ordered dicts.  Exif 
+    dictionaries changed to ordered dicts.  Honoring XDG_CONFIG_HOME
+    environment variable.
+
+Jun 14, 2013 - v0.1.8  Added reduce=-1 option to get lowest resolution
+    thumbnail.
+
 Jun 07, 2013 - v0.1.7  Changed Exif dictionary names from ['Exif', 'Photo',
     'Iop', 'GPSInfo'] to ['Image', 'Photo', 'Iop', 'GPSInfo'].  
 

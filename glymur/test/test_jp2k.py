@@ -34,26 +34,19 @@ except:
 
 # Doc tests should be run as well.
 def load_tests(loader, tests, ignore):
-    tests.addTests(doctest.DocTestSuite('glymur.jp2k'))
+    if glymur.lib.openjp2._OPENJP2 is not None:
+        tests.addTests(doctest.DocTestSuite('glymur.jp2k'))
     return tests
 
 
-@contextlib.contextmanager
-def chdir(dirname=None):
-    curdir = os.getcwd()
-    try:
-        if dirname is not None:
-            os.chdir(dirname)
-        yield
-    finally:
-        os.chdir(curdir)
-
-
+@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+                 "Missing openjp2 library.")
 class TestJp2k(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        # Setup a JP2 file with a bad XML box.
+        # Setup a JP2 file with a bad XML box.  We only need to do this once
+        # per class rather than once per test.
         jp2file = pkg_resources.resource_filename(glymur.__name__,
                                                   "data/nemo.jp2")
         with tempfile.NamedTemporaryFile(suffix='.jp2', delete=False) as tfile:
@@ -92,9 +85,17 @@ class TestJp2k(unittest.TestCase):
                      "Uses features introduced in 3.2.")
     def test_invalid_xml_box_warning(self):
         # Should be able to recover from xml box with bad xml.
-        # Just verify that a warning is issued on 3.2+
+        # Just verify that a warning is issued on 3.3+
         with self.assertWarns(UserWarning) as cw:
             jp2k = Jp2k(self._bad_xml_file)
+
+    def test_reduce_max(self):
+        # Verify that reduce=-1 gets us the lowest resolution image
+        j = Jp2k(self.jp2file)
+        thumbnail1 = j.read(reduce=-1)
+        thumbnail2 = j.read(reduce=5)
+        np.testing.assert_array_equal(thumbnail1, thumbnail2)
+        self.assertEqual(thumbnail1.shape, (46, 81, 3))
 
     def test_invalid_xml_box(self):
         # Should be able to recover from xml box with bad xml.
@@ -598,13 +599,15 @@ class TestJp2k(unittest.TestCase):
     def test_config_file_via_environ(self):
         """Verify that we can read a configuration file set via environ var."""
         with tempfile.TemporaryDirectory() as tdir:
-            filename = os.path.join(tdir, 'glymurrc')
+            configdir = os.path.join(tdir, 'glymur')
+            os.mkdir(configdir)
+            filename = os.path.join(configdir, 'glymurrc')
             with open(filename, 'wb') as tfile:
                 tfile.write('[library]\n'.encode())
                 line = 'openjp2: {0}\n'.format(glymur._OPENJP2._name)
                 tfile.write(line.encode())
                 tfile.flush()
-                with patch.dict('os.environ', {'GLYMURCONFIGDIR': tdir}):
+                with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
                     imp.reload(glymur)
                     j = Jp2k(self.jp2file)
 
@@ -613,13 +616,15 @@ class TestJp2k(unittest.TestCase):
     def test_config_file_via_environ_is_wrong(self):
         # A non-existant library location should be rejected.
         with tempfile.TemporaryDirectory() as tdir:
-            fname = os.path.join(tdir, 'glymurrc')
+            configdir = os.path.join(tdir, 'glymur')
+            os.mkdir(configdir)
+            fname = os.path.join(configdir, 'glymurrc')
             with open(fname, 'w') as fp:
                 with tempfile.NamedTemporaryFile(suffix='.dylib') as tfile:
                     fp.write('[library]\n')
                     fp.write('openjp2: {0}.not.there\n'.format(tfile.name))
                     fp.flush()
-                    with patch.dict('os.environ', {'GLYMURCONFIGDIR': tdir}):
+                    with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
                         # Misconfigured new configuration file should
                         # be rejected.
                         with self.assertWarns(UserWarning) as cw:
@@ -631,7 +636,7 @@ class TestJp2k(unittest.TestCase):
         # Verify that we error out properly if the configuration file
         # specified via environment variable is not found.
         with tempfile.TemporaryDirectory() as tdir:
-            with patch.dict('os.environ', {'GLYMURCONFIGDIR': tdir}):
+            with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
                 # Misconfigured new configuration file should
                 # be rejected.
                 with self.assertWarns(UserWarning) as cw:
@@ -640,13 +645,31 @@ class TestJp2k(unittest.TestCase):
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
     def test_home_dir_missing_config_dir(self):
-        # Verify no exception is raised if $HOME is missing .glymur directory.
+        # Verify no exception is raised if $HOME is missing .config directory.
         with tempfile.TemporaryDirectory() as tdir:
             with patch.dict('os.environ', {'HOME': tdir}):
                 # Misconfigured new configuration file should
                 # be rejected.
                 with self.assertWarns(UserWarning) as cw:
                     imp.reload(glymur)
+
+    @unittest.skipIf(sys.hexversion < 0x03020000,
+                     "Uses features introduced in 3.2.")
+    def test_home_dir_missing_glymur_rc_dir(self):
+        # Should warn but not error if $HOME/.config but no glymurrc dir.
+        with tempfile.TemporaryDirectory() as tdir:
+            # We need the subdirectory to be specifically named as ".config"
+            # in order for this test to work.  A specifically-named temporary
+            # directory does not seem to be possible, so try to symlink it.
+            # Supposedly the symlink gets cleaned up with tdir gets cleaned up.
+            with tempfile.TemporaryDirectory(suffix=".config", dir=tdir) \
+                    as tdir_config:
+                os.symlink(tdir_config, os.path.join(tdir, '.config'))
+                with patch.dict('os.environ', {'HOME': tdir}):
+                    # Misconfigured new configuration file should
+                    # be rejected.
+                    with self.assertWarns(UserWarning) as cw:
+                        imp.reload(glymur)
 
     def test_xmp_attribute(self):
         # Verify that we can read the XMP packet in our shipping example file.

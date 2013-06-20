@@ -87,10 +87,10 @@ class Jp2k(Jp2kBox):
         metadata = ['File:  ' + os.path.basename(self.filename)]
         if len(self.box) > 0:
             for box in self.box:
-                metadata.append(box.__str__())
+                metadata.append(str(box))
         else:
             c = self.get_codestream()
-            metadata.append(c.__str__())
+            metadata.append(str(c))
         return '\n'.join(metadata)
 
     def _parse(self):
@@ -138,7 +138,7 @@ class Jp2k(Jp2kBox):
             f.seek(0)
             self.box = self._parse_superbox(f)
 
-    def write(self, data, cratios=None, eph=False, psnr=None, numres=None,
+    def write(self, img_array, cratios=None, eph=False, psnr=None, numres=None,
               cbsize=None, psizes=None, grid_offset=None, sop=False,
               subsam=None, tilesize=None, prog=None, modesw=None,
               colorspace=None, verbose=False):
@@ -150,7 +150,7 @@ class Jp2k(Jp2kBox):
 
         Parameters
         ----------
-        data : array
+        img_array : ndarray
             Image data to be written to file.
         callbacks : bool, optional
             If true, enable default info handler such that INFO messages
@@ -197,8 +197,7 @@ class Jp2k(Jp2kBox):
         Examples
         --------
         >>> import glymur
-        >>> import pkg_resources as pkg
-        >>> jfile = pkg.resource_filename(glymur.__name__, "data/nemo.jp2")
+        >>> jfile = glymur.data.nemo()
         >>> jp2 = glymur.Jp2k(jfile)
         >>> data = jp2.read(reduce=3)
         >>> from tempfile import NamedTemporaryFile
@@ -307,19 +306,19 @@ class Jp2k(Jp2kBox):
             msg = "Cannot specify cratios and psnr together."
             raise RuntimeError(msg)
 
-        if data.ndim == 2:
-            numrows, numcols = data.shape
-            data = data.reshape(numrows, numcols, 1)
-        elif data.ndim == 3:
+        if img_array.ndim == 2:
+            numrows, numcols = img_array.shape
+            img_array = img_array.reshape(numrows, numcols, 1)
+        elif img_array.ndim == 3:
             pass
         else:
-            msg = "{0}D imagery is not allowed.".format(data.ndim)
+            msg = "{0}D imagery is not allowed.".format(img_array.ndim)
             raise IOError(msg)
 
-        numrows, numcols, num_comps = data.shape
+        numrows, numcols, num_comps = img_array.shape
 
         if colorspace is None:
-            if data.shape[2] == 1 or data.shape[2] == 2:
+            if img_array.shape[2] == 1 or img_array.shape[2] == 2:
                 colorspace = opj2._CLRSPC_GRAY
             else:
                 # No YCC unless specifically told to do so.
@@ -331,15 +330,15 @@ class Jp2k(Jp2kBox):
             if colorspace not in ('rgb', 'grey', 'gray'):
                 msg = 'Invalid colorspace "{0}"'.format(colorspace)
                 raise IOError(msg)
-            elif colorspace == 'rgb' and data.shape[2] < 3:
+            elif colorspace == 'rgb' and img_array.shape[2] < 3:
                 msg = 'RGB colorspace requires at least 3 components.'
                 raise IOError(msg)
             else:
                 colorspace = _cspace_map[colorspace]
 
-        if data.dtype == np.uint8:
+        if img_array.dtype == np.uint8:
             comp_prec = 8
-        elif data.dtype == np.uint16:
+        elif img_array.dtype == np.uint16:
             comp_prec = 16
         else:
             raise RuntimeError("unhandled datatype")
@@ -368,7 +367,7 @@ class Jp2k(Jp2kBox):
 
         # Stage the image data to the openjpeg data structure.
         for k in range(0, num_comps):
-            layer = np.ascontiguousarray(data[:, :, k], dtype=np.int32)
+            layer = np.ascontiguousarray(img_array[:, :, k], dtype=np.int32)
             dest = image.contents.comps[k].data
             src = layer.ctypes.data
             ctypes.memmove(dest, src, layer.nbytes)
@@ -407,7 +406,8 @@ class Jp2k(Jp2kBox):
         layer : int, optional
             Number of quality layer to decode.
         reduce : int, optional
-            Factor by which to reduce output resolution.
+            Factor by which to reduce output resolution.  Use -1 to get the
+            lowest resolution thumbnail.
         area : tuple, optional
             Specifies decoding image area,
             (first_row, first_col, last_row, last_col)
@@ -418,7 +418,7 @@ class Jp2k(Jp2kBox):
 
         Returns
         -------
-        result : array
+        img_array : ndarray
             The image data.
 
         Raises
@@ -429,10 +429,17 @@ class Jp2k(Jp2kBox):
         Examples
         --------
         >>> import glymur
-        >>> import pkg_resources as pkg
-        >>> jfile = pkg.resource_filename(glymur.__name__, "data/nemo.jp2")
+        >>> jfile = glymur.data.nemo()
         >>> jp = glymur.Jp2k(jfile)
-        >>> data = jp.read(reduce=1)
+        >>> image = jp.read()
+        >>> image.shape
+        (1456, 2592, 3)
+
+        Read the lowest resolution thumbnail.
+
+        >>> thumbnail = jp.read(reduce=-1)
+        >>> thumbnail.shape
+        (46, 81, 3)
         """
         # Check for differing subsample factors.
         codestream = self.get_codestream(header_only=True)
@@ -442,18 +449,18 @@ class Jp2k(Jp2kBox):
             msg = "Components must all have the same subsampling factors."
             raise IOError(msg)
 
-        data = self._read_common(reduce=reduce,
-                                 layer=layer,
-                                 area=area,
-                                 tile=tile,
-                                 verbose=verbose,
-                                 as_bands=False)
+        img_array = self._read_common(reduce=reduce,
+                                      layer=layer,
+                                      area=area,
+                                      tile=tile,
+                                      verbose=verbose,
+                                      as_bands=False)
 
-        if data.shape[2] == 1:
-            data = data.view()
-            data.shape = data.shape[0:2]
+        if img_array.shape[2] == 1:
+            img_array = img_array.view()
+            img_array.shape = img_array.shape[0:2]
 
-        return data
+        return img_array
 
     def _read_common(self, reduce=0, layer=0, area=None, tile=None,
                      verbose=False, as_bands=False):
@@ -477,7 +484,7 @@ class Jp2k(Jp2kBox):
 
         Returns
         -------
-        data : list or array
+        img_array : ndarray
             The individual image components or a single array.
         """
         dparam = opj2._set_default_decoder_parameters()
@@ -490,6 +497,12 @@ class Jp2k(Jp2kBox):
         dparam.decod_format = self._codec_format
 
         dparam.cp_layer = layer
+
+        if reduce == -1:
+            # Get the lowest resolution thumbnail.
+            codestream = self.get_codestream()
+            reduce = codestream.segment[2].SPcod[4]
+
         dparam.cp_reduce = reduce
         if area is not None:
             if area[0] < 0 or area[1] < 0:
@@ -618,8 +631,7 @@ class Jp2k(Jp2kBox):
         Examples
         --------
         >>> import glymur
-        >>> import pkg_resources as pkg
-        >>> jfile = pkg.resource_filename(glymur.__name__, "data/nemo.jp2")
+        >>> jfile = glymur.data.nemo()
         >>> jp = glymur.Jp2k(jfile)
         >>> components_lst = jp.read_bands(reduce=1)
         """
@@ -648,8 +660,7 @@ class Jp2k(Jp2kBox):
         Examples
         --------
         >>> import glymur
-        >>> import pkg_resources as pkg
-        >>> jfile = pkg.resource_filename(glymur.__name__, "data/nemo.jp2")
+        >>> jfile = glymur.data.nemo()
         >>> jp = glymur.Jp2k(jfile)
         >>> codestream = jp.get_codestream()
         >>> print(codestream.segment[1])

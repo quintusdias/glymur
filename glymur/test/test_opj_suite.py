@@ -120,6 +120,8 @@ def read_pgx(pgx_file):
     return(data.byteswap(swapbytes))
 
 
+@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+                 "Missing openjp2 library.")
 @unittest.skipIf(data_root is None,
                  "OPJ_DATA_ROOT environment variable not set")
 class TestSuite(unittest.TestCase):
@@ -874,6 +876,725 @@ class TestSuite(unittest.TestCase):
         jp2k = Jp2k(jfile)
         jpdata = jp2k.read()
         self.assertEqual(jpdata.shape, (512, 768, 3))
+
+    def test_NR_DEC_Bretagne2_j2k_1_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/Bretagne2.j2k')
+        jp2 = Jp2k(jfile)
+        data = jp2.read()
+        self.assertTrue(True)
+
+    def test_NR_DEC__00042_j2k_2_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/_00042.j2k')
+        jp2 = Jp2k(jfile)
+        data = jp2.read()
+        self.assertTrue(True)
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_123_j2c_3_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/123.j2c')
+        jp2 = Jp2k(jfile)
+        data = jp2.read()
+        self.assertTrue(True)
+
+    @unittest.skipIf(sys.hexversion < 0x03020000,
+                     "Uses features introduced in 3.2.")
+    def test_NR_DEC_broken_jp2_4_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/broken.jp2')
+        with self.assertWarns(UserWarning) as cw:
+            # colr box has bad length.
+            jp2 = Jp2k(jfile)
+        with self.assertRaises(IOError):
+            data = jp2.read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_broken2_jp2_5_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/broken2.jp2')
+        with self.assertRaises(IOError):
+            data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    @unittest.skipIf(sys.hexversion < 0x03020000,
+                     "Uses features introduced in 3.2.")
+    def test_NR_DEC_broken3_jp2_6_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/broken3.jp2')
+        with self.assertWarns(UserWarning) as cw:
+            # colr box has bad length.
+            j = Jp2k(jfile)
+
+        with self.assertRaises(IOError) as ce:
+            d = j.read()
+
+    def test_NR_DEC_broken4_jp2_7_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/broken4.jp2')
+        with self.assertRaises(IOError):
+            data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_bug_j2c_8_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/bug.j2c')
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_buxI_j2k_9_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/buxI.j2k')
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_buxR_j2k_10_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/buxR.j2k')
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_Cannotreaddatawithnosizeknown_j2k_11_decode(self):
+        relpath = 'input/nonregression/Cannotreaddatawithnosizeknown.j2k'
+        jfile = os.path.join(data_root, relpath)
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_cthead1_j2k_12_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/cthead1.j2k')
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_CT_Phillips_JPEG2K_Decompr_Problem_j2k_13_decode(self):
+        relpath = 'input/nonregression/CT_Phillips_JPEG2K_Decompr_Problem.j2k'
+        jfile = os.path.join(data_root, relpath)
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_illegalcolortransform_j2k_14_decode(self):
+        # Stream too short, expected SOT.
+        jfile = os.path.join(data_root,
+                             'input/nonregression/illegalcolortransform.j2k')
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_j2k32_j2k_15_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/j2k32.j2k')
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_kakadu_v4_4_openjpegv2_broken_j2k_16_decode(self):
+        relpath = 'input/nonregression/kakadu_v4-4_openjpegv2_broken.j2k'
+        jfile = os.path.join(data_root, relpath)
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_MarkerIsNotCompliant_j2k_17_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/MarkerIsNotCompliant.j2k')
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_Marrin_jp2_18_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/Marrin.jp2')
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_merged_jp2_19_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/merged.jp2')
+        data = Jp2k(jfile).read_bands()
+        self.assertTrue(True)
+
+    def test_NR_DEC_movie_00000_j2k_20_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/movie_00000.j2k')
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_movie_00001_j2k_21_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/movie_00001.j2k')
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_movie_00002_j2k_22_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/movie_00002.j2k')
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_orb_blue_lin_j2k_j2k_23_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/orb-blue10-lin-j2k.j2k')
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_orb_blue_win_j2k_j2k_24_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/orb-blue10-win-j2k.j2k')
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_orb_blue_lin_jp2_25_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/orb-blue10-lin-jp2.jp2')
+        with warnings.catch_warnings():
+            # This file has an invalid ICC profile
+            warnings.simplefilter("ignore")
+            data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_orb_blue_win_jp2_26_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/orb-blue10-win-jp2.jp2')
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_relax_jp2_27_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/relax.jp2')
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_test_lossless_j2k_28_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/test_lossless.j2k')
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_text_GBR_jp2_29_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/text_GBR.jp2')
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_pacs_ge_j2k_30_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/pacs.ge.j2k')
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_kodak_2layers_lrcp_j2c_31_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/kodak_2layers_lrcp.j2c')
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_kodak_2layers_lrcp_j2c_32_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/kodak_2layers_lrcp.j2c')
+        data = Jp2k(jfile).read(layer=2)
+        self.assertTrue(True)
+
+    def test_NR_DEC_issue104_jpxstream_jp2_33_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/issue104_jpxstream.jp2')
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_mem_b2ace68c_1381_jp2_34_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/mem-b2ace68c-1381.jp2')
+        with warnings.catch_warnings():
+            # This file has a bad pclr box, we test for this elsewhere.
+            warnings.simplefilter("ignore")
+            j = Jp2k(jfile)
+        data = j.read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_mem_b2b86b74_2753_jp2_35_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/mem-b2b86b74-2753.jp2')
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_gdal_fuzzer_unchecked_num_resolutions_jp2_36_decode(self):
+        f = 'input/nonregression/gdal_fuzzer_unchecked_numresolutions.jp2'
+        jfile = os.path.join(data_root, f)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            j = Jp2k(jfile)
+            with self.assertRaises(IOError):
+                data = j.read()
+
+    def test_NR_DEC_jp2_36_decode(self):
+        lst = ('input',
+               'nonregression',
+               'gdal_fuzzer_assert_in_opj_j2k_read_SQcd_SQcc.patch.jp2')
+        jfile = os.path.join(data_root, '/'.join(lst))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            j = Jp2k(jfile)
+            with self.assertRaises(IOError):
+                data = j.read()
+
+    def test_NR_DEC_gdal_fuzzer_check_number_of_tiles_jp2_38_decode(self):
+        relpath = 'input/nonregression/gdal_fuzzer_check_number_of_tiles.jp2'
+        jfile = os.path.join(data_root, relpath)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            j = Jp2k(jfile)
+            with self.assertRaises(IOError):
+                data = j.read()
+
+    def test_NR_DEC_gdal_fuzzer_check_comp_dx_dy_jp2_39_decode(self):
+        relpath = 'input/nonregression/gdal_fuzzer_check_comp_dx_dy.jp2'
+        jfile = os.path.join(data_root, relpath)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            with self.assertRaises(IOError):
+                j = Jp2k(jfile).read()
+
+    def test_NR_DEC_file_409752_jp2_40_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/file409752.jp2')
+        with self.assertRaises(IOError):
+            data = Jp2k(jfile).read()
+
+    @unittest.skipIf(sys.hexversion < 0x03020000,
+                     "Uses features introduced in 3.2.")
+    def test_NR_DEC_issue188_beach_64bitsbox_jp2_41_decode(self):
+        # Has an 'XML ' box instead of 'xml '.  Yes that is pedantic, but it
+        # really does deserve a warning.
+        relpath = 'input/nonregression/issue188_beach_64bitsbox.jp2'
+        jfile = os.path.join(data_root, relpath)
+        with self.assertWarns(UserWarning) as cw:
+            data = Jp2k(jfile).read()
+
+    def test_NR_DEC_issue206_image_000_jp2_42_decode(self):
+        jfile = os.path.join(data_root,
+                             'input/nonregression/issue206_image-000.jp2')
+        data = Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_p1_04_j2k_43_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(0, 0, 1024, 1024))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata)
+
+    def test_NR_DEC_p1_04_j2k_44_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(640, 512, 768, 640))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[640:768, 512:640])
+
+    def test_NR_DEC_p1_04_j2k_45_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(896, 896, 1024, 1024))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[896:1024, 896:1024])
+
+    def test_NR_DEC_p1_04_j2k_46_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(500, 100, 800, 300))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[500:800, 100:300])
+
+    def test_NR_DEC_p1_04_j2k_47_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(520, 260, 600, 360))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[520:600, 260:360])
+
+    def test_NR_DEC_p1_04_j2k_48_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(520, 260, 660, 360))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[520:660, 260:360])
+
+    def test_NR_DEC_p1_04_j2k_49_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(520, 360, 600, 400))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[520:600, 360:400])
+
+    def test_NR_DEC_p1_04_j2k_50_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(0, 0, 1024, 1024), reduce=2)
+        odata = jp2k.read(reduce=2)
+
+        np.testing.assert_array_equal(ssdata, odata[0:256, 0:256])
+
+    def test_NR_DEC_p1_04_j2k_51_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(640, 512, 768, 640), reduce=2)
+        odata = jp2k.read(reduce=2)
+        np.testing.assert_array_equal(ssdata, odata[160:192, 128:160])
+
+    def test_NR_DEC_p1_04_j2k_52_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(896, 896, 1024, 1024), reduce=2)
+        odata = jp2k.read(reduce=2)
+        np.testing.assert_array_equal(ssdata, odata[224:352, 224:352])
+
+    def test_NR_DEC_p1_04_j2k_53_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(500, 100, 800, 300), reduce=2)
+        odata = jp2k.read(reduce=2)
+        np.testing.assert_array_equal(ssdata, odata[125:200, 25:75])
+
+    def test_NR_DEC_p1_04_j2k_54_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(520, 260, 600, 360), reduce=2)
+        odata = jp2k.read(reduce=2)
+        np.testing.assert_array_equal(ssdata, odata[130:150, 65:90])
+
+    def test_NR_DEC_p1_04_j2k_55_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(520, 260, 660, 360), reduce=2)
+        odata = jp2k.read(reduce=2)
+        np.testing.assert_array_equal(ssdata, odata[130:165, 65:90])
+
+    def test_NR_DEC_p1_04_j2k_56_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(520, 360, 600, 400), reduce=2)
+        odata = jp2k.read(reduce=2)
+        np.testing.assert_array_equal(ssdata, odata[130:150, 90:100])
+
+    def test_NR_DEC_p1_04_j2k_57_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            tdata = jp2k.read(tile=63)  # last tile
+        odata = jp2k.read()
+        np.testing.assert_array_equal(tdata, odata[896:1024, 896:1024])
+
+    def test_NR_DEC_p1_04_j2k_58_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            tdata = jp2k.read(tile=63, reduce=2)  # last tile
+        odata = jp2k.read(reduce=2)
+        np.testing.assert_array_equal(tdata, odata[224:256, 224:256])
+
+    def test_NR_DEC_p1_04_j2k_59_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            tdata = jp2k.read(tile=12)  # 2nd row, 5th column
+        odata = jp2k.read()
+        np.testing.assert_array_equal(tdata, odata[128:256, 512:640])
+
+    def test_NR_DEC_p1_04_j2k_60_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            tdata = jp2k.read(tile=12, reduce=1)  # 2nd row, 5th column
+        odata = jp2k.read(reduce=1)
+        np.testing.assert_array_equal(tdata, odata[64:128, 256:320])
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_61_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(0, 0, 12, 12))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[0:12, 0:12])
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_62_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(1, 8, 8, 11))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[1:8, 8:11])
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_63_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(9, 9, 12, 12))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[9:12, 9:12])
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_64_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(10, 4, 12, 10))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[10:12, 4:10])
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_65_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(3, 3, 9, 9))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[3:9, 3:9])
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_66_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(4, 4, 7, 7))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[4:7, 4:7])
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_67_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(4, 4, 5, 5))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[4:5, 4: 5])
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_68_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(0, 0, 12, 12), reduce=1)
+        odata = jp2k.read(reduce=1)
+        np.testing.assert_array_equal(ssdata, odata[0:6, 0:6])
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_69_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(1, 8, 8, 11), reduce=1)
+        self.assertEqual(ssdata.shape, (3, 2, 3))
+
+    def test_NR_DEC_p1_06_j2k_70_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(9, 9, 12, 12), reduce=1)
+        self.assertEqual(ssdata.shape, (1, 1, 3))
+
+    def test_NR_DEC_p1_06_j2k_71_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(10, 4, 12, 10), reduce=1)
+        self.assertEqual(ssdata.shape, (1, 3, 3))
+
+    def test_NR_DEC_p1_06_j2k_72_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(3, 3, 9, 9), reduce=1)
+        self.assertEqual(ssdata.shape, (3, 3, 3))
+
+    def test_NR_DEC_p1_06_j2k_73_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(4, 4, 7, 7), reduce=1)
+        self.assertEqual(ssdata.shape, (2, 2, 3))
+
+    def test_NR_DEC_p1_06_j2k_74_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(4, 4, 5, 5), reduce=1)
+        self.assertEqual(ssdata.shape, (1, 1, 3))
+
+    def test_NR_DEC_p1_06_j2k_75_decode(self):
+        # Image size would be 0 x 0.
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        with self.assertRaises((IOError, OSError)) as ce:
+            ssdata = jp2k.read(area=(9, 9, 12, 12), reduce=2)
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_76_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        fulldata = jp2k.read()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            tiledata = jp2k.read(tile=0)
+        np.testing.assert_array_equal(tiledata, fulldata[0:3, 0:3])
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_77_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        fulldata = jp2k.read()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            tiledata = jp2k.read(tile=5)
+        np.testing.assert_array_equal(tiledata, fulldata[3:6, 3:6])
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_78_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        fulldata = jp2k.read()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            tiledata = jp2k.read(tile=9)
+        np.testing.assert_array_equal(tiledata, fulldata[6:9, 3:6])
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_79_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        fulldata = jp2k.read()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            tiledata = jp2k.read(tile=15)
+        np.testing.assert_array_equal(tiledata, fulldata[9:12, 9:12])
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_80_decode(self):
+        # Just read the data, don't bother verifying.
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            tiledata = jp2k.read(tile=0, reduce=2)
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_81_decode(self):
+        # Just read the data, don't bother verifying.
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            tiledata = jp2k.read(tile=5, reduce=2)
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_82_decode(self):
+        # Just read the data, don't bother verifying.
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            tiledata = jp2k.read(tile=9, reduce=2)
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_83_decode(self):
+        # tile size is 3x3.  Reducing two levels results in no data.
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            with self.assertRaises((IOError, OSError)) as ce:
+                tiledata = jp2k.read(tile=15, reduce=2)
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_84_decode(self):
+        # Just read the data, don't bother verifying.
+        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        data = jp2k.read(reduce=4)
+
+    def test_NR_DEC_p0_04_j2k_85_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(0, 0, 256, 256))
+        fulldata = jp2k.read()
+        np.testing.assert_array_equal(fulldata[0:256, 0:256], ssdata)
+
+    def test_NR_DEC_p0_04_j2k_86_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(0, 128, 128, 256))
+        fulldata = jp2k.read()
+        np.testing.assert_array_equal(fulldata[0:128, 128:256], ssdata)
+
+    def test_NR_DEC_p0_04_j2k_87_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(10, 50, 200, 120))
+        fulldata = jp2k.read()
+        np.testing.assert_array_equal(fulldata[10:200, 50:120], ssdata)
+
+    def test_NR_DEC_p0_04_j2k_88_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(150, 10, 210, 190))
+        fulldata = jp2k.read()
+        np.testing.assert_array_equal(fulldata[150:210, 10:190], ssdata)
+
+    def test_NR_DEC_p0_04_j2k_89_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(80, 100, 150, 200))
+        fulldata = jp2k.read()
+        np.testing.assert_array_equal(fulldata[80:150, 100:200], ssdata)
+
+    def test_NR_DEC_p0_04_j2k_90_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(20, 150, 50, 200))
+        fulldata = jp2k.read()
+        np.testing.assert_array_equal(fulldata[20:50, 150:200], ssdata)
+
+    def test_NR_DEC_p0_04_j2k_91_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(0, 0, 256, 256), reduce=2)
+        fulldata = jp2k.read(reduce=2)
+        np.testing.assert_array_equal(fulldata[0:64, 0:64], ssdata)
+
+    def test_NR_DEC_p0_04_j2k_92_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(0, 128, 128, 256), reduce=2)
+        fulldata = jp2k.read(reduce=2)
+        np.testing.assert_array_equal(fulldata[0:32, 32:64], ssdata)
+
+    def test_NR_DEC_p0_04_j2k_93_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(10, 50, 200, 120), reduce=2)
+        fulldata = jp2k.read(reduce=2)
+        np.testing.assert_array_equal(fulldata[3:50, 13:30], ssdata)
+
+    def test_NR_DEC_p0_04_j2k_94_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(150, 10, 210, 190), reduce=2)
+        fulldata = jp2k.read(reduce=2)
+        np.testing.assert_array_equal(fulldata[38:53, 3:48], ssdata)
+
+    def test_NR_DEC_p0_04_j2k_95_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(80, 100, 150, 200), reduce=2)
+        fulldata = jp2k.read(reduce=2)
+        np.testing.assert_array_equal(fulldata[20:38, 25:50], ssdata)
+
+    def test_NR_DEC_p0_04_j2k_96_decode(self):
+        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(20, 150, 50, 200), reduce=2)
+        fulldata = jp2k.read(reduce=2)
+        np.testing.assert_array_equal(fulldata[5:13, 38:50], ssdata)
+
+
+@unittest.skipIf(data_root is None,
+                 "OPJ_DATA_ROOT environment variable not set")
+class TestSuiteDump(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
 
     def test_NR_p0_01_dump(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_01.j2k')
@@ -3579,7 +4300,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[1].method, 2)  # enumerated
         self.assertEqual(jp2.box[3].box[1].precedence, 0)
         self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(len(jp2.box[3].box[1].icc_profile), 546)
+        self.assertEqual(jp2.box[3].box[1].icc_profile['Size'], 546)
         self.assertIsNone(jp2.box[3].box[1].colorspace)
 
         # Jp2 Header
@@ -3674,7 +4395,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[1].method, 2)
         self.assertEqual(jp2.box[3].box[1].precedence, 0)
         self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(len(jp2.box[3].box[1].icc_profile), 13332)
+        self.assertEqual(jp2.box[3].box[1].icc_profile['Size'], 13332)
         self.assertIsNone(jp2.box[3].box[1].colorspace)
 
         # Jp2 Header
@@ -3723,7 +4444,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].method, 2)  # enumerated
         self.assertEqual(jp2.box[2].box[1].precedence, 0)
         self.assertEqual(jp2.box[2].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(len(jp2.box[2].box[1].icc_profile), 414)
+        self.assertEqual(jp2.box[2].box[1].icc_profile['Size'], 414)
         self.assertIsNone(jp2.box[2].box[1].colorspace)
 
         # XML box
@@ -6394,7 +7115,10 @@ class TestSuite(unittest.TestCase):
     def test_NR_orb_blue10_lin_jp2_dump(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/orb-blue10-lin-jp2.jp2')
-        jp2 = Jp2k(jfile)
+        with warnings.catch_warnings():
+            # This file has an invalid ICC profile
+            warnings.simplefilter("ignore")
+            jp2 = Jp2k(jfile)
 
         ids = [box.id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
@@ -6426,7 +7150,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].method, 2)  # res icc
         self.assertEqual(jp2.box[2].box[1].precedence, 0)
         self.assertEqual(jp2.box[2].box[1].approximation, 0)  # JP2
-        self.assertEqual(len(jp2.box[2].box[1].icc_profile), 1)
+        self.assertIsNone(jp2.box[2].box[1].icc_profile)
         self.assertIsNone(jp2.box[2].box[1].colorspace)
 
         c = jp2.box[3].main_header
@@ -6490,7 +7214,10 @@ class TestSuite(unittest.TestCase):
     def test_NR_orb_blue10_win_jp2_dump(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/orb-blue10-win-jp2.jp2')
-        jp2 = Jp2k(jfile)
+        with warnings.catch_warnings():
+            # This file has an invalid ICC profile
+            warnings.simplefilter("ignore")
+            jp2 = Jp2k(jfile)
 
         ids = [box.id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
@@ -6522,7 +7249,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].method, 2)  # restricted icc
         self.assertEqual(jp2.box[2].box[1].precedence, 0)
         self.assertEqual(jp2.box[2].box[1].approximation, 0)  # JP2
-        self.assertEqual(len(jp2.box[2].box[1].icc_profile), 1)
+        self.assertIsNone(jp2.box[2].box[1].icc_profile)
         self.assertIsNone(jp2.box[2].box[1].colorspace)
 
         c = jp2.box[3].main_header
@@ -6624,7 +7351,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[1].method, 3)  # any icc
         self.assertEqual(jp2.box[3].box[1].precedence, 2)
         self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(len(jp2.box[3].box[1].icc_profile), 1328)
+        self.assertEqual(jp2.box[3].box[1].icc_profile['Size'], 1328)
         self.assertIsNone(jp2.box[3].box[1].colorspace)
 
         # UUID boxes.  All mentioned in the RREQ box.
@@ -6690,711 +7417,6 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(c.segment[3]._mantissa, [0] * 16)
         self.assertEqual(c.segment[3]._exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10])
-
-    def test_NR_DEC_Bretagne2_j2k_1_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/Bretagne2.j2k')
-        jp2 = Jp2k(jfile)
-        data = jp2.read()
-        self.assertTrue(True)
-
-    def test_NR_DEC__00042_j2k_2_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/_00042.j2k')
-        jp2 = Jp2k(jfile)
-        data = jp2.read()
-        self.assertTrue(True)
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_123_j2c_3_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/123.j2c')
-        jp2 = Jp2k(jfile)
-        data = jp2.read()
-        self.assertTrue(True)
-
-    @unittest.skipIf(sys.hexversion < 0x03020000,
-                     "Uses features introduced in 3.2.")
-    def test_NR_DEC_broken_jp2_4_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/broken.jp2')
-        with self.assertWarns(UserWarning) as cw:
-            # colr box has bad length.
-            jp2 = Jp2k(jfile)
-        with self.assertRaises(IOError):
-            data = jp2.read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_broken2_jp2_5_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/broken2.jp2')
-        with self.assertRaises(IOError):
-            data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    @unittest.skipIf(sys.hexversion < 0x03020000,
-                     "Uses features introduced in 3.2.")
-    def test_NR_DEC_broken3_jp2_6_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/broken3.jp2')
-        with self.assertWarns(UserWarning) as cw:
-            # colr box has bad length.
-            j = Jp2k(jfile)
-
-        with self.assertRaises(IOError) as ce:
-            d = j.read()
-
-    def test_NR_DEC_broken4_jp2_7_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/broken4.jp2')
-        with self.assertRaises(IOError):
-            data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_bug_j2c_8_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/bug.j2c')
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_buxI_j2k_9_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/buxI.j2k')
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_buxR_j2k_10_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/buxR.j2k')
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_Cannotreaddatawithnosizeknown_j2k_11_decode(self):
-        relpath = 'input/nonregression/Cannotreaddatawithnosizeknown.j2k'
-        jfile = os.path.join(data_root, relpath)
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_cthead1_j2k_12_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/cthead1.j2k')
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_CT_Phillips_JPEG2K_Decompr_Problem_j2k_13_decode(self):
-        relpath = 'input/nonregression/CT_Phillips_JPEG2K_Decompr_Problem.j2k'
-        jfile = os.path.join(data_root, relpath)
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_illegalcolortransform_j2k_14_decode(self):
-        # Stream too short, expected SOT.
-        jfile = os.path.join(data_root,
-                             'input/nonregression/illegalcolortransform.j2k')
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_j2k32_j2k_15_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/j2k32.j2k')
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_kakadu_v4_4_openjpegv2_broken_j2k_16_decode(self):
-        relpath = 'input/nonregression/kakadu_v4-4_openjpegv2_broken.j2k'
-        jfile = os.path.join(data_root, relpath)
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_MarkerIsNotCompliant_j2k_17_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/MarkerIsNotCompliant.j2k')
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_Marrin_jp2_18_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/Marrin.jp2')
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_merged_jp2_19_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/merged.jp2')
-        data = Jp2k(jfile).read_bands()
-        self.assertTrue(True)
-
-    def test_NR_DEC_movie_00000_j2k_20_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/movie_00000.j2k')
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_movie_00001_j2k_21_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/movie_00001.j2k')
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_movie_00002_j2k_22_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/movie_00002.j2k')
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_orb_blue_lin_j2k_j2k_23_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/orb-blue10-lin-j2k.j2k')
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_orb_blue_win_j2k_j2k_24_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/orb-blue10-win-j2k.j2k')
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_orb_blue_lin_jp2_25_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/orb-blue10-lin-jp2.jp2')
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_orb_blue_win_jp2_26_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/orb-blue10-win-jp2.jp2')
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_relax_jp2_27_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/relax.jp2')
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_test_lossless_j2k_28_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/test_lossless.j2k')
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_text_GBR_jp2_29_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/text_GBR.jp2')
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_pacs_ge_j2k_30_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/pacs.ge.j2k')
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_kodak_2layers_lrcp_j2c_31_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/kodak_2layers_lrcp.j2c')
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_kodak_2layers_lrcp_j2c_32_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/kodak_2layers_lrcp.j2c')
-        data = Jp2k(jfile).read(layer=2)
-        self.assertTrue(True)
-
-    def test_NR_DEC_issue104_jpxstream_jp2_33_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/issue104_jpxstream.jp2')
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_mem_b2ace68c_1381_jp2_34_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/mem-b2ace68c-1381.jp2')
-        with warnings.catch_warnings():
-            # This file has a bad pclr box, we test for this elsewhere.
-            warnings.simplefilter("ignore")
-            j = Jp2k(jfile)
-        data = j.read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_mem_b2b86b74_2753_jp2_35_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/mem-b2b86b74-2753.jp2')
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_gdal_fuzzer_unchecked_num_resolutions_jp2_36_decode(self):
-        f = 'input/nonregression/gdal_fuzzer_unchecked_numresolutions.jp2'
-        jfile = os.path.join(data_root, f)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            j = Jp2k(jfile)
-            with self.assertRaises(IOError):
-                data = j.read()
-
-    def test_NR_DEC_jp2_36_decode(self):
-        lst = ('input',
-               'nonregression',
-               'gdal_fuzzer_assert_in_opj_j2k_read_SQcd_SQcc.patch.jp2')
-        jfile = os.path.join(data_root, '/'.join(lst))
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            j = Jp2k(jfile)
-            with self.assertRaises(IOError):
-                data = j.read()
-
-    def test_NR_DEC_gdal_fuzzer_check_number_of_tiles_jp2_38_decode(self):
-        relpath = 'input/nonregression/gdal_fuzzer_check_number_of_tiles.jp2'
-        jfile = os.path.join(data_root, relpath)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            j = Jp2k(jfile)
-            with self.assertRaises(IOError):
-                data = j.read()
-
-    def test_NR_DEC_gdal_fuzzer_check_comp_dx_dy_jp2_39_decode(self):
-        relpath = 'input/nonregression/gdal_fuzzer_check_comp_dx_dy.jp2'
-        jfile = os.path.join(data_root, relpath)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            with self.assertRaises(IOError):
-                j = Jp2k(jfile).read()
-
-    def test_NR_DEC_file_409752_jp2_40_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/file409752.jp2')
-        with self.assertRaises(IOError):
-            data = Jp2k(jfile).read()
-
-    @unittest.skipIf(sys.hexversion < 0x03020000,
-                     "Uses features introduced in 3.2.")
-    def test_NR_DEC_issue188_beach_64bitsbox_jp2_41_decode(self):
-        # Has an 'XML ' box instead of 'xml '.  Yes that is pedantic, but it
-        # really does deserve a warning.
-        relpath = 'input/nonregression/issue188_beach_64bitsbox.jp2'
-        jfile = os.path.join(data_root, relpath)
-        with self.assertWarns(UserWarning) as cw:
-            data = Jp2k(jfile).read()
-
-    def test_NR_DEC_issue206_image_000_jp2_42_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/issue206_image-000.jp2')
-        data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_p1_04_j2k_43_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(0, 0, 1024, 1024))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata)
-
-    def test_NR_DEC_p1_04_j2k_44_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(640, 512, 768, 640))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[640:768, 512:640])
-
-    def test_NR_DEC_p1_04_j2k_45_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(896, 896, 1024, 1024))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[896:1024, 896:1024])
-
-    def test_NR_DEC_p1_04_j2k_46_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(500, 100, 800, 300))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[500:800, 100:300])
-
-    def test_NR_DEC_p1_04_j2k_47_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(520, 260, 600, 360))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[520:600, 260:360])
-
-    def test_NR_DEC_p1_04_j2k_48_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(520, 260, 660, 360))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[520:660, 260:360])
-
-    def test_NR_DEC_p1_04_j2k_49_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(520, 360, 600, 400))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[520:600, 360:400])
-
-    def test_NR_DEC_p1_04_j2k_50_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(0, 0, 1024, 1024), reduce=2)
-        odata = jp2k.read(reduce=2)
-
-        np.testing.assert_array_equal(ssdata, odata[0:256, 0:256])
-
-    def test_NR_DEC_p1_04_j2k_51_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(640, 512, 768, 640), reduce=2)
-        odata = jp2k.read(reduce=2)
-        np.testing.assert_array_equal(ssdata, odata[160:192, 128:160])
-
-    def test_NR_DEC_p1_04_j2k_52_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(896, 896, 1024, 1024), reduce=2)
-        odata = jp2k.read(reduce=2)
-        np.testing.assert_array_equal(ssdata, odata[224:352, 224:352])
-
-    def test_NR_DEC_p1_04_j2k_53_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(500, 100, 800, 300), reduce=2)
-        odata = jp2k.read(reduce=2)
-        np.testing.assert_array_equal(ssdata, odata[125:200, 25:75])
-
-    def test_NR_DEC_p1_04_j2k_54_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(520, 260, 600, 360), reduce=2)
-        odata = jp2k.read(reduce=2)
-        np.testing.assert_array_equal(ssdata, odata[130:150, 65:90])
-
-    def test_NR_DEC_p1_04_j2k_55_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(520, 260, 660, 360), reduce=2)
-        odata = jp2k.read(reduce=2)
-        np.testing.assert_array_equal(ssdata, odata[130:165, 65:90])
-
-    def test_NR_DEC_p1_04_j2k_56_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(520, 360, 600, 400), reduce=2)
-        odata = jp2k.read(reduce=2)
-        np.testing.assert_array_equal(ssdata, odata[130:150, 90:100])
-
-    def test_NR_DEC_p1_04_j2k_57_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            tdata = jp2k.read(tile=63)  # last tile
-        odata = jp2k.read()
-        np.testing.assert_array_equal(tdata, odata[896:1024, 896:1024])
-
-    def test_NR_DEC_p1_04_j2k_58_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            tdata = jp2k.read(tile=63, reduce=2)  # last tile
-        odata = jp2k.read(reduce=2)
-        np.testing.assert_array_equal(tdata, odata[224:256, 224:256])
-
-    def test_NR_DEC_p1_04_j2k_59_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            tdata = jp2k.read(tile=12)  # 2nd row, 5th column
-        odata = jp2k.read()
-        np.testing.assert_array_equal(tdata, odata[128:256, 512:640])
-
-    def test_NR_DEC_p1_04_j2k_60_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            tdata = jp2k.read(tile=12, reduce=1)  # 2nd row, 5th column
-        odata = jp2k.read(reduce=1)
-        np.testing.assert_array_equal(tdata, odata[64:128, 256:320])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_61_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(0, 0, 12, 12))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[0:12, 0:12])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_62_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(1, 8, 8, 11))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[1:8, 8:11])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_63_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(9, 9, 12, 12))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[9:12, 9:12])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_64_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(10, 4, 12, 10))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[10:12, 4:10])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_65_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(3, 3, 9, 9))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[3:9, 3:9])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_66_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(4, 4, 7, 7))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[4:7, 4:7])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_67_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(4, 4, 5, 5))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[4:5, 4: 5])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_68_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(0, 0, 12, 12), reduce=1)
-        odata = jp2k.read(reduce=1)
-        np.testing.assert_array_equal(ssdata, odata[0:6, 0:6])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_69_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(1, 8, 8, 11), reduce=1)
-        self.assertEqual(ssdata.shape, (3, 2, 3))
-
-    def test_NR_DEC_p1_06_j2k_70_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(9, 9, 12, 12), reduce=1)
-        self.assertEqual(ssdata.shape, (1, 1, 3))
-
-    def test_NR_DEC_p1_06_j2k_71_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(10, 4, 12, 10), reduce=1)
-        self.assertEqual(ssdata.shape, (1, 3, 3))
-
-    def test_NR_DEC_p1_06_j2k_72_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(3, 3, 9, 9), reduce=1)
-        self.assertEqual(ssdata.shape, (3, 3, 3))
-
-    def test_NR_DEC_p1_06_j2k_73_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(4, 4, 7, 7), reduce=1)
-        self.assertEqual(ssdata.shape, (2, 2, 3))
-
-    def test_NR_DEC_p1_06_j2k_74_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(4, 4, 5, 5), reduce=1)
-        self.assertEqual(ssdata.shape, (1, 1, 3))
-
-    def test_NR_DEC_p1_06_j2k_75_decode(self):
-        # Image size would be 0 x 0.
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        with self.assertRaises((IOError, OSError)) as ce:
-            ssdata = jp2k.read(area=(9, 9, 12, 12), reduce=2)
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_76_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        fulldata = jp2k.read()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            tiledata = jp2k.read(tile=0)
-        np.testing.assert_array_equal(tiledata, fulldata[0:3, 0:3])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_77_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        fulldata = jp2k.read()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            tiledata = jp2k.read(tile=5)
-        np.testing.assert_array_equal(tiledata, fulldata[3:6, 3:6])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_78_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        fulldata = jp2k.read()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            tiledata = jp2k.read(tile=9)
-        np.testing.assert_array_equal(tiledata, fulldata[6:9, 3:6])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_79_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        fulldata = jp2k.read()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            tiledata = jp2k.read(tile=15)
-        np.testing.assert_array_equal(tiledata, fulldata[9:12, 9:12])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_80_decode(self):
-        # Just read the data, don't bother verifying.
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            tiledata = jp2k.read(tile=0, reduce=2)
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_81_decode(self):
-        # Just read the data, don't bother verifying.
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            tiledata = jp2k.read(tile=5, reduce=2)
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_82_decode(self):
-        # Just read the data, don't bother verifying.
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            tiledata = jp2k.read(tile=9, reduce=2)
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_83_decode(self):
-        # tile size is 3x3.  Reducing two levels results in no data.
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            with self.assertRaises((IOError, OSError)) as ce:
-                tiledata = jp2k.read(tile=15, reduce=2)
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_84_decode(self):
-        # Just read the data, don't bother verifying.
-        jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        data = jp2k.read(reduce=4)
-
-    def test_NR_DEC_p0_04_j2k_85_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(0, 0, 256, 256))
-        fulldata = jp2k.read()
-        np.testing.assert_array_equal(fulldata[0:256, 0:256], ssdata)
-
-    def test_NR_DEC_p0_04_j2k_86_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(0, 128, 128, 256))
-        fulldata = jp2k.read()
-        np.testing.assert_array_equal(fulldata[0:128, 128:256], ssdata)
-
-    def test_NR_DEC_p0_04_j2k_87_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(10, 50, 200, 120))
-        fulldata = jp2k.read()
-        np.testing.assert_array_equal(fulldata[10:200, 50:120], ssdata)
-
-    def test_NR_DEC_p0_04_j2k_88_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(150, 10, 210, 190))
-        fulldata = jp2k.read()
-        np.testing.assert_array_equal(fulldata[150:210, 10:190], ssdata)
-
-    def test_NR_DEC_p0_04_j2k_89_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(80, 100, 150, 200))
-        fulldata = jp2k.read()
-        np.testing.assert_array_equal(fulldata[80:150, 100:200], ssdata)
-
-    def test_NR_DEC_p0_04_j2k_90_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(20, 150, 50, 200))
-        fulldata = jp2k.read()
-        np.testing.assert_array_equal(fulldata[20:50, 150:200], ssdata)
-
-    def test_NR_DEC_p0_04_j2k_91_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(0, 0, 256, 256), reduce=2)
-        fulldata = jp2k.read(reduce=2)
-        np.testing.assert_array_equal(fulldata[0:64, 0:64], ssdata)
-
-    def test_NR_DEC_p0_04_j2k_92_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(0, 128, 128, 256), reduce=2)
-        fulldata = jp2k.read(reduce=2)
-        np.testing.assert_array_equal(fulldata[0:32, 32:64], ssdata)
-
-    def test_NR_DEC_p0_04_j2k_93_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(10, 50, 200, 120), reduce=2)
-        fulldata = jp2k.read(reduce=2)
-        np.testing.assert_array_equal(fulldata[3:50, 13:30], ssdata)
-
-    def test_NR_DEC_p0_04_j2k_94_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(150, 10, 210, 190), reduce=2)
-        fulldata = jp2k.read(reduce=2)
-        np.testing.assert_array_equal(fulldata[38:53, 3:48], ssdata)
-
-    def test_NR_DEC_p0_04_j2k_95_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(80, 100, 150, 200), reduce=2)
-        fulldata = jp2k.read(reduce=2)
-        np.testing.assert_array_equal(fulldata[20:38, 25:50], ssdata)
-
-    def test_NR_DEC_p0_04_j2k_96_decode(self):
-        jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(20, 150, 50, 200), reduce=2)
-        fulldata = jp2k.read(reduce=2)
-        np.testing.assert_array_equal(fulldata[5:13, 38:50], ssdata)
 
 if __name__ == "__main__":
     unittest.main()

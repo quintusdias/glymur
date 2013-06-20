@@ -4,14 +4,16 @@ References
 ----------
 .. [JP2K15444-1i] International Organization for Standardication.  ISO/IEC
    15444-1:2004 - Information technology -- JPEG 2000 image coding system:
-   Core coding system"
+   Core coding system
 
 .. [JP2K15444-2m] International Organization for Standardication.  ISO/IEC
    15444-2:2004 - Information technology -- JPEG 2000 image coding system:
    Extensions
 """
 
+import collections
 import copy
+import datetime
 import math
 import os
 import pprint
@@ -31,7 +33,7 @@ from .core import _method_display
 from .core import _reader_requirements_display
 
 
-class Jp2kBox:
+class Jp2kBox(object):
     """Superclass for JPEG 2000 boxes.
 
     Attributes
@@ -153,9 +155,9 @@ class ColourSpecificationBox(Jp2kBox):
     colorspace : int or None
         Enumerated colorspace, corresponds to one of 'sRGB', 'greyscale', or
         'YCC'.  If not None, then icc_profile must be None.
-    icc_profile : byte array or None
-        ICC profile according to ICC profile specification.  If not None, then
-        color_space must be None.
+    icc_profile : dict
+        ICC profile header according to ICC profile specification.  If
+        colorspace is not None, then icc_profile must be empty.
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='Colour Specification')
@@ -174,8 +176,15 @@ class ColourSpecificationBox(Jp2kBox):
             x = _colorspace_map_display[self.colorspace]
             msg += '\n    Colorspace:  {0}'.format(x)
         else:
-            x = len(self.icc_profile)
-            msg += '\n    ICC Profile:  {0} bytes'.format(x)
+            # 2.7 has trouble pretty-printing ordered dicts so we just have
+            # to print as a regular dict in this case.
+            if sys.hexversion < 0x03000000:
+                icc_profile = dict(self.icc_profile)
+            else:
+                icc_profile = self.icc_profile
+            x = pprint.pformat(icc_profile)
+            lines = [' ' * 8 + y for y in x.split('\n')]
+            msg += '\n    ICC Profile:\n{0}'.format('\n'.join(lines))
 
         return msg
 
@@ -221,10 +230,128 @@ class ColourSpecificationBox(Jp2kBox):
             # ICC profile
             kwargs['colorspace'] = None
             n = offset + length - f.tell()
-            kwargs['icc_profile'] = f.read(n)
+            if n < 128:
+                msg = "ICC profile header is corrupt, length is "
+                msg += "only {0} instead of 128."
+                warnings.warn(msg.format(n), UserWarning)
+                kwargs['icc_profile'] = None
+            else:
+                icc_profile = _ICCProfile(f.read(n))
+                kwargs['icc_profile'] = icc_profile.header
 
         box = ColourSpecificationBox(**kwargs)
         return box
+
+
+class _ICCProfile(object):
+    """
+    """
+    profile_class = {b'scnr': 'input device profile',
+                     b'mntr': 'display device profile',
+                     b'prtr': 'output device profile',
+                     b'link': 'devicelink profile',
+                     b'spac': 'colorspace conversion profile',
+                     b'abst': 'abstract profile',
+                     b'nmcl': 'name colour profile'}
+
+    colour_space_dict = {b'XYZ ': 'XYZ',
+                         b'Lab ': 'Lab',
+                         b'Luv ': 'Luv',
+                         b'YCbr': 'YCbCr',
+                         b'Yxy ': 'Yxy',
+                         b'RGB ': 'RGB',
+                         b'GRAY': 'gray',
+                         b'HSV ': 'hsv',
+                         b'HLS ': 'hls',
+                         b'CMYK': 'CMYK',
+                         b'CMY ': 'cmy',
+                         b'2CLR': '2colour',
+                         b'3CLR': '3colour',
+                         b'4CLR': '4colour',
+                         b'5CLR': '5colour',
+                         b'6CLR': '6colour',
+                         b'7CLR': '7colour',
+                         b'8CLR': '8colour',
+                         b'9CLR': '9colour',
+                         b'ACLR': '10colour',
+                         b'BCLR': '11colour',
+                         b'CCLR': '12colour',
+                         b'DCLR': '13colour',
+                         b'ECLR': '14colour',
+                         b'FCLR': '15colour'}
+
+    rendering_intent_dict = {0: 'perceptual',
+                             1: 'media-relative colorimetric',
+                             2: 'saturation',
+                             3: 'ICC-absolute colorimetric'}
+
+    def __init__(self, buffer):
+        self._raw_buffer = buffer
+        header = collections.OrderedDict()
+
+        data = struct.unpack('>IIBB', self._raw_buffer[0:10])
+        header['Size'] = data[0]
+        header['Preferred CMM Type'] = data[1]
+        major = data[2]
+        minor = (data[3] & 0xf0) >> 4
+        bugfix = (data[3] & 0x0f)
+        header['Version'] = '{0}.{1}.{2}'.format(major, minor, bugfix)
+
+        header['Device Class'] = self.profile_class[self._raw_buffer[12:16]]
+        header['Color Space'] = self.colour_space_dict[self._raw_buffer[16:20]]
+        data = self.colour_space_dict[self._raw_buffer[20:24]]
+        header['Connection Space'] = data
+
+        data = struct.unpack('>HHHHHH', self._raw_buffer[24:36])
+        header['Datetime'] = datetime.datetime(*data)
+        header['File Signature'] = buffer[36:40].decode('utf-8')
+        if buffer[40:44] == b'\x00\x00\x00\x00':
+            header['Platform'] = 'unrecognized'
+        else:
+            header['Platform'] = buffer[40:44].decode('utf-8')
+
+        x, = struct.unpack('>I', buffer[44:48])
+        y = 'embedded, ' if x & 0x01 else 'not embedded, '
+        y += 'cannot ' if x & 0x02 else 'can '
+        y += 'be used independently'
+        header['Flags'] = y
+
+        header['Device Manufacturer'] = buffer[48:52].decode('utf-8')
+        if buffer[52:56] == b'\x00\x00\x00\x00':
+            device_model = ''
+        else:
+            device_model = buffer[52:56].decode('utf-8')
+        header['Device Model'] = device_model
+
+        x, = struct.unpack('>Q', buffer[56:64])
+        y = 'transparency, ' if x & 0x01 else 'reflective, '
+        y += 'matte, ' if x & 0x02 else 'glossy, '
+        y += 'negative ' if x & 0x04 else 'positive '
+        y += 'media polarity, '
+        y += 'black and white media' if x & 0x08 else 'color media'
+        header['Device Attributes'] = y
+
+        x, = struct.unpack('>I', buffer[64:68])
+        try:
+            header['Rendering Intent'] = self.rendering_intent_dict[x]
+        except KeyError:
+            header['Rendering Intent'] = 'unknown'
+
+        data = struct.unpack('>iii', buffer[68:80])
+        header['Illuminant'] = np.array(data, dtype=np.float64) / 65536
+
+        if buffer[80:84] == b'\x00\x00\x00\x00':
+            creator = 'unrecognized'
+        else:
+            creator = buffer[80:84].decode('utf-8')
+        header['Creator'] = creator
+
+        if header['Version'][0] == '4':
+            header['Profile Id'] = buffer[84:100]
+
+        # Final 27 bytes are reserved.
+
+        self.header = header
 
 
 class ComponentDefinitionBox(Jp2kBox):
@@ -405,7 +532,7 @@ class ContiguousCodestreamBox(Jp2kBox):
         msg = Jp2kBox.__str__(self)
         msg += '\n    Main header:'
         for segment in self.main_header.segment:
-            segstr = segment.__str__()
+            segstr = str(segment)
 
             # Add indentation.
             strs = [('\n        ' + x) for x in segstr.split('\n')]
@@ -633,7 +760,7 @@ class AssociationBox(Jp2kBox):
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         for box in self.box:
-            boxstr = box.__str__()
+            boxstr = str(box)
 
             # Add indentation.
             strs = [('\n    ' + x) for x in boxstr.split('\n')]
@@ -697,7 +824,7 @@ class JP2HeaderBox(Jp2kBox):
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         for box in self.box:
-            boxstr = box.__str__()
+            boxstr = str(box)
 
             # Add indentation.
             strs = [('\n    ' + x) for x in boxstr.split('\n')]
@@ -1050,7 +1177,7 @@ class ResolutionBox(Jp2kBox):
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         for box in self.box:
-            boxstr = box.__str__()
+            boxstr = str(box)
 
             # Add indentation.
             strs = [('\n    ' + x) for x in boxstr.split('\n')]
@@ -1427,7 +1554,7 @@ class UUIDInfoBox(Jp2kBox):
         msg = Jp2kBox.__str__(self)
 
         for box in self.box:
-            box_str = box.__str__()
+            box_str = str(box)
 
             # Add indentation.
             lst = [('\n    ' + x) for x in box_str.split('\n')]
@@ -1556,9 +1683,15 @@ class UUIDBox(Jp2kBox):
         more verbose description of the box.
     uuid : uuid.UUID
         16-byte UUID
-    data : bytes or dictionary or ElementTree.Element
-        Vendor-specific UUID data.  Exif UUIDs are interpreted as dictionaries.
+    data : bytes or dict or ElementTree.Element
+        Vendor-specific data.  Exif UUIDs are interpreted as dictionaries.
         XMP UUIDs are interpreted as standard XML.
+
+    References
+    ----------
+    .. [XMP] International Organization for Standardication.  ISO/IEC
+       16684-1:2012 - Graphic technology -- Extensible metadata platform (XMP)
+       specification -- Part 1:  Data model, serialization and core properties
     """
     def __init__(self, **kwargs):
         Jp2kBox.__init__(self, id='', longname='UUID')
@@ -1574,7 +1707,10 @@ class UUIDBox(Jp2kBox):
             uuid_data = _pretty_print_xml(self.data)
         elif self.uuid.bytes == b'JpgTiffExif->JP2':
             uuid_type = ' (Exif)'
-            uuid_data = '\n' + pprint.pformat(self.data)
+            # 2.7 has trouble pretty-printing ordered dicts, so print them
+            # as regular dicts.  Not ideal, but at least it's good on 3.3+.
+            x = self.data if sys.hexversion >= 0x03000000 else dict(self.data)
+            uuid_data = '\n' + pprint.pformat(x)
         else:
             uuid_type = ''
             uuid_data = '{0} bytes'.format(len(self.data))
@@ -1625,7 +1761,7 @@ class UUIDBox(Jp2kBox):
                 kwargs['data'] = ET.fromstring(text)
         elif kwargs['uuid'].bytes == b'JpgTiffExif->JP2':
             e = Exif(buffer)
-            d = {}
+            d = collections.OrderedDict()
             d['Image'] = e.exif_image
             d['Photo'] = e.exif_photo
             d['GPSInfo'] = e.exif_gpsinfo
@@ -1637,7 +1773,7 @@ class UUIDBox(Jp2kBox):
         return box
 
 
-class Exif:
+class Exif(object):
     """
     Attributes
     ----------
@@ -1690,7 +1826,7 @@ class Exif:
             self.exif_gpsinfo = gps.processed_ifd
 
 
-class _Ifd:
+class _Ifd(object):
     """
     Attributes
     ----------
@@ -1720,7 +1856,7 @@ class _Ifd:
     def __init__(self, endian, buffer, offset):
         self.endian = endian
         self.buffer = buffer
-        self.processed_ifd = {}
+        self.processed_ifd = collections.OrderedDict()
 
         self.num_tags, = struct.unpack(endian + 'H',
                                        buffer[offset:offset + 2])
@@ -1728,7 +1864,7 @@ class _Ifd:
         fmt = self.endian + 'HHII' * self.num_tags
         ifd_buffer = buffer[offset + 2:offset + 2 + self.num_tags * 12]
         data = struct.unpack(fmt, ifd_buffer)
-        self.raw_ifd = {}
+        self.raw_ifd = collections.OrderedDict()
         for j, tag in enumerate(data[0::4]):
             # The offset to the tag offset/payload is the offset to the IFD
             # plus 2 bytes for the number of tags plus 12 bytes for each

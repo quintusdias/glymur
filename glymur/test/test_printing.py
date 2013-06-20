@@ -21,7 +21,11 @@ except:
     raise
 
 
-class TestPrinting(unittest.TestCase):
+@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+                 "Missing openjp2 library.")
+class TestPrintingNeedsLib(unittest.TestCase):
+    """These tests require the library, mostly in order to just setup the test.
+    """
 
     @classmethod
     def setUpClass(cls):
@@ -40,11 +44,11 @@ class TestPrinting(unittest.TestCase):
         os.unlink(cls._plain_nemo_file)
 
     def setUp(self):
+        self.jp2file = pkg_resources.resource_filename(glymur.__name__,
+                                                       "data/nemo.jp2")
         # Save sys.stdout.
         self.stdout = sys.stdout
         sys.stdout = StringIO()
-        self.jp2file = pkg_resources.resource_filename(glymur.__name__,
-                                                       "data/nemo.jp2")
 
         # Save the output of dumping nemo.jp2 for more than one test.
         lines = ['JPEG 2000 Signature Box (jP  ) @ (0, 12)',
@@ -115,6 +119,57 @@ class TestPrinting(unittest.TestCase):
         # Restore stdout.
         sys.stdout = self.stdout
 
+    def test_asoc_label_box(self):
+        # Construct a fake file with an asoc and a label box, as
+        # OpenJPEG doesn't have such a file.
+        data = glymur.Jp2k(self.jp2file).read(reduce=3)
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            j = glymur.Jp2k(tfile.name, 'wb')
+            j.write(data)
+
+            with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile2:
+
+                # Offset of the codestream is where we start.
+                buffer = tfile.read(77)
+                tfile2.write(buffer)
+
+                # read the rest of the file, it's the codestream.
+                codestream = tfile.read()
+
+                # Write the asoc superbox.
+                # Length = 36, id is 'asoc'.
+                buffer = struct.pack('>I4s', int(56), b'asoc')
+                tfile2.write(buffer)
+
+                # Write the contained label box
+                buffer = struct.pack('>I4s', int(13), b'lbl ')
+                tfile2.write(buffer)
+                tfile2.write('label'.encode())
+
+                # Write the xml box
+                # Length = 36, id is 'xml '.
+                buffer = struct.pack('>I4s', int(35), b'xml ')
+                tfile2.write(buffer)
+
+                buffer = '<test>this is a test</test>'
+                buffer = buffer.encode()
+                tfile2.write(buffer)
+
+                # Now append the codestream.
+                tfile2.write(codestream)
+                tfile2.flush()
+
+                jasoc = glymur.Jp2k(tfile2.name)
+                print(jasoc.box[3])
+                actual = sys.stdout.getvalue().strip()
+                lines = ['Association Box (asoc) @ (77, 56)',
+                         '    Label Box (lbl ) @ (85, 13)',
+                         '        Label:  label',
+                         '    XML Box (xml ) @ (98, 35)',
+                         '        <test>this is a test</test>']
+                expected = '\n'.join(lines)
+                self.assertEqual(actual, expected)
+
     def test_jp2dump(self):
         glymur.jp2dump(self._plain_nemo_file)
         actual = sys.stdout.getvalue().strip()
@@ -125,6 +180,32 @@ class TestPrinting(unittest.TestCase):
         actual = '\n'.join(lst)
 
         self.assertEqual(actual, self.expectedPlain)
+
+    def test_entire_file(self):
+        j = glymur.Jp2k(self._plain_nemo_file)
+        print(j)
+        actual = sys.stdout.getvalue().strip()
+
+        # Get rid of the filename line, as it is not set in stone.
+        lst = actual.split('\n')
+        lst = lst[1:]
+        actual = '\n'.join(lst)
+
+        self.assertEqual(actual, self.expectedPlain)
+
+
+class TestPrinting(unittest.TestCase):
+
+    def setUp(self):
+        # Save sys.stdout.
+        self.stdout = sys.stdout
+        sys.stdout = StringIO()
+        self.jp2file = pkg_resources.resource_filename(glymur.__name__,
+                                                       "data/nemo.jp2")
+
+    def tearDown(self):
+        # Restore stdout.
+        sys.stdout = self.stdout
 
     def test_COC_segment(self):
         j = glymur.Jp2k(self.jp2file)
@@ -184,6 +265,70 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.actual = actual
         self.expected = expected
+        self.assertEqual(actual, expected)
+
+    @unittest.skipIf(data_root is None,
+                     "OPJ_DATA_ROOT environment variable not set")
+    def test_icc_profile(self):
+        filename = os.path.join(data_root, 'input/nonregression/text_GBR.jp2')
+        j = glymur.Jp2k(filename)
+        print(j.box[3].box[1])
+        actual = sys.stdout.getvalue().strip()
+        lin27 = ["Colour Specification Box (colr) @ (179, 1339)",
+                 "    Method:  any ICC profile",
+                 "    Precedence:  2",
+                 "    Approximation:  accurately represents correct "
+                 + "colorspace definition",
+                 "    ICC Profile:",
+                 "        {'Color Space': 'RGB',",
+                 "         'Connection Space': 'XYZ',",
+                 "         'Creator': u'appl',",
+                 "         'Datetime': "
+                 + "datetime.datetime(2009, 2, 25, 11, 26, 11),",
+                 "         'Device Attributes': 'reflective, glossy, "
+                 + "positive media polarity, color media',",
+                 "         'Device Class': 'display device profile',",
+                 "         'Device Manufacturer': u'appl',",
+                 "         'Device Model': '',",
+                 "         'File Signature': u'acsp',",
+                 "         'Flags': "
+                 + "'not embedded, can be used independently',",
+                 "         'Illuminant': "
+                 + "array([ 0.96420288,  1.        ,  0.8249054 ]),",
+                 "         'Platform': u'APPL',",
+                 "         'Preferred CMM Type': 1634758764,",
+                 "         'Rendering Intent': 'perceptual',",
+                 "         'Size': 1328,",
+                 "         'Version': '2.2.0'}"]
+        lin33 = ["Colour Specification Box (colr) @ (179, 1339)",
+                 "    Method:  any ICC profile",
+                 "    Precedence:  2",
+                 "    Approximation:  accurately represents correct "
+                 + "colorspace definition",
+                 "    ICC Profile:",
+                 "        {'Size': 1328,",
+                 "         'Preferred CMM Type': 1634758764,",
+                 "         'Version': '2.2.0',",
+                 "         'Device Class': 'display device profile',",
+                 "         'Color Space': 'RGB',",
+                 "         'Connection Space': 'XYZ',",
+                 "         'Datetime': "
+                 + "datetime.datetime(2009, 2, 25, 11, 26, 11),",
+                 "         'File Signature': 'acsp',",
+                 "         'Platform': 'APPL',",
+                 "         'Flags': 'not embedded, can be used "
+                 + "independently',",
+                 "         'Device Manufacturer': 'appl',",
+                 "         'Device Model': '',",
+                 "         'Device Attributes': 'reflective, glossy, "
+                 + "positive media polarity, color media',",
+                 "         'Rendering Intent': 'perceptual',",
+                 "         'Illuminant': "
+                 + "array([ 0.96420288,  1.        ,  0.8249054 ]),",
+                 "         'Creator': 'appl'}"]
+
+        lines = lin27 if sys.hexversion < 0x03000000 else lin33
+        expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
     @unittest.skipIf(data_root is None,
@@ -452,18 +597,6 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lst)
         self.assertEqual(actual, expected)
 
-    def test_entire_file(self):
-        j = glymur.Jp2k(self._plain_nemo_file)
-        print(j)
-        actual = sys.stdout.getvalue().strip()
-
-        # Get rid of the filename line, as it is not set in stone.
-        lst = actual.split('\n')
-        lst = lst[1:]
-        actual = '\n'.join(lst)
-
-        self.assertEqual(actual, self.expectedPlain)
-
     def test_codestream(self):
         j = glymur.Jp2k(self.jp2file)
         print(j.get_codestream())
@@ -651,57 +784,6 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    def test_asoc_label_box(self):
-        # Construct a fake file with an asoc and a label box, as
-        # OpenJPEG doesn't have such a file.
-        data = glymur.Jp2k(self.jp2file).read(reduce=3)
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-            j = glymur.Jp2k(tfile.name, 'wb')
-            j.write(data)
-
-            with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile2:
-
-                # Offset of the codestream is where we start.
-                buffer = tfile.read(77)
-                tfile2.write(buffer)
-
-                # read the rest of the file, it's the codestream.
-                codestream = tfile.read()
-
-                # Write the asoc superbox.
-                # Length = 36, id is 'asoc'.
-                buffer = struct.pack('>I4s', int(56), b'asoc')
-                tfile2.write(buffer)
-
-                # Write the contained label box
-                buffer = struct.pack('>I4s', int(13), b'lbl ')
-                tfile2.write(buffer)
-                tfile2.write('label'.encode())
-
-                # Write the xml box
-                # Length = 36, id is 'xml '.
-                buffer = struct.pack('>I4s', int(35), b'xml ')
-                tfile2.write(buffer)
-
-                buffer = '<test>this is a test</test>'
-                buffer = buffer.encode()
-                tfile2.write(buffer)
-
-                # Now append the codestream.
-                tfile2.write(codestream)
-                tfile2.flush()
-
-                jasoc = glymur.Jp2k(tfile2.name)
-                print(jasoc.box[3])
-                actual = sys.stdout.getvalue().strip()
-                lines = ['Association Box (asoc) @ (77, 56)',
-                         '    Label Box (lbl ) @ (85, 13)',
-                         '        Label:  label',
-                         '    XML Box (xml ) @ (98, 35)',
-                         '        <test>this is a test</test>']
-                expected = '\n'.join(lines)
-                self.assertEqual(actual, expected)
-
     def test_less_common_boxes(self):
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             with open(self.jp2file, 'rb') as ifile:
@@ -775,6 +857,8 @@ class TestPrinting(unittest.TestCase):
             expected = '\n'.join(lines)
             self.assertEqual(actual, expected)
 
+    @unittest.skipIf(sys.hexversion < 0x03000000,
+                     "Ordered dicts not printing well in 2.7")
     @unittest.skipIf(data_root is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_jpx_approximation_with_icc_profile(self):
@@ -785,12 +869,32 @@ class TestPrinting(unittest.TestCase):
 
         print(j.box[3].box[1])
         actual = sys.stdout.getvalue().strip()
-        lines = ['Colour Specification Box (colr) @ (179, 1339)',
-                 '    Method:  any ICC profile',
-                 '    Precedence:  2',
-                 '    Approximation:  accurately represents '
-                 + 'correct colorspace definition',
-                 '    ICC Profile:  1328 bytes']
+        lines = ["Colour Specification Box (colr) @ (179, 1339)",
+                 "    Method:  any ICC profile",
+                 "    Precedence:  2",
+                 "    Approximation:  accurately represents "
+                 + "correct colorspace definition",
+                 "    ICC Profile:",
+                 "        {'Size': 1328,",
+                 "         'Preferred CMM Type': 1634758764,",
+                 "         'Version': '2.2.0',",
+                 "         'Device Class': 'display device profile',",
+                 "         'Color Space': 'RGB',",
+                 "         'Connection Space': 'XYZ',",
+                 "         'Datetime': "
+                 + "datetime.datetime(2009, 2, 25, 11, 26, 11),",
+                 "         'File Signature': 'acsp',",
+                 "         'Platform': 'APPL',",
+                 "         'Flags': 'not embedded, "
+                 + "can be used independently',",
+                 "         'Device Manufacturer': 'appl',",
+                 "         'Device Model': '',",
+                 "         'Device Attributes': 'reflective, glossy, "
+                 + "positive media polarity, color media',",
+                 "         'Rendering Intent': 'perceptual',",
+                 "         'Illuminant': array([ 0.96420288,  1.        ,"
+                 + "  0.8249054 ]),",
+                 "         'Creator': 'appl'}"]
 
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
@@ -811,6 +915,8 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
+    @unittest.skipIf(sys.hexversion < 0x03000000,
+                     "Ordered dicts not printing well in 2.7")
     def test_exif_uuid(self):
         j = glymur.Jp2k(self.jp2file)
 
@@ -820,13 +926,33 @@ class TestPrinting(unittest.TestCase):
         lines = ["UUID Box (uuid) @ (77, 638)",
                  "    UUID:  4a706754-6966-6645-7869-662d3e4a5032 (Exif)",
                  "    UUID Data:  ",
-                 "{'GPSInfo': {'GPSAltitude': 0.0,",
-                 "             'GPSAltitudeRef': 0,",
-                 "             'GPSDateStamp': '2013:02:09',",
-                 "             'GPSLatitude': [42.0, 20.0, 33.61],",
+                 "{'Image': {'Make': 'HTC',",
+                 "           'Model': 'HTC Glacier',",
+                 "           'XResolution': 72.0,",
+                 "           'YResolution': 72.0,",
+                 "           'ResolutionUnit': 2,",
+                 "           'YCbCrPositioning': 1,",
+                 "           'ExifTag': 138,",
+                 "           'GPSTag': 354},",
+                 " 'Photo': {'ISOSpeedRatings': 76,",
+                 "           'ExifVersion': (48, 50, 50, 48),",
+                 "           'DateTimeOriginal': '2013:02:09 14:47:53',",
+                 "           'DateTimeDigitized': '2013:02:09 14:47:53',",
+                 "           'ComponentsConfiguration': (1, 2, 3, 0),",
+                 "           'FocalLength': 3.53,",
+                 "           'FlashpixVersion': (48, 49, 48, 48),",
+                 "           'ColorSpace': 1,",
+                 "           'PixelXDimension': 2528,",
+                 "           'PixelYDimension': 1424,",
+                 "           'InteroperabilityTag': 324},",
+                 " 'GPSInfo': {'GPSVersionID': (2, 2, 0),",
                  "             'GPSLatitudeRef': 'N',",
-                 "             'GPSLongitude': [71.0, 5.0, 17.32],",
+                 "             'GPSLatitude': [42.0, 20.0, 33.61],",
                  "             'GPSLongitudeRef': 'W',",
+                 "             'GPSLongitude': [71.0, 5.0, 17.32],",
+                 "             'GPSAltitudeRef': 0,",
+                 "             'GPSAltitude': 0.0,",
+                 "             'GPSTimeStamp': [19.0, 47.0, 53.0],",
                  "             'GPSMapDatum': 'WGS-84',",
                  "             'GPSProcessingMethod': (65,",
                  "                                     83,",
@@ -843,28 +969,8 @@ class TestPrinting(unittest.TestCase):
                  "                                     79,",
                  "                                     82,",
                  "                                     75),",
-                 "             'GPSTimeStamp': [19.0, 47.0, 53.0],",
-                 "             'GPSVersionID': (2, 2, 0)},",
-                 " 'Image': {'ExifTag': 138,",
-                 "           'GPSTag': 354,",
-                 "           'Make': 'HTC',",
-                 "           'Model': 'HTC Glacier',",
-                 "           'ResolutionUnit': 2,",
-                 "           'XResolution': 72.0,",
-                 "           'YCbCrPositioning': 1,",
-                 "           'YResolution': 72.0},",
-                 " 'Iop': None,",
-                 " 'Photo': {'ColorSpace': 1,",
-                 "           'ComponentsConfiguration': (1, 2, 3, 0),",
-                 "           'DateTimeDigitized': '2013:02:09 14:47:53',",
-                 "           'DateTimeOriginal': '2013:02:09 14:47:53',",
-                 "           'ExifVersion': (48, 50, 50, 48),",
-                 "           'FlashpixVersion': (48, 49, 48, 48),",
-                 "           'FocalLength': 3.53,",
-                 "           'ISOSpeedRatings': 76,",
-                 "           'InteroperabilityTag': 324,",
-                 "           'PixelXDimension': 2528,",
-                 "           'PixelYDimension': 1424}}"]
+                 "             'GPSDateStamp': '2013:02:09'},",
+                 " 'Iop': None}"]
 
         expected = '\n'.join(lines)
 

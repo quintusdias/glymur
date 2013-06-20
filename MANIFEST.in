@@ -1,4 +1,3 @@
 include *.txt *.md
-recursive-include *.txt *.py
 prune build
 exclude readthedocs-pip-requirements.txt
