@@ -1,4 +1,4 @@
-Jun 16, 2013 - Reading ICC profile headers as ordered dicts.  Exif 
+Jun 16, 2013 - v0.1.9  Reading ICC profile headers as ordered dicts.  Exif 
     dictionaries changed to ordered dicts.  Honoring XDG_CONFIG_HOME
     environment variable.
 
