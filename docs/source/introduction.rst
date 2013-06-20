@@ -20,7 +20,7 @@ some very limited support for reading JPX metadata.  For instance,
 be retrieved from such JPX files.
 
 ''''''''''''
-Requirements
+Installation
 ''''''''''''
 glymur works on Python 2.7 and 3.3.  Python 3.3 is strongly recommended.
 
@@ -29,29 +29,55 @@ OpenJPEG
 OpenJPEG must be built as a shared library.  In addition, you
 currently must compile OpenJPEG from the developmental source that
 you can retrieve via subversion.  As of this time of writing, svn 
-revision 2345 works.  In addition, you should also retrieve their test data, as
-you will need it when running glymur's test suite.
+revision 2345 works.  You should download the test data for the purpose
+of configuring and running OpenJPEG's test suite, check their instructions for
+all this.  You should set the **OPJ_DATA_ROOT** environment variable for the 
+purpose of running Glymur's test suite. ::
+
+    $ svn co http://openjpeg.googlecode.com/svn/data 
+    $ export OPJ_DATA_ROOT=`pwd`/data
 
 Earlier versions of OpenJPEG through the 2.0 official release will **NOT**
 work and are not supported.
 
-Be sure to have the following ports/RPMs/debs installed.
+Glymur uses ctypes (for the moment) to access the openjp2 library, and
+because ctypes access libraries in a platform-dependent manner, it is 
+recommended that you create a configuration file to help Glymur properly find
+the openjp2 library.  You may create the configuration file as follows::
 
-    * gcc
-    * gcc-c++
-    * cmake
-    
-You should build OpenJPEG with testing turned on.  Consult the OpenJPEG 
-documentation on how to do this.  If you use linux, make sure that you 
-have the following development packages installed
+    $ mkdir -p ~/.config/glymur
+    $ cd ~/.config/glymur
+    $ cat > glymurrc << EOF
+    > [library]
+    > openjp2: /opt/openjp2-svn/lib/libopenjp2.so
+    > EOF
 
-    * zlib-devel
-    * png-devel
-    * libtiff-devel
-    * lcms2-devel
+That assumes, of course, that you've installed OpenJPEG into /opt/openjp2-svn.
+You may also replace **$HOME/.config** with **$XDG_CONFIG_HOME**.
 
-OS
-==
+Glymur
+======
+You can retrieve the source for Glymur from either of
+
+    * https://pypi.python.org/pypi/Glymur/ (stable releases)
+    * http://github.com/quintusdias/glymur (bleeding edge)
+
+but you should now be able to get a functional installation of Glymur via
+pip ::
+
+    $ pip install glymur
+
+This will install the **jp2dump** script, so you should adjust your **$PATH**
+to take advantage of it.  For example, if you install with pip's
+`--user` option on linux ::
+
+    $ export PYTHONPATH=$HOME/.local/lib/python3.3/site-packages
+    $ export PATH=$HOME/.local/bin:$PATH
+
+You only need to read further on this page if you want detailed 
+platform-specific instructions on running as many tests as possible or wish to
+use your system's package manager to install as many required 
+packages/RPMs/ports/whatever without going through pip.
 
 Mac OS X
 --------
@@ -133,70 +159,13 @@ Windows
 -------
 Not currently supported.
 
-''''''''''''''''''''''''''''''''''''
-Installation, Testing, Configuration
-''''''''''''''''''''''''''''''''''''
-
-From this point forward, python3 will be referred to as just "python".
-
-Installation
-============
-
-You can install glymur via pip from the command line::
-
-    $ pip install glymur
-
-or manually retrieve the code from either of GitHub or PyPI
-
-    * https://pypi.python.org/pypi/Glymur/ (stable releases)
-    * http://github.com/quintusdias/glymur (bleeding edge)
-
-and then unpack and install with::
-
-    $ python setup.py install --prefix=/install/path
-
-In addition to merely installing glymur, you should adjust your **$PATH**
-environment variable in order to be able to use the *jp2dump* script from
-the unix command line.
-
-::
-
-    $ export PYTHONPATH=/install/path/lib/python3.3/site-packages
-    $ export PATH=/install/path/bin:$PATH
-
-
-Configuration
-=============
-glymur uses ctypes (for the moment) to access the openjp2 library, and
-because ctypes access libraries in a platform-dependent manner, it is 
-recommended that you create a configuration file to help glymur properly find
-the openjp2 library.  You may create the configuration file as follows::
-
-    $ mkdir -p ~/.config/glymur
-    $ cd ~/.config/glymur
-    $ cat > glymurrc << EOF
-    > [library]
-    > openjp2: /opt/openjp2-svn/lib/libopenjp2.so
-    > EOF
-
-That assumes, of course, that you've installed OpenJPEG into /opt/openjp2-svn.
-You may also replace **$HOME/.config** with **$XDG_CONFIG_HOME**.
-
-
+'''''''
 Testing
-=======
-In order to run all of the test suite, you will first need the OpenJPEG test
-data that you previously retrieved.
-Then you should set the **OPJ_DATA_ROOT** environment variable to
-point to this directory, e.g. ::
-
-    $ cd /somewhere/outside/the/glymur/unpacking/directory
-    $ svn co http://openjpeg.googlecode.com/svn/data
-    $ export OPJ_DATA_ROOT=`pwd`/data
+'''''''
 
 The test suite may then be run with::
 
-    $ cd /back/to/glymur/unpacking/directory
+    $ cd /to/where/you/unpacked/glymur
     $ python -m unittest discover
 
 Quite a few tests are currently skipped.  These include tests whose
