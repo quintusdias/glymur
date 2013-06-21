@@ -596,8 +596,14 @@ class FileTypeBox(Jp2kBox):
         List of file conformance profiles.
     """
     def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='File Type')
+        Jp2kBox.__init__(self, id='ftyp', longname='File Type')
         self.__dict__.update(**kwargs)
+        if 'brand' not in kwargs.keys():
+            self.brand = 'jp2 '
+        if 'minor_version' not in kwargs.keys():
+            self.minor_version = 0
+        if 'compatibility_box' not in kwargs.keys():
+            self.compatibility_box = ['jp2 ']
 
     def __str__(self):
         lst = [Jp2kBox.__str__(self),

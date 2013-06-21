@@ -21,6 +21,13 @@ class TestJp2Boxes(unittest.TestCase):
         b = glymur.jp2box.JPEG2000SignatureBox()
         self.assertEqual(b.signature, (13, 10, 135, 10))
 
+    def test_default_FileTypeBox(self):
+        # Should be able to instantiate a FileTypeBox 
+        b = glymur.jp2box.FileTypeBox()
+        self.assertEqual(b.brand, 'jp2 ')
+        self.assertEqual(b.minor_version, 0)
+        self.assertEqual(b.compatibility_box, ['jp2 '])
+
 
 if __name__ == "__main__":
     unittest.main()
