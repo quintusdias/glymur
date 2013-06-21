@@ -59,6 +59,11 @@ class Jp2kBox(object):
         msg += " @ ({0}, {1})".format(self.offset, self.length)
         return msg
 
+    def _write(self, f):
+        """Must be implemented in a subclass.
+        """
+        raise NotImplementedError("Not supported for this box.")
+
     def _parse_superbox(self, f):
         """Parse a superbox (box consisting of nothing but other boxes.
 
@@ -882,8 +887,10 @@ class JPEG2000SignatureBox(Jp2kBox):
         Four-byte tuple identifying the file as JPEG 2000.
     """
     def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='JPEG 2000 Signature')
+        Jp2kBox.__init__(self, id='jP  ', longname='JPEG 2000 Signature')
         self.__dict__.update(**kwargs)
+        if 'signature' not in kwargs.keys():
+            self.signature = (13, 10, 135, 10)
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
