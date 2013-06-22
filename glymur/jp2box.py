@@ -684,30 +684,47 @@ class ImageHeaderBox(Jp2kBox):
         Bits per component.
     signed : bool
         False if the image components are unsigned.
-    compression : nt
+    compression : int
         The compression type, should be 7 if JP2.
-    cspace_unknown : int
-        0 if the color space is known and correctly specified.
-    ip_provided : int
-        0 if the file does not contain intellectual propery rights information.
+    cspace_unknown : bool
+        false if the color space is known and correctly specified.
+    ip_provided : bool
+        false if the file does not contain intellectual propery rights information.
     """
-    def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='Image Header')
+    def __init__(self, *pargs, **kwargs):
+        """
+        Examples
+        --------
+        >>> import glymur
+        >>> box = glymur.jp2box.ImageHeaderBox([512, 256, 3])
+        """
+        Jp2kBox.__init__(self, id='ihdr', longname='Image Header')
         self.__dict__.update(**kwargs)
+        if len(pargs) == 1:
+            self.height = pargs[0][0]
+            self.width = pargs[0][1]
+            self.num_components = pargs[0][2]
+            self.bits_per_component = 8
+            self.signed = False
+            self.compression = 7
+            self.cspace_unknown = False
+            self.ip_provided = False
 
     def __str__(self):
-        lst = [Jp2kBox.__str__(self)]
-        lst.append('Size:  [{0} {1} {2}]'.format(self.height, self.width,
-                                                 self.num_components))
-        lst.append('Bitdepth:  {0}'.format(self.bits_per_component))
-        lst.append('Signed:  {0}'.format(self.signed))
-        if self.compression == 7:
-            lst.append('Compression:  wavelet')
-        if self.cspace_unknown:
-            lst.append('Colorspace Unknown:  True')
-        else:
-            lst.append('Colorspace Unknown:  False')
-        return '\n    '.join(lst)
+        msg = Jp2kBox.__str__(self)
+        msg = "{0}"
+        msg += '\n    Size:  [{1} {2} {3}]'
+        msg += '\n    Bitdepth:  {4}'
+        msg += '\n    Signed:  {5}'
+        msg += '\n    Compression:  {6}'
+        msg += '\n    Colorspace Unknown:  {7}'
+        msg = msg.format(Jp2kBox.__str__(self),
+                         self.height, self.width, self.num_components,
+                         self.bits_per_component,
+                         self.signed,
+                         'wavelet' if self.compression == 7 else 'unknown',
+                         self.cspace_unknown)
+        return msg
 
     @staticmethod
     def _parse(f, id, offset, length):
@@ -741,8 +758,8 @@ class ImageHeaderBox(Jp2kBox):
         kwargs['bits_per_component'] = (params[3] & 0x7f) + 1
         kwargs['signed'] = (params[3] & 0x80) > 1
         kwargs['compression'] = params[4]
-        kwargs['cspace_unknown'] = params[5]
-        kwargs['ip_provided'] = params[6]
+        kwargs['cspace_unknown'] = True if params[5] else False
+        kwargs['ip_provided'] = True if params[6] else False
 
         box = ImageHeaderBox(**kwargs)
         return box
