@@ -213,7 +213,7 @@ class TestJp2k(unittest.TestCase):
         self.assertEqual(jp2k.box[2].box[0].bits_per_component, 8)
         self.assertEqual(jp2k.box[2].box[0].signed, False)
         self.assertEqual(jp2k.box[2].box[0].compression, 7)
-        self.assertEqual(jp2k.box[2].box[0].cspace_unknown, False)
+        self.assertEqual(jp2k.box[2].box[0].colorspace_unknown, False)
         self.assertEqual(jp2k.box[2].box[0].ip_provided, False)
 
         self.assertEqual(jp2k.box[2].box[1].id, 'colr')

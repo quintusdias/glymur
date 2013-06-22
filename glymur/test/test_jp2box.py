@@ -36,13 +36,41 @@ class TestJp2Boxes(unittest.TestCase):
 
     def test_default_ImageHeaderBox(self):
         # Should be able to instantiate an image header box.
-        b = glymur.jp2box.ImageHeaderBox([512, 256, 3])
+        b = glymur.jp2box.ImageHeaderBox(height=512, width=256,
+                                         num_components=3)
         self.assertEqual(b.height,  512)
         self.assertEqual(b.width,  256)
         self.assertEqual(b.num_components,  3)
         self.assertEqual(b.bits_per_component, 8)
         self.assertFalse(b.signed)
-        self.assertFalse(b.cspace_unknown)
+        self.assertFalse(b.colorspace_unknown)
+
+    def test_default_ColourSpecificationBox(self):
+        b = glymur.jp2box.ColourSpecificationBox(colorspace=glymur.core.SRGB)
+        self.assertEqual(b.method,  glymur.core.ENUMERATED_COLORSPACE)
+        self.assertEqual(b.precedence, 0)
+        self.assertEqual(b.approximation, 1)
+        self.assertEqual(b.colorspace, glymur.core.SRGB)
+        self.assertIsNone(b.icc_profile)
+
+    def test_ColourSpecificationBox_with_colorspace_and_icc(self):
+        # Colour specification boxes can't have both.
+        with self.assertRaises(IOError):
+            colorspace = glymur.core.SRGB
+            icc_profile = b'\x01\x02\x03\x04'
+            b = glymur.jp2box.ColourSpecificationBox(colorspace, icc_profile)
+
+    def test_ColourSpecificationBox_with_bad_method(self):
+        colorspace = glymur.core.SRGB
+        method = -1
+        with self.assertRaises(IOError):
+            b = glymur.jp2box.ColourSpecificationBox(colorspace, method)
+
+    def test_ColourSpecificationBox_with_bad_approximation(self):
+        colorspace = glymur.core.SRGB
+        approximation = -1
+        with self.assertRaises(IOError):
+            b = glymur.jp2box.ColourSpecificationBox(colorspace, approximation)
 
 
 if __name__ == "__main__":

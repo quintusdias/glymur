@@ -31,6 +31,7 @@ from .core import _colorspace_map_display
 from .core import _color_type_map_display
 from .core import _method_display
 from .core import _reader_requirements_display
+from .core import *
 
 
 class Jp2kBox(object):
@@ -164,9 +165,22 @@ class ColourSpecificationBox(Jp2kBox):
         ICC profile header according to ICC profile specification.  If
         colorspace is not None, then icc_profile must be empty.
     """
-    def __init__(self, **kwargs):
+    def __init__(self, method=ENUMERATED_COLORSPACE, precedence=0,
+                 approximation=1, colorspace=None, icc_profile=None, **kwargs):
         Jp2kBox.__init__(self, id='', longname='Colour Specification')
+
+        if colorspace is not None and icc_profile is not None:
+            raise IOError("colorspace and icc_profile cannot both be set.")
+        if method not in (1, 2, 3, 4):
+            raise IOError("Invalid method.")
+        if approximation not in (0, 1, 2, 3, 4):
+            raise IOError("Invalid approximation.")
         self.__dict__.update(**kwargs)
+        self.method = method
+        self.precedence = precedence
+        self.approximation = approximation
+        self.colorspace = colorspace
+        self.icc_profile = icc_profile
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -686,29 +700,30 @@ class ImageHeaderBox(Jp2kBox):
         False if the image components are unsigned.
     compression : int
         The compression type, should be 7 if JP2.
-    cspace_unknown : bool
+    colorspace_unknown : bool
         false if the color space is known and correctly specified.
     ip_provided : bool
         false if the file does not contain intellectual propery rights information.
     """
-    def __init__(self, *pargs, **kwargs):
+    def __init__(self, height, width, num_components=1, signed=False,
+                 bits_per_component=8, compression=7, colorspace_unknown=False, 
+                 ip_provided=False, **kwargs):
         """
         Examples
         --------
         >>> import glymur
-        >>> box = glymur.jp2box.ImageHeaderBox([512, 256, 3])
+        >>> box = glymur.jp2box.ImageHeaderBox(height=512, width=256)
         """
         Jp2kBox.__init__(self, id='ihdr', longname='Image Header')
+        self.height = height
+        self.width = width
+        self.num_components = num_components
+        self.signed = signed
+        self.bits_per_component = bits_per_component
+        self.compression = compression
+        self.colorspace_unknown = colorspace_unknown
+        self.ip_provided = False
         self.__dict__.update(**kwargs)
-        if len(pargs) == 1:
-            self.height = pargs[0][0]
-            self.width = pargs[0][1]
-            self.num_components = pargs[0][2]
-            self.bits_per_component = 8
-            self.signed = False
-            self.compression = 7
-            self.cspace_unknown = False
-            self.ip_provided = False
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -723,7 +738,7 @@ class ImageHeaderBox(Jp2kBox):
                          self.bits_per_component,
                          self.signed,
                          'wavelet' if self.compression == 7 else 'unknown',
-                         self.cspace_unknown)
+                         self.colorspace_unknown)
         return msg
 
     @staticmethod
@@ -752,16 +767,16 @@ class ImageHeaderBox(Jp2kBox):
         # Read the box information
         buffer = f.read(14)
         params = struct.unpack('>IIHBBBB', buffer)
-        kwargs['height'] = params[0]
-        kwargs['width'] = params[1]
+        height = params[0]
+        width = params[1]
         kwargs['num_components'] = params[2]
         kwargs['bits_per_component'] = (params[3] & 0x7f) + 1
         kwargs['signed'] = (params[3] & 0x80) > 1
         kwargs['compression'] = params[4]
-        kwargs['cspace_unknown'] = True if params[5] else False
+        kwargs['colorspace_unknown'] = True if params[5] else False
         kwargs['ip_provided'] = True if params[6] else False
 
-        box = ImageHeaderBox(**kwargs)
+        box = ImageHeaderBox(height, width, **kwargs)
         return box
 
 

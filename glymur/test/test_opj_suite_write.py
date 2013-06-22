@@ -686,7 +686,7 @@ class TestSuiteWrite(unittest.TestCase):
             self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
             self.assertEqual(jp2.box[2].box[0].signed, False)
             self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-            self.assertEqual(jp2.box[2].box[0].cspace_unknown, False)
+            self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
             self.assertEqual(jp2.box[2].box[0].ip_provided, False)
 
             # Jp2 Header

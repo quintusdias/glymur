@@ -4116,7 +4116,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[0].bits_per_component, 8)
         self.assertEqual(jp2.box[3].box[0].signed, False)
         self.assertEqual(jp2.box[3].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[3].box[0].cspace_unknown, False)
+        self.assertEqual(jp2.box[3].box[0].colorspace_unknown, False)
         self.assertEqual(jp2.box[3].box[0].ip_provided, False)
 
         # Jp2 Header
@@ -4158,7 +4158,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
         self.assertEqual(jp2.box[2].box[0].signed, False)
         self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].cspace_unknown, False)
+        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
         self.assertEqual(jp2.box[2].box[0].ip_provided, False)
 
         # Jp2 Header
@@ -4204,7 +4204,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
         self.assertEqual(jp2.box[2].box[0].signed, False)
         self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].cspace_unknown, False)
+        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
         self.assertEqual(jp2.box[2].box[0].ip_provided, False)
 
         # Jp2 Header
@@ -4250,7 +4250,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
         self.assertEqual(jp2.box[2].box[0].signed, False)
         self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].cspace_unknown, False)
+        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
         self.assertEqual(jp2.box[2].box[0].ip_provided, False)
 
         # Jp2 Header
@@ -4292,7 +4292,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[0].num_components, 3)
         self.assertEqual(jp2.box[3].box[0].signed, False)
         self.assertEqual(jp2.box[3].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[3].box[0].cspace_unknown, False)
+        self.assertEqual(jp2.box[3].box[0].colorspace_unknown, False)
         self.assertEqual(jp2.box[3].box[0].ip_provided, False)
 
         # Jp2 Header
@@ -4338,7 +4338,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[0].bits_per_component, 12)
         self.assertEqual(jp2.box[2].box[0].signed, False)
         self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].cspace_unknown, False)
+        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
         self.assertEqual(jp2.box[2].box[0].ip_provided, False)
 
         # Jp2 Header
@@ -4387,7 +4387,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[0].bits_per_component, 16)
         self.assertEqual(jp2.box[3].box[0].signed, False)
         self.assertEqual(jp2.box[3].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[3].box[0].cspace_unknown, False)
+        self.assertEqual(jp2.box[3].box[0].colorspace_unknown, False)
         self.assertEqual(jp2.box[3].box[0].ip_provided, False)
 
         # Jp2 Header
@@ -4436,7 +4436,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
         self.assertEqual(jp2.box[2].box[0].signed, False)
         self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].cspace_unknown, False)
+        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
         self.assertEqual(jp2.box[2].box[0].ip_provided, False)
 
         # Jp2 Header
@@ -4488,7 +4488,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
         self.assertEqual(jp2.box[2].box[0].signed, False)
         self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].cspace_unknown, False)
+        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
         self.assertEqual(jp2.box[2].box[0].ip_provided, False)
 
         # Palette box.
@@ -5985,7 +5985,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
         self.assertEqual(jp2.box[2].box[0].signed, False)
         self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].cspace_unknown, False)
+        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
         self.assertEqual(jp2.box[2].box[0].ip_provided, False)
 
         # Jp2 Header
@@ -6118,7 +6118,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
         self.assertEqual(jp2.box[2].box[0].signed, False)
         self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].cspace_unknown, False)
+        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
         self.assertEqual(jp2.box[2].box[0].ip_provided, False)
 
         # Jp2 Header
@@ -6246,7 +6246,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
         self.assertEqual(jp2.box[2].box[0].signed, False)
         self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].cspace_unknown, False)
+        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
         self.assertEqual(jp2.box[2].box[0].ip_provided, False)
 
         # Jp2 Header
@@ -6386,7 +6386,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[0].bits_per_component, 8)
         self.assertEqual(jp2.box[3].box[0].signed, False)
         self.assertEqual(jp2.box[3].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[3].box[0].cspace_unknown, True)
+        self.assertEqual(jp2.box[3].box[0].colorspace_unknown, True)
         self.assertEqual(jp2.box[3].box[0].ip_provided, False)
 
         # Jp2 Header
@@ -6497,7 +6497,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
         self.assertEqual(jp2.box[2].box[0].signed, False)
         self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].cspace_unknown, True)
+        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, True)
         self.assertEqual(jp2.box[2].box[0].ip_provided, False)
 
         # Jp2 Header
@@ -6597,7 +6597,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[0].bits_per_component, 8)
         self.assertEqual(jp2.box[3].box[0].signed, False)
         self.assertEqual(jp2.box[3].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[3].box[0].cspace_unknown, True)
+        self.assertEqual(jp2.box[3].box[0].colorspace_unknown, True)
         self.assertEqual(jp2.box[3].box[0].ip_provided, False)
 
         # Jp2 Header
@@ -6694,7 +6694,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
         self.assertEqual(jp2.box[2].box[0].signed, False)
         self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].cspace_unknown, True)
+        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, True)
         self.assertEqual(jp2.box[2].box[0].ip_provided, False)
 
         # Jp2 Header
@@ -6813,7 +6813,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[0].bits_per_component, 1)
         self.assertEqual(jp2.box[3].box[0].signed, False)
         self.assertEqual(jp2.box[3].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[3].box[0].cspace_unknown, True)
+        self.assertEqual(jp2.box[3].box[0].colorspace_unknown, True)
         self.assertEqual(jp2.box[3].box[0].ip_provided, False)
 
         # Jp2 Header
@@ -6927,7 +6927,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[0].bits_per_component, 4)
         self.assertEqual(jp2.box[3].box[0].signed, False)
         self.assertEqual(jp2.box[3].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[3].box[0].cspace_unknown, True)
+        self.assertEqual(jp2.box[3].box[0].colorspace_unknown, True)
         self.assertEqual(jp2.box[3].box[0].ip_provided, False)
 
         # Jp2 Header
@@ -7035,7 +7035,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
         self.assertEqual(jp2.box[2].box[0].signed, False)
         self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].cspace_unknown, False)
+        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
         self.assertEqual(jp2.box[2].box[0].ip_provided, False)
 
         # Jp2 Header
@@ -7142,7 +7142,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
         self.assertEqual(jp2.box[2].box[0].signed, False)
         self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].cspace_unknown, False)
+        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
         self.assertEqual(jp2.box[2].box[0].ip_provided, False)
 
         # Jp2 Header
@@ -7241,7 +7241,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
         self.assertEqual(jp2.box[2].box[0].signed, False)
         self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].cspace_unknown, False)
+        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
         self.assertEqual(jp2.box[2].box[0].ip_provided, False)
 
         # Jp2 Header
@@ -7343,7 +7343,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[0].bits_per_component, 8)
         self.assertEqual(jp2.box[3].box[0].signed, False)
         self.assertEqual(jp2.box[3].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[3].box[0].cspace_unknown, True)
+        self.assertEqual(jp2.box[3].box[0].colorspace_unknown, True)
         self.assertEqual(jp2.box[3].box[0].ip_provided, False)
 
         # Jp2 Header
