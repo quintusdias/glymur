@@ -17,7 +17,8 @@ import numpy as np
 
 from .codestream import Codestream
 from .core import progression_order
-from .jp2box import Jp2kBox
+from .core import SRGB
+from .jp2box import *
 from .lib import openjp2 as opj2
 
 _cspace_map = {'rgb': opj2._CLRSPC_SRGB,
@@ -397,6 +398,26 @@ class Jp2k(Jp2kBox):
         opj2._image_destroy(image)
 
         self._parse()
+
+    def tojp2(self, filename):
+        """Write a codestream, wrapping it in the JP2 format.
+
+        Parameters
+        ----------
+        filename : str
+           JP2 file to be created from a raw codestream.
+        """
+        boxes = [JPEG2000SignatureBox(),
+                 FileTypeBox(),
+                 JP2HeaderBox(),
+                 ContiguousCodestreamBox()]
+        boxes[2].box = [ImageHeaderBox(height=1456,
+                                       width=2592,
+                                       num_components=3),
+                        ColourSpecificationBox(colorspace=SRGB)]
+        with open(filename, 'wb') as fp:
+            for box in boxes:
+                box._write(fp)
 
     def read(self, reduce=0, layer=0, area=None, tile=None, verbose=False):
         """Read a JPEG 2000 image.

@@ -1,10 +1,12 @@
 import doctest
+import tempfile
 import unittest
 
 import numpy as np
 import pkg_resources
 
 import glymur
+from glymur import Jp2k
 from glymur.jp2box import *
 
 
@@ -17,6 +19,26 @@ def load_tests(loader, tests, ignore):
 @unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
                  "Missing openjp2 library.")
 class TestJp2Boxes(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        # We need a raw codestream, so use the one in nemo.jp2.
+        jp2file = pkg_resources.resource_filename(glymur.__name__,
+                                                  "data/nemo.jp2")
+        j = Jp2k(jp2file)
+        c = [box for box in j.box if box.id == 'jp2c'][0]
+
+        with tempfile.NamedTemporaryFile(suffix='.jp2', delete=False) as ofile:
+            with open(jp2file, 'rb') as ifile:
+                # Everything up until the jp2c box.
+                ifile.seek(c.offset+8)
+                ofile.write(ifile.read(c.length))
+
+        cls.raw_codestream = ofile.name
+
+    @classmethod
+    def tearDownClass(cls):
+        os.unlink(cls.raw_codestream)
 
     def setUp(self):
         self.jp2file = pkg_resources.resource_filename(glymur.__name__,
@@ -35,7 +57,7 @@ class TestJp2Boxes(unittest.TestCase):
         b = glymur.jp2box.FileTypeBox()
         self.assertEqual(b.brand, 'jp2 ')
         self.assertEqual(b.minor_version, 0)
-        self.assertEqual(b.compatibility_box, ['jp2 '])
+        self.assertEqual(b.compatibility_list, ['jp2 '])
 
     def test_default_ImageHeaderBox(self):
         # Should be able to instantiate an image header box.
@@ -84,6 +106,11 @@ class TestJp2Boxes(unittest.TestCase):
         b = ContiguousCodestreamBox()
         self.assertEqual(b.id, 'jp2c')
         self.assertEqual(b.main_header, [])
+
+    def test_tojp2(self):
+        j = Jp2k(self.raw_codestream)
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            j.tojp2(tfile.name)
 
 if __name__ == "__main__":
     unittest.main()

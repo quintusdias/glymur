@@ -63,7 +63,8 @@ class Jp2kBox(object):
     def _write(self, f):
         """Must be implemented in a subclass.
         """
-        raise NotImplementedError("Not supported for this box.")
+        msg = "Not supported for {0} box.".format(self.longname)
+        raise NotImplementedError(msg)
 
     def _parse_superbox(self, f):
         """Parse a superbox (box consisting of nothing but other boxes.
@@ -617,8 +618,8 @@ class FileTypeBox(Jp2kBox):
             self.brand = 'jp2 '
         if 'minor_version' not in kwargs.keys():
             self.minor_version = 0
-        if 'compatibility_box' not in kwargs.keys():
-            self.compatibility_box = ['jp2 ']
+        if 'compatibility_list' not in kwargs.keys():
+            self.compatibility_list = ['jp2 ']
 
     def __str__(self):
         lst = [Jp2kBox.__str__(self),
@@ -628,6 +629,18 @@ class FileTypeBox(Jp2kBox):
         msg = msg.format(self.brand, self.compatibility_list)
 
         return msg
+
+    def _write(self, f):
+        """Write a File Type box to file.
+        """
+        length = 16 + 4*len(self.compatibility_list)
+        f.write(struct.pack('>I', length))
+        f.write('ftyp'.encode())
+        f.write(self.brand.encode())
+        f.write(struct.pack('>I', self.minor_version))
+
+        for item in self.compatibility_list:
+            f.write(item.encode())
 
     @staticmethod
     def _parse(f, id, offset, length):
@@ -876,6 +889,21 @@ class JP2HeaderBox(Jp2kBox):
             msg += ''.join(strs)
         return msg
 
+    def _write(self, f):
+        """Write a JP2 Header box to file.
+        """
+        # Write the contained boxes, then come back and write the length.
+        orig_pos = f.tell()
+        f.write(struct.pack('>I', 0)) 
+        f.write('jp2h'.encode())
+        for box in self.box:
+            box._write(f)
+
+        end_pos = f.tell()
+        f.seek(orig_pos)
+        f.write(struct.pack('>I', end_pos - orig_pos))
+        f.seek(end_pos)
+
     @staticmethod
     def _parse(f, id, offset, length):
         """Parse JPEG 2000 header box.
@@ -937,6 +965,13 @@ class JPEG2000SignatureBox(Jp2kBox):
         msg += '\n    Signature:  {:02x}{:02x}{:02x}{:02x}'
         msg = msg.format(*self.signature)
         return msg
+
+    def _write(self, f):
+        """Write a JPEG 2000 Signature box to file.
+        """
+        f.write(struct.pack('>I', 12))
+        f.write(self.id.encode())
+        f.write(struct.pack('>BBBB', *self.signature))
 
     @staticmethod
     def _parse(f, id, offset, length):
