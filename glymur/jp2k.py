@@ -399,13 +399,15 @@ class Jp2k(Jp2kBox):
 
         self._parse()
 
-    def tojp2(self, filename):
+    def wrap(self, filename, boxes=None):
         """Write a codestream, wrapping it in the JP2 format.
 
         Parameters
         ----------
         filename : str
-           JP2 file to be created from a raw codestream.
+            JP2 file to be created from a raw codestream.
+        boxes : list
+            JP2 box definitions to define the JP2 file format.
         """
         if len(self.box) > 0:
             msg = "This method  can only be used on files consisting only of "
@@ -413,17 +415,19 @@ class Jp2k(Jp2kBox):
             msg += "already has the JP2 format."
             raise IOError(msg)
 
-        boxes = [JPEG2000SignatureBox(),
-                 FileTypeBox(),
-                 JP2HeaderBox()]
-        c = self.get_codestream()
-        height = c.segment[1].Ysiz
-        width = c.segment[1].Xsiz
-        num_components = len(c.segment[1].XRsiz)
-        boxes[2].box = [ImageHeaderBox(height=height,
-                                       width=width,
-                                       num_components=num_components),
-                        ColourSpecificationBox(colorspace=SRGB)]
+        if boxes is None:
+            # Try to create a reasonable default.
+            boxes = [JPEG2000SignatureBox(),
+                     FileTypeBox(),
+                     JP2HeaderBox()]
+            c = self.get_codestream()
+            height = c.segment[1].Ysiz
+            width = c.segment[1].Xsiz
+            num_components = len(c.segment[1].XRsiz)
+            boxes[2].box = [ImageHeaderBox(height=height,
+                                           width=width,
+                                           num_components=num_components),
+                            ColourSpecificationBox(colorspace=SRGB)]
         with open(filename, 'wb') as ofile:
             for box in boxes:
                 box._write(ofile)

@@ -107,10 +107,10 @@ class TestJp2Boxes(unittest.TestCase):
         self.assertEqual(b.id, 'jp2c')
         self.assertEqual(b.main_header, [])
 
-    def test_tojp2(self):
+    def test_wrap(self):
         j2k = Jp2k(self.raw_codestream)
         with tempfile.NamedTemporaryFile(suffix=".jp2", mode="wb") as tfile:
-            j2k.tojp2(tfile.name)
+            j2k.wrap(tfile.name)
             
             jp2 = Jp2k(tfile.name) 
             self.assertEqual(len(jp2.box), 4)
@@ -159,20 +159,121 @@ class TestJp2Boxes(unittest.TestCase):
             self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.SRGB)
             self.assertIsNone(jp2.box[2].box[1].icc_profile)
 
+    def test_default_layout_but_with_specified_boxes(self):
+        j2k = Jp2k(self.raw_codestream)
+        boxes = [JPEG2000SignatureBox(),
+                 FileTypeBox(),
+                 JP2HeaderBox()]
+        c = j2k.get_codestream()
+        height = c.segment[1].Ysiz
+        width = c.segment[1].Xsiz
+        num_components = len(c.segment[1].XRsiz)
+        boxes[2].box = [ImageHeaderBox(height=height,
+                                       width=width,
+                                       num_components=num_components),
+                        ColourSpecificationBox(colorspace=glymur.core.SRGB)]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            j2k.wrap(tfile.name, boxes=boxes)
+
+            jp2 = Jp2k(tfile.name) 
+            self.assertEqual(len(jp2.box), 4)
+    
+            self.assertEqual(jp2.box[0].id, 'jP  ')
+            self.assertEqual(jp2.box[0].offset, 0)
+            self.assertEqual(jp2.box[0].length, 12)
+            self.assertEqual(jp2.box[0].longname, 'JPEG 2000 Signature')
+    
+            self.assertEqual(jp2.box[1].id, 'ftyp')
+            self.assertEqual(jp2.box[1].offset, 12)
+            self.assertEqual(jp2.box[1].length, 20)
+            self.assertEqual(jp2.box[1].longname, 'File Type')
+    
+            self.assertEqual(jp2.box[2].id, 'jp2h')
+            self.assertEqual(jp2.box[2].offset, 32)
+            self.assertEqual(jp2.box[2].length, 45)
+            self.assertEqual(jp2.box[2].longname, 'JP2 Header')
+    
+            self.assertEqual(jp2.box[3].id, 'jp2c')
+            self.assertEqual(jp2.box[3].offset, 77)
+            self.assertEqual(jp2.box[3].length, 1133427)
+    
+            # jp2h super box
+            self.assertEqual(len(jp2.box[2].box), 2)
+    
+            self.assertEqual(jp2.box[2].box[0].id, 'ihdr')
+            self.assertEqual(jp2.box[2].box[0].offset, 40)
+            self.assertEqual(jp2.box[2].box[0].length, 22)
+            self.assertEqual(jp2.box[2].box[0].longname, 'Image Header')
+            self.assertEqual(jp2.box[2].box[0].height, 1456)
+            self.assertEqual(jp2.box[2].box[0].width, 2592)
+            self.assertEqual(jp2.box[2].box[0].num_components, 3)
+            self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
+            self.assertEqual(jp2.box[2].box[0].signed, False)
+            self.assertEqual(jp2.box[2].box[0].compression, 7)
+            self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
+            self.assertEqual(jp2.box[2].box[0].ip_provided, False)
+    
+            self.assertEqual(jp2.box[2].box[1].id, 'colr')
+            self.assertEqual(jp2.box[2].box[1].offset, 62)
+            self.assertEqual(jp2.box[2].box[1].length, 15)
+            self.assertEqual(jp2.box[2].box[1].longname,
+                             'Colour Specification')
+            self.assertEqual(jp2.box[2].box[1].precedence, 0)
+            self.assertEqual(jp2.box[2].box[1].approximation, 0)
+            self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.SRGB)
+            self.assertIsNone(jp2.box[2].box[1].icc_profile)
+
     def test_image_header_box_not_first_in_jp2_header(self):
         # The specification says that ihdr must be the first box in jp2h.
-        self.assertTrue(False)
+        j2k = Jp2k(self.raw_codestream)
+        boxes = [JPEG2000SignatureBox(),
+                 FileTypeBox(),
+                 JP2HeaderBox()]
+        c = j2k.get_codestream()
+        height = c.segment[1].Ysiz
+        width = c.segment[1].Xsiz
+        num_components = len(c.segment[1].XRsiz)
+        boxes[2].box = [ColourSpecificationBox(colorspace=glymur.core.SRGB),
+                        ImageHeaderBox(height=height,
+                                       width=width,
+                                       num_components=num_components)]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            with self.assertRaises(IOError):
+                j2k.wrap(tfile.name, boxes=boxes)
 
-    def test_color_specification_box_with_icc_profile(self):
-        # Not sure how this should be done so don't allow it.
-        self.assertTrue(False)
 
-    def test_tojp2_on_jp2(self):
+    def test_color_specification_box_with_out_enumerated_colorspace(self):
+        j2k = Jp2k(self.raw_codestream)
+        boxes = [JPEG2000SignatureBox(),
+                 FileTypeBox(),
+                 JP2HeaderBox()]
+        c = j2k.get_codestream()
+        height = c.segment[1].Ysiz
+        width = c.segment[1].Xsiz
+        num_components = len(c.segment[1].XRsiz)
+        boxes[2].box = [ImageHeaderBox(height=height,
+                                       width=width,
+                                       num_components=num_components),
+                        ColourSpecificationBox(colorspace=None)]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            with self.assertRaises(NotImplementedError):
+                j2k.wrap(tfile.name, boxes=boxes)
+
+    def test_wrap_on_jp2(self):
         # Should not use "tojp2" method on file that is already jp2.
         j = glymur.Jp2k(self.jp2file)
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             with self.assertRaises(IOError):
-                j.tojp2(tfile.name)
+                j.wrap(tfile.name)
+
+    def test_default_xml(self):
+        # Should be able to write an xml box.
+        self.assertTrue(False)
+
+    def test_default_component_definition(self):
+        # Should be able to specify a component definition box in order to,
+        # say, create an image with an alpha layer.
+        self.assertTrue(False)
 
 if __name__ == "__main__":
     unittest.main()

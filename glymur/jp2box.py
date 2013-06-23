@@ -211,6 +211,10 @@ class ColourSpecificationBox(Jp2kBox):
     def _write(self, f):
         """Write an Colour Specification box to file.
         """
+        if self.colorspace is None:
+            msg = "Writing Colour Specification boxes without enumerated "
+            msg += "colorspaces is not supported at this time."
+            raise NotImplementedError(msg)
         length = 15 if self.icc_profile is None else 11 + len(self.icc_profile)
         f.write(struct.pack('>I', length)) 
         f.write('colr'.encode())
@@ -925,6 +929,12 @@ class JP2HeaderBox(Jp2kBox):
     def _write(self, f):
         """Write a JP2 Header box to file.
         """
+        # Make sure they are in proper order.
+        if self.box[0].id != 'ihdr':
+            msg = "The first box in the JP2 Header superbox must be the Image "
+            msg += "Header box."
+            raise IOError(msg)
+
         # Write the contained boxes, then come back and write the length.
         orig_pos = f.tell()
         f.write(struct.pack('>I', 0)) 
