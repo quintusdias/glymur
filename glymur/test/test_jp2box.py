@@ -5,11 +5,14 @@ import numpy as np
 import pkg_resources
 
 import glymur
+from glymur.jp2box import *
+
 
 # Doc tests should be run as well.
 def load_tests(loader, tests, ignore):
     tests.addTests(doctest.DocTestSuite('glymur.jp2box'))
     return tests
+
 
 @unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
                  "Missing openjp2 library.")
@@ -23,12 +26,12 @@ class TestJp2Boxes(unittest.TestCase):
         pass
 
     def test_default_JPEG2000SignatureBox(self):
-        # Should be able to instantiate a JPEG2000SignatureBox 
+        # Should be able to instantiate a JPEG2000SignatureBox
         b = glymur.jp2box.JPEG2000SignatureBox()
         self.assertEqual(b.signature, (13, 10, 135, 10))
 
     def test_default_FileTypeBox(self):
-        # Should be able to instantiate a FileTypeBox 
+        # Should be able to instantiate a FileTypeBox
         b = glymur.jp2box.FileTypeBox()
         self.assertEqual(b.brand, 'jp2 ')
         self.assertEqual(b.minor_version, 0)
@@ -72,7 +75,15 @@ class TestJp2Boxes(unittest.TestCase):
         with self.assertRaises(IOError):
             b = glymur.jp2box.ColourSpecificationBox(colorspace, approximation)
 
+    def test_default_JP2HeaderBox(self):
+        b1 = JP2HeaderBox()
+        b1.box = [ImageHeaderBox(height=512, width=256),
+                  ColourSpecificationBox(colorspace=glymur.core.GREYSCALE)]
+
+    def test_default_ContiguousCodestreamBox(self):
+        b = ContiguousCodestreamBox()
+        self.assertEqual(b.id, 'jp2c')
+        self.assertEqual(b.main_header, [])
 
 if __name__ == "__main__":
     unittest.main()
-

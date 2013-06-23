@@ -543,9 +543,10 @@ class ContiguousCodestreamBox(Jp2kBox):
         List of segments in the codestream header.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, main_header=[], **kwargs):
         Jp2kBox.__init__(self, id='jp2c', longname='Contiguous Codestream')
         self.__dict__.update(**kwargs)
+        self.main_header = main_header
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -701,12 +702,13 @@ class ImageHeaderBox(Jp2kBox):
     compression : int
         The compression type, should be 7 if JP2.
     colorspace_unknown : bool
-        false if the color space is known and correctly specified.
+        False if the color space is known and correctly specified.
     ip_provided : bool
-        false if the file does not contain intellectual propery rights information.
+        False if the file does not contain intellectual propery rights
+        information.
     """
     def __init__(self, height, width, num_components=1, signed=False,
-                 bits_per_component=8, compression=7, colorspace_unknown=False, 
+                 bits_per_component=8, compression=7, colorspace_unknown=False,
                  ip_provided=False, **kwargs):
         """
         Examples
@@ -861,7 +863,7 @@ class JP2HeaderBox(Jp2kBox):
         List of boxes contained in this superbox.
     """
     def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='JP2 Header')
+        Jp2kBox.__init__(self, id='jp2h', longname='JP2 Header')
         self.__dict__.update(**kwargs)
 
     def __str__(self):
