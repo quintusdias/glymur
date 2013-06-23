@@ -407,17 +407,37 @@ class Jp2k(Jp2kBox):
         filename : str
            JP2 file to be created from a raw codestream.
         """
+        if len(self.box) > 0:
+            msg = "This method  can only be used on files consisting only of "
+            msg += "a raw codestream.  It cannot be used on a file that "
+            msg += "already has the JP2 format."
+            raise IOError(msg)
+
         boxes = [JPEG2000SignatureBox(),
                  FileTypeBox(),
-                 JP2HeaderBox(),
-                 ContiguousCodestreamBox()]
-        boxes[2].box = [ImageHeaderBox(height=1456,
-                                       width=2592,
-                                       num_components=3),
+                 JP2HeaderBox()]
+        c = self.get_codestream()
+        height = c.segment[1].Ysiz
+        width = c.segment[1].Xsiz
+        num_components = len(c.segment[1].XRsiz)
+        boxes[2].box = [ImageHeaderBox(height=height,
+                                       width=width,
+                                       num_components=num_components),
                         ColourSpecificationBox(colorspace=SRGB)]
-        with open(filename, 'wb') as fp:
+        with open(filename, 'wb') as ofile:
             for box in boxes:
-                box._write(fp)
+                box._write(ofile)
+
+            # The codestream gets written last.
+            ofile.write(struct.pack('>I', self.length + 8))
+            ofile.write('jp2c'.encode())
+
+            with open(self.filename, 'rb') as ifile:
+                ofile.write(ifile.read())
+
+            ofile.flush()
+
+
 
     def read(self, reduce=0, layer=0, area=None, tile=None, verbose=False):
         """Read a JPEG 2000 image.

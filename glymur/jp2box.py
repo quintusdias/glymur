@@ -167,7 +167,7 @@ class ColourSpecificationBox(Jp2kBox):
         colorspace is not None, then icc_profile must be empty.
     """
     def __init__(self, method=ENUMERATED_COLORSPACE, precedence=0,
-                 approximation=1, colorspace=None, icc_profile=None, **kwargs):
+                 approximation=0, colorspace=None, icc_profile=None, **kwargs):
         Jp2kBox.__init__(self, id='', longname='Colour Specification')
 
         if colorspace is not None and icc_profile is not None:
@@ -207,6 +207,20 @@ class ColourSpecificationBox(Jp2kBox):
             msg += '\n    ICC Profile:\n{0}'.format('\n'.join(lines))
 
         return msg
+
+    def _write(self, f):
+        """Write an Colour Specification box to file.
+        """
+        length = 15 if self.icc_profile is None else 11 + len(self.icc_profile)
+        f.write(struct.pack('>I', length)) 
+        f.write('colr'.encode())
+
+        buffer = struct.pack('>BBBI',
+                             self.method,
+                             self.precedence,
+                             self.approximation,
+                             self.colorspace)
+        f.write(buffer)
 
     @staticmethod
     def _parse(f, id, offset, length):
@@ -755,6 +769,25 @@ class ImageHeaderBox(Jp2kBox):
                          'wavelet' if self.compression == 7 else 'unknown',
                          self.colorspace_unknown)
         return msg
+
+    def _write(self, f):
+        """Write an Image Header box to file.
+        """
+        f.write(struct.pack('>I', 22)) 
+        f.write('ihdr'.encode())
+
+        # signedness and bps are stored together in a single byte
+        bit_depth_signedness = 0x80 if self.signed else 0x00
+        bit_depth_signedness |= self.bits_per_component - 1 
+        buffer = struct.pack('>IIHBBBB',
+                             self.height,
+                             self.width,
+                             self.num_components,
+                             bit_depth_signedness,
+                             self.compression,
+                             1 if self.colorspace_unknown else 0,
+                             1 if self.ip_provided else 0)
+        f.write(buffer)
 
     @staticmethod
     def _parse(f, id, offset, length):

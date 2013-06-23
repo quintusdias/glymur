@@ -28,7 +28,7 @@ class TestJp2Boxes(unittest.TestCase):
         j = Jp2k(jp2file)
         c = [box for box in j.box if box.id == 'jp2c'][0]
 
-        with tempfile.NamedTemporaryFile(suffix='.jp2', delete=False) as ofile:
+        with tempfile.NamedTemporaryFile(suffix='.j2c', delete=False) as ofile:
             with open(jp2file, 'rb') as ifile:
                 # Everything up until the jp2c box.
                 ifile.seek(c.offset+8)
@@ -74,7 +74,7 @@ class TestJp2Boxes(unittest.TestCase):
         b = glymur.jp2box.ColourSpecificationBox(colorspace=glymur.core.SRGB)
         self.assertEqual(b.method,  glymur.core.ENUMERATED_COLORSPACE)
         self.assertEqual(b.precedence, 0)
-        self.assertEqual(b.approximation, 1)
+        self.assertEqual(b.approximation, 0)
         self.assertEqual(b.colorspace, glymur.core.SRGB)
         self.assertIsNone(b.icc_profile)
 
@@ -108,9 +108,71 @@ class TestJp2Boxes(unittest.TestCase):
         self.assertEqual(b.main_header, [])
 
     def test_tojp2(self):
-        j = Jp2k(self.raw_codestream)
+        j2k = Jp2k(self.raw_codestream)
+        with tempfile.NamedTemporaryFile(suffix=".jp2", mode="wb") as tfile:
+            j2k.tojp2(tfile.name)
+            
+            jp2 = Jp2k(tfile.name) 
+            self.assertEqual(len(jp2.box), 4)
+    
+            self.assertEqual(jp2.box[0].id, 'jP  ')
+            self.assertEqual(jp2.box[0].offset, 0)
+            self.assertEqual(jp2.box[0].length, 12)
+            self.assertEqual(jp2.box[0].longname, 'JPEG 2000 Signature')
+    
+            self.assertEqual(jp2.box[1].id, 'ftyp')
+            self.assertEqual(jp2.box[1].offset, 12)
+            self.assertEqual(jp2.box[1].length, 20)
+            self.assertEqual(jp2.box[1].longname, 'File Type')
+    
+            self.assertEqual(jp2.box[2].id, 'jp2h')
+            self.assertEqual(jp2.box[2].offset, 32)
+            self.assertEqual(jp2.box[2].length, 45)
+            self.assertEqual(jp2.box[2].longname, 'JP2 Header')
+    
+            self.assertEqual(jp2.box[3].id, 'jp2c')
+            self.assertEqual(jp2.box[3].offset, 77)
+            self.assertEqual(jp2.box[3].length, 1133427)
+    
+            # jp2h super box
+            self.assertEqual(len(jp2.box[2].box), 2)
+    
+            self.assertEqual(jp2.box[2].box[0].id, 'ihdr')
+            self.assertEqual(jp2.box[2].box[0].offset, 40)
+            self.assertEqual(jp2.box[2].box[0].length, 22)
+            self.assertEqual(jp2.box[2].box[0].longname, 'Image Header')
+            self.assertEqual(jp2.box[2].box[0].height, 1456)
+            self.assertEqual(jp2.box[2].box[0].width, 2592)
+            self.assertEqual(jp2.box[2].box[0].num_components, 3)
+            self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
+            self.assertEqual(jp2.box[2].box[0].signed, False)
+            self.assertEqual(jp2.box[2].box[0].compression, 7)
+            self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
+            self.assertEqual(jp2.box[2].box[0].ip_provided, False)
+    
+            self.assertEqual(jp2.box[2].box[1].id, 'colr')
+            self.assertEqual(jp2.box[2].box[1].offset, 62)
+            self.assertEqual(jp2.box[2].box[1].length, 15)
+            self.assertEqual(jp2.box[2].box[1].longname, 'Colour Specification')
+            self.assertEqual(jp2.box[2].box[1].precedence, 0)
+            self.assertEqual(jp2.box[2].box[1].approximation, 0)
+            self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.SRGB)
+            self.assertIsNone(jp2.box[2].box[1].icc_profile)
+
+    def test_image_header_box_not_first_in_jp2_header(self):
+        # The specification says that ihdr must be the first box in jp2h.
+        self.assertTrue(False)
+
+    def test_color_specification_box_with_icc_profile(self):
+        # Not sure how this should be done so don't allow it.
+        self.assertTrue(False)
+
+    def test_tojp2_on_jp2(self):
+        # Should not use "tojp2" method on file that is already jp2.
+        j = glymur.Jp2k(self.jp2file)
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
-            j.tojp2(tfile.name)
+            with self.assertRaises(IOError):
+                j.tojp2(tfile.name)
 
 if __name__ == "__main__":
     unittest.main()
