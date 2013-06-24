@@ -440,6 +440,12 @@ class Jp2k(Jp2kBox):
             msg = "The codestream box must be preceeded by a jp2 header box."
             raise IOError(msg)
 
+        jp2h = boxes[jp2h_idx]
+        if jp2h.box[0].id != 'ihdr':
+            msg = "The first box in the jp2 header box must be the image "
+            msg += "header box."
+            raise IOError(msg)
+
         with open(filename, 'wb') as ofile:
             for box in boxes:
                 if box.id != 'jp2c':
