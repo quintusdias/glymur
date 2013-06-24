@@ -70,3 +70,11 @@ to take advantage of it.  For example, if you install with pip's
 
     $ export PYTHONPATH=$HOME/.local/lib/python3.3/site-packages
     $ export PATH=$HOME/.local/bin:$PATH
+
+You can run the tests from within python as follows::
+
+    >>> import glymur
+    >>> glymur.runtests()
+
+Many tests are currently skipped; the important thing is whether or not any
+tests fail.
