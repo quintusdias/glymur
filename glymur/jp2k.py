@@ -409,17 +409,12 @@ class Jp2k(Jp2kBox):
         boxes : list
             JP2 box definitions to define the JP2 file format.
         """
-        if len(self.box) > 0:
-            msg = "This method  can only be used on files consisting only of "
-            msg += "a raw codestream.  It cannot be used on a file that "
-            msg += "already has the JP2 format."
-            raise IOError(msg)
-
         if boxes is None:
             # Try to create a reasonable default.
             boxes = [JPEG2000SignatureBox(),
                      FileTypeBox(),
-                     JP2HeaderBox()]
+                     JP2HeaderBox(),
+                     ContiguousCodestreamBox()]
             c = self.get_codestream()
             height = c.segment[1].Ysiz
             width = c.segment[1].Xsiz
@@ -428,16 +423,25 @@ class Jp2k(Jp2kBox):
                                            width=width,
                                            num_components=num_components),
                             ColourSpecificationBox(colorspace=SRGB)]
+        
+        # Check for a bad sequence of boxes.
+        # 1st two boxes must be 'jP  ' and 'ftyp' 
+        if boxes[0].id != 'jP  ' or boxes[1].id != 'ftyp':
+            msg = "The first box must be the signature box and the second "
+            msg += "must be the file type box."
+            raise IOError(msg)
+
         with open(filename, 'wb') as ofile:
             for box in boxes:
-                box._write(ofile)
-
-            # The codestream gets written last.
-            ofile.write(struct.pack('>I', self.length + 8))
-            ofile.write('jp2c'.encode())
-
-            with open(self.filename, 'rb') as ifile:
-                ofile.write(ifile.read())
+                if box.id != 'jp2c':
+                    box._write(ofile)
+                else:
+                    # The codestream gets written last.
+                    ofile.write(struct.pack('>I', self.length + 8))
+                    ofile.write('jp2c'.encode())
+        
+                    with open(self.filename, 'rb') as ifile:
+                        ofile.write(ifile.read())
 
             ofile.flush()
 

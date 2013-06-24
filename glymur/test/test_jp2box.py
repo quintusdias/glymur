@@ -163,7 +163,8 @@ class TestJp2Boxes(unittest.TestCase):
         j2k = Jp2k(self.raw_codestream)
         boxes = [JPEG2000SignatureBox(),
                  FileTypeBox(),
-                 JP2HeaderBox()]
+                 JP2HeaderBox(),
+                 ContiguousCodestreamBox()]
         c = j2k.get_codestream()
         height = c.segment[1].Ysiz
         width = c.segment[1].Xsiz
@@ -259,13 +260,6 @@ class TestJp2Boxes(unittest.TestCase):
             with self.assertRaises(NotImplementedError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
-    def test_wrap_on_jp2(self):
-        # Should not use "tojp2" method on file that is already jp2.
-        j = glymur.Jp2k(self.jp2file)
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
-            with self.assertRaises(IOError):
-                j.wrap(tfile.name)
-
     def test_default_xml(self):
         # Should be able to write an xml box.
         self.assertTrue(False)
@@ -274,6 +268,27 @@ class TestJp2Boxes(unittest.TestCase):
         # Should be able to specify a component definition box in order to,
         # say, create an image with an alpha layer.
         self.assertTrue(False)
+
+    def test_first_2_boxes_not_jP_and_ftyp(self):
+        j2k = Jp2k(self.raw_codestream)
+        c = j2k.get_codestream()
+        height = c.segment[1].Ysiz
+        width = c.segment[1].Xsiz
+        num_components = len(c.segment[1].XRsiz)
+
+        jP = JPEG2000SignatureBox()
+        ftyp = FileTypeBox()
+        jp2h = JP2HeaderBox()
+        jp2c = ContiguousCodestreamBox()
+        colr = ColourSpecificationBox(colorspace=glymur.core.SRGB)
+        ihdr = ImageHeaderBox(height=height, width=width,
+                              num_components=num_components)
+        jp2h.box = [ihdr, colr]
+        boxes = [ftyp, jP, jp2h, jp2c]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            with self.assertRaises(IOError):
+                j2k.wrap(tfile.name, boxes=boxes)
+
 
 if __name__ == "__main__":
     unittest.main()
