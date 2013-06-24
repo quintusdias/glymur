@@ -168,7 +168,7 @@ class ColourSpecificationBox(Jp2kBox):
     """
     def __init__(self, method=ENUMERATED_COLORSPACE, precedence=0,
                  approximation=0, colorspace=None, icc_profile=None, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='Colour Specification')
+        Jp2kBox.__init__(self, id='colr', longname='Colour Specification')
 
         if colorspace is not None and icc_profile is not None:
             raise IOError("colorspace and icc_profile cannot both be set.")

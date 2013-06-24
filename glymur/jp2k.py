@@ -440,10 +440,18 @@ class Jp2k(Jp2kBox):
             msg = "The codestream box must be preceeded by a jp2 header box."
             raise IOError(msg)
 
+        # 1st jp2 header box must be ihdr
         jp2h = boxes[jp2h_idx]
         if jp2h.box[0].id != 'ihdr':
             msg = "The first box in the jp2 header box must be the image "
             msg += "header box."
+            raise IOError(msg)
+
+        # colr must be present in jp2 header box.
+        jp2hb = jp2h.box
+        colr_lst = [j for (j, box) in enumerate(jp2h.box) if box.id == 'colr']
+        if len(colr_lst) == 0:
+            msg = "The jp2 header box must contain a color definition box."
             raise IOError(msg)
 
         with open(filename, 'wb') as ofile:
