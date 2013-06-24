@@ -431,6 +431,15 @@ class Jp2k(Jp2kBox):
             msg += "must be the file type box."
             raise IOError(msg)
 
+        # jp2c must be preceeded by jp2h
+        jp2h_lst = [idx for (idx, box) in enumerate(boxes) if box.id == 'jp2h']
+        jp2h_idx = jp2h_lst[0]
+        jp2c_lst = [idx for (idx, box) in enumerate(boxes) if box.id == 'jp2c']
+        jp2c_idx = jp2c_lst[0]
+        if jp2h_idx >= jp2c_idx:
+            msg = "The codestream box must be preceeded by a jp2 header box."
+            raise IOError(msg)
+
         with open(filename, 'wb') as ofile:
             for box in boxes:
                 if box.id != 'jp2c':
