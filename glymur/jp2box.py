@@ -1538,7 +1538,7 @@ class XMLBox(Jp2kBox):
         XML section.
     """
     def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='XML')
+        Jp2kBox.__init__(self, id='xml ', longname='XML')
         self.__dict__.update(**kwargs)
 
     def __str__(self):
@@ -1549,6 +1549,14 @@ class XMLBox(Jp2kBox):
         else:
             msg += '\n    {0}'.format(xml)
         return msg
+
+    def _write(self, f):
+        """Write an XML box to file.
+        """
+        buffer = ET.tostring(self.xml, encoding='utf-8')
+        f.write(struct.pack('>I', len(buffer) + 8))
+        f.write(self.id.encode())
+        f.write(buffer)
 
     @staticmethod
     def _parse(f, id, offset, length):

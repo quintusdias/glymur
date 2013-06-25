@@ -1,5 +1,6 @@
 import doctest
 import tempfile
+import xml.etree.cElementTree as ET
 import unittest
 
 import numpy as np
@@ -46,6 +47,13 @@ class TestJp2Boxes(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+    def test_default_XML(self):
+        # Should be able to instantiate an XMLBox
+        xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
+        b = glymur.jp2box.XMLBox(xml=xml)
+        self.assertEqual(ET.tostring(b.xml),
+                         b'<data>0</data>')
 
     def test_default_JPEG2000SignatureBox(self):
         # Should be able to instantiate a JPEG2000SignatureBox
@@ -217,10 +225,6 @@ class TestJp2Boxes(unittest.TestCase):
             with self.assertRaises(NotImplementedError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
-    def test_default_xml(self):
-        # Should be able to write an xml box.
-        self.assertTrue(False)
-
     def test_default_component_definition(self):
         # Should be able to specify a component definition box in order to,
         # say, create an image with an alpha layer.
@@ -305,6 +309,49 @@ class TestJp2Boxes(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
+
+    def test_missing_colr_box(self):
+        j2k = Jp2k(self.raw_codestream)
+        c = j2k.get_codestream()
+        height = c.segment[1].Ysiz
+        width = c.segment[1].Xsiz
+        num_components = len(c.segment[1].XRsiz)
+
+        jP = JPEG2000SignatureBox()
+        ftyp = FileTypeBox()
+        jp2h = JP2HeaderBox()
+        jp2c = ContiguousCodestreamBox()
+        ihdr = ImageHeaderBox(height=height, width=width,
+                              num_components=num_components)
+        jp2h.box = [ihdr]
+        boxes = [jP, ftyp, jp2h, jp2c]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            with self.assertRaises(IOError):
+                j2k.wrap(tfile.name, boxes=boxes)
+
+    def test_basic_xml(self):
+        j2k = Jp2k(self.raw_codestream)
+        c = j2k.get_codestream()
+        height = c.segment[1].Ysiz
+        width = c.segment[1].Xsiz
+        num_components = len(c.segment[1].XRsiz)
+
+        jP = JPEG2000SignatureBox()
+        ftyp = FileTypeBox()
+        jp2h = JP2HeaderBox()
+        jp2c = ContiguousCodestreamBox()
+        ihdr = ImageHeaderBox(height=height, width=width,
+                              num_components=num_components)
+        colr = ColourSpecificationBox(colorspace=glymur.core.SRGB)
+        jp2h.box = [ihdr, colr]
+
+        the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
+        xml = glymur.jp2box.XMLBox(xml=the_xml)
+        boxes = [jP, ftyp, jp2h, xml, jp2c]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            j2k.wrap(tfile.name, boxes=boxes)
+            jp2 = Jp2k(tfile.name)
+            self.assertEqual(jp2.box[3].id, 'xml ')
 
 
 if __name__ == "__main__":

@@ -15,7 +15,6 @@ if sys.hexversion <= 0x03030000:
 else:
     from unittest.mock import patch
 import warnings
-from xml.etree import cElementTree as ET
 
 import numpy as np
 import pkg_resources
