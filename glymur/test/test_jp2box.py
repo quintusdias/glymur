@@ -19,6 +19,34 @@ def load_tests(loader, tests, ignore):
 
 @unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
                  "Missing openjp2 library.")
+class TestChannelDefinition(unittest.TestCase):
+
+    def setUp(self):
+        self.jp2file = glymur.data.nemo()
+        self.j2kfile = glymur.data.goodstuff()
+
+    def tearDown(self):
+        pass
+
+    def test_bad_type(self):
+        # Channel types are limited to 0, 1, 2, 65535
+        # Should reject if not all of index, channel_type, association the
+        # same length.
+        with self.assertRaises(IOError):
+            box = glymur.jp2box.ChannelDefinitionBox(index=[0, 1, 2],
+                                                     channel_type=[0, 0, 3],
+                                                     association=[0, 1, 2])
+
+    def test_wrong_lengths(self):
+        # Should reject if not all of index, channel_type, association the
+        # same length.
+        with self.assertRaises(IOError):
+            box = glymur.jp2box.ChannelDefinitionBox(index=[0, 1, 2],
+                                                     channel_type=[0, 0],
+                                                     association=[0, 1, 2])
+
+@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+                 "Missing openjp2 library.")
 class TestJp2Boxes(unittest.TestCase):
 
     @classmethod
@@ -224,11 +252,6 @@ class TestJp2Boxes(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             with self.assertRaises(NotImplementedError):
                 j2k.wrap(tfile.name, boxes=boxes)
-
-    def test_default_component_definition(self):
-        # Should be able to specify a component definition box in order to,
-        # say, create an image with an alpha layer.
-        self.assertTrue(False)
 
     def test_first_2_boxes_not_jP_and_ftyp(self):
         j2k = Jp2k(self.raw_codestream)

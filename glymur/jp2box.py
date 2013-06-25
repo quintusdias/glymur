@@ -392,7 +392,7 @@ class _ICCProfile(object):
         self.header = header
 
 
-class ComponentDefinitionBox(Jp2kBox):
+class ChannelDefinitionBox(Jp2kBox):
     """Container for component definition box information.
 
     Attributes
@@ -405,27 +405,43 @@ class ComponentDefinitionBox(Jp2kBox):
         offset of the box from the start of the file.
     longname : str
         more verbose description of the box.
-    component_number : int
-        number of the component
-    component_type : int
-        type of the component
+    index : int
+        number of the channel
+    channel_type : int
+        type of the channel
     association : int
-        number of the associated color
+        index of the associated color
     """
-    def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='Component Definition')
+    def __init__(self, index, channel_type, association, **kwargs):
+        Jp2kBox.__init__(self, id='cdef', longname='Channel Definition')
+        if len(index) != len(channel_type) or len(index) != len(association):
+            msg = "Length of channel definition box inputs must be the same."
+            raise IOError(msg)
+
+        # channel types must be one of 0, 1, 2, 65535
+        if any(x not in [0, 1, 2, 65535] for x in channel_type):
+            msg = "Channel types must be in the set of\n\n"
+            msg += "    0     - colour image data for associated color\n"
+            msg += "    1     - opacity\n"
+            msg += "    2     - premultiplied opacity\n"
+            msg += "    65535 - unspecified"
+            raise IOError(msg)
+
+        self.index = index
+        self.channel_type = channel_type
+        self.association = association
         self.__dict__.update(**kwargs)
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         for j in range(len(self.association)):
-            color_type_string = _color_type_map_display[self.component_type[j]]
+            color_type_string = _color_type_map_display[self.channel_type[j]]
             if self.association[j] == 0:
                 assn = 'whole image'
             else:
                 assn = str(self.association[j])
-            msg += '\n    Component {0} ({1}) ==> ({2})'
-            msg = msg.format(self.component_number[j], color_type_string, assn)
+            msg += '\n    Channel {0} ({1}) ==> ({2})'
+            msg = msg.format(self.index[j], color_type_string, assn)
         return msg
 
     @staticmethod
@@ -456,17 +472,17 @@ class ComponentDefinitionBox(Jp2kBox):
         buffer = f.read(2)
         N, = struct.unpack('>H', buffer)
 
-        component_number = []
-        component_type = []
+        index = []
+        chan_type = []
         association = []
 
         buffer = f.read(N * 6)
         data = struct.unpack('>' + 'HHH' * N, buffer)
-        kwargs['component_number'] = data[0:N * 6:3]
-        kwargs['component_type'] = data[1:N * 6:3]
-        kwargs['association'] = data[2:N * 6:3]
+        index = data[0:N * 6:3]
+        channel_type = data[1:N * 6:3]
+        association = data[2:N * 6:3]
 
-        box = ComponentDefinitionBox(**kwargs)
+        box = ChannelDefinitionBox(index, channel_type, association, **kwargs)
         return box
 
 
@@ -2426,7 +2442,7 @@ class _ExifInteroperabilityIfd(_Ifd):
 # Map each box ID to the corresponding class.
 _box_with_id = {
     'asoc': AssociationBox,
-    'cdef': ComponentDefinitionBox,
+    'cdef': ChannelDefinitionBox,
     'cmap': ComponentMappingBox,
     'colr': ColourSpecificationBox,
     'jP  ': JPEG2000SignatureBox,

@@ -4170,8 +4170,8 @@ class TestSuiteDump(unittest.TestCase):
 
         # Jp2 Header
         # Channel Definition
-        self.assertEqual(jp2.box[2].box[2].component_number, (0, 1, 2))
-        self.assertEqual(jp2.box[2].box[2].component_type, (0, 0, 0))  # color
+        self.assertEqual(jp2.box[2].box[2].index, (0, 1, 2))
+        self.assertEqual(jp2.box[2].box[2].channel_type, (0, 0, 0))  # color
         self.assertEqual(jp2.box[2].box[2].association, (3, 2, 1))  # reverse
 
     def test_NR_file3_dump(self):
@@ -6706,8 +6706,8 @@ class TestSuiteDump(unittest.TestCase):
 
         # Jp2 Header
         # Channel Definition
-        self.assertEqual(jp2.box[2].box[2].component_number, (0, 1))
-        self.assertEqual(jp2.box[2].box[2].component_type, (0, 1))   # opacity
+        self.assertEqual(jp2.box[2].box[2].index, (0, 1))
+        self.assertEqual(jp2.box[2].box[2].channel_type, (0, 1))   # opacity
         self.assertEqual(jp2.box[2].box[2].association, (0, 0))  # both main
 
         c = jp2.box[3].main_header

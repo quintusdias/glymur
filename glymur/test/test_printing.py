@@ -676,15 +676,15 @@ class TestPrinting(unittest.TestCase):
 
     @unittest.skipIf(data_root is None,
                      "OPJ_DATA_ROOT environment variable not set")
-    def test_component_definition(self):
+    def test_channel_definition(self):
         filename = os.path.join(data_root, 'input/conformance/file2.jp2')
         j = glymur.Jp2k(filename)
         print(j.box[2].box[2])
         actual = sys.stdout.getvalue().strip()
-        lines = ['Component Definition Box (cdef) @ (81, 28)',
-                 '    Component 0 (color) ==> (3)',
-                 '    Component 1 (color) ==> (2)',
-                 '    Component 2 (color) ==> (1)']
+        lines = ['Channel Definition Box (cdef) @ (81, 28)',
+                 '    Channel 0 (color) ==> (3)',
+                 '    Channel 1 (color) ==> (2)',
+                 '    Channel 2 (color) ==> (1)']
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
