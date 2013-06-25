@@ -310,6 +310,24 @@ class TestJp2Boxes(unittest.TestCase):
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
+    def test_missing_codestream(self):
+        j2k = Jp2k(self.raw_codestream)
+        c = j2k.get_codestream()
+        height = c.segment[1].Ysiz
+        width = c.segment[1].Xsiz
+        num_components = len(c.segment[1].XRsiz)
+
+        jP = JPEG2000SignatureBox()
+        ftyp = FileTypeBox()
+        jp2h = JP2HeaderBox()
+        ihdr = ImageHeaderBox(height=height, width=width,
+                              num_components=num_components)
+        jp2h.box = [ihdr]
+        boxes = [jP, ftyp, jp2h]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            with self.assertRaises(IOError):
+                j2k.wrap(tfile.name, boxes=boxes)
+
     def test_missing_colr_box(self):
         j2k = Jp2k(self.raw_codestream)
         c = j2k.get_codestream()

@@ -142,7 +142,7 @@ class Jp2k(Jp2kBox):
     def write(self, img_array, cratios=None, eph=False, psnr=None, numres=None,
               cbsize=None, psizes=None, grid_offset=None, sop=False,
               subsam=None, tilesize=None, prog=None, modesw=None,
-              colorspace=None, verbose=False):
+              colorspace=None, verbose=False, mct=None):
         """Write image data to a JP2/JPX/J2k file.  Intended usage of the
         various parameters follows that of OpenJPEG's opj_compress utility.
 
@@ -168,6 +168,9 @@ class Jp2k(Jp2kBox):
             If true, write SOP marker after each header packet.
         grid_offset : tuple, optional
             Offset (DY, DX) of the origin of the image in the reference grid.
+        mct : bool, optional
+            Specifies usage of the multi component transform.  If not
+            specified, defaults to True if the colorspace is RGB.
         modesw : int, optional
             Mode switch.
                 1 = BYPASS(LAZY)
@@ -337,6 +340,18 @@ class Jp2k(Jp2kBox):
             else:
                 colorspace = _cspace_map[colorspace]
 
+        if mct is None:
+            if colorspace == opj2._CLRSPC_SRGB:
+                cparams.tcp_mct = 1
+            else:
+                cparams.tcp_mct = 0
+        else:
+            if mct and colorspace == opj2._CLRSPC_GRAY:
+                msg = "Cannot specify usage of the multi component transform "
+                msg += "if the colorspace is gray."
+                raise IOError(msg)
+            cparams.tcp_mct = 1 if mct else 0
+
         if img_array.dtype == np.uint8:
             comp_prec = 8
         elif img_array.dtype == np.uint16:
@@ -372,12 +387,6 @@ class Jp2k(Jp2kBox):
             dest = image.contents.comps[k].data
             src = layer.ctypes.data
             ctypes.memmove(dest, src, layer.nbytes)
-
-        # set multi-component transform?
-        if image.contents.numcomps == 3:
-            cparams.tcp_mct = 1
-        else:
-            cparams.tcp_mct = 0
 
         codec = opj2._create_compress(codec_fmt)
 
@@ -435,6 +444,11 @@ class Jp2k(Jp2kBox):
         jp2h_lst = [idx for (idx, box) in enumerate(boxes) if box.id == 'jp2h']
         jp2h_idx = jp2h_lst[0]
         jp2c_lst = [idx for (idx, box) in enumerate(boxes) if box.id == 'jp2c']
+        if len(jp2c_lst) == 0:
+            msg = "A codestream box must be defined in the outermost "
+            msg += "list of boxes."
+            raise IOError(msg)
+
         jp2c_idx = jp2c_lst[0]
         if jp2h_idx >= jp2c_idx:
             msg = "The codestream box must be preceeded by a jp2 header box."

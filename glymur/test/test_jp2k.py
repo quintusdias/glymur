@@ -76,6 +76,8 @@ class TestJp2k(unittest.TestCase):
     def setUp(self):
         self.jp2file = pkg_resources.resource_filename(glymur.__name__,
                                                        "data/nemo.jp2")
+        self.j2kfile = pkg_resources.resource_filename(glymur.__name__,
+                                                       "data/goodstuff.j2k")
 
     def tearDown(self):
         pass
@@ -151,6 +153,27 @@ class TestJp2k(unittest.TestCase):
             tiledata = j.read(tile=0)
         subsetdata = j.read(area=(0, 0, 512, 512))
         np.testing.assert_array_equal(tiledata, subsetdata)
+
+    def test_write_srgb_without_mct(self):
+        j2k = Jp2k(self.j2kfile)
+        expdata = j2k.read()
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            ofile = Jp2k(tfile.name, 'wb')
+            ofile.write(expdata, mct=False)
+            actdata = ofile.read()
+            np.testing.assert_array_equal(actdata, expdata)
+
+            c = ofile.get_codestream()
+            self.assertEqual(c.segment[2].SPcod[3], 0)  # no mct
+
+    def test_write_grayscale_with_mct(self):
+        # MCT usage makes no sense for grayscale images.
+        j2k = Jp2k(self.j2kfile)
+        expdata = j2k.read()
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            ofile = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(IOError):
+                ofile.write(expdata[:,:,0], mct=True)
 
     def test_write_cprl(self):
         # Issue 17
