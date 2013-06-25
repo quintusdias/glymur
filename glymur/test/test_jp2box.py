@@ -371,6 +371,60 @@ class TestJp2Boxes(unittest.TestCase):
             jp2 = Jp2k(tfile.name)
             self.assertEqual(jp2.box[3].id, 'xml ')
 
+    def test_xml_from_file(self):
+        raw_xml = b"""<?xml version="1.0"?>
+        <data>
+            <country name="Liechtenstein">
+                <rank>1</rank>
+                <year>2008</year>
+                <gdppc>141100</gdppc>
+                <neighbor name="Austria" direction="E"/>
+                <neighbor name="Switzerland" direction="W"/>
+            </country>
+            <country name="Singapore">
+                <rank>4</rank>
+                <year>2011</year>
+                <gdppc>59900</gdppc>
+                <neighbor name="Malaysia" direction="N"/>
+            </country>
+            <country name="Panama">
+                <rank>68</rank>
+                <year>2011</year>
+                <gdppc>13600</gdppc>
+                <neighbor name="Costa Rica" direction="W"/>
+                <neighbor name="Colombia" direction="E"/>
+            </country>
+        </data>"""
+        with tempfile.NamedTemporaryFile(suffix=".xml") as tfile:
+            tfile.write(raw_xml)                
+            tfile.flush()
+
+            j2k = Jp2k(self.raw_codestream)
+            c = j2k.get_codestream()
+            height = c.segment[1].Ysiz
+            width = c.segment[1].Xsiz
+            num_components = len(c.segment[1].XRsiz)
+    
+            jP = JPEG2000SignatureBox()
+            ftyp = FileTypeBox()
+            jp2h = JP2HeaderBox()
+            jp2c = ContiguousCodestreamBox()
+            ihdr = ImageHeaderBox(height=height, width=width,
+                                  num_components=num_components)
+            colr = ColourSpecificationBox(colorspace=glymur.core.SRGB)
+            jp2h.box = [ihdr, colr]
+    
+            xmlb = glymur.jp2box.XMLBox(filename=tfile.name)
+            boxes = [jP, ftyp, jp2h, xmlb, jp2c]
+            with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+                j2k.wrap(tfile.name, boxes=boxes)
+                jp2 = Jp2k(tfile.name)
+
+                output_boxes = [box.id for box in jp2.box]
+                self.assertEqual(output_boxes, ['jP  ', 'ftyp', 'jp2h', 'xml ',
+                                                'jp2c'])
+                self.assertIsNotNone(jp2.box[3].xml)
+
 
 if __name__ == "__main__":
     unittest.main()

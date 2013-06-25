@@ -1537,8 +1537,24 @@ class XMLBox(Jp2kBox):
     xml : ElementTree.Element
         XML section.
     """
-    def __init__(self, **kwargs):
+    def __init__(self, xml=None, filename=None, **kwargs):
+        """
+        Parameters
+        ----------
+        xml : ElementTree
+            An ElementTree object already existing in python.
+        filename : str
+            File from which to read XML.  If filename is not None, then the xml
+            keyword argument must be None.
+        """
         Jp2kBox.__init__(self, id='xml ', longname='XML')
+        if filename is not None and xml is not None:
+            msg = "Only one of either filename or xml should be provided."
+            raise IOError(msg)
+        if filename is not None:
+            self.xml = ET.parse(filename)
+        else:
+            self.xml = xml
         self.__dict__.update(**kwargs)
 
     def __str__(self):
@@ -1553,7 +1569,11 @@ class XMLBox(Jp2kBox):
     def _write(self, f):
         """Write an XML box to file.
         """
-        buffer = ET.tostring(self.xml, encoding='utf-8')
+        try:
+            buffer = ET.tostring(self.xml, encoding='utf-8')
+        except AttributeError:
+            buffer = ET.tostring(self.xml.getroot(), encoding='utf-8')
+
         f.write(struct.pack('>I', len(buffer) + 8))
         f.write(self.id.encode())
         f.write(buffer)
