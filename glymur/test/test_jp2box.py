@@ -19,6 +19,36 @@ def load_tests(loader, tests, ignore):
 
 class TestChannelDefinition(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(cls):
+        """Need a one_plane plane image for greyscale testing."""
+        j2k = Jp2k(glymur.data.goodstuff())
+        data = j2k.read()
+        # Write the first component back out to file.
+        with tempfile.NamedTemporaryFile(suffix=".j2k", delete=False) as tfile:
+            grey_j2k = Jp2k(tfile.name, 'wb')
+            grey_j2k.write(data[:,:,0])
+            cls.one_plane = tfile.name
+        # Write the first two components back out to file.
+        with tempfile.NamedTemporaryFile(suffix=".j2k", delete=False) as tfile:
+            grey_j2k = Jp2k(tfile.name, 'wb')
+            grey_j2k.write(data[:,:,0:1])
+            cls.two_planes = tfile.name
+        # Write four components back out to file.
+        with tempfile.NamedTemporaryFile(suffix=".j2k", delete=False) as tfile:
+            rgba_jp2 = Jp2k(tfile.name, 'wb')
+            shape = (data.shape[0], data.shape[1], 1)
+            alpha = np.zeros((shape), dtype=data.dtype)
+            data4 = np.concatenate((data, alpha), axis=2)
+            rgba_jp2.write(data4)
+            cls.four_planes = tfile.name
+
+    @classmethod
+    def tearDownClass(cls):
+        os.unlink(cls.one_plane)
+        os.unlink(cls.two_planes)
+        os.unlink(cls.four_planes)
+
     def setUp(self):
         self.jp2file = glymur.data.nemo()
         self.j2kfile = glymur.data.goodstuff()
@@ -36,9 +66,90 @@ class TestChannelDefinition(unittest.TestCase):
         self.ihdr = ImageHeaderBox(height=height, width=width,
                                   num_components=num_components)
         self.colr_rgb = ColourSpecificationBox(colorspace=glymur.core.SRGB)
+        self.colr_gr = ColourSpecificationBox(colorspace=glymur.core.GREYSCALE)
 
     def tearDown(self):
         pass
+
+    def test_rgb(self):
+        """Just regular RGB."""
+        j2k = Jp2k(self.j2kfile)
+        cdef = glymur.jp2box.ChannelDefinitionBox(index=[0, 1, 2],
+                                                  channel_type=[0, 0, 0],
+                                                  association=[1, 2, 3])
+        boxes = [self.ihdr, self.colr_rgb, cdef]
+        self.jp2h.box = boxes
+        boxes = [self.jP, self.ftyp, self.jp2h, self.jp2c]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            j2k.wrap(tfile.name, boxes=boxes)
+
+            jp2 = Jp2k(tfile.name)
+            jp2h = jp2.box[2]
+            boxes = [box.id for box in jp2h.box]
+            self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
+            self.assertEqual(jp2h.box[2].index, (0, 1, 2))
+            self.assertEqual(jp2h.box[2].channel_type, (0, 0, 0))
+            self.assertEqual(jp2h.box[2].association, (1, 2, 3))
+
+    def test_rgba(self):
+        """Just regular RGBA."""
+        j2k = Jp2k(self.four_planes)
+        cdef = glymur.jp2box.ChannelDefinitionBox(index=[0, 1, 2, 3],
+                                                  channel_type=[0, 0, 0, 1],
+                                                  association=[1, 2, 3, 0])
+        boxes = [self.ihdr, self.colr_rgb, cdef]
+        self.jp2h.box = boxes
+        boxes = [self.jP, self.ftyp, self.jp2h, self.jp2c]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            j2k.wrap(tfile.name, boxes=boxes)
+
+            jp2 = Jp2k(tfile.name)
+            jp2h = jp2.box[2]
+            boxes = [box.id for box in jp2h.box]
+            self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
+            self.assertEqual(jp2h.box[2].index, (0, 1, 2, 3))
+            self.assertEqual(jp2h.box[2].channel_type, (0, 0, 0, 1))
+            self.assertEqual(jp2h.box[2].association, (1, 2, 3, 0))
+
+    def test_grey(self):
+        """Just regular greyscale."""
+        j2k = Jp2k(self.one_plane)
+        cdef = glymur.jp2box.ChannelDefinitionBox(index=[0],
+                                                  channel_type=[0],
+                                                  association=[1])
+        boxes = [self.ihdr, self.colr_gr, cdef]
+        self.jp2h.box = boxes
+        boxes = [self.jP, self.ftyp, self.jp2h, self.jp2c]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            j2k.wrap(tfile.name, boxes=boxes)
+
+            jp2 = Jp2k(tfile.name)
+            jp2h = jp2.box[2]
+            boxes = [box.id for box in jp2h.box]
+            self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
+            self.assertEqual(jp2h.box[2].index, (0,))
+            self.assertEqual(jp2h.box[2].channel_type, (0,))
+            self.assertEqual(jp2h.box[2].association, (1,))
+
+    def test_grey_alpha(self):
+        """Just regular greyscale plus alpha."""
+        j2k = Jp2k(self.two_planes)
+        cdef = glymur.jp2box.ChannelDefinitionBox(index=[0, 1],
+                                                  channel_type=[0, 1],
+                                                  association=[1, 0])
+        boxes = [self.ihdr, self.colr_gr, cdef]
+        self.jp2h.box = boxes
+        boxes = [self.jP, self.ftyp, self.jp2h, self.jp2c]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            j2k.wrap(tfile.name, boxes=boxes)
+
+            jp2 = Jp2k(tfile.name)
+            jp2h = jp2.box[2]
+            boxes = [box.id for box in jp2h.box]
+            self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
+            self.assertEqual(jp2h.box[2].index, (0, 1))
+            self.assertEqual(jp2h.box[2].channel_type, (0, 1))
+            self.assertEqual(jp2h.box[2].association, (1, 0))
 
     def test_only_one_cdef_in_jp2_header(self):
         """There can only be one channel definition box in the jp2 header."""

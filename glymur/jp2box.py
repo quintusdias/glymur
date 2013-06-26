@@ -444,6 +444,19 @@ class ChannelDefinitionBox(Jp2kBox):
             msg = msg.format(self.index[j], color_type_string, assn)
         return msg
 
+    def _write(self, f):
+        """Write a channel definition box to file.
+        """
+        N = len(self.association)
+        f.write(struct.pack('>I', 8 + 2 + N * 6))
+        f.write('cdef'.encode('utf-8'))
+        f.write(struct.pack('>H', N))
+        for j in range(N):
+            f.write(struct.pack('>' + 'H' * 3,
+                                self.index[j],
+                                self.channel_type[j],
+                                self.association[j]))
+
     @staticmethod
     def _parse(f, id, offset, length):
         """Parse component definition box.

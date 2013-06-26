@@ -30,8 +30,7 @@ class TestPrintingNeedsLib(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Setup a plain JP2 file without the two UUID boxes.
-        jp2file = pkg_resources.resource_filename(glymur.__name__,
-                                                  "data/nemo.jp2")
+        jp2file = glymur.data.nemo()
         with tempfile.NamedTemporaryFile(suffix='.jp2', delete=False) as tfile:
             cls._plain_nemo_file = tfile.name
             ijfile = Jp2k(jp2file)
