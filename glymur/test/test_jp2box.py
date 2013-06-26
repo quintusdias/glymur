@@ -17,16 +17,60 @@ def load_tests(loader, tests, ignore):
     return tests
 
 
-@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
-                 "Missing openjp2 library.")
 class TestChannelDefinition(unittest.TestCase):
 
     def setUp(self):
         self.jp2file = glymur.data.nemo()
         self.j2kfile = glymur.data.goodstuff()
 
+        j2k = Jp2k(self.j2kfile)
+        c = j2k.get_codestream()
+        height = c.segment[1].Ysiz
+        width = c.segment[1].Xsiz
+        num_components = len(c.segment[1].XRsiz)
+    
+        self.jP = JPEG2000SignatureBox()
+        self.ftyp = FileTypeBox()
+        self.jp2h = JP2HeaderBox()
+        self.jp2c = ContiguousCodestreamBox()
+        self.ihdr = ImageHeaderBox(height=height, width=width,
+                                  num_components=num_components)
+        self.colr_rgb = ColourSpecificationBox(colorspace=glymur.core.SRGB)
+
     def tearDown(self):
         pass
+
+    def test_only_one_cdef_in_jp2_header(self):
+        """There can only be one channel definition box in the jp2 header."""
+        j2k = Jp2k(self.j2kfile)
+
+        cdef = glymur.jp2box.ChannelDefinitionBox(index=[0, 1, 2],
+                                                  channel_type=[0, 0, 0],
+                                                  association=[0, 1, 2])
+
+        boxes = [self.ihdr, cdef, self.colr_rgb, cdef]
+        self.jp2h.box = boxes
+
+        boxes = [self.jP, self.ftyp, self.jp2h, self.jp2c]
+
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            with self.assertRaises(IOError):
+                j2k.wrap(tfile.name, boxes=boxes)
+
+    def test_not_in_jp2_header(self):
+        j2k = Jp2k(self.j2kfile)
+        boxes = [self.ihdr, self.colr_rgb]
+        self.jp2h.box = boxes
+
+        cdef = glymur.jp2box.ChannelDefinitionBox(index=[0, 1, 2],
+                                                  channel_type=[0, 0, 0],
+                                                  association=[0, 1, 2])
+
+        boxes = [self.jP, self.ftyp, self.jp2h, cdef, self.jp2c]
+
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            with self.assertRaises(IOError):
+                j2k.wrap(tfile.name, boxes=boxes)
 
     def test_bad_type(self):
         # Channel types are limited to 0, 1, 2, 65535
@@ -44,6 +88,93 @@ class TestChannelDefinition(unittest.TestCase):
             box = glymur.jp2box.ChannelDefinitionBox(index=[0, 1, 2],
                                                      channel_type=[0, 0],
                                                      association=[0, 1, 2])
+
+class TestXML(unittest.TestCase):
+
+    def setUp(self):
+        self.jp2file = glymur.data.nemo()
+        self.j2kfile = glymur.data.goodstuff()
+
+        j2k = Jp2k(self.j2kfile)
+        c = j2k.get_codestream()
+        height = c.segment[1].Ysiz
+        width = c.segment[1].Xsiz
+        num_components = len(c.segment[1].XRsiz)
+    
+        self.jP = JPEG2000SignatureBox()
+        self.ftyp = FileTypeBox()
+        self.jp2h = JP2HeaderBox()
+        self.jp2c = ContiguousCodestreamBox()
+        self.ihdr = ImageHeaderBox(height=height, width=width,
+                                  num_components=num_components)
+        self.colr = ColourSpecificationBox(colorspace=glymur.core.SRGB)
+
+    def tearDown(self):
+        pass
+
+    def test_basic_xml(self):
+        j2k = Jp2k(self.j2kfile)
+
+        self.jp2h.box = [self.ihdr, self.colr]
+
+        the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
+        xml = glymur.jp2box.XMLBox(xml=the_xml)
+        boxes = [self.jP, self.ftyp, self.jp2h, xml, self.jp2c]
+
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            j2k.wrap(tfile.name, boxes=boxes)
+            jp2 = Jp2k(tfile.name)
+            self.assertEqual(jp2.box[3].id, 'xml ')
+
+    def test_xml_from_file(self):
+        raw_xml = b"""<?xml version="1.0"?>
+        <data>
+            <country name="Liechtenstein">
+                <rank>1</rank>
+                <year>2008</year>
+                <gdppc>141100</gdppc>
+                <neighbor name="Austria" direction="E"/>
+                <neighbor name="Switzerland" direction="W"/>
+            </country>
+            <country name="Singapore">
+                <rank>4</rank>
+                <year>2011</year>
+                <gdppc>59900</gdppc>
+                <neighbor name="Malaysia" direction="N"/>
+            </country>
+            <country name="Panama">
+                <rank>68</rank>
+                <year>2011</year>
+                <gdppc>13600</gdppc>
+                <neighbor name="Costa Rica" direction="W"/>
+                <neighbor name="Colombia" direction="E"/>
+            </country>
+        </data>"""
+        with tempfile.NamedTemporaryFile(suffix=".xml") as tfile:
+            tfile.write(raw_xml)                
+            tfile.flush()
+
+            j2k = Jp2k(self.j2kfile)
+
+            self.jp2h.box = [self.ihdr, self.colr]
+    
+            xmlb = glymur.jp2box.XMLBox(filename=tfile.name)
+            boxes = [self.jP, self.ftyp, self.jp2h, xmlb, self.jp2c]
+            with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+                j2k.wrap(tfile.name, boxes=boxes)
+                jp2 = Jp2k(tfile.name)
+
+                output_boxes = [box.id for box in jp2.box]
+                self.assertEqual(output_boxes, ['jP  ', 'ftyp', 'jp2h', 'xml ',
+                                                'jp2c'])
+
+                elts = jp2.box[3].xml.findall('country')
+                self.assertEqual(len(elts), 3)
+
+                neighbor = elts[1].find('neighbor')
+                self.assertEqual(neighbor.attrib['name'], 'Malaysia')
+                self.assertEqual(neighbor.attrib['direction'], 'N')
+
 
 @unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
                  "Missing openjp2 library.")
@@ -369,85 +500,6 @@ class TestJp2Boxes(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
-
-    def test_basic_xml(self):
-        j2k = Jp2k(self.raw_codestream)
-        c = j2k.get_codestream()
-        height = c.segment[1].Ysiz
-        width = c.segment[1].Xsiz
-        num_components = len(c.segment[1].XRsiz)
-
-        jP = JPEG2000SignatureBox()
-        ftyp = FileTypeBox()
-        jp2h = JP2HeaderBox()
-        jp2c = ContiguousCodestreamBox()
-        ihdr = ImageHeaderBox(height=height, width=width,
-                              num_components=num_components)
-        colr = ColourSpecificationBox(colorspace=glymur.core.SRGB)
-        jp2h.box = [ihdr, colr]
-
-        the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
-        xml = glymur.jp2box.XMLBox(xml=the_xml)
-        boxes = [jP, ftyp, jp2h, xml, jp2c]
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
-            j2k.wrap(tfile.name, boxes=boxes)
-            jp2 = Jp2k(tfile.name)
-            self.assertEqual(jp2.box[3].id, 'xml ')
-
-    def test_xml_from_file(self):
-        raw_xml = b"""<?xml version="1.0"?>
-        <data>
-            <country name="Liechtenstein">
-                <rank>1</rank>
-                <year>2008</year>
-                <gdppc>141100</gdppc>
-                <neighbor name="Austria" direction="E"/>
-                <neighbor name="Switzerland" direction="W"/>
-            </country>
-            <country name="Singapore">
-                <rank>4</rank>
-                <year>2011</year>
-                <gdppc>59900</gdppc>
-                <neighbor name="Malaysia" direction="N"/>
-            </country>
-            <country name="Panama">
-                <rank>68</rank>
-                <year>2011</year>
-                <gdppc>13600</gdppc>
-                <neighbor name="Costa Rica" direction="W"/>
-                <neighbor name="Colombia" direction="E"/>
-            </country>
-        </data>"""
-        with tempfile.NamedTemporaryFile(suffix=".xml") as tfile:
-            tfile.write(raw_xml)                
-            tfile.flush()
-
-            j2k = Jp2k(self.raw_codestream)
-            c = j2k.get_codestream()
-            height = c.segment[1].Ysiz
-            width = c.segment[1].Xsiz
-            num_components = len(c.segment[1].XRsiz)
-    
-            jP = JPEG2000SignatureBox()
-            ftyp = FileTypeBox()
-            jp2h = JP2HeaderBox()
-            jp2c = ContiguousCodestreamBox()
-            ihdr = ImageHeaderBox(height=height, width=width,
-                                  num_components=num_components)
-            colr = ColourSpecificationBox(colorspace=glymur.core.SRGB)
-            jp2h.box = [ihdr, colr]
-    
-            xmlb = glymur.jp2box.XMLBox(filename=tfile.name)
-            boxes = [jP, ftyp, jp2h, xmlb, jp2c]
-            with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
-                j2k.wrap(tfile.name, boxes=boxes)
-                jp2 = Jp2k(tfile.name)
-
-                output_boxes = [box.id for box in jp2.box]
-                self.assertEqual(output_boxes, ['jP  ', 'ftyp', 'jp2h', 'xml ',
-                                                'jp2c'])
-                self.assertIsNotNone(jp2.box[3].xml)
-
 
 if __name__ == "__main__":
     unittest.main()

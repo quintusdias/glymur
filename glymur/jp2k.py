@@ -468,6 +468,19 @@ class Jp2k(Jp2kBox):
             msg = "The jp2 header box must contain a color definition box."
             raise IOError(msg)
 
+        # Any cdef box must be in the jp2 header following the image header.
+        cdef_lst = [j for (j, box) in enumerate(boxes) if box.id == 'cdef']
+        if len(cdef_lst) != 0:
+            msg = "Any channel defintion box must be in the JP2 header "
+            msg += "following the image header."
+            raise IOError(msg)
+
+        cdef_lst = [j for (j, box) in enumerate(jp2h.box) if box.id == 'cdef']
+        if len(cdef_lst) > 1:
+            msg = "Only one channel definition box is allowed in the "
+            msg += "JP2 header."
+            raise IOError(msg)
+
         with open(filename, 'wb') as ofile:
             for box in boxes:
                 if box.id != 'jp2c':
