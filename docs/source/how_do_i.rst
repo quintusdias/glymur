@@ -119,7 +119,6 @@ and add it after the JP2 header box, but before the codestream box ::
         . (truncated)
         .
 
-
 Work with XMP UUIDs?
 ====================
 The example JP2 file shipped with glymur has an XMP UUID. ::

@@ -216,7 +216,7 @@ class ColourSpecificationBox(Jp2kBox):
             msg += "colorspaces is not supported at this time."
             raise NotImplementedError(msg)
         length = 15 if self.icc_profile is None else 11 + len(self.icc_profile)
-        f.write(struct.pack('>I', length)) 
+        f.write(struct.pack('>I', length))
         f.write('colr'.encode())
 
         buffer = struct.pack('>BBBI',
@@ -806,12 +806,12 @@ class ImageHeaderBox(Jp2kBox):
     def _write(self, f):
         """Write an Image Header box to file.
         """
-        f.write(struct.pack('>I', 22)) 
+        f.write(struct.pack('>I', 22))
         f.write('ihdr'.encode())
 
         # signedness and bps are stored together in a single byte
         bit_depth_signedness = 0x80 if self.signed else 0x00
-        bit_depth_signedness |= self.bits_per_component - 1 
+        bit_depth_signedness |= self.bits_per_component - 1
         buffer = struct.pack('>IIHBBBB',
                              self.height,
                              self.width,
@@ -960,7 +960,7 @@ class JP2HeaderBox(Jp2kBox):
         """
         # Write the contained boxes, then come back and write the length.
         orig_pos = f.tell()
-        f.write(struct.pack('>I', 0)) 
+        f.write(struct.pack('>I', 0))
         f.write('jp2h'.encode())
         for box in self.box:
             box._write(f)

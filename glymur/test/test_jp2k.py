@@ -173,7 +173,7 @@ class TestJp2k(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             ofile = Jp2k(tfile.name, 'wb')
             with self.assertRaises(IOError):
-                ofile.write(expdata[:,:,0], mct=True)
+                ofile.write(expdata[:, :, 0], mct=True)
 
     def test_write_cprl(self):
         # Issue 17

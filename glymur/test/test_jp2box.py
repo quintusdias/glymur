@@ -27,12 +27,12 @@ class TestChannelDefinition(unittest.TestCase):
         # Write the first component back out to file.
         with tempfile.NamedTemporaryFile(suffix=".j2k", delete=False) as tfile:
             grey_j2k = Jp2k(tfile.name, 'wb')
-            grey_j2k.write(data[:,:,0])
+            grey_j2k.write(data[:, :, 0])
             cls.one_plane = tfile.name
         # Write the first two components back out to file.
         with tempfile.NamedTemporaryFile(suffix=".j2k", delete=False) as tfile:
             grey_j2k = Jp2k(tfile.name, 'wb')
-            grey_j2k.write(data[:,:,0:1])
+            grey_j2k.write(data[:, :, 0:1])
             cls.two_planes = tfile.name
         # Write four components back out to file.
         with tempfile.NamedTemporaryFile(suffix=".j2k", delete=False) as tfile:
@@ -58,13 +58,13 @@ class TestChannelDefinition(unittest.TestCase):
         height = c.segment[1].Ysiz
         width = c.segment[1].Xsiz
         num_components = len(c.segment[1].XRsiz)
-    
+
         self.jP = JPEG2000SignatureBox()
         self.ftyp = FileTypeBox()
         self.jp2h = JP2HeaderBox()
         self.jp2c = ContiguousCodestreamBox()
         self.ihdr = ImageHeaderBox(height=height, width=width,
-                                  num_components=num_components)
+                                   num_components=num_components)
         self.colr_rgb = ColourSpecificationBox(colorspace=glymur.core.SRGB)
         self.colr_gr = ColourSpecificationBox(colorspace=glymur.core.GREYSCALE)
 
@@ -168,7 +168,7 @@ class TestChannelDefinition(unittest.TestCase):
         """A greyscale image with alpha layer must specify Y"""
         j2k = Jp2k(self.two_planes)
 
-        # This cdef box 
+        # This cdef box
         cdef = glymur.jp2box.ChannelDefinitionBox(index=[0, 1],
                                                   channel_type=[1, 1],
                                                   association=[0, 1])
@@ -228,6 +228,7 @@ class TestChannelDefinition(unittest.TestCase):
                                                      channel_type=[0, 0],
                                                      association=[1, 2, 3])
 
+
 class TestXML(unittest.TestCase):
 
     def setUp(self):
@@ -258,7 +259,7 @@ class TestXML(unittest.TestCase):
             </country>
         </data>"""
         with tempfile.NamedTemporaryFile(suffix=".xml", delete=False) as tfile:
-            tfile.write(raw_xml)                
+            tfile.write(raw_xml)
             tfile.flush()
         self.xmlfile = tfile.name
 
@@ -267,13 +268,13 @@ class TestXML(unittest.TestCase):
         height = c.segment[1].Ysiz
         width = c.segment[1].Xsiz
         num_components = len(c.segment[1].XRsiz)
-    
+
         self.jP = JPEG2000SignatureBox()
         self.ftyp = FileTypeBox()
         self.jp2h = JP2HeaderBox()
         self.jp2c = ContiguousCodestreamBox()
         self.ihdr = ImageHeaderBox(height=height, width=width,
-                                  num_components=num_components)
+                                   num_components=num_components)
         self.colr = ColourSpecificationBox(colorspace=glymur.core.SRGB)
 
     def tearDown(self):
@@ -340,13 +341,13 @@ class TestColourSpecificationBox(unittest.TestCase):
         height = c.segment[1].Ysiz
         width = c.segment[1].Xsiz
         num_components = len(c.segment[1].XRsiz)
-    
+
         self.jP = JPEG2000SignatureBox()
         self.ftyp = FileTypeBox()
         self.jp2h = JP2HeaderBox()
         self.jp2c = ContiguousCodestreamBox()
         self.ihdr = ImageHeaderBox(height=height, width=width,
-                                  num_components=num_components)
+                                   num_components=num_components)
 
     def tearDown(self):
         pass
@@ -444,7 +445,7 @@ class TestJp2Boxes(unittest.TestCase):
 
     def verify_wrapped_raw(self, jp2file):
         # Shared method by at least two tests.
-        jp2 = Jp2k(jp2file) 
+        jp2 = Jp2k(jp2file)
         self.assertEqual(len(jp2.box), 4)
 
         self.assertEqual(jp2.box[0].id, 'jP  ')
@@ -497,6 +498,13 @@ class TestJp2Boxes(unittest.TestCase):
             j2k.wrap(tfile.name)
             self.verify_wrapped_raw(tfile.name)
 
+    def test_wrap_jp2(self):
+        j2k = Jp2k(self.j2kfile)
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            jp2 = j2k.wrap(tfile.name)
+        boxes = [box.id for box in jp2.box]
+        self.assertEqual(boxes, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
+
     def test_default_layout_but_with_specified_boxes(self):
         j2k = Jp2k(self.j2kfile)
         boxes = [JPEG2000SignatureBox(),
@@ -533,7 +541,6 @@ class TestJp2Boxes(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
-
 
     def test_first_2_boxes_not_jP_and_ftyp(self):
         j2k = Jp2k(self.j2kfile)

@@ -20,6 +20,7 @@ def nemo():
     file = pkg_resources.resource_filename(__name__, "nemo.jp2")
     return file
 
+
 def goodstuff():
     """Shortcut for specifying path to goodstuff.j2k.
 
