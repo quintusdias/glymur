@@ -59,10 +59,7 @@ repositories::
 Raspbian
 ''''''''
 Yeah, this was the first thing I tried after getting my new Raspberry Pi hooked
-up.  This doesn't seem like the sort of thing that the Raspberry Pi was built 
-for, as it took nearly an hour just to run the OpenJPEG tests, but still, I 
-couldn't help myself but give it a try :-)
-Raspbian ships with Python 3.2 and 2.7, so these steps detail working with 2.7.
+up (couldn't help myself :-)  Raspbian ships with Python 3.2 and 2.7, so these steps detail working with 2.7.
 
 Additional required OS packages include::
 
@@ -77,7 +74,7 @@ install the following debs::
     * python-dev
     * python-matplotlib
 
-and then install Pillow via pip.  The tests take about 20 minutes to run, with
+and then install Pillow via pip.  The tests take about 30 minutes to run, with
 one unexpected failure as of the time of writing.
 
 Fedora 17

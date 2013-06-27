@@ -50,7 +50,7 @@ the openjp2 library.  You may create the configuration file as follows::
     > EOF
 
 That assumes, of course, that you've installed OpenJPEG into /opt/openjp2-svn.
-You may also replace **$HOME/.config** with **$XDG_CONFIG_HOME**.
+You may also substitute **$XDG_CONFIG_HOME** for **$HOME/.config**.
 
 Glymur Installation
 ===================
@@ -59,12 +59,12 @@ You can retrieve the source for Glymur from either of
     * https://pypi.python.org/pypi/Glymur/ (stable releases)
     * http://github.com/quintusdias/glymur (bleeding edge)
 
-but you should now be able to get a functional installation of Glymur via
-pip ::
+but you should also be able to install Glymur via pip ::
 
     $ pip install glymur
 
-This will install the **jp2dump** script, so you should adjust your **$PATH**
+This will install the **jp2dump** script that can be used from the unix command
+line, so you should adjust your **$PATH**
 to take advantage of it.  For example, if you install with pip's
 `--user` option on linux ::
 
