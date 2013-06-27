@@ -16,8 +16,7 @@ import warnings
 import numpy as np
 
 from .codestream import Codestream
-from .core import progression_order
-from .core import SRGB
+from .core import *
 from .jp2box import *
 from .lib import openjp2 as opj2
 
@@ -467,6 +466,7 @@ class Jp2k(Jp2kBox):
         if len(colr_lst) == 0:
             msg = "The jp2 header box must contain a color definition box."
             raise IOError(msg)
+        colr = jp2h.box[colr_lst[0]]
 
         # Any cdef box must be in the jp2 header following the image header.
         cdef_lst = [j for (j, box) in enumerate(boxes) if box.id == 'cdef']
@@ -480,6 +480,21 @@ class Jp2k(Jp2kBox):
             msg = "Only one channel definition box is allowed in the "
             msg += "JP2 header."
             raise IOError(msg)
+        elif len(cdef_lst) == 1:
+            cdef = jp2h.box[cdef_lst[0]]
+            assn = cdef.association
+            typ = cdef.channel_type
+            index = cdef.index
+            if colr.colorspace == SRGB:
+                if any([chan + 1 not in assn or typ[chan] != 0 for chan in [0, 1, 2]]):
+                    msg = "All color channels must be defined in the "
+                    msg += "channel definition box."
+                    raise IOError(msg)
+            elif colr.colorspace == GREYSCALE:
+                if 0 not in typ:
+                    msg = "All color channels must be defined in the "
+                    msg += "channel definition box."
+                    raise IOError(msg)
 
         with open(filename, 'wb') as ofile:
             for box in boxes:

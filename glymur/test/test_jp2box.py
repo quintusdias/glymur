@@ -111,6 +111,19 @@ class TestChannelDefinition(unittest.TestCase):
             self.assertEqual(jp2h.box[2].channel_type, (0, 0, 0, 1))
             self.assertEqual(jp2h.box[2].association, (1, 2, 3, 0))
 
+    def test_bad_rgba(self):
+        """R, G, and B must be specified."""
+        j2k = Jp2k(self.four_planes)
+        cdef = glymur.jp2box.ChannelDefinitionBox(index=[0, 1, 2, 3],
+                                                  channel_type=[0, 0, 1, 1],
+                                                  association=[1, 2, 3, 0])
+        boxes = [self.ihdr, self.colr_rgb, cdef]
+        self.jp2h.box = boxes
+        boxes = [self.jP, self.ftyp, self.jp2h, self.jp2c]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            with self.assertRaises(IOError) as ce:
+                j2k.wrap(tfile.name, boxes=boxes)
+
     def test_grey(self):
         """Just regular greyscale."""
         j2k = Jp2k(self.one_plane)
@@ -150,6 +163,21 @@ class TestChannelDefinition(unittest.TestCase):
             self.assertEqual(jp2h.box[2].index, (0, 1))
             self.assertEqual(jp2h.box[2].channel_type, (0, 1))
             self.assertEqual(jp2h.box[2].association, (1, 0))
+
+    def test_bad_grey_alpha(self):
+        """A greyscale image with alpha layer must specify Y"""
+        j2k = Jp2k(self.two_planes)
+
+        # This cdef box 
+        cdef = glymur.jp2box.ChannelDefinitionBox(index=[0, 1],
+                                                  channel_type=[1, 1],
+                                                  association=[0, 1])
+        boxes = [self.ihdr, self.colr_gr, cdef]
+        self.jp2h.box = boxes
+        boxes = [self.jP, self.ftyp, self.jp2h, self.jp2c]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            with self.assertRaises((OSError, IOError)) as ce:
+                j2k.wrap(tfile.name, boxes=boxes)
 
     def test_only_one_cdef_in_jp2_header(self):
         """There can only be one channel definition box in the jp2 header."""

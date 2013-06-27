@@ -74,6 +74,12 @@ _color_type_map_display = {
     _PRE_MULTIPLIED_OPACITY:  'pre-multiplied opacity',
     _UNSPECIFIED:  'unspecified'}
 
+# color channel definitions.
+RED = 1
+GREEN = 2
+BLUE = 3
+GREY = 1
+
 # enumerated color channel associations
 _rgb_colorspace = {"R": 1, "G": 2, "B": 3}
 _greyscale_colorspace = {"Y": 1}
