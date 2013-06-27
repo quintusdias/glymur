@@ -7,6 +7,7 @@ from .jp2dump import jp2dump
 from . import data
 from . import test
 
+
 def runtests():
     """Discover and run all tests for the glymur package.
     """
