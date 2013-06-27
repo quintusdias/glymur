@@ -958,12 +958,6 @@ class JP2HeaderBox(Jp2kBox):
     def _write(self, f):
         """Write a JP2 Header box to file.
         """
-        # Make sure they are in proper order.
-        if self.box[0].id != 'ihdr':
-            msg = "The first box in the JP2 Header superbox must be the Image "
-            msg += "Header box."
-            raise IOError(msg)
-
         # Write the contained boxes, then come back and write the length.
         orig_pos = f.tell()
         f.write(struct.pack('>I', 0)) 
@@ -1590,7 +1584,10 @@ class XMLBox(Jp2kBox):
         msg = Jp2kBox.__str__(self)
         xml = self.xml
         if self.xml is not None:
-            msg += _pretty_print_xml(self.xml)
+            try:
+                msg += _pretty_print_xml(self.xml)
+            except TypeError:
+                msg += _pretty_print_xml(self.xml.getroot())
         else:
             msg += '\n    {0}'.format(xml)
         return msg

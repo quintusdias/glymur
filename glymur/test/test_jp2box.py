@@ -234,44 +234,6 @@ class TestXML(unittest.TestCase):
         self.jp2file = glymur.data.nemo()
         self.j2kfile = glymur.data.goodstuff()
 
-        j2k = Jp2k(self.j2kfile)
-        c = j2k.get_codestream()
-        height = c.segment[1].Ysiz
-        width = c.segment[1].Xsiz
-        num_components = len(c.segment[1].XRsiz)
-    
-        self.jP = JPEG2000SignatureBox()
-        self.ftyp = FileTypeBox()
-        self.jp2h = JP2HeaderBox()
-        self.jp2c = ContiguousCodestreamBox()
-        self.ihdr = ImageHeaderBox(height=height, width=width,
-                                  num_components=num_components)
-        self.colr = ColourSpecificationBox(colorspace=glymur.core.SRGB)
-
-    def tearDown(self):
-        pass
-
-    def test_basic_xml(self):
-        # Should be able to write an XMLBox.
-        j2k = Jp2k(self.j2kfile)
-
-        self.jp2h.box = [self.ihdr, self.colr]
-
-        the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
-        xmlb = glymur.jp2box.XMLBox(xml=the_xml)
-        self.assertEqual(ET.tostring(xmlb.xml),
-                         b'<data>0</data>')
-
-        boxes = [self.jP, self.ftyp, self.jp2h, xmlb, self.jp2c]
-
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
-            j2k.wrap(tfile.name, boxes=boxes)
-            jp2 = Jp2k(tfile.name)
-            self.assertEqual(jp2.box[3].id, 'xml ')
-            self.assertEqual(ET.tostring(jp2.box[3].xml),
-                             b'<data>0</data>')
-
-    def test_xml_from_file(self):
         raw_xml = b"""<?xml version="1.0"?>
         <data>
             <country name="Liechtenstein">
@@ -295,30 +257,77 @@ class TestXML(unittest.TestCase):
                 <neighbor name="Colombia" direction="E"/>
             </country>
         </data>"""
-        with tempfile.NamedTemporaryFile(suffix=".xml") as tfile:
+        with tempfile.NamedTemporaryFile(suffix=".xml", delete=False) as tfile:
             tfile.write(raw_xml)                
             tfile.flush()
+        self.xmlfile = tfile.name
 
-            j2k = Jp2k(self.j2kfile)
-
-            self.jp2h.box = [self.ihdr, self.colr]
+        j2k = Jp2k(self.j2kfile)
+        c = j2k.get_codestream()
+        height = c.segment[1].Ysiz
+        width = c.segment[1].Xsiz
+        num_components = len(c.segment[1].XRsiz)
     
-            xmlb = glymur.jp2box.XMLBox(filename=tfile.name)
-            boxes = [self.jP, self.ftyp, self.jp2h, xmlb, self.jp2c]
-            with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
-                j2k.wrap(tfile.name, boxes=boxes)
-                jp2 = Jp2k(tfile.name)
+        self.jP = JPEG2000SignatureBox()
+        self.ftyp = FileTypeBox()
+        self.jp2h = JP2HeaderBox()
+        self.jp2c = ContiguousCodestreamBox()
+        self.ihdr = ImageHeaderBox(height=height, width=width,
+                                  num_components=num_components)
+        self.colr = ColourSpecificationBox(colorspace=glymur.core.SRGB)
 
-                output_boxes = [box.id for box in jp2.box]
-                self.assertEqual(output_boxes, ['jP  ', 'ftyp', 'jp2h', 'xml ',
-                                                'jp2c'])
+    def tearDown(self):
+        os.unlink(self.xmlfile)
+        pass
 
-                elts = jp2.box[3].xml.findall('country')
-                self.assertEqual(len(elts), 3)
+    def test_negative_both_file_and_xml_provided(self):
+        """The XML should come from only one source."""
+        j2k = Jp2k(self.j2kfile)
+        xml_object = ET.parse(self.xmlfile)
+        with self.assertRaises((IOError, OSError)) as ce:
+            xmlb = glymur.jp2box.XMLBox(filename=self.xmlfile, xml=xml_object)
 
-                neighbor = elts[1].find('neighbor')
-                self.assertEqual(neighbor.attrib['name'], 'Malaysia')
-                self.assertEqual(neighbor.attrib['direction'], 'N')
+    def test_basic_xml(self):
+        # Should be able to write an XMLBox.
+        j2k = Jp2k(self.j2kfile)
+
+        self.jp2h.box = [self.ihdr, self.colr]
+
+        the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
+        xmlb = glymur.jp2box.XMLBox(xml=the_xml)
+        self.assertEqual(ET.tostring(xmlb.xml),
+                         b'<data>0</data>')
+
+        boxes = [self.jP, self.ftyp, self.jp2h, xmlb, self.jp2c]
+
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            j2k.wrap(tfile.name, boxes=boxes)
+            jp2 = Jp2k(tfile.name)
+            self.assertEqual(jp2.box[3].id, 'xml ')
+            self.assertEqual(ET.tostring(jp2.box[3].xml),
+                             b'<data>0</data>')
+
+    def test_xml_from_file(self):
+        j2k = Jp2k(self.j2kfile)
+
+        self.jp2h.box = [self.ihdr, self.colr]
+
+        xmlb = glymur.jp2box.XMLBox(filename=self.xmlfile)
+        boxes = [self.jP, self.ftyp, self.jp2h, xmlb, self.jp2c]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            j2k.wrap(tfile.name, boxes=boxes)
+            jp2 = Jp2k(tfile.name)
+
+            output_boxes = [box.id for box in jp2.box]
+            self.assertEqual(output_boxes, ['jP  ', 'ftyp', 'jp2h', 'xml ',
+                                            'jp2c'])
+
+            elts = jp2.box[3].xml.findall('country')
+            self.assertEqual(len(elts), 3)
+
+            neighbor = elts[1].find('neighbor')
+            self.assertEqual(neighbor.attrib['name'], 'Malaysia')
+            self.assertEqual(neighbor.attrib['direction'], 'N')
 
 
 class TestColourSpecificationBox(unittest.TestCase):
@@ -369,22 +378,25 @@ class TestColourSpecificationBox(unittest.TestCase):
 
     def test_ColourSpecificationBox_with_colorspace_and_icc(self):
         # Colour specification boxes can't have both.
-        with self.assertRaises(IOError):
+        with self.assertRaises((OSError, IOError)):
             colorspace = glymur.core.SRGB
             icc_profile = b'\x01\x02\x03\x04'
-            b = glymur.jp2box.ColourSpecificationBox(colorspace, icc_profile)
+            b = glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
+                                                     icc_profile=icc_profile)
 
     def test_ColourSpecificationBox_with_bad_method(self):
         colorspace = glymur.core.SRGB
         method = -1
         with self.assertRaises(IOError):
-            b = glymur.jp2box.ColourSpecificationBox(colorspace, method)
+            b = glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
+                                                     method=method)
 
     def test_ColourSpecificationBox_with_bad_approximation(self):
         colorspace = glymur.core.SRGB
-        approximation = -1
+        approx = -1
         with self.assertRaises(IOError):
-            b = glymur.jp2box.ColourSpecificationBox(colorspace, approximation)
+            b = glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
+                                                     approximation=approx)
 
 
 @unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,

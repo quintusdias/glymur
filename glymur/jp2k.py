@@ -408,14 +408,29 @@ class Jp2k(Jp2kBox):
         self._parse()
 
     def wrap(self, filename, boxes=None):
-        """Write a codestream, wrapping it in the JP2 format.
+        """Write the codestream back out to file, wrapped in new JP2 jacket.
 
         Parameters
         ----------
         filename : str
             JP2 file to be created from a raw codestream.
         boxes : list
-            JP2 box definitions to define the JP2 file format.
+            JP2 box definitions to define the JP2 file format.  If not
+            provided, a default ""jacket" is assumed, consisting of JP2
+            signature, file type, JP2 header, and contiguous codestream boxes.
+
+        Returns
+        -------
+        jp2 : Jp2k object
+            Newly wrapped Jp2k object.
+
+        Examples
+        --------
+        >>> import glymur, tempfile 
+        >>> jfile = glymur.data.goodstuff()
+        >>> j2k = glymur.Jp2k(jfile)
+        >>> tfile = tempfile.NamedTemporaryFile(suffix='jp2')
+        >>> j2k.wrap(tfile.name)
         """
         if boxes is None:
             # Try to create a reasonable default.
@@ -502,14 +517,31 @@ class Jp2k(Jp2kBox):
                     box._write(ofile)
                 else:
                     # The codestream gets written last.
-                    ofile.write(struct.pack('>I', self.length + 8))
-                    ofile.write('jp2c'.encode())
-        
-                    with open(self.filename, 'rb') as ifile:
-                        ofile.write(ifile.read())
+                    if len(self.box) == 0:
+                        # Am I a raw codestream?  If so, then it is pretty
+                        # easy, just write the codestream box header plus all
+                        # of myself out to file.
+                        ofile.write(struct.pack('>I', self.length + 8))
+                        ofile.write('jp2c'.encode())
+                        with open(self.filename, 'rb') as ifile:
+                            ofile.write(ifile.read())
+                    else:
+                        # OK, I'm a jp2 file.  Need to find out where the
+                        # raw codestream actually starts.
+                        jp2c = [box for box in self.box if box.id == 'jp2c']
+                        jp2c = jp2c[0]
+                        ofile.write(struct.pack('>I', jp2c.length + 8))
+                        ofile.write('jp2c'.encode())
+                        with open(self.filename, 'rb') as ifile:
+                            # Seek 8 bytes past the L, T fields to get to the
+                            # raw codestream.
+                            ifile.seek(jp2c.offset + 8)
+                            ofile.write(ifile.read(jp2c.length - 8))
 
             ofile.flush()
 
+        jp2 = Jp2k(filename)
+        return jp2
 
 
     def read(self, reduce=0, layer=0, area=None, tile=None, verbose=False):
