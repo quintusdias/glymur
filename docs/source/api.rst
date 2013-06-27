@@ -5,7 +5,7 @@ API
 Jp2k
 ----
 .. autoclass:: glymur.Jp2k
-   :members: read, write, read_bands, get_codestream
+   :members: read, write, wrap, read_bands, get_codestream
 
 Individual Boxes
 ----------------
@@ -24,9 +24,9 @@ ColourSpecificationBox
 .. autoclass:: glymur.jp2box.ColourSpecificationBox
    :members:
 
-ComponentDefinitionBox
+ChannelDefinitionBox
 ''''''''''''''''''''''
-.. autoclass:: glymur.jp2box.ComponentDefinitionBox
+.. autoclass:: glymur.jp2box.ChannelDefinitionBox
    :members:
 
 ComponentMappingBox

@@ -34,6 +34,91 @@ codestream box, only the main header is printed.  It is possible to print
 
     >>> print(j.get_codestream())
 
+Add XML Metadata?
+=================
+An existing raw codestream (or JP2 file) can be wrapped (re-wrapped) in a 
+user-defined set of JP2 boxes.  To get just a minimal JP2 jacket on the 
+codestream provided by `goodstuff.j2k`, you can use the **wrap** method with 
+no box argument: ::
+
+    >>> import glymur
+    >>> jfile = glymur.data.goodstuff()
+    >>> j2k = glymur.Jp2k(jfile)
+    >>> jp2 = j2k.wrap("newfile.jp2")
+    >>> print(jp2)
+    File:  newfile.jp2
+    JPEG 2000 Signature Box (jP  ) @ (0, 12)
+        Signature:  0d0a870a
+    File Type Box (ftyp) @ (12, 20)
+        Brand:  jp2 
+        Compatibility:  ['jp2 ']
+    JP2 Header Box (jp2h) @ (32, 45)
+        Image Header Box (ihdr) @ (40, 22)
+            Size:  [800 480 3]
+            Bitdepth:  8
+            Signed:  False
+            Compression:  wavelet
+            Colorspace Unknown:  False
+        Colour Specification Box (colr) @ (62, 15)
+            Method:  enumerated colorspace
+            Precedence:  0
+            Colorspace:  sRGB
+    Contiguous Codestream Box (jp2c) @ (77, 115228)
+        Main header:
+        .
+        . (truncated)
+        .
+
+The raw codestream was wrapped in a JP2 jacket with four boxes in the outer
+layer (the signature, file type, JP2 header, and contiguous codestream), with
+two additional boxes (image header and color specification) contained in the
+JP2 header superbox.
+
+XML boxes are not in the minimal set of box requirements for the JP2 format, so
+in order to add an XML box into the mix, we'll need to specify all of the
+boxes.  If you already have a JP2 jacket in place, you can just reuse it,
+though.  Take the following example content in an XML file `favorites.xml` : ::
+
+    <?xml version="1.0"?>
+    <favorite_things>
+        <category>Light Ale</category>
+    </favorite_things>
+
+and add it after the JP2 header box, but before the codestream box ::
+
+    >>> boxes = jp2.box  # The box attribute is the list of JP2 boxes
+    >>> xmlbox = glymur.jp2box.XMLBox(file='favorites.xml')
+    >>> boxes.insert(3, xmlbox)
+    >>> jp2_xml = jp2.wrap("newfile_with_xml.jp2", boxes=boxes)
+    >>> print(jp2_xml)
+    File:  newfile_with_xml.jp2
+    JPEG 2000 Signature Box (jP  ) @ (0, 12)
+        Signature:  0d0a870a
+    File Type Box (ftyp) @ (12, 20)
+        Brand:  jp2 
+        Compatibility:  ['jp2 ']
+    JP2 Header Box (jp2h) @ (32, 45)
+        Image Header Box (ihdr) @ (40, 22)
+            Size:  [800 480 3]
+            Bitdepth:  8
+            Signed:  False
+            Compression:  wavelet
+            Colorspace Unknown:  False
+        Colour Specification Box (colr) @ (62, 15)
+            Method:  enumerated colorspace
+            Precedence:  0
+            Colorspace:  sRGB
+    XML Box (xml ) @ (77, 76)
+        <favorite_things>
+          <category>Light Ale</category>
+        </favorite_things>
+        
+    Contiguous Codestream Box (jp2c) @ (153, 115236)
+        Main header:
+        .
+        . (truncated)
+        .
+
 Work with XMP UUIDs?
 ====================
 The example JP2 file shipped with glymur has an XMP UUID. ::
