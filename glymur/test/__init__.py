@@ -6,3 +6,4 @@ from .test_printing import TestPrinting as printing
 from .test_opj_suite import TestSuite as suite
 from .test_opj_suite_write import TestSuiteWrite as suitew
 from .test_opj_suite_neg import TestSuiteNegative as suiteneg
+from .test_jp2box import TestJp2Boxes as box
