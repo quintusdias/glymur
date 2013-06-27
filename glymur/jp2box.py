@@ -31,6 +31,7 @@ from .core import _colorspace_map_display
 from .core import _color_type_map_display
 from .core import _method_display
 from .core import _reader_requirements_display
+from .core import *
 
 
 class Jp2kBox(object):
@@ -58,6 +59,12 @@ class Jp2kBox(object):
         msg = "{0} Box ({1})".format(self.longname, self.id)
         msg += " @ ({0}, {1})".format(self.offset, self.length)
         return msg
+
+    def _write(self, f):
+        """Must be implemented in a subclass.
+        """
+        msg = "Not supported for {0} box.".format(self.longname)
+        raise NotImplementedError(msg)
 
     def _parse_superbox(self, f):
         """Parse a superbox (box consisting of nothing but other boxes.
@@ -159,9 +166,22 @@ class ColourSpecificationBox(Jp2kBox):
         ICC profile header according to ICC profile specification.  If
         colorspace is not None, then icc_profile must be empty.
     """
-    def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='Colour Specification')
+    def __init__(self, method=ENUMERATED_COLORSPACE, precedence=0,
+                 approximation=0, colorspace=None, icc_profile=None, **kwargs):
+        Jp2kBox.__init__(self, id='colr', longname='Colour Specification')
+
+        if colorspace is not None and icc_profile is not None:
+            raise IOError("colorspace and icc_profile cannot both be set.")
+        if method not in (1, 2, 3, 4):
+            raise IOError("Invalid method.")
+        if approximation not in (0, 1, 2, 3, 4):
+            raise IOError("Invalid approximation.")
         self.__dict__.update(**kwargs)
+        self.method = method
+        self.precedence = precedence
+        self.approximation = approximation
+        self.colorspace = colorspace
+        self.icc_profile = icc_profile
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -187,6 +207,24 @@ class ColourSpecificationBox(Jp2kBox):
             msg += '\n    ICC Profile:\n{0}'.format('\n'.join(lines))
 
         return msg
+
+    def _write(self, f):
+        """Write an Colour Specification box to file.
+        """
+        if self.colorspace is None:
+            msg = "Writing Colour Specification boxes without enumerated "
+            msg += "colorspaces is not supported at this time."
+            raise NotImplementedError(msg)
+        length = 15 if self.icc_profile is None else 11 + len(self.icc_profile)
+        f.write(struct.pack('>I', length))
+        f.write('colr'.encode())
+
+        buffer = struct.pack('>BBBI',
+                             self.method,
+                             self.precedence,
+                             self.approximation,
+                             self.colorspace)
+        f.write(buffer)
 
     @staticmethod
     def _parse(f, id, offset, length):
@@ -354,7 +392,7 @@ class _ICCProfile(object):
         self.header = header
 
 
-class ComponentDefinitionBox(Jp2kBox):
+class ChannelDefinitionBox(Jp2kBox):
     """Container for component definition box information.
 
     Attributes
@@ -367,28 +405,57 @@ class ComponentDefinitionBox(Jp2kBox):
         offset of the box from the start of the file.
     longname : str
         more verbose description of the box.
-    component_number : int
-        number of the component
-    component_type : int
-        type of the component
+    index : int
+        number of the channel
+    channel_type : int
+        type of the channel
     association : int
-        number of the associated color
+        index of the associated color
     """
-    def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='Component Definition')
+    def __init__(self, index, channel_type, association, **kwargs):
+        Jp2kBox.__init__(self, id='cdef', longname='Channel Definition')
+        if len(index) != len(channel_type) or len(index) != len(association):
+            msg = "Length of channel definition box inputs must be the same."
+            raise IOError(msg)
+
+        # channel types must be one of 0, 1, 2, 65535
+        if any(x not in [0, 1, 2, 65535] for x in channel_type):
+            msg = "Channel types must be in the set of\n\n"
+            msg += "    0     - colour image data for associated color\n"
+            msg += "    1     - opacity\n"
+            msg += "    2     - premultiplied opacity\n"
+            msg += "    65535 - unspecified"
+            raise IOError(msg)
+
+        self.index = index
+        self.channel_type = channel_type
+        self.association = association
         self.__dict__.update(**kwargs)
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         for j in range(len(self.association)):
-            color_type_string = _color_type_map_display[self.component_type[j]]
+            color_type_string = _color_type_map_display[self.channel_type[j]]
             if self.association[j] == 0:
                 assn = 'whole image'
             else:
                 assn = str(self.association[j])
-            msg += '\n    Component {0} ({1}) ==> ({2})'
-            msg = msg.format(self.component_number[j], color_type_string, assn)
+            msg += '\n    Channel {0} ({1}) ==> ({2})'
+            msg = msg.format(self.index[j], color_type_string, assn)
         return msg
+
+    def _write(self, f):
+        """Write a channel definition box to file.
+        """
+        N = len(self.association)
+        f.write(struct.pack('>I', 8 + 2 + N * 6))
+        f.write('cdef'.encode('utf-8'))
+        f.write(struct.pack('>H', N))
+        for j in range(N):
+            f.write(struct.pack('>' + 'H' * 3,
+                                self.index[j],
+                                self.channel_type[j],
+                                self.association[j]))
 
     @staticmethod
     def _parse(f, id, offset, length):
@@ -418,17 +485,17 @@ class ComponentDefinitionBox(Jp2kBox):
         buffer = f.read(2)
         N, = struct.unpack('>H', buffer)
 
-        component_number = []
-        component_type = []
+        index = []
+        chan_type = []
         association = []
 
         buffer = f.read(N * 6)
         data = struct.unpack('>' + 'HHH' * N, buffer)
-        kwargs['component_number'] = data[0:N * 6:3]
-        kwargs['component_type'] = data[1:N * 6:3]
-        kwargs['association'] = data[2:N * 6:3]
+        index = data[0:N * 6:3]
+        channel_type = data[1:N * 6:3]
+        association = data[2:N * 6:3]
 
-        box = ComponentDefinitionBox(**kwargs)
+        box = ChannelDefinitionBox(index, channel_type, association, **kwargs)
         return box
 
 
@@ -524,9 +591,10 @@ class ContiguousCodestreamBox(Jp2kBox):
         List of segments in the codestream header.
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, main_header=[], **kwargs):
         Jp2kBox.__init__(self, id='jp2c', longname='Contiguous Codestream')
         self.__dict__.update(**kwargs)
+        self.main_header = main_header
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -591,8 +659,14 @@ class FileTypeBox(Jp2kBox):
         List of file conformance profiles.
     """
     def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='File Type')
+        Jp2kBox.__init__(self, id='ftyp', longname='File Type')
         self.__dict__.update(**kwargs)
+        if 'brand' not in kwargs.keys():
+            self.brand = 'jp2 '
+        if 'minor_version' not in kwargs.keys():
+            self.minor_version = 0
+        if 'compatibility_list' not in kwargs.keys():
+            self.compatibility_list = ['jp2 ']
 
     def __str__(self):
         lst = [Jp2kBox.__str__(self),
@@ -602,6 +676,18 @@ class FileTypeBox(Jp2kBox):
         msg = msg.format(self.brand, self.compatibility_list)
 
         return msg
+
+    def _write(self, f):
+        """Write a File Type box to file.
+        """
+        length = 16 + 4*len(self.compatibility_list)
+        f.write(struct.pack('>I', length))
+        f.write('ftyp'.encode())
+        f.write(self.brand.encode())
+        f.write(struct.pack('>I', self.minor_version))
+
+        for item in self.compatibility_list:
+            f.write(item.encode())
 
     @staticmethod
     def _parse(f, id, offset, length):
@@ -673,30 +759,68 @@ class ImageHeaderBox(Jp2kBox):
         Bits per component.
     signed : bool
         False if the image components are unsigned.
-    compression : nt
+    compression : int
         The compression type, should be 7 if JP2.
-    cspace_unknown : int
-        0 if the color space is known and correctly specified.
-    ip_provided : int
-        0 if the file does not contain intellectual propery rights information.
+    colorspace_unknown : bool
+        False if the color space is known and correctly specified.
+    ip_provided : bool
+        False if the file does not contain intellectual propery rights
+        information.
     """
-    def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='Image Header')
+    def __init__(self, height, width, num_components=1, signed=False,
+                 bits_per_component=8, compression=7, colorspace_unknown=False,
+                 ip_provided=False, **kwargs):
+        """
+        Examples
+        --------
+        >>> import glymur
+        >>> box = glymur.jp2box.ImageHeaderBox(height=512, width=256)
+        """
+        Jp2kBox.__init__(self, id='ihdr', longname='Image Header')
+        self.height = height
+        self.width = width
+        self.num_components = num_components
+        self.signed = signed
+        self.bits_per_component = bits_per_component
+        self.compression = compression
+        self.colorspace_unknown = colorspace_unknown
+        self.ip_provided = False
         self.__dict__.update(**kwargs)
 
     def __str__(self):
-        lst = [Jp2kBox.__str__(self)]
-        lst.append('Size:  [{0} {1} {2}]'.format(self.height, self.width,
-                                                 self.num_components))
-        lst.append('Bitdepth:  {0}'.format(self.bits_per_component))
-        lst.append('Signed:  {0}'.format(self.signed))
-        if self.compression == 7:
-            lst.append('Compression:  wavelet')
-        if self.cspace_unknown:
-            lst.append('Colorspace Unknown:  True')
-        else:
-            lst.append('Colorspace Unknown:  False')
-        return '\n    '.join(lst)
+        msg = Jp2kBox.__str__(self)
+        msg = "{0}"
+        msg += '\n    Size:  [{1} {2} {3}]'
+        msg += '\n    Bitdepth:  {4}'
+        msg += '\n    Signed:  {5}'
+        msg += '\n    Compression:  {6}'
+        msg += '\n    Colorspace Unknown:  {7}'
+        msg = msg.format(Jp2kBox.__str__(self),
+                         self.height, self.width, self.num_components,
+                         self.bits_per_component,
+                         self.signed,
+                         'wavelet' if self.compression == 7 else 'unknown',
+                         self.colorspace_unknown)
+        return msg
+
+    def _write(self, f):
+        """Write an Image Header box to file.
+        """
+        f.write(struct.pack('>I', 22))
+        f.write('ihdr'.encode())
+
+        # signedness and bps are stored together in a single byte
+        bit_depth_signedness = 0x80 if self.signed else 0x00
+        bit_depth_signedness |= self.bits_per_component - 1
+        buffer = struct.pack('>IIHBBBB',
+                             self.height,
+                             self.width,
+                             self.num_components,
+                             bit_depth_signedness,
+                             self.compression,
+                             1 if self.colorspace_unknown else 0,
+                             1 if self.ip_provided else 0)
+        f.write(buffer)
 
     @staticmethod
     def _parse(f, id, offset, length):
@@ -724,16 +848,16 @@ class ImageHeaderBox(Jp2kBox):
         # Read the box information
         buffer = f.read(14)
         params = struct.unpack('>IIHBBBB', buffer)
-        kwargs['height'] = params[0]
-        kwargs['width'] = params[1]
+        height = params[0]
+        width = params[1]
         kwargs['num_components'] = params[2]
         kwargs['bits_per_component'] = (params[3] & 0x7f) + 1
         kwargs['signed'] = (params[3] & 0x80) > 1
         kwargs['compression'] = params[4]
-        kwargs['cspace_unknown'] = params[5]
-        kwargs['ip_provided'] = params[6]
+        kwargs['colorspace_unknown'] = True if params[5] else False
+        kwargs['ip_provided'] = True if params[6] else False
 
-        box = ImageHeaderBox(**kwargs)
+        box = ImageHeaderBox(height, width, **kwargs)
         return box
 
 
@@ -818,7 +942,7 @@ class JP2HeaderBox(Jp2kBox):
         List of boxes contained in this superbox.
     """
     def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='JP2 Header')
+        Jp2kBox.__init__(self, id='jp2h', longname='JP2 Header')
         self.__dict__.update(**kwargs)
 
     def __str__(self):
@@ -830,6 +954,21 @@ class JP2HeaderBox(Jp2kBox):
             strs = [('\n    ' + x) for x in boxstr.split('\n')]
             msg += ''.join(strs)
         return msg
+
+    def _write(self, f):
+        """Write a JP2 Header box to file.
+        """
+        # Write the contained boxes, then come back and write the length.
+        orig_pos = f.tell()
+        f.write(struct.pack('>I', 0))
+        f.write('jp2h'.encode())
+        for box in self.box:
+            box._write(f)
+
+        end_pos = f.tell()
+        f.seek(orig_pos)
+        f.write(struct.pack('>I', end_pos - orig_pos))
+        f.seek(end_pos)
 
     @staticmethod
     def _parse(f, id, offset, length):
@@ -882,14 +1021,23 @@ class JPEG2000SignatureBox(Jp2kBox):
         Four-byte tuple identifying the file as JPEG 2000.
     """
     def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='JPEG 2000 Signature')
+        Jp2kBox.__init__(self, id='jP  ', longname='JPEG 2000 Signature')
         self.__dict__.update(**kwargs)
+        if 'signature' not in kwargs.keys():
+            self.signature = (13, 10, 135, 10)
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         msg += '\n    Signature:  {:02x}{:02x}{:02x}{:02x}'
         msg = msg.format(*self.signature)
         return msg
+
+    def _write(self, f):
+        """Write a JPEG 2000 Signature box to file.
+        """
+        f.write(struct.pack('>I', 12))
+        f.write(self.id.encode())
+        f.write(struct.pack('>BBBB', *self.signature))
 
     @staticmethod
     def _parse(f, id, offset, length):
@@ -1412,18 +1560,49 @@ class XMLBox(Jp2kBox):
     xml : ElementTree.Element
         XML section.
     """
-    def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='XML')
+    def __init__(self, xml=None, filename=None, **kwargs):
+        """
+        Parameters
+        ----------
+        xml : ElementTree
+            An ElementTree object already existing in python.
+        filename : str
+            File from which to read XML.  If filename is not None, then the xml
+            keyword argument must be None.
+        """
+        Jp2kBox.__init__(self, id='xml ', longname='XML')
+        if filename is not None and xml is not None:
+            msg = "Only one of either filename or xml should be provided."
+            raise IOError(msg)
+        if filename is not None:
+            self.xml = ET.parse(filename)
+        else:
+            self.xml = xml
         self.__dict__.update(**kwargs)
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         xml = self.xml
         if self.xml is not None:
-            msg += _pretty_print_xml(self.xml)
+            try:
+                msg += _pretty_print_xml(self.xml)
+            except TypeError:
+                msg += _pretty_print_xml(self.xml.getroot())
         else:
             msg += '\n    {0}'.format(xml)
         return msg
+
+    def _write(self, f):
+        """Write an XML box to file.
+        """
+        try:
+            buffer = ET.tostring(self.xml, encoding='utf-8')
+        except AttributeError:
+            buffer = ET.tostring(self.xml.getroot(), encoding='utf-8')
+
+        f.write(struct.pack('>I', len(buffer) + 8))
+        f.write(self.id.encode())
+        f.write(buffer)
 
     @staticmethod
     def _parse(f, id, offset, length):
@@ -2273,7 +2452,7 @@ class _ExifInteroperabilityIfd(_Ifd):
 # Map each box ID to the corresponding class.
 _box_with_id = {
     'asoc': AssociationBox,
-    'cdef': ComponentDefinitionBox,
+    'cdef': ChannelDefinitionBox,
     'cmap': ComponentMappingBox,
     'colr': ColourSpecificationBox,
     'jP  ': JPEG2000SignatureBox,

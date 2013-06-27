@@ -175,7 +175,7 @@ class Codestream(object):
                     segment = self._parseGenericSegment(f, marker_id)
 
             else:
-                msg = 'Invalid marker id encountered at byte {0:d}'
+                msg = 'Invalid marker id encountered at byte {0:d} '
                 msg += 'in codestream:  "0x{1:x}"'
                 msg = msg.format(offset, marker_id)
                 raise IOError(msg)

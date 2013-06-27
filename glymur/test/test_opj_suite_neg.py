@@ -11,7 +11,7 @@ import warnings
 import numpy as np
 import pkg_resources
 
-from ..lib import openjp2 as opj2
+from glymur.lib import openjp2 as opj2
 
 # Need some combination of matplotlib, PIL, or scikits-image for reading
 # other image formats.

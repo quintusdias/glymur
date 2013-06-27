@@ -16,8 +16,8 @@ import warnings
 import numpy as np
 
 from .codestream import Codestream
-from .core import progression_order
-from .jp2box import Jp2kBox
+from .core import *
+from .jp2box import *
 from .lib import openjp2 as opj2
 
 _cspace_map = {'rgb': opj2._CLRSPC_SRGB,
@@ -141,7 +141,7 @@ class Jp2k(Jp2kBox):
     def write(self, img_array, cratios=None, eph=False, psnr=None, numres=None,
               cbsize=None, psizes=None, grid_offset=None, sop=False,
               subsam=None, tilesize=None, prog=None, modesw=None,
-              colorspace=None, verbose=False):
+              colorspace=None, verbose=False, mct=None):
         """Write image data to a JP2/JPX/J2k file.  Intended usage of the
         various parameters follows that of OpenJPEG's opj_compress utility.
 
@@ -167,6 +167,9 @@ class Jp2k(Jp2kBox):
             If true, write SOP marker after each header packet.
         grid_offset : tuple, optional
             Offset (DY, DX) of the origin of the image in the reference grid.
+        mct : bool, optional
+            Specifies usage of the multi component transform.  If not
+            specified, defaults to True if the colorspace is RGB.
         modesw : int, optional
             Mode switch.
                 1 = BYPASS(LAZY)
@@ -336,6 +339,18 @@ class Jp2k(Jp2kBox):
             else:
                 colorspace = _cspace_map[colorspace]
 
+        if mct is None:
+            if colorspace == opj2._CLRSPC_SRGB:
+                cparams.tcp_mct = 1
+            else:
+                cparams.tcp_mct = 0
+        else:
+            if mct and colorspace == opj2._CLRSPC_GRAY:
+                msg = "Cannot specify usage of the multi component transform "
+                msg += "if the colorspace is gray."
+                raise IOError(msg)
+            cparams.tcp_mct = 1 if mct else 0
+
         if img_array.dtype == np.uint8:
             comp_prec = 8
         elif img_array.dtype == np.uint16:
@@ -372,12 +387,6 @@ class Jp2k(Jp2kBox):
             src = layer.ctypes.data
             ctypes.memmove(dest, src, layer.nbytes)
 
-        # set multi-component transform?
-        if image.contents.numcomps == 3:
-            cparams.tcp_mct = 1
-        else:
-            cparams.tcp_mct = 0
-
         codec = opj2._create_compress(codec_fmt)
 
         if verbose:
@@ -397,6 +406,143 @@ class Jp2k(Jp2kBox):
         opj2._image_destroy(image)
 
         self._parse()
+
+    def wrap(self, filename, boxes=None):
+        """Write the codestream back out to file, wrapped in new JP2 jacket.
+
+        Parameters
+        ----------
+        filename : str
+            JP2 file to be created from a raw codestream.
+        boxes : list
+            JP2 box definitions to define the JP2 file format.  If not
+            provided, a default ""jacket" is assumed, consisting of JP2
+            signature, file type, JP2 header, and contiguous codestream boxes.
+
+        Returns
+        -------
+        jp2 : Jp2k object
+            Newly wrapped Jp2k object.
+
+        Examples
+        --------
+        >>> import glymur, tempfile
+        >>> jfile = glymur.data.goodstuff()
+        >>> j2k = glymur.Jp2k(jfile)
+        >>> tfile = tempfile.NamedTemporaryFile(suffix='jp2')
+        >>> jp2 = j2k.wrap(tfile.name)
+        """
+        if boxes is None:
+            # Try to create a reasonable default.
+            boxes = [JPEG2000SignatureBox(),
+                     FileTypeBox(),
+                     JP2HeaderBox(),
+                     ContiguousCodestreamBox()]
+            c = self.get_codestream()
+            height = c.segment[1].Ysiz
+            width = c.segment[1].Xsiz
+            num_components = len(c.segment[1].XRsiz)
+            boxes[2].box = [ImageHeaderBox(height=height,
+                                           width=width,
+                                           num_components=num_components),
+                            ColourSpecificationBox(colorspace=SRGB)]
+
+        # Check for a bad sequence of boxes.
+        # 1st two boxes must be 'jP  ' and 'ftyp'
+        if boxes[0].id != 'jP  ' or boxes[1].id != 'ftyp':
+            msg = "The first box must be the signature box and the second "
+            msg += "must be the file type box."
+            raise IOError(msg)
+
+        # jp2c must be preceeded by jp2h
+        jp2h_lst = [idx for (idx, box) in enumerate(boxes) if box.id == 'jp2h']
+        jp2h_idx = jp2h_lst[0]
+        jp2c_lst = [idx for (idx, box) in enumerate(boxes) if box.id == 'jp2c']
+        if len(jp2c_lst) == 0:
+            msg = "A codestream box must be defined in the outermost "
+            msg += "list of boxes."
+            raise IOError(msg)
+
+        jp2c_idx = jp2c_lst[0]
+        if jp2h_idx >= jp2c_idx:
+            msg = "The codestream box must be preceeded by a jp2 header box."
+            raise IOError(msg)
+
+        # 1st jp2 header box must be ihdr
+        jp2h = boxes[jp2h_idx]
+        if jp2h.box[0].id != 'ihdr':
+            msg = "The first box in the jp2 header box must be the image "
+            msg += "header box."
+            raise IOError(msg)
+
+        # colr must be present in jp2 header box.
+        jp2hb = jp2h.box
+        colr_lst = [j for (j, box) in enumerate(jp2h.box) if box.id == 'colr']
+        if len(colr_lst) == 0:
+            msg = "The jp2 header box must contain a color definition box."
+            raise IOError(msg)
+        colr = jp2h.box[colr_lst[0]]
+
+        # Any cdef box must be in the jp2 header following the image header.
+        cdef_lst = [j for (j, box) in enumerate(boxes) if box.id == 'cdef']
+        if len(cdef_lst) != 0:
+            msg = "Any channel defintion box must be in the JP2 header "
+            msg += "following the image header."
+            raise IOError(msg)
+
+        cdef_lst = [j for (j, box) in enumerate(jp2h.box) if box.id == 'cdef']
+        if len(cdef_lst) > 1:
+            msg = "Only one channel definition box is allowed in the "
+            msg += "JP2 header."
+            raise IOError(msg)
+        elif len(cdef_lst) == 1:
+            cdef = jp2h.box[cdef_lst[0]]
+            assn = cdef.association
+            typ = cdef.channel_type
+            index = cdef.index
+            if colr.colorspace == SRGB:
+                if any([chan + 1 not in assn or typ[chan] != 0
+                        for chan in [0, 1, 2]]):
+                    msg = "All color channels must be defined in the "
+                    msg += "channel definition box."
+                    raise IOError(msg)
+            elif colr.colorspace == GREYSCALE:
+                if 0 not in typ:
+                    msg = "All color channels must be defined in the "
+                    msg += "channel definition box."
+                    raise IOError(msg)
+
+        with open(filename, 'wb') as ofile:
+            for box in boxes:
+                if box.id != 'jp2c':
+                    box._write(ofile)
+                else:
+                    # The codestream gets written last.
+                    if len(self.box) == 0:
+                        # Am I a raw codestream?  If so, then it is pretty
+                        # easy, just write the codestream box header plus all
+                        # of myself out to file.
+                        ofile.write(struct.pack('>I', self.length + 8))
+                        ofile.write('jp2c'.encode())
+                        with open(self.filename, 'rb') as ifile:
+                            ofile.write(ifile.read())
+                    else:
+                        # OK, I'm a jp2 file.  Need to find out where the
+                        # raw codestream actually starts.
+                        jp2c = [box for box in self.box if box.id == 'jp2c']
+                        jp2c = jp2c[0]
+                        ofile.write(struct.pack('>I', jp2c.length + 8))
+                        ofile.write('jp2c'.encode())
+                        with open(self.filename, 'rb') as ifile:
+                            # Seek 8 bytes past the L, T fields to get to the
+                            # raw codestream.
+                            ifile.seek(jp2c.offset + 8)
+                            ofile.write(ifile.read(jp2c.length - 8))
+
+            ofile.flush()
+
+        jp2 = Jp2k(filename)
+        return jp2
 
     def read(self, reduce=0, layer=0, area=None, tile=None, verbose=False):
         """Read a JPEG 2000 image.

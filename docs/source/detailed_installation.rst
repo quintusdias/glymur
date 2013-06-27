@@ -56,6 +56,27 @@ repositories::
     $ pip-python3 install Pillow --user
     $ export PYTHONPATH=$HOME/.local/lib/python3.3/site-packages:$PYTHONPATH
 
+Raspbian
+''''''''
+Yeah, this was the first thing I tried after getting my new Raspberry Pi hooked
+up (couldn't help myself :-)  Raspbian ships with Python 3.2 and 2.7, so these steps detail working with 2.7.
+
+Additional required OS packages include::
+
+    * python-pip
+    * python-pkg-resources
+    * python-mock
+
+You must install contextlib2 via pip, and then you can run at least
+a minimal number of tests.  To attempt to run more of the tests,
+install the following debs::
+
+    * python-dev
+    * python-matplotlib
+
+and then install Pillow via pip.  The tests take about 30 minutes to run, with
+one unexpected failure as of the time of writing.
+
 Fedora 17
 '''''''''
 Fedora 17 ships with Python 3.2 and 2.7, so these steps detail working with 
@@ -77,8 +98,8 @@ combinations of RPMs / Python packages is installed.
       * scikit-image and either Pillow or freeimage
       * matplotlib and Pillow
 
-scikit-image is not available in the Fedora 17 default repositories, but 
-it may be installed via pip::
+scikit-image was not available in the Fedora 17 default repositories, but 
+it was installable via pip::
 
     $ yum install Cython       # pip needs this in order to compile scikit-image
     $ yum install python-devel # pip needs this in order to compile scikit-image
@@ -96,7 +117,13 @@ Not currently supported.
 Testing
 '''''''
 
-If you wish to run the tests (strongly suggested :-), try the following
+If you wish to run the tests (strongly suggested :-), you can either run them
+from within python as follows ... ::
+
+    >>> import glymur
+    >>> glymur.runtests()
+
+or from the unix command line. ::
 
     $ cd /to/where/you/unpacked/glymur
     $ python -m unittest discover
