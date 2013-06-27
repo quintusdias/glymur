@@ -426,11 +426,11 @@ class Jp2k(Jp2kBox):
 
         Examples
         --------
-        >>> import glymur, tempfile 
+        >>> import glymur, tempfile
         >>> jfile = glymur.data.goodstuff()
         >>> j2k = glymur.Jp2k(jfile)
         >>> tfile = tempfile.NamedTemporaryFile(suffix='jp2')
-        >>> j2k.wrap(tfile.name)
+        >>> jp2 = j2k.wrap(tfile.name)
         """
         if boxes is None:
             # Try to create a reasonable default.
@@ -446,9 +446,9 @@ class Jp2k(Jp2kBox):
                                            width=width,
                                            num_components=num_components),
                             ColourSpecificationBox(colorspace=SRGB)]
-        
+
         # Check for a bad sequence of boxes.
-        # 1st two boxes must be 'jP  ' and 'ftyp' 
+        # 1st two boxes must be 'jP  ' and 'ftyp'
         if boxes[0].id != 'jP  ' or boxes[1].id != 'ftyp':
             msg = "The first box must be the signature box and the second "
             msg += "must be the file type box."
@@ -501,7 +501,8 @@ class Jp2k(Jp2kBox):
             typ = cdef.channel_type
             index = cdef.index
             if colr.colorspace == SRGB:
-                if any([chan + 1 not in assn or typ[chan] != 0 for chan in [0, 1, 2]]):
+                if any([chan + 1 not in assn or typ[chan] != 0
+                        for chan in [0, 1, 2]]):
                     msg = "All color channels must be defined in the "
                     msg += "channel definition box."
                     raise IOError(msg)
@@ -542,7 +543,6 @@ class Jp2k(Jp2kBox):
 
         jp2 = Jp2k(filename)
         return jp2
-
 
     def read(self, reduce=0, layer=0, area=None, tile=None, verbose=False):
         """Read a JPEG 2000 image.
