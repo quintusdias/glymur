@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 import sys
 
 kwargs = {'name': 'Glymur',
-          'version': '0.1.9',
+          'version': '0.1.10',
           'description': 'Tools for accessing JPEG2000 files',
           'long_description': open('README.md').read(),
           'author': 'John Evans',
@@ -10,7 +10,7 @@ kwargs = {'name': 'Glymur',
           'url': 'https://github.com/quintusdias/glymur',
           'packages': ['glymur', 'glymur.data', 'glymur.test', 'glymur.lib',
                        'glymur.lib.test'],
-          'package_data': {'glymur': ['data/*.jp2']},
+          'package_data': {'glymur': ['data/*.jp2', 'data/*.j2k']},
           'scripts': ['bin/jp2dump'],
           'license': 'LICENSE.txt',
           'platforms': ['darwin']}

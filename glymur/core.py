@@ -98,32 +98,92 @@ _capabilities_display = {
     3: '3'}
 
 # Reader requirements
-RREQ_UNRESTRICTED_JPEG2000_PART_1 = 5
-RREQ_UNRESTRICTED_JPEG2000_PART_2 = 6
-RREQ_CMYK_ENUMERATED_COLORSPACE = 55
-RREQ_CMYK_ENUMERATED_COLORSPACE = 55
-RREQ_E_SRGB_ENUMERATED_COLORSPACE = 60
-RREQ_ROMM_RGB_ENUMERATED_COLORSPACE = 61
+#RREQ_UNRESTRICTED_JPEG2000_PART_1 = 5
+#RREQ_UNRESTRICTED_JPEG2000_PART_2 = 6
+#RREQ_CMYK_ENUMERATED_COLORSPACE = 55
+#RREQ_E_SRGB_ENUMERATED_COLORSPACE = 60
+#RREQ_ROMM_RGB_ENUMERATED_COLORSPACE = 61
 _reader_requirements_display = {
     0:  'File not completely understood',
     1:  'Deprecated',
     2:  'Contains multiple composition layers',
     3:  'Deprecated',
     4:  'JPEG 2000 Part 1 Profile 1 codestream',
-    RREQ_UNRESTRICTED_JPEG2000_PART_1:
-        'Unrestricted JPEG 2000 Part 1 codestream, ITU-T Rec. T.800 '
+    5:  'Unrestricted JPEG 2000 Part 1 codestream, ITU-T Rec. T.800 '
         + '| ISO/IEC 15444-1',
-    RREQ_UNRESTRICTED_JPEG2000_PART_2:
-        'Unrestricted JPEG 2000 Part 2 codestream',
-    7: 'JPEG codestream as defined in ISO/IEC 10918-1',
+    6:  'Unrestricted JPEG 2000 Part 2 codestream',
+    7:  'JPEG codestream as defined in ISO/IEC 10918-1',
     8:  'Deprecated',
     9:  'Non-premultiplied opacity channel',
     10:  'Premultiplied opacity channel',
+    11:  'Chroma-key based opacity',
     12:  'Deprecated',
+    13:  'Fragmented codestream where all fragments are in file and in order',
+    14:  'Fragmented codestream where all fragments are in file '
+         + 'but are out of order',
+    15:  'Fragmented codestream where not all fragments are within the file '
+         + 'but are all in locally accessible files',
+    16:  'Fragmented codestream where some fragments may be accessible '
+         + 'only through a URL specified network connection',
+    17:  'Compositing required to produce rendered result from multiple '
+         + 'compositing layers',
     18:  'Deprecated',
+    19:  'Deprecated',
+    20:  'Deprecated',
+    21:  'At least one compositing layer consists of multiple codestreams',
+    22:  'Deprecated',
+    23:  'Colourspace transformations are required to combine compositing '
+         + 'layers; not all compositing layers are in the same colourspace',
+    24:  'Deprecated',
+    25:  'Deprecated',
+    26:  'First animation layer does not cover entire rendered result',
+    27:  'Deprecated',
+    28:  'Reuse of animation layers',
+    29:  'Deprecated',
+    30:  'Some animated frames are non-persistent',
+    31:  'Deprecated',
+    32:  'Rendered result involves scaling within a layer',
+    33:  'Rendered result involves scaling between layers',
+    34:  'ROI metadata',
+    35:  'IPR metadata',
+    36:  'Content metadata',
+    37:  'History metadata',
+    38:  'Creation metadata',
+    39:  'JPX digital signatures',
+    40:  'JPX checksums',
+    41:  'Desires Graphics Arts Reproduction specified',
+    42:  'Deprecated',
     43:  '(Deprecated) compositing layer uses restricted ICC profile',
     44:  'Compositing layer uses Any ICC profile',
     45:  'Deprecated',
-    RREQ_CMYK_ENUMERATED_COLORSPACE: 'CMYK enumerated colorspace',
-    RREQ_E_SRGB_ENUMERATED_COLORSPACE: 'e-sRGB enumerated colorspace',
-    RREQ_ROMM_RGB_ENUMERATED_COLORSPACE: 'ROMM_RGB enumerated colorspace'}
+    46:  'Deprecated',
+    47:  'BiLevel 1 enumerated colourspace',
+    48:  'BiLevel 2 enumerated colourspace',
+    49:  'YCbCr 1 enumerated colourspace',
+    50:  'YCbCr 2 enumerated colourspace',
+    51:  'YCbCr 3 enumerated colourspace',
+    52:  'PhotoYCC enumerated colourspace',
+    53:  'YCCK enumerated colourspace',
+    54:  'CMY enumerated colourspace',
+    55: 'CMYK enumerated colorspace',
+    56:  'CIELab enumerated colourspace with default parameters',
+    57:  'CIELab enumerated colourspace with non-default parameters',
+    58:  'CIEJab enumerated colourspace with default parameters',
+    59:  'CIEJab enumerated colourspace with non-default parameters',
+    60: 'e-sRGB enumerated colorspace',
+    61: 'ROMM_RGB enumerated colorspace',
+    62:  'Non-square samples',
+    63:  'Deprecated',
+    64:  'Deprecated',
+    65:  'Deprecated',
+    66:  'Deprecated',
+    67:  'GIS metadata XML box',
+    68:  'JPSEC extensions in codestream as specified by ISO/IEC 15444-8',
+    69:  'JP3D extensions in codestream as specified by ISO/IEC 15444-10',
+    70:  'Deprecated',
+    71:  'e-sYCC enumerated colourspace',
+    72:  'JPEG 2000 Part 2 codestream as restricted by baseline conformance '
+         + 'requirements in M.9.2.3',
+    73:  'YPbPr(1125/60) enumerated colourspace',
+    74:  'YPbPr(1250/50) enumerated colourspace'}
+
