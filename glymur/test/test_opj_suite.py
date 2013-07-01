@@ -4376,8 +4376,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[1].minor_version, 0)
 
         # Reader requirements talk.
-        self.assertTrue(glymur.core.RREQ_E_SRGB_ENUMERATED_COLORSPACE
-                        in jp2.box[2].standard_flag)
+        # e-SRGB enumerated colourspace
+        self.assertTrue(60 in jp2.box[2].standard_flag)
 
         # Jp2 Header
         # Image header
@@ -6375,8 +6375,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[1].compatibility_list[2], 'jpx ')
 
         # Reader requirements talk.
-        self.assertTrue(glymur.core.RREQ_UNRESTRICTED_JPEG2000_PART_1
-                        in jp2.box[2].standard_flag)
+        # unrestricted jpeg 2000 part 1
+        self.assertTrue(5 in jp2.box[2].standard_flag)
 
         # Jp2 Header
         # Image header
@@ -6586,8 +6586,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[1].compatibility_list[2], 'jpx ')
 
         # Reader requirements talk.
-        self.assertTrue(glymur.core.RREQ_UNRESTRICTED_JPEG2000_PART_1
-                        in jp2.box[2].standard_flag)
+        # unrestricted jpeg 2000 part 1
+        self.assertTrue(5 in jp2.box[2].standard_flag)
 
         # Jp2 Header
         # Image header
@@ -6802,8 +6802,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[1].compatibility_list[2], 'jpx ')
 
         # Reader requirements talk.
-        self.assertTrue(glymur.core.RREQ_CMYK_ENUMERATED_COLORSPACE
-                        in jp2.box[2].standard_flag)
+        # cmyk colourspace
+        self.assertTrue(55 in jp2.box[2].standard_flag)
 
         # Jp2 Header
         # Image header
@@ -6916,8 +6916,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[1].compatibility_list[2], 'jpx ')
 
         # Reader requirements talk.
-        self.assertTrue(glymur.core.RREQ_UNRESTRICTED_JPEG2000_PART_1
-                        in jp2.box[2].standard_flag)
+        # unrestricted jpeg 2000 part 1
+        self.assertTrue(5 in jp2.box[2].standard_flag)
 
         # Jp2 Header
         # Image header
