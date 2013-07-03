@@ -11,9 +11,8 @@ if os.name == "nt":
 else:
     if platform.system() == 'Darwin':
         _OPENJPEG = ctypes.CDLL('/opt/local/lib/libopenjpeg.dylib')
-if _OPENJPEG is None:
-    # Make one last attempt.  Does the system know where it is?
-    _OPENJPEG = find_library('openjpeg')
+    elif platform.system() == 'Linux':
+        _OPENJPEG = ctypes.CDLL(find_library('openjpeg'))
 
 OPJ_PATH_LEN = 4096  # maximum allowed size for filenames
 
