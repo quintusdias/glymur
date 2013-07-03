@@ -186,4 +186,3 @@ _reader_requirements_display = {
          + 'requirements in M.9.2.3',
     73:  'YPbPr(1125/60) enumerated colourspace',
     74:  'YPbPr(1250/50) enumerated colourspace'}
-

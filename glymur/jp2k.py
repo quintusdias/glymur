@@ -18,6 +18,7 @@ import numpy as np
 from .codestream import Codestream
 from .core import *
 from .jp2box import *
+from .lib import openjpeg as opj
 from .lib import openjp2 as opj2
 
 _cspace_map = {'rgb': opj2._CLRSPC_SRGB,
@@ -544,16 +545,17 @@ class Jp2k(Jp2kBox):
         jp2 = Jp2k(filename)
         return jp2
 
-    def read(self, reduce=0, layer=0, area=None, tile=None, verbose=False):
+    def read(self, **kwargs):
         """Read a JPEG 2000 image.
 
         Parameters
         ----------
-        layer : int, optional
-            Number of quality layer to decode.
         reduce : int, optional
             Factor by which to reduce output resolution.  Use -1 to get the
-            lowest resolution thumbnail.
+            lowest resolution thumbnail.  This is the only keyword option
+            available to use when only OpenJPEG version 1.5.1 is present.
+        layer : int, optional
+            Number of quality layer to decode.
         area : tuple, optional
             Specifies decoding image area,
             (first_row, first_col, last_row, last_col)
@@ -586,6 +588,62 @@ class Jp2k(Jp2kBox):
         >>> thumbnail = jp.read(reduce=-1)
         >>> thumbnail.shape
         (46, 81, 3)
+        """
+        if opj2._OPENJP2 is not None:
+            img_array = self._read_openjp2(**kwargs)
+        else:
+            img_array = self._read_openjpeg(**kwargs)
+        return img_array
+
+    def _read_openjpeg(self, reduce=0):
+        """Read a JPEG 2000 image using libopenjpeg.
+
+        Parameters
+        ----------
+        reduce : int, optional
+            Factor by which to reduce output resolution.  Use -1 to get the
+            lowest resolution thumbnail.
+
+        Returns
+        -------
+        img_array : ndarray
+            The image data.
+
+        Raises
+        ------
+        IOError
+            If the image has differing subsample factors.
+        """
+        raise NotImplementedError("not there yet")
+
+    def _read_openjp2(self, reduce=0, layer=0, area=None, tile=None,
+                      verbose=False):
+        """Read a JPEG 2000 image using libopenjp2.
+
+        Parameters
+        ----------
+        layer : int, optional
+            Number of quality layer to decode.
+        reduce : int, optional
+            Factor by which to reduce output resolution.  Use -1 to get the
+            lowest resolution thumbnail.
+        area : tuple, optional
+            Specifies decoding image area,
+            (first_row, first_col, last_row, last_col)
+        tile : int, optional
+            Number of tile to decode.
+        verbose : bool, optional
+            Print informational messages produced by the OpenJPEG library.
+
+        Returns
+        -------
+        img_array : ndarray
+            The image data.
+
+        Raises
+        ------
+        IOError
+            If the image has differing subsample factors.
         """
         # Check for differing subsample factors.
         codestream = self.get_codestream(header_only=True)
