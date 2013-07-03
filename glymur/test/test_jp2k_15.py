@@ -42,6 +42,10 @@ class TestJp2k15(unittest.TestCase):
         # Verbose option not allowed for 1.5.1.
         self.assertTrue(False)
 
+    def test_differing_subsampling(self):
+        # Only images with same subsampling is allowed.
+        self.assertTrue(False)
+
 
 if __name__ == "__main__":
     unittest.main()
