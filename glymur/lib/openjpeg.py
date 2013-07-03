@@ -7,7 +7,9 @@ import platform
 import os
 
 if os.name == "nt":
-    _OPENJPEG = ctypes.windll.LoadLibrary('openjpeg')
+    path = os.path.join('C:\\', 'Program files', 'OpenJPEG 1.5',
+                        'bin', 'openjpeg.dll')
+    _OPENJPEG = ctypes.windll.LoadLibrary(path)
 else:
     if platform.system() == 'Darwin':
         _OPENJPEG = ctypes.CDLL('/opt/local/lib/libopenjpeg.dylib')
