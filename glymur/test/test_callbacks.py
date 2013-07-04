@@ -21,8 +21,8 @@ class TestCallbacks(unittest.TestCase):
         # Save sys.stdout.
         self.stdout = sys.stdout
         sys.stdout = StringIO()
-        self.jp2file = pkg_resources.resource_filename(glymur.__name__,
-                                                       "data/nemo.jp2")
+        self.jp2file = glymur.data.nemo()
+        self.j2kfile = glymur.data.goodstuff()
 
     def tearDown(self):
         # Restore stdout.
@@ -44,20 +44,16 @@ class TestCallbacks(unittest.TestCase):
     def test_info_warning_callbacks_on_read(self):
         # Verify that we get the expected stdio output when our internal info
         # callback handler is enabled.
-        j = glymur.Jp2k(self.jp2file)
-        d = j.read(reduce=3, verbose=True, area=(0, 0, 512, 1024))
+        j = glymur.Jp2k(self.j2kfile)
+        d = j.read(reduce=1, verbose=True, area=(0, 0, 200, 150))
         actual = sys.stdout.getvalue().strip()
 
-        lines = ['[INFO] Start to read j2k main header (3135).',
+        lines = ['[INFO] Start to read j2k main header (0).',
                  '[INFO] Main header has been correctly decoded.',
-                 '[INFO] Setting decoding area to 0,0,1024,512',
-                 '[INFO] Header of tile 0 / 17 has been read.',
-                 '[INFO] Tile 1/18 has been decoded.',
-                 '[INFO] Image data has been updated with tile 1.',
-                 '[INFO] Header of tile 1 / 17 has been read.',
-                 '[INFO] Tile 2/18 has been decoded.',
-                 '[INFO] Image data has been updated with tile 2.',
-                 '[INFO] Stream reached its end !']
+                 '[INFO] Setting decoding area to 0,0,150,200',
+                 '[INFO] Header of tile 0 / 0 has been read.',
+                 '[INFO] Tile 1/1 has been decoded.',
+                 '[INFO] Image data has been updated with tile 1.']
 
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)

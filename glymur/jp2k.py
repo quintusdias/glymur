@@ -203,7 +203,7 @@ class Jp2k(Jp2kBox):
         >>> import glymur
         >>> jfile = glymur.data.nemo()
         >>> jp2 = glymur.Jp2k(jfile)
-        >>> data = jp2.read(reduce=3)
+        >>> data = jp2.read(reduce=1)
         >>> from tempfile import NamedTemporaryFile
         >>> tfile = NamedTemporaryFile(suffix='.jp2', delete=False)
         >>> j = Jp2k(tfile.name, mode='wb')
@@ -587,7 +587,7 @@ class Jp2k(Jp2kBox):
 
         >>> thumbnail = jp.read(reduce=-1)
         >>> thumbnail.shape
-        (46, 81, 3)
+        (728, 1296, 3)
         """
         if opj2._OPENJP2 is not None:
             img_array = self._read_openjp2(**kwargs)
@@ -930,14 +930,14 @@ class Jp2k(Jp2kBox):
         --------
         >>> import glymur
         >>> jfile = glymur.data.nemo()
-        >>> jp = glymur.Jp2k(jfile)
-        >>> codestream = jp.get_codestream()
+        >>> jp2 = glymur.Jp2k(jfile)
+        >>> codestream = jp2.get_codestream()
         >>> print(codestream.segment[1])
         SIZ marker segment @ (3137, 47)
             Profile:  2
             Reference Grid Height, Width:  (1456 x 2592)
             Vertical, Horizontal Reference Grid Offset:  (0 x 0)
-            Reference Tile Height, Width:  (512 x 512)
+            Reference Tile Height, Width:  (1456 x 2592)
             Vertical, Horizontal Reference Tile Offset:  (0 x 0)
             Bitdepth:  (8, 8, 8)
             Signed:  (False, False, False)

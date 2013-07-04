@@ -74,10 +74,8 @@ class TestJp2k(unittest.TestCase):
         os.unlink(cls._bad_xml_file)
 
     def setUp(self):
-        self.jp2file = pkg_resources.resource_filename(glymur.__name__,
-                                                       "data/nemo.jp2")
-        self.j2kfile = pkg_resources.resource_filename(glymur.__name__,
-                                                       "data/goodstuff.j2k")
+        self.jp2file = glymur.data.nemo()
+        self.j2kfile = glymur.data.goodstuff()
 
     def tearDown(self):
         pass
@@ -92,11 +90,11 @@ class TestJp2k(unittest.TestCase):
 
     def test_reduce_max(self):
         # Verify that reduce=-1 gets us the lowest resolution image
-        j = Jp2k(self.jp2file)
+        j = Jp2k(self.j2kfile)
         thumbnail1 = j.read(reduce=-1)
         thumbnail2 = j.read(reduce=5)
         np.testing.assert_array_equal(thumbnail1, thumbnail2)
-        self.assertEqual(thumbnail1.shape, (46, 81, 3))
+        self.assertEqual(thumbnail1.shape, (25, 15, 3))
 
     def test_invalid_xml_box(self):
         # Should be able to recover from xml box with bad xml.
@@ -145,15 +143,6 @@ class TestJp2k(unittest.TestCase):
             filename = 'this file does not actually exist on the file system.'
             jp2k = Jp2k(filename)
 
-    def test_nemo_tile(self):
-        # Issue 134, trouble reading first nemo tile.
-        j = Jp2k(self.jp2file)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            tiledata = j.read(tile=0)
-        subsetdata = j.read(area=(0, 0, 512, 512))
-        np.testing.assert_array_equal(tiledata, subsetdata)
-
     def test_write_srgb_without_mct(self):
         j2k = Jp2k(self.j2kfile)
         expdata = j2k.read()
@@ -178,7 +167,7 @@ class TestJp2k(unittest.TestCase):
     def test_write_cprl(self):
         # Issue 17
         j = Jp2k(self.jp2file)
-        expdata = j.read(reduce=2)
+        expdata = j.read(reduce=1)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             ofile = Jp2k(tfile.name, 'wb')
             ofile.write(expdata, prog='CPRL')
@@ -220,7 +209,7 @@ class TestJp2k(unittest.TestCase):
 
         self.assertEqual(jp2k.box[5].id, 'jp2c')
         self.assertEqual(jp2k.box[5].offset, 3127)
-        self.assertEqual(jp2k.box[5].length, 1133427)
+        self.assertEqual(jp2k.box[5].length, 1132296)
 
         # jp2h super box
         self.assertEqual(len(jp2k.box[2].box), 2)
@@ -540,7 +529,7 @@ class TestJp2k(unittest.TestCase):
     def test_asoc_label_box(self):
         # Construct a fake file with an asoc and a label box, as
         # OpenJPEG doesn't have such a file.
-        data = Jp2k(self.jp2file).read(reduce=3)
+        data = Jp2k(self.jp2file).read(reduce=1)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             j = Jp2k(tfile.name, 'wb')
             j.write(data)
