@@ -21,9 +21,7 @@ except:
 
 @unittest.skipIf(glymur.lib.openjpeg._OPENJPEG is None,
                  "Missing openjpeg library.")
-@unittest.skipIf(data_root is None,
-                 "OPJ_DATA_ROOT environment variable not set")
-class TestNegative(unittest.TestCase):
+class TestJp2k(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -44,8 +42,7 @@ class TestNegative(unittest.TestCase):
 
     def test_bands(self):
         # Reading individual bands is an advanced maneuver.
-        jfile = os.path.join(data_root, 'input/conformance/p0_05.j2k')
-        jp2k = Jp2k(jfile)
+        jp2k = Jp2k(self.j2kfile)
         with self.assertRaises(NotImplementedError) as ce:
             jpdata = jp2k.read_bands()
 
@@ -66,6 +63,13 @@ class TestNegative(unittest.TestCase):
         j2k = Jp2k(self.j2kfile)
         with self.assertRaises(TypeError) as ce:
             d = j2k.read(layer=1)
+
+    def test_basic(self):
+        # This test is only useful when openjp2 is not available
+        # and OPJ_DATA_ROOT is not set.  We need at least one
+        # working read test.
+        j2k = Jp2k(self.j2kfile)
+        d = j2k.read()
 
 
 @unittest.skipIf(glymur.lib.openjpeg._OPENJPEG is None,
