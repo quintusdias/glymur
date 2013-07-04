@@ -1,5 +1,6 @@
 from .test_callbacks import TestCallbacks as callbacks
 from .test_codestream import TestCodestream as codestream
+from .test_config import TestSuite as config
 from .test_jp2k import TestJp2k as jp2k
 from .test_jp2k_15 import TestSuite as jp2k15
 from .test_icc import TestICC as icc
