@@ -58,8 +58,9 @@ repositories::
 
 Raspbian
 ''''''''
-Yeah, this was the first thing I tried after getting my new Raspberry Pi hooked
-up (couldn't help myself :-)  Raspbian ships with Python 3.2 and 2.7, so these steps detail working with 2.7.
+Yeah, this was the first thing I tried after getting my new Raspberry
+Pi hooked up (couldn't help myself :-)  Raspbian ships with Python
+3.2 and 2.7, so these steps detail working with 2.7.
 
 Additional required OS packages include::
 
@@ -79,8 +80,8 @@ one unexpected failure as of the time of writing.
 
 Fedora 17
 '''''''''
-Fedora 17 ships with Python 3.2 and 2.7, so these steps detail working with 
-2.7.  
+Fedora 17 ships with Python 3.2 and 2.7, but OpenJPEG is only at version 1.4,
+so these steps detail working with Python 2.7 and the svn version of OpenJPEG.
 
 Required RPMs include::
 
@@ -111,7 +112,10 @@ it was installable via pip::
 
 Windows
 -------
-Not currently supported.
+The only configuration I've tested is Python(xy), which uses Python 2.7.  
+Python(xy) already comes with numpy, but you will have to install pip and then
+contextlib2 as well.  This configuration assumes you've installed OpenJPEG 
+1.5.1.
 
 '''''''
 Testing

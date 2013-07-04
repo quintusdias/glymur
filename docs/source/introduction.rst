@@ -2,14 +2,9 @@
 Glymur: a Python interface for JPEG 2000
 ----------------------------------------
 
-**Glymur** contains a Python interface to the OpenJPEG library
-which allows linux and mac users to read and write JPEG 2000 files.  For more
-information about OpenJPEG, please consult http://www.openjpeg.org.  Glymur
-currently relies upon a development version of the OpenJPEG library, and so,
-while useable, it is totally at the mercy of any upstream changes
-made to the development version of OpenJPEG.
-
-Glymur supports both reading and writing of JPEG 2000 images (part 1).  Writing
+**Glymur** is an interface to the OpenJPEG library
+which allows one to read and write JPEG 2000 files from within Python.  
+Glymur supports both reading and writing of JPEG 2000 images.  Writing
 JPEG 2000 images is currently limited to images that can fit in memory,
 however.
 
@@ -23,9 +18,21 @@ Glymur works on Python 2.7 and 3.3.  Python 3.3 is strongly recommended.
 
 OpenJPEG Installation
 =====================
-OpenJPEG must be built as a shared library.  In addition, you
-currently must compile OpenJPEG from the developmental source that
-you can retrieve via subversion.  As of this time of writing, svn 
+The OpenJPEG library version must be either 1.5.1 or the trunk/development
+version of OpenJPEG.  Version 2.0.0 or versions earlier than 1.5.0
+are not supported.  Furthermore, the 1.5.x version of OpenJPEG is
+currently only utilized for read-only purposes.  For more information
+about OpenJPEG, please consult http://www.openjpeg.org.
+
+If you use MacPorts on the mac or if you have a sufficiently recent version of
+Linux, your package manager should already provide you with at least version
+1.5.1 of OpenJPEG, which means that glymur can be installed ready to read JPEG
+2000 images.  If you use windows, I suggest installing version 1.5.1 from 
+https://code.google.com/p/openjpeg/downloads/list .
+
+If you wish to take advantage of more of glymur's features, however, then 
+you must compile OpenJPEG as a shared library from the developmental source
+that you can retrieve via subversion.  As of this time of writing, svn 
 revision 2345 works.  You should download the test data for the purpose
 of configuring and running OpenJPEG's test suite, check their instructions for
 all this.  You should set the **OPJ_DATA_ROOT** environment variable for the 
@@ -33,9 +40,6 @@ purpose of running Glymur's test suite. ::
 
     $ svn co http://openjpeg.googlecode.com/svn/data 
     $ export OPJ_DATA_ROOT=`pwd`/data
-
-Earlier versions of OpenJPEG through the 2.0 official release will **NOT**
-work and are not supported.
 
 Glymur uses ctypes (for the moment) to access the openjp2 library, and
 because ctypes access libraries in a platform-dependent manner, it is 
@@ -51,6 +55,9 @@ the openjp2 library.  You may create the configuration file as follows::
 
 That assumes, of course, that you've installed OpenJPEG into /opt/openjp2-svn.
 You may also substitute **$XDG_CONFIG_HOME** for **$HOME/.config**.
+
+The configuration file is not required, however, if you wish to only use
+OpenJPEG version 1.5.1.
 
 Glymur Installation
 ===================
@@ -76,5 +83,6 @@ You can run the tests from within python as follows::
     >>> import glymur
     >>> glymur.runtests()
 
-Many tests are currently skipped; the important thing is whether or not any
+Many tests are currently skipped; in fact most of them are skipped if you 
+are relying on OpenJPEG 1.5.1.  But the important thing is whether or not any
 tests fail.
