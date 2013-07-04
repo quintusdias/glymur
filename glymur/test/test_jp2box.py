@@ -17,6 +17,8 @@ def load_tests(loader, tests, ignore):
     return tests
 
 
+@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+                 "Missing openjp2 library.")
 class TestChannelDefinition(unittest.TestCase):
 
     @classmethod

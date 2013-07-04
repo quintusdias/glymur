@@ -29,6 +29,8 @@ class TestJp2k(unittest.TestCase):
         imp.reload(glymur)
         imp.reload(glymur.lib.openjp2)
 
+    @unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+                     "Needs openjp2 library first.")
     def test_config_file_via_environ(self):
         """Verify that we can read a configuration file set via environ var."""
         with tempfile.TemporaryDirectory() as tdir:

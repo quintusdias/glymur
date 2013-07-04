@@ -590,10 +590,10 @@ class Jp2k(Jp2kBox):
         (728, 1296, 3)
         """
         if opj2._OPENJP2 is not None:
-            img_array = self._read_openjp2(**kwargs)
+            img = self._read_openjp2(**kwargs)
         else:
-            img_array = self._read_openjpeg(**kwargs)
-        return img_array
+            img = self._read_openjpeg(**kwargs)
+        return img
 
     def _read_openjpeg(self, reduce=0):
         """Read a JPEG 2000 image using libopenjpeg.
@@ -678,6 +678,10 @@ class Jp2k(Jp2kBox):
         opj._cio_close(cio)
         opj._destroy_decompress(dinfo)
         opj._image_destroy(image)
+
+        if data.shape[2] == 1:
+            data = data.view()
+            data.shape = data.shape[0:2]
 
         return data
 
@@ -903,7 +907,16 @@ class Jp2k(Jp2kBox):
         >>> jfile = glymur.data.nemo()
         >>> jp = glymur.Jp2k(jfile)
         >>> components_lst = jp.read_bands(reduce=1)
+
+        Raises
+        ------
+        NotImplementedError
+            If the openjp2 library is not available.
         """
+        if opj2._OPENJP2 is None:
+            msg = "Requires openjp2 library."
+            raise NotImplementedError(msg)
+
         lst = self._read_common(reduce=reduce,
                                 layer=layer,
                                 area=area,
