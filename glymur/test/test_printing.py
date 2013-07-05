@@ -781,6 +781,8 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
+    @unittest.skipIf(os.name == "nt", 
+                     "Problems using NamedTemporaryFile on windows.")
     def test_less_common_boxes(self):
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             with open(self.jp2file, 'rb') as ifile:
