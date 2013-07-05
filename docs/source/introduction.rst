@@ -27,37 +27,9 @@ about OpenJPEG, please consult http://www.openjpeg.org.
 If you use MacPorts on the mac or if you have a sufficiently recent version of
 Linux, your package manager should already provide you with at least version
 1.5.1 of OpenJPEG, which means that glymur can be installed ready to read JPEG
-2000 images.  If you use windows, I suggest installing version 1.5.1 from 
+2000 images.  If you use windows, I suggest using the 1.5.1 windows installer provided
+to you by the OpenJPEG folks at
 https://code.google.com/p/openjpeg/downloads/list .
-
-If you wish to take advantage of more of glymur's features, however, then 
-you must compile OpenJPEG as a shared library from the developmental source
-that you can retrieve via subversion.  As of this time of writing, svn 
-revision 2345 works.  You should download the test data for the purpose
-of configuring and running OpenJPEG's test suite, check their instructions for
-all this.  You should set the **OPJ_DATA_ROOT** environment variable for the 
-purpose of running Glymur's test suite. ::
-
-    $ svn co http://openjpeg.googlecode.com/svn/data 
-    $ export OPJ_DATA_ROOT=`pwd`/data
-
-Glymur uses ctypes (for the moment) to access the openjp2 library, and
-because ctypes access libraries in a platform-dependent manner, it is 
-recommended that you create a configuration file to help Glymur properly find
-the openjp2 library.  You may create the configuration file as follows::
-
-    $ mkdir -p ~/.config/glymur
-    $ cd ~/.config/glymur
-    $ cat > glymurrc << EOF
-    > [library]
-    > openjp2: /opt/openjp2-svn/lib/libopenjp2.so
-    > EOF
-
-That assumes, of course, that you've installed OpenJPEG into /opt/openjp2-svn.
-You may also substitute **$XDG_CONFIG_HOME** for **$HOME/.config**.
-
-The configuration file is not required, however, if you wish to only use
-OpenJPEG version 1.5.1.
 
 Glymur Installation
 ===================

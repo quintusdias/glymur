@@ -1,16 +1,54 @@
------------------------------------------------------
-Detailed Instructions for Package Management, Testing
------------------------------------------------------
+----------------------------------
+Detailed Installation Instructions
+----------------------------------
 
-You only need to read this page if you want detailed 
+''''''''''''''''''''''
+Glymur Configuration
+''''''''''''''''''''''
+
+The default glymur installation process relies upon OpenJPEG version
+1.5.1 being properly installed on your system.  This will, however,
+only give you you basic read capabilities, so if you wish to take
+advantage of more of glymur's features, you should compile OpenJPEG as
+a shared library from the developmental source that you can retrieve
+via subversion.  As of this time of writing, svn revision 2345 works.
+You should also download the test data for the purpose of configuring
+and running OpenJPEG's test suite, check their instructions for all this.
+You should set the **OPJ_DATA_ROOT** environment variable for the purpose
+of running Glymur's test suite. ::
+
+    $ svn co http://openjpeg.googlecode.com/svn/data 
+    $ export OPJ_DATA_ROOT=`pwd`/data
+
+Glymur uses ctypes (for the moment) to access the openjp2 library, and
+because ctypes access libraries in a platform-dependent manner, it is 
+recommended that you create a configuration file to help Glymur properly find
+the openjp2 library.  You may create the configuration file as follows::
+
+    $ mkdir -p ~/.config/glymur
+    $ cd ~/.config/glymur
+    $ cat > glymurrc << EOF
+    > [library]
+    > openjp2: /opt/openjp2-svn/lib/libopenjp2.so
+    > EOF
+
+That assumes, of course, that you've installed OpenJPEG into
+/opt/openjp2-svn on a linux system.  You may also substitute
+**$XDG_CONFIG_HOME** for **$HOME/.config**.
+
+Again, though, the configuration file is not required if you only wish to
+read JPEG 2000 files using OpenJPEG version 1.5.1.
+
+
+'''''''''''''''''''''''''''''''''''''''''''
+Package Management Suggestions for Testing
+'''''''''''''''''''''''''''''''''''''''''''
+
+You only need to read this section if you want detailed 
 platform-specific instructions on running as many tests as possible or wish to
 use your system's package manager to install as many required 
-packages/RPMs/ports/whatever without going through pip.  Otherwise go on to
-the next page.
+packages/RPMs/ports/whatever without going through pip.
 
-''''''''
-Platform
-''''''''
 
 Mac OS X
 --------
