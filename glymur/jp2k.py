@@ -621,20 +621,19 @@ class Jp2k(Jp2kBox):
             opj._set_default_decoder_parameters(ctypes.byref(dparameters))
             dparameters.cp_reduce = reduce
             dparameters.decod_format = self._codec_format
-    
+
             infile = self.filename.encode()
             nelts = opj._PATH_LEN - len(infile)
             infile += b'0' * nelts
             dparameters.infile = infile
-    
+
             dinfo = opj._create_decompress(dparameters.decod_format)
 
             opj._setup_decoder(dinfo, dparameters)
-    
+
             with open(self.filename, 'rb') as fp:
                 src = fp.read()
             cio = opj._cio_open(dinfo, src)
-
 
             image = opj._decode(dinfo, cio)
 
@@ -643,7 +642,7 @@ class Jp2k(Jp2kBox):
             stack.callback(opj._cio_close, cio)
 
             ncomps = image.contents.numcomps
-    
+
             component = image.contents.comps[0]
             if component.sgnd:
                 if component.prec <= 8:
@@ -659,30 +658,31 @@ class Jp2k(Jp2kBox):
                     dtype = np.uint16
                 else:
                     raise RuntimeError("Unhandled precision, datatype")
-    
+
             nrows = image.contents.comps[0].h
             ncols = image.contents.comps[0].w
             ncomps = image.contents.numcomps
             data = np.zeros((nrows, ncols, ncomps), dtype)
-    
+
             for k in range(image.contents.numcomps):
                 component = image.contents.comps[k]
                 nrows = component.h
                 ncols = component.w
-    
+
                 if nrows == 0 or ncols == 0:
                     # Letting this situation continue would segfault
                     # Python.
                     msg = "Component {0} has dimensions {1} x {2}"
                     msg = msg.format(k, nrows, ncols)
                     raise IOError(msg)
-    
+
                 addr = ctypes.addressof(component.data.contents)
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
-                    x = np.ctypeslib.as_array( (ctypes.c_int32 * nrows * ncols).from_address(addr))
+                    nelts = nrows * ncols
+                    x = np.ctypeslib.as_array((ctypes.c_int32 * nelts).from_address(addr))
                     data[:, :, k] = np.reshape(x.astype(dtype), (nrows, ncols))
-    
+
         if data.shape[2] == 1:
             data = data.view()
             data.shape = data.shape[0:2]
