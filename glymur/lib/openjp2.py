@@ -80,7 +80,10 @@ def _get_openjp2_config():
         return None
 
     try:
-        _OPENJP2 = ctypes.CDLL(libopenjp2_path)
+        if os.name == "nt":
+            _OPENJP2 = ctypes.windll.LoadLibrary(libopenjp2_path)
+        else:
+            _OPENJP2 = ctypes.CDLL(libopenjp2_path)
     except OSError:
         msg = '"Library {0}" could not be loaded.  Operating in degraded mode.'
         msg = msg.format(libopenjp2_path)
@@ -108,6 +111,9 @@ def _get_configdir():
 
     if 'HOME' in os.environ:
         return os.path.join(os.environ['HOME'], '.config', 'glymur')
+
+    if 'USERPROFILE' in os.environ:
+        return os.path.join(os.environ['USERPROFILE'], 'Application Data', 'glymur')
 
 import os
 import warnings
@@ -656,8 +662,8 @@ class _codestream_info_v2_t(ctypes.Structure):
 # Restrict the input and output argument types for each function used in the
 # API.
 if _OPENJP2 is not None:
-    _OPENJP2.opj_create_compress.argtypes = [_codec_format_t]
     _OPENJP2.opj_create_compress.restype = _codec_t_p
+    _OPENJP2.opj_create_compress.argtypes = [_codec_format_t]
 
     _OPENJP2.opj_create_decompress.argtypes = [_codec_format_t]
     _OPENJP2.opj_create_decompress.restype = _codec_t_p
