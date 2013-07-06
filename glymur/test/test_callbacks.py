@@ -1,5 +1,6 @@
 import os
 import pkg_resources
+import re
 import sys
 import tempfile
 import unittest
@@ -62,6 +63,8 @@ class TestCallbacks(unittest.TestCase):
 @unittest.skipIf(glymur.lib.openjp2._OPENJPEG is None,
                  "Missing openjpeg library.")
 class TestCallbacks15(unittest.TestCase):
+    """This test suite is for OpenJPEG 1.5.1 properties.
+    """
 
     @classmethod
     def setUpClass(cls):
@@ -92,15 +95,15 @@ class TestCallbacks15(unittest.TestCase):
         d = j.read(reduce=1, verbose=True)
         actual = sys.stdout.getvalue().strip()
 
-        # We can't actually match this because the times will be different.
-        lines = ['[INFO] tile 1 of 1',
-                 '[INFO] - tiers-1 took 0.050149 s',
-                 '[INFO] - dwt took 0.004188 s',
-                 '[INFO] - tile decoded in 0.058203 s']
-
-        expected = '\n'.join(lines)
-        self.assertTrue('[INFO]' in actual)
-        self.assertTrue('dwt took' in actual)
+        regex = re.compile(r"""\[INFO\]\stile\s1\sof\s1\s+
+                               \[INFO\]\s-\stiers-1\stook\s[0-9]+\.[0-9]+\ss\s+
+                               \[INFO\]\s-\sdwt\stook\s[0-9]+\.[0-9]+\ss\s+
+                               \[INFO\]\s-\stile\sdecoded\sin\s[0-9]+\.[0-9]+\ss""",
+                           re.VERBOSE)
+        if sys.hexversion <= 0x03020000:
+            self.assertRegexpMatches(actual, regex)
+        else:
+            self.assertRegex(actual, regex)
 
 
 
