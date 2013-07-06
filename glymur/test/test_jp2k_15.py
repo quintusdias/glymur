@@ -236,58 +236,6 @@ class TestSuite(unittest.TestCase):
         self.assertTrue(peak_tolerance(jpdata[:, :, 2], pgxdata) < 6)
         self.assertTrue(mse(jpdata[:, :, 2], pgxdata) < 1.07)
 
-    @unittest.skip("reading separate bands not allowed")
-    def test_ETS_C1P0_p0_05_j2k(self):
-        jfile = os.path.join(data_root, 'input/conformance/p0_05.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read_bands()
-
-        pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_05_0.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[0], pgxdata) < 2)
-        self.assertTrue(mse(jpdata[0], pgxdata) < 0.302)
-
-        pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_05_1.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[1], pgxdata) < 2)
-        self.assertTrue(mse(jpdata[1], pgxdata) < 0.307)
-
-        pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_05_2.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[2], pgxdata) < 2)
-        self.assertTrue(mse(jpdata[2], pgxdata) < 0.269)
-
-        pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_05_3.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[3], pgxdata) == 0)
-        self.assertTrue(mse(jpdata[3], pgxdata) == 0)
-
-    @unittest.skip("reading separate bands not allowed")
-    def test_ETS_C1P0_p0_06_j2k(self):
-        jfile = os.path.join(data_root, 'input/conformance/p0_06.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read_bands()
-
-        pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_06_0.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[0], pgxdata) < 635)
-        self.assertTrue(mse(jpdata[0], pgxdata) < 11287)
-
-        pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_06_1.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[1], pgxdata) < 403)
-        self.assertTrue(mse(jpdata[1], pgxdata) < 6124)
-
-        pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_06_2.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[2], pgxdata) < 378)
-        self.assertTrue(mse(jpdata[2], pgxdata) < 3968)
-
-        pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_06_3.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[3], pgxdata) == 0)
-        self.assertTrue(mse(jpdata[3], pgxdata) == 0)
-
     def test_ETS_C1P0_p0_08_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_08.j2k')
         jp2k = Jp2k(jfile)
@@ -439,31 +387,6 @@ class TestSuite(unittest.TestCase):
         self.assertTrue(peak_tolerance(jpdata[:, :, 2], pgxdata) < 6)
         self.assertTrue(mse(jpdata[:, :, 2], pgxdata) < 1.051)
 
-    @unittest.skip("reading separate bands not allowed")
-    def test_ETS_C1P1_p1_03_j2k(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_03.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read_bands()
-
-        pgxfile = os.path.join(data_root, 'baseline/conformance/c1p1_03_0.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[0], pgxdata) < 2)
-        self.assertTrue(mse(jpdata[0], pgxdata) < 0.3)
-
-        pgxfile = os.path.join(data_root, 'baseline/conformance/c1p1_03_1.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[1], pgxdata) < 2)
-        self.assertTrue(mse(jpdata[1], pgxdata) < 0.21)
-
-        pgxfile = os.path.join(data_root, 'baseline/conformance/c1p1_03_2.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[2], pgxdata) <= 1)
-        self.assertTrue(mse(jpdata[2], pgxdata) < 0.2)
-
-        pgxfile = os.path.join(data_root, 'baseline/conformance/c1p1_03_3.pgx')
-        pgxdata = read_pgx(pgxfile)
-        np.testing.assert_array_equal(jpdata[3], pgxdata)
-
     def test_ETS_C1P1_p1_04_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
         jp2k = Jp2k(jfile)
@@ -516,23 +439,6 @@ class TestSuite(unittest.TestCase):
         self.assertTrue(peak_tolerance(jpdata[:, :, 2], pgxdata) < 2)
         self.assertTrue(mse(jpdata[:, :, 2], pgxdata) < 0.6)
 
-    @unittest.skip("reading separate bands not allowed")
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_ETS_C1P1_p1_07_j2k(self):
-        jfile = os.path.join(data_root, 'input/conformance/p1_07.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read_bands()
-
-        pgxfile = os.path.join(data_root, 'baseline/conformance/c1p1_07_0.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[0], pgxdata) <= 0)
-        self.assertTrue(mse(jpdata[0], pgxdata) <= 0)
-
-        pgxfile = os.path.join(data_root, 'baseline/conformance/c1p1_07_1.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[1], pgxdata) <= 0)
-        self.assertTrue(mse(jpdata[1], pgxdata) <= 0)
-
     def test_ETS_JP2_file1(self):
         jfile = os.path.join(data_root, 'input/conformance/file1.jp2')
         jp2k = Jp2k(jfile)
@@ -544,15 +450,6 @@ class TestSuite(unittest.TestCase):
         jp2k = Jp2k(jfile)
         jpdata = jp2k.read()
         self.assertEqual(jpdata.shape, (640, 480, 3))
-
-    @unittest.skip("reading separate bands not allowed")
-    def test_ETS_JP2_file3(self):
-        jfile = os.path.join(data_root, 'input/conformance/file3.jp2')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read_bands()
-        self.assertEqual(jpdata[0].shape, (640, 480))
-        self.assertEqual(jpdata[1].shape, (320, 240))
-        self.assertEqual(jpdata[2].shape, (320, 240))
 
     def test_ETS_JP2_file4(self):
         jfile = os.path.join(data_root, 'input/conformance/file4.jp2')
@@ -612,7 +509,6 @@ class TestSuite(unittest.TestCase):
         data = jp2.read()
         self.assertTrue(True)
 
-    @unittest.skip("Should have worked, must be investigated.")
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
     def test_NR_DEC_broken_jp2_4_decode(self):
@@ -621,7 +517,7 @@ class TestSuite(unittest.TestCase):
         with self.assertWarns(UserWarning) as cw:
             # colr box has bad length.
             jp2 = Jp2k(jfile)
-        with self.assertRaises(IOError):
+        with self.assertRaises(ValueError):
             data = jp2.read()
         self.assertTrue(True)
 
@@ -632,7 +528,6 @@ class TestSuite(unittest.TestCase):
             data = Jp2k(jfile).read()
         self.assertTrue(True)
 
-    @unittest.skip("Should have worked, must be investigated.")
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
     def test_NR_DEC_broken3_jp2_6_decode(self):
@@ -642,7 +537,7 @@ class TestSuite(unittest.TestCase):
             # colr box has bad length.
             j = Jp2k(jfile)
 
-        with self.assertRaises(IOError) as ce:
+        with self.assertRaises(ValueError) as ce:
             d = j.read()
 
     def test_NR_DEC_broken4_jp2_7_decode(self):
@@ -722,13 +617,6 @@ class TestSuite(unittest.TestCase):
         jfile = os.path.join(data_root,
                              'input/nonregression/Marrin.jp2')
         data = Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    @unittest.skip("reading separate bands not allowed")
-    def test_NR_DEC_merged_jp2_19_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/merged.jp2')
-        data = Jp2k(jfile).read_bands()
         self.assertTrue(True)
 
     def test_NR_DEC_movie_00000_j2k_20_decode(self):
