@@ -794,12 +794,11 @@ class TestSuite(unittest.TestCase):
         data = Jp2k(jfile).read()
         self.assertTrue(True)
 
-    @unittest.skip("Should have worked, must be investigated.")
     def test_NR_DEC_file_409752_jp2_40_decode(self):
         jfile = os.path.join(data_root, 'input/nonregression/file409752.jp2')
         j = Jp2k(jfile)
-        data = j.read()
-        self.assertTrue(True)
+        with self.assertRaises(RuntimeError) as ce:
+            data = j.read()
 
 if __name__ == "__main__":
     unittest.main()

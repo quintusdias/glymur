@@ -319,7 +319,7 @@ class TestJp2k(unittest.TestCase):
         # Issue 86.
         filename = os.path.join(data_root, 'input/conformance/p0_05.j2k')
         j = Jp2k(filename)
-        with self.assertRaises(IOError):
+        with self.assertRaises(RuntimeError):
             j.read()
 
     @unittest.skipIf(data_root is None,

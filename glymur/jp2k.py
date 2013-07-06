@@ -613,9 +613,19 @@ class Jp2k(Jp2kBox):
 
         Raises
         ------
-        IOError
+        RuntimeError
             If the image has differing subsample factors.
         """
+        # Check for differing subsample factors.
+        codestream = self.get_codestream(header_only=True)
+        dxs = np.array(codestream.segment[1].XRsiz)
+        dys = np.array(codestream.segment[1].YRsiz)
+        if np.any(dxs - dxs[0]) or np.any(dys - dys[0]):
+            msg = "Components must all have the same subsampling factors "
+            msg += "to use this method with OpenJPEG 1.5.1.  Please consider "
+            msg += "using OPENJP2 instead."
+            raise RuntimeError(msg)
+
 
         with ExitStack() as stack:
             # Set decoding parameters.
@@ -653,7 +663,6 @@ class Jp2k(Jp2kBox):
             stack.callback(opj._cio_close, cio)
 
             ncomps = image.contents.numcomps
-
             component = image.contents.comps[0]
             if component.sgnd:
                 if component.prec <= 8:
@@ -726,7 +735,7 @@ class Jp2k(Jp2kBox):
 
         Raises
         ------
-        IOError
+        RuntimeError
             If the image has differing subsample factors.
         """
         # Check for differing subsample factors.
@@ -735,7 +744,7 @@ class Jp2k(Jp2kBox):
         dys = np.array(codestream.segment[1].YRsiz)
         if np.any(dxs - dxs[0]) or np.any(dys - dys[0]):
             msg = "Components must all have the same subsampling factors."
-            raise IOError(msg)
+            raise RuntimeError(msg)
 
         img_array = self._read_common(reduce=reduce,
                                       layer=layer,

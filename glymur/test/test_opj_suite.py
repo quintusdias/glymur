@@ -1068,7 +1068,7 @@ class TestSuite(unittest.TestCase):
     def test_NR_DEC_file_409752_jp2_40_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/file409752.jp2')
-        with self.assertRaises(IOError):
+        with self.assertRaises(RuntimeError):
             data = Jp2k(jfile).read()
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
