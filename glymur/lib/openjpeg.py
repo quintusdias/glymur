@@ -166,6 +166,16 @@ def _set_default_decoder_parameters(dparams_p):
     _OPENJPEG.opj_set_default_decoder_parameters(dparams_p)
 
 
+def _set_event_mgr(dinfo, event_mgr, context=None):
+    """Wrapper for openjpeg library function opj_set_event_mgr.
+    """
+    argtypes = [ctypes.POINTER(common_struct_t),
+                ctypes.POINTER(event_mgr_t),
+                ctypes.c_void_p]
+    _OPENJPEG.opj_set_event_mgr(ctypes.cast(dinfo,
+                                            ctypes.POINTER(common_struct_t)),
+                                event_mgr, context)
+
 def _setup_decoder(dinfo, dparams):
     """Wrapper for openjpeg library function opj_setup_decoder."""
     argtypes = [ctypes.POINTER(dinfo_t), ctypes.POINTER(dparameters_t)]

@@ -35,6 +35,7 @@ class TestJp2k(unittest.TestCase):
         glymur.lib.openjp2._OPENJP2 = cls.openjp2
 
     def setUp(self):
+        self.jp2file = glymur.data.nemo()
         self.j2kfile = glymur.data.goodstuff()
 
     def tearDown(self):
@@ -64,10 +65,17 @@ class TestJp2k(unittest.TestCase):
         with self.assertRaises(TypeError) as ce:
             d = j2k.read(layer=1)
 
-    def test_basic(self):
+    def test_basic_jp2(self):
         # This test is only useful when openjp2 is not available
         # and OPJ_DATA_ROOT is not set.  We need at least one
-        # working read test.
+        # working JP2 test.
+        j2k = Jp2k(self.jp2file)
+        d = j2k.read(reduce=1)
+
+    def test_basic_j2k(self):
+        # This test is only useful when openjp2 is not available
+        # and OPJ_DATA_ROOT is not set.  We need at least one
+        # working J2K test.
         j2k = Jp2k(self.j2kfile)
         d = j2k.read()
 
@@ -309,7 +317,10 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C1P0_p0_10_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_10.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        with warnings.catch_warnings():
+            # This file has an invalid ICC profile
+            warnings.simplefilter("ignore")
+            jpdata = jp2k.read(reduce=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_10_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -695,7 +706,10 @@ class TestSuite(unittest.TestCase):
     def test_NR_DEC_kakadu_v4_4_openjpegv2_broken_j2k_16_decode(self):
         relpath = 'input/nonregression/kakadu_v4-4_openjpegv2_broken.j2k'
         jfile = os.path.join(data_root, relpath)
-        data = Jp2k(jfile).read()
+        with warnings.catch_warnings():
+            # This file has an invalid ICC profile
+            warnings.simplefilter("ignore")
+            data = Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_MarkerIsNotCompliant_j2k_17_decode(self):

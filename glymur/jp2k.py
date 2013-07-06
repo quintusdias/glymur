@@ -595,7 +595,7 @@ class Jp2k(Jp2kBox):
             img = self._read_openjpeg(**kwargs)
         return img
 
-    def _read_openjpeg(self, reduce=0):
+    def _read_openjpeg(self, reduce=0, verbose=False):
         """Read a JPEG 2000 image using libopenjpeg.
 
         Parameters
@@ -603,6 +603,8 @@ class Jp2k(Jp2kBox):
         reduce : int, optional
             Factor by which to reduce output resolution.  Use -1 to get the
             lowest resolution thumbnail.
+        verbose : bool, optional
+            Print informational messages produced by the OpenJPEG library.
 
         Returns
         -------
@@ -628,6 +630,15 @@ class Jp2k(Jp2kBox):
             dparameters.infile = infile
 
             dinfo = opj._create_decompress(dparameters.decod_format)
+
+            event_mgr = opj.event_mgr_t()
+            info_handler = ctypes.cast(_info_callback, ctypes.c_void_p)
+            event_mgr.info_handler = info_handler if verbose else None
+            event_mgr.warning_handler = ctypes.cast(_warning_callback,
+                                                 ctypes.c_void_p)
+            event_mgr.error_handler = ctypes.cast(_error_callback,
+                                                 ctypes.c_void_p)
+            opj._set_event_mgr(dinfo, ctypes.byref(event_mgr))
 
             opj._setup_decoder(dinfo, dparameters)
 

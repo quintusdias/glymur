@@ -59,5 +59,50 @@ class TestCallbacks(unittest.TestCase):
         self.assertEqual(actual, expected)
 
 
+@unittest.skipIf(glymur.lib.openjp2._OPENJPEG is None,
+                 "Missing openjpeg library.")
+class TestCallbacks15(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        # Monkey patch the package so as to use OPENJPEG instead of OPENJP2
+        cls.openjp2 = glymur.lib.openjp2._OPENJP2
+        glymur.lib.openjp2._OPENJP2 = None
+
+    @classmethod
+    def tearDownClass(cls):
+        # Restore OPENJP2
+        glymur.lib.openjp2._OPENJP2 = cls.openjp2
+
+    def setUp(self):
+        # Save sys.stdout.
+        self.stdout = sys.stdout
+        sys.stdout = StringIO()
+        self.jp2file = glymur.data.nemo()
+        self.j2kfile = glymur.data.goodstuff()
+
+    def tearDown(self):
+        # Restore stdout.
+        sys.stdout = self.stdout
+
+    def test_info_callbacks_on_read(self):
+        # Verify that we get the expected stdio output when our internal info
+        # callback handler is enabled.
+        j = glymur.Jp2k(self.j2kfile)
+        d = j.read(reduce=1, verbose=True)
+        actual = sys.stdout.getvalue().strip()
+
+        # We can't actually match this because the times will be different.
+        lines = ['[INFO] tile 1 of 1',
+                 '[INFO] - tiers-1 took 0.050149 s',
+                 '[INFO] - dwt took 0.004188 s',
+                 '[INFO] - tile decoded in 0.058203 s']
+
+        expected = '\n'.join(lines)
+        self.assertTrue('[INFO]' in actual)
+        self.assertTrue('dwt took' in actual)
+
+
+
 if __name__ == "__main__":
     unittest.main()
