@@ -18,6 +18,7 @@ import numpy as np
 from .codestream import Codestream
 from .core import *
 from .jp2box import *
+from .lib import openjpeg as opj
 from .lib import openjp2 as opj2
 
 _cspace_map = {'rgb': opj2._CLRSPC_SRGB,
@@ -202,7 +203,7 @@ class Jp2k(Jp2kBox):
         >>> import glymur
         >>> jfile = glymur.data.nemo()
         >>> jp2 = glymur.Jp2k(jfile)
-        >>> data = jp2.read(reduce=3)
+        >>> data = jp2.read(reduce=1)
         >>> from tempfile import NamedTemporaryFile
         >>> tfile = NamedTemporaryFile(suffix='.jp2', delete=False)
         >>> j = Jp2k(tfile.name, mode='wb')
@@ -544,16 +545,17 @@ class Jp2k(Jp2kBox):
         jp2 = Jp2k(filename)
         return jp2
 
-    def read(self, reduce=0, layer=0, area=None, tile=None, verbose=False):
+    def read(self, **kwargs):
         """Read a JPEG 2000 image.
 
         Parameters
         ----------
-        layer : int, optional
-            Number of quality layer to decode.
         reduce : int, optional
             Factor by which to reduce output resolution.  Use -1 to get the
-            lowest resolution thumbnail.
+            lowest resolution thumbnail.  This is the only keyword option
+            available to use when only OpenJPEG version 1.5.1 is present.
+        layer : int, optional
+            Number of quality layer to decode.
         area : tuple, optional
             Specifies decoding image area,
             (first_row, first_col, last_row, last_col)
@@ -585,7 +587,156 @@ class Jp2k(Jp2kBox):
 
         >>> thumbnail = jp.read(reduce=-1)
         >>> thumbnail.shape
-        (46, 81, 3)
+        (728, 1296, 3)
+        """
+        if opj2._OPENJP2 is not None:
+            img = self._read_openjp2(**kwargs)
+        else:
+            img = self._read_openjpeg(**kwargs)
+        return img
+
+    def _read_openjpeg(self, reduce=0, verbose=False):
+        """Read a JPEG 2000 image using libopenjpeg.
+
+        Parameters
+        ----------
+        reduce : int, optional
+            Factor by which to reduce output resolution.  Use -1 to get the
+            lowest resolution thumbnail.
+        verbose : bool, optional
+            Print informational messages produced by the OpenJPEG library.
+
+        Returns
+        -------
+        img_array : ndarray
+            The image data.
+
+        Raises
+        ------
+        RuntimeError
+            If the image has differing subsample factors.
+        """
+        # Check for differing subsample factors.
+        codestream = self.get_codestream(header_only=True)
+        dxs = np.array(codestream.segment[1].XRsiz)
+        dys = np.array(codestream.segment[1].YRsiz)
+        if np.any(dxs - dxs[0]) or np.any(dys - dys[0]):
+            msg = "Components must all have the same subsampling factors "
+            msg += "to use this method with OpenJPEG 1.5.1.  Please consider "
+            msg += "using OPENJP2 instead."
+            raise RuntimeError(msg)
+
+
+        with ExitStack() as stack:
+            # Set decoding parameters.
+            dparameters = opj.dparameters_t()
+            opj._set_default_decoder_parameters(ctypes.byref(dparameters))
+            dparameters.cp_reduce = reduce
+            dparameters.decod_format = self._codec_format
+
+            infile = self.filename.encode()
+            nelts = opj._PATH_LEN - len(infile)
+            infile += b'0' * nelts
+            dparameters.infile = infile
+
+            dinfo = opj._create_decompress(dparameters.decod_format)
+
+            event_mgr = opj.event_mgr_t()
+            info_handler = ctypes.cast(_info_callback, ctypes.c_void_p)
+            event_mgr.info_handler = info_handler if verbose else None
+            event_mgr.warning_handler = ctypes.cast(_warning_callback,
+                                                 ctypes.c_void_p)
+            event_mgr.error_handler = ctypes.cast(_error_callback,
+                                                 ctypes.c_void_p)
+            opj._set_event_mgr(dinfo, ctypes.byref(event_mgr))
+
+            opj._setup_decoder(dinfo, dparameters)
+
+            with open(self.filename, 'rb') as fp:
+                src = fp.read()
+            cio = opj._cio_open(dinfo, src)
+
+            image = opj._decode(dinfo, cio)
+
+            stack.callback(opj._image_destroy, image)
+            stack.callback(opj._destroy_decompress, dinfo)
+            stack.callback(opj._cio_close, cio)
+
+            ncomps = image.contents.numcomps
+            component = image.contents.comps[0]
+            if component.sgnd:
+                if component.prec <= 8:
+                    dtype = np.int8
+                elif component.prec <= 16:
+                    dtype = np.int16
+                else:
+                    raise RuntimeError("Unhandled precision, datatype")
+            else:
+                if component.prec <= 8:
+                    dtype = np.uint8
+                elif component.prec <= 16:
+                    dtype = np.uint16
+                else:
+                    raise RuntimeError("Unhandled precision, datatype")
+
+            nrows = image.contents.comps[0].h
+            ncols = image.contents.comps[0].w
+            ncomps = image.contents.numcomps
+            data = np.zeros((nrows, ncols, ncomps), dtype)
+
+            for k in range(image.contents.numcomps):
+                component = image.contents.comps[k]
+                nrows = component.h
+                ncols = component.w
+
+                if nrows == 0 or ncols == 0:
+                    # Letting this situation continue would segfault
+                    # Python.
+                    msg = "Component {0} has dimensions {1} x {2}"
+                    msg = msg.format(k, nrows, ncols)
+                    raise IOError(msg)
+
+                addr = ctypes.addressof(component.data.contents)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore")
+                    nelts = nrows * ncols
+                    x = np.ctypeslib.as_array((ctypes.c_int32 * nelts).from_address(addr))
+                    data[:, :, k] = np.reshape(x.astype(dtype), (nrows, ncols))
+
+        if data.shape[2] == 1:
+            data = data.view()
+            data.shape = data.shape[0:2]
+
+        return data
+
+    def _read_openjp2(self, reduce=0, layer=0, area=None, tile=None,
+                      verbose=False):
+        """Read a JPEG 2000 image using libopenjp2.
+
+        Parameters
+        ----------
+        layer : int, optional
+            Number of quality layer to decode.
+        reduce : int, optional
+            Factor by which to reduce output resolution.  Use -1 to get the
+            lowest resolution thumbnail.
+        area : tuple, optional
+            Specifies decoding image area,
+            (first_row, first_col, last_row, last_col)
+        tile : int, optional
+            Number of tile to decode.
+        verbose : bool, optional
+            Print informational messages produced by the OpenJPEG library.
+
+        Returns
+        -------
+        img_array : ndarray
+            The image data.
+
+        Raises
+        ------
+        RuntimeError
+            If the image has differing subsample factors.
         """
         # Check for differing subsample factors.
         codestream = self.get_codestream(header_only=True)
@@ -593,7 +744,7 @@ class Jp2k(Jp2kBox):
         dys = np.array(codestream.segment[1].YRsiz)
         if np.any(dxs - dxs[0]) or np.any(dys - dys[0]):
             msg = "Components must all have the same subsampling factors."
-            raise IOError(msg)
+            raise RuntimeError(msg)
 
         img_array = self._read_common(reduce=reduce,
                                       layer=layer,
@@ -780,7 +931,16 @@ class Jp2k(Jp2kBox):
         >>> jfile = glymur.data.nemo()
         >>> jp = glymur.Jp2k(jfile)
         >>> components_lst = jp.read_bands(reduce=1)
+
+        Raises
+        ------
+        NotImplementedError
+            If the openjp2 library is not available.
         """
+        if opj2._OPENJP2 is None:
+            msg = "Requires openjp2 library."
+            raise NotImplementedError(msg)
+
         lst = self._read_common(reduce=reduce,
                                 layer=layer,
                                 area=area,
@@ -807,14 +967,14 @@ class Jp2k(Jp2kBox):
         --------
         >>> import glymur
         >>> jfile = glymur.data.nemo()
-        >>> jp = glymur.Jp2k(jfile)
-        >>> codestream = jp.get_codestream()
+        >>> jp2 = glymur.Jp2k(jfile)
+        >>> codestream = jp2.get_codestream()
         >>> print(codestream.segment[1])
         SIZ marker segment @ (3137, 47)
             Profile:  2
             Reference Grid Height, Width:  (1456 x 2592)
             Vertical, Horizontal Reference Grid Offset:  (0 x 0)
-            Reference Tile Height, Width:  (512 x 512)
+            Reference Tile Height, Width:  (1456 x 2592)
             Vertical, Horizontal Reference Tile Offset:  (0 x 0)
             Bitdepth:  (8, 8, 8)
             Signed:  (False, False, False)

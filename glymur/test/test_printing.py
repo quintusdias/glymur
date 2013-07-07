@@ -34,7 +34,7 @@ class TestPrintingNeedsLib(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix='.jp2', delete=False) as tfile:
             cls._plain_nemo_file = tfile.name
             ijfile = Jp2k(jp2file)
-            data = ijfile.read(reduce=3)
+            data = ijfile.read(reduce=1)
             ojfile = Jp2k(cls._plain_nemo_file, 'wb')
             ojfile.write(data)
 
@@ -43,8 +43,9 @@ class TestPrintingNeedsLib(unittest.TestCase):
         os.unlink(cls._plain_nemo_file)
 
     def setUp(self):
-        self.jp2file = pkg_resources.resource_filename(glymur.__name__,
-                                                       "data/nemo.jp2")
+        self.jp2file = glymur.data.nemo()
+        self.j2kfile = glymur.data.goodstuff()
+
         # Save sys.stdout.
         self.stdout = sys.stdout
         sys.stdout = StringIO()
@@ -57,7 +58,7 @@ class TestPrintingNeedsLib(unittest.TestCase):
                  "    Compatibility:  ['jp2 ']",
                  'JP2 Header Box (jp2h) @ (32, 45)',
                  '    Image Header Box (ihdr) @ (40, 22)',
-                 '        Size:  [182 324 3]',
+                 '        Size:  [728 1296 3]',
                  '        Bitdepth:  8',
                  '        Signed:  False',
                  '        Compression:  wavelet',
@@ -66,15 +67,15 @@ class TestPrintingNeedsLib(unittest.TestCase):
                  '        Method:  enumerated colorspace',
                  '        Precedence:  0',
                  '        Colorspace:  sRGB',
-                 'Contiguous Codestream Box (jp2c) @ (77, 112814)',
+                 'Contiguous Codestream Box (jp2c) @ (77, 1632355)',
                  '    Main header:',
                  '        SOC marker segment @ (85, 0)',
                  '        SIZ marker segment @ (87, 47)',
                  '            Profile:  2',
-                 '            Reference Grid Height, Width:  (182 x 324)',
+                 '            Reference Grid Height, Width:  (728 x 1296)',
                  '            Vertical, Horizontal Reference Grid Offset:  '
                  + '(0 x 0)',
-                 '            Reference Tile Height, Width:  (182 x 324)',
+                 '            Reference Tile Height, Width:  (728 x 1296)',
                  '            Vertical, Horizontal Reference Tile Offset:  '
                  + '(0 x 0)',
                  '            Bitdepth:  (8, 8, 8)',
@@ -121,7 +122,7 @@ class TestPrintingNeedsLib(unittest.TestCase):
     def test_asoc_label_box(self):
         # Construct a fake file with an asoc and a label box, as
         # OpenJPEG doesn't have such a file.
-        data = glymur.Jp2k(self.jp2file).read(reduce=3)
+        data = glymur.Jp2k(self.jp2file).read(reduce=1)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             j = glymur.Jp2k(tfile.name, 'wb')
             j.write(data)
@@ -177,7 +178,7 @@ class TestPrintingNeedsLib(unittest.TestCase):
         lst = actual.split('\n')
         lst = lst[1:]
         actual = '\n'.join(lst)
-
+        self.maxDiff = None
         self.assertEqual(actual, self.expectedPlain)
 
     def test_entire_file(self):
@@ -209,15 +210,15 @@ class TestPrinting(unittest.TestCase):
     def test_COC_segment(self):
         j = glymur.Jp2k(self.jp2file)
         codestream = j.get_codestream(header_only=False)
-        print(codestream.segment[5])
+        print(codestream.segment[6])
         actual = sys.stdout.getvalue().strip()
 
-        lines = ['COC marker segment @ (3233, 9)',
+        lines = ['COC marker segment @ (3260, 9)',
                  '    Associated component:  1',
                  '    Coding style for this component:  '
                  + 'Entropy coder, PARTITION = 0',
                  '    Coding style parameters:',
-                 '        Number of resolutions:  6',
+                 '        Number of resolutions:  2',
                  '        Code block height, width:  (64 x 64)',
                  '        Wavelet transform:  5-3 reversible',
                  '        Code block context:',
@@ -230,6 +231,7 @@ class TestPrinting(unittest.TestCase):
                  '            Segmentation symbols:  False']
 
         expected = '\n'.join(lines)
+        self.maxDiff = None
         self.assertEqual(actual, expected)
 
     def test_COD_segment(self):
@@ -245,10 +247,10 @@ class TestPrinting(unittest.TestCase):
                  '        EPH marker segments:  False',
                  '    Coding style parameters:',
                  '        Progression order:  LRCP',
-                 '        Number of layers:  3',
+                 '        Number of layers:  2',
                  '        Multiple component transformation usage:  '
                  + 'reversible',
-                 '        Number of resolutions:  6',
+                 '        Number of resolutions:  2',
                  '        Code block height, width:  (64 x 64)',
                  '        Wavelet transform:  5-3 reversible',
                  '        Precinct size:  default, 2^15 x 2^15',
@@ -392,7 +394,7 @@ class TestPrinting(unittest.TestCase):
         print(codestream.segment[-1])
         actual = sys.stdout.getvalue().strip()
 
-        lines = ['EOC marker segment @ (1136552, 0)']
+        lines = ['EOC marker segment @ (1135421, 0)']
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
@@ -476,15 +478,13 @@ class TestPrinting(unittest.TestCase):
     def test_QCC_segment(self):
         j = glymur.Jp2k(self.jp2file)
         codestream = j.get_codestream(header_only=False)
-        print(codestream.segment[6])
+        print(codestream.segment[7])
         actual = sys.stdout.getvalue().strip()
 
-        lines = ['QCC marker segment @ (3244, 20)',
+        lines = ['QCC marker segment @ (3271, 8)',
                  '    Associated Component:  1',
                  '    Quantization style:  no quantization, 2 guard bits',
-                 '    Step size:  [(0, 8), (0, 9), (0, 9), (0, 10), (0, 9), '
-                 + '(0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), '
-                 + '(0, 10), (0, 9), (0, 9), (0, 10)]']
+                 '    Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]']
 
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
@@ -495,11 +495,9 @@ class TestPrinting(unittest.TestCase):
         print(codestream.segment[3])
         actual = sys.stdout.getvalue().strip()
 
-        lines = ['QCD marker segment @ (3200, 19)',
+        lines = ['QCD marker segment @ (3200, 7)',
                  '    Quantization style:  no quantization, 2 guard bits',
-                 '    Step size:  [(0, 8), (0, 9), (0, 9), (0, 10), (0, 9), '
-                 + '(0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), '
-                 + '(0, 9), (0, 10), (0, 9), (0, 9), (0, 10)]']
+                 '    Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]']
 
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
@@ -514,7 +512,7 @@ class TestPrinting(unittest.TestCase):
                  '    Profile:  2',
                  '    Reference Grid Height, Width:  (1456 x 2592)',
                  '    Vertical, Horizontal Reference Grid Offset:  (0 x 0)',
-                 '    Reference Tile Height, Width:  (512 x 512)',
+                 '    Reference Tile Height, Width:  (1456 x 2592)',
                  '    Vertical, Horizontal Reference Tile Offset:  (0 x 0)',
                  '    Bitdepth:  (8, 8, 8)',
                  '    Signed:  (False, False, False)',
@@ -537,26 +535,27 @@ class TestPrinting(unittest.TestCase):
     def test_SOD_segment(self):
         j = glymur.Jp2k(self.jp2file)
         codestream = j.get_codestream(header_only=False)
-        print(codestream.segment[9])
+        print(codestream.segment[10])
         actual = sys.stdout.getvalue().strip()
 
-        lines = ['SOD marker segment @ (3299, 0)']
+        lines = ['SOD marker segment @ (3302, 0)']
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
     def test_SOT_segment(self):
         j = glymur.Jp2k(self.jp2file)
         codestream = j.get_codestream(header_only=False)
-        print(codestream.segment[4])
+        print(codestream.segment[5])
         actual = sys.stdout.getvalue().strip()
 
-        lines = ['SOT marker segment @ (3221, 10)',
+        lines = ['SOT marker segment @ (3248, 10)',
                  '    Tile part index:  0',
-                 '    Tile part length:  78629',
+                 '    Tile part length:  1132173',
                  '    Tile part instance:  0',
                  '    Number of tile parts:  1']
 
         expected = '\n'.join(lines)
+        self.maxDiff = None
         self.assertEqual(actual, expected)
 
     @unittest.skipIf(data_root is None,
@@ -606,7 +605,7 @@ class TestPrinting(unittest.TestCase):
                '        Profile:  2',
                '        Reference Grid Height, Width:  (1456 x 2592)',
                '        Vertical, Horizontal Reference Grid Offset:  (0 x 0)',
-               '        Reference Tile Height, Width:  (512 x 512)',
+               '        Reference Tile Height, Width:  (1456 x 2592)',
                '        Vertical, Horizontal Reference Tile Offset:  (0 x 0)',
                '        Bitdepth:  (8, 8, 8)',
                '        Signed:  (False, False, False)',
@@ -619,10 +618,10 @@ class TestPrinting(unittest.TestCase):
                '            EPH marker segments:  False',
                '        Coding style parameters:',
                '            Progression order:  LRCP',
-               '            Number of layers:  3',
+               '            Number of layers:  2',
                '            Multiple component transformation usage:  '
                + 'reversible',
-               '            Number of resolutions:  6',
+               '            Number of resolutions:  2',
                '            Code block height, width:  (64 x 64)',
                '            Wavelet transform:  5-3 reversible',
                '            Precinct size:  default, 2^15 x 2^15',
@@ -634,13 +633,12 @@ class TestPrinting(unittest.TestCase):
                '                Vertically stripe causal context:  False',
                '                Predictable termination:  False',
                '                Segmentation symbols:  False',
-               '    QCD marker segment @ (3200, 19)',
+               '    QCD marker segment @ (3200, 7)',
                '        Quantization style:  no quantization, '
                + '2 guard bits',
-               '        Step size:  [(0, 8), (0, 9), (0, 9), '
-               + '(0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), '
-               + '(0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), '
-               + '(0, 10)]']
+               '        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]',
+               '    CME marker segment @ (3209, 37)',
+               '        "Created by OpenJPEG version 2.0.0"']
         expected = '\n'.join(lst)
         self.assertEqual(actual, expected)
 
@@ -783,6 +781,8 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
+    @unittest.skipIf(os.name == "nt", 
+                     "Problems using NamedTemporaryFile on windows.")
     def test_less_common_boxes(self):
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             with open(self.jp2file, 'rb') as ifile:

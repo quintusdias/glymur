@@ -74,10 +74,8 @@ class TestJp2k(unittest.TestCase):
         os.unlink(cls._bad_xml_file)
 
     def setUp(self):
-        self.jp2file = pkg_resources.resource_filename(glymur.__name__,
-                                                       "data/nemo.jp2")
-        self.j2kfile = pkg_resources.resource_filename(glymur.__name__,
-                                                       "data/goodstuff.j2k")
+        self.jp2file = glymur.data.nemo()
+        self.j2kfile = glymur.data.goodstuff()
 
     def tearDown(self):
         pass
@@ -92,11 +90,11 @@ class TestJp2k(unittest.TestCase):
 
     def test_reduce_max(self):
         # Verify that reduce=-1 gets us the lowest resolution image
-        j = Jp2k(self.jp2file)
+        j = Jp2k(self.j2kfile)
         thumbnail1 = j.read(reduce=-1)
         thumbnail2 = j.read(reduce=5)
         np.testing.assert_array_equal(thumbnail1, thumbnail2)
-        self.assertEqual(thumbnail1.shape, (46, 81, 3))
+        self.assertEqual(thumbnail1.shape, (25, 15, 3))
 
     def test_invalid_xml_box(self):
         # Should be able to recover from xml box with bad xml.
@@ -145,15 +143,6 @@ class TestJp2k(unittest.TestCase):
             filename = 'this file does not actually exist on the file system.'
             jp2k = Jp2k(filename)
 
-    def test_nemo_tile(self):
-        # Issue 134, trouble reading first nemo tile.
-        j = Jp2k(self.jp2file)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            tiledata = j.read(tile=0)
-        subsetdata = j.read(area=(0, 0, 512, 512))
-        np.testing.assert_array_equal(tiledata, subsetdata)
-
     def test_write_srgb_without_mct(self):
         j2k = Jp2k(self.j2kfile)
         expdata = j2k.read()
@@ -178,7 +167,7 @@ class TestJp2k(unittest.TestCase):
     def test_write_cprl(self):
         # Issue 17
         j = Jp2k(self.jp2file)
-        expdata = j.read(reduce=2)
+        expdata = j.read(reduce=1)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             ofile = Jp2k(tfile.name, 'wb')
             ofile.write(expdata, prog='CPRL')
@@ -220,7 +209,7 @@ class TestJp2k(unittest.TestCase):
 
         self.assertEqual(jp2k.box[5].id, 'jp2c')
         self.assertEqual(jp2k.box[5].offset, 3127)
-        self.assertEqual(jp2k.box[5].length, 1133427)
+        self.assertEqual(jp2k.box[5].length, 1132296)
 
         # jp2h super box
         self.assertEqual(len(jp2k.box[2].box), 2)
@@ -330,7 +319,7 @@ class TestJp2k(unittest.TestCase):
         # Issue 86.
         filename = os.path.join(data_root, 'input/conformance/p0_05.j2k')
         j = Jp2k(filename)
-        with self.assertRaises(IOError):
+        with self.assertRaises(RuntimeError):
             j.read()
 
     @unittest.skipIf(data_root is None,
@@ -540,7 +529,7 @@ class TestJp2k(unittest.TestCase):
     def test_asoc_label_box(self):
         # Construct a fake file with an asoc and a label box, as
         # OpenJPEG doesn't have such a file.
-        data = Jp2k(self.jp2file).read(reduce=3)
+        data = Jp2k(self.jp2file).read(reduce=1)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             j = Jp2k(tfile.name, 'wb')
             j.write(data)
@@ -657,6 +646,67 @@ class TestJp2k(unittest.TestCase):
             # Were the tag == 271, 'Make' would be in the keys instead.
             self.assertTrue(171 in exif['Image'].keys())
             self.assertFalse('Make' in exif['Image'].keys())
+
+
+@unittest.skipIf(glymur.lib.openjpeg._OPENJPEG is None,
+                 "Missing openjpeg library.")
+class TestJp2k15(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        # Monkey patch the package so as to use OPENJPEG instead of OPENJP2
+        cls.openjp2 = glymur.lib.openjp2._OPENJP2
+        glymur.lib.openjp2._OPENJP2 = None
+
+    @classmethod
+    def tearDownClass(cls):
+        # Restore OPENJP2
+        glymur.lib.openjp2._OPENJP2 = cls.openjp2
+
+    def setUp(self):
+        self.jp2file = glymur.data.nemo()
+        self.j2kfile = glymur.data.goodstuff()
+
+    def tearDown(self):
+        pass
+
+    def test_bands(self):
+        # Reading individual bands is an advanced maneuver.
+        jp2k = Jp2k(self.j2kfile)
+        with self.assertRaises(NotImplementedError) as ce:
+            jpdata = jp2k.read_bands()
+
+    def test_area(self):
+        # Area option not allowed for 1.5.1.
+        j2k = Jp2k(self.j2kfile)
+        with self.assertRaises(TypeError) as ce:
+            d = j2k.read(area=(0, 0, 100, 100))
+
+    def test_tile(self):
+        # tile option not allowed for 1.5.1.
+        j2k = Jp2k(self.j2kfile)
+        with self.assertRaises(TypeError) as ce:
+            d = j2k.read(tile=0)
+
+    def test_layer(self):
+        # layer option not allowed for 1.5.1.
+        j2k = Jp2k(self.j2kfile)
+        with self.assertRaises(TypeError) as ce:
+            d = j2k.read(layer=1)
+
+    def test_basic_jp2(self):
+        # This test is only useful when openjp2 is not available
+        # and OPJ_DATA_ROOT is not set.  We need at least one
+        # working JP2 test.
+        j2k = Jp2k(self.jp2file)
+        d = j2k.read(reduce=1)
+
+    def test_basic_j2k(self):
+        # This test is only useful when openjp2 is not available
+        # and OPJ_DATA_ROOT is not set.  We need at least one
+        # working J2K test.
+        j2k = Jp2k(self.j2kfile)
+        d = j2k.read()
 
 
 if __name__ == "__main__":

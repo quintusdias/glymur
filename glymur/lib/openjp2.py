@@ -1,6 +1,9 @@
 """
 Wraps individual functions in openjp2 library.
 """
+import ctypes
+import platform
+from ctypes.util import find_library
 
 
 def _glymurrc_fname():
@@ -23,19 +26,46 @@ def _glymurrc_fname():
         fname = os.path.join(confdir, 'glymurrc')
         if os.path.exists(fname):
             return fname
-        else:
-            msg = "Configuration file '{0}' does not exist.".format(confdir)
-            warnings.warn(msg, UserWarning)
 
     # didn't find a configuration file.
     return None
 
 
-def _config():
-    """Read configuration file.
+def _get_openjpeg_config():
+    libopenjpeg_path = find_library('openjpeg')
+    
+    # If we could not find it, then look in some likely locations.
+    if libopenjpeg_path is None:
+        if platform.system() == 'Darwin':
+            path = '/opt/local/lib/libopenjpeg.dylib'
+            if os.path.exists(path):
+                libopenjpeg_path = path
+        elif os.name == 'nt':
+            path = os.path.join('C:\\', 'Program files', 'OpenJPEG 1.5',
+                                'bin', 'openjpeg.dll')
+            if os.path.exists(path):
+                libopenjpeg_path = path
 
-    Based on matplotlib.
-    """
+    try:
+        if os.name == "nt":
+            _OPENJPEG = ctypes.windll.LoadLibrary(libopenjpeg_path)
+        else:    
+            _OPENJPEG = ctypes.CDLL(libopenjpeg_path)
+    except OSError:
+        _OPENJPEG = None
+        
+    if _OPENJPEG is not None:
+        # Must be at least 1.5.0
+        _OPENJPEG.opj_version.restype = ctypes.c_char_p
+        v = _OPENJPEG.opj_version()
+        v = v.decode('utf-8')
+        major, minor, patch = v.split('.')
+        if minor != '5':
+            _OPENJPEG = None
+    return _OPENJPEG
+
+
+def _get_openjp2_config():
     filename = _glymurrc_fname()
     if filename is not None:
         # Read the configuration file for the library location.
@@ -44,14 +74,16 @@ def _config():
         libopenjp2_path = parser.get('library', 'openjp2')
     else:
         # No help from the config file, try to find it ourselves.
-        from ctypes.util import find_library
         libopenjp2_path = find_library('openjp2')
 
     if libopenjp2_path is None:
         return None
 
     try:
-        _OPENJP2 = ctypes.CDLL(libopenjp2_path)
+        if os.name == "nt":
+            _OPENJP2 = ctypes.windll.LoadLibrary(libopenjp2_path)
+        else:
+            _OPENJP2 = ctypes.CDLL(libopenjp2_path)
     except OSError:
         msg = '"Library {0}" could not be loaded.  Operating in degraded mode.'
         msg = msg.format(libopenjp2_path)
@@ -59,6 +91,13 @@ def _config():
         _OPENJP2 = None
     return _OPENJP2
 
+
+def _config():
+    """Read configuration file.
+    """
+    _OPENJP2 = _get_openjp2_config()
+    _OPENJPEG = _get_openjpeg_config()
+    return _OPENJP2, _OPENJPEG
 
 def _get_configdir():
     """Return string representing the configuration directory.
@@ -73,7 +112,9 @@ def _get_configdir():
     if 'HOME' in os.environ:
         return os.path.join(os.environ['HOME'], '.config', 'glymur')
 
-import ctypes
+    if 'USERPROFILE' in os.environ:
+        return os.path.join(os.environ['USERPROFILE'], 'Application Data', 'glymur')
+
 import os
 import warnings
 
@@ -85,7 +126,12 @@ else:
     from configparser import ConfigParser
     from configparser import NoOptionError
 
-_OPENJP2 = _config()
+_OPENJP2, _OPENJPEG = _config()
+if _OPENJP2 is None and _OPENJPEG is None:
+    msg = "Neither the glymur configuration file could not be located "
+    msg += "nor could openjpeg 1.5.1 be located.  Glymur can only "
+    msg += "operate under extremely degraded conditions."
+    warnings.warn(msg, UserWarning)
 
 import numpy as np
 
@@ -616,8 +662,8 @@ class _codestream_info_v2_t(ctypes.Structure):
 # Restrict the input and output argument types for each function used in the
 # API.
 if _OPENJP2 is not None:
-    _OPENJP2.opj_create_compress.argtypes = [_codec_format_t]
     _OPENJP2.opj_create_compress.restype = _codec_t_p
+    _OPENJP2.opj_create_compress.argtypes = [_codec_format_t]
 
     _OPENJP2.opj_create_decompress.argtypes = [_codec_format_t]
     _OPENJP2.opj_create_decompress.restype = _codec_t_p
