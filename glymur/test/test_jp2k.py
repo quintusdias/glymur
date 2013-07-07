@@ -648,5 +648,66 @@ class TestJp2k(unittest.TestCase):
             self.assertFalse('Make' in exif['Image'].keys())
 
 
+@unittest.skipIf(glymur.lib.openjpeg._OPENJPEG is None,
+                 "Missing openjpeg library.")
+class TestJp2k15(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        # Monkey patch the package so as to use OPENJPEG instead of OPENJP2
+        cls.openjp2 = glymur.lib.openjp2._OPENJP2
+        glymur.lib.openjp2._OPENJP2 = None
+
+    @classmethod
+    def tearDownClass(cls):
+        # Restore OPENJP2
+        glymur.lib.openjp2._OPENJP2 = cls.openjp2
+
+    def setUp(self):
+        self.jp2file = glymur.data.nemo()
+        self.j2kfile = glymur.data.goodstuff()
+
+    def tearDown(self):
+        pass
+
+    def test_bands(self):
+        # Reading individual bands is an advanced maneuver.
+        jp2k = Jp2k(self.j2kfile)
+        with self.assertRaises(NotImplementedError) as ce:
+            jpdata = jp2k.read_bands()
+
+    def test_area(self):
+        # Area option not allowed for 1.5.1.
+        j2k = Jp2k(self.j2kfile)
+        with self.assertRaises(TypeError) as ce:
+            d = j2k.read(area=(0, 0, 100, 100))
+
+    def test_tile(self):
+        # tile option not allowed for 1.5.1.
+        j2k = Jp2k(self.j2kfile)
+        with self.assertRaises(TypeError) as ce:
+            d = j2k.read(tile=0)
+
+    def test_layer(self):
+        # layer option not allowed for 1.5.1.
+        j2k = Jp2k(self.j2kfile)
+        with self.assertRaises(TypeError) as ce:
+            d = j2k.read(layer=1)
+
+    def test_basic_jp2(self):
+        # This test is only useful when openjp2 is not available
+        # and OPJ_DATA_ROOT is not set.  We need at least one
+        # working JP2 test.
+        j2k = Jp2k(self.jp2file)
+        d = j2k.read(reduce=1)
+
+    def test_basic_j2k(self):
+        # This test is only useful when openjp2 is not available
+        # and OPJ_DATA_ROOT is not set.  We need at least one
+        # working J2K test.
+        j2k = Jp2k(self.j2kfile)
+        d = j2k.read()
+
+
 if __name__ == "__main__":
     unittest.main()
