@@ -153,7 +153,7 @@ class TestJp2k(unittest.TestCase):
             np.testing.assert_array_equal(actdata, expdata)
 
             c = ofile.get_codestream()
-            self.assertEqual(c.segment[2].SPcod[3], 0)  # no mct
+            self.assertEqual(c.segment[2].spcod[3], 0)  # no mct
 
     def test_write_grayscale_with_mct(self):
         # MCT usage makes no sense for grayscale images.
@@ -175,7 +175,7 @@ class TestJp2k(unittest.TestCase):
             np.testing.assert_array_equal(actdata, expdata)
 
             c = ofile.get_codestream()
-            self.assertEqual(c.segment[2].SPcod[0], glymur.core.CPRL)
+            self.assertEqual(c.segment[2].spcod[0], glymur.core.CPRL)
 
     def test_jp2_boxes(self):
         # Verify the boxes of a JP2 file.
@@ -344,7 +344,7 @@ class TestJp2k(unittest.TestCase):
             c = j.get_codestream()
 
             # Code block size is reported as XY in the codestream.
-            self.assertEqual(tuple(c.segment[2].SPcod[5:7]), (3, 2))
+            self.assertEqual(tuple(c.segment[2].spcod[5:7]), (3, 2))
 
     def test_negative_too_many_dimensions(self):
         # OpenJP2 only allows 2D or 3D images.

@@ -3,6 +3,7 @@
 The module contains classes used to store information parsed from JPEG 2000
 codestreams.
 """
+# pylint: disable=C0302,R0902,R0903,R0913
 
 import math
 import struct
@@ -47,34 +48,35 @@ class Codestream(object):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, f, header_only=True):
+    def __init__(self, fptr, header_only=True):
         """
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
         header_only : bool, optional
             If True, only marker segments in the main header are parsed.
             Supplying False may impose a large performance penalty.
         """
 
-        self._parse_tile_part_bit_stream_flag = False
+        # Do we parse the tile part bit stream or not?
+        self._parse_tpart_flag = False
 
         self.segment = []
 
         # First two bytes are the SOC marker
-        buffer = f.read(2)
-        marker_id, = struct.unpack('>H', buffer)
-        segment = SOCsegment(offset=f.tell() - 2, length=0)
+        read_buffer = fptr.read(2)
+        marker_id, = struct.unpack('>H', read_buffer)
+        segment = SOCsegment(offset=fptr.tell() - 2, length=0)
         self.segment.append(segment)
 
         tile_offset = []
         tile_length = []
 
         while True:
-            offset = f.tell()
-            buffer = f.read(2)
-            marker_id, = struct.unpack('>H', buffer)
+            offset = fptr.tell()
+            read_buffer = fptr.read(2)
+            marker_id, = struct.unpack('>H', read_buffer)
 
             if marker_id >= 0xff30 and marker_id <= 0xff3f:
                 the_id = '0x{0:x}'.format(marker_id)
@@ -83,44 +85,52 @@ class Codestream(object):
             elif marker_id == 0xff51:
                 # Need to keep track of the number of components from SIZ for
                 # other markers
-                segment = self._parseSIZsegment(f)
-                self._Csiz = len(segment.Ssiz)
+                segment = _parse_siz_segment(fptr)
+                self._csiz = len(segment.ssiz)
 
             elif marker_id == 0xff52:
-                segment = self._parseCODsegment(f)
+                segment = _parse_cod_segment(fptr)
+
+                sop = (segment.scod & 2) > 0
+                eph = (segment.scod & 4) > 0
+
+                if sop or eph:
+                    self._parse_tpart_flag = True
+                else:
+                    self._parse_tpart_flag = False
 
             elif marker_id == 0xff53:
-                segment = self._parseCOCsegment(f)
+                segment = self._parse_coc_segment(fptr)
 
             elif marker_id == 0xff55:
-                segment = self._parseTLMsegment(f)
+                segment = _parse_tlm_segment(fptr)
 
             elif marker_id == 0xff58:
-                segment = self._parsePLTsegment(f)
+                segment = _parse_plt_segment(fptr)
 
             elif marker_id == 0xff5c:
-                segment = self._parseQCDsegment(f)
+                segment = _parse_qcd_segment(fptr)
 
             elif marker_id == 0xff5d:
-                segment = self._parseQCCsegment(f)
+                segment = self._parse_qcc_segment(fptr)
 
             elif marker_id == 0xff5e:
-                segment = self._parseRGNsegment(f)
+                segment = self._parse_rgn_segment(fptr)
 
             elif marker_id == 0xff5f:
-                segment = self._parsePODsegment(f)
+                segment = self._parse_pod_segment(fptr)
 
             elif marker_id == 0xff60:
-                segment = self._parsePPMsegment(f)
+                segment = _parse_ppm_segment(fptr)
 
             elif marker_id == 0xff61:
-                segment = self._parsePPTsegment(f)
+                segment = _parse_ppt_segment(fptr)
 
             elif marker_id == 0xff63:
-                segment = self._parseCRGsegment(f)
+                segment = _parse_crg_segment(fptr, self._csiz)
 
             elif marker_id == 0xff64:
-                segment = self._parseCMEsegment(f)
+                segment = _parse_cme_segment(fptr)
 
             elif marker_id == 0xff90:
                 # Need to keep easy access to tile offsets and lengths for when
@@ -129,50 +139,50 @@ class Codestream(object):
                     # Stop parsing as soon as we hit the first Start Of Tile.
                     return
 
-                segment = self._parseSOTsegment(f)
+                segment = _parse_sot_segment(fptr)
                 if segment.offset not in tile_offset:
                     tile_offset.append(segment.offset)
-                    tile_length.append(segment.Psot)
+                    tile_length.append(segment.psot)
                 else:
                     msg = "Inconsistent start-of-tile (SOT) marker segment "
                     msg += "encountered in tile with index {0}.  "
                     msg += "Codestream parsing terminated."
-                    msg = msg.format(segment.Isot)
+                    msg = msg.format(segment.isot)
                     warnings.warn(msg)
                     return
 
             elif marker_id == 0xff93:
                 # start of data.  Need to seek past the current tile part.
                 # The last SOT marker segment has the info that we need.
-                segment = self._parseSODsegment(f)
+                segment = _parse_sod_segment(fptr)
 
             elif marker_id == 0xffd9:
                 # end of codestream
-                segment = self._parseEOCsegment(f)
+                segment = _parse_eoc_segment(fptr)
                 self.segment.append(segment)
                 break
 
             elif marker_id in _valid_markers:
                 # It's a reserved marker that I don't know anything about.
                 # See table A-1 in ISO/IEC FCD15444-1.
-                segment = self._parseGenericSegment(f, marker_id)
+                segment = _parse_generic_segment(fptr, marker_id)
 
             elif ((marker_id & 0xff00) >> 8) == 255:
                 # Peek ahead to see if the next two bytes are a marker or not.
                 # Then seek back.
                 msg = "Unrecognized marker id:  0x{0:x}".format(marker_id)
                 warnings.warn(msg)
-                cpos = f.tell()
-                buffer = f.read(2)
-                next_item, = struct.unpack('>H', buffer)
-                f.seek(cpos)
+                cpos = fptr.tell()
+                read_buffer = fptr.read(2)
+                next_item, = struct.unpack('>H', read_buffer)
+                fptr.seek(cpos)
                 if ((next_item & 0xff00) >> 8) == 255:
                     # No segment associated with this marker, so reset
                     # to two bytes after it.
                     segment = Segment(id='0x{0:x}'.format(marker_id),
                                       offset=offset, length=0)
                 else:
-                    segment = self._parseGenericSegment(f, marker_id)
+                    segment = _parse_generic_segment(fptr, marker_id)
 
             else:
                 msg = 'Invalid marker id encountered at byte {0:d} '
@@ -184,41 +194,37 @@ class Codestream(object):
 
             if marker_id == 0xff93:
                 # If SOD, then we need to seek past the tile part bit stream.
-                x = f.tell()
-                if self._parse_tile_part_bit_stream_flag:
+                if self._parse_tpart_flag:
                     # But first parse the tile part bit stream for SOP and
                     # EPH segments.
-                    self._parse_tile_part_bit_stream(f, segment,
+                    self._parse_tile_part_bit_stream(fptr, segment,
                                                      tile_length[-1])
 
-                f.seek(tile_offset[-1] + tile_length[-1])
+                fptr.seek(tile_offset[-1] + tile_length[-1])
 
-    def _parse_tile_part_bit_stream(self, f, sod_marker, tile_length):
+    def _parse_tile_part_bit_stream(self, fptr, sod_marker, tile_length):
         """Parse the tile part bit stream for SOP, EPH marker segments."""
-        buffer = f.read(tile_length)
+        read_buffer = fptr.read(tile_length)
         # The tile length could possibly be too large and extend past
         # the end of file.  We need to be a bit resilient.
-        count = min(tile_length, len(buffer))
-        packet = np.frombuffer(buffer, dtype=np.uint8, count=count)
+        count = min(tile_length, len(read_buffer))
+        packet = np.frombuffer(read_buffer, dtype=np.uint8, count=count)
 
         indices = np.where(packet == 0xff)
         for idx in indices[0]:
             try:
                 if packet[idx+1] == 0x91 and (idx < (len(packet) - 5)):
-                    kwargs = {}
-                    kwargs['offset'] = sod_marker.offset + 2 + idx
-                    kwargs['length'] = 4
+                    offset = sod_marker.offset + 2 + idx
+                    length = 4
                     nsop = packet[(idx + 4):(idx+6)].view('uint16')[0]
                     if sys.byteorder == 'little':
                         nsop = nsop.byteswap()
-                    kwargs['Nsop'] = nsop
-                    segment = SOPsegment(**kwargs)
+                    segment = SOPsegment(nsop, length, offset)
                     self.segment.append(segment)
                 elif packet[idx + 1] == 0x92:
-                    kwargs = {}
-                    kwargs['offset'] = sod_marker.offset + 2 + idx
-                    kwargs['length'] = 0
-                    segment = EPHsegment(**kwargs)
+                    offset = sod_marker.offset + 2 + idx
+                    length = 0
+                    segment = EPHsegment(length, offset)
                     self.segment.append(segment)
             except IndexError:
                 continue
@@ -233,170 +239,12 @@ class Codestream(object):
             msg += ''.join(strs)
         return msg
 
-    def _parseSIZsegment(self, f):
-        """Parse the SIZ segment.
-
-        Parameters
-        ----------
-        f : file
-            Open file object.
-
-        Returns
-        -------
-        SIZsegment instance.
-        """
-        kwargs = {}
-        kwargs['offset'] = f.tell() - 2
-
-        buffer = f.read(38)
-        data = struct.unpack('>HHIIIIIIIIH', buffer)
-
-        kwargs['length'] = data[0]
-        kwargs['Rsiz'] = data[1]
-
-        Xsiz = data[2]
-        Ysiz = data[3]
-        XOsiz = data[4]
-        YOsiz = data[5]
-        XTsiz = data[6]
-        YTsiz = data[7]
-        XTOsiz = data[8]
-        YTOsiz = data[9]
-
-        num_tiles_x = (Xsiz - XOsiz) / (XTsiz - XTOsiz)
-        num_tiles_y = (Ysiz - YOsiz) / (YTsiz - YTOsiz)
-        numtiles = math.ceil(num_tiles_x) * math.ceil(num_tiles_y)
-        if numtiles > 65535:
-            msg = "Invalid number of tiles ({0}).".format(numtiles)
-            warnings.warn(msg)
-
-        kwargs['Xsiz'] = Xsiz
-        kwargs['Ysiz'] = Ysiz
-        kwargs['XOsiz'] = XOsiz
-        kwargs['YOsiz'] = YOsiz
-        kwargs['XTsiz'] = XTsiz
-        kwargs['YTsiz'] = YTsiz
-        kwargs['XTOsiz'] = XTOsiz
-        kwargs['YTOsiz'] = YTOsiz
-
-        num_components = data[10]
-        buffer = f.read(num_components * 3)
-        data = struct.unpack('>' + 'B' * num_components * 3, buffer)
-
-        Ssiz = data[0::3]
-        kwargs['Ssiz'] = Ssiz
-        kwargs['_bitdepth'] = tuple(((x & 0x7f) + 1) for x in Ssiz)
-        kwargs['_signed'] = tuple(((x & 0xb0) > 0) for x in Ssiz)
-
-        ssf = []
-        for j, subsampling in enumerate(list(zip(data[1::3], data[2::3]))):
-            if 0 in subsampling:
-                msg = "Invalid subsampling value for component {0}: "
-                msg += "dx={1}, dy={2}."
-                msg = msg.format(j, subsampling[0], subsampling[1])
-                warnings.warn(msg)
-        kwargs['XRsiz'] = data[1::3]
-        kwargs['YRsiz'] = data[2::3]
-
-        return SIZsegment(**kwargs)
-
-    def _parseGenericSegment(self, f, marker_id):
-        """Parse a generic marker segment.
-
-        Parameters
-        ----------
-        f : file
-            Open file object.
-
-        Returns
-        -------
-        Segment instance.
-        """
-        kwargs = {}
-        offset = f.tell() - 2
-
-        buffer = f.read(2)
-        length, = struct.unpack('>H', buffer)
-        data = f.read(length-2)
-
-        segment = Segment(id='0x{0:x}'.format(marker_id),
-                          offset=offset, length=length)
-        segment.data = data
-        return segment
-
-    def _parseCMEsegment(self, f):
-        """Parse the CME marker segment.
-
-        Parameters
-        ----------
-        f : file
-            Open file object.
-
-        Returns
-        -------
-        CME segment instance.
-        """
-        kwargs = {}
-        kwargs['offset'] = f.tell() - 2
-
-        buffer = f.read(4)
-        data = struct.unpack('>HH', buffer)
-        kwargs['length'] = data[0]
-        kwargs['Rcme'] = data[1]
-        kwargs['Ccme'] = f.read(kwargs['length'] - 4)
-
-        return CMEsegment(**kwargs)
-
-    def _parseCRGsegment(self, f):
-        """Parse the CRG marker segment.
-
-        Parameters
-        ----------
-        f : file
-            Open file object.
-
-        Returns
-        -------
-        CRG segment instance.
-        """
-        kwargs = {}
-        kwargs['offset'] = f.tell() - 2
-
-        buffer = f.read(2)
-        length, = struct.unpack('>H', buffer)
-        kwargs['length'] = length
-
-        buffer = f.read(4 * self._Csiz)
-        data = struct.unpack('>' + 'HH' * self._Csiz, buffer)
-        kwargs['Xcrg'] = data[0::2]
-        kwargs['Ycrg'] = data[1::2]
-
-        return CRGsegment(**kwargs)
-
-    def _parseEOCsegment(self, f):
-        """Parse the EOC marker segment.
-
-        Parameters
-        ----------
-        f : file
-            Open file object.
-
-        Returns
-        -------
-        EOC Segment instance.
-        """
-        kwargs = {}
-        kwargs['offset'] = f.tell() - 2
-        kwargs['length'] = 0
-
-        return EOCsegment(**kwargs)
-
-    def _parseCOCsegment(self, f):
+    def _parse_coc_segment(self, fptr):
         """Parse the COC marker segment.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
 
         Returns
@@ -404,469 +252,127 @@ class Codestream(object):
         COC segment instance.
         """
         kwargs = {}
-        offset = f.tell() - 2
+        offset = fptr.tell() - 2
         kwargs['offset'] = offset
 
-        buffer = f.read(2)
-        length, = struct.unpack('>H', buffer)
+        read_buffer = fptr.read(2)
+        length, = struct.unpack('>H', read_buffer)
         kwargs['length'] = length
 
-        if self._Csiz <= 255:
-            buffer = f.read(1)
-            component, = struct.unpack('>B', buffer)
+        if self._csiz <= 255:
+            read_buffer = fptr.read(1)
+            component, = struct.unpack('>B', read_buffer)
         else:
-            buffer = f.read(2)
-            component, = struct.unpack('>H', buffer)
-        kwargs['Ccoc'] = component
+            read_buffer = fptr.read(2)
+            component, = struct.unpack('>H', read_buffer)
+        ccoc = component
 
-        buffer = f.read(1)
-        kwargs['Scoc'], = struct.unpack('>B', buffer)
+        read_buffer = fptr.read(1)
+        scoc, = struct.unpack('>B', read_buffer)
 
-        n = offset + 2 + length - f.tell()
-        buffer = f.read(n)
-        SPcoc = np.frombuffer(buffer, dtype=np.uint8)
-        kwargs['SPcoc'] = SPcoc
+        numbytes = offset + 2 + length - fptr.tell()
+        read_buffer = fptr.read(numbytes)
+        spcoc = np.frombuffer(read_buffer, dtype=np.uint8)
+        spcoc = spcoc
 
-        e1 = SPcoc[1]
-        e2 = SPcoc[2]
-        _code_block_size = (4 * math.pow(2, e2), 4 * math.pow(2, e1))
-        kwargs['_code_block_size'] = _code_block_size
+        return COCsegment(ccoc, scoc, spcoc, length, offset)
 
-        if len(SPcoc) > 5:
-            kwargs['_precinct_size'] = _parse_precinct_size(SPcoc[5:])
-        else:
-            kwargs['_precinct_size'] = None
-
-        return COCsegment(**kwargs)
-
-    def _parseCODsegment(self, f):
-        """Parse the COD segment.
-
-        Parameters
-        ----------
-        f : file
-            Open file object.
-
-        Returns
-        -------
-        COD segment instance.
-        """
-        kwargs = {}
-        offset = f.tell() - 2
-        kwargs['offset'] = f.tell() - 2
-
-        buffer = f.read(3)
-        length, Scod = struct.unpack('>HB', buffer)
-        kwargs['length'] = length
-        kwargs['Scod'] = Scod
-
-        sop = (Scod & 2) > 0
-        eph = (Scod & 4) > 0
-
-        if sop or eph:
-            self._parse_tile_part_bit_stream_flag = True
-        else:
-            self._parse_tile_part_bit_stream_flag = False
-
-        n = offset + 2 + length - f.tell()
-        SPcod = f.read(n)
-        kwargs['SPcod'] = np.frombuffer(SPcod, dtype=np.uint8)
-
-        params = struct.unpack('>BHBBBBBB', SPcod[0:9])
-        kwargs['_layers'] = params[1]
-        kwargs['_numresolutions'] = params[3]
-
-        if params[3] > opj2._J2K_MAXRLVLS:
-            msg = "Invalid number of resolutions ({0})."
-            msg = msg.format(params[3] + 1)
-            warnings.warn(msg)
-
-        cblk_width = 4 * math.pow(2, params[4])
-        cblk_height = 4 * math.pow(2, params[5])
-        code_block_size = (cblk_height, cblk_width)
-        kwargs['_code_block_size'] = code_block_size
-
-        if len(SPcod) > 9:
-            kwargs['_precinct_size'] = _parse_precinct_size(SPcod[9:])
-        else:
-            kwargs['_precinct_size'] = None
-
-        return CODsegment(**kwargs)
-
-    def _parsePODsegment(self, f):
+    def _parse_pod_segment(self, fptr):
         """Parse the POD segment.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
 
         Returns
         -------
         POD segment instance.
         """
-        kwargs = {}
-        kwargs['offset'] = f.tell() - 2
+        offset = fptr.tell() - 2
 
-        buffer = f.read(2)
-        length, = struct.unpack('>H', buffer)
+        read_buffer = fptr.read(2)
+        length, = struct.unpack('>H', read_buffer)
 
-        if self._Csiz < 257:
-            n = int((length - 2) / 7)
-            buffer = f.read(n * 7)
-            fmt = '>' + 'BBHBBB' * n
+        if self._csiz < 257:
+            numbytes = int((length - 2) / 7)
+            read_buffer = fptr.read(numbytes * 7)
+            fmt = '>' + 'BBHBBB' * numbytes
         else:
-            n = int((length - 2) / 9)
-            buffer = f.read(n * 9)
-            fmt = '>' + 'BHHBHB' * n
+            numbytes = int((length - 2) / 9)
+            read_buffer = fptr.read(numbytes * 9)
+            fmt = '>' + 'BHHBHB' * numbytes
 
-        data = struct.unpack(fmt, buffer)
+        pod_params = struct.unpack(fmt, read_buffer)
 
-        kwargs['length'] = length
-        kwargs['RSpod'] = data[0::6]
-        kwargs['CSpod'] = data[1::6]
-        kwargs['LYEpod'] = data[2::6]
-        kwargs['REpod'] = data[3::6]
-        kwargs['CEpod'] = data[4::6]
-        kwargs['Ppod'] = data[5::6]
+        return PODsegment(pod_params, length, offset)
 
-        return PODsegment(**kwargs)
-
-    def _parsePPMsegment(self, f):
-        """Parse the PPM segment.
-
-        Parameters
-        ----------
-        f : file
-            Open file object.
-
-        Returns
-        -------
-        PPM segment instance.
-        """
-        kwargs = {}
-        kwargs['offset'] = f.tell() - 2
-
-        buffer = f.read(3)
-        length, zppm = struct.unpack('>HB', buffer)
-        kwargs['length'] = length
-        kwargs['Zppm'] = zppm
-
-        n = length - 3
-        kwargs['data'] = f.read(n)
-
-        return PPMsegment(**kwargs)
-
-    def _parsePLTsegment(self, f):
-        """Parse the PLT segment.
-
-        The packet headers are not parsed, i.e. they remain "uninterpreted"
-        raw data beffers.
-
-        Parameters
-        ----------
-        f : file
-            Open file object.
-
-        Returns
-        -------
-        PLT segment instance.
-        """
-        kwargs = {}
-        kwargs['offset'] = f.tell() - 2
-
-        buffer = f.read(3)
-        length, zplt = struct.unpack('>HB', buffer)
-        kwargs['length'] = length
-        kwargs['Zplt'] = zplt
-
-        n = length - 3
-        buffer = f.read(n)
-        iplt = np.frombuffer(buffer, dtype=np.uint8)
-
-        packet_len = []
-        plen = 0
-        for x in iplt:
-            plen |= (x & 0x7f)
-            if x & 0x80:
-                # Continue by or-ing in the next byte.
-                plen <<= 7
-            else:
-                packet_len.append(plen)
-                plen = 0
-
-        kwargs['Iplt'] = packet_len
-
-        return PLTsegment(**kwargs)
-
-    def _parsePPTsegment(self, f):
-        """Parse the PPT segment.
-
-        The packet headers are not parsed, i.e. they remain "uninterpreted"
-        raw data beffers.
-
-        Parameters
-        ----------
-        f : file
-            Open file object.
-
-        Returns
-        -------
-        PPT segment instance.
-        """
-        kwargs = {}
-        kwargs['offset'] = f.tell() - 2
-
-        buffer = f.read(3)
-        length, zppt = struct.unpack('>HB', buffer)
-        kwargs['length'] = length
-        kwargs['Zppt'] = zppt
-
-        n = length - 3
-        kwargs['Ippt'] = f.read(n)
-
-        return PPTsegment(**kwargs)
-
-    def _parseQuantization(self, buffer, sqcd):
-        """Tease out the quantization values.
-
-        Args:
-            buffer:  sequence of bytes from the QCC and QCD segments.
-        """
-        n = len(buffer)
-
-        exponent = []
-        mantissa = []
-
-        if sqcd & 0x1f == 0:  # no quantization
-            data = struct.unpack('>' + 'B' * n, buffer)
-            for j in range(len(data)):
-                exponent.append(data[j] >> 3)
-                mantissa.append(0)
-        else:
-            fmt = '>' + 'H' * int(n / 2)
-            data = struct.unpack(fmt, buffer)
-            for j in range(len(data)):
-                exponent.append(data[j] >> 11)
-                mantissa.append(data[j] & 0x07ff)
-
-        return mantissa, exponent
-
-    def _parseQCCsegment(self, f):
+    def _parse_qcc_segment(self, fptr):
         """Parse the QCC segment.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
 
         Returns
         -------
         QCC Segment instance.
         """
-        kwargs = {}
-        offset = f.tell() - 2
-        kwargs['offset'] = offset
+        offset = fptr.tell() - 2
 
-        buffer = f.read(2)
-        length, = struct.unpack('>H', buffer)
-        kwargs['length'] = length
+        read_buffer = fptr.read(2)
+        length, = struct.unpack('>H', read_buffer)
 
-        if self._Csiz > 256:
-            buffer = f.read(3)
+        if self._csiz > 256:
+            read_buffer = fptr.read(3)
             fmt = '>HB'
-            n = length - 5
+            mantissa_exponent_buffer_length = length - 5
         else:
-            buffer = f.read(2)
+            read_buffer = fptr.read(2)
             fmt = '>BB'
-            n = length - 4
-        Cqcc, Sqcc = struct.unpack(fmt, buffer)
-        if Cqcc >= self._Csiz:
+            mantissa_exponent_buffer_length = length - 4
+        cqcc, sqcc = struct.unpack(fmt, read_buffer)
+        if cqcc >= self._csiz:
             msg = "Invalid component number (%d), "
             msg += "number of components is only %d."
-            msg = msg.format(Cqcc, self._Csiz)
+            msg = msg.format(cqcc, self._csiz)
             warnings.warn(msg)
-        kwargs['Cqcc'] = Cqcc
 
-        kwargs['Sqcc'] = Sqcc
-        kwargs['_guardBits'] = (Sqcc & 0xe0) >> 5
+        spqcc = fptr.read(mantissa_exponent_buffer_length)
 
-        buffer = f.read(n)
+        return QCCsegment(cqcc, sqcc, spqcc, length, offset)
 
-        mantissa, exponent = self._parseQuantization(buffer, Sqcc)
-
-        kwargs['SPqcc'] = buffer
-        kwargs['_exponent'] = exponent
-        kwargs['_mantissa'] = mantissa
-
-        return QCCsegment(**kwargs)
-
-    def _parseQCDsegment(self, fptr):
-        """Parse the QCD segment.
-
-        Parameters
-        ----------
-        fptr : file
-            Open file object.
-
-        Returns
-        -------
-        QCD Segment instance.
-        """
-        kwargs = {}
-        kwargs['offset'] = fptr.tell() - 2
-
-        read_buffer = fptr.read(3)
-        length, sqcd = struct.unpack('>HB', read_buffer)
-        kwargs['length'] = length
-        kwargs['Sqcd'] = sqcd
-
-        kwargs['_guardBits'] = (sqcd & 0xe0) >> 5
-
-        read_buffer = fptr.read(length - 3)
-
-        mantissa, exponent = self._parseQuantization(read_buffer, sqcd)
-
-        kwargs['SPqcd'] = read_buffer
-        kwargs['_exponent'] = exponent
-        kwargs['_mantissa'] = mantissa
-
-        return QCDsegment(**kwargs)
-
-    def _parseRGNsegment(self, f):
+    def _parse_rgn_segment(self, fptr):
         """Parse the RGN segment.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
 
         Returns
         -------
         RGN segment instance.
         """
-        kwargs = {}
-        kwargs['offset'] = f.tell() - 2
+        offset = fptr.tell() - 2
 
-        read_buffer = f.read(2)
+        read_buffer = fptr.read(2)
         length, = struct.unpack('>H', read_buffer)
 
-        if self._Csiz < 257:
-            read_buffer = f.read(3)
+        if self._csiz < 257:
+            read_buffer = fptr.read(3)
             data = struct.unpack('>BBB', read_buffer)
         else:
-            read_buffer = f.read(4)
+            read_buffer = fptr.read(4)
             data = struct.unpack('>HBB', read_buffer)
 
-        kwargs['length'] = length
-        kwargs['Crgn'] = data[0]
-        kwargs['Srgn'] = data[1]
-        kwargs['SPrgn'] = data[2]
+        length = length
+        crgn = data[0]
+        srgn = data[1]
+        sprgn = data[2]
 
-        return RGNsegment(**kwargs)
-
-    def _parseSODsegment(self, fptr):
-        """Parse the SOD segment.
-
-        Parameters
-        ----------
-        fptr : file
-            Open file object.
-
-        Returns
-        -------
-        SOD segment instance.
-        """
-        kwargs = {}
-        kwargs['offset'] = fptr.tell() - 2
-        kwargs['length'] = 0
-
-        return SODsegment(**kwargs)
-
-    def _parseSOTsegment(self, fptr):
-        """Parse the SOT segment.
-
-        Parameters
-        ----------
-        fptr : file
-            Open file object.
-
-        Returns
-        -------
-        SOT segment instance.
-        """
-        kwargs = {}
-        kwargs['offset'] = fptr.tell() - 2
-
-        read_buffer = fptr.read(10)
-        data = struct.unpack('>HHIBB', read_buffer)
-
-        kwargs['length'] = data[0]
-        kwargs['Isot'] = data[1]
-        kwargs['Psot'] = data[2]
-        kwargs['TPsot'] = data[3]
-        kwargs['TNsot'] = data[4]
-
-        return SOTsegment(**kwargs)
-
-    def _parseTLMsegment(self, f):
-        """Parse the TLM segment.
-
-        Parameters
-        ----------
-        f : file
-            Open file object.
-
-        Returns
-        -------
-        TLM segment instance.
-        """
-        kwargs = {}
-        offset = f.tell() - 2
-        kwargs['offset'] = offset
-
-        buffer = f.read(2)
-        length, = struct.unpack('>H', buffer)
-        kwargs['length'] = length
-
-        buffer = f.read(2)
-        Ztlm, Stlm = struct.unpack('>BB', buffer)
-        st = (Stlm >> 4) & 0x3
-        sp = (Stlm >> 6) & 0x1
-
-        nbytes = length - 4
-        if st == 0:
-            ntiles = nbytes / ((sp + 1) * 2)
-        else:
-            ntiles = nbytes / (st + (sp + 1) * 2)
-
-        buffer = f.read(nbytes)
-        if st == 0:
-            Ttlm = None
-            fmt = ''
-        elif st == 1:
-            fmt = 'B'
-        elif st == 2:
-            fmt = 'H'
-
-        if sp == 0:
-            fmt += 'H'
-        else:
-            fmt += 'I'
-
-        data = struct.unpack('>' + fmt * int(ntiles), buffer)
-        if st == 0:
-            Ttlm = None
-            Ptlm = data
-        else:
-            Ttlm = data[0::2]
-            Ptlm = data[1::2]
-
-        kwargs['Ztlm'] = Ztlm
-        kwargs['Ttlm'] = Ttlm
-        kwargs['Ptlm'] = Ptlm
-
-        return TLMsegment(**kwargs)
+        return RGNsegment(length, offset, crgn, srgn, sprgn)
 
 
 class Segment(object):
@@ -886,23 +392,12 @@ class Segment(object):
         self.id = id
         self.offset = offset
         self.length = length
+        self._data = None
 
     def __str__(self):
         msg = '{0} marker segment @ ({1}, {2})'.format(self.id,
                                                        self.offset,
                                                        self.length)
-        return msg
-
-    def _print_quantization_style(self, sqcc):
-        """Only to be used with QCC and QCD segments."""
-
-        msg = '\n    Quantization style:  '
-        if sqcc & 0x1f == 0:
-            msg += 'no quantization, '
-        elif sqcc & 0x1f == 1:
-            msg += 'scalar implicit, '
-        elif sqcc & 0x1f == 2:
-            msg += 'scalar explicit, '
         return msg
 
 
@@ -918,11 +413,11 @@ class COCsegment(Segment):
     length : int
         Length of marker segment in bytes.  This number does not include the
         two bytes constituting the marker.
-    Ccoc : byte
+    ccoc : int
         Index of associated component.
-    Scoc : byte
+    scoc : int
         Coding style for this component.
-    SPcoc : byte array
+    spcoc : byte array
         Coding style parameters for this component.
 
     References
@@ -931,32 +426,45 @@ class COCsegment(Segment):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, **kwargs):
+    def __init__(self, ccoc, scoc, spcoc, length, offset):
         Segment.__init__(self, id='COC')
-        self.__dict__.update(**kwargs)
+        self.ccoc = ccoc
+        self.scoc = scoc
+        self.spcoc = spcoc
+
+        self._code_block_size = (4 * math.pow(2, self.spcoc[2]),
+                                 4 * math.pow(2, self.spcoc[1]))
+
+        if len(self.spcoc) > 5:
+            self._precinct_size = _parse_precinct_size(self.spcoc[5:])
+        else:
+            self._precinct_size = None
+
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = Segment.__str__(self)
 
-        msg += '\n    Associated component:  {0}'.format(self.Ccoc)
+        msg += '\n    Associated component:  {0}'.format(self.ccoc)
 
         msg += '\n    Coding style for this component:  '
-        if self.Scoc == 0:
+        if self.scoc == 0:
             msg += 'Entropy coder, PARTITION = 0'
-        elif self.Scoc & 0x01:
+        elif self.scoc & 0x01:
             msg += 'Entropy coder, PARTITION = 1'
 
         msg += '\n    Coding style parameters:'
         msg += '\n        Number of resolutions:  {0}'
         msg += '\n        Code block height, width:  ({1} x {2})'
         msg += '\n        Wavelet transform:  {3}'
-        msg = msg.format(self.SPcoc[0] + 1,
+        msg = msg.format(self.spcoc[0] + 1,
                          int(self._code_block_size[0]),
                          int(self._code_block_size[1]),
-                         _wavelet_transform_display[self.SPcoc[4]])
+                         _wavelet_transform_display[self.spcoc[4]])
 
         msg += '\n        '
-        msg += _context_string(self.SPcoc[3])
+        msg += _context_string(self.spcoc[3])
 
         if self._precinct_size is not None:
             msg += '\n        Precinct size:  '
@@ -978,9 +486,9 @@ class CODsegment(Segment):
     length : int
         Length of marker segment in bytes.  This number does not include the
         two bytes constituting the marker.
-    Scod : int
+    scod : int
         Default coding style.
-    SPcod : bytes
+    spcod : bytes
         Coding style parameters, including quality layers, multicomponent
         transform usage, decomposition levels, code block size, style of code-
         block passes, and which wavelet transform is used.
@@ -991,9 +499,31 @@ class CODsegment(Segment):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, **kwargs):
+    def __init__(self, scod, spcod, length, offset):
         Segment.__init__(self, id='COD')
-        self.__dict__.update(**kwargs)
+        self.scod = scod
+        self.spcod = spcod
+        self.length = length
+        self.offset = offset
+
+        params = struct.unpack('>BHBBBBBB', self.spcod[0:9])
+        self._layers = params[1]
+        self._numresolutions = params[3]
+
+        if params[3] > opj2._J2K_MAXRLVLS:
+            msg = "Invalid number of resolutions ({0})."
+            msg = msg.format(params[3] + 1)
+            warnings.warn(msg)
+
+        cblk_width = 4 * math.pow(2, params[4])
+        cblk_height = 4 * math.pow(2, params[5])
+        code_block_size = (cblk_height, cblk_width)
+        self._code_block_size = code_block_size
+
+        if len(self.spcod) > 9:
+            self._precinct_size = _parse_precinct_size(self.spcod[9:])
+        else:
+            self._precinct_size = None
 
     def __str__(self):
         msg = Segment.__str__(self)
@@ -1002,15 +532,15 @@ class CODsegment(Segment):
         msg += '\n        Entropy coder, {0} partitions'
         msg += '\n        SOP marker segments:  {1}'
         msg += '\n        EPH marker segments:  {2}'
-        msg = msg.format('with' if (self.Scod & 1) else 'without',
-                         ((self.Scod & 2) > 0),
-                         ((self.Scod & 4) > 0))
+        msg = msg.format('with' if (self.scod & 1) else 'without',
+                         ((self.scod & 2) > 0),
+                         ((self.scod & 4) > 0))
 
-        if self.SPcod[3] == 0:
+        if self.spcod[3] == 0:
             mct = 'no transform specified'
-        elif self.SPcod[3] & 0x01:
+        elif self.spcod[3] & 0x01:
             mct = 'reversible'
-        elif self.SPcod[3] & 0x02:
+        elif self.spcod[3] & 0x02:
             mct = 'irreversible'
         else:
             mct = 'unknown'
@@ -1025,13 +555,13 @@ class CODsegment(Segment):
                  '    Wavelet transform:  {6}']
         msg += '\n    '.join(lines)
 
-        msg = msg.format(_progression_order_display[self.SPcod[0]],
+        msg = msg.format(_progression_order_display[self.spcod[0]],
                          self._layers,
                          mct,
-                         self.SPcod[4] + 1,
+                         self.spcod[4] + 1,
                          int(self._code_block_size[0]),
                          int(self._code_block_size[1]),
-                         _wavelet_transform_display[self.SPcod[8]])
+                         _wavelet_transform_display[self.spcod[8]])
 
         msg += '\n        Precinct size:  '
         if self._precinct_size is None:
@@ -1041,7 +571,7 @@ class CODsegment(Segment):
                 msg += '({0}, {1})'.format(pps[0], pps[1])
 
         msg += '\n        '
-        msg += _context_string(self.SPcod[7])
+        msg += _context_string(self.spcod[7])
 
         return msg
 
@@ -1058,10 +588,10 @@ class CMEsegment(Segment):
     length : int
         Length of marker segment in bytes.  This number does not include the
         two bytes constituting the marker.
-    Rcme : int
+    rcme : int
         Registration value of the marker segment.  Zero means general binary
         values, otherwise probably a string encoded in latin-1.
-    Ccme:  bytes
+    ccme:  bytes
         Raw bytes representing the comment data.
 
     References
@@ -1070,19 +600,22 @@ class CMEsegment(Segment):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, **kwargs):
+    def __init__(self, rcme, ccme, length, offset):
         Segment.__init__(self, id='CME')
-        self.__dict__.update(**kwargs)
+        self.rcme = rcme
+        self.ccme = ccme
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = Segment.__str__(self) + '\n'
-        if self.Rcme == 1:
+        if self.rcme == 1:
             # latin-1 string
             msg += '    "{0}"'
-            msg = msg.format(self.Ccme.decode('latin-1'))
+            msg = msg.format(self.ccme.decode('latin-1'))
         else:
-            msg += "    binary data (Rcme = {0}):  {1} bytes"
-            msg = msg.format(self.Rcme, len(self.Ccme))
+            msg += "    binary data (rcme = {0}):  {1} bytes"
+            msg = msg.format(self.rcme, len(self.ccme))
         return msg
 
 
@@ -1098,19 +631,22 @@ class CRGsegment(Segment):
     length : int
         Length of marker segment in bytes.  This number does not include the
         two bytes constituting the marker.
-    Xcrg, Ycrg : int
+    xcrg, ycrg : int
         Horizontal, vertical offset for each component
     """
-    def __init__(self, **kwargs):
+    def __init__(self, xcrg, ycrg, length, offset):
         Segment.__init__(self, id='CRG')
-        self.__dict__.update(**kwargs)
+        self.xcrg = xcrg
+        self.ycrg = ycrg
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = Segment.__str__(self)
         msg += '\n    Vertical, Horizontal offset: '
-        for j in range(len(self.Xcrg)):
-            msg += ' ({0:.2f}, {1:.2f})'.format(self.Ycrg[j]/65535.0,
-                                                self.Xcrg[j]/65535.0)
+        for j in range(len(self.xcrg)):
+            msg += ' ({0:.2f}, {1:.2f})'.format(self.ycrg[j]/65535.0,
+                                                self.xcrg[j]/65535.0)
         return msg
 
 
@@ -1134,9 +670,10 @@ class EOCsegment(Segment):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, **kwargs):
+    def __init__(self, length, offset):
         Segment.__init__(self, id='EOC')
-        self.__dict__.update(**kwargs)
+        self.length = length
+        self.offset = offset
 
 
 class PODsegment(Segment):
@@ -1151,17 +688,17 @@ class PODsegment(Segment):
     length : int
         Length of marker segment in bytes.  This number does not include the
         two bytes constituting the marker.
-    RSpod : tuple
+    rspod : tuple
         resolution indices for start of a progression
-    CSpod : tuple
+    cspod : tuple
         component indices for start of a progression
-    LYEpod : tuple
+    lyepod : tuple
         layer indices for end of a progression
-    REpod : tuple
+    repod : tuple
         resolution indices for end of a progression
-    CEpod : tuple
+    cdpod : tuple
         component indices for end of a progression
-    Ppod : tuple
+    ppod : tuple
         progression order for each change
 
     References
@@ -1170,13 +707,21 @@ class PODsegment(Segment):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, **kwargs):
+    def __init__(self, pod_params, length, offset):
         Segment.__init__(self, id='POD')
-        self.__dict__.update(**kwargs)
+
+        self.rspod = pod_params[0::6]
+        self.cspod = pod_params[1::6]
+        self.lyepod = pod_params[2::6]
+        self.repod = pod_params[3::6]
+        self.cdpod = pod_params[4::6]
+        self.ppod = pod_params[5::6]
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = Segment.__str__(self)
-        for j in range(len(self.RSpod)):
+        for j in range(len(self.rspod)):
 
             msg += '\n    '
             lines = ['Progression change {0}:',
@@ -1188,12 +733,12 @@ class PODsegment(Segment):
                      '    Progression order:  {6}']
             submsg = '\n    '.join(lines)
             msg += submsg.format(j,
-                                 self.RSpod[j],
-                                 self.CSpod[j],
-                                 self.LYEpod[j],
-                                 self.REpod[j],
-                                 self.CEpod[j],
-                                 _progression_order_display[self.Ppod[j]])
+                                 self.rspod[j],
+                                 self.cspod[j],
+                                 self.lyepod[j],
+                                 self.repod[j],
+                                 self.cdpod[j],
+                                 _progression_order_display[self.ppod[j]])
 
         return msg
 
@@ -1210,9 +755,9 @@ class PLTsegment(Segment):
     length : int
         Length of marker segment in bytes.  This number does not include the
         two bytes constituting the marker.
-    Zplt : int
+    zplt : int
         Index of this segment relative to other PLT segments.
-    Iplt : list
+    iplt : list
         Packet lengths.
 
     References
@@ -1221,15 +766,18 @@ class PLTsegment(Segment):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, **kwargs):
+    def __init__(self, zplt, iplt, length, offset):
         Segment.__init__(self, id='PLT')
-        self.__dict__.update(**kwargs)
+        self.zplt = zplt
+        self.iplt = iplt
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = Segment.__str__(self)
         msg += "\n    Index:  {0}"
         msg += "\n    Iplt:  {1}"
-        msg = msg.format(self.Zplt, self.Iplt)
+        msg = msg.format(self.zplt, self.iplt)
 
         return msg
 
@@ -1246,10 +794,8 @@ class PPMsegment(Segment):
     length : int
         Length of marker segment in bytes.  This number does not include the
         two bytes constituting the marker.
-    Zppm : int
+    zppm : int
         Index of this segment relative to other PPM segments.
-    data: byte array
-        Raw data buffer, constitutes both Nppm and Ippm fields.
 
     References
     ----------
@@ -1257,15 +803,21 @@ class PPMsegment(Segment):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, **kwargs):
+    def __init__(self, zppm, data, length, offset):
         Segment.__init__(self, id='PPM')
-        self.__dict__.update(**kwargs)
+        self.zppm = zppm
+
+        # both Nppm and Ippms information stored in _data
+        self._data = data
+
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = Segment.__str__(self)
         msg += '\n    Index:  {0}'
         msg += '\n    Data:  {1} uninterpreted bytes'
-        msg = msg.format(self.Zppm, len(self.data))
+        msg = msg.format(self.zppm, len(self._data))
         return msg
 
 
@@ -1281,9 +833,9 @@ class PPTsegment(Segment):
     length : int
         Length of marker segment in bytes.  This number does not include the
         two bytes constituting the marker.
-    Zppt : int
+    zppt : int
         Index of this segment relative to other PPT segments
-    Ippt : list
+    ippt : list
         Uninterpreted packet headers.
 
     References
@@ -1292,15 +844,18 @@ class PPTsegment(Segment):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, **kwargs):
+    def __init__(self, zppt, ippt, length, offset):
         Segment.__init__(self, id='PPT')
-        self.__dict__.update(**kwargs)
+        self.zppt = zppt
+        self.ippt = ippt
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = Segment.__str__(self)
         msg += '\n    Index:  {0}'
         msg += '\n    Packet headers:  {1} uninterpreted bytes'
-        msg = msg.format(self.Zppt, len(self.Ippt))
+        msg = msg.format(self.zppt, len(self.ippt))
         return msg
 
 
@@ -1316,11 +871,11 @@ class QCCsegment(Segment):
     length : int
         Length of marker segment in bytes.  This number does not include the
         two bytes constituting the marker.
-    Cqcc : int
+    cqcc : int
         Index of associated component.
-    Sqcc : int
+    sqcc : int
         Quantization style for this component.
-    SPqcc : iterable bytes
+    spqcc : iterable bytes
         Quantization value for each sub-band.
 
     References
@@ -1329,16 +884,24 @@ class QCCsegment(Segment):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, **kwargs):
+    def __init__(self, cqcc, sqcc, spqcc, length, offset):
         Segment.__init__(self, id='QCC')
-        self.__dict__.update(**kwargs)
+        self.cqcc = cqcc
+        self.sqcc = sqcc
+        self.spqcc = spqcc
+        self.length = length
+        self.offset = offset
+
+        self._mantissa, self._exponent = parse_quantization(self.spqcc,
+                                                            self.sqcc)
+        self._guard_bits = (self.sqcc & 0xe0) >> 5
 
     def __str__(self):
         msg = Segment.__str__(self)
 
-        msg += '\n    Associated Component:  {0}'.format(self.Cqcc)
-        msg += self._print_quantization_style(self.Sqcc)
-        msg += '{0} guard bits'.format(self._guardBits)
+        msg += '\n    Associated Component:  {0}'.format(self.cqcc)
+        msg += _print_quantization_style(self.sqcc)
+        msg += '{0} guard bits'.format(self._guard_bits)
 
         step_size = zip(self._mantissa, self._exponent)
         msg += '\n    Step size:  ' + str(list(step_size))
@@ -1357,9 +920,9 @@ class QCDsegment(Segment):
     length : int
         Length of marker segment in bytes.  This number does not include the
         two bytes constituting the marker.
-    Sqcd : int
+    sqcd : int
         Quantization style for all components.
-    SPqcd : iterable bytes
+    spqcd : iterable bytes
         Quantization step size values (uninterpreted).
 
     References
@@ -1368,16 +931,25 @@ class QCDsegment(Segment):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, **kwargs):
+    def __init__(self, sqcd, spqcd, length, offset):
         Segment.__init__(self, id='QCD')
-        self.__dict__.update(**kwargs)
+
+        self.sqcd = sqcd
+        self.spqcd = spqcd
+        self.length = length
+        self.offset = offset
+
+        mantissa, exponent = parse_quantization(self.spqcd, self.sqcd)
+        self._mantissa = mantissa
+        self._exponent = exponent
+        self._guard_bits = (self.sqcd & 0xe0) >> 5
 
     def __str__(self):
         msg = Segment.__str__(self)
 
-        msg += self._print_quantization_style(self.Sqcd)
+        msg += _print_quantization_style(self.sqcd)
 
-        msg += '{0} guard bits'.format(self._guardBits)
+        msg += '{0} guard bits'.format(self._guard_bits)
 
         step_size = zip(self._mantissa, self._exponent)
         msg += '\n    Step size:  ' + str(list(step_size))
@@ -1396,11 +968,11 @@ class RGNsegment(Segment):
     length : int
         Length of marker segment in bytes.  This number does not include the
         two bytes constituting the marker.
-    Crgn : int
+    crgn : int
         Associated component.
-    Srgn : int
+    srgn : int
         ROI style.
-    SPrgn : int
+    sprgn : int
         Parameter for ROI style.
 
     References
@@ -1409,9 +981,13 @@ class RGNsegment(Segment):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, **kwargs):
+    def __init__(self, length, offset, crgn, srgn, sprgn):
         Segment.__init__(self, id='RGN')
-        self.__dict__.update(**kwargs)
+        self.length = length
+        self.offset = offset
+        self.crgn = crgn
+        self.srgn = srgn
+        self.sprgn = sprgn
 
     def __str__(self):
         msg = Segment.__str__(self)
@@ -1419,7 +995,7 @@ class RGNsegment(Segment):
         msg += '\n    Associated component:  {0}'
         msg += '\n    ROI style:  {1}'
         msg += '\n    Parameter:  {2}'
-        msg = msg.format(self.Crgn, self.Srgn, self.SPrgn)
+        msg = msg.format(self.crgn, self.srgn, self.sprgn)
 
         return msg
 
@@ -1436,19 +1012,19 @@ class SIZsegment(Segment):
     length : int
         Length of marker segment in bytes.  This number does not include the
         two bytes constituting the marker.
-    Rsiz : int
+    rsiz : int
         Capabilities (profile) of codestream.
-    Xsiz, Ysiz : int
+    xsiz, ysiz : int
         Width, height of reference grid.
-    XOsiz, YOsiz : int
+    xosiz, yosiz : int
         Horizontal, vertical offset of reference grid.
-    XTsiz, YTsiz : int
+    xtsiz, ytsiz : int
         Width and height of reference tile with respect to the reference grid.
-    XTOsiz, YTOsiz : int
+    xtosiz, ytosiz : int
         Horizontal and vertical offsets of tile from origin of reference grid.
-    Ssiz : iterable bytes
+    ssiz : iterable bytes
         Precision (depth) in bits and sign of each component.
-    XRsiz, YRsiz : int
+    xrsiz, yrsiz : int
         Horizontal and vertical sample separations with respect to reference
         grid.
 
@@ -1458,9 +1034,48 @@ class SIZsegment(Segment):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, **kwargs):
+    def __init__(self, xy_buffer, component_buffer, length, offset):
         Segment.__init__(self, id='SIZ')
-        self.__dict__.update(**kwargs)
+
+        data = struct.unpack('>HIIIIIIIIH', xy_buffer)
+
+        self.rsiz = data[0]
+        self.xsiz = data[1]
+        self.ysiz = data[2]
+        self.xosiz = data[3]
+        self.yosiz = data[4]
+        self.xtsiz = data[5]
+        self.ytsiz = data[6]
+        self.xtosiz = data[7]
+        self.ytosiz = data[8]
+        # disregarding the last element in data
+
+        num_tiles_x = (self.xsiz - self.xosiz) / (self.xtsiz - self.xtosiz)
+        num_tiles_y = (self.ysiz - self.yosiz) / (self.ytsiz - self.ytosiz)
+        numtiles = math.ceil(num_tiles_x) * math.ceil(num_tiles_y)
+        if numtiles > 65535:
+            msg = "Invalid number of tiles ({0}).".format(numtiles)
+            warnings.warn(msg)
+
+        data = struct.unpack('>' + 'B' * len(component_buffer),
+                             component_buffer)
+
+        self.ssiz = data[0::3]
+
+        for j, subsampling in enumerate(list(zip(data[1::3], data[2::3]))):
+            if 0 in subsampling:
+                msg = "Invalid subsampling value for component {0}: "
+                msg += "dx={1}, dy={2}."
+                msg = msg.format(j, subsampling[0], subsampling[1])
+                warnings.warn(msg)
+        self.xrsiz = data[1::3]
+        self.yrsiz = data[2::3]
+
+        self._bitdepth = tuple(((x & 0x7f) + 1) for x in self.ssiz)
+        self._signed = tuple(((x & 0xb0) > 0) for x in self.ssiz)
+
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = Segment.__str__(self)
@@ -1475,14 +1090,14 @@ class SIZsegment(Segment):
                  'Signed:  {10}',
                  'Vertical, Horizontal Subsampling:  {11}']
         msg += '\n    '.join(lines)
-        msg = msg.format(_capabilities_display[self.Rsiz],
-                         self.Ysiz, self.Xsiz,
-                         self.YOsiz, self.XOsiz,
-                         self.YTsiz, self.XTsiz,
-                         self.YTOsiz, self.XTOsiz,
+        msg = msg.format(_capabilities_display[self.rsiz],
+                         self.ysiz, self.xsiz,
+                         self.yosiz, self.xosiz,
+                         self.ytsiz, self.xtsiz,
+                         self.ytosiz, self.xtosiz,
                          self._bitdepth,
                          self._signed,
-                         tuple(zip(self.YRsiz, self.XRsiz)))
+                         tuple(zip(self.yrsiz, self.xrsiz)))
 
         return msg
 
@@ -1532,9 +1147,10 @@ class SODsegment(Segment):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, **kwargs):
+    def __init__(self, length, offset):
         Segment.__init__(self, id='SOD')
-        self.__dict__.update(**kwargs)
+        self.length = length
+        self.offset = offset
 
 
 class EPHsegment(Segment):
@@ -1557,13 +1173,14 @@ class EPHsegment(Segment):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, **kwargs):
+    def __init__(self, length, offset):
         Segment.__init__(self, id='EPH')
-        self.__dict__.update(**kwargs)
+        self.length = length
+        self.offset = offset
 
 
 class SOPsegment(Segment):
-    """Container for Start of Pata (SOP) segment information.
+    """Container for Start of Packet (SOP) segment information.
 
     Attributes
     ----------
@@ -1574,6 +1191,8 @@ class SOPsegment(Segment):
     length : int
         Length of marker segment in bytes.  This number does not include the
         two bytes constituting the marker.
+    nsop : int
+        Packet sequence number.
 
     References
     ----------
@@ -1581,13 +1200,15 @@ class SOPsegment(Segment):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, **kwargs):
+    def __init__(self, nsop, length, offset):
         Segment.__init__(self, id='SOP')
-        self.__dict__.update(**kwargs)
+        self.nsop = nsop
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = Segment.__str__(self)
-        msg += '\n    Nsop:  {0}'.format(self.Nsop)
+        msg += '\n    Nsop:  {0}'.format(self.nsop)
         return msg
 
 
@@ -1603,14 +1224,14 @@ class SOTsegment(Segment):
     length : int
         Length of marker segment in bytes.  This number does not include the
         two bytes constituting the marker.
-    Isot : int
+    isot : int
         Index of this particular tile.
-    Psot : int
+    psot : int
         Length, in bytes, from first byte of this SOT marker segment to the
         end of the data of that tile part.
-    TPsot : int
+    tpsot : int
         Tile part instance.
-    TNsot : int
+    tnsot : int
         Number of tile-parts of a tile in codestream.
 
     References
@@ -1619,9 +1240,14 @@ class SOTsegment(Segment):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, **kwargs):
+    def __init__(self, isot, psot, tpsot, tnsot, length, offset):
         Segment.__init__(self, id='SOT')
-        self.__dict__.update(**kwargs)
+        self.isot = isot
+        self.psot = psot
+        self.tpsot = tpsot
+        self.tnsot = tnsot
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = Segment.__str__(self)
@@ -1631,10 +1257,10 @@ class SOTsegment(Segment):
                  'Tile part instance:  {2}',
                  'Number of tile parts:  {3}']
         msg += '\n    '.join(lines)
-        msg = msg.format(self.Isot,
-                         self.Psot,
-                         self.TPsot,
-                         self.TNsot)
+        msg = msg.format(self.isot,
+                         self.psot,
+                         self.tpsot,
+                         self.tnsot)
         return msg
 
 
@@ -1650,11 +1276,11 @@ class TLMsegment(Segment):
     length : int
         Length of marker segment in bytes.  This number does not include the
         two bytes constituting the marker.
-    Ztlm : int
+    ztlm : int
         index relative to other TML marksers
-    Ttlm : int
+    ttlm : int
         number of the ith tile-part
-    Ptlm : int
+    ptlm : int
         length in bytes from beginning of the SOT marker of the ith
         tile-part to the end of the data for that tile part
 
@@ -1664,9 +1290,13 @@ class TLMsegment(Segment):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, **kwargs):
+    def __init__(self, length, offset, ztlm, ttlm, ptlm):
         Segment.__init__(self, id='TLM')
-        self.__dict__.update(**kwargs)
+        self.length = length
+        self.offset = offset
+        self.ztlm = ztlm
+        self.ttlm = ttlm
+        self.ptlm = ptlm
 
     def __str__(self):
         msg = Segment.__str__(self)
@@ -1675,9 +1305,9 @@ class TLMsegment(Segment):
                  'Tile number:  {1}',
                  'Length:  {2}']
         msg += '\n    '.join(lines)
-        msg = msg.format(self.Ztlm,
-                         self.Ttlm,
-                         self.Ptlm)
+        msg = msg.format(self.ztlm,
+                         self.ttlm,
+                         self.ptlm)
 
         return msg
 
@@ -1710,3 +1340,397 @@ def _context_string(context):
                      ((context & 0x10) > 0),
                      ((context & 0x20) > 0))
     return msg
+
+
+def parse_quantization(read_buffer, sqcd):
+    """Tease out the quantization values.
+
+    Parameters
+    ----------
+        read_buffer:  sequence of bytes from the QCC and QCD segments.
+
+    Returns
+    ------
+        Tuple of mantissa, exponents from quantization buffer.
+    """
+    numbytes = len(read_buffer)
+
+    exponent = []
+    mantissa = []
+
+    if sqcd & 0x1f == 0:  # no quantization
+        data = struct.unpack('>' + 'B' * numbytes, read_buffer)
+        for j in range(len(data)):
+            exponent.append(data[j] >> 3)
+            mantissa.append(0)
+    else:
+        fmt = '>' + 'H' * int(numbytes / 2)
+        data = struct.unpack(fmt, read_buffer)
+        for j in range(len(data)):
+            exponent.append(data[j] >> 11)
+            mantissa.append(data[j] & 0x07ff)
+
+    return mantissa, exponent
+
+
+def _print_quantization_style(sqcc):
+    """Only to be used with QCC and QCD segments."""
+
+    msg = '\n    Quantization style:  '
+    if sqcc & 0x1f == 0:
+        msg += 'no quantization, '
+    elif sqcc & 0x1f == 1:
+        msg += 'scalar implicit, '
+    elif sqcc & 0x1f == 2:
+        msg += 'scalar explicit, '
+    return msg
+
+
+def _parse_tlm_segment(fptr):
+    """Parse the TLM segment.
+
+    Parameters
+    ----------
+    fptr : file
+        Open file object.
+
+    Returns
+    -------
+    TLM segment instance.
+    """
+    offset = fptr.tell() - 2
+
+    read_buffer = fptr.read(2)
+    length, = struct.unpack('>H', read_buffer)
+
+    read_buffer = fptr.read(2)
+    ztlm, stlm = struct.unpack('>BB', read_buffer)
+    ttlm_st = (stlm >> 4) & 0x3
+    ptlm_sp = (stlm >> 6) & 0x1
+
+    nbytes = length - 4
+    if ttlm_st == 0:
+        ntiles = nbytes / ((ptlm_sp + 1) * 2)
+    else:
+        ntiles = nbytes / (ttlm_st + (ptlm_sp + 1) * 2)
+
+    read_buffer = fptr.read(nbytes)
+    if ttlm_st == 0:
+        ttlm = None
+        fmt = ''
+    elif ttlm_st == 1:
+        fmt = 'B'
+    elif ttlm_st == 2:
+        fmt = 'H'
+
+    if ptlm_sp == 0:
+        fmt += 'H'
+    else:
+        fmt += 'I'
+
+    data = struct.unpack('>' + fmt * int(ntiles), read_buffer)
+    if ttlm_st == 0:
+        ttlm = None
+        ptlm = data
+    else:
+        ttlm = data[0::2]
+        ptlm = data[1::2]
+
+    return TLMsegment(length, offset, ztlm, ttlm, ptlm)
+
+
+def _parse_sot_segment(fptr):
+    """Parse the SOT segment.
+
+    Parameters
+    ----------
+    fptr : file
+        Open file object.
+
+    Returns
+    -------
+    SOT segment instance.
+    """
+    offset = fptr.tell() - 2
+
+    read_buffer = fptr.read(10)
+    data = struct.unpack('>HHIBB', read_buffer)
+
+    length = data[0]
+    isot = data[1]
+    psot = data[2]
+    tpsot = data[3]
+    tnsot = data[4]
+
+    return SOTsegment(isot, psot, tpsot, tnsot, length, offset)
+
+
+def _parse_sod_segment(fptr):
+    """Parse the SOD segment.
+
+    Parameters
+    ----------
+    fptr : file
+        Open file object.
+
+    Returns
+    -------
+    SOD segment instance.
+    """
+    offset = fptr.tell() - 2
+    length = 0
+
+    return SODsegment(length, offset)
+
+
+def _parse_qcd_segment(fptr):
+    """Parse the QCD segment.
+
+    Parameters
+    ----------
+    fptr : file
+        Open file object.
+
+    Returns
+    -------
+    QCD Segment instance.
+    """
+    offset = fptr.tell() - 2
+
+    read_buffer = fptr.read(3)
+    length, sqcd = struct.unpack('>HB', read_buffer)
+    spqcd = fptr.read(length - 3)
+
+    return QCDsegment(sqcd, spqcd, length, offset)
+
+
+def _parse_ppt_segment(fptr):
+    """Parse the PPT segment.
+
+    The packet headers are not parsed, i.e. they remain "uninterpreted"
+    raw data beffers.
+
+    Parameters
+    ----------
+    fptr : file
+        Open file object.
+
+    Returns
+    -------
+    PPT segment instance.
+    """
+    offset = fptr.tell() - 2
+
+    read_buffer = fptr.read(3)
+    length, zppt = struct.unpack('>HB', read_buffer)
+    length = length
+    zppt = zppt
+
+    numbytes = length - 3
+    ippt = fptr.read(numbytes)
+
+    return PPTsegment(zppt, ippt, length, offset)
+
+
+def _parse_plt_segment(fptr):
+    """Parse the PLT segment.
+
+    The packet headers are not parsed, i.e. they remain "uninterpreted"
+    raw data beffers.
+
+    Parameters
+    ----------
+    fptr : file
+        Open file object.
+
+    Returns
+    -------
+    PLT segment instance.
+    """
+    offset = fptr.tell() - 2
+
+    read_buffer = fptr.read(3)
+    length, zplt = struct.unpack('>HB', read_buffer)
+
+    numbytes = length - 3
+    read_buffer = fptr.read(numbytes)
+    iplt = np.frombuffer(read_buffer, dtype=np.uint8)
+
+    packet_len = []
+    plen = 0
+    for byte in iplt:
+        plen |= (byte & 0x7f)
+        if byte & 0x80:
+            # Continue by or-ing in the next byte.
+            plen <<= 7
+        else:
+            packet_len.append(plen)
+            plen = 0
+
+    iplt = packet_len
+
+    return PLTsegment(zplt, iplt, length, offset)
+
+
+def _parse_ppm_segment(fptr):
+    """Parse the PPM segment.
+
+    Parameters
+    ----------
+    fptr : file
+        Open file object.
+
+    Returns
+    -------
+    PPM segment instance.
+    """
+    offset = fptr.tell() - 2
+
+    read_buffer = fptr.read(3)
+    length, zppm = struct.unpack('>HB', read_buffer)
+
+    numbytes = length - 3
+    read_buffer = fptr.read(numbytes)
+
+    return PPMsegment(zppm, read_buffer, length, offset)
+
+
+def _parse_crg_segment(fptr, csiz):
+    """Parse the CRG marker segment.
+
+    Parameters
+    ----------
+    fptr : file
+        Open file object.
+
+    Returns
+    -------
+    CRG segment instance.
+    """
+    offset = fptr.tell() - 2
+
+    read_buffer = fptr.read(2)
+    length, = struct.unpack('>H', read_buffer)
+
+    read_buffer = fptr.read(4 * csiz)
+    data = struct.unpack('>' + 'HH' * csiz, read_buffer)
+    xcrg = data[0::2]
+    ycrg = data[1::2]
+
+    return CRGsegment(xcrg, ycrg, length, offset)
+
+
+def _parse_eoc_segment(fptr):
+    """Parse the EOC marker segment.
+
+    Parameters
+    ----------
+    fptr : file
+        Open file object.
+
+    Returns
+    -------
+    EOC Segment instance.
+    """
+    offset = fptr.tell() - 2
+    length = 0
+
+    return EOCsegment(length, offset)
+
+
+def _parse_cme_segment(fptr):
+    """Parse the CME marker segment.
+
+    Parameters
+    ----------
+    fptr : file
+        Open file object.
+
+    Returns
+    -------
+    CME segment instance.
+    """
+    offset = fptr.tell() - 2
+
+    read_buffer = fptr.read(4)
+    data = struct.unpack('>HH', read_buffer)
+    length = data[0]
+    rcme = data[1]
+    ccme = fptr.read(length - 4)
+
+    return CMEsegment(rcme, ccme, length, offset)
+
+
+def _parse_siz_segment(fptr):
+    """Parse the SIZ segment.
+
+    Parameters
+    ----------
+    fptr : file
+        Open file object.
+
+    Returns
+    -------
+    SIZsegment instance.
+    """
+    offset = fptr.tell() - 2
+
+    read_buffer = fptr.read(2)
+    length, = struct.unpack('>H', read_buffer)
+
+    xy_buffer = fptr.read(36)
+
+    num_components, = struct.unpack('>H', xy_buffer[-2:])
+
+    component_buffer = fptr.read(num_components * 3)
+
+    return SIZsegment(xy_buffer, component_buffer, length, offset)
+
+
+def _parse_cod_segment(fptr):
+    """Parse the COD segment.
+
+    Parameters
+    ----------
+    fptr : file
+        Open file object.
+
+    Returns
+    -------
+    COD segment instance.
+    """
+    offset = fptr.tell() - 2
+    offset = fptr.tell() - 2
+
+    read_buffer = fptr.read(3)
+    length, scod = struct.unpack('>HB', read_buffer)
+
+    numbytes = offset + 2 + length - fptr.tell()
+    spcod = fptr.read(numbytes)
+    spcod = np.frombuffer(spcod, dtype=np.uint8)
+
+    return CODsegment(scod, spcod, length, offset)
+
+
+def _parse_generic_segment(fptr, marker_id):
+    """Parse a generic marker segment.
+
+    Parameters
+    ----------
+    fptr : file
+        Open file object.
+
+    Returns
+    -------
+    Segment instance.
+    """
+    offset = fptr.tell() - 2
+
+    read_buffer = fptr.read(2)
+    length, = struct.unpack('>H', read_buffer)
+    data = fptr.read(length-2)
+
+    segment = Segment(id='0x{0:x}'.format(marker_id),
+                      offset=offset, length=length)
+    segment._data = data
+    return segment

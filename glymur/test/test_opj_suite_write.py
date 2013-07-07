@@ -83,50 +83,50 @@ class TestSuiteWrite(unittest.TestCase):
 
             # SIZ: Image and tile size
             # Profile:  "0" means profile 2
-            self.assertEqual(c.segment[1].Rsiz, 0)
+            self.assertEqual(c.segment[1].rsiz, 0)
             # Reference grid size
-            self.assertEqual((c.segment[1].Xsiz, c.segment[1].Ysiz),
+            self.assertEqual((c.segment[1].xsiz, c.segment[1].ysiz),
                              (640, 480))
             # Reference grid offset
-            self.assertEqual((c.segment[1].XOsiz, c.segment[1].YOsiz), (0, 0))
+            self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
             # Tile size
-            self.assertEqual((c.segment[1].XTsiz, c.segment[1].YTsiz),
+            self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
                              (640, 480))
             # Tile offset
-            self.assertEqual((c.segment[1].XTOsiz, c.segment[1].YTOsiz),
+            self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz),
                              (0, 0))
             # bitdepth
             self.assertEqual(c.segment[1]._bitdepth, (8, 8, 8))
             # signed
             self.assertEqual(c.segment[1]._signed, (False, False, False))
             # subsampling
-            self.assertEqual(list(zip(c.segment[1].XRsiz, c.segment[1].YRsiz)),
+            self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
                              [(1, 1)] * 3)
 
             # COD: Coding style default
-            self.assertFalse(c.segment[2].Scod & 2)  # no sop
-            self.assertFalse(c.segment[2].Scod & 4)  # no eph
-            self.assertEqual(c.segment[2].SPcod[0], glymur.core.LRCP)
+            self.assertFalse(c.segment[2].scod & 2)  # no sop
+            self.assertFalse(c.segment[2].scod & 4)  # no eph
+            self.assertEqual(c.segment[2].spcod[0], glymur.core.LRCP)
             self.assertEqual(c.segment[2]._layers, 3)  # layers = 3
-            self.assertEqual(c.segment[2].SPcod[3], 1)  # mct
-            self.assertEqual(c.segment[2].SPcod[4], 5)  # levels
+            self.assertEqual(c.segment[2].spcod[3], 1)  # mct
+            self.assertEqual(c.segment[2].spcod[4], 5)  # levels
             self.assertEqual(tuple(c.segment[2]._code_block_size),
                              (64, 64))  # cblksz
             # Selective arithmetic coding bypass
-            self.assertFalse(c.segment[2].SPcod[7] & 0x01)
+            self.assertFalse(c.segment[2].spcod[7] & 0x01)
             # Reset context probabilities
-            self.assertFalse(c.segment[2].SPcod[7] & 0x02)
+            self.assertFalse(c.segment[2].spcod[7] & 0x02)
             # Termination on each coding pass
-            self.assertFalse(c.segment[2].SPcod[7] & 0x04)
+            self.assertFalse(c.segment[2].spcod[7] & 0x04)
             # Vertically causal context
-            self.assertFalse(c.segment[2].SPcod[7] & 0x08)
+            self.assertFalse(c.segment[2].spcod[7] & 0x08)
             # Predictable termination
-            self.assertFalse(c.segment[2].SPcod[7] & 0x0010)
+            self.assertFalse(c.segment[2].spcod[7] & 0x0010)
             # Segmentation symbols
-            self.assertFalse(c.segment[2].SPcod[7] & 0x0020)
-            self.assertEqual(c.segment[2].SPcod[8],
+            self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+            self.assertEqual(c.segment[2].spcod[8],
                              glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
-            self.assertEqual(len(c.segment[2].SPcod), 9)
+            self.assertEqual(len(c.segment[2].spcod), 9)
 
     def test_NR_ENC_Bretagne1_ppm_2_encode(self):
         # NR-ENC-Bretagne1.ppm-2-encode
@@ -141,50 +141,50 @@ class TestSuiteWrite(unittest.TestCase):
 
             # SIZ: Image and tile size
             # Profile:  "0" means profile 2
-            self.assertEqual(c.segment[1].Rsiz, 0)
+            self.assertEqual(c.segment[1].rsiz, 0)
             # Reference grid size
-            self.assertEqual((c.segment[1].Xsiz, c.segment[1].Ysiz),
+            self.assertEqual((c.segment[1].xsiz, c.segment[1].ysiz),
                              (640, 480))
             # Reference grid offset
-            self.assertEqual((c.segment[1].XOsiz, c.segment[1].YOsiz), (0, 0))
+            self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
             # Tile size
-            self.assertEqual((c.segment[1].XTsiz, c.segment[1].YTsiz),
+            self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
                              (640, 480))
             # Tile offset
-            self.assertEqual((c.segment[1].XTOsiz, c.segment[1].YTOsiz),
+            self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz),
                              (0, 0))
             # bitdepth
             self.assertEqual(c.segment[1]._bitdepth, (8, 8, 8))
             # signed
             self.assertEqual(c.segment[1]._signed, (False, False, False))
             # subsampling
-            self.assertEqual(list(zip(c.segment[1].XRsiz, c.segment[1].YRsiz)),
+            self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
                              [(1, 1)] * 3)
 
             # COD: Coding style default
-            self.assertFalse(c.segment[2].Scod & 2)  # no sop
-            self.assertFalse(c.segment[2].Scod & 4)  # no eph
-            self.assertEqual(c.segment[2].SPcod[0], glymur.core.LRCP)
+            self.assertFalse(c.segment[2].scod & 2)  # no sop
+            self.assertFalse(c.segment[2].scod & 4)  # no eph
+            self.assertEqual(c.segment[2].spcod[0], glymur.core.LRCP)
             self.assertEqual(c.segment[2]._layers, 3)  # layers = 3
-            self.assertEqual(c.segment[2].SPcod[3], 1)  # mct
-            self.assertEqual(c.segment[2].SPcod[4], 1)  # levels
+            self.assertEqual(c.segment[2].spcod[3], 1)  # mct
+            self.assertEqual(c.segment[2].spcod[4], 1)  # levels
             self.assertEqual(tuple(c.segment[2]._code_block_size),
                              (64, 64))  # cblksz
             # Selective arithmetic coding bypass
-            self.assertFalse(c.segment[2].SPcod[7] & 0x01)
+            self.assertFalse(c.segment[2].spcod[7] & 0x01)
             # Reset context probabilities
-            self.assertFalse(c.segment[2].SPcod[7] & 0x02)
+            self.assertFalse(c.segment[2].spcod[7] & 0x02)
             # Termination on each coding pass
-            self.assertFalse(c.segment[2].SPcod[7] & 0x04)
+            self.assertFalse(c.segment[2].spcod[7] & 0x04)
             # Vertically causal context
-            self.assertFalse(c.segment[2].SPcod[7] & 0x08)
+            self.assertFalse(c.segment[2].spcod[7] & 0x08)
             # Predictable termination
-            self.assertFalse(c.segment[2].SPcod[7] & 0x0010)
+            self.assertFalse(c.segment[2].spcod[7] & 0x0010)
             # Segmentation symbols
-            self.assertFalse(c.segment[2].SPcod[7] & 0x0020)
-            self.assertEqual(c.segment[2].SPcod[8],
+            self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+            self.assertEqual(c.segment[2].spcod[8],
                              glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
-            self.assertEqual(len(c.segment[2].SPcod), 9)
+            self.assertEqual(len(c.segment[2].spcod), 9)
 
     def test_NR_ENC_Bretagne1_ppm_3_encode(self):
         # NR-ENC-Bretagne1.ppm-3-encode
@@ -200,48 +200,48 @@ class TestSuiteWrite(unittest.TestCase):
 
             # SIZ: Image and tile size
             # Profile:  "0" means profile 2
-            self.assertEqual(c.segment[1].Rsiz, 0)
+            self.assertEqual(c.segment[1].rsiz, 0)
             # Reference grid size
-            self.assertEqual((c.segment[1].Xsiz, c.segment[1].Ysiz),
+            self.assertEqual((c.segment[1].xsiz, c.segment[1].ysiz),
                              (640, 480))
             # Reference grid offset
-            self.assertEqual((c.segment[1].XOsiz, c.segment[1].YOsiz), (0, 0))
+            self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
             # Tile size
-            self.assertEqual((c.segment[1].XTsiz, c.segment[1].YTsiz),
+            self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
                              (640, 480))
             # Tile offset
-            self.assertEqual((c.segment[1].XTOsiz, c.segment[1].YTOsiz),
+            self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz),
                              (0, 0))
             # bitdepth
             self.assertEqual(c.segment[1]._bitdepth, (8, 8, 8))
             # signed
             self.assertEqual(c.segment[1]._signed, (False, False, False))
             # subsampling
-            self.assertEqual(list(zip(c.segment[1].XRsiz, c.segment[1].YRsiz)),
+            self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
                              [(1, 1)] * 3)
 
             # COD: Coding style default
-            self.assertFalse(c.segment[2].Scod & 2)  # no sop
-            self.assertFalse(c.segment[2].Scod & 4)  # no eph
-            self.assertEqual(c.segment[2].SPcod[0], glymur.core.LRCP)
+            self.assertFalse(c.segment[2].scod & 2)  # no sop
+            self.assertFalse(c.segment[2].scod & 4)  # no eph
+            self.assertEqual(c.segment[2].spcod[0], glymur.core.LRCP)
             self.assertEqual(c.segment[2]._layers, 3)  # layers = 3
-            self.assertEqual(c.segment[2].SPcod[3], 1)  # mct
-            self.assertEqual(c.segment[2].SPcod[4], 5)  # levels
+            self.assertEqual(c.segment[2].spcod[3], 1)  # mct
+            self.assertEqual(c.segment[2].spcod[4], 5)  # levels
             self.assertEqual(tuple(c.segment[2]._code_block_size),
                              (16, 16))  # cblksz
             # Selective arithmetic coding bypass
-            self.assertFalse(c.segment[2].SPcod[7] & 0x01)
+            self.assertFalse(c.segment[2].spcod[7] & 0x01)
             # Reset context probabilities
-            self.assertFalse(c.segment[2].SPcod[7] & 0x02)
+            self.assertFalse(c.segment[2].spcod[7] & 0x02)
             # Termination on each coding pass
-            self.assertFalse(c.segment[2].SPcod[7] & 0x04)
+            self.assertFalse(c.segment[2].spcod[7] & 0x04)
             # Vertically causal context
-            self.assertFalse(c.segment[2].SPcod[7] & 0x08)
+            self.assertFalse(c.segment[2].spcod[7] & 0x08)
             # Predictable termination
-            self.assertFalse(c.segment[2].SPcod[7] & 0x0010)
+            self.assertFalse(c.segment[2].spcod[7] & 0x0010)
             # Segmentation symbols
-            self.assertFalse(c.segment[2].SPcod[7] & 0x0020)
-            self.assertEqual(c.segment[2].SPcod[8],
+            self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+            self.assertEqual(c.segment[2].spcod[8],
                              glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
             self.assertEqual(c.segment[2]._precinct_size,
                              [(2, 2), (4, 4), (8, 8), (16, 16), (32, 32),
@@ -263,48 +263,48 @@ class TestSuiteWrite(unittest.TestCase):
 
             # SIZ: Image and tile size
             # Profile:  "0" means profile 2
-            self.assertEqual(c.segment[1].Rsiz, 0)
+            self.assertEqual(c.segment[1].rsiz, 0)
             # Reference grid size
-            self.assertEqual((c.segment[1].Xsiz, c.segment[1].Ysiz),
+            self.assertEqual((c.segment[1].xsiz, c.segment[1].ysiz),
                              (data.shape[1], data.shape[0]))
             # Reference grid offset
-            self.assertEqual((c.segment[1].XOsiz, c.segment[1].YOsiz), (0, 0))
+            self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
             # Tile size.  Reported as XY, not RC.
-            self.assertEqual((c.segment[1].XTsiz, c.segment[1].YTsiz),
+            self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
                              (640, 480))
             # Tile offset
-            self.assertEqual((c.segment[1].XTOsiz, c.segment[1].YTOsiz),
+            self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz),
                              (0, 0))
             # bitdepth
             self.assertEqual(c.segment[1]._bitdepth, (8, 8, 8))
             # signed
             self.assertEqual(c.segment[1]._signed, (False, False, False))
             # subsampling
-            self.assertEqual(list(zip(c.segment[1].XRsiz, c.segment[1].YRsiz)),
+            self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
                              [(1, 1)] * 3)
 
             # COD: Coding style default
-            self.assertFalse(c.segment[2].Scod & 2)  # no sop
-            self.assertFalse(c.segment[2].Scod & 4)  # no eph
-            self.assertEqual(c.segment[2].SPcod[0], glymur.core.LRCP)
+            self.assertFalse(c.segment[2].scod & 2)  # no sop
+            self.assertFalse(c.segment[2].scod & 4)  # no eph
+            self.assertEqual(c.segment[2].spcod[0], glymur.core.LRCP)
             self.assertEqual(c.segment[2]._layers, 3)  # layers = 3
-            self.assertEqual(c.segment[2].SPcod[3], 1)  # mct
-            self.assertEqual(c.segment[2].SPcod[4], 5)  # levels
+            self.assertEqual(c.segment[2].spcod[3], 1)  # mct
+            self.assertEqual(c.segment[2].spcod[4], 5)  # levels
             self.assertEqual(tuple(c.segment[2]._code_block_size),
                              (32, 32))  # cblksz
             # Selective arithmetic coding bypass
-            self.assertFalse(c.segment[2].SPcod[7] & 0x01)
+            self.assertFalse(c.segment[2].spcod[7] & 0x01)
             # Reset context probabilities
-            self.assertFalse(c.segment[2].SPcod[7] & 0x02)
+            self.assertFalse(c.segment[2].spcod[7] & 0x02)
             # Termination on each coding pass
-            self.assertFalse(c.segment[2].SPcod[7] & 0x04)
+            self.assertFalse(c.segment[2].spcod[7] & 0x04)
             # Vertically causal context
-            self.assertFalse(c.segment[2].SPcod[7] & 0x08)
+            self.assertFalse(c.segment[2].spcod[7] & 0x08)
             # Predictable termination
-            self.assertFalse(c.segment[2].SPcod[7] & 0x0010)
+            self.assertFalse(c.segment[2].spcod[7] & 0x0010)
             # Segmentation symbols
-            self.assertFalse(c.segment[2].SPcod[7] & 0x0020)
-            self.assertEqual(c.segment[2].SPcod[8],
+            self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+            self.assertEqual(c.segment[2].spcod[8],
                              glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
             self.assertEqual(c.segment[2]._precinct_size,
                              [(16, 16), (32, 32), (64, 64)] + [(128, 128)] * 3)
@@ -321,50 +321,50 @@ class TestSuiteWrite(unittest.TestCase):
 
             # SIZ: Image and tile size
             # Profile:  "0" means profile 2
-            self.assertEqual(c.segment[1].Rsiz, 0)
+            self.assertEqual(c.segment[1].rsiz, 0)
             # Reference grid size
-            self.assertEqual((c.segment[1].Xsiz, c.segment[1].Ysiz),
+            self.assertEqual((c.segment[1].xsiz, c.segment[1].ysiz),
                              (data.shape[1], data.shape[0]))
             # Reference grid offset
-            self.assertEqual((c.segment[1].XOsiz, c.segment[1].YOsiz), (0, 0))
+            self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
             # Tile size
-            self.assertEqual((c.segment[1].XTsiz, c.segment[1].YTsiz),
+            self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
                              (127, 127))
             # Tile offset
-            self.assertEqual((c.segment[1].XTOsiz, c.segment[1].YTOsiz),
+            self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz),
                              (0, 0))
             # bitdepth
             self.assertEqual(c.segment[1]._bitdepth, (8, 8, 8))
             # signed
             self.assertEqual(c.segment[1]._signed, (False, False, False))
             # subsampling
-            self.assertEqual(list(zip(c.segment[1].XRsiz, c.segment[1].YRsiz)),
+            self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
                              [(1, 1)] * 3)
 
             # COD: Coding style default
-            self.assertFalse(c.segment[2].Scod & 2)  # no sop
-            self.assertFalse(c.segment[2].Scod & 4)  # no eph
-            self.assertEqual(c.segment[2].SPcod[0], glymur.core.PCRL)
+            self.assertFalse(c.segment[2].scod & 2)  # no sop
+            self.assertFalse(c.segment[2].scod & 4)  # no eph
+            self.assertEqual(c.segment[2].spcod[0], glymur.core.PCRL)
             self.assertEqual(c.segment[2]._layers, 1)  # layers = 1
-            self.assertEqual(c.segment[2].SPcod[3], 1)  # mct
-            self.assertEqual(c.segment[2].SPcod[4], 5)  # levels
+            self.assertEqual(c.segment[2].spcod[3], 1)  # mct
+            self.assertEqual(c.segment[2].spcod[4], 5)  # levels
             self.assertEqual(tuple(c.segment[2]._code_block_size),
                              (64, 64))  # cblksz
             # Selective arithmetic coding bypass
-            self.assertFalse(c.segment[2].SPcod[7] & 0x01)
+            self.assertFalse(c.segment[2].spcod[7] & 0x01)
             # Reset context probabilities
-            self.assertFalse(c.segment[2].SPcod[7] & 0x02)
+            self.assertFalse(c.segment[2].spcod[7] & 0x02)
             # Termination on each coding pass
-            self.assertFalse(c.segment[2].SPcod[7] & 0x04)
+            self.assertFalse(c.segment[2].spcod[7] & 0x04)
             # Vertically causal context
-            self.assertFalse(c.segment[2].SPcod[7] & 0x08)
+            self.assertFalse(c.segment[2].spcod[7] & 0x08)
             # Predictable termination
-            self.assertFalse(c.segment[2].SPcod[7] & 0x0010)
+            self.assertFalse(c.segment[2].spcod[7] & 0x0010)
             # Segmentation symbols
-            self.assertFalse(c.segment[2].SPcod[7] & 0x0020)
-            self.assertEqual(c.segment[2].SPcod[8],
+            self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+            self.assertEqual(c.segment[2].spcod[8],
                              glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
-            self.assertEqual(len(c.segment[2].SPcod), 9)
+            self.assertEqual(len(c.segment[2].spcod), 9)
 
     def test_NR_ENC_Bretagne2_ppm_6_encode(self):
         # NR-ENC-Bretagne2.ppm-6-encode
@@ -378,53 +378,53 @@ class TestSuiteWrite(unittest.TestCase):
 
             # SIZ: Image and tile size
             # Profile:  "0" means profile 2
-            self.assertEqual(c.segment[1].Rsiz, 0)
+            self.assertEqual(c.segment[1].rsiz, 0)
             # Reference grid size
-            self.assertEqual((c.segment[1].Xsiz, c.segment[1].Ysiz),
+            self.assertEqual((c.segment[1].xsiz, c.segment[1].ysiz),
                              (5183, 3887))
             # Reference grid offset
-            self.assertEqual((c.segment[1].XOsiz, c.segment[1].YOsiz), (0, 0))
+            self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
             # Tile size
-            self.assertEqual((c.segment[1].XTsiz, c.segment[1].YTsiz),
+            self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
                              (5183, 3887))
             # Tile offset
-            self.assertEqual((c.segment[1].XTOsiz, c.segment[1].YTOsiz),
+            self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz),
                              (0, 0))
             # bitdepth
             self.assertEqual(c.segment[1]._bitdepth, (8, 8, 8))
             # signed
             self.assertEqual(c.segment[1]._signed, (False, False, False))
             # subsampling
-            self.assertEqual(list(zip(c.segment[1].XRsiz, c.segment[1].YRsiz)),
+            self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
                              [(2, 2)] * 3)
 
             # COD: Coding style default
-            self.assertTrue(c.segment[2].Scod & 2)  # sop
-            self.assertFalse(c.segment[2].Scod & 4)  # no eph
-            self.assertEqual(c.segment[2].SPcod[0], glymur.core.LRCP)
+            self.assertTrue(c.segment[2].scod & 2)  # sop
+            self.assertFalse(c.segment[2].scod & 4)  # no eph
+            self.assertEqual(c.segment[2].spcod[0], glymur.core.LRCP)
             self.assertEqual(c.segment[2]._layers, 1)  # layers = 1
-            self.assertEqual(c.segment[2].SPcod[3], 1)  # mct
-            self.assertEqual(c.segment[2].SPcod[4], 5)  # levels
+            self.assertEqual(c.segment[2].spcod[3], 1)  # mct
+            self.assertEqual(c.segment[2].spcod[4], 5)  # levels
             self.assertEqual(tuple(c.segment[2]._code_block_size),
                              (64, 64))  # cblksz
             # Selective arithmetic coding bypass
-            self.assertFalse(c.segment[2].SPcod[7] & 0x01)
+            self.assertFalse(c.segment[2].spcod[7] & 0x01)
             # Reset context probabilities
-            self.assertFalse(c.segment[2].SPcod[7] & 0x02)
+            self.assertFalse(c.segment[2].spcod[7] & 0x02)
             # Termination on each coding pass
-            self.assertFalse(c.segment[2].SPcod[7] & 0x04)
+            self.assertFalse(c.segment[2].spcod[7] & 0x04)
             # Vertically causal context
-            self.assertFalse(c.segment[2].SPcod[7] & 0x08)
+            self.assertFalse(c.segment[2].spcod[7] & 0x08)
             # Predictable termination
-            self.assertFalse(c.segment[2].SPcod[7] & 0x0010)
+            self.assertFalse(c.segment[2].spcod[7] & 0x0010)
             # Segmentation symbols
-            self.assertFalse(c.segment[2].SPcod[7] & 0x0020)
-            self.assertEqual(c.segment[2].SPcod[8],
+            self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+            self.assertEqual(c.segment[2].spcod[8],
                              glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
-            self.assertEqual(len(c.segment[2].SPcod), 9)
+            self.assertEqual(len(c.segment[2].spcod), 9)
 
             # 18 SOP segments.
-            nsops = [x.Nsop for x in c.segment if x.id == 'SOP']
+            nsops = [x.nsop for x in c.segment if x.id == 'SOP']
             self.assertEqual(nsops, list(range(18)))
 
     def test_NR_ENC_Bretagne2_ppm_7_encode(self):
@@ -438,50 +438,50 @@ class TestSuiteWrite(unittest.TestCase):
 
             # SIZ: Image and tile size
             # Profile:  "0" means profile 2
-            self.assertEqual(c.segment[1].Rsiz, 0)
+            self.assertEqual(c.segment[1].rsiz, 0)
             # Reference grid size
-            self.assertEqual((c.segment[1].Xsiz, c.segment[1].Ysiz),
+            self.assertEqual((c.segment[1].xsiz, c.segment[1].ysiz),
                              (2592, 1944))
             # Reference grid offset
-            self.assertEqual((c.segment[1].XOsiz, c.segment[1].YOsiz), (0, 0))
+            self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
             # Tile size
-            self.assertEqual((c.segment[1].XTsiz, c.segment[1].YTsiz),
+            self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
                              (2592, 1944))
             # Tile offset
-            self.assertEqual((c.segment[1].XTOsiz, c.segment[1].YTOsiz),
+            self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz),
                              (0, 0))
             # bitdepth
             self.assertEqual(c.segment[1]._bitdepth, (8, 8, 8))
             # signed
             self.assertEqual(c.segment[1]._signed, (False, False, False))
             # subsampling
-            self.assertEqual(list(zip(c.segment[1].XRsiz, c.segment[1].YRsiz)),
+            self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
                              [(1, 1)] * 3)
 
             # COD: Coding style default
-            self.assertFalse(c.segment[2].Scod & 2)  # no sop
-            self.assertTrue(c.segment[2].Scod & 4)  # eph
-            self.assertEqual(c.segment[2].SPcod[0], glymur.core.LRCP)
+            self.assertFalse(c.segment[2].scod & 2)  # no sop
+            self.assertTrue(c.segment[2].scod & 4)  # eph
+            self.assertEqual(c.segment[2].spcod[0], glymur.core.LRCP)
             self.assertEqual(c.segment[2]._layers, 1)  # layers = 1
-            self.assertEqual(c.segment[2].SPcod[3], 1)  # mct
-            self.assertEqual(c.segment[2].SPcod[4], 5)  # levels
+            self.assertEqual(c.segment[2].spcod[3], 1)  # mct
+            self.assertEqual(c.segment[2].spcod[4], 5)  # levels
             self.assertEqual(tuple(c.segment[2]._code_block_size),
                             (64, 64))  # cblksz
             # Selective arithmetic coding BYPASS
-            self.assertFalse(c.segment[2].SPcod[7] & 0x01)
+            self.assertFalse(c.segment[2].spcod[7] & 0x01)
             # RESET context probabilities (RESET)
-            self.assertTrue(c.segment[2].SPcod[7] & 0x02)
+            self.assertTrue(c.segment[2].spcod[7] & 0x02)
             # Termination on each coding pass, RESTART(TERMALL)
-            self.assertTrue(c.segment[2].SPcod[7] & 0x04)
+            self.assertTrue(c.segment[2].spcod[7] & 0x04)
             # Vertically causal context (VSC)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x08)
+            self.assertFalse(c.segment[2].spcod[7] & 0x08)
             # Predictable termination, ERTERM(SEGTERM)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x0010)
+            self.assertFalse(c.segment[2].spcod[7] & 0x0010)
             # Segmentation symbols, SEGMARK(SEGSYSM)
-            self.assertTrue(c.segment[2].SPcod[7] & 0x0020)
-            self.assertEqual(c.segment[2].SPcod[8],
+            self.assertTrue(c.segment[2].spcod[7] & 0x0020)
+            self.assertEqual(c.segment[2].spcod[8],
                              glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
-            self.assertEqual(len(c.segment[2].SPcod), 9)
+            self.assertEqual(len(c.segment[2].spcod), 9)
 
             # 18 EPH segments.
             ephs = [x for x in c.segment if x.id == 'EPH']
@@ -498,51 +498,51 @@ class TestSuiteWrite(unittest.TestCase):
 
             # SIZ: Image and tile size
             # Profile:  "0" means profile 2
-            self.assertEqual(c.segment[1].Rsiz, 0)
+            self.assertEqual(c.segment[1].rsiz, 0)
             # Reference grid size
-            self.assertEqual((c.segment[1].Xsiz, c.segment[1].Ysiz),
+            self.assertEqual((c.segment[1].xsiz, c.segment[1].ysiz),
                              (2742, 2244))
             # Reference grid offset
-            self.assertEqual((c.segment[1].XOsiz, c.segment[1].YOsiz),
+            self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz),
                              (150, 300))
             # Tile size
-            self.assertEqual((c.segment[1].XTsiz, c.segment[1].YTsiz),
+            self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
                              (2742, 2244))
             # Tile offset
-            self.assertEqual((c.segment[1].XTOsiz, c.segment[1].YTOsiz),
+            self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz),
                              (0, 0))
             # bitdepth
             self.assertEqual(c.segment[1]._bitdepth, (8, 8, 8))
             # signed
             self.assertEqual(c.segment[1]._signed, (False, False, False))
             # subsampling
-            self.assertEqual(list(zip(c.segment[1].XRsiz, c.segment[1].YRsiz)),
+            self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
                              [(1, 1)] * 3)
 
             # COD: Coding style default
-            self.assertFalse(c.segment[2].Scod & 2)  # no sop
-            self.assertFalse(c.segment[2].Scod & 4)  # no eph
-            self.assertEqual(c.segment[2].SPcod[0], glymur.core.LRCP)
+            self.assertFalse(c.segment[2].scod & 2)  # no sop
+            self.assertFalse(c.segment[2].scod & 4)  # no eph
+            self.assertEqual(c.segment[2].spcod[0], glymur.core.LRCP)
             self.assertEqual(c.segment[2]._layers, 1)  # layers = 1
-            self.assertEqual(c.segment[2].SPcod[3], 1)  # mct
-            self.assertEqual(c.segment[2].SPcod[4], 5)  # levels
+            self.assertEqual(c.segment[2].spcod[3], 1)  # mct
+            self.assertEqual(c.segment[2].spcod[4], 5)  # levels
             self.assertEqual(tuple(c.segment[2]._code_block_size),
                              (64, 64))  # cblksz
             # Selective arithmetic coding BYPASS
-            self.assertFalse(c.segment[2].SPcod[7] & 0x01)
+            self.assertFalse(c.segment[2].spcod[7] & 0x01)
             # RESET context probabilities (RESET)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x02)
+            self.assertFalse(c.segment[2].spcod[7] & 0x02)
             # Termination on each coding pass, RESTART(TERMALL)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x04)
+            self.assertFalse(c.segment[2].spcod[7] & 0x04)
             # Vertically causal context (VSC)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x08)
+            self.assertFalse(c.segment[2].spcod[7] & 0x08)
             # Predictable termination, ERTERM(SEGTERM)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x0010)
+            self.assertFalse(c.segment[2].spcod[7] & 0x0010)
             # Segmentation symbols, SEGMARK(SEGSYSM)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x0020)
-            self.assertEqual(c.segment[2].SPcod[8],
+            self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+            self.assertEqual(c.segment[2].spcod[8],
                              glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
-            self.assertEqual(len(c.segment[2].SPcod), 9)
+            self.assertEqual(len(c.segment[2].spcod), 9)
 
     def test_NR_ENC_Cevennes1_bmp_9_encode(self):
         infile = os.path.join(data_root, 'input/nonregression/Cevennes1.bmp')
@@ -555,50 +555,50 @@ class TestSuiteWrite(unittest.TestCase):
 
             # SIZ: Image and tile size
             # Profile:  "0" means profile 2
-            self.assertEqual(c.segment[1].Rsiz, 0)
+            self.assertEqual(c.segment[1].rsiz, 0)
             # Reference grid size
-            self.assertEqual((c.segment[1].Xsiz, c.segment[1].Ysiz),
+            self.assertEqual((c.segment[1].xsiz, c.segment[1].ysiz),
                              (2592, 1944))
             # Reference grid offset
-            self.assertEqual((c.segment[1].XOsiz, c.segment[1].YOsiz), (0, 0))
+            self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
             # Tile size
-            self.assertEqual((c.segment[1].XTsiz, c.segment[1].YTsiz),
+            self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
                              (2592, 1944))
             # Tile offset
-            self.assertEqual((c.segment[1].XTOsiz, c.segment[1].YTOsiz),
+            self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz),
                              (0, 0))
             # bitdepth
             self.assertEqual(c.segment[1]._bitdepth, (8, 8, 8))
             # signed
             self.assertEqual(c.segment[1]._signed, (False, False, False))
             # subsampling
-            self.assertEqual(list(zip(c.segment[1].XRsiz, c.segment[1].YRsiz)),
+            self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
                              [(1, 1)] * 3)
 
             # COD: Coding style default
-            self.assertFalse(c.segment[2].Scod & 2)  # no sop
-            self.assertFalse(c.segment[2].Scod & 4)  # no eph
-            self.assertEqual(c.segment[2].SPcod[0], glymur.core.LRCP)
+            self.assertFalse(c.segment[2].scod & 2)  # no sop
+            self.assertFalse(c.segment[2].scod & 4)  # no eph
+            self.assertEqual(c.segment[2].spcod[0], glymur.core.LRCP)
             self.assertEqual(c.segment[2]._layers, 1)  # layers = 1
-            self.assertEqual(c.segment[2].SPcod[3], 1)  # mct
-            self.assertEqual(c.segment[2].SPcod[4], 5)  # levels
+            self.assertEqual(c.segment[2].spcod[3], 1)  # mct
+            self.assertEqual(c.segment[2].spcod[4], 5)  # levels
             self.assertEqual(tuple(c.segment[2]._code_block_size),
                              (64, 64))  # cblksz
             # Selective arithmetic coding BYPASS
-            self.assertFalse(c.segment[2].SPcod[7] & 0x01)
+            self.assertFalse(c.segment[2].spcod[7] & 0x01)
             # RESET context probabilities (RESET)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x02)
+            self.assertFalse(c.segment[2].spcod[7] & 0x02)
             # Termination on each coding pass, RESTART(TERMALL)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x04)
+            self.assertFalse(c.segment[2].spcod[7] & 0x04)
             # Vertically causal context (VSC)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x08)
+            self.assertFalse(c.segment[2].spcod[7] & 0x08)
             # Predictable termination, ERTERM(SEGTERM)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x0010)
+            self.assertFalse(c.segment[2].spcod[7] & 0x0010)
             # Segmentation symbols, SEGMARK(SEGSYSM)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x0020)
-            self.assertEqual(c.segment[2].SPcod[8],
+            self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+            self.assertEqual(c.segment[2].spcod[8],
                              glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
-            self.assertEqual(len(c.segment[2].SPcod), 9)
+            self.assertEqual(len(c.segment[2].spcod), 9)
 
     def test_NR_ENC_Cevennes2_ppm_10_encode(self):
         infile = os.path.join(data_root, 'input/nonregression/Cevennes2.ppm')
@@ -611,50 +611,50 @@ class TestSuiteWrite(unittest.TestCase):
 
             # SIZ: Image and tile size
             # Profile:  "0" means profile 2
-            self.assertEqual(c.segment[1].Rsiz, 0)
+            self.assertEqual(c.segment[1].rsiz, 0)
             # Reference grid size
-            self.assertEqual((c.segment[1].Xsiz, c.segment[1].Ysiz),
+            self.assertEqual((c.segment[1].xsiz, c.segment[1].ysiz),
                              (640, 480))
             # Reference grid offset
-            self.assertEqual((c.segment[1].XOsiz, c.segment[1].YOsiz), (0, 0))
+            self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
             # Tile size
-            self.assertEqual((c.segment[1].XTsiz, c.segment[1].YTsiz),
+            self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
                              (640, 480))
             # Tile offset
-            self.assertEqual((c.segment[1].XTOsiz, c.segment[1].YTOsiz),
+            self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz),
                              (0, 0))
             # bitdepth
             self.assertEqual(c.segment[1]._bitdepth, (8, 8, 8))
             # signed
             self.assertEqual(c.segment[1]._signed, (False, False, False))
             # subsampling
-            self.assertEqual(list(zip(c.segment[1].XRsiz, c.segment[1].YRsiz)),
+            self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
                              [(1, 1)] * 3)
 
             # COD: Coding style default
-            self.assertFalse(c.segment[2].Scod & 2)  # no sop
-            self.assertFalse(c.segment[2].Scod & 4)  # no eph
-            self.assertEqual(c.segment[2].SPcod[0], glymur.core.LRCP)
+            self.assertFalse(c.segment[2].scod & 2)  # no sop
+            self.assertFalse(c.segment[2].scod & 4)  # no eph
+            self.assertEqual(c.segment[2].spcod[0], glymur.core.LRCP)
             self.assertEqual(c.segment[2]._layers, 1)  # layers = 1
-            self.assertEqual(c.segment[2].SPcod[3], 1)  # mct
-            self.assertEqual(c.segment[2].SPcod[4], 5)  # levels
+            self.assertEqual(c.segment[2].spcod[3], 1)  # mct
+            self.assertEqual(c.segment[2].spcod[4], 5)  # levels
             self.assertEqual(tuple(c.segment[2]._code_block_size),
                              (64, 64))  # cblksz
             # Selective arithmetic coding BYPASS
-            self.assertFalse(c.segment[2].SPcod[7] & 0x01)
+            self.assertFalse(c.segment[2].spcod[7] & 0x01)
             # RESET context probabilities (RESET)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x02)
+            self.assertFalse(c.segment[2].spcod[7] & 0x02)
             # Termination on each coding pass, RESTART(TERMALL)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x04)
+            self.assertFalse(c.segment[2].spcod[7] & 0x04)
             # Vertically causal context (VSC)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x08)
+            self.assertFalse(c.segment[2].spcod[7] & 0x08)
             # Predictable termination, ERTERM(SEGTERM)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x0010)
+            self.assertFalse(c.segment[2].spcod[7] & 0x0010)
             # Segmentation symbols, SEGMARK(SEGSYSM)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x0020)
-            self.assertEqual(c.segment[2].SPcod[8],
+            self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+            self.assertEqual(c.segment[2].spcod[8],
                              glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
-            self.assertEqual(len(c.segment[2].SPcod), 9)
+            self.assertEqual(len(c.segment[2].spcod), 9)
 
     def test_NR_ENC_Rome_bmp_11_encode(self):
         infile = os.path.join(data_root, 'input/nonregression/Rome.bmp')
@@ -701,51 +701,51 @@ class TestSuiteWrite(unittest.TestCase):
 
             # SIZ: Image and tile size
             # Profile:  "0" means profile 2
-            self.assertEqual(c.segment[1].Rsiz, 0)
+            self.assertEqual(c.segment[1].rsiz, 0)
             # Reference grid size
-            self.assertEqual((c.segment[1].Xsiz, c.segment[1].Ysiz),
+            self.assertEqual((c.segment[1].xsiz, c.segment[1].ysiz),
                              (640, 480))
             # Reference grid offset
-            self.assertEqual((c.segment[1].XOsiz, c.segment[1].YOsiz),
+            self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz),
                              (0, 0))
             # Tile size
-            self.assertEqual((c.segment[1].XTsiz, c.segment[1].YTsiz),
+            self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
                              (640, 480))
             # Tile offset
-            self.assertEqual((c.segment[1].XTOsiz, c.segment[1].YTOsiz),
+            self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz),
                              (0, 0))
             # bitdepth
             self.assertEqual(c.segment[1]._bitdepth, (8, 8, 8))
             # signed
             self.assertEqual(c.segment[1]._signed, (False, False, False))
             # subsampling
-            self.assertEqual(list(zip(c.segment[1].XRsiz, c.segment[1].YRsiz)),
+            self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
                              [(1, 1)] * 3)
 
             # COD: Coding style default
-            self.assertFalse(c.segment[2].Scod & 2)  # no sop
-            self.assertFalse(c.segment[2].Scod & 4)  # no eph
-            self.assertEqual(c.segment[2].SPcod[0], glymur.core.LRCP)
+            self.assertFalse(c.segment[2].scod & 2)  # no sop
+            self.assertFalse(c.segment[2].scod & 4)  # no eph
+            self.assertEqual(c.segment[2].spcod[0], glymur.core.LRCP)
             self.assertEqual(c.segment[2]._layers, 3)  # layers = 3
-            self.assertEqual(c.segment[2].SPcod[3], 1)  # mct
-            self.assertEqual(c.segment[2].SPcod[4], 2)  # levels
+            self.assertEqual(c.segment[2].spcod[3], 1)  # mct
+            self.assertEqual(c.segment[2].spcod[4], 2)  # levels
             self.assertEqual(tuple(c.segment[2]._code_block_size),
                              (64, 64))  # cblksz
             # Selective arithmetic coding BYPASS
-            self.assertFalse(c.segment[2].SPcod[7] & 0x01)
+            self.assertFalse(c.segment[2].spcod[7] & 0x01)
             # RESET context probabilities (RESET)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x02)
+            self.assertFalse(c.segment[2].spcod[7] & 0x02)
             # Termination on each coding pass, RESTART(TERMALL)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x04)
+            self.assertFalse(c.segment[2].spcod[7] & 0x04)
             # Vertically causal context (VSC)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x08)
+            self.assertFalse(c.segment[2].spcod[7] & 0x08)
             # Predictable termination, ERTERM(SEGTERM)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x0010)
+            self.assertFalse(c.segment[2].spcod[7] & 0x0010)
             # Segmentation symbols, SEGMARK(SEGSYSM)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x0020)
-            self.assertEqual(c.segment[2].SPcod[8],
+            self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+            self.assertEqual(c.segment[2].spcod[8],
                              glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
-            self.assertEqual(len(c.segment[2].SPcod), 9)
+            self.assertEqual(len(c.segment[2].spcod), 9)
 
     @unittest.skip("Known failure in openjpeg test suite.")
     def test_NR_ENC_random_issue_0005_tif_12_encode(self):
@@ -762,50 +762,50 @@ class TestSuiteWrite(unittest.TestCase):
 
             # SIZ: Image and tile size
             # Profile:  "0" means profile 2
-            self.assertEqual(c.segment[1].Rsiz, 0)
+            self.assertEqual(c.segment[1].rsiz, 0)
             # Reference grid size
-            self.assertEqual((c.segment[1].Xsiz, c.segment[1].Ysiz),
+            self.assertEqual((c.segment[1].xsiz, c.segment[1].ysiz),
                              (1024, 1024))
             # Reference grid offset
-            self.assertEqual((c.segment[1].XOsiz, c.segment[1].YOsiz), (0, 0))
+            self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
             # Tile size
-            self.assertEqual((c.segment[1].XTsiz, c.segment[1].YTsiz),
+            self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
                              (1024, 1024))
             # Tile offset
-            self.assertEqual((c.segment[1].XTOsiz, c.segment[1].YTOsiz),
+            self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz),
                              (0, 0))
             # bitdepth
             self.assertEqual(c.segment[1]._bitdepth, (16,))
             # signed
             self.assertEqual(c.segment[1]._signed, (False,))
             # subsampling
-            self.assertEqual(list(zip(c.segment[1].XRsiz, c.segment[1].YRsiz)),
+            self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
                              [(1, 1)])
 
             # COD: Coding style default
-            self.assertFalse(c.segment[2].Scod & 2)  # no sop
-            self.assertFalse(c.segment[2].Scod & 4)  # no eph
-            self.assertEqual(c.segment[2].SPcod[0], glymur.core.LRCP)
+            self.assertFalse(c.segment[2].scod & 2)  # no sop
+            self.assertFalse(c.segment[2].scod & 4)  # no eph
+            self.assertEqual(c.segment[2].spcod[0], glymur.core.LRCP)
             self.assertEqual(c.segment[2]._layers, 1)  # layers = 1
-            self.assertEqual(c.segment[2].SPcod[3], 0)  # mct
-            self.assertEqual(c.segment[2].SPcod[4], 5)  # levels
+            self.assertEqual(c.segment[2].spcod[3], 0)  # mct
+            self.assertEqual(c.segment[2].spcod[4], 5)  # levels
             self.assertEqual(tuple(c.segment[2]._code_block_size),
                              (64, 64))  # cblksz
             # Selective arithmetic coding BYPASS
-            self.assertFalse(c.segment[2].SPcod[7] & 0x01)
+            self.assertFalse(c.segment[2].spcod[7] & 0x01)
             # RESET context probabilities (RESET)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x02)
+            self.assertFalse(c.segment[2].spcod[7] & 0x02)
             # Termination on each coding pass, RESTART(TERMALL)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x04)
+            self.assertFalse(c.segment[2].spcod[7] & 0x04)
             # Vertically causal context (VSC)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x08)
+            self.assertFalse(c.segment[2].spcod[7] & 0x08)
             # Predictable termination, ERTERM(SEGTERM)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x0010)
+            self.assertFalse(c.segment[2].spcod[7] & 0x0010)
             # Segmentation symbols, SEGMARK(SEGSYSM)
-            self.assertFalse(c.segment[2].SPcod[7] & 0x0020)
-            self.assertEqual(c.segment[2].SPcod[8],
+            self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+            self.assertEqual(c.segment[2].spcod[8],
                              glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
-            self.assertEqual(len(c.segment[2].SPcod), 9)
+            self.assertEqual(len(c.segment[2].spcod), 9)
 
 if __name__ == "__main__":
     unittest.main()

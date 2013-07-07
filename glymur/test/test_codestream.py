@@ -56,7 +56,7 @@ class TestCodestream(unittest.TestCase):
 
             self.assertEqual(c.segment[2].id, '0xff6f')
             self.assertEqual(c.segment[2].length, 3)
-            self.assertEqual(c.segment[2].data, b'\x00')
+            self.assertEqual(c.segment[2]._data, b'\x00')
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
@@ -86,7 +86,7 @@ class TestCodestream(unittest.TestCase):
 
             self.assertEqual(c.segment[2].id, '0xff79')
             self.assertEqual(c.segment[2].length, 3)
-            self.assertEqual(c.segment[2].data, b'\x00')
+            self.assertEqual(c.segment[2]._data, b'\x00')
 
 if __name__ == "__main__":
     unittest.main()

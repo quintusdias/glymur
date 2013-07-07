@@ -440,9 +440,9 @@ class Jp2k(Jp2kBox):
                      JP2HeaderBox(),
                      ContiguousCodestreamBox()]
             c = self.get_codestream()
-            height = c.segment[1].Ysiz
-            width = c.segment[1].Xsiz
-            num_components = len(c.segment[1].XRsiz)
+            height = c.segment[1].ysiz
+            width = c.segment[1].xsiz
+            num_components = len(c.segment[1].xrsiz)
             boxes[2].box = [ImageHeaderBox(height=height,
                                            width=width,
                                            num_components=num_components),
@@ -618,8 +618,8 @@ class Jp2k(Jp2kBox):
         """
         # Check for differing subsample factors.
         codestream = self.get_codestream(header_only=True)
-        dxs = np.array(codestream.segment[1].XRsiz)
-        dys = np.array(codestream.segment[1].YRsiz)
+        dxs = np.array(codestream.segment[1].xrsiz)
+        dys = np.array(codestream.segment[1].yrsiz)
         if np.any(dxs - dxs[0]) or np.any(dys - dys[0]):
             msg = "Components must all have the same subsampling factors "
             msg += "to use this method with OpenJPEG 1.5.1.  Please consider "
@@ -740,8 +740,8 @@ class Jp2k(Jp2kBox):
         """
         # Check for differing subsample factors.
         codestream = self.get_codestream(header_only=True)
-        dxs = np.array(codestream.segment[1].XRsiz)
-        dys = np.array(codestream.segment[1].YRsiz)
+        dxs = np.array(codestream.segment[1].xrsiz)
+        dys = np.array(codestream.segment[1].yrsiz)
         if np.any(dxs - dxs[0]) or np.any(dys - dys[0]):
             msg = "Components must all have the same subsampling factors."
             raise RuntimeError(msg)
@@ -798,7 +798,7 @@ class Jp2k(Jp2kBox):
         if reduce == -1:
             # Get the lowest resolution thumbnail.
             codestream = self.get_codestream()
-            reduce = codestream.segment[2].SPcod[4]
+            reduce = codestream.segment[2].spcod[4]
 
         dparam.cp_reduce = reduce
         if area is not None:

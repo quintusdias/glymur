@@ -58,9 +58,9 @@ class TestChannelDefinition(unittest.TestCase):
 
         j2k = Jp2k(self.j2kfile)
         c = j2k.get_codestream()
-        height = c.segment[1].Ysiz
-        width = c.segment[1].Xsiz
-        num_components = len(c.segment[1].XRsiz)
+        height = c.segment[1].ysiz
+        width = c.segment[1].xsiz
+        num_components = len(c.segment[1].xrsiz)
 
         self.jP = JPEG2000SignatureBox()
         self.ftyp = FileTypeBox()
@@ -268,9 +268,9 @@ class TestXML(unittest.TestCase):
 
         j2k = Jp2k(self.j2kfile)
         c = j2k.get_codestream()
-        height = c.segment[1].Ysiz
-        width = c.segment[1].Xsiz
-        num_components = len(c.segment[1].XRsiz)
+        height = c.segment[1].ysiz
+        width = c.segment[1].xsiz
+        num_components = len(c.segment[1].xrsiz)
 
         self.jP = JPEG2000SignatureBox()
         self.ftyp = FileTypeBox()
@@ -345,9 +345,9 @@ class TestColourSpecificationBox(unittest.TestCase):
 
         j2k = Jp2k(self.j2kfile)
         c = j2k.get_codestream()
-        height = c.segment[1].Ysiz
-        width = c.segment[1].Xsiz
-        num_components = len(c.segment[1].XRsiz)
+        height = c.segment[1].ysiz
+        width = c.segment[1].xsiz
+        num_components = len(c.segment[1].xrsiz)
 
         self.jP = JPEG2000SignatureBox()
         self.ftyp = FileTypeBox()
@@ -521,9 +521,9 @@ class TestJp2Boxes(unittest.TestCase):
                  JP2HeaderBox(),
                  ContiguousCodestreamBox()]
         c = j2k.get_codestream()
-        height = c.segment[1].Ysiz
-        width = c.segment[1].Xsiz
-        num_components = len(c.segment[1].XRsiz)
+        height = c.segment[1].ysiz
+        width = c.segment[1].xsiz
+        num_components = len(c.segment[1].xrsiz)
         boxes[2].box = [ImageHeaderBox(height=height,
                                        width=width,
                                        num_components=num_components),
@@ -540,9 +540,9 @@ class TestJp2Boxes(unittest.TestCase):
                  JP2HeaderBox(),
                  ContiguousCodestreamBox()]
         c = j2k.get_codestream()
-        height = c.segment[1].Ysiz
-        width = c.segment[1].Xsiz
-        num_components = len(c.segment[1].XRsiz)
+        height = c.segment[1].ysiz
+        width = c.segment[1].xsiz
+        num_components = len(c.segment[1].xrsiz)
         boxes[2].box = [ColourSpecificationBox(colorspace=glymur.core.SRGB),
                         ImageHeaderBox(height=height,
                                        width=width,
@@ -554,9 +554,9 @@ class TestJp2Boxes(unittest.TestCase):
     def test_first_2_boxes_not_jP_and_ftyp(self):
         j2k = Jp2k(self.j2kfile)
         c = j2k.get_codestream()
-        height = c.segment[1].Ysiz
-        width = c.segment[1].Xsiz
-        num_components = len(c.segment[1].XRsiz)
+        height = c.segment[1].ysiz
+        width = c.segment[1].xsiz
+        num_components = len(c.segment[1].xrsiz)
 
         jP = JPEG2000SignatureBox()
         ftyp = FileTypeBox()
@@ -574,9 +574,9 @@ class TestJp2Boxes(unittest.TestCase):
     def test_jp2h_not_preceeding_jp2c(self):
         j2k = Jp2k(self.j2kfile)
         c = j2k.get_codestream()
-        height = c.segment[1].Ysiz
-        width = c.segment[1].Xsiz
-        num_components = len(c.segment[1].XRsiz)
+        height = c.segment[1].ysiz
+        width = c.segment[1].xsiz
+        num_components = len(c.segment[1].xrsiz)
 
         jP = JPEG2000SignatureBox()
         ftyp = FileTypeBox()
@@ -594,9 +594,9 @@ class TestJp2Boxes(unittest.TestCase):
     def test_missing_codestream(self):
         j2k = Jp2k(self.j2kfile)
         c = j2k.get_codestream()
-        height = c.segment[1].Ysiz
-        width = c.segment[1].Xsiz
-        num_components = len(c.segment[1].XRsiz)
+        height = c.segment[1].ysiz
+        width = c.segment[1].xsiz
+        num_components = len(c.segment[1].xrsiz)
 
         jP = JPEG2000SignatureBox()
         ftyp = FileTypeBox()

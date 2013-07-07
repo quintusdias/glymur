@@ -640,6 +640,7 @@ class TestPrinting(unittest.TestCase):
                '    CME marker segment @ (3209, 37)',
                '        "Created by OpenJPEG version 2.0.0"']
         expected = '\n'.join(lst)
+        self.maxDiff = None
         self.assertEqual(actual, expected)
 
     @unittest.skipIf(data_root is None,
