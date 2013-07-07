@@ -701,12 +701,12 @@ class Codestream(object):
 
         return QCCsegment(**kwargs)
 
-    def _parseQCDsegment(self, f):
+    def _parseQCDsegment(self, fptr):
         """Parse the QCD segment.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
 
         Returns
@@ -714,20 +714,20 @@ class Codestream(object):
         QCD Segment instance.
         """
         kwargs = {}
-        kwargs['offset'] = f.tell() - 2
+        kwargs['offset'] = fptr.tell() - 2
 
-        buffer = f.read(3)
-        length, sqcd = struct.unpack('>HB', buffer)
+        read_buffer = fptr.read(3)
+        length, sqcd = struct.unpack('>HB', read_buffer)
         kwargs['length'] = length
         kwargs['Sqcd'] = sqcd
 
         kwargs['_guardBits'] = (sqcd & 0xe0) >> 5
 
-        buffer = f.read(length - 3)
+        read_buffer = fptr.read(length - 3)
 
-        mantissa, exponent = self._parseQuantization(buffer, sqcd)
+        mantissa, exponent = self._parseQuantization(read_buffer, sqcd)
 
-        kwargs['SPqcd'] = buffer
+        kwargs['SPqcd'] = read_buffer
         kwargs['_exponent'] = exponent
         kwargs['_mantissa'] = mantissa
 
@@ -748,15 +748,15 @@ class Codestream(object):
         kwargs = {}
         kwargs['offset'] = f.tell() - 2
 
-        buffer = f.read(2)
-        length, = struct.unpack('>H', buffer)
+        read_buffer = f.read(2)
+        length, = struct.unpack('>H', read_buffer)
 
         if self._Csiz < 257:
-            buffer = f.read(3)
-            data = struct.unpack('>BBB', buffer)
+            read_buffer = f.read(3)
+            data = struct.unpack('>BBB', read_buffer)
         else:
-            buffer = f.read(4)
-            data = struct.unpack('>HBB', buffer)
+            read_buffer = f.read(4)
+            data = struct.unpack('>HBB', read_buffer)
 
         kwargs['length'] = length
         kwargs['Crgn'] = data[0]
@@ -765,12 +765,12 @@ class Codestream(object):
 
         return RGNsegment(**kwargs)
 
-    def _parseSODsegment(self, f):
+    def _parseSODsegment(self, fptr):
         """Parse the SOD segment.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
 
         Returns
@@ -778,17 +778,17 @@ class Codestream(object):
         SOD segment instance.
         """
         kwargs = {}
-        kwargs['offset'] = f.tell() - 2
+        kwargs['offset'] = fptr.tell() - 2
         kwargs['length'] = 0
 
         return SODsegment(**kwargs)
 
-    def _parseSOTsegment(self, f):
+    def _parseSOTsegment(self, fptr):
         """Parse the SOT segment.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
 
         Returns
@@ -796,10 +796,10 @@ class Codestream(object):
         SOT segment instance.
         """
         kwargs = {}
-        kwargs['offset'] = f.tell() - 2
+        kwargs['offset'] = fptr.tell() - 2
 
-        buffer = f.read(10)
-        data = struct.unpack('>HHIBB', buffer)
+        read_buffer = fptr.read(10)
+        data = struct.unpack('>HHIBB', read_buffer)
 
         kwargs['length'] = data[0]
         kwargs['Isot'] = data[1]
@@ -1682,13 +1682,13 @@ class TLMsegment(Segment):
         return msg
 
 
-def _parse_precinct_size(buffer):
+def _parse_precinct_size(spcod):
     """Compute precinct size from SPcod or SPcoc."""
-    SPcocd = np.frombuffer(buffer, dtype=np.uint8)
+    spcod = np.frombuffer(spcod, dtype=np.uint8)
     precinct_size = []
-    for x in SPcocd:
-        ep2 = (x & 0xF0) >> 4
-        ep1 = x & 0x0F
+    for item in spcod:
+        ep2 = (item & 0xF0) >> 4
+        ep1 = item & 0x0F
         precinct_size.append((2 ** ep1, 2 ** ep2))
     return precinct_size
 
