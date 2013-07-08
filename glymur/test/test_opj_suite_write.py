@@ -424,7 +424,7 @@ class TestSuiteWrite(unittest.TestCase):
             self.assertEqual(len(c.segment[2].spcod), 9)
 
             # 18 SOP segments.
-            nsops = [x.nsop for x in c.segment if x.id == 'SOP']
+            nsops = [x.nsop for x in c.segment if x.marker_id == 'SOP']
             self.assertEqual(nsops, list(range(18)))
 
     def test_NR_ENC_Bretagne2_ppm_7_encode(self):
@@ -484,7 +484,7 @@ class TestSuiteWrite(unittest.TestCase):
             self.assertEqual(len(c.segment[2].spcod), 9)
 
             # 18 EPH segments.
-            ephs = [x for x in c.segment if x.id == 'EPH']
+            ephs = [x for x in c.segment if x.marker_id == 'EPH']
             self.assertEqual(len(ephs), 18)
 
     def test_NR_ENC_Bretagne2_ppm_8_encode(self):

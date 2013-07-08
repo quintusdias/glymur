@@ -1515,7 +1515,7 @@ class TestSuiteDump(unittest.TestCase):
         c = Jp2k(jfile).get_codestream(header_only=False)
 
         # Segment IDs.
-        actual = [x.id for x in c.segment]
+        actual = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'QCD', 'COD', 'SOT', 'SOD', 'EOC']
         self.assertEqual(actual, expected)
 
@@ -1662,7 +1662,7 @@ class TestSuiteDump(unittest.TestCase):
                          "Creator: AV-J2K (c) 2000,2001 Algo Vision")
 
         # One unknown marker
-        self.assertEqual(c.segment[6].id, '0xff30')
+        self.assertEqual(c.segment[6].marker_id, '0xff30')
 
         # SOT: start of tile part
         self.assertEqual(c.segment[7].isot, 0)
@@ -1672,16 +1672,16 @@ class TestSuiteDump(unittest.TestCase):
 
         # SOD:  start of data
         # Just one.
-        self.assertEqual(c.segment[8].id, 'SOD')
+        self.assertEqual(c.segment[8].marker_id, 'SOD')
 
         # SOP, EPH
-        sop = [x.id for x in c.segment if x.id == 'SOP']
-        eph = [x.id for x in c.segment if x.id == 'EPH']
+        sop = [x.marker_id for x in c.segment if x.marker_id == 'SOP']
+        eph = [x.marker_id for x in c.segment if x.marker_id == 'EPH']
         self.assertEqual(len(sop), 24)
         self.assertEqual(len(eph), 24)
 
         # EOC:  end of codestream
-        self.assertEqual(c.segment[-1].id, 'EOC')
+        self.assertEqual(c.segment[-1].marker_id, 'EOC')
 
     def test_NR_p0_03_dump(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_03.j2k')
@@ -1798,7 +1798,7 @@ class TestSuiteDump(unittest.TestCase):
 
         # SOD:  start of data
         # Just one.
-        self.assertEqual(c.segment[13].id, 'SOD')
+        self.assertEqual(c.segment[13].marker_id, 'SOD')
 
     def test_NR_p0_04_dump(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
@@ -1906,7 +1906,7 @@ class TestSuiteDump(unittest.TestCase):
 
         # SOD:  start of data
         # Just one.
-        self.assertEqual(c.segment[8].id, 'SOD')
+        self.assertEqual(c.segment[8].marker_id, 'SOD')
 
     def test_NR_p0_05_dump(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_05.j2k')
@@ -2050,7 +2050,7 @@ class TestSuiteDump(unittest.TestCase):
 
         # SOD:  start of data
         # Just one.
-        self.assertEqual(c.segment[11].id, 'SOD')
+        self.assertEqual(c.segment[11].marker_id, 'SOD')
 
     def test_NR_p0_06_dump(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_06.j2k')
@@ -2187,7 +2187,7 @@ class TestSuiteDump(unittest.TestCase):
 
         # SOD:  start of data
         # Just one.
-        self.assertEqual(c.segment[11].id, 'SOD')
+        self.assertEqual(c.segment[11].marker_id, 'SOD')
 
     def test_NR_p0_07_dump(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_07.j2k')
@@ -2272,7 +2272,7 @@ class TestSuiteDump(unittest.TestCase):
         #self.assertEqual(c.segment[7].iplt), 99)
 
         # SOD:  start of data
-        self.assertEqual(c.segment[8].id, 'SOD')
+        self.assertEqual(c.segment[8].marker_id, 'SOD')
 
     def test_NR_p0_08_dump(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_08.j2k')
@@ -2502,10 +2502,10 @@ class TestSuiteDump(unittest.TestCase):
 
         # SOD:  start of data
         # Just one.
-        self.assertEqual(c.segment[6].id, 'SOD')
+        self.assertEqual(c.segment[6].marker_id, 'SOD')
 
         # EOC:  end of codestream
-        self.assertEqual(c.segment[7].id, 'EOC')
+        self.assertEqual(c.segment[7].marker_id, 'EOC')
 
     def test_NR_p0_10_dump(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_10.j2k')
@@ -2571,7 +2571,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[4].tnsot, 0)
 
         # SOD:  start of data
-        self.assertEqual(c.segment[5].id, 'SOD')
+        self.assertEqual(c.segment[5].marker_id, 'SOD')
 
         # SOT: start of tile part
         self.assertEqual(c.segment[6].isot, 1)
@@ -2580,7 +2580,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[6].tnsot, 0)
 
         # SOD:  start of data
-        self.assertEqual(c.segment[7].id, 'SOD')
+        self.assertEqual(c.segment[7].marker_id, 'SOD')
 
         # SOT: start of tile part
         self.assertEqual(c.segment[8].isot, 2)
@@ -2589,7 +2589,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[8].tnsot, 0)
 
         # SOD:  start of data
-        self.assertEqual(c.segment[9].id, 'SOD')
+        self.assertEqual(c.segment[9].marker_id, 'SOD')
 
         # SOT: start of tile part
         self.assertEqual(c.segment[10].isot, 3)
@@ -2598,7 +2598,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[10].tnsot, 0)
 
         # SOD:  start of data
-        self.assertEqual(c.segment[11].id, 'SOD')
+        self.assertEqual(c.segment[11].marker_id, 'SOD')
 
         # SOT: start of tile part
         self.assertEqual(c.segment[12].isot, 0)
@@ -2607,7 +2607,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[12].tnsot, 2)
 
         # SOD:  start of data
-        self.assertEqual(c.segment[13].id, 'SOD')
+        self.assertEqual(c.segment[13].marker_id, 'SOD')
 
         # SOT: start of tile part
         self.assertEqual(c.segment[14].isot, 1)
@@ -2616,7 +2616,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[14].tnsot, 2)
 
         # SOD:  start of data
-        self.assertEqual(c.segment[15].id, 'SOD')
+        self.assertEqual(c.segment[15].marker_id, 'SOD')
 
         # SOT: start of tile part
         self.assertEqual(c.segment[16].isot, 3)
@@ -2625,7 +2625,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[16].tnsot, 2)
 
         # SOD:  start of data
-        self.assertEqual(c.segment[17].id, 'SOD')
+        self.assertEqual(c.segment[17].marker_id, 'SOD')
 
         # SOT: start of tile part
         self.assertEqual(c.segment[18].isot, 2)
@@ -2634,7 +2634,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[18].tnsot, 0)
 
         # SOD:  start of data
-        self.assertEqual(c.segment[19].id, 'SOD')
+        self.assertEqual(c.segment[19].marker_id, 'SOD')
 
         # SOT: start of tile part
         self.assertEqual(c.segment[20].isot, 2)
@@ -2643,10 +2643,10 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[20].tnsot, 0)
 
         # SOD:  start of data
-        self.assertEqual(c.segment[21].id, 'SOD')
+        self.assertEqual(c.segment[21].marker_id, 'SOD')
 
         # EOC:  end of codestream
-        self.assertEqual(c.segment[22].id, 'EOC')
+        self.assertEqual(c.segment[22].marker_id, 'EOC')
 
     def test_NR_p0_11_dump(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_11.j2k')
@@ -2718,16 +2718,16 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[5].tnsot, 1)
 
         # SOD:  start of data
-        self.assertEqual(c.segment[6].id, 'SOD')
+        self.assertEqual(c.segment[6].marker_id, 'SOD')
 
         # SOP, EPH
-        sop = [x.id for x in c.segment if x.id == 'SOP']
-        eph = [x.id for x in c.segment if x.id == 'EPH']
+        sop = [x.marker_id for x in c.segment if x.marker_id == 'SOP']
+        eph = [x.marker_id for x in c.segment if x.marker_id == 'EPH']
         self.assertEqual(len(sop), 0)
         self.assertEqual(len(eph), 1)
 
         # EOC:  end of codestream
-        self.assertEqual(c.segment[-1].id, 'EOC')
+        self.assertEqual(c.segment[-1].marker_id, 'EOC')
 
     def test_NR_p0_12_dump(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_12.j2k')
@@ -2800,16 +2800,16 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[5].tnsot, 1)
 
         # SOD:  start of data
-        self.assertEqual(c.segment[6].id, 'SOD')
+        self.assertEqual(c.segment[6].marker_id, 'SOD')
 
         # SOP, EPH
-        sop = [x.id for x in c.segment if x.id == 'SOP']
-        eph = [x.id for x in c.segment if x.id == 'EPH']
+        sop = [x.marker_id for x in c.segment if x.marker_id == 'SOP']
+        eph = [x.marker_id for x in c.segment if x.marker_id == 'EPH']
         self.assertEqual(len(sop), 4)
         self.assertEqual(len(eph), 0)
 
         # EOC:  end of codestream
-        self.assertEqual(c.segment[-1].id, 'EOC')
+        self.assertEqual(c.segment[-1].marker_id, 'EOC')
 
     def test_NR_p0_13_dump(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_13.j2k')
@@ -2932,10 +2932,10 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[10].tnsot, 1)
 
         # SOD:  start of data
-        self.assertEqual(c.segment[11].id, 'SOD')
+        self.assertEqual(c.segment[11].marker_id, 'SOD')
 
         # EOC:  end of codestream
-        self.assertEqual(c.segment[12].id, 'EOC')
+        self.assertEqual(c.segment[12].marker_id, 'EOC')
 
     def test_NR_p0_14_dump(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_14.j2k')
@@ -3008,10 +3008,10 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[5].tnsot, 1)
 
         # SOD:  start of data
-        self.assertEqual(c.segment[6].id, 'SOD')
+        self.assertEqual(c.segment[6].marker_id, 'SOD')
 
         # EOC:  end of codestream
-        self.assertEqual(c.segment[7].id, 'EOC')
+        self.assertEqual(c.segment[7].marker_id, 'EOC')
 
     def test_NR_p0_15_dump(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_15.j2k')
@@ -3127,7 +3127,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[12].sprgn, 7)
 
         # SOD:  start of data
-        self.assertEqual(c.segment[13].id, 'SOD')
+        self.assertEqual(c.segment[13].marker_id, 'SOD')
 
         # 16 SOP markers would be here if we were looking for them
 
@@ -3138,7 +3138,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[31].tnsot, 1)
 
         # SOD:  start of data
-        self.assertEqual(c.segment[32].id, 'SOD')
+        self.assertEqual(c.segment[32].marker_id, 'SOD')
 
         # 16 SOP markers would be here if we were looking for them
 
@@ -3149,7 +3149,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[49].tnsot, 1)
 
         # SOD:  start of data
-        self.assertEqual(c.segment[50].id, 'SOD')
+        self.assertEqual(c.segment[50].marker_id, 'SOD')
 
         # 16 SOP markers would be here if we were looking for them
 
@@ -3160,12 +3160,12 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[67].tnsot, 1)
 
         # SOD:  start of data
-        self.assertEqual(c.segment[68].id, 'SOD')
+        self.assertEqual(c.segment[68].marker_id, 'SOD')
 
         # 16 SOP markers would be here if we were looking for them
 
         # EOC:  end of codestream
-        self.assertEqual(c.segment[85].id, 'EOC')
+        self.assertEqual(c.segment[85].marker_id, 'EOC')
 
     def test_NR_p0_16_dump(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_16.j2k')
@@ -3230,10 +3230,10 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[4].tnsot, 1)
 
         # SOD:  start of data
-        self.assertEqual(c.segment[5].id, 'SOD')
+        self.assertEqual(c.segment[5].marker_id, 'SOD')
 
         # EOC:  end of codestream
-        self.assertEqual(c.segment[6].id, 'EOC')
+        self.assertEqual(c.segment[6].marker_id, 'EOC')
 
     def test_NR_p1_01_dump(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_01.j2k')
@@ -3324,16 +3324,16 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[6].tnsot, 1)
 
         # SOD:  start of data
-        self.assertEqual(c.segment[7].id, 'SOD')
+        self.assertEqual(c.segment[7].marker_id, 'SOD')
 
         # SOP, EPH
-        sop = [x.id for x in c.segment if x.id == 'SOP']
-        eph = [x.id for x in c.segment if x.id == 'EPH']
+        sop = [x.marker_id for x in c.segment if x.marker_id == 'SOP']
+        eph = [x.marker_id for x in c.segment if x.marker_id == 'EPH']
         self.assertEqual(len(sop), 20)
         self.assertEqual(len(eph), 20)
 
         # EOC:  end of codestream
-        self.assertEqual(c.segment[-1].id, 'EOC')
+        self.assertEqual(c.segment[-1].marker_id, 'EOC')
 
     def test_NR_p1_02_dump(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_02.j2k')
@@ -3440,14 +3440,14 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[7].tnsot, 1)
 
         # PPT:  packed packet headers, tile-part header
-        self.assertEqual(c.segment[8].id, 'PPT')
+        self.assertEqual(c.segment[8].marker_id, 'PPT')
         self.assertEqual(c.segment[8].zppt, 0)
 
         # SOD:  start of data
-        self.assertEqual(c.segment[9].id, 'SOD')
+        self.assertEqual(c.segment[9].marker_id, 'SOD')
 
         # EOC:  end of codestream
-        self.assertEqual(c.segment[10].id, 'EOC')
+        self.assertEqual(c.segment[10].marker_id, 'EOC')
 
     def test_NR_p1_03_dump(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_03.j2k')
@@ -3576,7 +3576,7 @@ class TestSuiteDump(unittest.TestCase):
                          "Creator: AV-J2K (c) 2000,2001 Algo Vision")
 
         # PPM:  packed packet headers, main header
-        self.assertEqual(c.segment[9].id, 'PPM')
+        self.assertEqual(c.segment[9].marker_id, 'PPM')
         self.assertEqual(c.segment[9].zppm, 0)
 
         # TLM (tile-part length)
@@ -3591,10 +3591,10 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[11].tnsot, 1)
 
         # SOD:  start of data
-        self.assertEqual(c.segment[12].id, 'SOD')
+        self.assertEqual(c.segment[12].marker_id, 'SOD')
 
         # EOC:  end of codestream
-        self.assertEqual(c.segment[13].id, 'EOC')
+        self.assertEqual(c.segment[13].marker_id, 'EOC')
 
     def test_NR_p1_04_dump(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
@@ -3679,7 +3679,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[6].tnsot, 1)
 
         # SOD:  start of data
-        self.assertEqual(c.segment[7].id, 'SOD')
+        self.assertEqual(c.segment[7].marker_id, 'SOD')
 
         # SOT: start of tile part
         self.assertEqual(c.segment[8].isot, 1)
@@ -3698,7 +3698,7 @@ class TestSuiteDump(unittest.TestCase):
                          [8, 10, 10, 10, 9, 9, 9, 8, 8, 8])
 
         # SOD:  start of data
-        self.assertEqual(c.segment[10].id, 'SOD')
+        self.assertEqual(c.segment[10].marker_id, 'SOD')
 
         # SOT: start of tile part
         self.assertEqual(c.segment[11].isot, 2)
@@ -3709,19 +3709,19 @@ class TestSuiteDump(unittest.TestCase):
         # and so on
 
         # There should be 64 SOD, SOT, QCD segments.
-        ids = [x.id for x in c.segment if x.id == 'SOT']
+        ids = [x.marker_id for x in c.segment if x.marker_id == 'SOT']
         self.assertEqual(len(ids), 64)
-        ids = [x.id for x in c.segment if x.id == 'SOD']
+        ids = [x.marker_id for x in c.segment if x.marker_id == 'SOD']
         self.assertEqual(len(ids), 64)
-        ids = [x.id for x in c.segment if x.id == 'QCD']
+        ids = [x.marker_id for x in c.segment if x.marker_id == 'QCD']
         self.assertEqual(len(ids), 64)
 
         # Tiles should be in order, right?
-        tiles = [x.isot for x in c.segment if x.id == 'SOT']
+        tiles = [x.isot for x in c.segment if x.marker_id == 'SOT']
         self.assertEqual(tiles, list(range(64)))
 
         # EOC:  end of codestream
-        self.assertEqual(c.segment[-1].id, 'EOC')
+        self.assertEqual(c.segment[-1].marker_id, 'EOC')
 
     def test_NR_p1_05_dump(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_05.j2k')
@@ -3799,17 +3799,17 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[230].tnsot, 1)
 
         # 225 total SOT segments
-        isot = [x.isot for x in c.segment if x.id == 'SOT']
+        isot = [x.isot for x in c.segment if x.marker_id == 'SOT']
         self.assertEqual(isot, list(range(225)))
 
         # scads of SOP, EPH segments
-        sop = [x.id for x in c.segment if x.id == 'SOP']
-        eph = [x.id for x in c.segment if x.id == 'EPH']
+        sop = [x.marker_id for x in c.segment if x.marker_id == 'SOP']
+        eph = [x.marker_id for x in c.segment if x.marker_id == 'EPH']
         self.assertEqual(len(sop), 26472)
         self.assertEqual(len(eph), 0)
 
         # EOC:  end of codestream
-        self.assertEqual(c.segment[-1].id, 'EOC')
+        self.assertEqual(c.segment[-1].marker_id, 'EOC')
 
     def test_NR_p1_06_dump(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
@@ -3884,25 +3884,25 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[5].tnsot, 1)
 
         # PPT:  packed packet headers, tile-part header
-        self.assertEqual(c.segment[6].id, 'PPT')
+        self.assertEqual(c.segment[6].marker_id, 'PPT')
         self.assertEqual(c.segment[6].zppt, 0)
 
         # scads of SOP, EPH segments
 
         # 16 SOD segments
-        sods = [x for x in c.segment if x.id == 'SOD']
+        sods = [x for x in c.segment if x.marker_id == 'SOD']
         self.assertEqual(len(sods), 16)
 
         # 16 PPT segments
-        ppts = [x for x in c.segment if x.id == 'PPT']
+        ppts = [x for x in c.segment if x.marker_id == 'PPT']
         self.assertEqual(len(ppts), 16)
 
         # 16 SOT segments
-        isots = [x.isot for x in c.segment if x.id == 'SOT']
+        isots = [x.isot for x in c.segment if x.marker_id == 'SOT']
         self.assertEqual(isots, list(range(16)))
 
         # EOC:  end of codestream
-        self.assertEqual(c.segment[-1].id, 'EOC')
+        self.assertEqual(c.segment[-1].marker_id, 'EOC')
 
     def test_NR_p1_07_dump(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_07.j2k')
@@ -3995,7 +3995,7 @@ class TestSuiteDump(unittest.TestCase):
         # scads of SOP, EPH segments
 
         # EOC:  end of codestream
-        self.assertEqual(c.segment[-1].id, 'EOC')
+        self.assertEqual(c.segment[-1].marker_id, 'EOC')
 
     def test_NR_file1_dump(self):
         jfile = os.path.join(data_root, 'input/conformance/file1.jp2')
@@ -4573,18 +4573,18 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[9].ptlm, (45274, 20838, 8909))
 
         # 3 tiles, one for each component
-        idx = [x.isot for x in c.segment if x.id == 'SOT']
+        idx = [x.isot for x in c.segment if x.marker_id == 'SOT']
         self.assertEqual(idx, [0, 0, 0])
-        lens = [x.psot for x in c.segment if x.id == 'SOT']
+        lens = [x.psot for x in c.segment if x.marker_id == 'SOT']
         self.assertEqual(lens, [45274, 20838, 8909])
-        tpsot = [x.tpsot for x in c.segment if x.id == 'SOT']
+        tpsot = [x.tpsot for x in c.segment if x.marker_id == 'SOT']
         self.assertEqual(tpsot, [0, 1, 2])
 
-        sods = [x for x in c.segment if x.id == 'SOD']
+        sods = [x for x in c.segment if x.marker_id == 'SOD']
         self.assertEqual(len(sods), 3)
 
         # EOC:  end of codestream
-        self.assertEqual(c.segment[-1].id, 'EOC')
+        self.assertEqual(c.segment[-1].marker_id, 'EOC')
 
     def test_Bretagne2_j2k_dump(self):
         # Profile 3.
@@ -4638,7 +4638,7 @@ class TestSuiteDump(unittest.TestCase):
                          [(16, 16), (32, 32), (64, 64), (128, 128),
                           (128, 128), (128, 128)])
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD', 'CME']
         expected += ['SOT', 'COC', 'QCC', 'COC', 'QCC', 'SOD'] * 25
         expected += ['EOC']
@@ -4693,7 +4693,7 @@ class TestSuiteDump(unittest.TestCase):
                          glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD', 'CME', 'SOT', 'SOD', 'EOC']
         self.assertEqual(ids, expected)
 
@@ -4746,7 +4746,7 @@ class TestSuiteDump(unittest.TestCase):
                          glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD', 'CME', 'SOT', 'SOD', 'EOC']
         self.assertEqual(ids, expected)
 
@@ -4759,7 +4759,7 @@ class TestSuiteDump(unittest.TestCase):
         jp2k = Jp2k(jfile)
         c = jp2k.get_codestream()
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
@@ -4822,7 +4822,7 @@ class TestSuiteDump(unittest.TestCase):
         jp2k = Jp2k(jfile)
         c = jp2k.get_codestream()
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD', 'CME']
         self.assertEqual(ids, expected)
 
@@ -4893,7 +4893,7 @@ class TestSuiteDump(unittest.TestCase):
         jp2k = Jp2k(jfile)
         c = jp2k.get_codestream()
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD', 'CME', 'CME']
         self.assertEqual(ids, expected)
 
@@ -4969,7 +4969,7 @@ class TestSuiteDump(unittest.TestCase):
         jp2k = Jp2k(jfile)
         c = jp2k.get_codestream()
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
@@ -5030,7 +5030,7 @@ class TestSuiteDump(unittest.TestCase):
         jp2k = Jp2k(jfile)
         c = jp2k.get_codestream()
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD', 'CME']
         self.assertEqual(ids, expected)
 
@@ -5418,7 +5418,7 @@ class TestSuiteDump(unittest.TestCase):
         jp2k = Jp2k(jfile)
         c = jp2k.get_codestream()
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
@@ -5479,7 +5479,7 @@ class TestSuiteDump(unittest.TestCase):
         jp2k = Jp2k(jfile)
         c = jp2k.get_codestream()
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
@@ -5539,7 +5539,7 @@ class TestSuiteDump(unittest.TestCase):
         jp2k = Jp2k(jfile)
         c = jp2k.get_codestream()
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD', 'CME']
         self.assertEqual(ids, expected)
 
@@ -5608,7 +5608,7 @@ class TestSuiteDump(unittest.TestCase):
         jp2k = Jp2k(jfile)
         c = jp2k.get_codestream()
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD', 'CME']
         self.assertEqual(ids, expected)
 
@@ -5677,7 +5677,7 @@ class TestSuiteDump(unittest.TestCase):
         jp2k = Jp2k(jfile)
         c = jp2k.get_codestream()
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
@@ -5739,7 +5739,7 @@ class TestSuiteDump(unittest.TestCase):
         jp2k = Jp2k(jfile)
         c = jp2k.get_codestream()
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
@@ -5802,7 +5802,7 @@ class TestSuiteDump(unittest.TestCase):
         jp2k = Jp2k(jfile)
         c = jp2k.get_codestream()
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD', 'CME']
         self.assertEqual(ids, expected)
 
@@ -5911,7 +5911,7 @@ class TestSuiteDump(unittest.TestCase):
 
         c = jp2.box[3].main_header
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'CME', 'COD', 'QCD', 'QCC', 'QCC']
         self.assertEqual(ids, expected)
 
@@ -6044,7 +6044,7 @@ class TestSuiteDump(unittest.TestCase):
 
         c = jp2.box[3].main_header
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'CME', 'COD', 'QCD', 'QCC', 'QCC']
         self.assertEqual(ids, expected)
 
@@ -6172,7 +6172,7 @@ class TestSuiteDump(unittest.TestCase):
 
         c = jp2.box[3].main_header
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
@@ -6325,7 +6325,7 @@ class TestSuiteDump(unittest.TestCase):
 
         c = jp2.box[4].main_header
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
@@ -6425,7 +6425,7 @@ class TestSuiteDump(unittest.TestCase):
 
         c = jp2.box[4].main_header
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD', 'CME', 'CME']
         self.assertEqual(ids, expected)
 
@@ -6523,7 +6523,7 @@ class TestSuiteDump(unittest.TestCase):
 
         c = jp2.box[4].main_header
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
@@ -6626,7 +6626,7 @@ class TestSuiteDump(unittest.TestCase):
 
         c = jp2.box[3].main_header
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD', 'CME']
         self.assertEqual(ids, expected)
 
@@ -6753,7 +6753,7 @@ class TestSuiteDump(unittest.TestCase):
 
         c = jp2.box[4].main_header
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
@@ -6867,7 +6867,7 @@ class TestSuiteDump(unittest.TestCase):
 
         c = jp2.box[4].main_header
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
@@ -6961,7 +6961,7 @@ class TestSuiteDump(unittest.TestCase):
 
         c = jp2.box[3].main_header
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD', 'POD']
         self.assertEqual(ids, expected)
 
@@ -7069,7 +7069,7 @@ class TestSuiteDump(unittest.TestCase):
 
         c = jp2.box[3].main_header
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
@@ -7168,7 +7168,7 @@ class TestSuiteDump(unittest.TestCase):
 
         c = jp2.box[3].main_header
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
@@ -7276,7 +7276,7 @@ class TestSuiteDump(unittest.TestCase):
 
         c = jp2.box[8].main_header
 
-        ids = [x.id for x in c.segment]
+        ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 

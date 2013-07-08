@@ -54,7 +54,7 @@ class TestCodestream(unittest.TestCase):
             j = Jp2k(tfile.name)
             c = j.get_codestream()
 
-            self.assertEqual(c.segment[2].id, '0xff6f')
+            self.assertEqual(c.segment[2].marker_id, '0xff6f')
             self.assertEqual(c.segment[2].length, 3)
             self.assertEqual(c.segment[2]._data, b'\x00')
 
@@ -84,7 +84,7 @@ class TestCodestream(unittest.TestCase):
                 j = Jp2k(tfile.name)
                 c = j.get_codestream()
 
-            self.assertEqual(c.segment[2].id, '0xff79')
+            self.assertEqual(c.segment[2].marker_id, '0xff79')
             self.assertEqual(c.segment[2].length, 3)
             self.assertEqual(c.segment[2]._data, b'\x00')
 

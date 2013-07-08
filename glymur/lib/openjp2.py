@@ -154,8 +154,8 @@ _rsiz_capabilities_t = ctypes.c_int32
 _stream_t_p = ctypes.c_void_p
 
 _PATH_LEN = 4096
-_J2K_MAXRLVLS = 33
-_J2K_MAXBANDS = (3 * _J2K_MAXRLVLS - 2)
+J2K_MAXRLVLS = 33
+_J2K_MAXBANDS = (3 * J2K_MAXRLVLS - 2)
 
 _JPWL_MAX_NO_TILESPECS = 16
 
@@ -379,10 +379,10 @@ class _cparameters_t(ctypes.Structure):
         ("res_spec",         ctypes.c_int),
 
         # initial precinct width
-        ("prcw_init",        ctypes.c_int * _J2K_MAXRLVLS),
+        ("prcw_init",        ctypes.c_int * J2K_MAXRLVLS),
 
         # initial precinct height
-        ("prch_init",        ctypes.c_int * _J2K_MAXRLVLS),
+        ("prch_init",        ctypes.c_int * J2K_MAXRLVLS),
 
         # input file name
         ("infile",           ctypes.c_char * _PATH_LEN),
@@ -606,10 +606,10 @@ class _tccp_info_t(ctypes.Structure):
         ("roishift",        ctypes.c_int32),
 
         # precinct width
-        ("prcw",            ctypes.c_uint32 * _J2K_MAXRLVLS),
+        ("prcw",            ctypes.c_uint32 * J2K_MAXRLVLS),
 
         # precinct width
-        ("prch",            ctypes.c_uint32 * _J2K_MAXRLVLS)]
+        ("prch",            ctypes.c_uint32 * J2K_MAXRLVLS)]
 
 
 class _tile_info_v2_t(ctypes.Structure):

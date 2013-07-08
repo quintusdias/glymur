@@ -94,7 +94,7 @@ class TestSuiteNegative(unittest.TestCase):
         # Verify that the last segment returned in the codestream is SOD,
         # not EOC.  Codestream parsing should stop when we try to jump to
         # the end of SOT.
-        self.assertEqual(c.segment[-1].id, 'SOD')
+        self.assertEqual(c.segment[-1].marker_id, 'SOD')
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
@@ -109,7 +109,7 @@ class TestSuiteNegative(unittest.TestCase):
         # Verify that the last segment returned in the codestream is SOD,
         # not EOC.  Codestream parsing should stop when we try to jump to
         # the end of SOT.
-        self.assertEqual(c.segment[-1].id, 'SOD')
+        self.assertEqual(c.segment[-1].marker_id, 'SOD')
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
@@ -124,7 +124,7 @@ class TestSuiteNegative(unittest.TestCase):
         # Verify that the last segment returned in the codestream is SOD,
         # not EOC.  Codestream parsing should stop when we try to jump to
         # the end of SOT.
-        self.assertEqual(c.segment[-1].id, 'SOD')
+        self.assertEqual(c.segment[-1].marker_id, 'SOD')
 
     def test_code_block_dimensions(self):
         # opj_compress doesn't allow the dimensions of a codeblock

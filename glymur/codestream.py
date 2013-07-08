@@ -19,15 +19,25 @@ from .lib import openjp2 as opj2
 
 # Need a catch-all list of valid markers.
 # See table A-1 in ISO/IEC FCD15444-1.
-_valid_markers = [0xff00, 0xff01, 0xfffe]
+_VALID_MARKERS = [0xff00, 0xff01, 0xfffe]
 for _marker in range(0xffc0, 0xffe0):
-    _valid_markers.append(_marker)
+    _VALID_MARKERS.append(_marker)
 for _marker in range(0xfff0, 0xfff9):
-    _valid_markers.append(_marker)
+    _VALID_MARKERS.append(_marker)
 for _marker in range(0xff4f, 0xff70):
-    _valid_markers.append(_marker)
+    _VALID_MARKERS.append(_marker)
 for _marker in range(0xff90, 0xff94):
-    _valid_markers.append(_marker)
+    _VALID_MARKERS.append(_marker)
+
+
+class InconsistentStartOfTileError(IOError):
+    """To be raised if bad SOT segment encountered.
+
+    SOT segment offsets are recorded as encountered.  The offsets should all be
+    different.
+    """
+    def __init__(self, msg):
+        IOError.__init__(self, msg)
 
 
 class Codestream(object):
@@ -59,6 +69,10 @@ class Codestream(object):
             Supplying False may impose a large performance penalty.
         """
 
+        # Number of components.  Must be kept track of for the processing of
+        # many segments.
+        self._csiz = -1
+
         # Do we parse the tile part bit stream or not?
         self._parse_tpart_flag = False
 
@@ -70,127 +84,32 @@ class Codestream(object):
         segment = SOCsegment(offset=fptr.tell() - 2, length=0)
         self.segment.append(segment)
 
-        tile_offset = []
-        tile_length = []
+        self._tile_offset = []
+        self._tile_length = []
 
         while True:
-            offset = fptr.tell()
+
             read_buffer = fptr.read(2)
             marker_id, = struct.unpack('>H', read_buffer)
 
-            if marker_id >= 0xff30 and marker_id <= 0xff3f:
-                the_id = '0x{0:x}'.format(marker_id)
-                segment = Segment(id=the_id, offset=offset, length=0)
-
-            elif marker_id == 0xff51:
-                # Need to keep track of the number of components from SIZ for
-                # other markers
-                segment = _parse_siz_segment(fptr)
-                self._csiz = len(segment.ssiz)
-
-            elif marker_id == 0xff52:
-                segment = _parse_cod_segment(fptr)
-
-                sop = (segment.scod & 2) > 0
-                eph = (segment.scod & 4) > 0
-
-                if sop or eph:
-                    self._parse_tpart_flag = True
-                else:
-                    self._parse_tpart_flag = False
-
-            elif marker_id == 0xff53:
-                segment = self._parse_coc_segment(fptr)
-
-            elif marker_id == 0xff55:
-                segment = _parse_tlm_segment(fptr)
-
-            elif marker_id == 0xff58:
-                segment = _parse_plt_segment(fptr)
-
-            elif marker_id == 0xff5c:
-                segment = _parse_qcd_segment(fptr)
-
-            elif marker_id == 0xff5d:
-                segment = self._parse_qcc_segment(fptr)
-
-            elif marker_id == 0xff5e:
-                segment = self._parse_rgn_segment(fptr)
-
-            elif marker_id == 0xff5f:
-                segment = self._parse_pod_segment(fptr)
-
-            elif marker_id == 0xff60:
-                segment = _parse_ppm_segment(fptr)
-
-            elif marker_id == 0xff61:
-                segment = _parse_ppt_segment(fptr)
-
-            elif marker_id == 0xff63:
-                segment = _parse_crg_segment(fptr, self._csiz)
-
-            elif marker_id == 0xff64:
-                segment = _parse_cme_segment(fptr)
-
-            elif marker_id == 0xff90:
-                # Need to keep easy access to tile offsets and lengths for when
-                # we encounter start-of-data marker segments.
-                if header_only:
-                    # Stop parsing as soon as we hit the first Start Of Tile.
-                    return
-
-                segment = _parse_sot_segment(fptr)
-                if segment.offset not in tile_offset:
-                    tile_offset.append(segment.offset)
-                    tile_length.append(segment.psot)
-                else:
-                    msg = "Inconsistent start-of-tile (SOT) marker segment "
-                    msg += "encountered in tile with index {0}.  "
-                    msg += "Codestream parsing terminated."
-                    msg = msg.format(segment.isot)
-                    warnings.warn(msg)
-                    return
-
-            elif marker_id == 0xff93:
-                # start of data.  Need to seek past the current tile part.
-                # The last SOT marker segment has the info that we need.
-                segment = _parse_sod_segment(fptr)
-
-            elif marker_id == 0xffd9:
-                # end of codestream
-                segment = _parse_eoc_segment(fptr)
-                self.segment.append(segment)
+            if marker_id == 0xff90 and header_only:
+                # start-of-tile (SOT) means we are out of the main header.
+                # No need to go any further.
                 break
 
-            elif marker_id in _valid_markers:
-                # It's a reserved marker that I don't know anything about.
-                # See table A-1 in ISO/IEC FCD15444-1.
-                segment = _parse_generic_segment(fptr, marker_id)
-
-            elif ((marker_id & 0xff00) >> 8) == 255:
-                # Peek ahead to see if the next two bytes are a marker or not.
-                # Then seek back.
-                msg = "Unrecognized marker id:  0x{0:x}".format(marker_id)
+            try:
+                segment = self._process_marker_segment(fptr, marker_id)
+            except InconsistentStartOfTileError as isote:
+                # Treat this as a warning.
+                msg = str(isote)
                 warnings.warn(msg)
-                cpos = fptr.tell()
-                read_buffer = fptr.read(2)
-                next_item, = struct.unpack('>H', read_buffer)
-                fptr.seek(cpos)
-                if ((next_item & 0xff00) >> 8) == 255:
-                    # No segment associated with this marker, so reset
-                    # to two bytes after it.
-                    segment = Segment(id='0x{0:x}'.format(marker_id),
-                                      offset=offset, length=0)
-                else:
-                    segment = _parse_generic_segment(fptr, marker_id)
-
-            else:
-                msg = 'Invalid marker id encountered at byte {0:d} '
-                msg += 'in codestream:  "0x{1:x}"'
-                msg = msg.format(offset, marker_id)
-                raise IOError(msg)
+                break
 
             self.segment.append(segment)
+
+            if marker_id == 0xffd9:
+                # end of codestream, should break.
+                break
 
             if marker_id == 0xff93:
                 # If SOD, then we need to seek past the tile part bit stream.
@@ -198,9 +117,122 @@ class Codestream(object):
                     # But first parse the tile part bit stream for SOP and
                     # EPH segments.
                     self._parse_tile_part_bit_stream(fptr, segment,
-                                                     tile_length[-1])
+                                                     self._tile_length[-1])
 
-                fptr.seek(tile_offset[-1] + tile_length[-1])
+                fptr.seek(self._tile_offset[-1] + self._tile_length[-1])
+
+    def _process_marker_segment(self, fptr, marker_id):
+        """Process and return a segment from the codestream.
+        """
+        offset = fptr.tell() - 2
+
+        if marker_id >= 0xff30 and marker_id <= 0xff3f:
+            the_id = '0x{0:x}'.format(marker_id)
+            segment = Segment(marker_id=the_id, offset=offset, length=0)
+
+        elif marker_id == 0xff51:
+            # Need to keep track of the number of components from SIZ for
+            # other markers
+            segment = _parse_siz_segment(fptr)
+            self._csiz = len(segment.ssiz)
+
+        elif marker_id == 0xff52:
+            segment = _parse_cod_segment(fptr)
+
+            sop = (segment.scod & 2) > 0
+            eph = (segment.scod & 4) > 0
+
+            if sop or eph:
+                self._parse_tpart_flag = True
+            else:
+                self._parse_tpart_flag = False
+
+        elif marker_id == 0xff53:
+            segment = self._parse_coc_segment(fptr)
+
+        elif marker_id == 0xff55:
+            segment = _parse_tlm_segment(fptr)
+
+        elif marker_id == 0xff58:
+            segment = _parse_plt_segment(fptr)
+
+        elif marker_id == 0xff5c:
+            segment = _parse_qcd_segment(fptr)
+
+        elif marker_id == 0xff5d:
+            segment = self._parse_qcc_segment(fptr)
+
+        elif marker_id == 0xff5e:
+            segment = self._parse_rgn_segment(fptr)
+
+        elif marker_id == 0xff5f:
+            segment = self._parse_pod_segment(fptr)
+
+        elif marker_id == 0xff60:
+            segment = _parse_ppm_segment(fptr)
+
+        elif marker_id == 0xff61:
+            segment = _parse_ppt_segment(fptr)
+
+        elif marker_id == 0xff63:
+            segment = _parse_crg_segment(fptr, self._csiz)
+
+        elif marker_id == 0xff64:
+            segment = _parse_cme_segment(fptr)
+
+        elif marker_id == 0xff90:
+            # Need to keep easy access to tile offsets and lengths for when
+            # we encounter start-of-data marker segments.
+
+            segment = _parse_sot_segment(fptr)
+            if segment.offset not in self._tile_offset:
+                self._tile_offset.append(segment.offset)
+                self._tile_length.append(segment.psot)
+            else:
+                msg = "Inconsistent start-of-tile (SOT) marker segment "
+                msg += "encountered in tile with index {0}.  "
+                msg += "Codestream parsing terminated."
+                msg = msg.format(segment.isot)
+                raise InconsistentStartOfTileError(msg)
+
+        elif marker_id == 0xff93:
+            # start of data.  Need to seek past the current tile part.
+            # The last SOT marker segment has the info that we need.
+            segment = _parse_sod_segment(fptr)
+
+        elif marker_id == 0xffd9:
+            # end of codestream
+            segment = _parse_eoc_segment(fptr)
+
+        elif marker_id in _VALID_MARKERS:
+            # It's a reserved marker that I don't know anything about.
+            # See table A-1 in ISO/IEC FCD15444-1.
+            segment = _parse_generic_segment(fptr, marker_id)
+
+        elif ((marker_id & 0xff00) >> 8) == 255:
+            # Peek ahead to see if the next two bytes are a marker or not.
+            # Then seek back.
+            msg = "Unrecognized marker id:  0x{0:x}".format(marker_id)
+            warnings.warn(msg)
+            cpos = fptr.tell()
+            read_buffer = fptr.read(2)
+            next_item, = struct.unpack('>H', read_buffer)
+            fptr.seek(cpos)
+            if ((next_item & 0xff00) >> 8) == 255:
+                # No segment associated with this marker, so reset
+                # to two bytes after it.
+                segment = Segment(id='0x{0:x}'.format(marker_id),
+                                  offset=offset, length=0)
+            else:
+                segment = _parse_generic_segment(fptr, marker_id)
+
+        else:
+            msg = 'Invalid marker id encountered at byte {0:d} '
+            msg += 'in codestream:  "0x{1:x}"'
+            msg = msg.format(offset, marker_id)
+            raise IOError(msg)
+
+        return segment
 
     def _parse_tile_part_bit_stream(self, fptr, sod_marker, tile_length):
         """Parse the tile part bit stream for SOP, EPH marker segments."""
@@ -380,7 +412,7 @@ class Segment(object):
 
     Attributes
     ----------
-    id : str
+    marker_id : str
         Identifier for the segment.
     offset : int
         Offset of marker segment in bytes from beginning of file.
@@ -388,14 +420,14 @@ class Segment(object):
         Length of marker segment in bytes.  This number does not include the
         two bytes constituting the marker.
     """
-    def __init__(self, id='', offset=-1, length=-1):
-        self.id = id
+    def __init__(self, marker_id='', offset=-1, length=-1, data=None):
+        self.marker_id = marker_id
         self.offset = offset
         self.length = length
-        self._data = None
+        self._data = data
 
     def __str__(self):
-        msg = '{0} marker segment @ ({1}, {2})'.format(self.id,
+        msg = '{0} marker segment @ ({1}, {2})'.format(self.marker_id,
                                                        self.offset,
                                                        self.length)
         return msg
@@ -406,7 +438,7 @@ class COCsegment(Segment):
 
     Attributes
     ----------
-    id : str
+    marker_id : str
         Identifier for the segment.
     offset : int
         Offset of marker segment in bytes from beginning of file.
@@ -427,7 +459,7 @@ class COCsegment(Segment):
        Core coding system
     """
     def __init__(self, ccoc, scoc, spcoc, length, offset):
-        Segment.__init__(self, id='COC')
+        Segment.__init__(self, marker_id='COC')
         self.ccoc = ccoc
         self.scoc = scoc
         self.spcoc = spcoc
@@ -479,7 +511,7 @@ class CODsegment(Segment):
 
     Attributes
     ----------
-    id : str
+    marker_id : str
         Identifier for the segment.
     offset : int
         Offset of marker segment in bytes from beginning of file.
@@ -500,7 +532,7 @@ class CODsegment(Segment):
        Core coding system
     """
     def __init__(self, scod, spcod, length, offset):
-        Segment.__init__(self, id='COD')
+        Segment.__init__(self, marker_id='COD')
         self.scod = scod
         self.spcod = spcod
         self.length = length
@@ -510,7 +542,7 @@ class CODsegment(Segment):
         self._layers = params[1]
         self._numresolutions = params[3]
 
-        if params[3] > opj2._J2K_MAXRLVLS:
+        if params[3] > opj2.J2K_MAXRLVLS:
             msg = "Invalid number of resolutions ({0})."
             msg = msg.format(params[3] + 1)
             warnings.warn(msg)
@@ -581,7 +613,7 @@ class CMEsegment(Segment):
 
     Attributes
     ----------
-    id : str
+    marker_id : str
         Identifier for the segment.
     offset : int
         Offset of marker segment in bytes from beginning of file.
@@ -601,7 +633,7 @@ class CMEsegment(Segment):
        Core coding system
     """
     def __init__(self, rcme, ccme, length, offset):
-        Segment.__init__(self, id='CME')
+        Segment.__init__(self, marker_id='CME')
         self.rcme = rcme
         self.ccme = ccme
         self.length = length
@@ -624,7 +656,7 @@ class CRGsegment(Segment):
 
     Attributes
     ----------
-    id : str
+    marker_id : str
         Identifier for the segment.
     offset : int
         Offset of marker segment in bytes from beginning of file.
@@ -635,7 +667,7 @@ class CRGsegment(Segment):
         Horizontal, vertical offset for each component
     """
     def __init__(self, xcrg, ycrg, length, offset):
-        Segment.__init__(self, id='CRG')
+        Segment.__init__(self, marker_id='CRG')
         self.xcrg = xcrg
         self.ycrg = ycrg
         self.length = length
@@ -655,7 +687,7 @@ class EOCsegment(Segment):
 
     Attributes
     ----------
-    id : str
+    marker_id : str
         Identifier for the segment.
     offset : int
         Offset of marker segment in bytes from beginning of file.
@@ -671,7 +703,7 @@ class EOCsegment(Segment):
        Core coding system
     """
     def __init__(self, length, offset):
-        Segment.__init__(self, id='EOC')
+        Segment.__init__(self, marker_id='EOC')
         self.length = length
         self.offset = offset
 
@@ -681,7 +713,7 @@ class PODsegment(Segment):
 
     Attributes
     ----------
-    id : str
+    marker_id : str
         Identifier for the segment.
     offset : int
         Offset of marker segment in bytes from beginning of file.
@@ -708,7 +740,7 @@ class PODsegment(Segment):
        Core coding system
     """
     def __init__(self, pod_params, length, offset):
-        Segment.__init__(self, id='POD')
+        Segment.__init__(self, marker_id='POD')
 
         self.rspod = pod_params[0::6]
         self.cspod = pod_params[1::6]
@@ -748,7 +780,7 @@ class PLTsegment(Segment):
 
     Attributes
     ----------
-    id : str
+    marker_id : str
         Identifier for the segment.
     offset : int
         Offset of marker segment in bytes from beginning of file.
@@ -767,7 +799,7 @@ class PLTsegment(Segment):
        Core coding system
     """
     def __init__(self, zplt, iplt, length, offset):
-        Segment.__init__(self, id='PLT')
+        Segment.__init__(self, marker_id='PLT')
         self.zplt = zplt
         self.iplt = iplt
         self.length = length
@@ -787,7 +819,7 @@ class PPMsegment(Segment):
 
     Attributes
     ----------
-    id : str
+    marker_id : str
         Identifier for the segment.
     offset : int
         Offset of marker segment in bytes from beginning of file.
@@ -804,7 +836,7 @@ class PPMsegment(Segment):
        Core coding system
     """
     def __init__(self, zppm, data, length, offset):
-        Segment.__init__(self, id='PPM')
+        Segment.__init__(self, marker_id='PPM')
         self.zppm = zppm
 
         # both Nppm and Ippms information stored in _data
@@ -826,7 +858,7 @@ class PPTsegment(Segment):
 
     Attributes
     ----------
-    id : str
+    marker_id : str
         Identifier for the segment.
     offset : int
         Offset of marker segment in bytes from beginning of file.
@@ -845,7 +877,7 @@ class PPTsegment(Segment):
        Core coding system
     """
     def __init__(self, zppt, ippt, length, offset):
-        Segment.__init__(self, id='PPT')
+        Segment.__init__(self, marker_id='PPT')
         self.zppt = zppt
         self.ippt = ippt
         self.length = length
@@ -864,7 +896,7 @@ class QCCsegment(Segment):
 
     Attributes
     ----------
-    id : str
+    marker_id : str
         Identifier for the segment.
     offset : int
         Offset of marker segment in bytes from beginning of file.
@@ -885,7 +917,7 @@ class QCCsegment(Segment):
        Core coding system
     """
     def __init__(self, cqcc, sqcc, spqcc, length, offset):
-        Segment.__init__(self, id='QCC')
+        Segment.__init__(self, marker_id='QCC')
         self.cqcc = cqcc
         self.sqcc = sqcc
         self.spqcc = spqcc
@@ -913,7 +945,7 @@ class QCDsegment(Segment):
 
     Attributes
     ----------
-    id : str
+    marker_id : str
         Identifier for the segment.
     offset : int
         Offset of marker segment in bytes from beginning of file.
@@ -932,7 +964,7 @@ class QCDsegment(Segment):
        Core coding system
     """
     def __init__(self, sqcd, spqcd, length, offset):
-        Segment.__init__(self, id='QCD')
+        Segment.__init__(self, marker_id='QCD')
 
         self.sqcd = sqcd
         self.spqcd = spqcd
@@ -961,7 +993,7 @@ class RGNsegment(Segment):
 
     Attributes
     ----------
-    id : str
+    marker_id : str
         Identifier for the segment.
     offset : int
         Offset of marker segment in bytes from beginning of file.
@@ -982,7 +1014,7 @@ class RGNsegment(Segment):
        Core coding system
     """
     def __init__(self, length, offset, crgn, srgn, sprgn):
-        Segment.__init__(self, id='RGN')
+        Segment.__init__(self, marker_id='RGN')
         self.length = length
         self.offset = offset
         self.crgn = crgn
@@ -1005,7 +1037,7 @@ class SIZsegment(Segment):
 
     Attributes
     ----------
-    id : str
+    marker_id : str
         Identifier for the segment.
     offset : int
         Offset of marker segment in bytes from beginning of file.
@@ -1035,7 +1067,7 @@ class SIZsegment(Segment):
        Core coding system
     """
     def __init__(self, xy_buffer, component_buffer, length, offset):
-        Segment.__init__(self, id='SIZ')
+        Segment.__init__(self, marker_id='SIZ')
 
         data = struct.unpack('>HIIIIIIIIH', xy_buffer)
 
@@ -1107,7 +1139,7 @@ class SOCsegment(Segment):
 
     Attributes
     ----------
-    id : str
+    marker_id : str
         Identifier for the segment.
     offset : int
         Offset of marker segment in bytes from beginning of file.
@@ -1123,7 +1155,7 @@ class SOCsegment(Segment):
        Core coding system
     """
     def __init__(self, **kwargs):
-        Segment.__init__(self, id='SOC')
+        Segment.__init__(self, marker_id='SOC')
         self.__dict__.update(**kwargs)
 
 
@@ -1132,7 +1164,7 @@ class SODsegment(Segment):
 
     Attributes
     ----------
-    id : str
+    marker_id : str
         Identifier for the segment.
     offset : int
         Offset of marker segment in bytes from beginning of file.
@@ -1148,7 +1180,7 @@ class SODsegment(Segment):
        Core coding system
     """
     def __init__(self, length, offset):
-        Segment.__init__(self, id='SOD')
+        Segment.__init__(self, marker_id='SOD')
         self.length = length
         self.offset = offset
 
@@ -1158,7 +1190,7 @@ class EPHsegment(Segment):
 
     Attributes
     ----------
-    id : str
+    marker_id : str
         Identifier for the segment.
     offset : int
         Offset of marker segment in bytes from beginning of file.
@@ -1174,7 +1206,7 @@ class EPHsegment(Segment):
        Core coding system
     """
     def __init__(self, length, offset):
-        Segment.__init__(self, id='EPH')
+        Segment.__init__(self, marker_id='EPH')
         self.length = length
         self.offset = offset
 
@@ -1184,7 +1216,7 @@ class SOPsegment(Segment):
 
     Attributes
     ----------
-    id : str
+    marker_id : str
         Identifier for the segment.
     offset : int
         Offset of marker segment in bytes from beginning of file.
@@ -1201,7 +1233,7 @@ class SOPsegment(Segment):
        Core coding system
     """
     def __init__(self, nsop, length, offset):
-        Segment.__init__(self, id='SOP')
+        Segment.__init__(self, marker_id='SOP')
         self.nsop = nsop
         self.length = length
         self.offset = offset
@@ -1217,7 +1249,7 @@ class SOTsegment(Segment):
 
     Attributes
     ----------
-    id : str
+    marker_id : str
         Identifier for the segment.
     offset : int
         Offset of marker segment in bytes from beginning of file.
@@ -1241,7 +1273,7 @@ class SOTsegment(Segment):
        Core coding system
     """
     def __init__(self, isot, psot, tpsot, tnsot, length, offset):
-        Segment.__init__(self, id='SOT')
+        Segment.__init__(self, marker_id='SOT')
         self.isot = isot
         self.psot = psot
         self.tpsot = tpsot
@@ -1269,7 +1301,7 @@ class TLMsegment(Segment):
 
     Attributes
     ----------
-    id : str
+    marker_id : str
         Identifier for the segment.
     offset : int
         Offset of marker segment in bytes from beginning of file.
@@ -1291,7 +1323,7 @@ class TLMsegment(Segment):
        Core coding system
     """
     def __init__(self, length, offset, ztlm, ttlm, ptlm):
-        Segment.__init__(self, id='TLM')
+        Segment.__init__(self, marker_id='TLM')
         self.length = length
         self.offset = offset
         self.ztlm = ztlm
@@ -1730,7 +1762,6 @@ def _parse_generic_segment(fptr, marker_id):
     length, = struct.unpack('>H', read_buffer)
     data = fptr.read(length-2)
 
-    segment = Segment(id='0x{0:x}'.format(marker_id),
-                      offset=offset, length=length)
-    segment._data = data
+    segment = Segment(marker_id='0x{0:x}'.format(marker_id), offset=offset,
+                      length=length, data=data)
     return segment
