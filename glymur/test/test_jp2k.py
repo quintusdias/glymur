@@ -495,7 +495,7 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(jp2k.box[3].box[1].length, 16)
             self.assertEqual(jp2k.box[3].box[1].version, 0)
             self.assertEqual(jp2k.box[3].box[1].flag, (0, 0, 0))
-            self.assertEqual(jp2k.box[3].box[1].URL, 'abcd')
+            self.assertEqual(jp2k.box[3].box[1].url, 'abcd')
 
     def test_xml_box_with_trailing_nulls(self):
         # ElementTree does not like trailing null chars after valid XML

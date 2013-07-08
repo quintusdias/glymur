@@ -11,7 +11,7 @@ References
    Extensions
 """
 
-# pylint: disable=R0903
+# pylint: disable=C0302,R0903,R0913
 
 import collections
 import copy
@@ -32,6 +32,7 @@ from .core import _colorspace_map_display
 from .core import _color_type_map_display
 from .core import _method_display
 from .core import _reader_requirements_display
+from .core import ENUMERATED_COLORSPACE
 from .core import ENUMERATED_COLORSPACE
 
 
@@ -1664,9 +1665,11 @@ class UUIDListBox(Jp2kBox):
     ulst : list
         List of UUIDs.
     """
-    def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='UUID List')
-        self.__dict__.update(**kwargs)
+    def __init__(self, ulst, length, offset):
+        Jp2kBox.__init__(self, id='ulst', longname='UUID List')
+        self.ulst = ulst
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -1675,7 +1678,7 @@ class UUIDListBox(Jp2kBox):
         return(msg)
 
     @staticmethod
-    def _parse(f, id, offset, length):
+    def _parse(fptr, id, offset, length):
         """Parse UUIDList box.
 
         Parameters
@@ -1693,20 +1696,15 @@ class UUIDListBox(Jp2kBox):
         -------
         kwargs : dictionary of parameter values
         """
-        read_buffer = f.read(2)
-        N, = struct.unpack('>H', read_buffer)
+        read_buffer = fptr.read(2)
+        num_uuids, = struct.unpack('>H', read_buffer)
 
         ulst = []
-        for j in range(N):
-            read_buffer = f.read(16)
+        for _ in range(num_uuids):
+            read_buffer = fptr.read(16)
             ulst.append(uuid.UUID(bytes=read_buffer))
 
-        kwargs = {}
-        kwargs['id'] = id
-        kwargs['offset'] = offset
-        kwargs['length'] = length
-        kwargs['ulst'] = ulst
-        box = UUIDListBox(**kwargs)
+        box = UUIDListBox(ulst, length, offset)
         return(box)
 
 
@@ -1726,9 +1724,11 @@ class UUIDInfoBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='UUIDInfo')
-        self.__dict__.update(**kwargs)
+    def __init__(self, length, offset):
+        Jp2kBox.__init__(self, id='uinf', longname='UUIDInfo')
+        self.length = length
+        self.offset = offset
+        self.box = []
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -1743,12 +1743,12 @@ class UUIDInfoBox(Jp2kBox):
         return(msg)
 
     @staticmethod
-    def _parse(f, id, offset, length):
+    def _parse(fptr, id, offset, length):
         """Parse UUIDInfo super box.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
         id : byte
             4-byte unique identifier for this box.
@@ -1761,16 +1761,12 @@ class UUIDInfoBox(Jp2kBox):
         -------
         kwargs : dictionary of parameter values
         """
-        kwargs = {}
-        kwargs['id'] = id
-        kwargs['length'] = length
-        kwargs['offset'] = offset
 
-        box = UUIDInfoBox(**kwargs)
+        box = UUIDInfoBox(length, offset)
 
         # The UUIDInfo box is a superbox, so go ahead and parse its child
         # boxes.
-        box.box = box._parse_superbox(f)
+        box.box = box._parse_superbox(fptr)
 
         return box
 
@@ -1795,9 +1791,13 @@ class DataEntryURLBox(Jp2kBox):
     URL : str
         Associated URL.
     """
-    def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='Data Entry URL')
-        self.__dict__.update(**kwargs)
+    def __init__(self, version, flag, url, length, offset):
+        Jp2kBox.__init__(self, id='url ', longname='Data Entry URL')
+        self.version = version
+        self.flag = flag
+        self.url = url
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -1809,16 +1809,16 @@ class DataEntryURLBox(Jp2kBox):
         msg += '\n    '.join(lines)
         msg = msg.format(self.version,
                          self.flag[0], self.flag[1], self.flag[2],
-                         self.URL)
+                         self.url)
         return msg
 
     @staticmethod
-    def _parse(f, id, offset, length):
+    def _parse(fptr, id, offset, length):
         """Parse Data Entry URL box.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
         id : byte
             4-byte unique identifier for this box.
@@ -1831,20 +1831,15 @@ class DataEntryURLBox(Jp2kBox):
         -------
         kwargs : dictionary of parameter values
         """
-        kwargs = {}
-        kwargs['id'] = id
-        kwargs['length'] = length
-        kwargs['offset'] = offset
-
-        read_buffer = f.read(4)
+        read_buffer = fptr.read(4)
         data = struct.unpack('>BBBB', read_buffer)
-        kwargs['version'] = data[0]
-        kwargs['flag'] = data[1:4]
+        version = data[0]
+        flag = data[1:4]
 
-        n = offset + length - f.tell()
-        read_buffer = f.read(n)
-        kwargs['URL'] = read_buffer.decode('utf-8')
-        box = DataEntryURLBox(**kwargs)
+        numbytes = offset + length - fptr.tell()
+        read_buffer = fptr.read(numbytes)
+        url = read_buffer.decode('utf-8')
+        box = DataEntryURLBox(version, flag, url, length, offset)
         return box
 
 
@@ -1873,9 +1868,44 @@ class UUIDBox(Jp2kBox):
        16684-1:2012 - Graphic technology -- Extensible metadata platform (XMP)
        specification -- Part 1:  Data model, serialization and core properties
     """
-    def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='UUID')
-        self.__dict__.update(**kwargs)
+    def __init__(self, the_uuid, raw_data, length, offset):
+        """
+        Parameters
+        ----------
+        the_uuid : uuid.UUID
+            Identifies the type of UUID box.
+        raw_data : 
+            This is the "payload" of data for the specified UUID.
+        length : int
+            length of the box in bytes.
+        offset : int
+            offset of the box from the start of the file.
+        """
+        Jp2kBox.__init__(self, id='uuid', longname='UUID')
+        self.uuid = the_uuid
+
+        if the_uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
+            # XMP data.  Parse as XML.  Seems to be a difference between
+            # ElementTree in version 2.7 and 3.3.
+            if sys.hexversion < 0x03000000:
+                parser = ET.XMLParser(encoding='utf-8')
+                self.data = ET.fromstringlist(raw_data, parser=parser)
+            else:
+                text = raw_data.decode('utf-8')
+                self.data = ET.fromstring(text)
+        elif the_uuid.bytes == b'JpgTiffExif->JP2':
+            exif_obj = Exif(raw_data)
+            ifds = collections.OrderedDict()
+            ifds['Image'] = exif_obj.exif_image
+            ifds['Photo'] = exif_obj.exif_photo
+            ifds['GPSInfo'] = exif_obj.exif_gpsinfo
+            ifds['Iop'] = exif_obj.exif_iop
+            self.data = ifds
+        else:
+            self.data = raw_data
+
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = '{0}\n'
@@ -1889,8 +1919,9 @@ class UUIDBox(Jp2kBox):
             uuid_type = ' (Exif)'
             # 2.7 has trouble pretty-printing ordered dicts, so print them
             # as regular dicts.  Not ideal, but at least it's good on 3.3+.
-            x = self.data if sys.hexversion >= 0x03000000 else dict(self.data)
-            uuid_data = '\n' + pprint.pformat(x)
+            if sys.hexversion < 0x03000000:
+                data = dict(self.data)
+            uuid_data = '\n' + pprint.pformat(data)
         else:
             uuid_type = ''
             uuid_data = '{0} bytes'.format(len(self.data))
@@ -1904,7 +1935,7 @@ class UUIDBox(Jp2kBox):
 
     @staticmethod
     def _parse(fptr, id, offset, length):
-        """Parse JPEG 2000 signature box.
+        """Parse UUID box.
 
         Parameters
         ----------
@@ -1920,36 +1951,13 @@ class UUIDBox(Jp2kBox):
         Returns:
             kwargs:  dictionary of parameter values
         """
-        kwargs = {}
-        kwargs['id'] = id
-        kwargs['length'] = length
-        kwargs['offset'] = offset
 
         read_buffer = fptr.read(16)
-        kwargs['uuid'] = uuid.UUID(bytes=read_buffer)
+        the_uuid = uuid.UUID(bytes=read_buffer)
 
-        n = offset + length - fptr.tell()
-        read_buffer = fptr.read(n)
-        if kwargs['uuid'] == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
-            # XMP data.  Parse as XML.  Seems to be a difference between
-            # ElementTree in version 2.7 and 3.3.
-            if sys.hexversion < 0x03000000:
-                parser = ET.XMLParser(encoding='utf-8')
-                kwargs['data'] = ET.fromstringlist(read_buffer, parser=parser)
-            else:
-                text = read_buffer.decode('utf-8')
-                kwargs['data'] = ET.fromstring(text)
-        elif kwargs['uuid'].bytes == b'JpgTiffExif->JP2':
-            exif_obj = Exif(read_buffer)
-            ifds = collections.OrderedDict()
-            ifds['Image'] = exif_obj.exif_image
-            ifds['Photo'] = exif_obj.exif_photo
-            ifds['GPSInfo'] = exif_obj.exif_gpsinfo
-            ifds['Iop'] = exif_obj.exif_iop
-            kwargs['data'] = ifds
-        else:
-            kwargs['data'] = read_buffer
-        box = UUIDBox(**kwargs)
+        numbytes = offset + length - fptr.tell()
+        read_buffer = fptr.read(numbytes)
+        box = UUIDBox(the_uuid, read_buffer, length, offset)
         return box
 
 
