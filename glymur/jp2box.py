@@ -62,18 +62,18 @@ class Jp2kBox(object):
         msg += " @ ({0}, {1})".format(self.offset, self.length)
         return msg
 
-    def _write(self, f):
+    def _write(self, fptr):
         """Must be implemented in a subclass.
         """
         msg = "Not supported for {0} box.".format(self.longname)
         raise NotImplementedError(msg)
 
-    def _parse_superbox(self, f):
+    def _parse_superbox(self, fptr):
         """Parse a superbox (box consisting of nothing but other boxes.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
 
         Returns
@@ -83,7 +83,7 @@ class Jp2kBox(object):
 
         superbox = []
 
-        start = f.tell()
+        start = fptr.tell()
 
         while True:
 
@@ -91,7 +91,7 @@ class Jp2kBox(object):
             if start >= self.offset + self.length:
                 break
 
-            read_buffer = f.read(8)
+            read_buffer = fptr.read(8)
             (L, T) = struct.unpack('>I4s', read_buffer)
             if sys.hexversion >= 0x03000000:
                 T = T.decode('utf-8')
@@ -99,11 +99,11 @@ class Jp2kBox(object):
             if L == 0:
                 # The length of the box is presumed to last until the end of
                 # the file.  Compute the effective length of the box.
-                num_bytes = self._file_size - f.tell() + 8
+                num_bytes = self._file_size - fptr.tell() + 8
 
             elif L == 1:
                 # The length of the box is in the XL field, a 64-bit value.
-                read_buffer = f.read(8)
+                read_buffer = fptr.read(8)
                 num_bytes, = struct.unpack('>Q', read_buffer)
 
             else:
@@ -111,7 +111,7 @@ class Jp2kBox(object):
 
             # Call the proper parser for the given box with ID "T".
             try:
-                box = _BOX_WITH_ID[T]._parse(f, T, start, num_bytes)
+                box = _BOX_WITH_ID[T]._parse(fptr, start, num_bytes)
             except KeyError:
                 msg = 'Unrecognized box ({0}) encountered.'.format(T)
                 warnings.warn(msg)
@@ -127,14 +127,14 @@ class Jp2kBox(object):
                 msg = '{0} box has incorrect box length ({1})'
                 msg = msg.format(T, num_bytes)
                 warnings.warn(msg)
-            elif f.tell() > start + num_bytes:
+            elif fptr.tell() > start + num_bytes:
                 # The box must be invalid somehow, as the file pointer is
                 # positioned past the end of the box.
                 msg = '{0} box may be invalid, the file pointer is positioned '
                 msg += '{1} bytes past the end of the box.'
-                msg = msg.format(T, f.tell() - (start + num_bytes))
+                msg = msg.format(T, fptr.tell() - (start + num_bytes))
                 warnings.warn(msg)
-            f.seek(start + num_bytes)
+            fptr.seek(start + num_bytes)
 
             start += num_bytes
 
@@ -210,7 +210,7 @@ class ColourSpecificationBox(Jp2kBox):
 
         return msg
 
-    def _write(self, f):
+    def _write(self, fptr):
         """Write an Colour Specification box to file.
         """
         if self.colorspace is None:
@@ -218,26 +218,24 @@ class ColourSpecificationBox(Jp2kBox):
             msg += "colorspaces is not supported at this time."
             raise NotImplementedError(msg)
         length = 15 if self.icc_profile is None else 11 + len(self.icc_profile)
-        f.write(struct.pack('>I', length))
-        f.write('colr'.encode())
+        fptr.write(struct.pack('>I', length))
+        fptr.write('colr'.encode())
 
         read_buffer = struct.pack('>BBBI',
                              self.method,
                              self.precedence,
                              self.approximation,
                              self.colorspace)
-        f.write(read_buffer)
+        fptr.write(read_buffer)
 
     @staticmethod
-    def _parse(f, id, offset, length):
+    def _parse(fptr, offset, length):
         """Parse JPEG 2000 color specification box.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
-        id : byte
-            4-byte unique identifier for this box.
         offset : int
             Start position of box in bytes.
         length : int
@@ -249,12 +247,11 @@ class ColourSpecificationBox(Jp2kBox):
             dictionary of parameter values
         """
         kwargs = {}
-        kwargs['id'] = id
         kwargs['length'] = length
         kwargs['offset'] = offset
 
         # Read the brand, minor version.
-        read_buffer = f.read(3)
+        read_buffer = fptr.read(3)
         (method, precedence, approximation) = struct.unpack('>BBB', read_buffer)
         kwargs['method'] = method
         kwargs['precedence'] = precedence
@@ -262,21 +259,21 @@ class ColourSpecificationBox(Jp2kBox):
 
         if method == 1:
             # enumerated colour space
-            read_buffer = f.read(4)
+            read_buffer = fptr.read(4)
             kwargs['colorspace'], = struct.unpack('>I', read_buffer)
             kwargs['icc_profile'] = None
 
         else:
             # ICC profile
             kwargs['colorspace'] = None
-            n = offset + length - f.tell()
+            n = offset + length - fptr.tell()
             if n < 128:
                 msg = "ICC profile header is corrupt, length is "
                 msg += "only {0} instead of 128."
                 warnings.warn(msg.format(n), UserWarning)
                 kwargs['icc_profile'] = None
             else:
-                icc_profile = _ICCProfile(f.read(n))
+                icc_profile = _ICCProfile(fptr.read(n))
                 kwargs['icc_profile'] = icc_profile.header
 
         box = ColourSpecificationBox(**kwargs)
@@ -446,29 +443,27 @@ class ChannelDefinitionBox(Jp2kBox):
             msg = msg.format(self.index[j], color_type_string, assn)
         return msg
 
-    def _write(self, f):
+    def _write(self, fptr):
         """Write a channel definition box to file.
         """
         N = len(self.association)
-        f.write(struct.pack('>I', 8 + 2 + N * 6))
-        f.write('cdef'.encode('utf-8'))
-        f.write(struct.pack('>H', N))
+        fptr.write(struct.pack('>I', 8 + 2 + N * 6))
+        fptr.write('cdef'.encode('utf-8'))
+        fptr.write(struct.pack('>H', N))
         for j in range(N):
-            f.write(struct.pack('>' + 'H' * 3,
+            fptr.write(struct.pack('>' + 'H' * 3,
                                 self.index[j],
                                 self.channel_type[j],
                                 self.association[j]))
 
     @staticmethod
-    def _parse(f, id, offset, length):
+    def _parse(fptr, offset, length):
         """Parse component definition box.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
-        id : byte
-            4-byte unique identifier for this box.
         offset : int
             Start position of box in bytes.
         length : int
@@ -479,19 +474,14 @@ class ChannelDefinitionBox(Jp2kBox):
         kwargs : dictionary of parameter values
         """
         kwargs = {}
-        kwargs['id'] = id
         kwargs['length'] = length
         kwargs['offset'] = offset
 
         # Read the number of components.
-        read_buffer = f.read(2)
+        read_buffer = fptr.read(2)
         N, = struct.unpack('>H', read_buffer)
 
-        index = []
-        chan_type = []
-        association = []
-
-        read_buffer = f.read(N * 6)
+        read_buffer = fptr.read(N * 6)
         data = struct.unpack('>' + 'HHH' * N, read_buffer)
         index = data[0:N * 6:3]
         channel_type = data[1:N * 6:3]
@@ -522,7 +512,7 @@ class ComponentMappingBox(Jp2kBox):
         Index component from palette
     """
     def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='Component Mapping')
+        Jp2kBox.__init__(self, id='cmap', longname='Component Mapping')
         self.__dict__.update(**kwargs)
 
     def __str__(self):
@@ -539,15 +529,13 @@ class ComponentMappingBox(Jp2kBox):
         return msg
 
     @staticmethod
-    def _parse(f, id, offset, length):
+    def _parse(fptr, offset, length):
         """Parse component mapping box.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
-        id : byte
-            4-byte unique identifier for this box.
         offset : int
             Start position of box in bytes.
         length : int
@@ -558,14 +546,13 @@ class ComponentMappingBox(Jp2kBox):
         kwargs : dictionary of parameter values
         """
         kwargs = {}
-        kwargs['id'] = id
         kwargs['length'] = length
         kwargs['offset'] = offset
 
-        N = offset + length - f.tell()
+        N = offset + length - fptr.tell()
         num_components = int(N/4)
 
-        read_buffer = f.read(N)
+        read_buffer = fptr.read(N)
         data = struct.unpack('>' + 'HBB' * num_components, read_buffer)
 
         kwargs['component_index'] = data[0:N:num_components]
@@ -610,15 +597,13 @@ class ContiguousCodestreamBox(Jp2kBox):
         return msg
 
     @staticmethod
-    def _parse(f, id='jp2c', offset=0, length=0):
+    def _parse(fptr, offset=0, length=0):
         """Parse a codestream box.
 
         Parameters
         ----------
         f : file
             Open file object.
-        id : byte
-            4-byte unique identifier for this box.
         offset : int
             Start position of box in bytes.
         length : int
@@ -629,11 +614,10 @@ class ContiguousCodestreamBox(Jp2kBox):
         kwargs : dictionary of parameter values
         """
         kwargs = {}
-        kwargs['id'] = id
         kwargs['length'] = length
         kwargs['offset'] = offset
 
-        kwargs['main_header'] = Codestream(f, header_only=True)
+        kwargs['main_header'] = Codestream(fptr, header_only=True)
 
         box = ContiguousCodestreamBox(**kwargs)
         return box
@@ -679,28 +663,26 @@ class FileTypeBox(Jp2kBox):
 
         return msg
 
-    def _write(self, f):
+    def _write(self, fptr):
         """Write a File Type box to file.
         """
         length = 16 + 4*len(self.compatibility_list)
-        f.write(struct.pack('>I', length))
-        f.write('ftyp'.encode())
-        f.write(self.brand.encode())
-        f.write(struct.pack('>I', self.minor_version))
+        fptr.write(struct.pack('>I', length))
+        fptr.write('ftyp'.encode())
+        fptr.write(self.brand.encode())
+        fptr.write(struct.pack('>I', self.minor_version))
 
         for item in self.compatibility_list:
-            f.write(item.encode())
+            fptr.write(item.encode())
 
     @staticmethod
-    def _parse(f, id, offset, length):
+    def _parse(fptr, offset, length):
         """Parse JPEG 2000 file type box.
 
         Parameters
         ----------
         f : file
             Open file object.
-        id : byte
-            4-byte unique identifier for this box.
         offset : int
             Start position of box in bytes.
         length : int
@@ -710,12 +692,11 @@ class FileTypeBox(Jp2kBox):
             kwargs:  dictionary of parameter values
         """
         kwargs = {}
-        kwargs['id'] = id
         kwargs['length'] = length
         kwargs['offset'] = offset
 
         # Read the brand, minor version.
-        read_buffer = f.read(8)
+        read_buffer = fptr.read(8)
         (brand, minor_version) = struct.unpack('>4sI', read_buffer)
         if sys.hexversion < 0x030000:
             kwargs['brand'] = brand
@@ -724,9 +705,9 @@ class FileTypeBox(Jp2kBox):
         kwargs['minor_version'] = minor_version
 
         # Read the compatibility list.  Each entry has 4 bytes.
-        current_pos = f.tell()
+        current_pos = fptr.tell()
         n = (offset + length - current_pos) / 4
-        read_buffer = f.read(int(n) * 4)
+        read_buffer = fptr.read(int(n) * 4)
         compatibility_list = []
         for j in range(int(n)):
             CL, = struct.unpack('>4s', read_buffer[4*j:4*(j+1)])
@@ -805,11 +786,11 @@ class ImageHeaderBox(Jp2kBox):
                          self.colorspace_unknown)
         return msg
 
-    def _write(self, f):
+    def _write(self, fptr):
         """Write an Image Header box to file.
         """
-        f.write(struct.pack('>I', 22))
-        f.write('ihdr'.encode())
+        fptr.write(struct.pack('>I', 22))
+        fptr.write('ihdr'.encode())
 
         # signedness and bps are stored together in a single byte
         bit_depth_signedness = 0x80 if self.signed else 0x00
@@ -822,18 +803,16 @@ class ImageHeaderBox(Jp2kBox):
                              self.compression,
                              1 if self.colorspace_unknown else 0,
                              1 if self.ip_provided else 0)
-        f.write(read_buffer)
+        fptr.write(read_buffer)
 
     @staticmethod
-    def _parse(f, id, offset, length):
+    def _parse(fptr, offset, length):
         """Parse JPEG 2000 image header box.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
-        id : byte
-            4-byte unique identifier for this box.
         offset : int
             Start position of box in bytes.
         length : int
@@ -843,12 +822,11 @@ class ImageHeaderBox(Jp2kBox):
             kwargs:  dictionary of parameter values
         """
         kwargs = {}
-        kwargs['id'] = id
         kwargs['length'] = length
         kwargs['offset'] = offset
 
         # Read the box information
-        read_buffer = f.read(14)
+        read_buffer = fptr.read(14)
         params = struct.unpack('>IIHBBBB', read_buffer)
         height = params[0]
         width = params[1]
@@ -880,7 +858,7 @@ class AssociationBox(Jp2kBox):
         List of boxes contained in this superbox.
     """
     def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='Association')
+        Jp2kBox.__init__(self, id='asoc', longname='Association')
         self.__dict__.update(**kwargs)
 
     def __str__(self):
@@ -894,15 +872,13 @@ class AssociationBox(Jp2kBox):
         return msg
 
     @staticmethod
-    def _parse(f, id, offset, length):
+    def _parse(fptr, offset, length):
         """Parse association box.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
-        id : byte
-            4-byte unique identifier for this box.
         offset : int
             Start position of box in bytes.
         length : int
@@ -914,15 +890,14 @@ class AssociationBox(Jp2kBox):
             4-byte tuple.
         """
         kwargs = {}
-        kwargs['id'] = id
         kwargs['length'] = length
         kwargs['offset'] = offset
 
         box = AssociationBox(**kwargs)
 
-        # The JP2 header box is a superbox, so go ahead and parse its child
+        # The Association box is a superbox, so go ahead and parse its child
         # boxes.
-        box.box = box._parse_superbox(f)
+        box.box = box._parse_superbox(fptr)
 
         return box
 
@@ -957,31 +932,29 @@ class JP2HeaderBox(Jp2kBox):
             msg += ''.join(strs)
         return msg
 
-    def _write(self, f):
+    def _write(self, fptr):
         """Write a JP2 Header box to file.
         """
         # Write the contained boxes, then come back and write the length.
-        orig_pos = f.tell()
-        f.write(struct.pack('>I', 0))
-        f.write('jp2h'.encode())
+        orig_pos = fptr.tell()
+        fptr.write(struct.pack('>I', 0))
+        fptr.write('jp2h'.encode())
         for box in self.box:
-            box._write(f)
+            box._write(fptr)
 
-        end_pos = f.tell()
-        f.seek(orig_pos)
-        f.write(struct.pack('>I', end_pos - orig_pos))
-        f.seek(end_pos)
+        end_pos = fptr.tell()
+        fptr.seek(orig_pos)
+        fptr.write(struct.pack('>I', end_pos - orig_pos))
+        fptr.seek(end_pos)
 
     @staticmethod
-    def _parse(f, id, offset, length):
+    def _parse(fptr, offset, length):
         """Parse JPEG 2000 header box.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
-        id : byte
-            4-byte unique identifier for this box.
         offset : int
             Start position of box in bytes.
         length : int
@@ -993,7 +966,6 @@ class JP2HeaderBox(Jp2kBox):
             4-byte tuple.
         """
         kwargs = {}
-        kwargs['id'] = id
         kwargs['length'] = length
         kwargs['offset'] = offset
 
@@ -1001,7 +973,7 @@ class JP2HeaderBox(Jp2kBox):
 
         # The JP2 header box is a superbox, so go ahead and parse its child
         # boxes.
-        box.box = box._parse_superbox(f)
+        box.box = box._parse_superbox(fptr)
 
         return box
 
@@ -1034,23 +1006,21 @@ class JPEG2000SignatureBox(Jp2kBox):
         msg = msg.format(*self.signature)
         return msg
 
-    def _write(self, f):
+    def _write(self, fptr):
         """Write a JPEG 2000 Signature box to file.
         """
-        f.write(struct.pack('>I', 12))
-        f.write(self.id.encode())
-        f.write(struct.pack('>BBBB', *self.signature))
+        fptr.write(struct.pack('>I', 12))
+        fptr.write(self.id.encode())
+        fptr.write(struct.pack('>BBBB', *self.signature))
 
     @staticmethod
-    def _parse(f, id, offset, length):
+    def _parse(fptr, offset, length):
         """Parse JPEG 2000 signature box.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
-        id : byte
-            4-byte unique identifier for this box.
         offset : int
             Start position of box in bytes.
         length : int
@@ -1061,11 +1031,10 @@ class JPEG2000SignatureBox(Jp2kBox):
                 4-byte tuple.
         """
         kwargs = {}
-        kwargs['id'] = id
         kwargs['length'] = length
         kwargs['offset'] = offset
 
-        read_buffer = f.read(4)
+        read_buffer = fptr.read(4)
         kwargs['signature'] = struct.unpack('>BBBB', read_buffer)
 
         box = JPEG2000SignatureBox(**kwargs)
@@ -1089,7 +1058,7 @@ class PaletteBox(Jp2kBox):
         Colormap represented as list of 1D arrays, one per color component.
     """
     def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='Palette')
+        Jp2kBox.__init__(self, id='pclr', longname='Palette')
         self.__dict__.update(**kwargs)
 
     def __str__(self):
@@ -1099,15 +1068,13 @@ class PaletteBox(Jp2kBox):
         return msg
 
     @staticmethod
-    def _parse(f, id, offset, length):
+    def _parse(fptr, offset, length):
         """Parse palette box.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
-        id : byte
-            4-byte unique identifier for this box.
         offset : int
             Start position of box in bytes.
         length : int
@@ -1118,16 +1085,15 @@ class PaletteBox(Jp2kBox):
         kwargs:  dictionary of parameter values
         """
         kwargs = {}
-        kwargs['id'] = id
         kwargs['length'] = length
         kwargs['offset'] = offset
 
         # Get the size of the palette.
-        read_buffer = f.read(3)
+        read_buffer = fptr.read(3)
         (NE, NC) = struct.unpack('>HB', read_buffer)
 
         # Need to determine bps and signed or not
-        read_buffer = f.read(NC)
+        read_buffer = fptr.read(NC)
         data = struct.unpack('>' + 'B' * NC, read_buffer)
         bps = [((x & 0x07f) + 1) for x in data]
         signed = [((x & 0x80) > 1) for x in data]
@@ -1160,7 +1126,7 @@ class PaletteBox(Jp2kBox):
                 msg = 'Unsupported palette bitdepth (%d).'
                 raise IOError(msg)
         n = NE * bytes_per_row
-        read_buffer = f.read(n)
+        read_buffer = fptr.read(n)
 
         for j in range(NE):
             row_buffer = read_buffer[(bytes_per_row * j):(bytes_per_row * (j + 1))]
@@ -1202,7 +1168,7 @@ class ReaderRequirementsBox(Jp2kBox):
         feature.
     """
     def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='Reader Requirements')
+        Jp2kBox.__init__(self, id='rreq', longname='Reader Requirements')
         self.__dict__.update(**kwargs)
 
     def __str__(self):
@@ -1225,15 +1191,13 @@ class ReaderRequirementsBox(Jp2kBox):
         return msg
 
     @staticmethod
-    def _parse(f, id, offset, length):
+    def _parse(fptr, offset, length):
         """Parse reader requirements box.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
-        id : byte
-            4-byte unique identifier for this box.
         offset : int
             Start position of box in bytes.
         length : int
@@ -1244,11 +1208,10 @@ class ReaderRequirementsBox(Jp2kBox):
         ReaderRequirementsBox.
         """
         kwargs = {}
-        kwargs['id'] = id
         kwargs['length'] = length
         kwargs['offset'] = offset
 
-        read_buffer = f.read(1)
+        read_buffer = fptr.read(1)
         mask_length, = struct.unpack('>B', read_buffer)
         if mask_length == 1:
             mask_format = 'B'
@@ -1263,31 +1226,31 @@ class ReaderRequirementsBox(Jp2kBox):
 
         # Fully Understands Aspect Mask
         # Decodes Completely Mask
-        read_buffer = f.read(2 * mask_length)
+        read_buffer = fptr.read(2 * mask_length)
         data = struct.unpack('>' + mask_format * 2, read_buffer)
         kwargs['FUAM'] = data[0]
         kwargs['DCM'] = data[1]
 
-        read_buffer = f.read(2)
+        read_buffer = fptr.read(2)
         num_standard_flags, = struct.unpack('>H', read_buffer)
 
         # Read in standard flags and standard masks.  Each standard flag should
         # be two bytes, but the standard mask flag is as long as specified by
         # the mask length.
-        read_buffer = f.read(num_standard_flags * (2 + mask_length))
+        read_buffer = fptr.read(num_standard_flags * (2 + mask_length))
         data = struct.unpack('>' + ('H' + mask_format) * num_standard_flags,
                              read_buffer)
         kwargs['standard_flag'] = data[0:num_standard_flags * 2:2]
         kwargs['standard_mask'] = data[1:num_standard_flags * 2:2]
 
         # Vendor features
-        read_buffer = f.read(2)
+        read_buffer = fptr.read(2)
         num_vendor_features, = struct.unpack('>H', read_buffer)
 
         # Each vendor feature consists of a 16-byte UUID plus a mask whose
         # length is specified by, you guessed it, "mask_length".
         entry_length = 16 + mask_length
-        read_buffer = f.read(num_vendor_features * entry_length)
+        read_buffer = fptr.read(num_vendor_features * entry_length)
         vendor_feature = []
         vendor_mask = []
         for j in range(num_vendor_features):
@@ -1321,7 +1284,7 @@ class ResolutionBox(Jp2kBox):
         List of boxes contained in this superbox.
     """
     def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='Resolution')
+        Jp2kBox.__init__(self, id='res ', longname='Resolution')
         self.__dict__.update(**kwargs)
 
     def __str__(self):
@@ -1335,15 +1298,13 @@ class ResolutionBox(Jp2kBox):
         return msg
 
     @staticmethod
-    def _parse(f, id, offset, length):
+    def _parse(fptr, offset, length):
         """Parse Resolution box.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
-        id : byte
-            4-byte unique identifier for this box.
         offset : int
             Start position of box in bytes.
         length : int
@@ -1355,7 +1316,6 @@ class ResolutionBox(Jp2kBox):
                  4-byte tuple.
         """
         kwargs = {}
-        kwargs['id'] = id
         kwargs['length'] = length
         kwargs['offset'] = offset
 
@@ -1363,7 +1323,7 @@ class ResolutionBox(Jp2kBox):
 
         # The JP2 header box is a superbox, so go ahead and parse its child
         # boxes.
-        box.box = box._parse_superbox(f)
+        box.box = box._parse_superbox(fptr)
 
         return box
 
@@ -1385,7 +1345,7 @@ class CaptureResolutionBox(ResolutionBox):
         Vertical, horizontal resolution.
     """
     def __init__(self, **kwargs):
-        ResolutionBox.__init__(self, id='', longname='Capture Resolution')
+        ResolutionBox.__init__(self, id='resc', longname='Capture Resolution')
         self.__dict__.update(**kwargs)
 
     def __str__(self):
@@ -1395,15 +1355,13 @@ class CaptureResolutionBox(ResolutionBox):
         return msg
 
     @staticmethod
-    def _parse(f, id, offset, length):
+    def _parse(fptr, offset, length):
         """Parse Resolution box.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
-        id : byte
-            4-byte unique identifier for this box.
         offset : int
             Start position of box in bytes.
         length : int
@@ -1415,14 +1373,13 @@ class CaptureResolutionBox(ResolutionBox):
                  4-byte tuple.
         """
         kwargs = {}
-        kwargs['id'] = id
         kwargs['length'] = length
         kwargs['offset'] = offset
 
-        read_buffer = f.read(10)
-        (RN1, RD1, RN2, RD2, RE1, RE2) = struct.unpack('>HHHHBB', read_buffer)
-        kwargs['VR'] = RN1 / RD1 * math.pow(10, RE1)
-        kwargs['HR'] = RN2 / RD2 * math.pow(10, RE2)
+        read_buffer = fptr.read(10)
+        (rn1, rd1, rn2, rd2, re1, re2) = struct.unpack('>HHHHBB', read_buffer)
+        kwargs['VR'] = rn1 / rd1 * math.pow(10, re1)
+        kwargs['HR'] = rn2 / rd2 * math.pow(10, re2)
 
         box = CaptureResolutionBox(**kwargs)
 
@@ -1446,7 +1403,7 @@ class DisplayResolutionBox(ResolutionBox):
         Vertical, horizontal resolution.
     """
     def __init__(self, **kwargs):
-        ResolutionBox.__init__(self, id='', longname='Display Resolution')
+        ResolutionBox.__init__(self, id='resd', longname='Display Resolution')
         self.__dict__.update(**kwargs)
 
     def __str__(self):
@@ -1456,15 +1413,13 @@ class DisplayResolutionBox(ResolutionBox):
         return msg
 
     @staticmethod
-    def _parse(f, id, offset, length):
+    def _parse(fptr, offset, length):
         """Parse Resolution box.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
-        id : byte
-            4-byte unique identifier for this box.
         offset : int
             Start position of box in bytes.
         length : int
@@ -1476,14 +1431,13 @@ class DisplayResolutionBox(ResolutionBox):
                  4-byte tuple.
         """
         kwargs = {}
-        kwargs['id'] = id
         kwargs['length'] = length
         kwargs['offset'] = offset
 
-        read_buffer = f.read(10)
-        (RN1, RD1, RN2, RD2, RE1, RE2) = struct.unpack('>HHHHBB', read_buffer)
-        kwargs['VR'] = RN1 / RD1 * math.pow(10, RE1)
-        kwargs['HR'] = RN2 / RD2 * math.pow(10, RE2)
+        read_buffer = fptr.read(10)
+        (rn1, rd1, rn2, rd2, re1, re2) = struct.unpack('>HHHHBB', read_buffer)
+        kwargs['VR'] = rn1 / rd1 * math.pow(10, re1)
+        kwargs['HR'] = rn2 / rd2 * math.pow(10, re2)
 
         box = DisplayResolutionBox(**kwargs)
 
@@ -1507,7 +1461,7 @@ class LabelBox(Jp2kBox):
         Label
     """
     def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='', longname='Label')
+        Jp2kBox.__init__(self, id='lbl ', longname='Label')
         self.__dict__.update(**kwargs)
 
     def __str__(self):
@@ -1516,15 +1470,13 @@ class LabelBox(Jp2kBox):
         return msg
 
     @staticmethod
-    def _parse(f, id, offset, length):
+    def _parse(fptr, offset, length):
         """Parse Label box.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
-        id : byte
-            4-byte unique identifier for this box.
         offset : int
             Start position of box in bytes.
         length : int
@@ -1535,12 +1487,11 @@ class LabelBox(Jp2kBox):
         kwargs : dictionary of parameter values
         """
         kwargs = {}
-        kwargs['id'] = id
         kwargs['length'] = length
         kwargs['offset'] = offset
 
-        num_bytes = offset + length - f.tell()
-        read_buffer = f.read(num_bytes)
+        num_bytes = offset + length - fptr.tell()
+        read_buffer = fptr.read(num_bytes)
         kwargs['label'] = read_buffer.decode('utf-8')
         box = LabelBox(**kwargs)
         return box
@@ -1594,7 +1545,7 @@ class XMLBox(Jp2kBox):
             msg += '\n    {0}'.format(xml)
         return msg
 
-    def _write(self, f):
+    def _write(self, fptr):
         """Write an XML box to file.
         """
         try:
@@ -1602,20 +1553,18 @@ class XMLBox(Jp2kBox):
         except AttributeError:
             read_buffer = ET.tostring(self.xml.getroot(), encoding='utf-8')
 
-        f.write(struct.pack('>I', len(read_buffer) + 8))
-        f.write(self.id.encode())
-        f.write(read_buffer)
+        fptr.write(struct.pack('>I', len(read_buffer) + 8))
+        fptr.write(self.id.encode())
+        fptr.write(read_buffer)
 
     @staticmethod
-    def _parse(f, id, offset, length):
+    def _parse(fptr, offset, length):
         """Parse XML box.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
-        id : byte
-            4-byte unique identifier for this box.
         offset : int
             Start position of box in bytes.
         length : int
@@ -1626,12 +1575,11 @@ class XMLBox(Jp2kBox):
         kwargs : dictionary of parameter values
         """
         kwargs = {}
-        kwargs['id'] = id
         kwargs['length'] = length
         kwargs['offset'] = offset
 
-        num_bytes = offset + length - f.tell()
-        read_buffer = f.read(num_bytes)
+        num_bytes = offset + length - fptr.tell()
+        read_buffer = fptr.read(num_bytes)
         text = read_buffer.decode('utf-8')
 
         # Strip out any trailing nulls.
@@ -1678,15 +1626,13 @@ class UUIDListBox(Jp2kBox):
         return(msg)
 
     @staticmethod
-    def _parse(fptr, id, offset, length):
+    def _parse(fptr, offset, length):
         """Parse UUIDList box.
 
         Parameters
         ----------
         f : file
             Open file object.
-        id : byte
-            4-byte unique identifier for this box.
         offset : int
             Start position of box in bytes.
         length : int
@@ -1743,15 +1689,13 @@ class UUIDInfoBox(Jp2kBox):
         return(msg)
 
     @staticmethod
-    def _parse(fptr, id, offset, length):
+    def _parse(fptr, offset, length):
         """Parse UUIDInfo super box.
 
         Parameters
         ----------
         fptr : file
             Open file object.
-        id : byte
-            4-byte unique identifier for this box.
         offset : int
             Start position of box in bytes.
         length : int
@@ -1813,15 +1757,13 @@ class DataEntryURLBox(Jp2kBox):
         return msg
 
     @staticmethod
-    def _parse(fptr, id, offset, length):
+    def _parse(fptr, offset, length):
         """Parse Data Entry URL box.
 
         Parameters
         ----------
         fptr : file
             Open file object.
-        id : byte
-            4-byte unique identifier for this box.
         offset : int
             Start position of box in bytes.
         length : int
@@ -1934,15 +1876,13 @@ class UUIDBox(Jp2kBox):
         return msg
 
     @staticmethod
-    def _parse(fptr, id, offset, length):
+    def _parse(fptr, offset, length):
         """Parse UUID box.
 
         Parameters
         ----------
         fptr : file
             Open file object.
-        id : str
-            4-byte unique identifier for this box.
         offset : int
             Start position of box in bytes.
         length : int
