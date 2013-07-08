@@ -11,6 +11,8 @@ References
    Extensions
 """
 
+# pylint: disable=R0903
+
 import collections
 import copy
 import datetime
@@ -30,7 +32,7 @@ from .core import _colorspace_map_display
 from .core import _color_type_map_display
 from .core import _method_display
 from .core import _reader_requirements_display
-from .core import *
+from .core import ENUMERATED_COLORSPACE
 
 
 class Jp2kBox(object):
