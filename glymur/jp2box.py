@@ -15,7 +15,6 @@ import collections
 import copy
 import datetime
 import math
-import os
 import pprint
 import struct
 import sys
@@ -89,8 +88,8 @@ class Jp2kBox(object):
             if start >= self.offset + self.length:
                 break
 
-            buffer = f.read(8)
-            (L, T) = struct.unpack('>I4s', buffer)
+            read_buffer = f.read(8)
+            (L, T) = struct.unpack('>I4s', read_buffer)
             if sys.hexversion >= 0x03000000:
                 T = T.decode('utf-8')
 
@@ -101,15 +100,15 @@ class Jp2kBox(object):
 
             elif L == 1:
                 # The length of the box is in the XL field, a 64-bit value.
-                buffer = f.read(8)
-                num_bytes, = struct.unpack('>Q', buffer)
+                read_buffer = f.read(8)
+                num_bytes, = struct.unpack('>Q', read_buffer)
 
             else:
                 num_bytes = L
 
             # Call the proper parser for the given box with ID "T".
             try:
-                box = _box_with_id[T]._parse(f, T, start, num_bytes)
+                box = _BOX_WITH_ID[T]._parse(f, T, start, num_bytes)
             except KeyError:
                 msg = 'Unrecognized box ({0}) encountered.'.format(T)
                 warnings.warn(msg)
@@ -219,12 +218,12 @@ class ColourSpecificationBox(Jp2kBox):
         f.write(struct.pack('>I', length))
         f.write('colr'.encode())
 
-        buffer = struct.pack('>BBBI',
+        read_buffer = struct.pack('>BBBI',
                              self.method,
                              self.precedence,
                              self.approximation,
                              self.colorspace)
-        f.write(buffer)
+        f.write(read_buffer)
 
     @staticmethod
     def _parse(f, id, offset, length):
@@ -252,16 +251,16 @@ class ColourSpecificationBox(Jp2kBox):
         kwargs['offset'] = offset
 
         # Read the brand, minor version.
-        buffer = f.read(3)
-        (method, precedence, approximation) = struct.unpack('>BBB', buffer)
+        read_buffer = f.read(3)
+        (method, precedence, approximation) = struct.unpack('>BBB', read_buffer)
         kwargs['method'] = method
         kwargs['precedence'] = precedence
         kwargs['approximation'] = approximation
 
         if method == 1:
             # enumerated colour space
-            buffer = f.read(4)
-            kwargs['colorspace'], = struct.unpack('>I', buffer)
+            read_buffer = f.read(4)
+            kwargs['colorspace'], = struct.unpack('>I', read_buffer)
             kwargs['icc_profile'] = None
 
         else:
@@ -323,8 +322,8 @@ class _ICCProfile(object):
                              2: 'saturation',
                              3: 'ICC-absolute colorimetric'}
 
-    def __init__(self, buffer):
-        self._raw_buffer = buffer
+    def __init__(self, read_buffer):
+        self._raw_buffer = read_buffer
         header = collections.OrderedDict()
 
         data = struct.unpack('>IIBB', self._raw_buffer[0:10])
@@ -342,26 +341,26 @@ class _ICCProfile(object):
 
         data = struct.unpack('>HHHHHH', self._raw_buffer[24:36])
         header['Datetime'] = datetime.datetime(*data)
-        header['File Signature'] = buffer[36:40].decode('utf-8')
-        if buffer[40:44] == b'\x00\x00\x00\x00':
+        header['File Signature'] = read_buffer[36:40].decode('utf-8')
+        if read_buffer[40:44] == b'\x00\x00\x00\x00':
             header['Platform'] = 'unrecognized'
         else:
-            header['Platform'] = buffer[40:44].decode('utf-8')
+            header['Platform'] = read_buffer[40:44].decode('utf-8')
 
-        x, = struct.unpack('>I', buffer[44:48])
+        x, = struct.unpack('>I', read_buffer[44:48])
         y = 'embedded, ' if x & 0x01 else 'not embedded, '
         y += 'cannot ' if x & 0x02 else 'can '
         y += 'be used independently'
         header['Flags'] = y
 
-        header['Device Manufacturer'] = buffer[48:52].decode('utf-8')
-        if buffer[52:56] == b'\x00\x00\x00\x00':
+        header['Device Manufacturer'] = read_buffer[48:52].decode('utf-8')
+        if read_buffer[52:56] == b'\x00\x00\x00\x00':
             device_model = ''
         else:
-            device_model = buffer[52:56].decode('utf-8')
+            device_model = read_buffer[52:56].decode('utf-8')
         header['Device Model'] = device_model
 
-        x, = struct.unpack('>Q', buffer[56:64])
+        x, = struct.unpack('>Q', read_buffer[56:64])
         y = 'transparency, ' if x & 0x01 else 'reflective, '
         y += 'matte, ' if x & 0x02 else 'glossy, '
         y += 'negative ' if x & 0x04 else 'positive '
@@ -369,23 +368,23 @@ class _ICCProfile(object):
         y += 'black and white media' if x & 0x08 else 'color media'
         header['Device Attributes'] = y
 
-        x, = struct.unpack('>I', buffer[64:68])
+        x, = struct.unpack('>I', read_buffer[64:68])
         try:
             header['Rendering Intent'] = self.rendering_intent_dict[x]
         except KeyError:
             header['Rendering Intent'] = 'unknown'
 
-        data = struct.unpack('>iii', buffer[68:80])
+        data = struct.unpack('>iii', read_buffer[68:80])
         header['Illuminant'] = np.array(data, dtype=np.float64) / 65536
 
-        if buffer[80:84] == b'\x00\x00\x00\x00':
+        if read_buffer[80:84] == b'\x00\x00\x00\x00':
             creator = 'unrecognized'
         else:
-            creator = buffer[80:84].decode('utf-8')
+            creator = read_buffer[80:84].decode('utf-8')
         header['Creator'] = creator
 
         if header['Version'][0] == '4':
-            header['Profile Id'] = buffer[84:100]
+            header['Profile Id'] = read_buffer[84:100]
 
         # Final 27 bytes are reserved.
 
@@ -482,15 +481,15 @@ class ChannelDefinitionBox(Jp2kBox):
         kwargs['offset'] = offset
 
         # Read the number of components.
-        buffer = f.read(2)
-        N, = struct.unpack('>H', buffer)
+        read_buffer = f.read(2)
+        N, = struct.unpack('>H', read_buffer)
 
         index = []
         chan_type = []
         association = []
 
-        buffer = f.read(N * 6)
-        data = struct.unpack('>' + 'HHH' * N, buffer)
+        read_buffer = f.read(N * 6)
+        data = struct.unpack('>' + 'HHH' * N, read_buffer)
         index = data[0:N * 6:3]
         channel_type = data[1:N * 6:3]
         association = data[2:N * 6:3]
@@ -563,8 +562,8 @@ class ComponentMappingBox(Jp2kBox):
         N = offset + length - f.tell()
         num_components = int(N/4)
 
-        buffer = f.read(N)
-        data = struct.unpack('>' + 'HBB' * num_components, buffer)
+        read_buffer = f.read(N)
+        data = struct.unpack('>' + 'HBB' * num_components, read_buffer)
 
         kwargs['component_index'] = data[0:N:num_components]
         kwargs['mapping_type'] = data[1:N:num_components]
@@ -713,8 +712,8 @@ class FileTypeBox(Jp2kBox):
         kwargs['offset'] = offset
 
         # Read the brand, minor version.
-        buffer = f.read(8)
-        (brand, minor_version) = struct.unpack('>4sI', buffer)
+        read_buffer = f.read(8)
+        (brand, minor_version) = struct.unpack('>4sI', read_buffer)
         if sys.hexversion < 0x030000:
             kwargs['brand'] = brand
         else:
@@ -724,10 +723,10 @@ class FileTypeBox(Jp2kBox):
         # Read the compatibility list.  Each entry has 4 bytes.
         current_pos = f.tell()
         n = (offset + length - current_pos) / 4
-        buffer = f.read(int(n) * 4)
+        read_buffer = f.read(int(n) * 4)
         compatibility_list = []
         for j in range(int(n)):
-            CL, = struct.unpack('>4s', buffer[4*j:4*(j+1)])
+            CL, = struct.unpack('>4s', read_buffer[4*j:4*(j+1)])
             if sys.hexversion >= 0x03000000:
                 CL = CL.decode('utf-8')
             compatibility_list.append(CL)
@@ -812,7 +811,7 @@ class ImageHeaderBox(Jp2kBox):
         # signedness and bps are stored together in a single byte
         bit_depth_signedness = 0x80 if self.signed else 0x00
         bit_depth_signedness |= self.bits_per_component - 1
-        buffer = struct.pack('>IIHBBBB',
+        read_buffer = struct.pack('>IIHBBBB',
                              self.height,
                              self.width,
                              self.num_components,
@@ -820,7 +819,7 @@ class ImageHeaderBox(Jp2kBox):
                              self.compression,
                              1 if self.colorspace_unknown else 0,
                              1 if self.ip_provided else 0)
-        f.write(buffer)
+        f.write(read_buffer)
 
     @staticmethod
     def _parse(f, id, offset, length):
@@ -846,8 +845,8 @@ class ImageHeaderBox(Jp2kBox):
         kwargs['offset'] = offset
 
         # Read the box information
-        buffer = f.read(14)
-        params = struct.unpack('>IIHBBBB', buffer)
+        read_buffer = f.read(14)
+        params = struct.unpack('>IIHBBBB', read_buffer)
         height = params[0]
         width = params[1]
         kwargs['num_components'] = params[2]
@@ -1063,8 +1062,8 @@ class JPEG2000SignatureBox(Jp2kBox):
         kwargs['length'] = length
         kwargs['offset'] = offset
 
-        buffer = f.read(4)
-        kwargs['signature'] = struct.unpack('>BBBB', buffer)
+        read_buffer = f.read(4)
+        kwargs['signature'] = struct.unpack('>BBBB', read_buffer)
 
         box = JPEG2000SignatureBox(**kwargs)
         return box
@@ -1121,12 +1120,12 @@ class PaletteBox(Jp2kBox):
         kwargs['offset'] = offset
 
         # Get the size of the palette.
-        buffer = f.read(3)
-        (NE, NC) = struct.unpack('>HB', buffer)
+        read_buffer = f.read(3)
+        (NE, NC) = struct.unpack('>HB', read_buffer)
 
         # Need to determine bps and signed or not
-        buffer = f.read(NC)
-        data = struct.unpack('>' + 'B' * NC, buffer)
+        read_buffer = f.read(NC)
+        data = struct.unpack('>' + 'B' * NC, read_buffer)
         bps = [((x & 0x07f) + 1) for x in data]
         signed = [((x & 0x80) > 1) for x in data]
         kwargs['bits_per_component'] = bps
@@ -1158,10 +1157,10 @@ class PaletteBox(Jp2kBox):
                 msg = 'Unsupported palette bitdepth (%d).'
                 raise IOError(msg)
         n = NE * bytes_per_row
-        buffer = f.read(n)
+        read_buffer = f.read(n)
 
         for j in range(NE):
-            row_buffer = buffer[(bytes_per_row * j):(bytes_per_row * (j + 1))]
+            row_buffer = read_buffer[(bytes_per_row * j):(bytes_per_row * (j + 1))]
             row = struct.unpack(fmt, row_buffer)
             for k in range(NC):
                 palette[k][j] = row[k]
@@ -1246,8 +1245,8 @@ class ReaderRequirementsBox(Jp2kBox):
         kwargs['length'] = length
         kwargs['offset'] = offset
 
-        buffer = f.read(1)
-        mask_length, = struct.unpack('>B', buffer)
+        read_buffer = f.read(1)
+        mask_length, = struct.unpack('>B', read_buffer)
         if mask_length == 1:
             mask_format = 'B'
         elif mask_length == 2:
@@ -1261,35 +1260,35 @@ class ReaderRequirementsBox(Jp2kBox):
 
         # Fully Understands Aspect Mask
         # Decodes Completely Mask
-        buffer = f.read(2 * mask_length)
-        data = struct.unpack('>' + mask_format * 2, buffer)
+        read_buffer = f.read(2 * mask_length)
+        data = struct.unpack('>' + mask_format * 2, read_buffer)
         kwargs['FUAM'] = data[0]
         kwargs['DCM'] = data[1]
 
-        buffer = f.read(2)
-        num_standard_flags, = struct.unpack('>H', buffer)
+        read_buffer = f.read(2)
+        num_standard_flags, = struct.unpack('>H', read_buffer)
 
         # Read in standard flags and standard masks.  Each standard flag should
         # be two bytes, but the standard mask flag is as long as specified by
         # the mask length.
-        buffer = f.read(num_standard_flags * (2 + mask_length))
+        read_buffer = f.read(num_standard_flags * (2 + mask_length))
         data = struct.unpack('>' + ('H' + mask_format) * num_standard_flags,
-                             buffer)
+                             read_buffer)
         kwargs['standard_flag'] = data[0:num_standard_flags * 2:2]
         kwargs['standard_mask'] = data[1:num_standard_flags * 2:2]
 
         # Vendor features
-        buffer = f.read(2)
-        num_vendor_features, = struct.unpack('>H', buffer)
+        read_buffer = f.read(2)
+        num_vendor_features, = struct.unpack('>H', read_buffer)
 
         # Each vendor feature consists of a 16-byte UUID plus a mask whose
         # length is specified by, you guessed it, "mask_length".
         entry_length = 16 + mask_length
-        buffer = f.read(num_vendor_features * entry_length)
+        read_buffer = f.read(num_vendor_features * entry_length)
         vendor_feature = []
         vendor_mask = []
         for j in range(num_vendor_features):
-            ubuffer = buffer[j * entry_length:(j + 1) * entry_length]
+            ubuffer = read_buffer[j * entry_length:(j + 1) * entry_length]
             vendor_feature.append(uuid.UUID(bytes=ubuffer[0:16]))
 
             vm = struct.unpack('>' + mask_format, ubuffer[16:])
@@ -1417,8 +1416,8 @@ class CaptureResolutionBox(ResolutionBox):
         kwargs['length'] = length
         kwargs['offset'] = offset
 
-        buffer = f.read(10)
-        (RN1, RD1, RN2, RD2, RE1, RE2) = struct.unpack('>HHHHBB', buffer)
+        read_buffer = f.read(10)
+        (RN1, RD1, RN2, RD2, RE1, RE2) = struct.unpack('>HHHHBB', read_buffer)
         kwargs['VR'] = RN1 / RD1 * math.pow(10, RE1)
         kwargs['HR'] = RN2 / RD2 * math.pow(10, RE2)
 
@@ -1478,8 +1477,8 @@ class DisplayResolutionBox(ResolutionBox):
         kwargs['length'] = length
         kwargs['offset'] = offset
 
-        buffer = f.read(10)
-        (RN1, RD1, RN2, RD2, RE1, RE2) = struct.unpack('>HHHHBB', buffer)
+        read_buffer = f.read(10)
+        (RN1, RD1, RN2, RD2, RE1, RE2) = struct.unpack('>HHHHBB', read_buffer)
         kwargs['VR'] = RN1 / RD1 * math.pow(10, RE1)
         kwargs['HR'] = RN2 / RD2 * math.pow(10, RE2)
 
@@ -1538,8 +1537,8 @@ class LabelBox(Jp2kBox):
         kwargs['offset'] = offset
 
         num_bytes = offset + length - f.tell()
-        buffer = f.read(num_bytes)
-        kwargs['label'] = buffer.decode('utf-8')
+        read_buffer = f.read(num_bytes)
+        kwargs['label'] = read_buffer.decode('utf-8')
         box = LabelBox(**kwargs)
         return box
 
@@ -1596,13 +1595,13 @@ class XMLBox(Jp2kBox):
         """Write an XML box to file.
         """
         try:
-            buffer = ET.tostring(self.xml, encoding='utf-8')
+            read_buffer = ET.tostring(self.xml, encoding='utf-8')
         except AttributeError:
-            buffer = ET.tostring(self.xml.getroot(), encoding='utf-8')
+            read_buffer = ET.tostring(self.xml.getroot(), encoding='utf-8')
 
-        f.write(struct.pack('>I', len(buffer) + 8))
+        f.write(struct.pack('>I', len(read_buffer) + 8))
         f.write(self.id.encode())
-        f.write(buffer)
+        f.write(read_buffer)
 
     @staticmethod
     def _parse(f, id, offset, length):
@@ -1629,8 +1628,8 @@ class XMLBox(Jp2kBox):
         kwargs['offset'] = offset
 
         num_bytes = offset + length - f.tell()
-        buffer = f.read(num_bytes)
-        text = buffer.decode('utf-8')
+        read_buffer = f.read(num_bytes)
+        text = read_buffer.decode('utf-8')
 
         # Strip out any trailing nulls.
         text = text.rstrip('\0')
@@ -1692,13 +1691,13 @@ class UUIDListBox(Jp2kBox):
         -------
         kwargs : dictionary of parameter values
         """
-        buffer = f.read(2)
-        N, = struct.unpack('>H', buffer)
+        read_buffer = f.read(2)
+        N, = struct.unpack('>H', read_buffer)
 
         ulst = []
         for j in range(N):
-            buffer = f.read(16)
-            ulst.append(uuid.UUID(bytes=buffer))
+            read_buffer = f.read(16)
+            ulst.append(uuid.UUID(bytes=read_buffer))
 
         kwargs = {}
         kwargs['id'] = id
@@ -1835,14 +1834,14 @@ class DataEntryURLBox(Jp2kBox):
         kwargs['length'] = length
         kwargs['offset'] = offset
 
-        buffer = f.read(4)
-        data = struct.unpack('>BBBB', buffer)
+        read_buffer = f.read(4)
+        data = struct.unpack('>BBBB', read_buffer)
         kwargs['version'] = data[0]
         kwargs['flag'] = data[1:4]
 
         n = offset + length - f.tell()
-        buffer = f.read(n)
-        kwargs['URL'] = buffer.decode('utf-8')
+        read_buffer = f.read(n)
+        kwargs['URL'] = read_buffer.decode('utf-8')
         box = DataEntryURLBox(**kwargs)
         return box
 
@@ -1902,12 +1901,12 @@ class UUIDBox(Jp2kBox):
         return msg
 
     @staticmethod
-    def _parse(f, id, offset, length):
+    def _parse(fptr, id, offset, length):
         """Parse JPEG 2000 signature box.
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
         id : str
             4-byte unique identifier for this box.
@@ -1924,30 +1923,30 @@ class UUIDBox(Jp2kBox):
         kwargs['length'] = length
         kwargs['offset'] = offset
 
-        buffer = f.read(16)
-        kwargs['uuid'] = uuid.UUID(bytes=buffer)
+        read_buffer = fptr.read(16)
+        kwargs['uuid'] = uuid.UUID(bytes=read_buffer)
 
-        n = offset + length - f.tell()
-        buffer = f.read(n)
+        n = offset + length - fptr.tell()
+        read_buffer = fptr.read(n)
         if kwargs['uuid'] == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
             # XMP data.  Parse as XML.  Seems to be a difference between
             # ElementTree in version 2.7 and 3.3.
             if sys.hexversion < 0x03000000:
                 parser = ET.XMLParser(encoding='utf-8')
-                kwargs['data'] = ET.fromstringlist(buffer, parser=parser)
+                kwargs['data'] = ET.fromstringlist(read_buffer, parser=parser)
             else:
-                text = buffer.decode('utf-8')
+                text = read_buffer.decode('utf-8')
                 kwargs['data'] = ET.fromstring(text)
         elif kwargs['uuid'].bytes == b'JpgTiffExif->JP2':
-            e = Exif(buffer)
-            d = collections.OrderedDict()
-            d['Image'] = e.exif_image
-            d['Photo'] = e.exif_photo
-            d['GPSInfo'] = e.exif_gpsinfo
-            d['Iop'] = e.exif_iop
-            kwargs['data'] = d
+            exif_obj = Exif(read_buffer)
+            ifds = collections.OrderedDict()
+            ifds['Image'] = exif_obj.exif_image
+            ifds['Photo'] = exif_obj.exif_photo
+            ifds['GPSInfo'] = exif_obj.exif_gpsinfo
+            ifds['Iop'] = exif_obj.exif_iop
+            kwargs['data'] = ifds
         else:
-            kwargs['data'] = buffer
+            kwargs['data'] = read_buffer
         box = UUIDBox(**kwargs)
         return box
 
@@ -1956,13 +1955,13 @@ class Exif(object):
     """
     Attributes
     ----------
-    buffer : bytes
+    read_buffer : bytes
         Raw byte stream consisting of the UUID data.
     endian : str
         Either '<' for big-endian, or '>' for little-endian.
     """
 
-    def __init__(self, buffer):
+    def __init__(self, read_buffer):
         """Interpret raw buffer consisting of Exif IFD.
         """
         self.exif_image = None
@@ -1970,11 +1969,11 @@ class Exif(object):
         self.exif_gpsinfo = None
         self.exif_iop = None
 
-        self.buffer = buffer
+        self.read_buffer = read_buffer
 
         # Ignore the first six bytes.
         # Next 8 should be (73, 73, 42, 8)
-        data = struct.unpack('<BBHI', buffer[6:14])
+        data = struct.unpack('<BBHI', read_buffer[6:14])
         if data[0] == 73 and data[1] == 73:
             # little endian
             self.endian = '<'
@@ -1984,24 +1983,24 @@ class Exif(object):
         offset = data[3]
 
         # This is the 'Exif Image' portion.
-        exif = _ExifImageIfd(self.endian, buffer[6:], offset)
+        exif = _ExifImageIfd(self.endian, read_buffer[6:], offset)
         self.exif_image = exif.processed_ifd
 
         if 'ExifTag' in self.exif_image.keys():
             offset = self.exif_image['ExifTag']
-            photo = _ExifPhotoIfd(self.endian, buffer[6:], offset)
+            photo = _ExifPhotoIfd(self.endian, read_buffer[6:], offset)
             self.exif_photo = photo.processed_ifd
 
             if 'InteroperabilityTag' in self.exif_photo.keys():
                 offset = self.exif_photo['InteroperabilityTag']
                 interop = _ExifInteroperabilityIfd(self.endian,
-                                                   buffer[6:],
+                                                   read_buffer[6:],
                                                    offset)
                 self.iop = interop.processed_ifd
 
         if 'GPSTag' in self.exif_image.keys():
             offset = self.exif_image['GPSTag']
-            gps = _ExifGPSInfoIfd(self.endian, buffer[6:], offset)
+            gps = _ExifGPSInfoIfd(self.endian, read_buffer[6:], offset)
             self.exif_gpsinfo = gps.processed_ifd
 
 
@@ -2009,7 +2008,7 @@ class _Ifd(object):
     """
     Attributes
     ----------
-    buffer : bytes
+    read_buffer : bytes
         Raw byte stream consisting of the UUID data.
     datatype2fmt : dictionary
         Class attribute, maps the TIFF enumerated datatype to the python
@@ -2032,23 +2031,23 @@ class _Ifd(object):
                     9: ('i', 4),
                     10: ('ii', 8)}
 
-    def __init__(self, endian, buffer, offset):
+    def __init__(self, endian, read_buffer, offset):
         self.endian = endian
-        self.buffer = buffer
+        self.read_buffer = read_buffer
         self.processed_ifd = collections.OrderedDict()
 
         self.num_tags, = struct.unpack(endian + 'H',
-                                       buffer[offset:offset + 2])
+                                       read_buffer[offset:offset + 2])
 
         fmt = self.endian + 'HHII' * self.num_tags
-        ifd_buffer = buffer[offset + 2:offset + 2 + self.num_tags * 12]
+        ifd_buffer = read_buffer[offset + 2:offset + 2 + self.num_tags * 12]
         data = struct.unpack(fmt, ifd_buffer)
         self.raw_ifd = collections.OrderedDict()
         for j, tag in enumerate(data[0::4]):
             # The offset to the tag offset/payload is the offset to the IFD
             # plus 2 bytes for the number of tags plus 12 bytes for each
             # tag entry plus 8 bytes to the offset/payload itself.
-            toffp = buffer[offset + 10 + j * 12:offset + 10 + j * 12 + 4]
+            toffp = read_buffer[offset + 10 + j * 12:offset + 10 + j * 12 + 4]
             tag_data = self.parse_tag(data[j * 4 + 1],
                                       data[j * 4 + 2],
                                       toffp)
@@ -2067,7 +2066,7 @@ class _Ifd(object):
             # Interpret the payload at the offset specified by the 4 bytes in
             # the tag entry.
             offset, = struct.unpack(self.endian + 'I', offset_buf)
-            target_buffer = self.buffer[offset:offset + payload_size]
+            target_buffer = self.read_buffer[offset:offset + payload_size]
 
         if dtype == 2:
             # ASCII
@@ -2093,6 +2092,8 @@ class _Ifd(object):
         return payload
 
     def post_process(self, tagnum2name):
+        """Map the tag name instead of tag number to the tag value.
+        """
         for tag, value in self.raw_ifd.items():
             try:
                 tag_name = tagnum2name[tag]
@@ -2318,12 +2319,14 @@ class _ExifImageIfd(_Ifd):
                    51022: 'OpcodeList3',
                    51041: 'NoiseProfile'}
 
-    def __init__(self, endian, buffer, offset):
-        _Ifd.__init__(self, endian, buffer, offset)
+    def __init__(self, endian, read_buffer, offset):
+        _Ifd.__init__(self, endian, read_buffer, offset)
         self.post_process(self.tagnum2name)
 
 
 class _ExifPhotoIfd(_Ifd):
+    """Represents tags found in the Exif sub ifd.
+    """
     tagnum2name = {33434: 'ExposureTime',
                    33437: 'FNumber',
                    34850: 'ExposureProgram',
@@ -2394,12 +2397,14 @@ class _ExifPhotoIfd(_Ifd):
                    42036: 'LensModel',
                    42037: 'LensSerialNumber'}
 
-    def __init__(self, endian, buffer, offset):
-        _Ifd.__init__(self, endian, buffer, offset)
+    def __init__(self, endian, read_buffer, offset):
+        _Ifd.__init__(self, endian, read_buffer, offset)
         self.post_process(self.tagnum2name)
 
 
 class _ExifGPSInfoIfd(_Ifd):
+    """Represents information found in the GPSInfo sub IFD.
+    """
     tagnum2name = {0: 'GPSVersionID',
                    1: 'GPSLatitudeRef',
                    2: 'GPSLatitude',
@@ -2432,25 +2437,27 @@ class _ExifGPSInfoIfd(_Ifd):
                    29: 'GPSDateStamp',
                    30: 'GPSDifferential'}
 
-    def __init__(self, endian, buffer, offset):
-        _Ifd.__init__(self, endian, buffer, offset)
+    def __init__(self, endian, read_buffer, offset):
+        _Ifd.__init__(self, endian, read_buffer, offset)
         self.post_process(self.tagnum2name)
 
 
 class _ExifInteroperabilityIfd(_Ifd):
+    """Represents tags found in the Interoperability sub IFD.
+    """
     tagnum2name = {1: 'InteroperabilityIndex',
                    2: 'InteroperabilityVersion',
                    4096: 'RelatedImageFileFormat',
                    4097: 'RelatedImageWidth',
                    4098: 'RelatedImageLength'}
 
-    def __init__(self, endian, buffer, offset):
-        _Ifd.__init__(self, endian, buffer, offset)
+    def __init__(self, endian, read_buffer, offset):
+        _Ifd.__init__(self, endian, read_buffer, offset)
         self.post_process(self.tagnum2name)
 
 
 # Map each box ID to the corresponding class.
-_box_with_id = {
+_BOX_WITH_ID = {
     'asoc': AssociationBox,
     'cdef': ChannelDefinitionBox,
     'cmap': ComponentMappingBox,
