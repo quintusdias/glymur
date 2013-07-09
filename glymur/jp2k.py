@@ -44,22 +44,25 @@ _CMPFUNC = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_char_p, ctypes.c_void_p)
 
 
 def _default_error_handler(msg, _):
+    """Default error handler callback for openjpeg library."""
     msg = "OpenJPEG library error:  {0}".format(msg.decode('utf-8').rstrip())
     _opj2.set_error_message(msg)
 
 
 def _default_info_handler(msg, _):
+    """Default info handler callback for openjpeg library."""
     print("[INFO] {0}".format(msg.decode('utf-8').rstrip()))
 
 
 def _default_warning_handler(library_msg, _):
+    """Default warning handler callback for openjpeg library."""
     library_msg = library_msg.decode('utf-8').rstrip()
     msg = "OpenJPEG library warning:  {0}".format(library_msg)
     warnings.warn(msg)
 
-_error_callback = _CMPFUNC(_default_error_handler)
-_info_callback = _CMPFUNC(_default_info_handler)
-_warning_callback = _CMPFUNC(_default_warning_handler)
+_ERROR_CALLBACK = _CMPFUNC(_default_error_handler)
+_INFO_CALLBACK = _CMPFUNC(_default_info_handler)
+_WARNING_CALLBACK = _CMPFUNC(_default_warning_handler)
 
 
 class Jp2k(Jp2kBox):
@@ -86,10 +89,12 @@ class Jp2k(Jp2kBox):
         mode : str, optional
             The mode used to open the file.
         """
+        Jp2kBox.__init__(self)
         self.filename = filename
         self.mode = mode
         self.box = []
-        self.offset = 0
+        self._codec_format = None
+        self._file_size = 0
 
         # Parse the file for JP2/JPX contents only if we are reading it.
         if mode == 'rb':
@@ -117,11 +122,11 @@ class Jp2k(Jp2kBox):
         self.length = stat.st_size
         self._file_size = stat.st_size
 
-        with open(self.filename, 'rb') as f:
+        with open(self.filename, 'rb') as fptr:
 
             # Make sure we have a JPEG2000 file.  It could be either JP2 or
             # J2C.  Check for J2C first, single box in that case.
-            read_buffer = f.read(2)
+            read_buffer = fptr.read(2)
             signature, = struct.unpack('>H', read_buffer)
             if signature == 0xff4f:
                 self._codec_format = _opj2.CODEC_J2K
@@ -135,21 +140,23 @@ class Jp2k(Jp2kBox):
             # First 4 bytes should be 12, the length of the 'jP  ' box.
             # 2nd 4 bytes should be the box ID ('jP  ').
             # 3rd 4 bytes should be the box signature (13, 10, 135, 10).
-            f.seek(0)
-            read_buffer = f.read(12)
+            fptr.seek(0)
+            read_buffer = fptr.read(12)
             values = struct.unpack('>I4s4B', read_buffer)
-            L = values[0]
-            T = values[1]
+            box_length = values[0]
+            box_id = values[1]
             signature = values[2:]
-            if L != 12 or T != b'jP  ' or signature != (13, 10, 135, 10):
+            if ((box_length != 12) or (box_id != b'jP  ') or
+                 (signature != (13, 10, 135, 10))):
                 msg = '{0} is not a JPEG 2000 file.'.format(self.filename)
                 raise IOError(msg)
 
             # Back up and start again, we know we have a superbox (box of
             # boxes) here.
-            f.seek(0)
-            self.box = self.parse_superbox(f)
+            fptr.seek(0)
+            self.box = self.parse_superbox(fptr)
 
+    # pylint:  disable-msg=W0221
     def write(self, img_array, cratios=None, eph=False, psnr=None, numres=None,
               cbsize=None, psizes=None, grid_offset=None, sop=False,
               subsam=None, tilesize=None, prog=None, modesw=None,
@@ -214,7 +221,7 @@ class Jp2k(Jp2kBox):
         >>> import glymur
         >>> jfile = glymur.data.nemo()
         >>> jp2 = glymur.Jp2k(jfile)
-        >>> data = jp2.read(reduce=1)
+        >>> data = jp2.read(rlevel=1)
         >>> from tempfile import NamedTemporaryFile
         >>> tfile = NamedTemporaryFile(suffix='.jp2', delete=False)
         >>> j = Jp2k(tfile.name, mode='wb')
@@ -224,8 +231,8 @@ class Jp2k(Jp2kBox):
         cparams = _opj2.set_default_encoder_parameters()
 
         outfile = self.filename.encode()
-        n = _opj2.PATH_LEN - len(outfile)
-        outfile += b'0' * n
+        num_pad_bytes = _opj2.PATH_LEN - len(outfile)
+        outfile += b'0' * num_pad_bytes
         cparams.outfile = outfile
 
         if self.filename[-4:].lower() == '.jp2':
@@ -241,19 +248,19 @@ class Jp2k(Jp2kBox):
         cparams.cp_disto_alloc = 1
 
         if cbsize is not None:
-            w = cbsize[1]
-            h = cbsize[0]
-            if h * w > 4096 or h < 4 or w < 4:
+            width = cbsize[1]
+            height = cbsize[0]
+            if height * width > 4096 or height < 4 or width < 4:
                 msg = "Code block area cannot exceed 4096.  "
                 msg += "Code block height and width must be larger than 4."
                 raise RuntimeError(msg)
-            if ((math.log(h, 2) != math.floor(math.log(h, 2)) or
-                 math.log(w, 2) != math.floor(math.log(w, 2)))):
+            if ((math.log(height, 2) != math.floor(math.log(height, 2)) or
+                 math.log(width, 2) != math.floor(math.log(width, 2)))):
                 msg = "Bad code block size ({0}, {1}), "
                 msg += "must be powers of 2."
-                raise IOError(msg.format(h, w))
-            cparams.cblockw_init = w
-            cparams.cblockh_init = h
+                raise IOError(msg.format(height, width))
+            cparams.cblockw_init = width
+            cparams.cblockh_init = height
 
         if cratios is not None:
             cparams.tcp_numlayers = len(cratios)
@@ -269,9 +276,10 @@ class Jp2k(Jp2kBox):
             cparams.image_offset_y0 = grid_offset[0]
 
         if modesw is not None:
-            for x in range(6):
-                if modesw & (1 << x):
-                    cparams.mode |= (1 << x)
+            for shift in range(6):
+                power_of_two = 1 << shift
+                if modesw & power_of_two:
+                    cparams.mode |= power_of_two
 
         if numres is not None:
             cparams.numresolution = numres
@@ -402,12 +410,12 @@ class Jp2k(Jp2kBox):
         codec = _opj2.create_compress(codec_fmt)
 
         if verbose:
-            _opj2.set_info_handler(codec, _info_callback)
+            _opj2.set_info_handler(codec, _INFO_CALLBACK)
         else:
             _opj2.set_info_handler(codec, None)
 
-        _opj2.set_warning_handler(codec, _warning_callback)
-        _opj2.set_error_handler(codec, _error_callback)
+        _opj2.set_warning_handler(codec, _WARNING_CALLBACK)
+        _opj2.set_error_handler(codec, _ERROR_CALLBACK)
         _opj2.setup_encoder(codec, cparams, image)
         strm = _opj2.stream_create_default_file_stream_v3(self.filename, False)
         _opj2.start_compress(codec, image, strm)
@@ -559,8 +567,8 @@ class Jp2k(Jp2kBox):
 
         Parameters
         ----------
-        reduce : int, optional
-            Factor by which to reduce output resolution.  Use -1 to get the
+        rlevel : int, optional
+            Factor by which to rlevel output resolution.  Use -1 to get the
             lowest resolution thumbnail.  This is the only keyword option
             available to use when only OpenJPEG version 1.5.1 is present.
         layer : int, optional
@@ -594,7 +602,7 @@ class Jp2k(Jp2kBox):
 
         Read the lowest resolution thumbnail.
 
-        >>> thumbnail = jp.read(reduce=-1)
+        >>> thumbnail = jp.read(rlevel=-1)
         >>> thumbnail.shape
         (728, 1296, 3)
         """
@@ -604,13 +612,13 @@ class Jp2k(Jp2kBox):
             img = self._read_openjpeg(**kwargs)
         return img
 
-    def _read_openjpeg(self, reduce=0, verbose=False):
+    def _read_openjpeg(self, rlevel=0, verbose=False):
         """Read a JPEG 2000 image using libopenjpeg.
 
         Parameters
         ----------
-        reduce : int, optional
-            Factor by which to reduce output resolution.  Use -1 to get the
+        rlevel : int, optional
+            Factor by which to rlevel output resolution.  Use -1 to get the
             lowest resolution thumbnail.
         verbose : bool, optional
             Print informational messages produced by the OpenJPEG library.
@@ -640,7 +648,7 @@ class Jp2k(Jp2kBox):
             # Set decoding parameters.
             dparameters = _opj.dparameters_t()
             _opj.set_default_decoder_parameters(ctypes.byref(dparameters))
-            dparameters.cp_reduce = reduce
+            dparameters.cp_reduce = rlevel
             dparameters.decod_format = self._codec_format
 
             infile = self.filename.encode()
@@ -651,11 +659,11 @@ class Jp2k(Jp2kBox):
             dinfo = _opj.create_decompress(dparameters.decod_format)
 
             event_mgr = _opj.event_mgr_t()
-            info_handler = ctypes.cast(_info_callback, ctypes.c_void_p)
+            info_handler = ctypes.cast(_INFO_CALLBACK, ctypes.c_void_p)
             event_mgr.info_handler = info_handler if verbose else None
-            event_mgr.warning_handler = ctypes.cast(_warning_callback,
+            event_mgr.warning_handler = ctypes.cast(_WARNING_CALLBACK,
                                                  ctypes.c_void_p)
-            event_mgr.error_handler = ctypes.cast(_error_callback,
+            event_mgr.error_handler = ctypes.cast(_ERROR_CALLBACK,
                                                  ctypes.c_void_p)
             _opj.set_event_mgr(dinfo, ctypes.byref(event_mgr))
 
@@ -719,7 +727,7 @@ class Jp2k(Jp2kBox):
 
         return data
 
-    def _read_openjp2(self, reduce=0, layer=0, area=None, tile=None,
+    def _read_openjp2(self, rlevel=0, layer=0, area=None, tile=None,
                       verbose=False):
         """Read a JPEG 2000 image using libopenjp2.
 
@@ -727,8 +735,8 @@ class Jp2k(Jp2kBox):
         ----------
         layer : int, optional
             Number of quality layer to decode.
-        reduce : int, optional
-            Factor by which to reduce output resolution.  Use -1 to get the
+        rlevel : int, optional
+            Factor by which to rlevel output resolution.  Use -1 to get the
             lowest resolution thumbnail.
         area : tuple, optional
             Specifies decoding image area,
@@ -756,7 +764,7 @@ class Jp2k(Jp2kBox):
             msg = "Components must all have the same subsampling factors."
             raise RuntimeError(msg)
 
-        img_array = self._read_common(reduce=reduce,
+        img_array = self._read_common(rlevel=rlevel,
                                       layer=layer,
                                       area=area,
                                       tile=tile,
@@ -769,7 +777,7 @@ class Jp2k(Jp2kBox):
 
         return img_array
 
-    def _read_common(self, reduce=0, layer=0, area=None, tile=None,
+    def _read_common(self, rlevel=0, layer=0, area=None, tile=None,
                      verbose=False, as_bands=False):
         """Read a JPEG 2000 image.
 
@@ -777,8 +785,8 @@ class Jp2k(Jp2kBox):
         ----------
         layer : int, optional
             Number of quality layer to decode.
-        reduce : int, optional
-            Factor by which to reduce output resolution.
+        rlevel : int, optional
+            Factor by which to rlevel output resolution.
         area : tuple, optional
             Specifies decoding image area,
             (first_row, first_col, last_row, last_col)
@@ -805,12 +813,12 @@ class Jp2k(Jp2kBox):
 
         dparam.cp_layer = layer
 
-        if reduce == -1:
+        if rlevel == -1:
             # Get the lowest resolution thumbnail.
             codestream = self.get_codestream()
-            reduce = codestream.segment[2].spcod[4]
+            rlevel = codestream.segment[2].spcod[4]
 
-        dparam.cp_reduce = reduce
+        dparam.cp_reduce = rlevel
         if area is not None:
             if area[0] < 0 or area[1] < 0:
                 msg = "Upper left corner coordinates must be nonnegative:  {0}"
@@ -836,10 +844,10 @@ class Jp2k(Jp2kBox):
             codec = _opj2.create_decompress(self._codec_format)
             stack.callback(_opj2.destroy_codec, codec)
 
-            _opj2.set_error_handler(codec, _error_callback)
-            _opj2.set_warning_handler(codec, _warning_callback)
+            _opj2.set_error_handler(codec, _ERROR_CALLBACK)
+            _opj2.set_warning_handler(codec, _WARNING_CALLBACK)
             if verbose:
-                _opj2.set_info_handler(codec, _info_callback)
+                _opj2.set_info_handler(codec, _INFO_CALLBACK)
             else:
                 _opj2.set_info_handler(codec, None)
 
@@ -905,7 +913,7 @@ class Jp2k(Jp2kBox):
 
         return data
 
-    def read_bands(self, reduce=0, layer=0, area=None, tile=None,
+    def read_bands(self, rlevel=0, layer=0, area=None, tile=None,
                    verbose=False):
         """Read a JPEG 2000 image.
 
@@ -917,8 +925,8 @@ class Jp2k(Jp2kBox):
         ----------
         layer : int, optional
             Number of quality layer to decode.
-        reduce : int, optional
-            Factor by which to reduce output resolution.
+        rlevel : int, optional
+            Factor by which to rlevel output resolution.
         area : tuple, optional
             Specifies decoding image area,
             (first_row, first_col, last_row, last_col)
@@ -941,7 +949,7 @@ class Jp2k(Jp2kBox):
         >>> import glymur
         >>> jfile = glymur.data.nemo()
         >>> jp = glymur.Jp2k(jfile)
-        >>> components_lst = jp.read_bands(reduce=1)
+        >>> components_lst = jp.read_bands(rlevel=1)
 
         Raises
         ------
@@ -952,7 +960,7 @@ class Jp2k(Jp2kBox):
             msg = "Requires openjp2 library."
             raise NotImplementedError(msg)
 
-        lst = self._read_common(reduce=reduce,
+        lst = self._read_common(rlevel=rlevel,
                                 layer=layer,
                                 area=area,
                                 tile=tile,
@@ -1006,8 +1014,8 @@ class Jp2k(Jp2kBox):
                     raise RuntimeError(msg)
                 fptr.seek(box[0].offset)
                 read_buffer = fptr.read(8)
-                (L, T) = struct.unpack('>I4s', read_buffer)
-                if L == 1:
+                (box_length, _) = struct.unpack('>I4s', read_buffer)
+                if box_length == 1:
                     # Seek past the XL field.
                     read_buffer = fptr.read(8)
                 codestream = Codestream(fptr, header_only=header_only)

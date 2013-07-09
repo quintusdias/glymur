@@ -49,7 +49,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P0_p0_01_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_01.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c0p0_01.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -62,7 +62,7 @@ class TestSuite(unittest.TestCase):
             # really know what to do with it.  Just ignore.
             warnings.simplefilter("ignore")
             jp2k = Jp2k(jfile)
-            jpdata = jp2k.read(reduce=0)
+            jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c0p0_02.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -72,7 +72,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P0_p0_03_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_03.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c0p0_03r0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -81,7 +81,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P0_p0_03_j2k_r1(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_03.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=1)
+        jpdata = jp2k.read(rlevel=1)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p0_03r1.pgx')
@@ -92,7 +92,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P0_p0_04_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=3)
+        jpdata = jp2k.read(rlevel=3)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p0_04.pgx')
@@ -105,7 +105,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P0_p0_05_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_05.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read_bands(reduce=3)
+        jpdata = jp2k.read_bands(rlevel=3)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p0_05.pgx')
@@ -117,7 +117,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P0_p0_06_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_06.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=3)
+        jpdata = jp2k.read(rlevel=3)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p0_06.pgx')
@@ -142,7 +142,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P0_p0_08_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_08.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=5)
+        jpdata = jp2k.read(rlevel=5)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p0_08.pgx')
@@ -154,7 +154,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P0_p0_09_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_09.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=2)
+        jpdata = jp2k.read(rlevel=2)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p0_09.pgx')
@@ -167,7 +167,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P0_p0_10_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_10.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p0_10.pgx')
@@ -179,7 +179,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P0_p0_11_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_11.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p0_11.pgx')
@@ -191,7 +191,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P0_p0_12_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_12.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p0_12.pgx')
@@ -203,7 +203,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P0_p0_13_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_13.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p0_13.pgx')
@@ -215,7 +215,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P0_p0_14_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_14.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=2)
+        jpdata = jp2k.read(rlevel=2)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p0_14.pgx')
@@ -227,7 +227,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P0_p0_15_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_15.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p0_15r0.pgx')
@@ -238,7 +238,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P0_p0_15_j2k_r1(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_15.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=1)
+        jpdata = jp2k.read(rlevel=1)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p0_15r1.pgx')
@@ -249,7 +249,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P0_p0_16_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_16.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p0_16.pgx')
@@ -260,7 +260,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P1_p1_01_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_01.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p1_01.pgx')
@@ -272,7 +272,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P1_p1_02_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_02.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=3)
+        jpdata = jp2k.read(rlevel=3)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p1_02.pgx')
@@ -288,7 +288,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P1_p1_03_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_03.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=3)
+        jpdata = jp2k.read(rlevel=3)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p1_03.pgx')
@@ -304,7 +304,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P1_p1_04_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p1_04r0.pgx')
@@ -318,7 +318,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P1_p1_04_j2k_r3(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=3)
+        jpdata = jp2k.read(rlevel=3)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p1_04r3.pgx')
@@ -332,7 +332,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P1_p1_05_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_05.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=4)
+        jpdata = jp2k.read(rlevel=4)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p1_05.pgx')
@@ -347,7 +347,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P1_p1_06_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=1)
+        jpdata = jp2k.read(rlevel=1)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p1_06.pgx')
@@ -362,7 +362,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C0P1_p1_07_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_07.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p1_07.pgx')
@@ -376,7 +376,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C1P0_p0_01_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_01.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_01_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -390,7 +390,7 @@ class TestSuite(unittest.TestCase):
             # really know what to do with it.  Just ignore.
             warnings.simplefilter("ignore")
             jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_02_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -400,7 +400,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C1P0_p0_03_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_03.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_03_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -410,7 +410,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C1P0_p0_04_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_04_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -498,7 +498,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C1P0_p0_08_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_08.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=1)
+        jpdata = jp2k.read(rlevel=1)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_08_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -515,7 +515,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C1P0_p0_09_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_09.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_09_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -524,7 +524,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C1P0_p0_10_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_10.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_10_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -541,7 +541,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C1P0_p0_11_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_11.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_11_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -551,7 +551,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C1P0_p0_12_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_12.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_12_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -561,7 +561,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C1P0_p0_13_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_13.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_13_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -582,7 +582,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C1P0_p0_14_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_14.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_14_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -599,7 +599,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C1P0_p0_15_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_15.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_15_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -608,7 +608,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C1P0_p0_16_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_16.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_16_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -617,7 +617,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C1P1_p1_01_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_01.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p1_01_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -626,7 +626,7 @@ class TestSuite(unittest.TestCase):
     def test_ETS_C1P1_p1_02_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_02.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p1_02_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -1140,51 +1140,51 @@ class TestSuite(unittest.TestCase):
     def test_NR_DEC_p1_04_j2k_50_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
         jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(0, 0, 1024, 1024), reduce=2)
-        odata = jp2k.read(reduce=2)
+        ssdata = jp2k.read(area=(0, 0, 1024, 1024), rlevel=2)
+        odata = jp2k.read(rlevel=2)
 
         np.testing.assert_array_equal(ssdata, odata[0:256, 0:256])
 
     def test_NR_DEC_p1_04_j2k_51_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
         jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(640, 512, 768, 640), reduce=2)
-        odata = jp2k.read(reduce=2)
+        ssdata = jp2k.read(area=(640, 512, 768, 640), rlevel=2)
+        odata = jp2k.read(rlevel=2)
         np.testing.assert_array_equal(ssdata, odata[160:192, 128:160])
 
     def test_NR_DEC_p1_04_j2k_52_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
         jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(896, 896, 1024, 1024), reduce=2)
-        odata = jp2k.read(reduce=2)
+        ssdata = jp2k.read(area=(896, 896, 1024, 1024), rlevel=2)
+        odata = jp2k.read(rlevel=2)
         np.testing.assert_array_equal(ssdata, odata[224:352, 224:352])
 
     def test_NR_DEC_p1_04_j2k_53_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
         jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(500, 100, 800, 300), reduce=2)
-        odata = jp2k.read(reduce=2)
+        ssdata = jp2k.read(area=(500, 100, 800, 300), rlevel=2)
+        odata = jp2k.read(rlevel=2)
         np.testing.assert_array_equal(ssdata, odata[125:200, 25:75])
 
     def test_NR_DEC_p1_04_j2k_54_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
         jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(520, 260, 600, 360), reduce=2)
-        odata = jp2k.read(reduce=2)
+        ssdata = jp2k.read(area=(520, 260, 600, 360), rlevel=2)
+        odata = jp2k.read(rlevel=2)
         np.testing.assert_array_equal(ssdata, odata[130:150, 65:90])
 
     def test_NR_DEC_p1_04_j2k_55_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
         jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(520, 260, 660, 360), reduce=2)
-        odata = jp2k.read(reduce=2)
+        ssdata = jp2k.read(area=(520, 260, 660, 360), rlevel=2)
+        odata = jp2k.read(rlevel=2)
         np.testing.assert_array_equal(ssdata, odata[130:165, 65:90])
 
     def test_NR_DEC_p1_04_j2k_56_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
         jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(520, 360, 600, 400), reduce=2)
-        odata = jp2k.read(reduce=2)
+        ssdata = jp2k.read(area=(520, 360, 600, 400), rlevel=2)
+        odata = jp2k.read(rlevel=2)
         np.testing.assert_array_equal(ssdata, odata[130:150, 90:100])
 
     def test_NR_DEC_p1_04_j2k_57_decode(self):
@@ -1201,8 +1201,8 @@ class TestSuite(unittest.TestCase):
         jp2k = Jp2k(jfile)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            tdata = jp2k.read(tile=63, reduce=2)  # last tile
-        odata = jp2k.read(reduce=2)
+            tdata = jp2k.read(tile=63, rlevel=2)  # last tile
+        odata = jp2k.read(rlevel=2)
         np.testing.assert_array_equal(tdata, odata[224:256, 224:256])
 
     def test_NR_DEC_p1_04_j2k_59_decode(self):
@@ -1219,8 +1219,8 @@ class TestSuite(unittest.TestCase):
         jp2k = Jp2k(jfile)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            tdata = jp2k.read(tile=12, reduce=1)  # 2nd row, 5th column
-        odata = jp2k.read(reduce=1)
+            tdata = jp2k.read(tile=12, rlevel=1)  # 2nd row, 5th column
+        odata = jp2k.read(rlevel=1)
         np.testing.assert_array_equal(tdata, odata[64:128, 256:320])
 
     @unittest.skip("fprintf stderr output in r2343.")
@@ -1283,45 +1283,45 @@ class TestSuite(unittest.TestCase):
     def test_NR_DEC_p1_06_j2k_68_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
         jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(0, 0, 12, 12), reduce=1)
-        odata = jp2k.read(reduce=1)
+        ssdata = jp2k.read(area=(0, 0, 12, 12), rlevel=1)
+        odata = jp2k.read(rlevel=1)
         np.testing.assert_array_equal(ssdata, odata[0:6, 0:6])
 
     @unittest.skip("fprintf stderr output in r2343.")
     def test_NR_DEC_p1_06_j2k_69_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
         jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(1, 8, 8, 11), reduce=1)
+        ssdata = jp2k.read(area=(1, 8, 8, 11), rlevel=1)
         self.assertEqual(ssdata.shape, (3, 2, 3))
 
     def test_NR_DEC_p1_06_j2k_70_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
         jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(9, 9, 12, 12), reduce=1)
+        ssdata = jp2k.read(area=(9, 9, 12, 12), rlevel=1)
         self.assertEqual(ssdata.shape, (1, 1, 3))
 
     def test_NR_DEC_p1_06_j2k_71_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
         jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(10, 4, 12, 10), reduce=1)
+        ssdata = jp2k.read(area=(10, 4, 12, 10), rlevel=1)
         self.assertEqual(ssdata.shape, (1, 3, 3))
 
     def test_NR_DEC_p1_06_j2k_72_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
         jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(3, 3, 9, 9), reduce=1)
+        ssdata = jp2k.read(area=(3, 3, 9, 9), rlevel=1)
         self.assertEqual(ssdata.shape, (3, 3, 3))
 
     def test_NR_DEC_p1_06_j2k_73_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
         jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(4, 4, 7, 7), reduce=1)
+        ssdata = jp2k.read(area=(4, 4, 7, 7), rlevel=1)
         self.assertEqual(ssdata.shape, (2, 2, 3))
 
     def test_NR_DEC_p1_06_j2k_74_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
         jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(4, 4, 5, 5), reduce=1)
+        ssdata = jp2k.read(area=(4, 4, 5, 5), rlevel=1)
         self.assertEqual(ssdata.shape, (1, 1, 3))
 
     def test_NR_DEC_p1_06_j2k_75_decode(self):
@@ -1329,7 +1329,7 @@ class TestSuite(unittest.TestCase):
         jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
         jp2k = Jp2k(jfile)
         with self.assertRaises((IOError, OSError)) as ce:
-            ssdata = jp2k.read(area=(9, 9, 12, 12), reduce=2)
+            ssdata = jp2k.read(area=(9, 9, 12, 12), rlevel=2)
 
     @unittest.skip("fprintf stderr output in r2343.")
     def test_NR_DEC_p1_06_j2k_76_decode(self):
@@ -1378,7 +1378,7 @@ class TestSuite(unittest.TestCase):
         jp2k = Jp2k(jfile)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            tiledata = jp2k.read(tile=0, reduce=2)
+            tiledata = jp2k.read(tile=0, rlevel=2)
 
     @unittest.skip("fprintf stderr output in r2343.")
     def test_NR_DEC_p1_06_j2k_81_decode(self):
@@ -1387,7 +1387,7 @@ class TestSuite(unittest.TestCase):
         jp2k = Jp2k(jfile)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            tiledata = jp2k.read(tile=5, reduce=2)
+            tiledata = jp2k.read(tile=5, rlevel=2)
 
     @unittest.skip("fprintf stderr output in r2343.")
     def test_NR_DEC_p1_06_j2k_82_decode(self):
@@ -1396,7 +1396,7 @@ class TestSuite(unittest.TestCase):
         jp2k = Jp2k(jfile)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            tiledata = jp2k.read(tile=9, reduce=2)
+            tiledata = jp2k.read(tile=9, rlevel=2)
 
     @unittest.skip("fprintf stderr output in r2343.")
     def test_NR_DEC_p1_06_j2k_83_decode(self):
@@ -1406,14 +1406,14 @@ class TestSuite(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             with self.assertRaises((IOError, OSError)) as ce:
-                tiledata = jp2k.read(tile=15, reduce=2)
+                tiledata = jp2k.read(tile=15, rlevel=2)
 
     @unittest.skip("fprintf stderr output in r2343.")
     def test_NR_DEC_p1_06_j2k_84_decode(self):
         # Just read the data, don't bother verifying.
         jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
         jp2k = Jp2k(jfile)
-        data = jp2k.read(reduce=4)
+        data = jp2k.read(rlevel=4)
 
     def test_NR_DEC_p0_04_j2k_85_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
@@ -1460,43 +1460,43 @@ class TestSuite(unittest.TestCase):
     def test_NR_DEC_p0_04_j2k_91_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
         jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(0, 0, 256, 256), reduce=2)
-        fulldata = jp2k.read(reduce=2)
+        ssdata = jp2k.read(area=(0, 0, 256, 256), rlevel=2)
+        fulldata = jp2k.read(rlevel=2)
         np.testing.assert_array_equal(fulldata[0:64, 0:64], ssdata)
 
     def test_NR_DEC_p0_04_j2k_92_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
         jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(0, 128, 128, 256), reduce=2)
-        fulldata = jp2k.read(reduce=2)
+        ssdata = jp2k.read(area=(0, 128, 128, 256), rlevel=2)
+        fulldata = jp2k.read(rlevel=2)
         np.testing.assert_array_equal(fulldata[0:32, 32:64], ssdata)
 
     def test_NR_DEC_p0_04_j2k_93_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
         jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(10, 50, 200, 120), reduce=2)
-        fulldata = jp2k.read(reduce=2)
+        ssdata = jp2k.read(area=(10, 50, 200, 120), rlevel=2)
+        fulldata = jp2k.read(rlevel=2)
         np.testing.assert_array_equal(fulldata[3:50, 13:30], ssdata)
 
     def test_NR_DEC_p0_04_j2k_94_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
         jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(150, 10, 210, 190), reduce=2)
-        fulldata = jp2k.read(reduce=2)
+        ssdata = jp2k.read(area=(150, 10, 210, 190), rlevel=2)
+        fulldata = jp2k.read(rlevel=2)
         np.testing.assert_array_equal(fulldata[38:53, 3:48], ssdata)
 
     def test_NR_DEC_p0_04_j2k_95_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
         jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(80, 100, 150, 200), reduce=2)
-        fulldata = jp2k.read(reduce=2)
+        ssdata = jp2k.read(area=(80, 100, 150, 200), rlevel=2)
+        fulldata = jp2k.read(rlevel=2)
         np.testing.assert_array_equal(fulldata[20:38, 25:50], ssdata)
 
     def test_NR_DEC_p0_04_j2k_96_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
         jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(20, 150, 50, 200), reduce=2)
-        fulldata = jp2k.read(reduce=2)
+        ssdata = jp2k.read(area=(20, 150, 50, 200), rlevel=2)
+        fulldata = jp2k.read(rlevel=2)
         np.testing.assert_array_equal(fulldata[5:13, 38:50], ssdata)
 
 
@@ -7360,7 +7360,7 @@ class TestSuite15(unittest.TestCase):
     def test_ETS_C0P0_p0_01_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_01.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c0p0_01.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -7373,7 +7373,7 @@ class TestSuite15(unittest.TestCase):
             # really know what to do with it.  Just ignore.
             warnings.simplefilter("ignore")
             jp2k = Jp2k(jfile)
-            jpdata = jp2k.read(reduce=0)
+            jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c0p0_02.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -7382,7 +7382,7 @@ class TestSuite15(unittest.TestCase):
     def test_ETS_C0P0_p0_09_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_09.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=2)
+        jpdata = jp2k.read(rlevel=2)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p0_09.pgx')
@@ -7394,7 +7394,7 @@ class TestSuite15(unittest.TestCase):
     def test_ETS_C0P0_p0_11_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_11.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p0_11.pgx')
@@ -7406,7 +7406,7 @@ class TestSuite15(unittest.TestCase):
     def test_ETS_C0P0_p0_12_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_12.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p0_12.pgx')
@@ -7417,7 +7417,7 @@ class TestSuite15(unittest.TestCase):
     def test_ETS_C0P0_p0_16_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_16.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p0_16.pgx')
@@ -7428,7 +7428,7 @@ class TestSuite15(unittest.TestCase):
     def test_ETS_C0P1_p1_01_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_01.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p1_01.pgx')
@@ -7439,7 +7439,7 @@ class TestSuite15(unittest.TestCase):
     def test_ETS_C1P0_p0_01_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_01.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_01_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -7453,7 +7453,7 @@ class TestSuite15(unittest.TestCase):
             # really know what to do with it.  Just ignore.
             warnings.simplefilter("ignore")
             jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_02_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -7463,7 +7463,7 @@ class TestSuite15(unittest.TestCase):
     def test_ETS_C1P0_p0_03_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_03.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_03_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -7473,7 +7473,7 @@ class TestSuite15(unittest.TestCase):
     def test_ETS_C1P0_p0_04_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_04_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -7493,7 +7493,7 @@ class TestSuite15(unittest.TestCase):
     def test_ETS_C1P0_p0_08_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_08.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=1)
+        jpdata = jp2k.read(rlevel=1)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_08_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -7510,7 +7510,7 @@ class TestSuite15(unittest.TestCase):
     def test_ETS_C1P0_p0_09_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_09.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_09_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -7522,7 +7522,7 @@ class TestSuite15(unittest.TestCase):
         with warnings.catch_warnings():
             # This file has an invalid ICC profile
             warnings.simplefilter("ignore")
-            jpdata = jp2k.read(reduce=0)
+            jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_10_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -7539,7 +7539,7 @@ class TestSuite15(unittest.TestCase):
     def test_ETS_C1P0_p0_11_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_11.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_11_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -7549,7 +7549,7 @@ class TestSuite15(unittest.TestCase):
     def test_ETS_C1P0_p0_12_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_12.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_12_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -7559,7 +7559,7 @@ class TestSuite15(unittest.TestCase):
     def test_ETS_C1P0_p0_13_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_13.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_13_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -7580,7 +7580,7 @@ class TestSuite15(unittest.TestCase):
     def test_ETS_C1P0_p0_14_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_14.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_14_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -7597,7 +7597,7 @@ class TestSuite15(unittest.TestCase):
     def test_ETS_C1P0_p0_15_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_15.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_15_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -7606,7 +7606,7 @@ class TestSuite15(unittest.TestCase):
     def test_ETS_C1P0_p0_16_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_16.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_16_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -7615,7 +7615,7 @@ class TestSuite15(unittest.TestCase):
     def test_ETS_C1P1_p1_01_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_01.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p1_01_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -7624,7 +7624,7 @@ class TestSuite15(unittest.TestCase):
     def test_ETS_C1P1_p1_02_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_02.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(reduce=0)
+        jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p1_02_0.pgx')
         pgxdata = read_pgx(pgxfile)

@@ -88,11 +88,11 @@ class TestJp2k(unittest.TestCase):
         with self.assertWarns(UserWarning) as cw:
             jp2k = Jp2k(self._bad_xml_file)
 
-    def test_reduce_max(self):
-        # Verify that reduce=-1 gets us the lowest resolution image
+    def test_rlevel_max(self):
+        # Verify that rlevel=-1 gets us the lowest resolution image
         j = Jp2k(self.j2kfile)
-        thumbnail1 = j.read(reduce=-1)
-        thumbnail2 = j.read(reduce=5)
+        thumbnail1 = j.read(rlevel=-1)
+        thumbnail2 = j.read(rlevel=5)
         np.testing.assert_array_equal(thumbnail1, thumbnail2)
         self.assertEqual(thumbnail1.shape, (25, 15, 3))
 
@@ -120,11 +120,11 @@ class TestJp2k(unittest.TestCase):
             # End corner must be >= start corner
             d = j.read(area=(10, 10, 8, 8))
 
-    def test_reduce_too_high(self):
+    def test_rlevel_too_high(self):
         # Verify that we error out appropriately if not given a JPEG 2000 file.
         j = Jp2k(self.jp2file)
         with self.assertRaises(IOError):
-            d = j.read(reduce=6)
+            d = j.read(rlevel=6)
 
     def test_not_JPEG2000(self):
         # Verify that we error out appropriately if not given a JPEG 2000 file.
@@ -167,7 +167,7 @@ class TestJp2k(unittest.TestCase):
     def test_write_cprl(self):
         # Issue 17
         j = Jp2k(self.jp2file)
-        expdata = j.read(reduce=1)
+        expdata = j.read(rlevel=1)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             ofile = Jp2k(tfile.name, 'wb')
             ofile.write(expdata, prog='CPRL')
@@ -529,7 +529,7 @@ class TestJp2k(unittest.TestCase):
     def test_asoc_label_box(self):
         # Construct a fake file with an asoc and a label box, as
         # OpenJPEG doesn't have such a file.
-        data = Jp2k(self.jp2file).read(reduce=1)
+        data = Jp2k(self.jp2file).read(rlevel=1)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             j = Jp2k(tfile.name, 'wb')
             j.write(data)
@@ -600,10 +600,10 @@ class TestJp2k(unittest.TestCase):
                                         :\sdx=1\sdy=0''', re.VERBOSE)
                 if sys.hexversion < 0x03020000:
                     with self.assertRaisesRegexp((IOError, OSError), regexp) as ce:
-                        d = j.read(reduce=1)
+                        d = j.read(rlevel=1)
                 else:
                     with self.assertRaisesRegex((IOError, OSError), regexp) as ce:
-                        d = j.read(reduce=1)
+                        d = j.read(rlevel=1)
 
     def test_xmp_attribute(self):
         # Verify that we can read the XMP packet in our shipping example file.
@@ -699,7 +699,7 @@ class TestJp2k15(unittest.TestCase):
         # and OPJ_DATA_ROOT is not set.  We need at least one
         # working JP2 test.
         j2k = Jp2k(self.jp2file)
-        d = j2k.read(reduce=1)
+        d = j2k.read(rlevel=1)
 
     def test_basic_j2k(self):
         # This test is only useful when openjp2 is not available

@@ -157,7 +157,7 @@ class TestSuiteNegative(unittest.TestCase):
     def test_precinct_size_not_multiple_of_two(self):
         # Seems like precinct sizes should be powers of two.
         ifile = Jp2k(self.j2kfile)
-        data = ifile.read(reduce=2)
+        data = ifile.read(rlevel=2)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             ofile = Jp2k(tfile.name, 'wb')
             with self.assertRaises(IOError) as ce:
@@ -166,7 +166,7 @@ class TestSuiteNegative(unittest.TestCase):
     def test_codeblock_size_not_multiple_of_two(self):
         # Seems like code block sizes should be powers of two.
         ifile = Jp2k(self.j2kfile)
-        data = ifile.read(reduce=2)
+        data = ifile.read(rlevel=2)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             ofile = Jp2k(tfile.name, 'wb')
             with self.assertRaises(IOError) as ce:
@@ -176,7 +176,7 @@ class TestSuiteNegative(unittest.TestCase):
         # Seems like code block sizes should never exceed half that of
         # precinct size.
         ifile = Jp2k(self.j2kfile)
-        data = ifile.read(reduce=2)
+        data = ifile.read(rlevel=2)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             ofile = Jp2k(tfile.name, 'wb')
             with self.assertRaises(IOError) as ce:
