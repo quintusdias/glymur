@@ -121,19 +121,15 @@ import warnings
 import sys
 if sys.hexversion <= 0x03000000:
     from ConfigParser import SafeConfigParser as ConfigParser
-    from ConfigParser import NoOptionError
 else:
     from configparser import ConfigParser
-    from configparser import NoOptionError
 
 OPENJP2, OPENJPEG = config()
 if OPENJP2 is None and OPENJPEG is None:
-    msg = "Neither the glymur configuration file could not be located "
-    msg += "nor could openjpeg 1.5.1 be located.  Glymur can only "
-    msg += "operate under extremely degraded conditions."
-    warnings.warn(msg, UserWarning)
-
-import numpy as np
+    wmsg = "Neither the glymur configuration file could not be located "
+    wmsg += "nor could openjpeg 1.5.1 be located.  Glymur can only "
+    wmsg += "operate under extremely degraded conditions."
+    warnings.warn(wmsg, UserWarning)
 
 # Progression order
 LRCP = 0
@@ -668,50 +664,50 @@ if OPENJP2 is not None:
     OPENJP2.opj_create_decompress.argtypes = [codec_format_t]
     OPENJP2.opj_create_decompress.restype = codec_t_p
 
-    argtypes = [codec_t_p, stream_t_p, ctypes.POINTER(image_t)]
-    OPENJP2.opj_decode.argtypes = argtypes
+    ARGTYPES = [codec_t_p, stream_t_p, ctypes.POINTER(image_t)]
+    OPENJP2.opj_decode.argtypes = ARGTYPES
 
-    argtypes = [codec_t_p, ctypes.c_uint32,
+    ARGTYPES = [codec_t_p, ctypes.c_uint32,
                 ctypes.POINTER(ctypes.c_uint8),
                 ctypes.c_uint32,
                 stream_t_p]
-    OPENJP2.opj_decode_tile_data.argtypes = argtypes
+    OPENJP2.opj_decode_tile_data.argtypes = ARGTYPES
 
-    argtypes = [ctypes.POINTER(ctypes.POINTER(codestream_info_v2_t))]
-    OPENJP2.opj_destroy_cstr_info.argtypes = argtypes
+    ARGTYPES = [ctypes.POINTER(ctypes.POINTER(codestream_info_v2_t))]
+    OPENJP2.opj_destroy_cstr_info.argtypes = ARGTYPES
     OPENJP2.opj_destroy_cstr_info.restype = ctypes.c_void_p
 
-    argtypes = [codec_t_p, stream_t_p]
-    OPENJP2.opj_encode.argtypes = argtypes
+    ARGTYPES = [codec_t_p, stream_t_p]
+    OPENJP2.opj_encode.argtypes = ARGTYPES
 
     OPENJP2.opj_get_cstr_info.argtypes = [codec_t_p]
     OPENJP2.opj_get_cstr_info.restype = ctypes.POINTER(codestream_info_v2_t)
 
-    argtypes = [codec_t_p,
+    ARGTYPES = [codec_t_p,
                 stream_t_p,
                 ctypes.POINTER(image_t),
                 ctypes.c_uint32]
-    OPENJP2.opj_get_decoded_tile.argtypes = argtypes
+    OPENJP2.opj_get_decoded_tile.argtypes = ARGTYPES
 
-    argtypes = [ctypes.c_uint32,
+    ARGTYPES = [ctypes.c_uint32,
                 ctypes.POINTER(image_comptparm_t),
                 color_space_t]
-    OPENJP2.opj_image_create.argtypes = argtypes
+    OPENJP2.opj_image_create.argtypes = ARGTYPES
     OPENJP2.opj_image_create.restype = ctypes.POINTER(image_t)
 
-    argtypes = [ctypes.c_uint32,
+    ARGTYPES = [ctypes.c_uint32,
                 ctypes.POINTER(image_comptparm_t),
                 color_space_t]
-    OPENJP2.opj_image_tile_create.argtypes = argtypes
+    OPENJP2.opj_image_tile_create.argtypes = ARGTYPES
     OPENJP2.opj_image_tile_create.restype = ctypes.POINTER(image_t)
 
     OPENJP2.opj_image_destroy.argtypes = [ctypes.POINTER(image_t)]
 
-    argtypes = [stream_t_p, codec_t_p,
+    ARGTYPES = [stream_t_p, codec_t_p,
                 ctypes.POINTER(ctypes.POINTER(image_t))]
-    OPENJP2.opj_read_header.argtypes = argtypes
+    OPENJP2.opj_read_header.argtypes = ARGTYPES
 
-    argtypes = [codec_t_p,
+    ARGTYPES = [codec_t_p,
                 stream_t_p,
                 ctypes.POINTER(ctypes.c_uint32),
                 ctypes.POINTER(ctypes.c_uint32),
@@ -721,37 +717,37 @@ if OPENJP2 is not None:
                 ctypes.POINTER(ctypes.c_int32),
                 ctypes.POINTER(ctypes.c_uint32),
                 ctypes.POINTER(bool_t)]
-    OPENJP2.opj_read_tile_header.argtypes = argtypes
+    OPENJP2.opj_read_tile_header.argtypes = ARGTYPES
 
-    argtypes = [codec_t_p, ctypes.POINTER(image_t), ctypes.c_int32,
+    ARGTYPES = [codec_t_p, ctypes.POINTER(image_t), ctypes.c_int32,
                 ctypes.c_int32, ctypes.c_int32, ctypes.c_int32]
-    OPENJP2.opj_set_decode_area.argtypes = argtypes
+    OPENJP2.opj_set_decode_area.argtypes = ARGTYPES
 
-    argtypes = [ctypes.POINTER(cparameters_t)]
-    OPENJP2.opj_set_default_encoder_parameters.argtypes = argtypes
+    ARGTYPES = [ctypes.POINTER(cparameters_t)]
+    OPENJP2.opj_set_default_encoder_parameters.argtypes = ARGTYPES
 
-    argtypes = [ctypes.POINTER(dparameters_t)]
-    OPENJP2.opj_set_default_decoder_parameters.argtypes = argtypes
+    ARGTYPES = [ctypes.POINTER(dparameters_t)]
+    OPENJP2.opj_set_default_decoder_parameters.argtypes = ARGTYPES
 
-    argtypes = [codec_t_p, ctypes.c_void_p, ctypes.c_void_p]
-    OPENJP2.opj_set_error_handler.argtypes = argtypes
-    OPENJP2.opj_set_info_handler.argtypes = argtypes
-    OPENJP2.opj_set_warning_handler.argtypes = argtypes
+    ARGTYPES = [codec_t_p, ctypes.c_void_p, ctypes.c_void_p]
+    OPENJP2.opj_set_error_handler.argtypes = ARGTYPES
+    OPENJP2.opj_set_info_handler.argtypes = ARGTYPES
+    OPENJP2.opj_set_warning_handler.argtypes = ARGTYPES
 
-    argtypes = [codec_t_p, ctypes.POINTER(dparameters_t)]
-    OPENJP2.opj_setup_decoder.argtypes = argtypes
+    ARGTYPES = [codec_t_p, ctypes.POINTER(dparameters_t)]
+    OPENJP2.opj_setup_decoder.argtypes = ARGTYPES
 
-    argtypes = [codec_t_p,
+    ARGTYPES = [codec_t_p,
                 ctypes.POINTER(cparameters_t),
                 ctypes.POINTER(image_t)]
-    OPENJP2.opj_setup_encoder.argtypes = argtypes
+    OPENJP2.opj_setup_encoder.argtypes = ARGTYPES
 
-    argtypes = [ctypes.c_char_p, ctypes.c_int32]
-    OPENJP2.opj_stream_create_default_file_stream_v3.argtypes = argtypes
+    ARGTYPES = [ctypes.c_char_p, ctypes.c_int32]
+    OPENJP2.opj_stream_create_default_file_stream_v3.argtypes = ARGTYPES
     OPENJP2.opj_stream_create_default_file_stream_v3.restype = stream_t_p
 
-    argtypes = [codec_t_p, ctypes.POINTER(image_t), stream_t_p]
-    OPENJP2.opj_start_compress.argtypes = argtypes
+    ARGTYPES = [codec_t_p, ctypes.POINTER(image_t), stream_t_p]
+    OPENJP2.opj_start_compress.argtypes = ARGTYPES
 
     OPENJP2.opj_end_compress.argtypes = [codec_t_p, stream_t_p]
     OPENJP2.opj_end_decompress.argtypes = [codec_t_p, stream_t_p]
@@ -759,12 +755,12 @@ if OPENJP2 is not None:
     OPENJP2.opj_stream_destroy_v3.argtypes = [stream_t_p]
     OPENJP2.opj_destroy_codec.argtypes = [codec_t_p]
 
-    argtypes = [codec_t_p,
+    ARGTYPES = [codec_t_p,
                 ctypes.c_uint32,
                 ctypes.POINTER(ctypes.c_uint8),
                 ctypes.c_uint32,
                 stream_t_p]
-    OPENJP2.opj_write_tile.argtypes = argtypes
+    OPENJP2.opj_write_tile.argtypes = ARGTYPES
 
 
 def check_error(status):
@@ -786,7 +782,7 @@ def check_error(status):
 
 # These library functions all return an error status.  Circumvent that and
 # force # them to raise an exception.
-fcns = ['opj_decode', 'opj_decode_tile_data', 'opj_end_compress',
+FCNS = ['opj_decode', 'opj_decode_tile_data', 'opj_end_compress',
         'opj_encode', 'opj_end_decompress', 'opj_get_decoded_tile',
         'opj_read_header', 'opj_read_tile_header', 'opj_set_decode_area',
         'opj_set_error_handler', 'opj_set_info_handler',
@@ -794,7 +790,7 @@ fcns = ['opj_decode', 'opj_decode_tile_data', 'opj_end_compress',
         'opj_setup_decoder', 'opj_setup_encoder', 'opj_start_compress',
         'opj_write_tile']
 if OPENJP2 is not None:
-    for fcn in fcns:
+    for fcn in FCNS:
         setattr(getattr(OPENJP2, fcn), 'restype', check_error)
 
 
@@ -1137,29 +1133,29 @@ def read_tile_header(codec, stream):
     """
     tile_index = ctypes.c_uint32()
     data_size = ctypes.c_uint32()
-    x0 = ctypes.c_int32()
-    y0 = ctypes.c_int32()
-    x1 = ctypes.c_int32()
-    y1 = ctypes.c_int32()
+    col0 = ctypes.c_int32()
+    row0 = ctypes.c_int32()
+    col1 = ctypes.c_int32()
+    row1 = ctypes.c_int32()
     ncomps = ctypes.c_uint32()
     go_on = bool_t()
     OPENJP2.opj_read_tile_header(codec,
                                   stream,
                                   ctypes.byref(tile_index),
                                   ctypes.byref(data_size),
-                                  ctypes.byref(x0),
-                                  ctypes.byref(y0),
-                                  ctypes.byref(x1),
-                                  ctypes.byref(y1),
+                                  ctypes.byref(col0),
+                                  ctypes.byref(row0),
+                                  ctypes.byref(col1),
+                                  ctypes.byref(row1),
                                   ctypes.byref(ncomps),
                                   ctypes.byref(go_on))
     go_on = bool(go_on.value)
     return (tile_index.value,
             data_size.value,
-            x0.value,
-            y0.value,
-            x1.value,
-            y1.value,
+            col0.value,
+            row0.value,
+            col1.value,
+            row1.value,
             ncomps.value,
             go_on)
 
@@ -1391,9 +1387,10 @@ def stream_create_default_file_stream_v3(fname, a_read_stream):
     stream : stream_t
         An OpenJPEG file stream.
     """
-    tf = 1 if a_read_stream else 0
-    fn = ctypes.c_char_p(fname.encode())
-    stream = OPENJP2.opj_stream_create_default_file_stream_v3(fn, tf)
+    read_stream = 1 if a_read_stream else 0
+    file_argument = ctypes.c_char_p(fname.encode())
+    stream = OPENJP2.opj_stream_create_default_file_stream_v3(file_argument,
+                                                              read_stream)
     return stream
 
 
