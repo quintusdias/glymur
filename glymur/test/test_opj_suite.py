@@ -34,7 +34,7 @@ except:
     raise
 
 
-@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
 @unittest.skipIf(data_root is None,
                  "OPJ_DATA_ROOT environment variable not set")
@@ -7333,7 +7333,7 @@ class TestSuiteDump(unittest.TestCase):
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
 
-@unittest.skipIf(glymur.lib.openjpeg._OPENJPEG is None,
+@unittest.skipIf(glymur.lib.openjpeg.OPENJPEG is None,
                  "Missing openjpeg library.")
 @unittest.skipIf(data_root is None,
                  "OPJ_DATA_ROOT environment variable not set")
@@ -7343,13 +7343,13 @@ class TestSuite15(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Monkey patch the package so as to use OPENJPEG instead of OPENJP2
-        cls.openjp2 = glymur.lib.openjp2._OPENJP2
-        glymur.lib.openjp2._OPENJP2 = None
+        cls.openjp2 = glymur.lib.openjp2.OPENJP2
+        glymur.lib.openjp2.OPENJP2 = None
 
     @classmethod
     def tearDownClass(cls):
         # Restore OPENJP2
-        glymur.lib.openjp2._OPENJP2 = cls.openjp2
+        glymur.lib.openjp2.OPENJP2 = cls.openjp2
 
     def setUp(self):
         pass

@@ -21,7 +21,7 @@ from glymur.lib import openjp2 as opj2
 
 
 @unittest.skip("Cannot work when both OPENJPEG and OPENJP2 are both present.")
-@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Needs openjp2 library first before these tests make sense.")
 @unittest.skipIf(sys.hexversion < 0x03020000,
                  "Uses features introduced in 3.2.")
@@ -55,7 +55,7 @@ class TestSuite(unittest.TestCase):
             filename = os.path.join(configdir, 'glymurrc')
             with open(filename, 'wb') as tfile:
                 tfile.write('[library]\n'.encode())
-                libloc = glymur.lib.openjp2._OPENJP2._name
+                libloc = glymur.lib.openjp2.OPENJP2._name
                 line = 'openjp2: {0}\n'.format(libloc)
                 tfile.write(line.encode())
                 tfile.flush()

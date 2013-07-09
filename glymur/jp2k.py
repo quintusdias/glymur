@@ -18,13 +18,13 @@ import numpy as np
 from .codestream import Codestream
 from .core import *
 from .jp2box import *
-from .lib import openjpeg as opj
-from .lib import openjp2 as opj2
+from .lib import _openjpeg as _opj
+from .lib import _openjp2 as _opj2
 
-_cspace_map = {'rgb': opj2._CLRSPC_SRGB,
-               'gray': opj2._CLRSPC_GRAY,
-               'grey': opj2._CLRSPC_GRAY,
-               'ycc': opj2._CLRSPC_YCC}
+_cspace_map = {'rgb': _opj2.CLRSPC_SRGB,
+               'gray': _opj2.CLRSPC_GRAY,
+               'grey': _opj2.CLRSPC_GRAY,
+               'ycc': _opj2.CLRSPC_YCC}
 
 # Setup the default callback handlers.  See the callback functions subsection
 # in the ctypes section of the Python documentation for a solid explanation of
@@ -34,7 +34,7 @@ _CMPFUNC = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_char_p, ctypes.c_void_p)
 
 def _default_error_handler(msg, client_data):
     msg = "OpenJPEG library error:  {0}".format(msg.decode('utf-8').rstrip())
-    opj2._set_error_message(msg)
+    _opj2.set_error_message(msg)
 
 
 def _default_info_handler(msg, client_data):
@@ -113,12 +113,12 @@ class Jp2k(Jp2kBox):
             buffer = f.read(2)
             signature, = struct.unpack('>H', buffer)
             if signature == 0xff4f:
-                self._codec_format = opj2._CODEC_J2K
+                self._codec_format = _opj2.CODEC_J2K
                 # That's it, we're done.  The codestream object is only
                 # produced upon explicit request.
                 return
 
-            self._codec_format = opj2._CODEC_JP2
+            self._codec_format = _opj2.CODEC_JP2
 
             # Should be JP2.
             # First 4 bytes should be 12, the length of the 'jP  ' box.
@@ -210,17 +210,17 @@ class Jp2k(Jp2kBox):
         >>> j.write(data.astype(np.uint8))
         """
 
-        cparams = opj2._set_default_encoder_parameters()
+        cparams = _opj2.set_default_encoder_parameters()
 
         outfile = self.filename.encode()
-        n = opj2._PATH_LEN - len(outfile)
+        n = _opj2.PATH_LEN - len(outfile)
         outfile += b'0' * n
         cparams.outfile = outfile
 
         if self.filename[-4:].lower() == '.jp2':
-            codec_fmt = opj2._CODEC_JP2
+            codec_fmt = _opj2.CODEC_JP2
         else:
-            codec_fmt = opj2._CODEC_J2K
+            codec_fmt = _opj2.CODEC_J2K
 
         cparams.cod_format = codec_fmt
 
@@ -304,7 +304,7 @@ class Jp2k(Jp2kBox):
         if tilesize is not None:
             cparams.cp_tdx = tilesize[1]
             cparams.cp_tdy = tilesize[0]
-            cparams.tile_size_on = opj2._TRUE
+            cparams.tile_size_on = _opj2.TRUE
 
         if cratios is not None and psnr is not None:
             msg = "Cannot specify cratios and psnr together."
@@ -323,12 +323,12 @@ class Jp2k(Jp2kBox):
 
         if colorspace is None:
             if img_array.shape[2] == 1 or img_array.shape[2] == 2:
-                colorspace = opj2._CLRSPC_GRAY
+                colorspace = _opj2.CLRSPC_GRAY
             else:
                 # No YCC unless specifically told to do so.
-                colorspace = opj2._CLRSPC_SRGB
+                colorspace = _opj2.CLRSPC_SRGB
         else:
-            if codec_fmt == opj2._CODEC_J2K:
+            if codec_fmt == _opj2.CODEC_J2K:
                 raise IOError('Do not specify a colorspace with J2K.')
             colorspace = colorspace.lower()
             if colorspace not in ('rgb', 'grey', 'gray'):
@@ -341,12 +341,12 @@ class Jp2k(Jp2kBox):
                 colorspace = _cspace_map[colorspace]
 
         if mct is None:
-            if colorspace == opj2._CLRSPC_SRGB:
+            if colorspace == _opj2.CLRSPC_SRGB:
                 cparams.tcp_mct = 1
             else:
                 cparams.tcp_mct = 0
         else:
-            if mct and colorspace == opj2._CLRSPC_GRAY:
+            if mct and colorspace == _opj2.CLRSPC_GRAY:
                 msg = "Cannot specify usage of the multi component transform "
                 msg += "if the colorspace is gray."
                 raise IOError(msg)
@@ -359,7 +359,7 @@ class Jp2k(Jp2kBox):
         else:
             raise RuntimeError("unhandled datatype")
 
-        comptparms = (opj2._image_comptparm_t * num_comps)()
+        comptparms = (_opj2.image_comptparm_t * num_comps)()
         for j in range(num_comps):
             comptparms[j].dx = cparams.subsampling_dx
             comptparms[j].dy = cparams.subsampling_dy
@@ -371,7 +371,7 @@ class Jp2k(Jp2kBox):
             comptparms[j].bpp = comp_prec
             comptparms[j].sgnd = 0
 
-        image = opj2._image_create(comptparms, colorspace)
+        image = _opj2.image_create(comptparms, colorspace)
 
         # set image offset and reference grid
         image.contents.x0 = cparams.image_offset_x0
@@ -388,23 +388,23 @@ class Jp2k(Jp2kBox):
             src = layer.ctypes.data
             ctypes.memmove(dest, src, layer.nbytes)
 
-        codec = opj2._create_compress(codec_fmt)
+        codec = _opj2.create_compress(codec_fmt)
 
         if verbose:
-            opj2._set_info_handler(codec, _info_callback)
+            _opj2.set_info_handler(codec, _info_callback)
         else:
-            opj2._set_info_handler(codec, None)
+            _opj2.set_info_handler(codec, None)
 
-        opj2._set_warning_handler(codec, _warning_callback)
-        opj2._set_error_handler(codec, _error_callback)
-        opj2._setup_encoder(codec, cparams, image)
-        strm = opj2._stream_create_default_file_stream_v3(self.filename, False)
-        opj2._start_compress(codec, image, strm)
-        opj2._encode(codec, strm)
-        opj2._end_compress(codec, strm)
-        opj2._stream_destroy_v3(strm)
-        opj2._destroy_codec(codec)
-        opj2._image_destroy(image)
+        _opj2.set_warning_handler(codec, _warning_callback)
+        _opj2.set_error_handler(codec, _error_callback)
+        _opj2.setup_encoder(codec, cparams, image)
+        strm = _opj2.stream_create_default_file_stream_v3(self.filename, False)
+        _opj2.start_compress(codec, image, strm)
+        _opj2.encode(codec, strm)
+        _opj2.end_compress(codec, strm)
+        _opj2.stream_destroy_v3(strm)
+        _opj2.destroy_codec(codec)
+        _opj2.image_destroy(image)
 
         self._parse()
 
@@ -589,7 +589,7 @@ class Jp2k(Jp2kBox):
         >>> thumbnail.shape
         (728, 1296, 3)
         """
-        if opj2._OPENJP2 is not None:
+        if _opj2.OPENJP2 is not None:
             img = self._read_openjp2(**kwargs)
         else:
             img = self._read_openjpeg(**kwargs)
@@ -629,38 +629,38 @@ class Jp2k(Jp2kBox):
 
         with ExitStack() as stack:
             # Set decoding parameters.
-            dparameters = opj.dparameters_t()
-            opj._set_default_decoder_parameters(ctypes.byref(dparameters))
+            dparameters = _opj.dparameters_t()
+            _opj.set_default_decoder_parameters(ctypes.byref(dparameters))
             dparameters.cp_reduce = reduce
             dparameters.decod_format = self._codec_format
 
             infile = self.filename.encode()
-            nelts = opj._PATH_LEN - len(infile)
+            nelts = _opj.PATH_LEN - len(infile)
             infile += b'0' * nelts
             dparameters.infile = infile
 
-            dinfo = opj._create_decompress(dparameters.decod_format)
+            dinfo = _opj.create_decompress(dparameters.decod_format)
 
-            event_mgr = opj.event_mgr_t()
+            event_mgr = _opj.event_mgr_t()
             info_handler = ctypes.cast(_info_callback, ctypes.c_void_p)
             event_mgr.info_handler = info_handler if verbose else None
             event_mgr.warning_handler = ctypes.cast(_warning_callback,
                                                  ctypes.c_void_p)
             event_mgr.error_handler = ctypes.cast(_error_callback,
                                                  ctypes.c_void_p)
-            opj._set_event_mgr(dinfo, ctypes.byref(event_mgr))
+            _opj.set_event_mgr(dinfo, ctypes.byref(event_mgr))
 
-            opj._setup_decoder(dinfo, dparameters)
+            _opj.setup_decoder(dinfo, dparameters)
 
             with open(self.filename, 'rb') as fp:
                 src = fp.read()
-            cio = opj._cio_open(dinfo, src)
+            cio = _opj.cio_open(dinfo, src)
 
-            image = opj._decode(dinfo, cio)
+            image = _opj.decode(dinfo, cio)
 
-            stack.callback(opj._image_destroy, image)
-            stack.callback(opj._destroy_decompress, dinfo)
-            stack.callback(opj._cio_close, cio)
+            stack.callback(_opj.image_destroy, image)
+            stack.callback(_opj.destroy_decompress, dinfo)
+            stack.callback(_opj.cio_close, cio)
 
             ncomps = image.contents.numcomps
             component = image.contents.comps[0]
@@ -784,10 +784,10 @@ class Jp2k(Jp2kBox):
         img_array : ndarray
             The individual image components or a single array.
         """
-        dparam = opj2._set_default_decoder_parameters()
+        dparam = _opj2.set_default_decoder_parameters()
 
         infile = self.filename.encode()
-        nelts = opj2._PATH_LEN - len(infile)
+        nelts = _opj2.PATH_LEN - len(infile)
         infile += b'0' * nelts
         dparam.infile = infile
 
@@ -820,31 +820,31 @@ class Jp2k(Jp2kBox):
             dparam.nb_tile_to_decode = 1
 
         with ExitStack() as stack:
-            stream = opj2._stream_create_default_file_stream_v3(self.filename,
+            stream = _opj2.stream_create_default_file_stream_v3(self.filename,
                                                                 True)
-            stack.callback(opj2._stream_destroy_v3, stream)
-            codec = opj2._create_decompress(self._codec_format)
-            stack.callback(opj2._destroy_codec, codec)
+            stack.callback(_opj2.stream_destroy_v3, stream)
+            codec = _opj2.create_decompress(self._codec_format)
+            stack.callback(_opj2.destroy_codec, codec)
 
-            opj2._set_error_handler(codec, _error_callback)
-            opj2._set_warning_handler(codec, _warning_callback)
+            _opj2.set_error_handler(codec, _error_callback)
+            _opj2.set_warning_handler(codec, _warning_callback)
             if verbose:
-                opj2._set_info_handler(codec, _info_callback)
+                _opj2.set_info_handler(codec, _info_callback)
             else:
-                opj2._set_info_handler(codec, None)
+                _opj2.set_info_handler(codec, None)
 
-            opj2._setup_decoder(codec, dparam)
-            image = opj2._read_header(stream, codec)
-            stack.callback(opj2._image_destroy, image)
+            _opj2.setup_decoder(codec, dparam)
+            image = _opj2.read_header(stream, codec)
+            stack.callback(_opj2.image_destroy, image)
 
             if dparam.nb_tile_to_decode:
-                opj2._get_decoded_tile(codec, stream, image, dparam.tile_index)
+                _opj2.get_decoded_tile(codec, stream, image, dparam.tile_index)
             else:
-                opj2._set_decode_area(codec, image,
+                _opj2.set_decode_area(codec, image,
                                       dparam.DA_x0, dparam.DA_y0,
                                       dparam.DA_x1, dparam.DA_y1)
-                opj2._decode(codec, stream, image)
-                opj2._end_decompress(codec, stream)
+                _opj2.decode(codec, stream, image)
+                _opj2.end_decompress(codec, stream)
 
             component = image.contents.comps[0]
             if component.sgnd:
@@ -937,7 +937,7 @@ class Jp2k(Jp2kBox):
         NotImplementedError
             If the openjp2 library is not available.
         """
-        if opj2._OPENJP2 is None:
+        if _opj2.OPENJP2 is None:
             msg = "Requires openjp2 library."
             raise NotImplementedError(msg)
 
@@ -986,7 +986,7 @@ class Jp2k(Jp2kBox):
             If the file is JPX with more than one codestream.
         """
         with open(self.filename, 'rb') as fp:
-            if self._codec_format == opj2._CODEC_J2K:
+            if self._codec_format == _opj2.CODEC_J2K:
                 codestream = Codestream(fp, header_only=header_only)
             else:
                 box = [x for x in self.box if x.box_id == 'jp2c']

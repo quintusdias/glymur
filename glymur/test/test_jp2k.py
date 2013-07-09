@@ -33,12 +33,12 @@ except:
 
 # Doc tests should be run as well.
 def load_tests(loader, tests, ignore):
-    if glymur.lib.openjp2._OPENJP2 is not None:
+    if glymur.lib.openjp2.OPENJP2 is not None:
         tests.addTests(doctest.DocTestSuite('glymur.jp2k'))
     return tests
 
 
-@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
 class TestJp2k(unittest.TestCase):
 
@@ -648,20 +648,20 @@ class TestJp2k(unittest.TestCase):
             self.assertFalse('Make' in exif['Image'].keys())
 
 
-@unittest.skipIf(glymur.lib.openjpeg._OPENJPEG is None,
+@unittest.skipIf(glymur.lib.openjpeg.OPENJPEG is None,
                  "Missing openjpeg library.")
 class TestJp2k15(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
         # Monkey patch the package so as to use OPENJPEG instead of OPENJP2
-        cls.openjp2 = glymur.lib.openjp2._OPENJP2
-        glymur.lib.openjp2._OPENJP2 = None
+        cls.openjp2 = glymur.lib.openjp2.OPENJP2
+        glymur.lib.openjp2.OPENJP2 = None
 
     @classmethod
     def tearDownClass(cls):
         # Restore OPENJP2
-        glymur.lib.openjp2._OPENJP2 = cls.openjp2
+        glymur.lib.openjp2.OPENJP2 = cls.openjp2
 
     def setUp(self):
         self.jp2file = glymur.data.nemo()

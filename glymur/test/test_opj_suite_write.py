@@ -57,7 +57,7 @@ def read_image(infile):
     return data
 
 
-@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
 @unittest.skipIf(no_read_backend, no_read_backend_msg)
 @unittest.skipIf(data_root is None,

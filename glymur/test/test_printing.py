@@ -21,7 +21,7 @@ except:
     raise
 
 
-@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
 class TestPrintingNeedsLib(unittest.TestCase):
     """These tests require the library, mostly in order to just setup the test.

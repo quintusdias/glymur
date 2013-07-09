@@ -18,7 +18,7 @@ def load_tests(loader, tests, ignore):
     return tests
 
 
-@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
 class TestChannelDefinition(unittest.TestCase):
 
@@ -409,7 +409,7 @@ class TestColourSpecificationBox(unittest.TestCase):
                                                      approximation=approx)
 
 
-@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
 class TestJp2Boxes(unittest.TestCase):
 
