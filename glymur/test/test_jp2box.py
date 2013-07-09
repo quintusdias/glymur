@@ -88,7 +88,7 @@ class TestChannelDefinition(unittest.TestCase):
 
             jp2 = Jp2k(tfile.name)
             jp2h = jp2.box[2]
-            boxes = [box.id for box in jp2h.box]
+            boxes = [box.box_id for box in jp2h.box]
             self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
             self.assertEqual(jp2h.box[2].index, (0, 1, 2))
             self.assertEqual(jp2h.box[2].channel_type, (0, 0, 0))
@@ -108,7 +108,7 @@ class TestChannelDefinition(unittest.TestCase):
 
             jp2 = Jp2k(tfile.name)
             jp2h = jp2.box[2]
-            boxes = [box.id for box in jp2h.box]
+            boxes = [box.box_id for box in jp2h.box]
             self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
             self.assertEqual(jp2h.box[2].index, (0, 1, 2, 3))
             self.assertEqual(jp2h.box[2].channel_type, (0, 0, 0, 1))
@@ -141,7 +141,7 @@ class TestChannelDefinition(unittest.TestCase):
 
             jp2 = Jp2k(tfile.name)
             jp2h = jp2.box[2]
-            boxes = [box.id for box in jp2h.box]
+            boxes = [box.box_id for box in jp2h.box]
             self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
             self.assertEqual(jp2h.box[2].index, (0,))
             self.assertEqual(jp2h.box[2].channel_type, (0,))
@@ -161,7 +161,7 @@ class TestChannelDefinition(unittest.TestCase):
 
             jp2 = Jp2k(tfile.name)
             jp2h = jp2.box[2]
-            boxes = [box.id for box in jp2h.box]
+            boxes = [box.box_id for box in jp2h.box]
             self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
             self.assertEqual(jp2h.box[2].index, (0, 1))
             self.assertEqual(jp2h.box[2].channel_type, (0, 1))
@@ -309,7 +309,7 @@ class TestXML(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             j2k.wrap(tfile.name, boxes=boxes)
             jp2 = Jp2k(tfile.name)
-            self.assertEqual(jp2.box[3].id, 'xml ')
+            self.assertEqual(jp2.box[3].box_id, 'xml ')
             self.assertEqual(ET.tostring(jp2.box[3].xml),
                              b'<data>0</data>')
 
@@ -326,7 +326,7 @@ class TestXML(unittest.TestCase):
             j2k.wrap(tfile.name, boxes=boxes)
             jp2 = Jp2k(tfile.name)
 
-            output_boxes = [box.id for box in jp2.box]
+            output_boxes = [box.box_id for box in jp2.box]
             self.assertEqual(output_boxes, ['jP  ', 'ftyp', 'jp2h', 'xml ',
                                             'jp2c'])
 
@@ -449,37 +449,37 @@ class TestJp2Boxes(unittest.TestCase):
 
     def test_default_ContiguousCodestreamBox(self):
         b = ContiguousCodestreamBox()
-        self.assertEqual(b.id, 'jp2c')
-        self.assertEqual(b.main_header, [])
+        self.assertEqual(b.box_id, 'jp2c')
+        self.assertIsNone(b.main_header)
 
     def verify_wrapped_raw(self, jp2file):
         # Shared method by at least two tests.
         jp2 = Jp2k(jp2file)
         self.assertEqual(len(jp2.box), 4)
 
-        self.assertEqual(jp2.box[0].id, 'jP  ')
+        self.assertEqual(jp2.box[0].box_id, 'jP  ')
         self.assertEqual(jp2.box[0].offset, 0)
         self.assertEqual(jp2.box[0].length, 12)
         self.assertEqual(jp2.box[0].longname, 'JPEG 2000 Signature')
 
-        self.assertEqual(jp2.box[1].id, 'ftyp')
+        self.assertEqual(jp2.box[1].box_id, 'ftyp')
         self.assertEqual(jp2.box[1].offset, 12)
         self.assertEqual(jp2.box[1].length, 20)
         self.assertEqual(jp2.box[1].longname, 'File Type')
 
-        self.assertEqual(jp2.box[2].id, 'jp2h')
+        self.assertEqual(jp2.box[2].box_id, 'jp2h')
         self.assertEqual(jp2.box[2].offset, 32)
         self.assertEqual(jp2.box[2].length, 45)
         self.assertEqual(jp2.box[2].longname, 'JP2 Header')
 
-        self.assertEqual(jp2.box[3].id, 'jp2c')
+        self.assertEqual(jp2.box[3].box_id, 'jp2c')
         self.assertEqual(jp2.box[3].offset, 77)
         self.assertEqual(jp2.box[3].length, 115228)
 
         # jp2h super box
         self.assertEqual(len(jp2.box[2].box), 2)
 
-        self.assertEqual(jp2.box[2].box[0].id, 'ihdr')
+        self.assertEqual(jp2.box[2].box[0].box_id, 'ihdr')
         self.assertEqual(jp2.box[2].box[0].offset, 40)
         self.assertEqual(jp2.box[2].box[0].length, 22)
         self.assertEqual(jp2.box[2].box[0].longname, 'Image Header')
@@ -492,7 +492,7 @@ class TestJp2Boxes(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
         self.assertEqual(jp2.box[2].box[0].ip_provided, False)
 
-        self.assertEqual(jp2.box[2].box[1].id, 'colr')
+        self.assertEqual(jp2.box[2].box[1].box_id, 'colr')
         self.assertEqual(jp2.box[2].box[1].offset, 62)
         self.assertEqual(jp2.box[2].box[1].length, 15)
         self.assertEqual(jp2.box[2].box[1].longname, 'Colour Specification')
@@ -511,7 +511,7 @@ class TestJp2Boxes(unittest.TestCase):
         j2k = Jp2k(self.j2kfile)
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             jp2 = j2k.wrap(tfile.name)
-        boxes = [box.id for box in jp2.box]
+        boxes = [box.box_id for box in jp2.box]
         self.assertEqual(boxes, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
 
     def test_default_layout_but_with_specified_boxes(self):

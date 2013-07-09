@@ -33,7 +33,6 @@ from .core import _color_type_map_display
 from .core import _method_display
 from .core import _reader_requirements_display
 from .core import ENUMERATED_COLORSPACE
-from .core import ENUMERATED_COLORSPACE
 
 
 class Jp2kBox(object):
@@ -41,7 +40,7 @@ class Jp2kBox(object):
 
     Attributes
     ----------
-    id : str
+    box_id : str
         4-character identifier for the box.
     length : int
         length of the box in bytes.
@@ -51,24 +50,24 @@ class Jp2kBox(object):
         more verbose description of the box.
     """
 
-    def __init__(self, id='', offset=0, length=0, longname=''):
-        self.id = id
+    def __init__(self, box_id='', offset=0, length=0, longname=''):
+        self.box_id = box_id
         self.length = length
         self.offset = offset
         self.longname = longname
 
     def __str__(self):
-        msg = "{0} Box ({1})".format(self.longname, self.id)
+        msg = "{0} Box ({1})".format(self.longname, self.box_id)
         msg += " @ ({0}, {1})".format(self.offset, self.length)
         return msg
 
-    def _write(self, fptr):
+    def write(self, fptr):
         """Must be implemented in a subclass.
         """
         msg = "Not supported for {0} box.".format(self.longname)
         raise NotImplementedError(msg)
 
-    def _parse_superbox(self, fptr):
+    def parse_superbox(self, fptr):
         """Parse a superbox (box consisting of nothing but other boxes.
 
         Parameters
@@ -92,30 +91,30 @@ class Jp2kBox(object):
                 break
 
             read_buffer = fptr.read(8)
-            (L, T) = struct.unpack('>I4s', read_buffer)
+            (box_length, box_id) = struct.unpack('>I4s', read_buffer)
             if sys.hexversion >= 0x03000000:
-                T = T.decode('utf-8')
+                box_id = box_id.decode('utf-8')
 
-            if L == 0:
+            if box_length == 0:
                 # The length of the box is presumed to last until the end of
                 # the file.  Compute the effective length of the box.
                 num_bytes = self._file_size - fptr.tell() + 8
 
-            elif L == 1:
+            elif box_length == 1:
                 # The length of the box is in the XL field, a 64-bit value.
                 read_buffer = fptr.read(8)
                 num_bytes, = struct.unpack('>Q', read_buffer)
 
             else:
-                num_bytes = L
+                num_bytes = box_length
 
             # Call the proper parser for the given box with ID "T".
             try:
-                box = _BOX_WITH_ID[T]._parse(fptr, start, num_bytes)
+                box = _BOX_WITH_ID[box_id]._parse(fptr, start, num_bytes)
             except KeyError:
-                msg = 'Unrecognized box ({0}) encountered.'.format(T)
+                msg = 'Unrecognized box ({0}) encountered.'.format(box_id)
                 warnings.warn(msg)
-                box = Jp2kBox(T, offset=start, length=num_bytes,
+                box = Jp2kBox(box_id, offset=start, length=num_bytes,
                               longname='Unknown box')
 
             superbox.append(box)
@@ -125,14 +124,14 @@ class Jp2kBox(object):
                 # Length of the current box goes past the end of the
                 # enclosing superbox.
                 msg = '{0} box has incorrect box length ({1})'
-                msg = msg.format(T, num_bytes)
+                msg = msg.format(box_id, num_bytes)
                 warnings.warn(msg)
             elif fptr.tell() > start + num_bytes:
                 # The box must be invalid somehow, as the file pointer is
                 # positioned past the end of the box.
                 msg = '{0} box may be invalid, the file pointer is positioned '
                 msg += '{1} bytes past the end of the box.'
-                msg = msg.format(T, fptr.tell() - (start + num_bytes))
+                msg = msg.format(box_id, fptr.tell() - (start + num_bytes))
                 warnings.warn(msg)
             fptr.seek(start + num_bytes)
 
@@ -146,7 +145,7 @@ class ColourSpecificationBox(Jp2kBox):
 
     Attributes
     ----------
-    id : str
+    box_id : str
         4-character identifier for the box.
     length : int
         Length of the box in bytes.
@@ -169,8 +168,9 @@ class ColourSpecificationBox(Jp2kBox):
         colorspace is not None, then icc_profile must be empty.
     """
     def __init__(self, method=ENUMERATED_COLORSPACE, precedence=0,
-                 approximation=0, colorspace=None, icc_profile=None, **kwargs):
-        Jp2kBox.__init__(self, id='colr', longname='Colour Specification')
+                 approximation=0, colorspace=None, icc_profile=None,
+                 length=0, offset=-1):
+        Jp2kBox.__init__(self, box_id='colr', longname='Colour Specification')
 
         if colorspace is not None and icc_profile is not None:
             raise IOError("colorspace and icc_profile cannot both be set.")
@@ -178,12 +178,13 @@ class ColourSpecificationBox(Jp2kBox):
             raise IOError("Invalid method.")
         if approximation not in (0, 1, 2, 3, 4):
             raise IOError("Invalid approximation.")
-        self.__dict__.update(**kwargs)
         self.method = method
         self.precedence = precedence
         self.approximation = approximation
         self.colorspace = colorspace
         self.icc_profile = icc_profile
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -192,11 +193,11 @@ class ColourSpecificationBox(Jp2kBox):
         msg += '\n    Precedence:  {0}'.format(self.precedence)
 
         if self.approximation is not 0:
-            x = _approximation_display[self.approximation]
-            msg += '\n    Approximation:  {0}'.format(x)
+            dispvalue = _approximation_display[self.approximation]
+            msg += '\n    Approximation:  {0}'.format(dispvalue)
         if self.colorspace is not None:
-            x = _colorspace_map_display[self.colorspace]
-            msg += '\n    Colorspace:  {0}'.format(x)
+            dispvalue = _colorspace_map_display[self.colorspace]
+            msg += '\n    Colorspace:  {0}'.format(dispvalue)
         else:
             # 2.7 has trouble pretty-printing ordered dicts so we just have
             # to print as a regular dict in this case.
@@ -204,13 +205,13 @@ class ColourSpecificationBox(Jp2kBox):
                 icc_profile = dict(self.icc_profile)
             else:
                 icc_profile = self.icc_profile
-            x = pprint.pformat(icc_profile)
-            lines = [' ' * 8 + y for y in x.split('\n')]
+            dispvalue = pprint.pformat(icc_profile)
+            lines = [' ' * 8 + y for y in dispvalue.split('\n')]
             msg += '\n    ICC Profile:\n{0}'.format('\n'.join(lines))
 
         return msg
 
-    def _write(self, fptr):
+    def write(self, fptr):
         """Write an Colour Specification box to file.
         """
         if self.colorspace is None:
@@ -243,45 +244,44 @@ class ColourSpecificationBox(Jp2kBox):
 
         Returns
         -------
-        kwargs : dictionary
-            dictionary of parameter values
+        ColourSpecificationBox instance
         """
-        kwargs = {}
-        kwargs['length'] = length
-        kwargs['offset'] = offset
-
         # Read the brand, minor version.
         read_buffer = fptr.read(3)
         (method, precedence, approximation) = struct.unpack('>BBB', read_buffer)
-        kwargs['method'] = method
-        kwargs['precedence'] = precedence
-        kwargs['approximation'] = approximation
 
         if method == 1:
             # enumerated colour space
             read_buffer = fptr.read(4)
-            kwargs['colorspace'], = struct.unpack('>I', read_buffer)
-            kwargs['icc_profile'] = None
+            colorspace, = struct.unpack('>I', read_buffer)
+            icc_profile = None
 
         else:
             # ICC profile
-            kwargs['colorspace'] = None
-            n = offset + length - fptr.tell()
-            if n < 128:
+            colorspace = None
+            numbytes = offset + length - fptr.tell()
+            if numbytes < 128:
                 msg = "ICC profile header is corrupt, length is "
                 msg += "only {0} instead of 128."
-                warnings.warn(msg.format(n), UserWarning)
-                kwargs['icc_profile'] = None
+                warnings.warn(msg.format(numbytes), UserWarning)
+                icc_profile = None
             else:
-                icc_profile = _ICCProfile(fptr.read(n))
-                kwargs['icc_profile'] = icc_profile.header
+                profile = _ICCProfile(fptr.read(numbytes))
+                icc_profile = profile.header
 
-        box = ColourSpecificationBox(**kwargs)
+        box = ColourSpecificationBox(method=method,
+                                     precedence=precedence,
+                                     approximation=approximation,
+                                     colorspace=colorspace,
+                                     icc_profile=icc_profile,
+                                     length=length,
+                                     offset=offset)
         return box
 
 
 class _ICCProfile(object):
     """
+    Container for ICC profile information.
     """
     profile_class = {b'scnr': 'input device profile',
                      b'mntr': 'display device profile',
@@ -347,11 +347,11 @@ class _ICCProfile(object):
         else:
             header['Platform'] = read_buffer[40:44].decode('utf-8')
 
-        x, = struct.unpack('>I', read_buffer[44:48])
-        y = 'embedded, ' if x & 0x01 else 'not embedded, '
-        y += 'cannot ' if x & 0x02 else 'can '
-        y += 'be used independently'
-        header['Flags'] = y
+        fval, = struct.unpack('>I', read_buffer[44:48])
+        flags = 'embedded, ' if fval & 0x01 else 'not embedded, '
+        flags += 'cannot ' if fval & 0x02 else 'can '
+        flags += 'be used independently'
+        header['Flags'] = flags
 
         header['Device Manufacturer'] = read_buffer[48:52].decode('utf-8')
         if read_buffer[52:56] == b'\x00\x00\x00\x00':
@@ -360,17 +360,17 @@ class _ICCProfile(object):
             device_model = read_buffer[52:56].decode('utf-8')
         header['Device Model'] = device_model
 
-        x, = struct.unpack('>Q', read_buffer[56:64])
-        y = 'transparency, ' if x & 0x01 else 'reflective, '
-        y += 'matte, ' if x & 0x02 else 'glossy, '
-        y += 'negative ' if x & 0x04 else 'positive '
-        y += 'media polarity, '
-        y += 'black and white media' if x & 0x08 else 'color media'
-        header['Device Attributes'] = y
+        val, = struct.unpack('>Q', read_buffer[56:64])
+        attr = 'transparency, ' if val & 0x01 else 'reflective, '
+        attr += 'matte, ' if val & 0x02 else 'glossy, '
+        attr += 'negative ' if val & 0x04 else 'positive '
+        attr += 'media polarity, '
+        attr += 'black and white media' if val & 0x08 else 'color media'
+        header['Device Attributes'] = attr
 
-        x, = struct.unpack('>I', read_buffer[64:68])
+        rval, = struct.unpack('>I', read_buffer[64:68])
         try:
-            header['Rendering Intent'] = self.rendering_intent_dict[x]
+            header['Rendering Intent'] = self.rendering_intent_dict[rval]
         except KeyError:
             header['Rendering Intent'] = 'unknown'
 
@@ -396,7 +396,7 @@ class ChannelDefinitionBox(Jp2kBox):
 
     Attributes
     ----------
-    id : str
+    box_id : str
         4-character identifier for the box.
     length : numeric scalar
         length of the box in bytes.
@@ -412,7 +412,7 @@ class ChannelDefinitionBox(Jp2kBox):
         index of the associated color
     """
     def __init__(self, index, channel_type, association, **kwargs):
-        Jp2kBox.__init__(self, id='cdef', longname='Channel Definition')
+        Jp2kBox.__init__(self, box_id='cdef', longname='Channel Definition')
         if len(index) != len(channel_type) or len(index) != len(association):
             msg = "Length of channel definition box inputs must be the same."
             raise IOError(msg)
@@ -443,14 +443,14 @@ class ChannelDefinitionBox(Jp2kBox):
             msg = msg.format(self.index[j], color_type_string, assn)
         return msg
 
-    def _write(self, fptr):
+    def write(self, fptr):
         """Write a channel definition box to file.
         """
-        N = len(self.association)
-        fptr.write(struct.pack('>I', 8 + 2 + N * 6))
+        num_components = len(self.association)
+        fptr.write(struct.pack('>I', 8 + 2 + num_components * 6))
         fptr.write('cdef'.encode('utf-8'))
-        fptr.write(struct.pack('>H', N))
-        for j in range(N):
+        fptr.write(struct.pack('>H', num_components))
+        for j in range(num_components):
             fptr.write(struct.pack('>' + 'H' * 3,
                                 self.index[j],
                                 self.channel_type[j],
@@ -471,23 +471,20 @@ class ChannelDefinitionBox(Jp2kBox):
 
         Returns
         -------
-        kwargs : dictionary of parameter values
+        ComponentDefinitionBox instance
         """
-        kwargs = {}
-        kwargs['length'] = length
-        kwargs['offset'] = offset
-
         # Read the number of components.
         read_buffer = fptr.read(2)
-        N, = struct.unpack('>H', read_buffer)
+        num_components, = struct.unpack('>H', read_buffer)
 
-        read_buffer = fptr.read(N * 6)
-        data = struct.unpack('>' + 'HHH' * N, read_buffer)
-        index = data[0:N * 6:3]
-        channel_type = data[1:N * 6:3]
-        association = data[2:N * 6:3]
+        read_buffer = fptr.read(num_components * 6)
+        data = struct.unpack('>' + 'HHH' * num_components, read_buffer)
+        index = data[0:num_components * 6:3]
+        channel_type = data[1:num_components * 6:3]
+        association = data[2:num_components * 6:3]
 
-        box = ChannelDefinitionBox(index, channel_type, association, **kwargs)
+        box = ChannelDefinitionBox(index, channel_type, association,
+                                   length=length, offset=offset)
         return box
 
 
@@ -496,7 +493,7 @@ class ComponentMappingBox(Jp2kBox):
 
     Attributes
     ----------
-    id : str
+    box_id : str
         4-character identifier for the box.
     length : numeric scalar
         Length of the box in bytes.
@@ -511,9 +508,14 @@ class ComponentMappingBox(Jp2kBox):
     palette_index : int
         Index component from palette
     """
-    def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='cmap', longname='Component Mapping')
-        self.__dict__.update(**kwargs)
+    def __init__(self, component_index, mapping_type, palette_index,
+                 length=0, offset=-1):
+        Jp2kBox.__init__(self, box_id='cmap', longname='Component Mapping')
+        self.component_index = component_index
+        self.mapping_type = mapping_type
+        self.palette_index = palette_index
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -543,23 +545,20 @@ class ComponentMappingBox(Jp2kBox):
 
         Returns
         -------
-        kwargs : dictionary of parameter values
+        ComponentMappingBox instance
         """
-        kwargs = {}
-        kwargs['length'] = length
-        kwargs['offset'] = offset
+        num_bytes = offset + length - fptr.tell()
+        num_components = int(num_bytes/4)
 
-        N = offset + length - fptr.tell()
-        num_components = int(N/4)
-
-        read_buffer = fptr.read(N)
+        read_buffer = fptr.read(num_bytes)
         data = struct.unpack('>' + 'HBB' * num_components, read_buffer)
 
-        kwargs['component_index'] = data[0:N:num_components]
-        kwargs['mapping_type'] = data[1:N:num_components]
-        kwargs['palette_index'] = data[2:N:num_components]
+        component_index = data[0:num_bytes:num_components]
+        mapping_type = data[1:num_bytes:num_components]
+        palette_index = data[2:num_bytes:num_components]
 
-        box = ComponentMappingBox(**kwargs)
+        box = ComponentMappingBox(component_index, mapping_type, palette_index,
+                                  length=length, offset=offset)
         return box
 
 
@@ -568,7 +567,7 @@ class ContiguousCodestreamBox(Jp2kBox):
 
     Attributes
     ----------
-    id : str
+    box_id : str
         4-character identifier for the box.
     length : int
         length of the box in bytes.
@@ -579,11 +578,11 @@ class ContiguousCodestreamBox(Jp2kBox):
     main_header : list
         List of segments in the codestream header.
     """
-
-    def __init__(self, main_header=[], **kwargs):
-        Jp2kBox.__init__(self, id='jp2c', longname='Contiguous Codestream')
-        self.__dict__.update(**kwargs)
+    def __init__(self, main_header=None, length=0, offset=-1):
+        Jp2kBox.__init__(self, box_id='jp2c', longname='Contiguous Codestream')
         self.main_header = main_header
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -602,7 +601,7 @@ class ContiguousCodestreamBox(Jp2kBox):
 
         Parameters
         ----------
-        f : file
+        fptr : file
             Open file object.
         offset : int
             Start position of box in bytes.
@@ -611,15 +610,10 @@ class ContiguousCodestreamBox(Jp2kBox):
 
         Returns
         -------
-        kwargs : dictionary of parameter values
+        ContiguousCodestreamBox instance
         """
-        kwargs = {}
-        kwargs['length'] = length
-        kwargs['offset'] = offset
-
-        kwargs['main_header'] = Codestream(fptr, header_only=True)
-
-        box = ContiguousCodestreamBox(**kwargs)
+        main_header = Codestream(fptr, header_only=True)
+        box = ContiguousCodestreamBox(main_header, length=length, offset=offset)
         return box
 
 
@@ -628,7 +622,7 @@ class FileTypeBox(Jp2kBox):
 
     Attributes
     ----------
-    id : str
+    box_id : str
         4-character identifier for the box.
     length : int
         length of the box in bytes.
@@ -644,15 +638,18 @@ class FileTypeBox(Jp2kBox):
     compatibility_list: list
         List of file conformance profiles.
     """
-    def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='ftyp', longname='File Type')
-        self.__dict__.update(**kwargs)
-        if 'brand' not in kwargs.keys():
-            self.brand = 'jp2 '
-        if 'minor_version' not in kwargs.keys():
-            self.minor_version = 0
-        if 'compatibility_list' not in kwargs.keys():
+    def __init__(self, brand='jp2 ', minor_version=0,
+                 compatibility_list=None, length=0, offset=-1):
+        Jp2kBox.__init__(self, box_id='ftyp', longname='File Type')
+        self.brand = brand
+        self.minor_version = minor_version
+        if compatibility_list is None:
+            # see W0102, pylint
             self.compatibility_list = ['jp2 ']
+        else:
+            self.compatibility_list = compatibility_list
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         lst = [Jp2kBox.__str__(self),
@@ -663,7 +660,7 @@ class FileTypeBox(Jp2kBox):
 
         return msg
 
-    def _write(self, fptr):
+    def write(self, fptr):
         """Write a File Type box to file.
         """
         length = 16 + 4*len(self.compatibility_list)
@@ -688,36 +685,32 @@ class FileTypeBox(Jp2kBox):
         length : int
             Length of the box in bytes.
 
-        Returns:
-            kwargs:  dictionary of parameter values
+        Returns
+        -------
+        FileTypeBox instance
         """
-        kwargs = {}
-        kwargs['length'] = length
-        kwargs['offset'] = offset
-
         # Read the brand, minor version.
         read_buffer = fptr.read(8)
         (brand, minor_version) = struct.unpack('>4sI', read_buffer)
-        if sys.hexversion < 0x030000:
-            kwargs['brand'] = brand
-        else:
-            kwargs['brand'] = brand.decode('utf-8')
-        kwargs['minor_version'] = minor_version
+        if sys.hexversion >= 0x030000:
+            brand = brand.decode('utf-8')
 
         # Read the compatibility list.  Each entry has 4 bytes.
         current_pos = fptr.tell()
-        n = (offset + length - current_pos) / 4
-        read_buffer = fptr.read(int(n) * 4)
+        num_bytes = (offset + length - current_pos) / 4
+        read_buffer = fptr.read(int(num_bytes) * 4)
         compatibility_list = []
-        for j in range(int(n)):
-            CL, = struct.unpack('>4s', read_buffer[4*j:4*(j+1)])
+        for j in range(int(num_bytes)):
+            entry, = struct.unpack('>4s', read_buffer[4*j:4*(j+1)])
             if sys.hexversion >= 0x03000000:
-                CL = CL.decode('utf-8')
-            compatibility_list.append(CL)
+                entry = entry.decode('utf-8')
+            compatibility_list.append(entry)
 
-        kwargs['compatibility_list'] = compatibility_list
+        compatibility_list = compatibility_list
 
-        box = FileTypeBox(**kwargs)
+        box = FileTypeBox(brand=brand, minor_version=minor_version,
+                          compatibility_list=compatibility_list,
+                          length=length, offset=offset)
         return box
 
 
@@ -726,7 +719,7 @@ class ImageHeaderBox(Jp2kBox):
 
     Attributes
     ----------
-    id : str
+    box_id : str
         4-character identifier for the box.
     length : int
         length of the box in bytes.
@@ -752,14 +745,14 @@ class ImageHeaderBox(Jp2kBox):
     """
     def __init__(self, height, width, num_components=1, signed=False,
                  bits_per_component=8, compression=7, colorspace_unknown=False,
-                 ip_provided=False, **kwargs):
+                 ip_provided=False, length=0, offset=-1):
         """
         Examples
         --------
         >>> import glymur
         >>> box = glymur.jp2box.ImageHeaderBox(height=512, width=256)
         """
-        Jp2kBox.__init__(self, id='ihdr', longname='Image Header')
+        Jp2kBox.__init__(self, box_id='ihdr', longname='Image Header')
         self.height = height
         self.width = width
         self.num_components = num_components
@@ -767,8 +760,9 @@ class ImageHeaderBox(Jp2kBox):
         self.bits_per_component = bits_per_component
         self.compression = compression
         self.colorspace_unknown = colorspace_unknown
-        self.ip_provided = False
-        self.__dict__.update(**kwargs)
+        self.ip_provided = ip_provided
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -786,7 +780,7 @@ class ImageHeaderBox(Jp2kBox):
                          self.colorspace_unknown)
         return msg
 
-    def _write(self, fptr):
+    def write(self, fptr):
         """Write an Image Header box to file.
         """
         fptr.write(struct.pack('>I', 22))
@@ -818,26 +812,29 @@ class ImageHeaderBox(Jp2kBox):
         length : int
             Length of the box in bytes.
 
-        Returns:
-            kwargs:  dictionary of parameter values
+        Returns
+        -------
+        ImageHeaderBox instance
         """
-        kwargs = {}
-        kwargs['length'] = length
-        kwargs['offset'] = offset
-
         # Read the box information
         read_buffer = fptr.read(14)
         params = struct.unpack('>IIHBBBB', read_buffer)
         height = params[0]
         width = params[1]
-        kwargs['num_components'] = params[2]
-        kwargs['bits_per_component'] = (params[3] & 0x7f) + 1
-        kwargs['signed'] = (params[3] & 0x80) > 1
-        kwargs['compression'] = params[4]
-        kwargs['colorspace_unknown'] = True if params[5] else False
-        kwargs['ip_provided'] = True if params[6] else False
+        num_components = params[2]
+        bits_per_component = (params[3] & 0x7f) + 1
+        signed = (params[3] & 0x80) > 1
+        compression = params[4]
+        colorspace_unknown = True if params[5] else False
+        ip_provided = True if params[6] else False
 
-        box = ImageHeaderBox(height, width, **kwargs)
+        box = ImageHeaderBox(height, width, num_components=num_components,
+                             bits_per_component=bits_per_component,
+                             signed=signed,
+                             compression=compression,
+                             colorspace_unknown=colorspace_unknown,
+                             ip_provided=ip_provided,
+                             length=length, offset=offset)
         return box
 
 
@@ -846,7 +843,7 @@ class AssociationBox(Jp2kBox):
 
     Attributes
     ----------
-    id : str
+    box_id : str
         4-character identifier for the box.
     length : int
         length of the box in bytes.
@@ -857,9 +854,11 @@ class AssociationBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='asoc', longname='Association')
-        self.__dict__.update(**kwargs)
+    def __init__(self, length=0, offset=-1):
+        Jp2kBox.__init__(self, box_id='asoc', longname='Association')
+        self.length = length
+        self.offset = offset
+        self.box = []
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -886,18 +885,13 @@ class AssociationBox(Jp2kBox):
 
         Returns
         -------
-        kwargs : dictionary of parameter values, for now just a single
-            4-byte tuple.
+        AssociationBox instance
         """
-        kwargs = {}
-        kwargs['length'] = length
-        kwargs['offset'] = offset
-
-        box = AssociationBox(**kwargs)
+        box = AssociationBox(length=length, offset=offset)
 
         # The Association box is a superbox, so go ahead and parse its child
         # boxes.
-        box.box = box._parse_superbox(fptr)
+        box.box = box.parse_superbox(fptr)
 
         return box
 
@@ -907,7 +901,7 @@ class JP2HeaderBox(Jp2kBox):
 
     Attributes
     ----------
-    id : str
+    box_id : str
         4-character identifier for the box.
     length : int
         length of the box in bytes.
@@ -918,9 +912,11 @@ class JP2HeaderBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='jp2h', longname='JP2 Header')
-        self.__dict__.update(**kwargs)
+    def __init__(self, length=0, offset=-1):
+        Jp2kBox.__init__(self, box_id='jp2h', longname='JP2 Header')
+        self.length = length
+        self.offset = offset
+        self.box = []
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -932,7 +928,7 @@ class JP2HeaderBox(Jp2kBox):
             msg += ''.join(strs)
         return msg
 
-    def _write(self, fptr):
+    def write(self, fptr):
         """Write a JP2 Header box to file.
         """
         # Write the contained boxes, then come back and write the length.
@@ -940,7 +936,7 @@ class JP2HeaderBox(Jp2kBox):
         fptr.write(struct.pack('>I', 0))
         fptr.write('jp2h'.encode())
         for box in self.box:
-            box._write(fptr)
+            box.write(fptr)
 
         end_pos = fptr.tell()
         fptr.seek(orig_pos)
@@ -962,18 +958,13 @@ class JP2HeaderBox(Jp2kBox):
 
         Returns
         -------
-        kwargs : dictionary of parameter values, for now just a single
-            4-byte tuple.
+        JP2HeaderBox instance
         """
-        kwargs = {}
-        kwargs['length'] = length
-        kwargs['offset'] = offset
-
-        box = JP2HeaderBox(**kwargs)
+        box = JP2HeaderBox(length=length, offset=offset)
 
         # The JP2 header box is a superbox, so go ahead and parse its child
         # boxes.
-        box.box = box._parse_superbox(fptr)
+        box.box = box.parse_superbox(fptr)
 
         return box
 
@@ -983,7 +974,7 @@ class JPEG2000SignatureBox(Jp2kBox):
 
     Attributes
     ----------
-    id : str
+    box_id : str
         4-character identifier for the box.
     length : int
         length of the box in bytes.
@@ -994,11 +985,11 @@ class JPEG2000SignatureBox(Jp2kBox):
     signature : byte
         Four-byte tuple identifying the file as JPEG 2000.
     """
-    def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='jP  ', longname='JPEG 2000 Signature')
-        self.__dict__.update(**kwargs)
-        if 'signature' not in kwargs.keys():
-            self.signature = (13, 10, 135, 10)
+    def __init__(self, signature=(13, 10, 135, 10), length=0, offset=-1):
+        Jp2kBox.__init__(self, box_id='jP  ', longname='JPEG 2000 Signature')
+        self.signature = signature
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -1006,11 +997,11 @@ class JPEG2000SignatureBox(Jp2kBox):
         msg = msg.format(*self.signature)
         return msg
 
-    def _write(self, fptr):
+    def write(self, fptr):
         """Write a JPEG 2000 Signature box to file.
         """
         fptr.write(struct.pack('>I', 12))
-        fptr.write(self.id.encode())
+        fptr.write(self.box_id.encode())
         fptr.write(struct.pack('>BBBB', *self.signature))
 
     @staticmethod
@@ -1026,18 +1017,15 @@ class JPEG2000SignatureBox(Jp2kBox):
         length : int
             Length of the box in bytes.
 
-        Returns:
-            kwargs:  dictionary of parameter values, for now just a single
-                4-byte tuple.
+        Returns
+        -------
+        JPEG2000SignatureBox instance
         """
-        kwargs = {}
-        kwargs['length'] = length
-        kwargs['offset'] = offset
-
         read_buffer = fptr.read(4)
-        kwargs['signature'] = struct.unpack('>BBBB', read_buffer)
+        signature = struct.unpack('>BBBB', read_buffer)
 
-        box = JPEG2000SignatureBox(**kwargs)
+        box = JPEG2000SignatureBox(signature=signature, length=length,
+                                   offset=offset)
         return box
 
 
@@ -1046,7 +1034,7 @@ class PaletteBox(Jp2kBox):
 
     Attributes
     ----------
-    id : str
+    box_id : str
         4-character identifier for the box.
     length : int
         length of the box in bytes.
@@ -1057,9 +1045,14 @@ class PaletteBox(Jp2kBox):
     palette : list
         Colormap represented as list of 1D arrays, one per color component.
     """
-    def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='pclr', longname='Palette')
-        self.__dict__.update(**kwargs)
+    def __init__(self, palette, bits_per_component, signed, length=0,
+                 offset=-1):
+        Jp2kBox.__init__(self, box_id='pclr', longname='Palette')
+        self.palette = palette
+        self.bits_per_component = bits_per_component
+        self.signed = signed
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -1082,23 +1075,17 @@ class PaletteBox(Jp2kBox):
 
         Returns
         -------
-        kwargs:  dictionary of parameter values
+        PaletteBox instance
         """
-        kwargs = {}
-        kwargs['length'] = length
-        kwargs['offset'] = offset
-
         # Get the size of the palette.
         read_buffer = fptr.read(3)
-        (NE, NC) = struct.unpack('>HB', read_buffer)
+        (num_entries, num_columns) = struct.unpack('>HB', read_buffer)
 
         # Need to determine bps and signed or not
-        read_buffer = fptr.read(NC)
-        data = struct.unpack('>' + 'B' * NC, read_buffer)
+        read_buffer = fptr.read(num_columns)
+        data = struct.unpack('>' + 'B' * num_columns, read_buffer)
         bps = [((x & 0x07f) + 1) for x in data]
         signed = [((x & 0x80) > 1) for x in data]
-        kwargs['bits_per_component'] = bps
-        kwargs['signed'] = signed
 
         # Form the format string so that we can intelligently unpack the
         # colormap.  We have to do this because it is possible that the
@@ -1108,34 +1095,33 @@ class PaletteBox(Jp2kBox):
         # which reverses the usual indexing scheme.
         palette = []
         fmt = '>'
-        bytes_per_row = 0
-        for j in range(NC):
+        row_nbytes = 0
+        for j in range(num_columns):
             if bps[j] <= 8:
                 fmt += 'B'
-                bytes_per_row += 1
-                palette.append(np.zeros(NE, dtype=np.uint8))
+                row_nbytes += 1
+                palette.append(np.zeros(num_entries, dtype=np.uint8))
             elif bps[j] <= 16:
                 fmt += 'H'
-                bytes_per_row += 2
-                palette.append(np.zeros(NE, dtype=np.uint16))
+                row_nbytes += 2
+                palette.append(np.zeros(num_entries, dtype=np.uint16))
             elif bps[j] <= 32:
                 fmt += 'I'
-                bytes_per_row += 4
-                palette.append(np.zeros(NE, dtype=np.uint32))
+                row_nbytes += 4
+                palette.append(np.zeros(num_entries, dtype=np.uint32))
             else:
-                msg = 'Unsupported palette bitdepth (%d).'
+                msg = 'Unsupported palette bitdepth (%d).'.format(bps[j])
                 raise IOError(msg)
-        n = NE * bytes_per_row
-        read_buffer = fptr.read(n)
+        read_buffer = fptr.read(num_entries * row_nbytes)
 
-        for j in range(NE):
-            row_buffer = read_buffer[(bytes_per_row * j):(bytes_per_row * (j + 1))]
+        for j in range(num_entries):
+            row_buffer = read_buffer[(row_nbytes * j):(row_nbytes * (j + 1))]
             row = struct.unpack(fmt, row_buffer)
-            for k in range(NC):
+            for k in range(num_columns):
                 palette[k][j] = row[k]
 
-        kwargs['palette'] = palette
-        box = PaletteBox(**kwargs)
+        box = PaletteBox(palette, bps, signed, length=length,
+                         offset=offset)
         return box
 
 
@@ -1144,7 +1130,7 @@ class ReaderRequirementsBox(Jp2kBox):
 
     Attributes
     ----------
-    id : str
+    box_id : str
         4-character identifier for the box.
     length : int
         length of the box in bytes.
@@ -1152,9 +1138,9 @@ class ReaderRequirementsBox(Jp2kBox):
         offset of the box from the start of the file.
     longname : str
         more verbose description of the box.
-    FUAM : int
+    fuam : int
         Fully Understand Aspects mask.
-    DCM : int
+    dcm : int
         Decode completely mask.
     standard_flag : list
         Integers specifying standard features.
@@ -1167,23 +1153,27 @@ class ReaderRequirementsBox(Jp2kBox):
         Specifies the compatibility mask for each corresponding vendor
         feature.
     """
-    def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='rreq', longname='Reader Requirements')
-        self.__dict__.update(**kwargs)
+    def __init__(self, fuam, dcm, standard_flag, standard_mask, vendor_feature,
+                 vendor_mask, length=0, offset=-1):
+        Jp2kBox.__init__(self, box_id='rreq', longname='Reader Requirements')
+        self.fuam = fuam
+        self.dcm = dcm
+        self.standard_flag = standard_flag
+        self.standard_mask = standard_mask
+        self.vendor_feature = vendor_feature
+        self.vendor_mask = vendor_mask
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
 
-        # TODO:  include FUAM, DCM
-
         msg += '\n    Standard Features:'
-        # TODO:  include each standard mask
         for j in range(len(self.standard_flag)):
             sfl = self.standard_flag[j]
             rrdisp = _reader_requirements_display[self.standard_flag[j]]
             msg += '\n        Feature {0:03d}:  {1}'.format(sfl, rrdisp)
 
-        # TODO:  include the vendor mask
         msg += '\n    Vendor Features:'
         for j in range(len(self.vendor_feature)):
             msg += '\n        UUID {0}'.format(self.vendor_feature[j])
@@ -1205,12 +1195,8 @@ class ReaderRequirementsBox(Jp2kBox):
 
         Returns
         -------
-        ReaderRequirementsBox.
+        ReaderRequirementsBox instance
         """
-        kwargs = {}
-        kwargs['length'] = length
-        kwargs['offset'] = offset
-
         read_buffer = fptr.read(1)
         mask_length, = struct.unpack('>B', read_buffer)
         if mask_length == 1:
@@ -1228,8 +1214,8 @@ class ReaderRequirementsBox(Jp2kBox):
         # Decodes Completely Mask
         read_buffer = fptr.read(2 * mask_length)
         data = struct.unpack('>' + mask_format * 2, read_buffer)
-        kwargs['FUAM'] = data[0]
-        kwargs['DCM'] = data[1]
+        fuam = data[0]
+        dcm = data[1]
 
         read_buffer = fptr.read(2)
         num_standard_flags, = struct.unpack('>H', read_buffer)
@@ -1240,8 +1226,8 @@ class ReaderRequirementsBox(Jp2kBox):
         read_buffer = fptr.read(num_standard_flags * (2 + mask_length))
         data = struct.unpack('>' + ('H' + mask_format) * num_standard_flags,
                              read_buffer)
-        kwargs['standard_flag'] = data[0:num_standard_flags * 2:2]
-        kwargs['standard_mask'] = data[1:num_standard_flags * 2:2]
+        standard_flag = data[0:num_standard_flags * 2:2]
+        standard_mask = data[1:num_standard_flags * 2:2]
 
         # Vendor features
         read_buffer = fptr.read(2)
@@ -1257,13 +1243,12 @@ class ReaderRequirementsBox(Jp2kBox):
             ubuffer = read_buffer[j * entry_length:(j + 1) * entry_length]
             vendor_feature.append(uuid.UUID(bytes=ubuffer[0:16]))
 
-            vm = struct.unpack('>' + mask_format, ubuffer[16:])
-            vendor_mask.append(vm)
+            vmask = struct.unpack('>' + mask_format, ubuffer[16:])
+            vendor_mask.append(vmask)
 
-        kwargs['vendor_feature'] = vendor_feature
-        kwargs['vendor_mask'] = vendor_mask
-
-        box = ReaderRequirementsBox(**kwargs)
+        box = ReaderRequirementsBox(fuam, dcm, standard_flag, standard_mask,
+                                    vendor_feature, vendor_mask,
+                                    length=length, offset=offset)
         return box
 
 
@@ -1272,7 +1257,7 @@ class ResolutionBox(Jp2kBox):
 
     Attributes
     ----------
-    id : str
+    box_id : str
         4-character identifier for the box.
     length : int
         length of the box in bytes.
@@ -1283,9 +1268,11 @@ class ResolutionBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='res ', longname='Resolution')
-        self.__dict__.update(**kwargs)
+    def __init__(self, length=0, offset=-1):
+        Jp2kBox.__init__(self, box_id='res ', longname='Resolution')
+        self.length = length
+        self.offset = offset
+        self.box = []
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -1312,28 +1299,23 @@ class ResolutionBox(Jp2kBox):
 
         Returns
         -------
-        kwargs : dictionary of parameter values, for now just a single
-                 4-byte tuple.
+        ResolutionBox instance
         """
-        kwargs = {}
-        kwargs['length'] = length
-        kwargs['offset'] = offset
-
-        box = ResolutionBox(**kwargs)
+        box = ResolutionBox(length=length, offset=offset)
 
         # The JP2 header box is a superbox, so go ahead and parse its child
         # boxes.
-        box.box = box._parse_superbox(fptr)
+        box.box = box.parse_superbox(fptr)
 
         return box
 
 
-class CaptureResolutionBox(ResolutionBox):
+class CaptureResolutionBox(Jp2kBox):
     """Container for Capture resolution box information.
 
     Attributes
     ----------
-    id : str
+    box_id : str
         4-character identifier for the box.
     length : int
         length of the box in bytes.
@@ -1341,17 +1323,21 @@ class CaptureResolutionBox(ResolutionBox):
         offset of the box from the start of the file.
     longname : str
         more verbose description of the box.
-    VR, HR : float
+    vertical_resolution, horizontal_resolution : float
         Vertical, horizontal resolution.
     """
-    def __init__(self, **kwargs):
-        ResolutionBox.__init__(self, id='resc', longname='Capture Resolution')
-        self.__dict__.update(**kwargs)
+    def __init__(self, vertical_resolution, horizontal_resolution, length=0,
+                 offset=-1):
+        Jp2kBox.__init__(self, box_id='resc', longname='Capture Resolution')
+        self.vertical_resolution = vertical_resolution
+        self.horizontal_resolution = horizontal_resolution
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        msg += '\n    VCR:  {0}'.format(self.VR)
-        msg += '\n    HCR:  {0}'.format(self.HR)
+        msg += '\n    VCR:  {0}'.format(self.vertical_resolution)
+        msg += '\n    HCR:  {0}'.format(self.horizontal_resolution)
         return msg
 
     @staticmethod
@@ -1369,29 +1355,24 @@ class CaptureResolutionBox(ResolutionBox):
 
         Returns
         -------
-        kwargs : dictionary of parameter values, for now just a single
-                 4-byte tuple.
+        CaptureResolutionBox instance
         """
-        kwargs = {}
-        kwargs['length'] = length
-        kwargs['offset'] = offset
-
         read_buffer = fptr.read(10)
         (rn1, rd1, rn2, rd2, re1, re2) = struct.unpack('>HHHHBB', read_buffer)
-        kwargs['VR'] = rn1 / rd1 * math.pow(10, re1)
-        kwargs['HR'] = rn2 / rd2 * math.pow(10, re2)
+        vres = rn1 / rd1 * math.pow(10, re1)
+        hres = rn2 / rd2 * math.pow(10, re2)
 
-        box = CaptureResolutionBox(**kwargs)
+        box = CaptureResolutionBox(vres, hres, length=length, offset=offset)
 
         return box
 
 
-class DisplayResolutionBox(ResolutionBox):
+class DisplayResolutionBox(Jp2kBox):
     """Container for Display resolution box information.
 
     Attributes
     ----------
-    id : str
+    box_id : str
         4-character identifier for the box.
     length : int
         length of the box in bytes.
@@ -1399,17 +1380,21 @@ class DisplayResolutionBox(ResolutionBox):
         offset of the box from the start of the file.
     longname : str
         more verbose description of the box.
-    VR, HR : float
+    vertical_resolution, horizontal_resolution : float
         Vertical, horizontal resolution.
     """
-    def __init__(self, **kwargs):
-        ResolutionBox.__init__(self, id='resd', longname='Display Resolution')
-        self.__dict__.update(**kwargs)
+    def __init__(self, vertical_resolution, horizontal_resolution,
+                 length=0, offset=-1):
+        Jp2kBox.__init__(self, box_id='resd', longname='Display Resolution')
+        self.vertical_resolution = vertical_resolution
+        self.horizontal_resolution = horizontal_resolution
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        msg += '\n    VDR:  {0}'.format(self.VR)
-        msg += '\n    HDR:  {0}'.format(self.HR)
+        msg += '\n    VDR:  {0}'.format(self.vertical_resolution)
+        msg += '\n    HDR:  {0}'.format(self.horizontal_resolution)
         return msg
 
     @staticmethod
@@ -1427,19 +1412,15 @@ class DisplayResolutionBox(ResolutionBox):
 
         Returns
         -------
-        kwargs : dictionary of parameter values, for now just a single
-                 4-byte tuple.
+        DisplayResolutionBox instance
         """
-        kwargs = {}
-        kwargs['length'] = length
-        kwargs['offset'] = offset
 
         read_buffer = fptr.read(10)
         (rn1, rd1, rn2, rd2, re1, re2) = struct.unpack('>HHHHBB', read_buffer)
-        kwargs['VR'] = rn1 / rd1 * math.pow(10, re1)
-        kwargs['HR'] = rn2 / rd2 * math.pow(10, re2)
+        vres = rn1 / rd1 * math.pow(10, re1)
+        hres = rn2 / rd2 * math.pow(10, re2)
 
-        box = DisplayResolutionBox(**kwargs)
+        box = DisplayResolutionBox(vres, hres, length=length, offset=offset)
 
         return box
 
@@ -1449,7 +1430,7 @@ class LabelBox(Jp2kBox):
 
     Attributes
     ----------
-    id : str
+    box_id : str
         4-character identifier for the box.
     length : int
         length of the box in bytes.
@@ -1460,9 +1441,11 @@ class LabelBox(Jp2kBox):
     label : str
         Label
     """
-    def __init__(self, **kwargs):
-        Jp2kBox.__init__(self, id='lbl ', longname='Label')
-        self.__dict__.update(**kwargs)
+    def __init__(self, label, length=0, offset=-1):
+        Jp2kBox.__init__(self, box_id='lbl ', longname='Label')
+        self.label = label
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -1484,16 +1467,12 @@ class LabelBox(Jp2kBox):
 
         Returns
         -------
-        kwargs : dictionary of parameter values
+        LabelBox instance
         """
-        kwargs = {}
-        kwargs['length'] = length
-        kwargs['offset'] = offset
-
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
-        kwargs['label'] = read_buffer.decode('utf-8')
-        box = LabelBox(**kwargs)
+        label = read_buffer.decode('utf-8')
+        box = LabelBox(label, length=length, offset=offset)
         return box
 
 
@@ -1502,7 +1481,7 @@ class XMLBox(Jp2kBox):
 
     Attributes
     ----------
-    id : str
+    box_id : str
         4-character identifier for the box.
     length : int
         length of the box in bytes.
@@ -1513,7 +1492,7 @@ class XMLBox(Jp2kBox):
     xml : ElementTree.Element
         XML section.
     """
-    def __init__(self, xml=None, filename=None, **kwargs):
+    def __init__(self, xml=None, filename=None, length=0, offset=-1):
         """
         Parameters
         ----------
@@ -1523,7 +1502,7 @@ class XMLBox(Jp2kBox):
             File from which to read XML.  If filename is not None, then the xml
             keyword argument must be None.
         """
-        Jp2kBox.__init__(self, id='xml ', longname='XML')
+        Jp2kBox.__init__(self, box_id='xml ', longname='XML')
         if filename is not None and xml is not None:
             msg = "Only one of either filename or xml should be provided."
             raise IOError(msg)
@@ -1531,7 +1510,8 @@ class XMLBox(Jp2kBox):
             self.xml = ET.parse(filename)
         else:
             self.xml = xml
-        self.__dict__.update(**kwargs)
+        self.length = length
+        self.offset = offset
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -1545,7 +1525,7 @@ class XMLBox(Jp2kBox):
             msg += '\n    {0}'.format(xml)
         return msg
 
-    def _write(self, fptr):
+    def write(self, fptr):
         """Write an XML box to file.
         """
         try:
@@ -1554,7 +1534,7 @@ class XMLBox(Jp2kBox):
             read_buffer = ET.tostring(self.xml.getroot(), encoding='utf-8')
 
         fptr.write(struct.pack('>I', len(read_buffer) + 8))
-        fptr.write(self.id.encode())
+        fptr.write(self.box_id.encode())
         fptr.write(read_buffer)
 
     @staticmethod
@@ -1572,12 +1552,8 @@ class XMLBox(Jp2kBox):
 
         Returns
         -------
-        kwargs : dictionary of parameter values
+        XMLBox instance
         """
-        kwargs = {}
-        kwargs['length'] = length
-        kwargs['offset'] = offset
-
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
         text = read_buffer.decode('utf-8')
@@ -1586,14 +1562,14 @@ class XMLBox(Jp2kBox):
         text = text.rstrip('\0')
 
         try:
-            kwargs['xml'] = ET.fromstring(text)
-        except ET.ParseError as e:
+            xml = ET.fromstring(text)
+        except ET.ParseError as parse_error:
             msg = 'A problem was encountered while parsing an XML box:  "{0}"'
-            msg = msg.format(str(e))
+            msg = msg.format(str(parse_error))
             warnings.warn(msg, UserWarning)
-            kwargs['xml'] = None
+            xml = None
 
-        box = XMLBox(**kwargs)
+        box = XMLBox(xml=xml, length=length, offset=offset)
         return box
 
 
@@ -1602,7 +1578,7 @@ class UUIDListBox(Jp2kBox):
 
     Attributes
     ----------
-    id : str
+    box_id : str
         4-character identifier for the box.
     length : int
         length of the box in bytes.
@@ -1613,16 +1589,16 @@ class UUIDListBox(Jp2kBox):
     ulst : list
         List of UUIDs.
     """
-    def __init__(self, ulst, length, offset):
-        Jp2kBox.__init__(self, id='ulst', longname='UUID List')
+    def __init__(self, ulst, length=0, offset=-1):
+        Jp2kBox.__init__(self, box_id='ulst', longname='UUID List')
         self.ulst = ulst
         self.length = length
         self.offset = offset
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        for enumerated_item in enumerate(self.ulst):
-            msg += '\n    UUID[{0}]:  {1}'.format(*enumerated_item)
+        for j, uuid_item in enumerate(self.ulst):
+            msg += '\n    UUID[{0}]:  {1}'.format(j, uuid_item)
         return(msg)
 
     @staticmethod
@@ -1640,7 +1616,7 @@ class UUIDListBox(Jp2kBox):
 
         Returns
         -------
-        kwargs : dictionary of parameter values
+        UUIDListBox instance
         """
         read_buffer = fptr.read(2)
         num_uuids, = struct.unpack('>H', read_buffer)
@@ -1650,7 +1626,7 @@ class UUIDListBox(Jp2kBox):
             read_buffer = fptr.read(16)
             ulst.append(uuid.UUID(bytes=read_buffer))
 
-        box = UUIDListBox(ulst, length, offset)
+        box = UUIDListBox(ulst, length=length, offset=offset)
         return(box)
 
 
@@ -1659,7 +1635,7 @@ class UUIDInfoBox(Jp2kBox):
 
     Attributes
     ----------
-    id : str
+    box_id : str
         4-character identifier for the box.
     length : int
         length of the box in bytes.
@@ -1670,8 +1646,8 @@ class UUIDInfoBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, length, offset):
-        Jp2kBox.__init__(self, id='uinf', longname='UUIDInfo')
+    def __init__(self, length=0, offset=-1):
+        Jp2kBox.__init__(self, box_id='uinf', longname='UUIDInfo')
         self.length = length
         self.offset = offset
         self.box = []
@@ -1703,14 +1679,14 @@ class UUIDInfoBox(Jp2kBox):
 
         Returns
         -------
-        kwargs : dictionary of parameter values
+        UUIDInfoBox instance
         """
 
-        box = UUIDInfoBox(length, offset)
+        box = UUIDInfoBox(length=length, offset=offset)
 
         # The UUIDInfo box is a superbox, so go ahead and parse its child
         # boxes.
-        box.box = box._parse_superbox(fptr)
+        box.box = box.parse_superbox(fptr)
 
         return box
 
@@ -1720,7 +1696,7 @@ class DataEntryURLBox(Jp2kBox):
 
     Attributes
     ----------
-    id : str
+    box_id : str
         4-character identifier for the box.
     length : int
         length of the box in bytes.
@@ -1735,8 +1711,8 @@ class DataEntryURLBox(Jp2kBox):
     URL : str
         Associated URL.
     """
-    def __init__(self, version, flag, url, length, offset):
-        Jp2kBox.__init__(self, id='url ', longname='Data Entry URL')
+    def __init__(self, version, flag, url, length=0, offset=-1):
+        Jp2kBox.__init__(self, box_id='url ', longname='Data Entry URL')
         self.version = version
         self.flag = flag
         self.url = url
@@ -1771,7 +1747,7 @@ class DataEntryURLBox(Jp2kBox):
 
         Returns
         -------
-        kwargs : dictionary of parameter values
+        DataEntryURLbox instance
         """
         read_buffer = fptr.read(4)
         data = struct.unpack('>BBBB', read_buffer)
@@ -1781,7 +1757,7 @@ class DataEntryURLBox(Jp2kBox):
         numbytes = offset + length - fptr.tell()
         read_buffer = fptr.read(numbytes)
         url = read_buffer.decode('utf-8')
-        box = DataEntryURLBox(version, flag, url, length, offset)
+        box = DataEntryURLBox(version, flag, url, length=length, offset=offset)
         return box
 
 
@@ -1790,7 +1766,7 @@ class UUIDBox(Jp2kBox):
 
     Attributes
     ----------
-    id : str
+    box_id : str
         4-character identifier for the box.
     length : int
         length of the box in bytes.
@@ -1810,7 +1786,7 @@ class UUIDBox(Jp2kBox):
        16684-1:2012 - Graphic technology -- Extensible metadata platform (XMP)
        specification -- Part 1:  Data model, serialization and core properties
     """
-    def __init__(self, the_uuid, raw_data, length, offset):
+    def __init__(self, the_uuid, raw_data, length=0, offset=-1):
         """
         Parameters
         ----------
@@ -1823,7 +1799,7 @@ class UUIDBox(Jp2kBox):
         offset : int
             offset of the box from the start of the file.
         """
-        Jp2kBox.__init__(self, id='uuid', longname='UUID')
+        Jp2kBox.__init__(self, box_id='uuid', longname='UUID')
         self.uuid = the_uuid
 
         if the_uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
@@ -1863,6 +1839,8 @@ class UUIDBox(Jp2kBox):
             # as regular dicts.  Not ideal, but at least it's good on 3.3+.
             if sys.hexversion < 0x03000000:
                 data = dict(self.data)
+            else:
+                data = self.data
             uuid_data = '\n' + pprint.pformat(data)
         else:
             uuid_type = ''
@@ -1888,8 +1866,9 @@ class UUIDBox(Jp2kBox):
         length : int
             Length of the box in bytes.
 
-        Returns:
-            kwargs:  dictionary of parameter values
+        Returns
+        -------
+        UUIDBox instance
         """
 
         read_buffer = fptr.read(16)
@@ -1897,7 +1876,7 @@ class UUIDBox(Jp2kBox):
 
         numbytes = offset + length - fptr.tell()
         read_buffer = fptr.read(numbytes)
-        box = UUIDBox(the_uuid, read_buffer, length, offset)
+        box = UUIDBox(the_uuid, read_buffer, length=length, offset=offset)
         return box
 
 

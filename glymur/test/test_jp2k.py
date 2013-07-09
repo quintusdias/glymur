@@ -102,7 +102,7 @@ class TestJp2k(unittest.TestCase):
             warnings.simplefilter("ignore")
             jp2k = Jp2k(self._bad_xml_file)
 
-        self.assertEqual(jp2k.box[3].id, 'xml ')
+        self.assertEqual(jp2k.box[3].box_id, 'xml ')
         self.assertEqual(jp2k.box[3].offset, 77)
         self.assertEqual(jp2k.box[3].length, 28)
         self.assertIsNone(jp2k.box[3].xml)
@@ -184,37 +184,37 @@ class TestJp2k(unittest.TestCase):
         # top-level boxes
         self.assertEqual(len(jp2k.box), 6)
 
-        self.assertEqual(jp2k.box[0].id, 'jP  ')
+        self.assertEqual(jp2k.box[0].box_id, 'jP  ')
         self.assertEqual(jp2k.box[0].offset, 0)
         self.assertEqual(jp2k.box[0].length, 12)
         self.assertEqual(jp2k.box[0].longname, 'JPEG 2000 Signature')
 
-        self.assertEqual(jp2k.box[1].id, 'ftyp')
+        self.assertEqual(jp2k.box[1].box_id, 'ftyp')
         self.assertEqual(jp2k.box[1].offset, 12)
         self.assertEqual(jp2k.box[1].length, 20)
         self.assertEqual(jp2k.box[1].longname, 'File Type')
 
-        self.assertEqual(jp2k.box[2].id, 'jp2h')
+        self.assertEqual(jp2k.box[2].box_id, 'jp2h')
         self.assertEqual(jp2k.box[2].offset, 32)
         self.assertEqual(jp2k.box[2].length, 45)
         self.assertEqual(jp2k.box[2].longname, 'JP2 Header')
 
-        self.assertEqual(jp2k.box[3].id, 'uuid')
+        self.assertEqual(jp2k.box[3].box_id, 'uuid')
         self.assertEqual(jp2k.box[3].offset, 77)
         self.assertEqual(jp2k.box[3].length, 638)
 
-        self.assertEqual(jp2k.box[4].id, 'uuid')
+        self.assertEqual(jp2k.box[4].box_id, 'uuid')
         self.assertEqual(jp2k.box[4].offset, 715)
         self.assertEqual(jp2k.box[4].length, 2412)
 
-        self.assertEqual(jp2k.box[5].id, 'jp2c')
+        self.assertEqual(jp2k.box[5].box_id, 'jp2c')
         self.assertEqual(jp2k.box[5].offset, 3127)
         self.assertEqual(jp2k.box[5].length, 1132296)
 
         # jp2h super box
         self.assertEqual(len(jp2k.box[2].box), 2)
 
-        self.assertEqual(jp2k.box[2].box[0].id, 'ihdr')
+        self.assertEqual(jp2k.box[2].box[0].box_id, 'ihdr')
         self.assertEqual(jp2k.box[2].box[0].offset, 40)
         self.assertEqual(jp2k.box[2].box[0].length, 22)
         self.assertEqual(jp2k.box[2].box[0].longname, 'Image Header')
@@ -227,7 +227,7 @@ class TestJp2k(unittest.TestCase):
         self.assertEqual(jp2k.box[2].box[0].colorspace_unknown, False)
         self.assertEqual(jp2k.box[2].box[0].ip_provided, False)
 
-        self.assertEqual(jp2k.box[2].box[1].id, 'colr')
+        self.assertEqual(jp2k.box[2].box[1].box_id, 'colr')
         self.assertEqual(jp2k.box[2].box[1].offset, 62)
         self.assertEqual(jp2k.box[2].box[1].length, 15)
         self.assertEqual(jp2k.box[2].box[1].longname, 'Colour Specification')
@@ -272,7 +272,7 @@ class TestJp2k(unittest.TestCase):
 
             jp2k = Jp2k(tfile.name)
 
-            self.assertEqual(jp2k.box[5].id, 'jp2c')
+            self.assertEqual(jp2k.box[5].box_id, 'jp2c')
             self.assertEqual(jp2k.box[5].offset, 3127)
             self.assertEqual(jp2k.box[5].length, 1133427 + 8)
 
@@ -303,8 +303,8 @@ class TestJp2k(unittest.TestCase):
 
             # The top level boxes in each file should match.
             for j in range(len(baseline_jp2.box)):
-                self.assertEqual(new_jp2.box[j].id,
-                                 baseline_jp2.box[j].id)
+                self.assertEqual(new_jp2.box[j].box_id,
+                                 baseline_jp2.box[j].box_id)
                 self.assertEqual(new_jp2.box[j].offset,
                                  baseline_jp2.box[j].offset)
                 self.assertEqual(new_jp2.box[j].length,
@@ -479,18 +479,18 @@ class TestJp2k(unittest.TestCase):
 
             jp2k = Jp2k(tfile.name)
 
-            self.assertEqual(jp2k.box[3].id, 'uinf')
+            self.assertEqual(jp2k.box[3].box_id, 'uinf')
             self.assertEqual(jp2k.box[3].offset, 77)
             self.assertEqual(jp2k.box[3].length, 50)
 
-            self.assertEqual(jp2k.box[3].box[0].id, 'ulst')
+            self.assertEqual(jp2k.box[3].box[0].box_id, 'ulst')
             self.assertEqual(jp2k.box[3].box[0].offset, 85)
             self.assertEqual(jp2k.box[3].box[0].length, 26)
             ulst = []
             ulst.append(uuid.UUID('00000000-0000-0000-0000-000000000000'))
             self.assertEqual(jp2k.box[3].box[0].ulst, ulst)
 
-            self.assertEqual(jp2k.box[3].box[1].id, 'url ')
+            self.assertEqual(jp2k.box[3].box[1].box_id, 'url ')
             self.assertEqual(jp2k.box[3].box[1].offset, 111)
             self.assertEqual(jp2k.box[3].box[1].length, 16)
             self.assertEqual(jp2k.box[3].box[1].version, 0)
@@ -522,7 +522,7 @@ class TestJp2k(unittest.TestCase):
 
             jp2k = Jp2k(tfile.name)
 
-            self.assertEqual(jp2k.box[3].id, 'xml ')
+            self.assertEqual(jp2k.box[3].box_id, 'xml ')
             self.assertEqual(jp2k.box[3].offset, 77)
             self.assertEqual(jp2k.box[3].length, 36)
 
@@ -567,10 +567,10 @@ class TestJp2k(unittest.TestCase):
                 tfile2.flush()
 
                 jasoc = Jp2k(tfile2.name)
-                self.assertEqual(jasoc.box[3].id, 'asoc')
-                self.assertEqual(jasoc.box[3].box[0].id, 'lbl ')
+                self.assertEqual(jasoc.box[3].box_id, 'asoc')
+                self.assertEqual(jasoc.box[3].box[0].box_id, 'lbl ')
                 self.assertEqual(jasoc.box[3].box[0].label, 'label')
-                self.assertEqual(jasoc.box[3].box[1].id, 'xml ')
+                self.assertEqual(jasoc.box[3].box[1].box_id, 'xml ')
 
     def test_openjpeg_library_message(self):
         # Verify the error message produced by the openjpeg library.
@@ -599,11 +599,11 @@ class TestJp2k(unittest.TestCase):
                                         Invalid\svalues\sfor\scomp\s=\s0\s+
                                         :\sdx=1\sdy=0''', re.VERBOSE)
                 if sys.hexversion < 0x03020000:
-                    with self.assertRaisesRegexp(IOError, regexp) as ce:
-                        d = j.read(reduce=3)
+                    with self.assertRaisesRegexp((IOError, OSError), regexp) as ce:
+                        d = j.read(reduce=1)
                 else:
-                    with self.assertRaisesRegex(IOError, regexp) as ce:
-                        d = j.read(reduce=3)
+                    with self.assertRaisesRegex((IOError, OSError), regexp) as ce:
+                        d = j.read(reduce=1)
 
     def test_xmp_attribute(self):
         # Verify that we can read the XMP packet in our shipping example file.

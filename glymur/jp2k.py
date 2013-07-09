@@ -137,7 +137,7 @@ class Jp2k(Jp2kBox):
             # Back up and start again, we know we have a superbox (box of
             # boxes) here.
             f.seek(0)
-            self.box = self._parse_superbox(f)
+            self.box = self.parse_superbox(f)
 
     def write(self, img_array, cratios=None, eph=False, psnr=None, numres=None,
               cbsize=None, psizes=None, grid_offset=None, sop=False,
@@ -450,15 +450,15 @@ class Jp2k(Jp2kBox):
 
         # Check for a bad sequence of boxes.
         # 1st two boxes must be 'jP  ' and 'ftyp'
-        if boxes[0].id != 'jP  ' or boxes[1].id != 'ftyp':
+        if boxes[0].box_id != 'jP  ' or boxes[1].box_id != 'ftyp':
             msg = "The first box must be the signature box and the second "
             msg += "must be the file type box."
             raise IOError(msg)
 
         # jp2c must be preceeded by jp2h
-        jp2h_lst = [idx for (idx, box) in enumerate(boxes) if box.id == 'jp2h']
+        jp2h_lst = [idx for (idx, box) in enumerate(boxes) if box.box_id == 'jp2h']
         jp2h_idx = jp2h_lst[0]
-        jp2c_lst = [idx for (idx, box) in enumerate(boxes) if box.id == 'jp2c']
+        jp2c_lst = [idx for (idx, box) in enumerate(boxes) if box.box_id == 'jp2c']
         if len(jp2c_lst) == 0:
             msg = "A codestream box must be defined in the outermost "
             msg += "list of boxes."
@@ -471,27 +471,27 @@ class Jp2k(Jp2kBox):
 
         # 1st jp2 header box must be ihdr
         jp2h = boxes[jp2h_idx]
-        if jp2h.box[0].id != 'ihdr':
+        if jp2h.box[0].box_id != 'ihdr':
             msg = "The first box in the jp2 header box must be the image "
             msg += "header box."
             raise IOError(msg)
 
         # colr must be present in jp2 header box.
         jp2hb = jp2h.box
-        colr_lst = [j for (j, box) in enumerate(jp2h.box) if box.id == 'colr']
+        colr_lst = [j for (j, box) in enumerate(jp2h.box) if box.box_id == 'colr']
         if len(colr_lst) == 0:
             msg = "The jp2 header box must contain a color definition box."
             raise IOError(msg)
         colr = jp2h.box[colr_lst[0]]
 
         # Any cdef box must be in the jp2 header following the image header.
-        cdef_lst = [j for (j, box) in enumerate(boxes) if box.id == 'cdef']
+        cdef_lst = [j for (j, box) in enumerate(boxes) if box.box_id == 'cdef']
         if len(cdef_lst) != 0:
             msg = "Any channel defintion box must be in the JP2 header "
             msg += "following the image header."
             raise IOError(msg)
 
-        cdef_lst = [j for (j, box) in enumerate(jp2h.box) if box.id == 'cdef']
+        cdef_lst = [j for (j, box) in enumerate(jp2h.box) if box.box_id == 'cdef']
         if len(cdef_lst) > 1:
             msg = "Only one channel definition box is allowed in the "
             msg += "JP2 header."
@@ -515,8 +515,8 @@ class Jp2k(Jp2kBox):
 
         with open(filename, 'wb') as ofile:
             for box in boxes:
-                if box.id != 'jp2c':
-                    box._write(ofile)
+                if box.box_id != 'jp2c':
+                    box.write(ofile)
                 else:
                     # The codestream gets written last.
                     if len(self.box) == 0:
@@ -530,7 +530,7 @@ class Jp2k(Jp2kBox):
                     else:
                         # OK, I'm a jp2 file.  Need to find out where the
                         # raw codestream actually starts.
-                        jp2c = [box for box in self.box if box.id == 'jp2c']
+                        jp2c = [box for box in self.box if box.box_id == 'jp2c']
                         jp2c = jp2c[0]
                         ofile.write(struct.pack('>I', jp2c.length + 8))
                         ofile.write('jp2c'.encode())
@@ -989,7 +989,7 @@ class Jp2k(Jp2kBox):
             if self._codec_format == opj2._CODEC_J2K:
                 codestream = Codestream(fp, header_only=header_only)
             else:
-                box = [x for x in self.box if x.id == 'jp2c']
+                box = [x for x in self.box if x.box_id == 'jp2c']
                 if len(box) != 1:
                     msg = "JP2 files must have a single codestream."
                     raise RuntimeError(msg)

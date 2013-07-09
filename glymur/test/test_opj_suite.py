@@ -4001,11 +4001,11 @@ class TestSuiteDump(unittest.TestCase):
         jfile = os.path.join(data_root, 'input/conformance/file1.jp2')
         jp2 = Jp2k(jfile)
 
-        ids = [box.id for box in jp2.box]
+        ids = [box.box_id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'xml ', 'jp2h', 'xml ',
                                'jp2c'])
 
-        ids = [box.id for box in jp2.box[3].box]
+        ids = [box.box_id for box in jp2.box[3].box]
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         # Signature box.  Check for corruption.
@@ -4050,10 +4050,10 @@ class TestSuiteDump(unittest.TestCase):
         jfile = os.path.join(data_root, 'input/conformance/file2.jp2')
         jp2 = Jp2k(jfile)
 
-        ids = [box.id for box in jp2.box]
+        ids = [box.box_id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
 
-        ids = [box.id for box in jp2.box[2].box]
+        ids = [box.box_id for box in jp2.box[2].box]
         self.assertEqual(ids, ['ihdr', 'colr', 'cdef'])
 
         # Signature box.  Check for corruption.
@@ -4096,10 +4096,10 @@ class TestSuiteDump(unittest.TestCase):
         jfile = os.path.join(data_root, 'input/conformance/file3.jp2')
         jp2 = Jp2k(jfile)
 
-        ids = [box.id for box in jp2.box]
+        ids = [box.box_id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
 
-        ids = [box.id for box in jp2.box[2].box]
+        ids = [box.box_id for box in jp2.box[2].box]
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         # Signature box.  Check for corruption.
@@ -4142,10 +4142,10 @@ class TestSuiteDump(unittest.TestCase):
         jfile = os.path.join(data_root, 'input/conformance/file4.jp2')
         jp2 = Jp2k(jfile)
 
-        ids = [box.id for box in jp2.box]
+        ids = [box.box_id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
 
-        ids = [box.id for box in jp2.box[2].box]
+        ids = [box.box_id for box in jp2.box[2].box]
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         # Signature box.  Check for corruption.
@@ -4183,10 +4183,10 @@ class TestSuiteDump(unittest.TestCase):
         jfile = os.path.join(data_root, 'input/conformance/file5.jp2')
         jp2 = Jp2k(jfile)
 
-        ids = [box.id for box in jp2.box]
+        ids = [box.box_id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'rreq', 'jp2h', 'jp2c'])
 
-        ids = [box.id for box in jp2.box[3].box]
+        ids = [box.box_id for box in jp2.box[3].box]
         self.assertEqual(ids, ['ihdr', 'colr', 'colr'])
 
         # Signature box.  Check for corruption.
@@ -4230,10 +4230,10 @@ class TestSuiteDump(unittest.TestCase):
         jfile = os.path.join(data_root, 'input/conformance/file6.jp2')
         jp2 = Jp2k(jfile)
 
-        ids = [box.id for box in jp2.box]
+        ids = [box.box_id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
 
-        ids = [box.id for box in jp2.box[2].box]
+        ids = [box.box_id for box in jp2.box[2].box]
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         # Signature box.  Check for corruption.
@@ -4273,10 +4273,10 @@ class TestSuiteDump(unittest.TestCase):
         jfile = os.path.join(data_root, 'input/conformance/file7.jp2')
         jp2 = Jp2k(jfile)
 
-        ids = [box.id for box in jp2.box]
+        ids = [box.box_id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'rreq', 'jp2h', 'jp2c'])
 
-        ids = [box.id for box in jp2.box[3].box]
+        ids = [box.box_id for box in jp2.box[3].box]
         self.assertEqual(ids, ['ihdr', 'colr', 'colr'])
 
         # Signature box.  Check for corruption.
@@ -4327,11 +4327,11 @@ class TestSuiteDump(unittest.TestCase):
         jfile = os.path.join(data_root, 'input/conformance/file8.jp2')
         jp2 = Jp2k(jfile)
 
-        ids = [box.id for box in jp2.box]
+        ids = [box.box_id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'xml ', 'jp2c',
                                'xml '])
 
-        ids = [box.id for box in jp2.box[2].box]
+        ids = [box.box_id for box in jp2.box[2].box]
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         # Signature box.  Check for corruption.
@@ -4380,10 +4380,10 @@ class TestSuiteDump(unittest.TestCase):
         jfile = os.path.join(data_root, 'input/conformance/file9.jp2')
         jp2 = Jp2k(jfile)
 
-        ids = [box.id for box in jp2.box]
+        ids = [box.box_id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
 
-        ids = [box.id for box in jp2.box[2].box]
+        ids = [box.box_id for box in jp2.box[2].box]
         self.assertEqual(ids, ['ihdr', 'pclr', 'cmap', 'colr'])
 
         # Signature box.  Check for corruption.
@@ -5877,10 +5877,10 @@ class TestSuiteDump(unittest.TestCase):
             # colr box has bad length.
             jp2 = Jp2k(jfile)
 
-        ids = [box.id for box in jp2.box]
+        ids = [box.box_id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
 
-        ids = [box.id for box in jp2.box[2].box]
+        ids = [box.box_id for box in jp2.box[2].box]
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         # Signature box.  Check for corruption.
@@ -6010,10 +6010,10 @@ class TestSuiteDump(unittest.TestCase):
             # colr box has bad length.
             jp2 = Jp2k(jfile)
 
-        ids = [box.id for box in jp2.box]
+        ids = [box.box_id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
 
-        ids = [box.id for box in jp2.box[2].box]
+        ids = [box.box_id for box in jp2.box[2].box]
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         # Signature box.  Check for corruption.
@@ -6138,10 +6138,10 @@ class TestSuiteDump(unittest.TestCase):
                              'input/nonregression/file409752.jp2')
         jp2 = Jp2k(jfile)
 
-        ids = [box.id for box in jp2.box]
+        ids = [box.box_id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
 
-        ids = [box.id for box in jp2.box[2].box]
+        ids = [box.box_id for box in jp2.box[2].box]
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         # Signature box.  Check for corruption.
@@ -6272,10 +6272,10 @@ class TestSuiteDump(unittest.TestCase):
                              'input/nonregression/issue104_jpxstream.jp2')
         jp2 = Jp2k(jfile)
 
-        ids = [box.id for box in jp2.box]
+        ids = [box.box_id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'rreq', 'jp2h', 'jp2c'])
 
-        ids = [box.id for box in jp2.box[3].box]
+        ids = [box.box_id for box in jp2.box[3].box]
         self.assertEqual(ids, ['ihdr', 'colr', 'pclr', 'cmap'])
 
         # Signature box.  Check for corruption.
@@ -6389,10 +6389,10 @@ class TestSuiteDump(unittest.TestCase):
             warnings.simplefilter("ignore")
             jp2 = Jp2k(jfile)
 
-        ids = [box.id for box in jp2.box]
+        ids = [box.box_id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'XML ', 'jp2c'])
 
-        ids = [box.id for box in jp2.box[2].box]
+        ids = [box.box_id for box in jp2.box[2].box]
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         # Signature box.  Check for corruption.
@@ -6483,10 +6483,10 @@ class TestSuiteDump(unittest.TestCase):
                              'input/nonregression/issue206_image-000.jp2')
         jp2 = Jp2k(jfile)
 
-        ids = [box.id for box in jp2.box]
+        ids = [box.box_id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'rreq', 'jp2h', 'jp2c'])
 
-        ids = [box.id for box in jp2.box[3].box]
+        ids = [box.box_id for box in jp2.box[3].box]
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         # Signature box.  Check for corruption.
@@ -6583,13 +6583,13 @@ class TestSuiteDump(unittest.TestCase):
                              'input/nonregression/Marrin.jp2')
         jp2 = Jp2k(jfile)
 
-        ids = [box.id for box in jp2.box]
+        ids = [box.box_id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
 
-        ids = [box.id for box in jp2.box[2].box]
+        ids = [box.box_id for box in jp2.box[2].box]
         self.assertEqual(ids, ['ihdr', 'colr', 'cdef', 'res '])
 
-        ids = [box.id for box in jp2.box[2].box[3].box]
+        ids = [box.box_id for box in jp2.box[2].box[3].box]
         self.assertEqual(ids, ['resd'])
 
         # Signature box.  Check for corruption.
@@ -6699,10 +6699,10 @@ class TestSuiteDump(unittest.TestCase):
             warnings.simplefilter("ignore")
             jp2 = Jp2k(jfile)
 
-        ids = [box.id for box in jp2.box]
+        ids = [box.box_id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'rreq', 'jp2h', 'jp2c'])
 
-        ids = [box.id for box in jp2.box[3].box]
+        ids = [box.box_id for box in jp2.box[3].box]
         self.assertEqual(ids, ['ihdr', 'colr', 'pclr', 'cmap'])
 
         # Signature box.  Check for corruption.
@@ -6813,10 +6813,10 @@ class TestSuiteDump(unittest.TestCase):
                              'input/nonregression/mem-b2b86b74-2753.jp2')
         jp2 = Jp2k(jfile)
 
-        ids = [box.id for box in jp2.box]
+        ids = [box.box_id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'rreq', 'jp2h', 'jp2c'])
 
-        ids = [box.id for box in jp2.box[3].box]
+        ids = [box.box_id for box in jp2.box[3].box]
         self.assertEqual(ids, ['ihdr', 'colr', 'pclr', 'cmap'])
 
         # Signature box.  Check for corruption.
@@ -6927,10 +6927,10 @@ class TestSuiteDump(unittest.TestCase):
                              'input/nonregression/merged.jp2')
         jp2 = Jp2k(jfile)
 
-        ids = [box.id for box in jp2.box]
+        ids = [box.box_id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
 
-        ids = [box.id for box in jp2.box[2].box]
+        ids = [box.box_id for box in jp2.box[2].box]
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         # Signature box.  Check for corruption.
@@ -7034,10 +7034,10 @@ class TestSuiteDump(unittest.TestCase):
             warnings.simplefilter("ignore")
             jp2 = Jp2k(jfile)
 
-        ids = [box.id for box in jp2.box]
+        ids = [box.box_id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
 
-        ids = [box.id for box in jp2.box[2].box]
+        ids = [box.box_id for box in jp2.box[2].box]
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         # Signature box.  Check for corruption.
@@ -7133,10 +7133,10 @@ class TestSuiteDump(unittest.TestCase):
             warnings.simplefilter("ignore")
             jp2 = Jp2k(jfile)
 
-        ids = [box.id for box in jp2.box]
+        ids = [box.box_id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
 
-        ids = [box.id for box in jp2.box[2].box]
+        ids = [box.box_id for box in jp2.box[2].box]
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         # Signature box.  Check for corruption.
@@ -7229,12 +7229,12 @@ class TestSuiteDump(unittest.TestCase):
                              'input/nonregression/text_GBR.jp2')
         jp2 = Jp2k(jfile)
 
-        ids = [box.id for box in jp2.box]
+        ids = [box.box_id for box in jp2.box]
         lst = ['jP  ', 'ftyp', 'rreq', 'jp2h',
                'uuid', 'uuid', 'uuid', 'uuid', 'jp2c']
         self.assertEqual(ids, lst)
 
-        ids = [box.id for box in jp2.box[3].box]
+        ids = [box.box_id for box in jp2.box[3].box]
         self.assertEqual(ids, ['ihdr', 'colr', 'res '])
 
         # Signature box.  Check for corruption.

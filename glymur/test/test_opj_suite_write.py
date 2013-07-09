@@ -663,11 +663,11 @@ class TestSuiteWrite(unittest.TestCase):
             jp2 = Jp2k(tfile.name, 'wb')
             jp2.write(data, psnr=[30, 35, 50], prog='LRCP', numres=3)
 
-            ids = [box.id for box in jp2.box]
+            ids = [box.box_id for box in jp2.box]
             lst = ['jP  ', 'ftyp', 'jp2h', 'jp2c']
             self.assertEqual(ids, lst)
 
-            ids = [box.id for box in jp2.box[2].box]
+            ids = [box.box_id for box in jp2.box[2].box]
             self.assertEqual(ids, ['ihdr', 'colr'])
 
             # Signature box.  Check for corruption.
