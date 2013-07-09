@@ -6,18 +6,10 @@ from ctypes.util import find_library
 import platform
 import os
 
-if os.name == "nt":
-    path = os.path.join('C:\\', 'Program files', 'OpenJPEG 1.5',
-                        'bin', 'openjpeg.dll')
-    OPENJPEG = ctypes.windll.LoadLibrary(path)
-else:
-    if platform.system() == 'Darwin':
-        OPENJPEG = ctypes.CDLL('/opt/local/lib/libopenjpeg.dylib')
-    elif platform.system() == 'Linux':
-        OPENJPEG = ctypes.CDLL(find_library('openjpeg'))
+from .config import glymur_config
+_, OPENJPEG = glymur_config()
 
 PATH_LEN = 4096  # maximum allowed size for filenames
-
 
 class event_mgr_t(ctypes.Structure):
     """Message handler object.
