@@ -2,6 +2,9 @@
 
 License:  MIT
 """
+
+# pylint: disable=C0302
+
 import sys
 if sys.hexversion >= 0x03030000:
     from contextlib import ExitStack
@@ -16,15 +19,23 @@ import warnings
 import numpy as np
 
 from .codestream import Codestream
-from .core import *
-from .jp2box import *
+from .core import SRGB
+from .core import GREYSCALE
+from .core import progression_order
+from .jp2box import Jp2kBox
+from .jp2box import JPEG2000SignatureBox
+from .jp2box import FileTypeBox
+from .jp2box import JP2HeaderBox
+from .jp2box import ContiguousCodestreamBox
+from .jp2box import ImageHeaderBox
+from .jp2box import ColourSpecificationBox
 from .lib import _openjpeg as _opj
 from .lib import _openjp2 as _opj2
 
-_cspace_map = {'rgb': _opj2.CLRSPC_SRGB,
-               'gray': _opj2.CLRSPC_GRAY,
-               'grey': _opj2.CLRSPC_GRAY,
-               'ycc': _opj2.CLRSPC_YCC}
+_COLORSPACE_MAP = {'rgb': _opj2.CLRSPC_SRGB,
+                   'gray': _opj2.CLRSPC_GRAY,
+                   'grey': _opj2.CLRSPC_GRAY,
+                   'ycc': _opj2.CLRSPC_YCC}
 
 # Setup the default callback handlers.  See the callback functions subsection
 # in the ctypes section of the Python documentation for a solid explanation of
@@ -32,16 +43,16 @@ _cspace_map = {'rgb': _opj2.CLRSPC_SRGB,
 _CMPFUNC = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_char_p, ctypes.c_void_p)
 
 
-def _default_error_handler(msg, client_data):
+def _default_error_handler(msg, _):
     msg = "OpenJPEG library error:  {0}".format(msg.decode('utf-8').rstrip())
     _opj2.set_error_message(msg)
 
 
-def _default_info_handler(msg, client_data):
+def _default_info_handler(msg, _):
     print("[INFO] {0}".format(msg.decode('utf-8').rstrip()))
 
 
-def _default_warning_handler(library_msg, client_data):
+def _default_warning_handler(library_msg, _):
     library_msg = library_msg.decode('utf-8').rstrip()
     msg = "OpenJPEG library warning:  {0}".format(library_msg)
     warnings.warn(msg)
@@ -90,8 +101,8 @@ class Jp2k(Jp2kBox):
             for box in self.box:
                 metadata.append(str(box))
         else:
-            c = self.get_codestream()
-            metadata.append(str(c))
+            codestream = self.get_codestream()
+            metadata.append(str(codestream))
         return '\n'.join(metadata)
 
     def _parse(self):
@@ -110,8 +121,8 @@ class Jp2k(Jp2kBox):
 
             # Make sure we have a JPEG2000 file.  It could be either JP2 or
             # J2C.  Check for J2C first, single box in that case.
-            buffer = f.read(2)
-            signature, = struct.unpack('>H', buffer)
+            read_buffer = f.read(2)
+            signature, = struct.unpack('>H', read_buffer)
             if signature == 0xff4f:
                 self._codec_format = _opj2.CODEC_J2K
                 # That's it, we're done.  The codestream object is only
@@ -125,8 +136,8 @@ class Jp2k(Jp2kBox):
             # 2nd 4 bytes should be the box ID ('jP  ').
             # 3rd 4 bytes should be the box signature (13, 10, 135, 10).
             f.seek(0)
-            buffer = f.read(12)
-            values = struct.unpack('>I4s4B', buffer)
+            read_buffer = f.read(12)
+            values = struct.unpack('>I4s4B', read_buffer)
             L = values[0]
             T = values[1]
             signature = values[2:]
@@ -338,7 +349,7 @@ class Jp2k(Jp2kBox):
                 msg = 'RGB colorspace requires at least 3 components.'
                 raise IOError(msg)
             else:
-                colorspace = _cspace_map[colorspace]
+                colorspace = _COLORSPACE_MAP[colorspace]
 
         if mct is None:
             if colorspace == _opj2.CLRSPC_SRGB:
@@ -439,10 +450,10 @@ class Jp2k(Jp2kBox):
                      FileTypeBox(),
                      JP2HeaderBox(),
                      ContiguousCodestreamBox()]
-            c = self.get_codestream()
-            height = c.segment[1].ysiz
-            width = c.segment[1].xsiz
-            num_components = len(c.segment[1].xrsiz)
+            codestream = self.get_codestream()
+            height = codestream.segment[1].ysiz
+            width = codestream.segment[1].xsiz
+            num_components = len(codestream.segment[1].xrsiz)
             boxes[2].box = [ImageHeaderBox(height=height,
                                            width=width,
                                            num_components=num_components),
@@ -477,7 +488,6 @@ class Jp2k(Jp2kBox):
             raise IOError(msg)
 
         # colr must be present in jp2 header box.
-        jp2hb = jp2h.box
         colr_lst = [j for (j, box) in enumerate(jp2h.box) if box.box_id == 'colr']
         if len(colr_lst) == 0:
             msg = "The jp2 header box must contain a color definition box."
@@ -500,7 +510,6 @@ class Jp2k(Jp2kBox):
             cdef = jp2h.box[cdef_lst[0]]
             assn = cdef.association
             typ = cdef.channel_type
-            index = cdef.index
             if colr.colorspace == SRGB:
                 if any([chan + 1 not in assn or typ[chan] != 0
                         for chan in [0, 1, 2]]):
@@ -652,8 +661,8 @@ class Jp2k(Jp2kBox):
 
             _opj.setup_decoder(dinfo, dparameters)
 
-            with open(self.filename, 'rb') as fp:
-                src = fp.read()
+            with open(self.filename, 'rb') as fptr:
+                src = fptr.read()
             cio = _opj.cio_open(dinfo, src)
 
             image = _opj.decode(dinfo, cio)
@@ -700,8 +709,9 @@ class Jp2k(Jp2kBox):
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     nelts = nrows * ncols
-                    x = np.ctypeslib.as_array((ctypes.c_int32 * nelts).from_address(addr))
-                    data[:, :, k] = np.reshape(x.astype(dtype), (nrows, ncols))
+                    band = np.ctypeslib.as_array((ctypes.c_int32 * nelts).from_address(addr))
+                    data[:, :, k] = np.reshape(band.astype(dtype),
+                                               (nrows, ncols))
 
         if data.shape[2] == 1:
             data = data.view()
@@ -885,12 +895,13 @@ class Jp2k(Jp2kBox):
                 addr = ctypes.addressof(component.data.contents)
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
-                    x = np.ctypeslib.as_array(
-                        (ctypes.c_int32 * nrows * ncols).from_address(addr))
+                    band = np.ctypeslib.as_array(
+                           (ctypes.c_int32 * nrows * ncols).from_address(addr))
                 if as_bands:
-                    data.append(np.reshape(x.astype(dtype), (nrows, ncols)))
+                    data.append(np.reshape(band.astype(dtype), (nrows, ncols)))
                 else:
-                    data[:, :, k] = np.reshape(x.astype(dtype), (nrows, ncols))
+                    data[:, :, k] = np.reshape(band.astype(dtype),
+                                               (nrows, ncols))
 
         return data
 
@@ -985,20 +996,20 @@ class Jp2k(Jp2kBox):
         IOError
             If the file is JPX with more than one codestream.
         """
-        with open(self.filename, 'rb') as fp:
+        with open(self.filename, 'rb') as fptr:
             if self._codec_format == _opj2.CODEC_J2K:
-                codestream = Codestream(fp, header_only=header_only)
+                codestream = Codestream(fptr, header_only=header_only)
             else:
                 box = [x for x in self.box if x.box_id == 'jp2c']
                 if len(box) != 1:
                     msg = "JP2 files must have a single codestream."
                     raise RuntimeError(msg)
-                fp.seek(box[0].offset)
-                buffer = fp.read(8)
-                (L, T) = struct.unpack('>I4s', buffer)
+                fptr.seek(box[0].offset)
+                read_buffer = fptr.read(8)
+                (L, T) = struct.unpack('>I4s', read_buffer)
                 if L == 1:
                     # Seek past the XL field.
-                    buffer = fp.read(8)
-                codestream = Codestream(fp, header_only=header_only)
+                    read_buffer = fptr.read(8)
+                codestream = Codestream(fptr, header_only=header_only)
 
             return codestream
