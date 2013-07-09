@@ -5,14 +5,7 @@ RPCL = 2
 PCRL = 3
 CPRL = 4
 
-_progression_order_display = {
-    LRCP: 'LRCP',
-    RLCP: 'RLCP',
-    RPCL: 'RPCL',
-    PCRL: 'PCRL',
-    CPRL: 'CPRL'}
-
-progression_order = {
+PROGRESSION_ORDER = {
     'LRCP': LRCP,
     'RLCP': RLCP,
     'RPCL': RPCL,
@@ -22,26 +15,10 @@ progression_order = {
 WAVELET_TRANSFORM_9x7_IRREVERSIBLE = 0
 WAVELET_TRANSFORM_5x3_REVERSIBLE = 1
 
-_wavelet_transform_display = {
-    WAVELET_TRANSFORM_9x7_IRREVERSIBLE: '9-7 irreversible',
-    WAVELET_TRANSFORM_5x3_REVERSIBLE: '5-3 reversible'}
-
 ENUMERATED_COLORSPACE = 1
 RESTRICTED_ICC_PROFILE = 2
 ANY_ICC_PROFILE = 3
 VENDOR_COLOR_METHOD = 4
-
-_method_display = {
-    ENUMERATED_COLORSPACE: 'enumerated colorspace',
-    RESTRICTED_ICC_PROFILE: 'restricted ICC profile',
-    ANY_ICC_PROFILE: 'any ICC profile',
-    VENDOR_COLOR_METHOD: 'vendor color method'}
-
-_ = {1: 'accurately represents correct colorspace definition',
-     2: 'approximates correct colorspace definition, exceptional quality',
-     3: 'approximates correct colorspace definition, reasonable quality',
-     4: 'approximates correct colorspace definition, poor quality'}
-_approximation_display = _
 
 # Registration values for comment markers.
 RCME_BINARY = 0      # binary value comments
@@ -98,11 +75,6 @@ _capabilities_display = {
     3: '3'}
 
 # Reader requirements
-#RREQ_UNRESTRICTED_JPEG2000_PART_1 = 5
-#RREQ_UNRESTRICTED_JPEG2000_PART_2 = 6
-#RREQ_CMYK_ENUMERATED_COLORSPACE = 55
-#RREQ_E_SRGB_ENUMERATED_COLORSPACE = 60
-#RREQ_ROMM_RGB_ENUMERATED_COLORSPACE = 61
 _reader_requirements_display = {
     0:  'File not completely understood',
     1:  'Deprecated',

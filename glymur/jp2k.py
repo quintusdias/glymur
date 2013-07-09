@@ -21,7 +21,7 @@ import numpy as np
 from .codestream import Codestream
 from .core import SRGB
 from .core import GREYSCALE
-from .core import progression_order
+from .core import PROGRESSION_ORDER
 from .jp2box import Jp2kBox
 from .jp2box import JPEG2000SignatureBox
 from .jp2box import FileTypeBox
@@ -286,7 +286,7 @@ class Jp2k(Jp2kBox):
 
         if prog is not None:
             prog = prog.upper()
-            cparams.prog_order = progression_order[prog]
+            cparams.prog_order = PROGRESSION_ORDER[prog]
 
         if psnr is not None:
             cparams.tcp_numlayers = len(psnr)
@@ -475,9 +475,11 @@ class Jp2k(Jp2kBox):
             raise IOError(msg)
 
         # jp2c must be preceeded by jp2h
-        jp2h_lst = [idx for (idx, box) in enumerate(boxes) if box.box_id == 'jp2h']
+        jp2h_lst = [idx for (idx, box) in enumerate(boxes)
+                    if box.box_id == 'jp2h']
         jp2h_idx = jp2h_lst[0]
-        jp2c_lst = [idx for (idx, box) in enumerate(boxes) if box.box_id == 'jp2c']
+        jp2c_lst = [idx for (idx, box) in enumerate(boxes)
+                    if box.box_id == 'jp2c']
         if len(jp2c_lst) == 0:
             msg = "A codestream box must be defined in the outermost "
             msg += "list of boxes."
@@ -496,7 +498,8 @@ class Jp2k(Jp2kBox):
             raise IOError(msg)
 
         # colr must be present in jp2 header box.
-        colr_lst = [j for (j, box) in enumerate(jp2h.box) if box.box_id == 'colr']
+        colr_lst = [j for (j, box) in enumerate(jp2h.box)
+                    if box.box_id == 'colr']
         if len(colr_lst) == 0:
             msg = "The jp2 header box must contain a color definition box."
             raise IOError(msg)
@@ -509,7 +512,8 @@ class Jp2k(Jp2kBox):
             msg += "following the image header."
             raise IOError(msg)
 
-        cdef_lst = [j for (j, box) in enumerate(jp2h.box) if box.box_id == 'cdef']
+        cdef_lst = [j for (j, box) in enumerate(jp2h.box)
+                    if box.box_id == 'cdef']
         if len(cdef_lst) > 1:
             msg = "Only one channel definition box is allowed in the "
             msg += "JP2 header."
@@ -717,7 +721,8 @@ class Jp2k(Jp2kBox):
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     nelts = nrows * ncols
-                    band = np.ctypeslib.as_array((ctypes.c_int32 * nelts).from_address(addr))
+                    band = np.ctypeslib.as_array(
+                           (ctypes.c_int32 * nelts).from_address(addr))
                     data[:, :, k] = np.reshape(band.astype(dtype),
                                                (nrows, ncols))
 

@@ -12,10 +12,22 @@ import warnings
 
 import numpy as np
 
-from .core import _progression_order_display
-from .core import _wavelet_transform_display
+from .core import LRCP, RLCP, RPCL, PCRL, CPRL
+from .core import WAVELET_TRANSFORM_9x7_IRREVERSIBLE
+from .core import WAVELET_TRANSFORM_5x3_REVERSIBLE
 from .core import _capabilities_display
 from .lib import openjp2 as opj2
+
+_PROGRESSION_ORDER_DISPLAY = {
+    LRCP: 'LRCP',
+    RLCP: 'RLCP',
+    RPCL: 'RPCL',
+    PCRL: 'PCRL',
+    CPRL: 'CPRL'}
+
+_WAVELET_TRANSFORM_DISPLAY = {
+    WAVELET_TRANSFORM_9x7_IRREVERSIBLE: '9-7 irreversible',
+    WAVELET_TRANSFORM_5x3_REVERSIBLE: '5-3 reversible'}
 
 # Need a catch-all list of valid markers.
 # See table A-1 in ISO/IEC FCD15444-1.
@@ -493,7 +505,7 @@ class COCsegment(Segment):
         msg = msg.format(self.spcoc[0] + 1,
                          int(self._code_block_size[0]),
                          int(self._code_block_size[1]),
-                         _wavelet_transform_display[self.spcoc[4]])
+                         _WAVELET_TRANSFORM_DISPLAY[self.spcoc[4]])
 
         msg += '\n        '
         msg += _context_string(self.spcoc[3])
@@ -587,13 +599,13 @@ class CODsegment(Segment):
                  '    Wavelet transform:  {6}']
         msg += '\n    '.join(lines)
 
-        msg = msg.format(_progression_order_display[self.spcod[0]],
+        msg = msg.format(_PROGRESSION_ORDER_DISPLAY[self.spcod[0]],
                          self._layers,
                          mct,
                          self.spcod[4] + 1,
                          int(self._code_block_size[0]),
                          int(self._code_block_size[1]),
-                         _wavelet_transform_display[self.spcod[8]])
+                         _WAVELET_TRANSFORM_DISPLAY[self.spcod[8]])
 
         msg += '\n        Precinct size:  '
         if self._precinct_size is None:
@@ -770,7 +782,7 @@ class PODsegment(Segment):
                                  self.lyepod[j],
                                  self.repod[j],
                                  self.cdpod[j],
-                                 _progression_order_display[self.ppod[j]])
+                                 _PROGRESSION_ORDER_DISPLAY[self.ppod[j]])
 
         return msg
 

@@ -27,12 +27,23 @@ import xml.etree.cElementTree as ET
 import numpy as np
 
 from .codestream import Codestream
-from .core import _approximation_display
 from .core import _colorspace_map_display
 from .core import _color_type_map_display
-from .core import _method_display
 from .core import _reader_requirements_display
-from .core import ENUMERATED_COLORSPACE
+from .core import ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE
+from .core import ANY_ICC_PROFILE, VENDOR_COLOR_METHOD
+
+_METHOD_DISPLAY = {
+    ENUMERATED_COLORSPACE: 'enumerated colorspace',
+    RESTRICTED_ICC_PROFILE: 'restricted ICC profile',
+    ANY_ICC_PROFILE: 'any ICC profile',
+    VENDOR_COLOR_METHOD: 'vendor color method'}
+
+_ = {1: 'accurately represents correct colorspace definition',
+     2: 'approximates correct colorspace definition, exceptional quality',
+     3: 'approximates correct colorspace definition, reasonable quality',
+     4: 'approximates correct colorspace definition, poor quality'}
+_approximation_display = _
 
 
 class Jp2kBox(object):
@@ -189,7 +200,7 @@ class ColourSpecificationBox(Jp2kBox):
     def __str__(self):
         msg = Jp2kBox.__str__(self)
 
-        msg += '\n    Method:  {0}'.format(_method_display[self.method])
+        msg += '\n    Method:  {0}'.format(_METHOD_DISPLAY[self.method])
         msg += '\n    Precedence:  {0}'.format(self.precedence)
 
         if self.approximation is not 0:
