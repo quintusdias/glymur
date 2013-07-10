@@ -2,6 +2,7 @@
 The tests defined here roughly correspond to what is in the OpenJPEG test
 suite.
 """
+#pylint:  disable-all
 
 from contextlib import contextmanager
 import os

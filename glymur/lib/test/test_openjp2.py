@@ -1,3 +1,4 @@
+#pylint:  disable-all
 import doctest
 import os
 import pkg_resources
@@ -12,6 +13,7 @@ import numpy as np
 import glymur
 
 
+@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
 @unittest.skipIf(glymur.lib._openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
 class TestOpenJP2(unittest.TestCase):

@@ -1,3 +1,4 @@
+#pylint:  disable-all
 import os
 import pkg_resources
 import re
@@ -29,6 +30,7 @@ class TestCallbacks(unittest.TestCase):
         # Restore stdout.
         sys.stdout = self.stdout
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_info_callback_on_write(self):
         # Verify the messages printed when writing an image in verbose mode.
         j = glymur.Jp2k(self.jp2file)

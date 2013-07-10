@@ -1,7 +1,5 @@
-import contextlib
-import ctypes
+# pylint:  disable-all
 import doctest
-import imp
 import os
 import re
 import shutil
@@ -33,6 +31,9 @@ except:
 
 # Doc tests should be run as well.
 def load_tests(loader, tests, ignore):
+    if os.name == "nt":
+        # Can't do it on windows, temporary file issue.
+        return tests
     if glymur.lib.openjp2.OPENJP2 is not None:
         tests.addTests(doctest.DocTestSuite('glymur.jp2k'))
     return tests
@@ -671,42 +672,48 @@ class TestJp2k15(unittest.TestCase):
         pass
 
     def test_bands(self):
-        # Reading individual bands is an advanced maneuver.
+        """Reading individual bands is an advanced maneuver.
+        """
         jp2k = Jp2k(self.j2kfile)
-        with self.assertRaises(NotImplementedError) as ce:
-            jpdata = jp2k.read_bands()
+        with self.assertRaises(NotImplementedError):
+            jp2k.read_bands()
 
     def test_area(self):
-        # Area option not allowed for 1.5.1.
+        """Area option not allowed for 1.5.1.
+        """
         j2k = Jp2k(self.j2kfile)
-        with self.assertRaises(TypeError) as ce:
-            d = j2k.read(area=(0, 0, 100, 100))
+        with self.assertRaises(TypeError):
+            j2k.read(area=(0, 0, 100, 100))
 
     def test_tile(self):
-        # tile option not allowed for 1.5.1.
+        """tile option not allowed for 1.5.1.
+        """
         j2k = Jp2k(self.j2kfile)
-        with self.assertRaises(TypeError) as ce:
-            d = j2k.read(tile=0)
+        with self.assertRaises(TypeError):
+            j2k.read(tile=0)
 
     def test_layer(self):
-        # layer option not allowed for 1.5.1.
+        """layer option not allowed for 1.5.1.
+        """
         j2k = Jp2k(self.j2kfile)
-        with self.assertRaises(TypeError) as ce:
-            d = j2k.read(layer=1)
+        with self.assertRaises(TypeError):
+            j2k.read(layer=1)
 
     def test_basic_jp2(self):
-        # This test is only useful when openjp2 is not available
-        # and OPJ_DATA_ROOT is not set.  We need at least one
-        # working JP2 test.
+        """This test is only useful when openjp2 is not available
+        and OPJ_DATA_ROOT is not set.  We need at least one
+        working JP2 test.
+        """
         j2k = Jp2k(self.jp2file)
-        d = j2k.read(rlevel=1)
+        j2k.read(rlevel=1)
 
     def test_basic_j2k(self):
-        # This test is only useful when openjp2 is not available
-        # and OPJ_DATA_ROOT is not set.  We need at least one
-        # working J2K test.
+        """This test is only useful when openjp2 is not available
+        and OPJ_DATA_ROOT is not set.  We need at least one
+        working J2K test.
+        """
         j2k = Jp2k(self.j2kfile)
-        d = j2k.read()
+        j2k.read()
 
 
 if __name__ == "__main__":

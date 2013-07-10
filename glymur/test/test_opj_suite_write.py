@@ -2,6 +2,7 @@
 The tests defined here roughly correspond to what is in the OpenJPEG test
 suite.
 """
+#pylint:  disable-all
 import os
 import platform
 import sys
@@ -57,6 +58,7 @@ def read_image(infile):
     return data
 
 
+@unittest.skipIf(os.name == "nt", "no write support on windows, period")
 @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
 @unittest.skipIf(no_read_backend, no_read_backend_msg)
