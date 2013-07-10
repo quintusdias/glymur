@@ -27,8 +27,8 @@ about OpenJPEG, please consult http://www.openjpeg.org.
 If you use MacPorts on the mac or if you have a sufficiently recent version of
 Linux, your package manager should already provide you with at least version
 1.5.1 of OpenJPEG, which means that glymur can be installed ready to read JPEG
-2000 images.  If you use windows, I suggest using the 1.5.1 windows installer provided
-to you by the OpenJPEG folks at
+2000 images.  If you use windows, I suggest using the 1.5.1 windows installer
+provided to you by the OpenJPEG folks at
 https://code.google.com/p/openjpeg/downloads/list .
 
 Glymur Installation
@@ -56,5 +56,5 @@ You can run the tests from within python as follows::
     >>> glymur.runtests()
 
 Many tests are currently skipped; in fact most of them are skipped if you 
-are relying on OpenJPEG 1.5.1.  But the important thing is whether or not any
-tests fail.
+are relying on OpenJPEG 1.5.1.  But the important thing, though, is whether or
+not any tests fail.

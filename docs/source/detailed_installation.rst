@@ -65,6 +65,10 @@ additionally be installed:
       * py33-scikit-image and either py33-Pillow or freeimage
       * py33-matplotlib and py33-Pillow
 
+MacPorts supplies both OpenJPEG 1.5.0 and OpenJPEG 2.0.0.  As previously
+mentioned, the 2.0.0 official release is not supported (although the 2.0+
+development version via SVN *is* supported).
+
 Linux
 -----
 

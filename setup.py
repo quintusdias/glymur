@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 import sys
 
 kwargs = {'name': 'Glymur',
-          'version': '0.1.10',
+          'version': '0.2.0',
           'description': 'Tools for accessing JPEG2000 files',
           'long_description': open('README.md').read(),
           'author': 'John Evans',
@@ -29,6 +29,7 @@ clssfrs = ["Programming Language :: Python",
            "Development Status :: 3 - Alpha",
            "Operating System :: MacOS",
            "Operating System :: POSIX :: Linux",
+           "Operating System :: Microsoft  :: Windows :: Windows XP",
            "Intended Audience :: Science/Research",
            "Intended Audience :: Information Technology",
            "Topic :: Software Development :: Libraries :: Python Modules"]
