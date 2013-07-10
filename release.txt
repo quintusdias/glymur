@@ -21,8 +21,8 @@
 | Fedora 17  |     X      |            | Ships with 1.4.  Should error out    |
 |            |            |            | gracefully.                          |
 +------------+------------+------------+--------------------------------------+
-| Fedora 18  |            |     X      | Ships with 1.5.1.  Some tests        |
-|            |            |            | should pass.                         |
+| Fedora 18  |            |     X      | Ships with 1.5.1.  167 of 445 tests  |
+|            |            |            | should pass (no OPJ_DATA_ROOT).      |
 +------------+------------+------------+--------------------------------------+
 
 Pylint on entire package should be at least 0.95.
