@@ -32,7 +32,7 @@ class TestOpenJP2(unittest.TestCase):
         self.assertEqual(cparams.subsampling_dx, 1)
         self.assertEqual(cparams.subsampling_dy, 1)
         self.assertEqual(cparams.mode, 0)
-        self.assertEqual(cparams.prog_order, glymur.lib._openjp2.LRCP)
+        self.assertEqual(cparams.prog_order, glymur.core.LRCP)
         self.assertEqual(cparams.roi_shift, 0)
         self.assertEqual(cparams.cp_tx0, 0)
         self.assertEqual(cparams.cp_ty0, 0)
@@ -164,9 +164,9 @@ class TestOpenJP2(unittest.TestCase):
 
         l_param.numresolution = 6
 
-        l_param.prog_order = glymur.lib._openjp2.LRCP
+        l_param.prog_order = glymur.core.LRCP
 
-        l_params = (glymur.lib._openjp2.image_comptparm_t * num_comps)()
+        l_params = (glymur.lib._openjp2.ImageComptParmType * num_comps)()
         for j in range(num_comps):
             l_params[j].dx = 1
             l_params[j].dy = 1

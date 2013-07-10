@@ -146,8 +146,8 @@ class Jp2k(Jp2kBox):
             box_length = values[0]
             box_id = values[1]
             signature = values[2:]
-            if ((box_length != 12) or (box_id != b'jP  ') or
-                 (signature != (13, 10, 135, 10))):
+            if (((box_length != 12) or (box_id != b'jP  ') or
+                 (signature != (13, 10, 135, 10)))):
                 msg = '{0} is not a JPEG 2000 file.'.format(self.filename)
                 raise IOError(msg)
 
@@ -378,7 +378,7 @@ class Jp2k(Jp2kBox):
         else:
             raise RuntimeError("unhandled datatype")
 
-        comptparms = (_opj2.image_comptparm_t * num_comps)()
+        comptparms = (_opj2.ImageComptParmType * num_comps)()
         for j in range(num_comps):
             comptparms[j].dx = cparams.subsampling_dx
             comptparms[j].dy = cparams.subsampling_dy
@@ -551,7 +551,8 @@ class Jp2k(Jp2kBox):
                     else:
                         # OK, I'm a jp2 file.  Need to find out where the
                         # raw codestream actually starts.
-                        jp2c = [box for box in self.box if box.box_id == 'jp2c']
+                        jp2c = [box for box in self.box
+                                if box.box_id == 'jp2c']
                         jp2c = jp2c[0]
                         ofile.write(struct.pack('>I', jp2c.length + 8))
                         ofile.write('jp2c'.encode())
@@ -647,10 +648,9 @@ class Jp2k(Jp2kBox):
             msg += "using OPENJP2 instead."
             raise RuntimeError(msg)
 
-
         with ExitStack() as stack:
             # Set decoding parameters.
-            dparameters = _opj.dparameters_t()
+            dparameters = _opj.DecompressionParametersType()
             _opj.set_default_decoder_parameters(ctypes.byref(dparameters))
             dparameters.cp_reduce = rlevel
             dparameters.decod_format = self._codec_format
@@ -662,13 +662,13 @@ class Jp2k(Jp2kBox):
 
             dinfo = _opj.create_decompress(dparameters.decod_format)
 
-            event_mgr = _opj.event_mgr_t()
+            event_mgr = _opj.EventMgrType()
             info_handler = ctypes.cast(_INFO_CALLBACK, ctypes.c_void_p)
             event_mgr.info_handler = info_handler if verbose else None
             event_mgr.warning_handler = ctypes.cast(_WARNING_CALLBACK,
-                                                 ctypes.c_void_p)
+                                                    ctypes.c_void_p)
             event_mgr.error_handler = ctypes.cast(_ERROR_CALLBACK,
-                                                 ctypes.c_void_p)
+                                                  ctypes.c_void_p)
             _opj.set_event_mgr(dinfo, ctypes.byref(event_mgr))
 
             _opj.setup_decoder(dinfo, dparameters)
@@ -722,7 +722,7 @@ class Jp2k(Jp2kBox):
                     warnings.simplefilter("ignore")
                     nelts = nrows * ncols
                     band = np.ctypeslib.as_array(
-                           (ctypes.c_int32 * nelts).from_address(addr))
+                        (ctypes.c_int32 * nelts).from_address(addr))
                     data[:, :, k] = np.reshape(band.astype(dtype),
                                                (nrows, ncols))
 
@@ -909,7 +909,7 @@ class Jp2k(Jp2kBox):
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     band = np.ctypeslib.as_array(
-                           (ctypes.c_int32 * nrows * ncols).from_address(addr))
+                        (ctypes.c_int32 * nrows * ncols).from_address(addr))
                 if as_bands:
                     data.append(np.reshape(band.astype(dtype), (nrows, ncols)))
                 else:

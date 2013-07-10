@@ -27,9 +27,8 @@ import xml.etree.cElementTree as ET
 import numpy as np
 
 from .codestream import Codestream
-from .core import _colorspace_map_display
-from .core import _color_type_map_display
-from .core import _reader_requirements_display
+from .core import _COLORSPACE_MAP_DISPLAY
+from .core import _COLOR_TYPE_MAP_DISPLAY
 from .core import ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE
 from .core import ANY_ICC_PROFILE, VENDOR_COLOR_METHOD
 
@@ -207,7 +206,7 @@ class ColourSpecificationBox(Jp2kBox):
             dispvalue = _approximation_display[self.approximation]
             msg += '\n    Approximation:  {0}'.format(dispvalue)
         if self.colorspace is not None:
-            dispvalue = _colorspace_map_display[self.colorspace]
+            dispvalue = _COLORSPACE_MAP_DISPLAY[self.colorspace]
             msg += '\n    Colorspace:  {0}'.format(dispvalue)
         else:
             # 2.7 has trouble pretty-printing ordered dicts so we just have
@@ -234,10 +233,10 @@ class ColourSpecificationBox(Jp2kBox):
         fptr.write('colr'.encode())
 
         read_buffer = struct.pack('>BBBI',
-                             self.method,
-                             self.precedence,
-                             self.approximation,
-                             self.colorspace)
+                                  self.method,
+                                  self.precedence,
+                                  self.approximation,
+                                  self.colorspace)
         fptr.write(read_buffer)
 
     @staticmethod
@@ -259,7 +258,8 @@ class ColourSpecificationBox(Jp2kBox):
         """
         # Read the brand, minor version.
         read_buffer = fptr.read(3)
-        (method, precedence, approximation) = struct.unpack('>BBB', read_buffer)
+        (method, precedence, approximation) = struct.unpack('>BBB',
+                                                            read_buffer)
 
         if method == 1:
             # enumerated colour space
@@ -445,7 +445,7 @@ class ChannelDefinitionBox(Jp2kBox):
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         for j in range(len(self.association)):
-            color_type_string = _color_type_map_display[self.channel_type[j]]
+            color_type_string = _COLOR_TYPE_MAP_DISPLAY[self.channel_type[j]]
             if self.association[j] == 0:
                 assn = 'whole image'
             else:
@@ -463,9 +463,9 @@ class ChannelDefinitionBox(Jp2kBox):
         fptr.write(struct.pack('>H', num_components))
         for j in range(num_components):
             fptr.write(struct.pack('>' + 'H' * 3,
-                                self.index[j],
-                                self.channel_type[j],
-                                self.association[j]))
+                                   self.index[j],
+                                   self.channel_type[j],
+                                   self.association[j]))
 
     @staticmethod
     def _parse(fptr, offset, length):
@@ -624,7 +624,8 @@ class ContiguousCodestreamBox(Jp2kBox):
         ContiguousCodestreamBox instance
         """
         main_header = Codestream(fptr, header_only=True)
-        box = ContiguousCodestreamBox(main_header, length=length, offset=offset)
+        box = ContiguousCodestreamBox(main_header, length=length,
+                                      offset=offset)
         return box
 
 
@@ -801,13 +802,13 @@ class ImageHeaderBox(Jp2kBox):
         bit_depth_signedness = 0x80 if self.signed else 0x00
         bit_depth_signedness |= self.bits_per_component - 1
         read_buffer = struct.pack('>IIHBBBB',
-                             self.height,
-                             self.width,
-                             self.num_components,
-                             bit_depth_signedness,
-                             self.compression,
-                             1 if self.colorspace_unknown else 0,
-                             1 if self.ip_provided else 0)
+                                  self.height,
+                                  self.width,
+                                  self.num_components,
+                                  bit_depth_signedness,
+                                  self.compression,
+                                  1 if self.colorspace_unknown else 0,
+                                  1 if self.ip_provided else 0)
         fptr.write(read_buffer)
 
     @staticmethod
@@ -1135,7 +1136,90 @@ class PaletteBox(Jp2kBox):
                          offset=offset)
         return box
 
-
+# Map rreq codes to display text.
+_READER_REQUIREMENTS_DISPLAY = {
+    0:  'File not completely understood',
+    1:  'Deprecated',
+    2:  'Contains multiple composition layers',
+    3:  'Deprecated',
+    4:  'JPEG 2000 Part 1 Profile 1 codestream',
+    5:  'Unrestricted JPEG 2000 Part 1 codestream, ITU-T Rec. T.800 '
+        + '| ISO/IEC 15444-1',
+    6:  'Unrestricted JPEG 2000 Part 2 codestream',
+    7:  'JPEG codestream as defined in ISO/IEC 10918-1',
+    8:  'Deprecated',
+    9:  'Non-premultiplied opacity channel',
+    10:  'Premultiplied opacity channel',
+    11:  'Chroma-key based opacity',
+    12:  'Deprecated',
+    13:  'Fragmented codestream where all fragments are in file and in order',
+    14:  'Fragmented codestream where all fragments are in file '
+         + 'but are out of order',
+    15:  'Fragmented codestream where not all fragments are within the file '
+         + 'but are all in locally accessible files',
+    16:  'Fragmented codestream where some fragments may be accessible '
+         + 'only through a URL specified network connection',
+    17:  'Compositing required to produce rendered result from multiple '
+         + 'compositing layers',
+    18:  'Deprecated',
+    19:  'Deprecated',
+    20:  'Deprecated',
+    21:  'At least one compositing layer consists of multiple codestreams',
+    22:  'Deprecated',
+    23:  'Colourspace transformations are required to combine compositing '
+         + 'layers; not all compositing layers are in the same colourspace',
+    24:  'Deprecated',
+    25:  'Deprecated',
+    26:  'First animation layer does not cover entire rendered result',
+    27:  'Deprecated',
+    28:  'Reuse of animation layers',
+    29:  'Deprecated',
+    30:  'Some animated frames are non-persistent',
+    31:  'Deprecated',
+    32:  'Rendered result involves scaling within a layer',
+    33:  'Rendered result involves scaling between layers',
+    34:  'ROI metadata',
+    35:  'IPR metadata',
+    36:  'Content metadata',
+    37:  'History metadata',
+    38:  'Creation metadata',
+    39:  'JPX digital signatures',
+    40:  'JPX checksums',
+    41:  'Desires Graphics Arts Reproduction specified',
+    42:  'Deprecated',
+    43:  '(Deprecated) compositing layer uses restricted ICC profile',
+    44:  'Compositing layer uses Any ICC profile',
+    45:  'Deprecated',
+    46:  'Deprecated',
+    47:  'BiLevel 1 enumerated colourspace',
+    48:  'BiLevel 2 enumerated colourspace',
+    49:  'YCbCr 1 enumerated colourspace',
+    50:  'YCbCr 2 enumerated colourspace',
+    51:  'YCbCr 3 enumerated colourspace',
+    52:  'PhotoYCC enumerated colourspace',
+    53:  'YCCK enumerated colourspace',
+    54:  'CMY enumerated colourspace',
+    55:  'CMYK enumerated colorspace',
+    56:  'CIELab enumerated colourspace with default parameters',
+    57:  'CIELab enumerated colourspace with non-default parameters',
+    58:  'CIEJab enumerated colourspace with default parameters',
+    59:  'CIEJab enumerated colourspace with non-default parameters',
+    60:  'e-sRGB enumerated colorspace',
+    61:  'ROMM_RGB enumerated colorspace',
+    62:  'Non-square samples',
+    63:  'Deprecated',
+    64:  'Deprecated',
+    65:  'Deprecated',
+    66:  'Deprecated',
+    67:  'GIS metadata XML box',
+    68:  'JPSEC extensions in codestream as specified by ISO/IEC 15444-8',
+    69:  'JP3D extensions in codestream as specified by ISO/IEC 15444-10',
+    70:  'Deprecated',
+    71:  'e-sYCC enumerated colourspace',
+    72:  'JPEG 2000 Part 2 codestream as restricted by baseline conformance '
+         + 'requirements in M.9.2.3',
+    73:  'YPbPr(1125/60) enumerated colourspace',
+    74:  'YPbPr(1250/50) enumerated colourspace'}
 class ReaderRequirementsBox(Jp2kBox):
     """Container for reader requirements box information.
 
@@ -1182,7 +1266,7 @@ class ReaderRequirementsBox(Jp2kBox):
         msg += '\n    Standard Features:'
         for j in range(len(self.standard_flag)):
             sfl = self.standard_flag[j]
-            rrdisp = _reader_requirements_display[self.standard_flag[j]]
+            rrdisp = _READER_REQUIREMENTS_DISPLAY[self.standard_flag[j]]
             msg += '\n        Feature {0:03d}:  {1}'.format(sfl, rrdisp)
 
         msg += '\n    Vendor Features:'
@@ -1803,7 +1887,7 @@ class UUIDBox(Jp2kBox):
         ----------
         the_uuid : uuid.UUID
             Identifies the type of UUID box.
-        raw_data : 
+        raw_data : byte array
             This is the "payload" of data for the specified UUID.
         length : int
             length of the box in bytes.

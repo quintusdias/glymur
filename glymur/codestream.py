@@ -13,9 +13,9 @@ import warnings
 import numpy as np
 
 from .core import LRCP, RLCP, RPCL, PCRL, CPRL
-from .core import WAVELET_TRANSFORM_9x7_IRREVERSIBLE
-from .core import WAVELET_TRANSFORM_5x3_REVERSIBLE
-from .core import _capabilities_display
+from .core import WAVELET_XFORM_9X7_IRREVERSIBLE
+from .core import WAVELET_XFORM_5X3_REVERSIBLE
+from .core import _CAPABILITIES_DISPLAY
 from .lib import openjp2 as opj2
 
 _PROGRESSION_ORDER_DISPLAY = {
@@ -26,8 +26,8 @@ _PROGRESSION_ORDER_DISPLAY = {
     CPRL: 'CPRL'}
 
 _WAVELET_TRANSFORM_DISPLAY = {
-    WAVELET_TRANSFORM_9x7_IRREVERSIBLE: '9-7 irreversible',
-    WAVELET_TRANSFORM_5x3_REVERSIBLE: '5-3 reversible'}
+    WAVELET_XFORM_9X7_IRREVERSIBLE: '9-7 irreversible',
+    WAVELET_XFORM_5X3_REVERSIBLE: '5-3 reversible'}
 
 # Need a catch-all list of valid markers.
 # See table A-1 in ISO/IEC FCD15444-1.
@@ -1134,7 +1134,7 @@ class SIZsegment(Segment):
                  'Signed:  {10}',
                  'Vertical, Horizontal Subsampling:  {11}']
         msg += '\n    '.join(lines)
-        msg = msg.format(_capabilities_display[self.rsiz],
+        msg = msg.format(_CAPABILITIES_DISPLAY[self.rsiz],
                          self.ysiz, self.xsiz,
                          self.yosiz, self.xosiz,
                          self.ytsiz, self.xtsiz,

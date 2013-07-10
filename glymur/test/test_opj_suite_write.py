@@ -125,7 +125,7 @@ class TestSuiteWrite(unittest.TestCase):
             # Segmentation symbols
             self.assertFalse(c.segment[2].spcod[7] & 0x0020)
             self.assertEqual(c.segment[2].spcod[8],
-                             glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(len(c.segment[2].spcod), 9)
 
     def test_NR_ENC_Bretagne1_ppm_2_encode(self):
@@ -183,7 +183,7 @@ class TestSuiteWrite(unittest.TestCase):
             # Segmentation symbols
             self.assertFalse(c.segment[2].spcod[7] & 0x0020)
             self.assertEqual(c.segment[2].spcod[8],
-                             glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(len(c.segment[2].spcod), 9)
 
     def test_NR_ENC_Bretagne1_ppm_3_encode(self):
@@ -242,7 +242,7 @@ class TestSuiteWrite(unittest.TestCase):
             # Segmentation symbols
             self.assertFalse(c.segment[2].spcod[7] & 0x0020)
             self.assertEqual(c.segment[2].spcod[8],
-                             glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(c.segment[2]._precinct_size,
                              [(2, 2), (4, 4), (8, 8), (16, 16), (32, 32),
                               (64, 64)])
@@ -305,7 +305,7 @@ class TestSuiteWrite(unittest.TestCase):
             # Segmentation symbols
             self.assertFalse(c.segment[2].spcod[7] & 0x0020)
             self.assertEqual(c.segment[2].spcod[8],
-                             glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(c.segment[2]._precinct_size,
                              [(16, 16), (32, 32), (64, 64)] + [(128, 128)] * 3)
 
@@ -363,7 +363,7 @@ class TestSuiteWrite(unittest.TestCase):
             # Segmentation symbols
             self.assertFalse(c.segment[2].spcod[7] & 0x0020)
             self.assertEqual(c.segment[2].spcod[8],
-                             glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(len(c.segment[2].spcod), 9)
 
     def test_NR_ENC_Bretagne2_ppm_6_encode(self):
@@ -420,7 +420,7 @@ class TestSuiteWrite(unittest.TestCase):
             # Segmentation symbols
             self.assertFalse(c.segment[2].spcod[7] & 0x0020)
             self.assertEqual(c.segment[2].spcod[8],
-                             glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(len(c.segment[2].spcod), 9)
 
             # 18 SOP segments.
@@ -480,7 +480,7 @@ class TestSuiteWrite(unittest.TestCase):
             # Segmentation symbols, SEGMARK(SEGSYSM)
             self.assertTrue(c.segment[2].spcod[7] & 0x0020)
             self.assertEqual(c.segment[2].spcod[8],
-                             glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(len(c.segment[2].spcod), 9)
 
             # 18 EPH segments.
@@ -541,7 +541,7 @@ class TestSuiteWrite(unittest.TestCase):
             # Segmentation symbols, SEGMARK(SEGSYSM)
             self.assertFalse(c.segment[2].spcod[7] & 0x0020)
             self.assertEqual(c.segment[2].spcod[8],
-                             glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(len(c.segment[2].spcod), 9)
 
     def test_NR_ENC_Cevennes1_bmp_9_encode(self):
@@ -597,7 +597,7 @@ class TestSuiteWrite(unittest.TestCase):
             # Segmentation symbols, SEGMARK(SEGSYSM)
             self.assertFalse(c.segment[2].spcod[7] & 0x0020)
             self.assertEqual(c.segment[2].spcod[8],
-                             glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(len(c.segment[2].spcod), 9)
 
     def test_NR_ENC_Cevennes2_ppm_10_encode(self):
@@ -653,7 +653,7 @@ class TestSuiteWrite(unittest.TestCase):
             # Segmentation symbols, SEGMARK(SEGSYSM)
             self.assertFalse(c.segment[2].spcod[7] & 0x0020)
             self.assertEqual(c.segment[2].spcod[8],
-                             glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(len(c.segment[2].spcod), 9)
 
     def test_NR_ENC_Rome_bmp_11_encode(self):
@@ -744,7 +744,7 @@ class TestSuiteWrite(unittest.TestCase):
             # Segmentation symbols, SEGMARK(SEGSYSM)
             self.assertFalse(c.segment[2].spcod[7] & 0x0020)
             self.assertEqual(c.segment[2].spcod[8],
-                             glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(len(c.segment[2].spcod), 9)
 
     @unittest.skip("Known failure in openjpeg test suite.")
@@ -804,7 +804,7 @@ class TestSuiteWrite(unittest.TestCase):
             # Segmentation symbols, SEGMARK(SEGSYSM)
             self.assertFalse(c.segment[2].spcod[7] & 0x0020)
             self.assertEqual(c.segment[2].spcod[8],
-                             glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(len(c.segment[2].spcod), 9)
 
 if __name__ == "__main__":

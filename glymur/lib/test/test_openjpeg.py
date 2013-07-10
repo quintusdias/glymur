@@ -21,7 +21,7 @@ class TestOpenJPEG(unittest.TestCase):
 
     def test_set_default_decoder_parameters(self):
         # Verify that we properly set the default decode parameters.
-        dp = glymur.lib._openjpeg.dparameters_t()
+        dp = glymur.lib._openjpeg.DecompressionParametersType()
         glymur.lib._openjpeg.set_default_decoder_parameters(ctypes.byref(dp))
 
         self.assertEqual(dp.cp_reduce, 0)

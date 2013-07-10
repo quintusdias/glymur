@@ -5,6 +5,7 @@ import ctypes
 from ctypes.util import find_library
 import os
 import platform
+import warnings
 
 import sys
 if sys.hexversion <= 0x03000000:
@@ -39,8 +40,10 @@ def glymurrc_fname():
 
 
 def get_openjpeg_config():
+    """ Try to find openjpeg library on the system path first.
+    """
     libopenjpeg_path = find_library('openjpeg')
-    
+
     # If we could not find it, then look in some likely locations.
     if libopenjpeg_path is None:
         if platform.system() == 'Darwin':
@@ -56,23 +59,27 @@ def get_openjpeg_config():
     try:
         if os.name == "nt":
             openjpeg_lib = ctypes.windll.LoadLibrary(libopenjpeg_path)
-        else:    
+        else:
             openjpeg_lib = ctypes.CDLL(libopenjpeg_path)
     except OSError:
         openjpeg_lib = None
-        
+
     if openjpeg_lib is not None:
         # Must be at least 1.5.0
         openjpeg_lib.opj_version.restype = ctypes.c_char_p
-        v = openjpeg_lib.opj_version()
-        v = v.decode('utf-8')
-        major, minor, patch = v.split('.')
+        version = openjpeg_lib.opj_version().decode('utf-8')
+        _, minor, _ = version.split('.')
         if minor != '5':
             openjpeg_lib = None
     return openjpeg_lib
 
 
 def get_openjp2_config():
+    """
+    We expect to not find openjp2 on the system path since the only version
+    that we currently care about is still in the svn trunk at openjpeg.org.
+    We must use a configuration file that the user must write.
+    """
     filename = glymurrc_fname()
     if filename is not None:
         # Read the configuration file for the library location.
@@ -106,6 +113,7 @@ def glymur_config():
     openjpeg_lib = get_openjpeg_config()
     return openjp2_lib, openjpeg_lib
 
+
 def get_configdir():
     """Return string representing the configuration directory.
 
@@ -121,4 +129,5 @@ def get_configdir():
 
     if 'USERPROFILE' in os.environ:
         # Windows?
-        return os.path.join(os.environ['USERPROFILE'], 'Application Data', 'glymur')
+        return os.path.join(os.environ['USERPROFILE'], 'Application Data',
+                            'glymur')

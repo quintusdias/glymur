@@ -1,30 +1,23 @@
 """
 Wraps individual functions in openjp2 library.
 """
+
+# pylint: disable=C0302,R0903
+
 import ctypes
-from ctypes.util import find_library
-import warnings
 
 from .config import glymur_config
 OPENJP2, OPENJPEG = glymur_config()
 
-# Progression order
-LRCP = 0
-RLCP = 1
-RPCL = 2
-PCRL = 3
-CPRL = 4
-
-
 ERROR_MSG_LST = []
 
 # Map certain atomic OpenJPEG datatypes to the ctypes equivalents.
-bool_t = ctypes.c_int32
-codec_t_p = ctypes.c_void_p
-prog_order_t_p = ctypes.c_int32
-cinema_mode_t = ctypes.c_int32
-rsiz_capabilities_t = ctypes.c_int32
-stream_t_p = ctypes.c_void_p
+BOOL_TYPE = ctypes.c_int32
+CODEC_TYPE = ctypes.c_void_p
+PROG_ORDER_TYPE = ctypes.c_int32
+CINEMA_MODE_TYPE = ctypes.c_int32
+RSIZ_CAPABILITIES_TYPE = ctypes.c_int32
+STREAM_TYPE_P = ctypes.c_void_p
 
 PATH_LEN = 4096
 J2K_MAXRLVLS = 33
@@ -41,18 +34,21 @@ CLRSPC_UNSPECIFIED = 0
 CLRSPC_SRGB = 1
 CLRSPC_GRAY = 2
 CLRSPC_YCC = 3
-color_space_t = ctypes.c_int
+COLOR_SPACE_TYPE = ctypes.c_int
 
 # supported codec
-codec_format_t = ctypes.c_int
+CODEC_FORMAT_TYPE = ctypes.c_int
 CODEC_UNKNOWN = -1
 CODEC_J2K = 0
 CODEC_JPT = 1
 CODEC_JP2 = 2
 
 
-class poc_t(ctypes.Structure):
-    """Progression order changes."""
+class PocType(ctypes.Structure):
+    """Progression order changes.
+
+    Corresponds to poc_t type in openjp2 headers.
+    """
     # Resolution num start, Component num start, given by POC
     _fields_ = [
         ("resno0",     ctypes.c_uint32),
@@ -69,8 +65,8 @@ class poc_t(ctypes.Structure):
         ("precno1",    ctypes.c_uint32),
 
         # Progression order enum
-        ("prg1",       prog_order_t_p),
-        ("prg",        prog_order_t_p),
+        ("prg1",       PROG_ORDER_TYPE),
+        ("prg",        PROG_ORDER_TYPE),
 
         # Progression order string
         ("progorder",  ctypes.c_char * 5),
@@ -114,8 +110,11 @@ class poc_t(ctypes.Structure):
         ("ty0_t",      ctypes.c_uint32)]
 
 
-class dparameters_t(ctypes.Structure):
-    """Decompression parameters"""
+class DecompressionParametersType(ctypes.Structure):
+    """Decompression parameters.
+
+    Corresponds to dparameters_t type in openjp2 headers.
+    """
     _fields_ = [
         # Set the number of highest resolutio levels to be discarded.  The
         # image resolution is effectively divided by 2 to the power of
@@ -153,7 +152,7 @@ class dparameters_t(ctypes.Structure):
         ("DA_y1",             ctypes.c_uint32),
 
         # verbose mode
-        ("m_verbose",         bool_t),
+        ("m_verbose",         BOOL_TYPE),
 
         # tile number of the decoded tile
         ("tile_index",        ctypes.c_uint32),
@@ -162,7 +161,7 @@ class dparameters_t(ctypes.Structure):
         ("nb_tile_to_decode", ctypes.c_uint32),
 
         # activates the JPWL correction capabilities
-        ("jpwl_correct",      bool_t),
+        ("jpwl_correct",      BOOL_TYPE),
 
         # activates the JPWL correction capabilities
         ("jpwl_exp_comps",    ctypes.c_int32),
@@ -174,13 +173,16 @@ class dparameters_t(ctypes.Structure):
         ("flags",             ctypes.c_uint32)]
 
 
-class cparameters_t(ctypes.Structure):
-    """Compression parameters"""
+class CompressionParametersType(ctypes.Structure):
+    """Compression parameters.
+
+    Corresponds to cparameters_t type in openjp2 headers.
+    """
     _fields_ = [
         # size of tile:
         #     tile_size_on = false (not in argument) or
         #                  = true (in argument)
-        ("tile_size_on",     bool_t),
+        ("tile_size_on",     BOOL_TYPE),
 
         # XTOsiz, YTOsiz
         ("cp_tx0",           ctypes.c_int),
@@ -212,7 +214,7 @@ class cparameters_t(ctypes.Structure):
         ("prog_order",       ctypes.c_int),
 
         # progression order changes
-        ("poc",              poc_t * 32),
+        ("poc",              PocType * 32),
 
         # number of progression order changes (POC), default to 0
         ("numpocs",          ctypes.c_uint),
@@ -286,7 +288,7 @@ class cparameters_t(ctypes.Structure):
 
         # JPWL encoding parameters
         # enables writing of EPC in MH, thus activating JPWL
-        ("jpwl_epc_on",     bool_t),
+        ("jpwl_epc_on",     BOOL_TYPE),
 
         # error protection method for MH (0,1,16,32,37-128)
         ("jpwl_hprot_mh",   ctypes.c_int),
@@ -325,14 +327,14 @@ class cparameters_t(ctypes.Structure):
         ("jpwl_sens_tph",         ctypes.c_int * JPWL_MAX_NO_TILESPECS),
 
         # Digital Cinema compliance 0-not compliant, 1-compliant
-        ("cp_cinema",             cinema_mode_t),
+        ("cp_cinema",             CINEMA_MODE_TYPE),
 
         # Maximum rate for each component.
         # If == 0, component size limitation is not considered
         ("max_comp_size",         ctypes.c_int),
 
         # Profile name
-        ("cp_rsiz",               rsiz_capabilities_t),
+        ("cp_rsiz",               RSIZ_CAPABILITIES_TYPE),
 
         # Tile part generation
         ("tp_on",                 ctypes.c_uint8),
@@ -344,15 +346,18 @@ class cparameters_t(ctypes.Structure):
         ("tcp_mct",               ctypes.c_uint8),
 
         # Enable JPIP indexing
-        ("jpip_on",               bool_t),
+        ("jpip_on",               BOOL_TYPE),
 
         # Naive implementation of MCT restricted to a single reversible array
         # based encoding without offset concerning all the components.
         ("mct_data",              ctypes.c_void_p)]
 
 
-class image_comp_t(ctypes.Structure):
-    """defines a single image component"""
+class ImageCompType(ctypes.Structure):
+    """Defines a single image component.
+
+    Corresponds to image_comp_t type in openjp2 headers.
+    """
     _fields_ = [
         # XRsiz, YRsiz:  horizontal, vertical separation of ith component with
         # respect to the reference grid
@@ -387,8 +392,11 @@ class image_comp_t(ctypes.Structure):
         ("data",                ctypes.POINTER(ctypes.c_int32))]
 
 
-class image_t(ctypes.Structure):
-    """defines image data and characteristics"""
+class ImageType(ctypes.Structure):
+    """Defines image data and characteristics.
+
+    Corresponds to image_t type in openjp2 headers.
+    """
     _fields_ = [
         # XOsiz, YOsiz:  horizontal and vertical offset from the origin of the
         # reference grid to the left side of the image area
@@ -403,10 +411,10 @@ class image_t(ctypes.Structure):
         ("numcomps",            ctypes.c_uint32),
 
         # color space:  should be sRGB, greyscale, or YUV
-        ("color_space",         color_space_t),
+        ("color_space",         COLOR_SPACE_TYPE),
 
         # image components
-        ("comps",               ctypes.POINTER(image_comp_t)),
+        ("comps",               ctypes.POINTER(ImageCompType)),
 
         # restricted ICC profile buffer
         ("icc_profile_buf",     ctypes.POINTER(ctypes.c_uint8)),
@@ -415,8 +423,11 @@ class image_t(ctypes.Structure):
         ("icc_profile_len",     ctypes.c_uint32)]
 
 
-class image_comptparm_t(ctypes.Structure):
-    """component parameters structure used by image_create function"""
+class ImageComptParmType(ctypes.Structure):
+    """Component parameters structure used by image_create function.
+
+    Corresponds to image_comptparm_t type in openjp2 headers.
+    """
     _fields_ = [
         # XRsiz, YRsiz: horizontal, vertical separation of a sample of ith
         # component with respect to the reference grid
@@ -441,8 +452,11 @@ class image_comptparm_t(ctypes.Structure):
         ("sgnd",            ctypes.c_uint32)]
 
 
-class tccp_info_t(ctypes.Structure):
-    """tile-component coding parameters information"""
+class TccpInfo(ctypes.Structure):
+    """Tile-component coding parameters information.
+
+    Corresponds to tccp_info_t type in openjp2 header file.
+    """
     _fields_ = [
         # component index
         ("compno",          ctypes.c_uint32),
@@ -485,8 +499,11 @@ class tccp_info_t(ctypes.Structure):
         ("prch",            ctypes.c_uint32 * J2K_MAXRLVLS)]
 
 
-class tile_info_v2_t(ctypes.Structure):
-    """tile coding parameters information"""
+class TileInfoV2(ctypes.Structure):
+    """Tile coding parameters information
+
+    Corresponds to tile_info_v2_t type in openjp2 headers.
+    """
     _fields_ = [
         # number (index) of tile
         ("tileno",          ctypes.c_int32),
@@ -495,7 +512,7 @@ class tile_info_v2_t(ctypes.Structure):
         ("csty",            ctypes.c_uint32),
 
         # progression order
-        ("prg",             prog_order_t_p),
+        ("prg",             PROG_ORDER_TYPE),
 
         # number of layers
         ("numlayers",       ctypes.c_uint32),
@@ -504,11 +521,14 @@ class tile_info_v2_t(ctypes.Structure):
         ("mct",             ctypes.c_uint32),
 
         # information concerning tile component parameters
-        ("tccp_info",       ctypes.POINTER(tccp_info_t))]
+        ("tccp_info",       ctypes.POINTER(TccpInfo))]
 
 
-class codestream_info_v2_t(ctypes.Structure):
-    """information about the codestream"""
+class CodestreamInfoV2(ctypes.Structure):
+    """information about the codestream.
+
+    Corresponds to codestream_info_v2_t type in openjp2 header files.
+    """
     _fields_ = [
         # tile info
         # tile origin in x, y (XTOsiz, YTOsiz)
@@ -527,65 +547,65 @@ class codestream_info_v2_t(ctypes.Structure):
         ("nbcomps",   ctypes.c_uint32),
 
         # default information regarding tiles inside of image
-        ("m_default_tile_info",   tile_info_v2_t),
+        ("m_default_tile_info",   TileInfoV2),
 
         # information regarding tiles inside of image
-        ("tile_info",             ctypes.POINTER(tile_info_v2_t))]
+        ("tile_info",             ctypes.POINTER(TileInfoV2))]
 
 # Restrict the input and output argument types for each function used in the
 # API.
 if OPENJP2 is not None:
-    OPENJP2.opj_create_compress.restype = codec_t_p
-    OPENJP2.opj_create_compress.argtypes = [codec_format_t]
+    OPENJP2.opj_create_compress.restype = CODEC_TYPE
+    OPENJP2.opj_create_compress.argtypes = [CODEC_FORMAT_TYPE]
 
-    OPENJP2.opj_create_decompress.argtypes = [codec_format_t]
-    OPENJP2.opj_create_decompress.restype = codec_t_p
+    OPENJP2.opj_create_decompress.argtypes = [CODEC_FORMAT_TYPE]
+    OPENJP2.opj_create_decompress.restype = CODEC_TYPE
 
-    ARGTYPES = [codec_t_p, stream_t_p, ctypes.POINTER(image_t)]
+    ARGTYPES = [CODEC_TYPE, STREAM_TYPE_P, ctypes.POINTER(ImageType)]
     OPENJP2.opj_decode.argtypes = ARGTYPES
 
-    ARGTYPES = [codec_t_p, ctypes.c_uint32,
+    ARGTYPES = [CODEC_TYPE, ctypes.c_uint32,
                 ctypes.POINTER(ctypes.c_uint8),
                 ctypes.c_uint32,
-                stream_t_p]
+                STREAM_TYPE_P]
     OPENJP2.opj_decode_tile_data.argtypes = ARGTYPES
 
-    ARGTYPES = [ctypes.POINTER(ctypes.POINTER(codestream_info_v2_t))]
+    ARGTYPES = [ctypes.POINTER(ctypes.POINTER(CodestreamInfoV2))]
     OPENJP2.opj_destroy_cstr_info.argtypes = ARGTYPES
     OPENJP2.opj_destroy_cstr_info.restype = ctypes.c_void_p
 
-    ARGTYPES = [codec_t_p, stream_t_p]
+    ARGTYPES = [CODEC_TYPE, STREAM_TYPE_P]
     OPENJP2.opj_encode.argtypes = ARGTYPES
 
-    OPENJP2.opj_get_cstr_info.argtypes = [codec_t_p]
-    OPENJP2.opj_get_cstr_info.restype = ctypes.POINTER(codestream_info_v2_t)
+    OPENJP2.opj_get_cstr_info.argtypes = [CODEC_TYPE]
+    OPENJP2.opj_get_cstr_info.restype = ctypes.POINTER(CodestreamInfoV2)
 
-    ARGTYPES = [codec_t_p,
-                stream_t_p,
-                ctypes.POINTER(image_t),
+    ARGTYPES = [CODEC_TYPE,
+                STREAM_TYPE_P,
+                ctypes.POINTER(ImageType),
                 ctypes.c_uint32]
     OPENJP2.opj_get_decoded_tile.argtypes = ARGTYPES
 
     ARGTYPES = [ctypes.c_uint32,
-                ctypes.POINTER(image_comptparm_t),
-                color_space_t]
+                ctypes.POINTER(ImageComptParmType),
+                COLOR_SPACE_TYPE]
     OPENJP2.opj_image_create.argtypes = ARGTYPES
-    OPENJP2.opj_image_create.restype = ctypes.POINTER(image_t)
+    OPENJP2.opj_image_create.restype = ctypes.POINTER(ImageType)
 
     ARGTYPES = [ctypes.c_uint32,
-                ctypes.POINTER(image_comptparm_t),
-                color_space_t]
+                ctypes.POINTER(ImageComptParmType),
+                COLOR_SPACE_TYPE]
     OPENJP2.opj_image_tile_create.argtypes = ARGTYPES
-    OPENJP2.opj_image_tile_create.restype = ctypes.POINTER(image_t)
+    OPENJP2.opj_image_tile_create.restype = ctypes.POINTER(ImageType)
 
-    OPENJP2.opj_image_destroy.argtypes = [ctypes.POINTER(image_t)]
+    OPENJP2.opj_image_destroy.argtypes = [ctypes.POINTER(ImageType)]
 
-    ARGTYPES = [stream_t_p, codec_t_p,
-                ctypes.POINTER(ctypes.POINTER(image_t))]
+    ARGTYPES = [STREAM_TYPE_P, CODEC_TYPE,
+                ctypes.POINTER(ctypes.POINTER(ImageType))]
     OPENJP2.opj_read_header.argtypes = ARGTYPES
 
-    ARGTYPES = [codec_t_p,
-                stream_t_p,
+    ARGTYPES = [CODEC_TYPE,
+                STREAM_TYPE_P,
                 ctypes.POINTER(ctypes.c_uint32),
                 ctypes.POINTER(ctypes.c_uint32),
                 ctypes.POINTER(ctypes.c_int32),
@@ -593,56 +613,56 @@ if OPENJP2 is not None:
                 ctypes.POINTER(ctypes.c_int32),
                 ctypes.POINTER(ctypes.c_int32),
                 ctypes.POINTER(ctypes.c_uint32),
-                ctypes.POINTER(bool_t)]
+                ctypes.POINTER(BOOL_TYPE)]
     OPENJP2.opj_read_tile_header.argtypes = ARGTYPES
 
-    ARGTYPES = [codec_t_p, ctypes.POINTER(image_t), ctypes.c_int32,
+    ARGTYPES = [CODEC_TYPE, ctypes.POINTER(ImageType), ctypes.c_int32,
                 ctypes.c_int32, ctypes.c_int32, ctypes.c_int32]
     OPENJP2.opj_set_decode_area.argtypes = ARGTYPES
 
-    ARGTYPES = [ctypes.POINTER(cparameters_t)]
+    ARGTYPES = [ctypes.POINTER(CompressionParametersType)]
     OPENJP2.opj_set_default_encoder_parameters.argtypes = ARGTYPES
 
-    ARGTYPES = [ctypes.POINTER(dparameters_t)]
+    ARGTYPES = [ctypes.POINTER(DecompressionParametersType)]
     OPENJP2.opj_set_default_decoder_parameters.argtypes = ARGTYPES
 
-    ARGTYPES = [codec_t_p, ctypes.c_void_p, ctypes.c_void_p]
+    ARGTYPES = [CODEC_TYPE, ctypes.c_void_p, ctypes.c_void_p]
     OPENJP2.opj_set_error_handler.argtypes = ARGTYPES
     OPENJP2.opj_set_info_handler.argtypes = ARGTYPES
     OPENJP2.opj_set_warning_handler.argtypes = ARGTYPES
 
-    ARGTYPES = [codec_t_p, ctypes.POINTER(dparameters_t)]
+    ARGTYPES = [CODEC_TYPE, ctypes.POINTER(DecompressionParametersType)]
     OPENJP2.opj_setup_decoder.argtypes = ARGTYPES
 
-    ARGTYPES = [codec_t_p,
-                ctypes.POINTER(cparameters_t),
-                ctypes.POINTER(image_t)]
+    ARGTYPES = [CODEC_TYPE,
+                ctypes.POINTER(CompressionParametersType),
+                ctypes.POINTER(ImageType)]
     OPENJP2.opj_setup_encoder.argtypes = ARGTYPES
 
     ARGTYPES = [ctypes.c_char_p, ctypes.c_int32]
     OPENJP2.opj_stream_create_default_file_stream_v3.argtypes = ARGTYPES
-    OPENJP2.opj_stream_create_default_file_stream_v3.restype = stream_t_p
+    OPENJP2.opj_stream_create_default_file_stream_v3.restype = STREAM_TYPE_P
 
-    ARGTYPES = [codec_t_p, ctypes.POINTER(image_t), stream_t_p]
+    ARGTYPES = [CODEC_TYPE, ctypes.POINTER(ImageType), STREAM_TYPE_P]
     OPENJP2.opj_start_compress.argtypes = ARGTYPES
 
-    OPENJP2.opj_end_compress.argtypes = [codec_t_p, stream_t_p]
-    OPENJP2.opj_end_decompress.argtypes = [codec_t_p, stream_t_p]
+    OPENJP2.opj_end_compress.argtypes = [CODEC_TYPE, STREAM_TYPE_P]
+    OPENJP2.opj_end_decompress.argtypes = [CODEC_TYPE, STREAM_TYPE_P]
 
-    OPENJP2.opj_stream_destroy_v3.argtypes = [stream_t_p]
-    OPENJP2.opj_destroy_codec.argtypes = [codec_t_p]
+    OPENJP2.opj_stream_destroy_v3.argtypes = [STREAM_TYPE_P]
+    OPENJP2.opj_destroy_codec.argtypes = [CODEC_TYPE]
 
-    ARGTYPES = [codec_t_p,
+    ARGTYPES = [CODEC_TYPE,
                 ctypes.c_uint32,
                 ctypes.POINTER(ctypes.c_uint8),
                 ctypes.c_uint32,
-                stream_t_p]
+                STREAM_TYPE_P]
     OPENJP2.opj_write_tile.argtypes = ARGTYPES
 
 
 def check_error(status):
     """Set a generic function as the restype attribute of all OpenJPEG
-    functions that return a bool_t value.  This way we do not have to check
+    functions that return a BOOL_TYPE value.  This way we do not have to check
     for error status in each wrapping function and an exception will always be
     appropriately raised.
     """
@@ -683,7 +703,7 @@ def create_compress(codec_format):
 
     Returns
     -------
-    codec :  Reference to codec_t_p instance.
+    codec :  Reference to CODEC_TYPE instance.
     """
     codec = OPENJP2.opj_create_compress(codec_format)
     return codec
@@ -696,11 +716,11 @@ def decode(codec, stream, image):
 
     Parameters
     ----------
-    codec : codec_t_p
+    codec : CODEC_TYPE
         The JPEG2000 codec
-    stream : stream_t_p
+    stream : STREAM_TYPE_P
         The stream to decode.
-    image : image_t
+    image : ImageType
         Output image structure.
 
     Raises
@@ -718,7 +738,7 @@ def decode_tile_data(codec, tidx, data, data_size, stream):
 
     Parameters
     ----------
-    codec : codec_t_p
+    codec : CODEC_TYPE
         The JPEG2000 codec
     tile_index : int
         The index of the tile being decoded
@@ -726,7 +746,7 @@ def decode_tile_data(codec, tidx, data, data_size, stream):
         Holds a memory block into which data will be decoded.
     data_size : int
         The size of data in bytes
-    stream : stream_t_p
+    stream : STREAM_TYPE_P
         The stream to decode.
 
     Raises
@@ -755,7 +775,7 @@ def create_decompress(codec_format):
 
     Returns
     -------
-    codec : Reference to codec_t_p instance.
+    codec : Reference to CODEC_TYPE instance.
     """
     codec = OPENJP2.opj_create_decompress(codec_format)
     return codec
@@ -768,7 +788,7 @@ def destroy_codec(codec):
 
     Parameters
     ----------
-    codec : codec_t_p
+    codec : CODEC_TYPE
         Decompressor handle to destroy.
     """
     OPENJP2.opj_destroy_codec(codec)
@@ -781,9 +801,9 @@ def encode(codec, stream):
 
     Parameters
     ----------
-    codec : codec_t_p
+    codec : CODEC_TYPE
         The jpeg2000 codec.
-    stream : stream_t_p
+    stream : STREAM_TYPE_P
         The stream to which data is written.
 
     Raises
@@ -801,12 +821,12 @@ def get_cstr_info(codec):
 
     Parameters
     ----------
-    codec : codec_t_p
+    codec : CODEC_TYPE
         The jpeg2000 codec.
 
     Returns
     -------
-    cstr_info_p : codestream_info_v2_t
+    cstr_info_p : CodestreamInfoV2
         Reference to codestream information.
     """
     cstr_info_p = OPENJP2.opj_get_cstr_info(codec)
@@ -820,11 +840,11 @@ def get_decoded_tile(codec, stream, imagep, tile_index):
 
     Parameters
     ----------
-    codec : codec_t_p
+    codec : CODEC_TYPE
         The jpeg2000 codec.
-    stream : stream_t_p
+    stream : STREAM_TYPE_P
         The input stream.
-    image : image_t
+    image : ImageType
         Output image structure.
     tiler_index : int
         Index of the tile which will be decoded.
@@ -844,7 +864,7 @@ def destroy_cstr_info(cstr_info_p):
 
     Parameters
     ----------
-    cstr_info_p : codestream_info_v2_t pointer
+    cstr_info_p : CodestreamInfoV2 pointer
         Pointer to codestream info structure.
     """
     OPENJP2.opj_destroy_cstr_info(ctypes.byref(cstr_info_p))
@@ -857,9 +877,9 @@ def end_compress(codec, stream):
 
     Parameters
     ----------
-    codec : codec_t_p
+    codec : CODEC_TYPE
         Compressor handle.
-    stream : stream_t_p
+    stream : STREAM_TYPE_P
         Output stream buffer.
 
     Raises
@@ -877,9 +897,9 @@ def end_decompress(codec, stream):
 
     Parameters
     ----------
-    codec : codec_t_p
+    codec : CODEC_TYPE
         Compressor handle.
-    stream : stream_t_p
+    stream : STREAM_TYPE_P
         Output stream buffer.
 
     Raises
@@ -897,7 +917,7 @@ def image_destroy(image):
 
     Parameters
     ----------
-    image : image_t pointer
+    image : ImageType pointer
         Image resource to be disposed.
     """
     OPENJP2.opj_image_destroy(image)
@@ -917,12 +937,12 @@ def image_create(comptparms, clrspc):
 
     Returns
     -------
-    image : image_t
-        Reference to image_t instance.
+    image : ImageType
+        Reference to ImageType instance.
     """
     image = OPENJP2.opj_image_create(len(comptparms),
-                                      comptparms,
-                                      clrspc)
+                                     comptparms,
+                                     clrspc)
     return image
 
 
@@ -940,12 +960,12 @@ def image_tile_create(comptparms, clrspc):
 
     Returns
     -------
-    image : image_t
-        Reference to image_t instance.
+    image : ImageType
+        Reference to ImageType instance.
     """
     image = OPENJP2.opj_image_tile_create(len(comptparms),
-                                           comptparms,
-                                           clrspc)
+                                          comptparms,
+                                          clrspc)
     return image
 
 
@@ -956,14 +976,14 @@ def read_header(stream, codec):
 
     Parameters
     ----------
-    stream: stream_t_p
+    stream: STREAM_TYPE_P
         The JPEG2000 stream.
     codec:  codec_t
         The JPEG2000 codec to read.
 
     Returns
     -------
-    imagep : reference to image_t instance
+    imagep : reference to ImageType instance
         The image structure initialized with image characteristics.
 
     Raises
@@ -971,7 +991,7 @@ def read_header(stream, codec):
     RuntimeError
         If the OpenJPEG library routine opj_read_header fails.
     """
-    imagep = ctypes.POINTER(image_t)()
+    imagep = ctypes.POINTER(ImageType)()
     OPENJP2.opj_read_header(stream, codec, ctypes.byref(imagep))
     return imagep
 
@@ -985,7 +1005,7 @@ def read_tile_header(codec, stream):
     ----------
     codec : codec_t
         The JPEG2000 codec to read.
-    stream : stream_t_p
+    stream : STREAM_TYPE_P
         The JPEG2000 stream.
 
     Returns
@@ -1015,17 +1035,17 @@ def read_tile_header(codec, stream):
     col1 = ctypes.c_int32()
     row1 = ctypes.c_int32()
     ncomps = ctypes.c_uint32()
-    go_on = bool_t()
+    go_on = BOOL_TYPE()
     OPENJP2.opj_read_tile_header(codec,
-                                  stream,
-                                  ctypes.byref(tile_index),
-                                  ctypes.byref(data_size),
-                                  ctypes.byref(col0),
-                                  ctypes.byref(row0),
-                                  ctypes.byref(col1),
-                                  ctypes.byref(row1),
-                                  ctypes.byref(ncomps),
-                                  ctypes.byref(go_on))
+                                 stream,
+                                 ctypes.byref(tile_index),
+                                 ctypes.byref(data_size),
+                                 ctypes.byref(col0),
+                                 ctypes.byref(row0),
+                                 ctypes.byref(col1),
+                                 ctypes.byref(row1),
+                                 ctypes.byref(ncomps),
+                                 ctypes.byref(go_on))
     go_on = bool(go_on.value)
     return (tile_index.value,
             data_size.value,
@@ -1045,9 +1065,9 @@ def set_decode_area(codec, image, start_x=0, start_y=0, end_x=0, end_y=0):
 
     Parameters
     ----------
-    codec : codec_t_p
+    codec : CODEC_TYPE
         Codec initialized by create_decompress function.
-    image : image_t pointer
+    image : ImageType pointer
         The decoded image previously set by read_header.
     start_x, start_y : optional, int
         The left and upper position of the rectangle to decode.
@@ -1073,10 +1093,10 @@ def set_default_decoder_parameters():
 
     Returns
     -------
-    dparam : dparameters_t
+    dparam : DecompressionParametersType
         Decompression parameters.
     """
-    dparams = dparameters_t()
+    dparams = DecompressionParametersType()
     OPENJP2.opj_set_default_decoder_parameters(ctypes.byref(dparams))
     return dparams
 
@@ -1108,10 +1128,10 @@ def set_default_encoder_parameters():
 
     Returns
     -------
-    cparameters : cparameters_t
+    cparameters : CompressionParametersType
         Compression parameters.
     """
-    cparams = cparameters_t()
+    cparams = CompressionParametersType()
     OPENJP2.opj_set_default_encoder_parameters(ctypes.byref(cparams))
     return cparams
 
@@ -1123,7 +1143,7 @@ def set_error_handler(codec, handler, data=None):
 
     Parameters
     ----------
-    codec : codec_t_p
+    codec : CODEC_TYPE
         Codec initialized by create_compress function.
     handler : python function
         The callback function to be used.
@@ -1145,7 +1165,7 @@ def set_info_handler(codec, handler, data=None):
 
     Parameters
     ----------
-    codec : codec_t_p
+    codec : CODEC_TYPE
         Codec initialized by create_compress function.
     handler : python function
         The callback function to be used.
@@ -1167,7 +1187,7 @@ def set_warning_handler(codec, handler, data=None):
 
     Parameters
     ----------
-    codec : codec_t_p
+    codec : CODEC_TYPE
         Codec initialized by create_compress function.
     handler : python function
         The callback function to be used.
@@ -1189,9 +1209,9 @@ def setup_decoder(codec, dparams):
 
     Parameters
     ----------
-    codec:  codec_t_p
+    codec:  CODEC_TYPE
         Codec initialized by create_compress function.
-    dparams:  dparameters_t
+    dparams:  DecompressionParametersType
         Decompression parameters.
 
     Raises
@@ -1210,11 +1230,11 @@ def setup_encoder(codec, cparams, image):
 
     Parameters
     ----------
-    codec : codec_t_p
+    codec : CODEC_TYPE
         codec initialized by create_compress function
-    cparams : cparameters_t
+    cparams : CompressionParametersType
         compression parameters
-    image : image_t
+    image : ImageType
         input-filled image
 
     Raises
@@ -1232,11 +1252,11 @@ def start_compress(codec, image, stream):
 
     Parameters
     ----------
-    codec : codec_t_p
+    codec : CODEC_TYPE
         Compressor handle.
-    image : pointer to image_t
+    image : pointer to ImageType
         Input filled image.
-    stream : stream_t_p
+    stream : STREAM_TYPE_P
         Input stream.
 
     Raises
@@ -1278,7 +1298,7 @@ def stream_destroy_v3(stream):
 
     Parameters
     ----------
-    stream : stream_t_p
+    stream : STREAM_TYPE_P
         The file stream.
     """
     OPENJP2.opj_stream_destroy_v3(stream)
@@ -1291,7 +1311,7 @@ def write_tile(codec, tile_index, data, data_size, stream):
 
     Parameters
     ----------
-    codec : codec_t_p
+    codec : CODEC_TYPE
         The jpeg2000 codec
     tile_index : int
         The index of the tile to write, zero-indexing assumed
@@ -1299,7 +1319,7 @@ def write_tile(codec, tile_index, data, data_size, stream):
         Image data arranged in usual C-order
     data_size : int
         Size of a tile in bytes
-    stream : stream_t_p
+    stream : STREAM_TYPE_P
         The stream to write data to
 
     Raises
@@ -1309,10 +1329,10 @@ def write_tile(codec, tile_index, data, data_size, stream):
     """
     datap = data.ctypes.data_as(ctypes.POINTER(ctypes.c_uint8))
     OPENJP2.opj_write_tile(codec,
-                            ctypes.c_uint32(int(tile_index)),
-                            datap,
-                            ctypes.c_uint32(int(data_size)),
-                            stream)
+                           ctypes.c_uint32(int(tile_index)),
+                           datap,
+                           ctypes.c_uint32(int(data_size)),
+                           stream)
 
 
 def set_error_message(msg):

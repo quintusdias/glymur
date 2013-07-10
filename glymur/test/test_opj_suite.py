@@ -1569,7 +1569,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[3].spcod[7] & 0x0020)
         self.assertEqual(c.segment[3].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
         # SOT: start of tile part
         self.assertEqual(c.segment[4].isot, 0)
@@ -1623,7 +1623,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertTrue(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
         # COC: Coding style component
         self.assertEqual(c.segment[3].ccoc, 0)
@@ -1643,7 +1643,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertTrue(c.segment[3].spcoc[3] & 0x0020)
         self.assertEqual(c.segment[3].spcoc[4],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
         # QCD: Quantization default
         # quantization type
@@ -1729,7 +1729,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
         # QCD: Quantization default
         # quantization type
@@ -1846,7 +1846,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(c.segment[2]._precinct_size,
                          [(128, 128), (128, 128), (128, 128), (128, 128),
                           (128, 128), (128, 128), (128, 128)])
@@ -1955,7 +1955,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # COC: Coding style component
@@ -1976,7 +1976,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[3].spcoc[3] & 0x0020)
         self.assertEqual(c.segment[3].spcoc[4],
-                         glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
         # COC: Coding style component
         self.assertEqual(c.segment[4].ccoc, 3)
@@ -1996,7 +1996,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[4].spcoc[3] & 0x0020)
         self.assertEqual(c.segment[4].spcoc[4],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
         # QCD: Quantization default
         # quantization type
@@ -2098,7 +2098,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -2167,7 +2167,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[7].spcoc[3] & 0x0020)
         self.assertEqual(c.segment[7].spcoc[4],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
         # RGN: region of interest
         self.assertEqual(c.segment[8].crgn, 0)  # component
@@ -2235,7 +2235,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -2320,7 +2320,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # COC: Coding style component
@@ -2341,7 +2341,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[3].spcoc[3] & 0x0020)
         self.assertEqual(c.segment[3].spcoc[4],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
         # COC: Coding style component
         self.assertEqual(c.segment[4].ccoc, 1)
@@ -2361,7 +2361,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[4].spcoc[3] & 0x0020)
         self.assertEqual(c.segment[4].spcoc[4],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
         # COC: Coding style component
         self.assertEqual(c.segment[5].ccoc, 2)
@@ -2381,7 +2381,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[5].spcoc[3] & 0x0020)
         self.assertEqual(c.segment[5].spcoc[4],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
         # QCD: Quantization default
         # quantization type
@@ -2473,7 +2473,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -2553,7 +2553,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -2694,7 +2694,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertTrue(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(c.segment[2]._precinct_size, [(128, 2)])
 
         # QCD: Quantization default
@@ -2775,7 +2775,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -2856,7 +2856,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # COC: Coding style component
@@ -2876,7 +2876,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[3].spcoc[3] & 0x0020)
         self.assertEqual(c.segment[3].spcoc[4],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
         # QCD: Quantization default
         # quantization type
@@ -2982,7 +2982,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -3058,7 +3058,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -3212,7 +3212,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -3280,7 +3280,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertTrue(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # COC: Coding style component
@@ -3300,7 +3300,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertTrue(c.segment[3].spcoc[3] & 0x0020)
         self.assertEqual(c.segment[3].spcoc[4],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
         # QCD: Quantization default
         # quantization type
@@ -3381,7 +3381,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(c.segment[2]._precinct_size,
                          [(128, 128), (256, 256), (512, 512), (1024, 1024),
                           (2048, 2048), (4096, 4096), (8192, 8192)])
@@ -3495,7 +3495,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # COC: Coding style component
@@ -3515,7 +3515,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[3].spcoc[3] & 0x0020)
         self.assertEqual(c.segment[3].spcoc[4],
-                         glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
         # COC: Coding style component
         self.assertEqual(c.segment[4].ccoc, 3)
@@ -3534,7 +3534,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[4].spcoc[3] & 0x0020)
         self.assertEqual(c.segment[4].spcoc[4],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
         # QCD: Quantization default
         # quantization type
@@ -3641,7 +3641,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -3768,7 +3768,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(c.segment[2]._precinct_size, [(16, 16)] * 8)
 
         self.assertEqual(c.segment[3].sqcd & 0x1f, 2)  # expounded
@@ -3856,7 +3856,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertTrue(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -3949,7 +3949,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(c.segment[2]._precinct_size, [(1, 1), (2, 2)])
 
         # COC: Coding style component
@@ -3969,7 +3969,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[3].spcoc[3] & 0x0020)
         self.assertEqual(c.segment[3].spcoc[4],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(c.segment[3]._precinct_size, [(2, 2), (4, 4)])
 
         # QCD: Quantization default
@@ -4489,7 +4489,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(c.segment[2]._precinct_size[0], (128, 128))
         self.assertEqual(c.segment[2]._precinct_size[1:], [(256, 256)] * 5)
 
@@ -4521,7 +4521,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[4].spcoc[3] & 0x0020)
         self.assertEqual(c.segment[4].spcoc[4],
-                         glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
         # QCC: Quantization component
         # associated component
@@ -4553,7 +4553,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[6].spcoc[3] & 0x0020)
         self.assertEqual(c.segment[6].spcoc[4],
-                         glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
         # QCC: Quantization component
         # associated component
@@ -4641,7 +4641,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(c.segment[2]._precinct_size,
                          [(16, 16), (32, 32), (64, 64), (128, 128),
                           (128, 128), (128, 128)])
@@ -4698,7 +4698,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         ids = [x.marker_id for x in c.segment]
@@ -4751,7 +4751,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         ids = [x.marker_id for x in c.segment]
@@ -4813,7 +4813,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -4875,7 +4875,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -4946,7 +4946,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -5023,7 +5023,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -5083,7 +5083,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -5149,7 +5149,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -5234,7 +5234,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -5294,7 +5294,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -5352,7 +5352,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -5410,7 +5410,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -5471,7 +5471,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -5532,7 +5532,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -5592,7 +5592,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -5662,7 +5662,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -5732,7 +5732,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -5794,7 +5794,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -5857,7 +5857,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(c.segment[2]._precinct_size,
                          [(128, 128)] + [(256, 256)] * 5)
 
@@ -5973,7 +5973,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[3].spcod[7] & 0x0020)
         self.assertEqual(c.segment[3].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[3].spcod), 9)
 
         # QCD: Quantization default
@@ -6107,7 +6107,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[3].spcod[7] & 0x0020)
         self.assertEqual(c.segment[3].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[3].spcod), 9)
 
         # QCD: Quantization default
@@ -6229,7 +6229,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -6383,7 +6383,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -6484,7 +6484,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -6583,7 +6583,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -6687,7 +6687,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_9x7_IRREVERSIBLE)
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -6815,7 +6815,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -6930,7 +6930,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -7025,7 +7025,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -7133,7 +7133,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -7233,7 +7233,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
@@ -7342,7 +7342,7 @@ class TestSuiteDump(unittest.TestCase):
         # Segmentation symbols
         self.assertFalse(c.segment[2].spcod[7] & 0x0020)
         self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_TRANSFORM_5x3_REVERSIBLE)
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
 
         # QCD: Quantization default
