@@ -83,7 +83,7 @@ def read_config_file():
     that we currently care about is still in the svn trunk at openjpeg.org.
     We must use a configuration file that the user must write.
     """
-    lib = {}
+    lib = {'openjp2':  None, 'openjpeg':  None}
     filename = glymurrc_fname()
     if filename is not None:
         # Read the configuration file for the library location.
@@ -92,11 +92,11 @@ def read_config_file():
         try:
             lib['openjp2'] = parser.get('library', 'openjp2')
         except NoOptionError:
-            lib['openjp2'] = None
+            pass		
         try:
             lib['openjpeg'] = parser.get('library', 'openjpeg')
         except NoOptionError:
-            lib['openjpeg'] = None
+            pass		
 
     return lib
 
@@ -113,7 +113,7 @@ def load_openjp2(libopenjp2_path):
             openjp2_lib = ctypes.windll.LoadLibrary(libopenjp2_path)
         else:
             openjp2_lib = ctypes.CDLL(libopenjp2_path)
-    except OSError:
+    except (TypeError, OSError):
         msg = '"Library {0}" could not be loaded.  Operating in degraded mode.'
         msg = msg.format(libopenjp2_path)
         warnings.warn(msg, UserWarning)
