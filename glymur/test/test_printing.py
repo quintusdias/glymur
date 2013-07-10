@@ -21,7 +21,7 @@ except:
     raise
 
 
-@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
 class TestPrintingNeedsLib(unittest.TestCase):
     """These tests require the library, mostly in order to just setup the test.
@@ -34,7 +34,7 @@ class TestPrintingNeedsLib(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix='.jp2', delete=False) as tfile:
             cls._plain_nemo_file = tfile.name
             ijfile = Jp2k(jp2file)
-            data = ijfile.read(reduce=1)
+            data = ijfile.read(rlevel=1)
             ojfile = Jp2k(cls._plain_nemo_file, 'wb')
             ojfile.write(data)
 
@@ -122,7 +122,7 @@ class TestPrintingNeedsLib(unittest.TestCase):
     def test_asoc_label_box(self):
         # Construct a fake file with an asoc and a label box, as
         # OpenJPEG doesn't have such a file.
-        data = glymur.Jp2k(self.jp2file).read(reduce=1)
+        data = glymur.Jp2k(self.jp2file).read(rlevel=1)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             j = glymur.Jp2k(tfile.name, 'wb')
             j.write(data)
@@ -640,6 +640,7 @@ class TestPrinting(unittest.TestCase):
                '    CME marker segment @ (3209, 37)',
                '        "Created by OpenJPEG version 2.0.0"']
         expected = '\n'.join(lst)
+        self.maxDiff = None
         self.assertEqual(actual, expected)
 
     @unittest.skipIf(data_root is None,

@@ -3,7 +3,7 @@ import unittest
 
 import glymur
 
-@unittest.skipIf(glymur.lib.openjpeg._OPENJPEG is None,
+@unittest.skipIf(glymur.lib._openjpeg.OPENJPEG is None,
                  "Missing openjpeg library.")
 class TestOpenJPEG(unittest.TestCase):
 
@@ -14,15 +14,15 @@ class TestOpenJPEG(unittest.TestCase):
         pass
 
     def test_version(self):
-        v = glymur.lib.openjpeg._version()
+        v = glymur.lib._openjpeg.version()
         parts = v.split('.')
         self.assertEqual(parts[0], '1')
         self.assertEqual(parts[1], '5')
 
     def test_set_default_decoder_parameters(self):
         # Verify that we properly set the default decode parameters.
-        dp = glymur.lib.openjpeg.dparameters_t()
-        glymur.lib.openjpeg._set_default_decoder_parameters(ctypes.byref(dp))
+        dp = glymur.lib._openjpeg.DecompressionParametersType()
+        glymur.lib._openjpeg.set_default_decoder_parameters(ctypes.byref(dp))
 
         self.assertEqual(dp.cp_reduce, 0)
         self.assertEqual(dp.cp_layer, 0)

@@ -57,7 +57,7 @@ def read_image(infile):
     return data
 
 
-@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
 @unittest.skipIf(no_read_backend, no_read_backend_msg)
 @unittest.skipIf(data_root is None,
@@ -94,7 +94,7 @@ class TestSuiteNegative(unittest.TestCase):
         # Verify that the last segment returned in the codestream is SOD,
         # not EOC.  Codestream parsing should stop when we try to jump to
         # the end of SOT.
-        self.assertEqual(c.segment[-1].id, 'SOD')
+        self.assertEqual(c.segment[-1].marker_id, 'SOD')
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
@@ -109,7 +109,7 @@ class TestSuiteNegative(unittest.TestCase):
         # Verify that the last segment returned in the codestream is SOD,
         # not EOC.  Codestream parsing should stop when we try to jump to
         # the end of SOT.
-        self.assertEqual(c.segment[-1].id, 'SOD')
+        self.assertEqual(c.segment[-1].marker_id, 'SOD')
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
@@ -124,7 +124,7 @@ class TestSuiteNegative(unittest.TestCase):
         # Verify that the last segment returned in the codestream is SOD,
         # not EOC.  Codestream parsing should stop when we try to jump to
         # the end of SOT.
-        self.assertEqual(c.segment[-1].id, 'SOD')
+        self.assertEqual(c.segment[-1].marker_id, 'SOD')
 
     def test_code_block_dimensions(self):
         # opj_compress doesn't allow the dimensions of a codeblock
@@ -157,7 +157,7 @@ class TestSuiteNegative(unittest.TestCase):
     def test_precinct_size_not_multiple_of_two(self):
         # Seems like precinct sizes should be powers of two.
         ifile = Jp2k(self.j2kfile)
-        data = ifile.read(reduce=2)
+        data = ifile.read(rlevel=2)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             ofile = Jp2k(tfile.name, 'wb')
             with self.assertRaises(IOError) as ce:
@@ -166,7 +166,7 @@ class TestSuiteNegative(unittest.TestCase):
     def test_codeblock_size_not_multiple_of_two(self):
         # Seems like code block sizes should be powers of two.
         ifile = Jp2k(self.j2kfile)
-        data = ifile.read(reduce=2)
+        data = ifile.read(rlevel=2)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             ofile = Jp2k(tfile.name, 'wb')
             with self.assertRaises(IOError) as ce:
@@ -176,7 +176,7 @@ class TestSuiteNegative(unittest.TestCase):
         # Seems like code block sizes should never exceed half that of
         # precinct size.
         ifile = Jp2k(self.j2kfile)
-        data = ifile.read(reduce=2)
+        data = ifile.read(rlevel=2)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             ofile = Jp2k(tfile.name, 'wb')
             with self.assertRaises(IOError) as ce:

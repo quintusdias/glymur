@@ -14,7 +14,7 @@ else:
 import glymur
 
 
-@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
 class TestCallbacks(unittest.TestCase):
 
@@ -46,7 +46,7 @@ class TestCallbacks(unittest.TestCase):
         # Verify that we get the expected stdio output when our internal info
         # callback handler is enabled.
         j = glymur.Jp2k(self.j2kfile)
-        d = j.read(reduce=1, verbose=True, area=(0, 0, 200, 150))
+        d = j.read(rlevel=1, verbose=True, area=(0, 0, 200, 150))
         actual = sys.stdout.getvalue().strip()
 
         lines = ['[INFO] Start to read j2k main header (0).',
@@ -60,7 +60,7 @@ class TestCallbacks(unittest.TestCase):
         self.assertEqual(actual, expected)
 
 
-@unittest.skipIf(glymur.lib.openjp2._OPENJPEG is None,
+@unittest.skipIf(glymur.lib.openjp2.OPENJPEG is None,
                  "Missing openjpeg library.")
 class TestCallbacks15(unittest.TestCase):
     """This test suite is for OpenJPEG 1.5.1 properties.
@@ -69,13 +69,13 @@ class TestCallbacks15(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         # Monkey patch the package so as to use OPENJPEG instead of OPENJP2
-        cls.openjp2 = glymur.lib.openjp2._OPENJP2
-        glymur.lib.openjp2._OPENJP2 = None
+        cls.openjp2 = glymur.lib.openjp2.OPENJP2
+        glymur.lib.openjp2.OPENJP2 = None
 
     @classmethod
     def tearDownClass(cls):
         # Restore OPENJP2
-        glymur.lib.openjp2._OPENJP2 = cls.openjp2
+        glymur.lib.openjp2.OPENJP2 = cls.openjp2
 
     def setUp(self):
         # Save sys.stdout.
@@ -92,7 +92,7 @@ class TestCallbacks15(unittest.TestCase):
         # Verify that we get the expected stdio output when our internal info
         # callback handler is enabled.
         j = glymur.Jp2k(self.j2kfile)
-        d = j.read(reduce=1, verbose=True)
+        d = j.read(rlevel=1, verbose=True)
         actual = sys.stdout.getvalue().strip()
 
         regex = re.compile(r"""\[INFO\]\stile\s1\sof\s1\s+

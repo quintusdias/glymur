@@ -1,35 +1,30 @@
 """Wraps library calls to openjpeg.
 """
 
+# pylint: disable=R0903
+
 import ctypes
-from ctypes.util import find_library
-import platform
-import os
 
-if os.name == "nt":
-    path = os.path.join('C:\\', 'Program files', 'OpenJPEG 1.5',
-                        'bin', 'openjpeg.dll')
-    _OPENJPEG = ctypes.windll.LoadLibrary(path)
-else:
-    if platform.system() == 'Darwin':
-        _OPENJPEG = ctypes.CDLL('/opt/local/lib/libopenjpeg.dylib')
-    elif platform.system() == 'Linux':
-        _OPENJPEG = ctypes.CDLL(find_library('openjpeg'))
+from .config import glymur_config
+_, OPENJPEG = glymur_config()
 
-_PATH_LEN = 4096  # maximum allowed size for filenames
+PATH_LEN = 4096  # maximum allowed size for filenames
 
 
-class event_mgr_t(ctypes.Structure):
+class EventMgrType(ctypes.Structure):
     """Message handler object.
+
+    Corresponds to event_mgr_t type in openjpeg headers.
     """
     _fields_ = [("error_handler", ctypes.c_void_p),
                 ("warning_handler", ctypes.c_void_p),
                 ("info_handler", ctypes.c_void_p)]
 
-class common_struct_t(ctypes.Structure):
+
+class CommonStructType(ctypes.Structure):
     """Common fields between JPEG 2000 compression and decompression contextx.
     """
-    _fields_ = [("event_mgr", ctypes.POINTER(event_mgr_t)),
+    _fields_ = [("event_mgr", ctypes.POINTER(EventMgrType)),
                 ("client_data", ctypes.c_void_p),
                 ("is_decompressor", ctypes.c_bool),
                 ("codec_format", ctypes.c_int),
@@ -38,16 +33,20 @@ class common_struct_t(ctypes.Structure):
                 ("mj2_handle", ctypes.c_void_p)]
 
 
-class dinfo_t(ctypes.Structure):
-    """Common fields between JPEG 2000 compression and decompression contextx.
-    This is for decompression contexts.
+class DecompressionInfoType(ctypes.Structure):
+    """This is for decompression contexts.
+
+    Corresponds to dinfo_t type in openjpeg headers.
     """
     pass
 
 
-class cio_t(ctypes.Structure):
-    _fields_ = [# codec context
-                ("cinfo",         ctypes.POINTER(common_struct_t)),
+class CioType(ctypes.Structure):
+    """Byte input-output stream (CIO)
+
+    Corresponds to cio_t in openjpeg headers.
+    """
+    _fields_ = [("cinfo", ctypes.POINTER(CommonStructType)),  # codec context
                 # STREAM_READ or STREAM_WRITE
                 ("openmode", ctypes.c_int),
                 # pointer to start of buffer
@@ -62,15 +61,19 @@ class cio_t(ctypes.Structure):
                 ("bp", ctypes.c_char_p)]
 
 
-class dparameters_t(ctypes.Structure):
+class DecompressionParametersType(ctypes.Structure):
+    """Decompression parameters.
+
+    Corresponds to dparameters_t type in openjpeg headers.
+    """
     # cp_reduce:  the number of highest resolution levels to be discarded
     _fields_ = [("cp_reduce",         ctypes.c_int),
                 # cp_layer:  the maximum number of quality layers to decode
                 ("cp_layer",          ctypes.c_int),
                 # infile:  input file name
-                ("infile",            ctypes.c_char * _PATH_LEN),
+                ("infile",            ctypes.c_char * PATH_LEN),
                 # outfile:  output file name
-                ("outfile",           ctypes.c_char * _PATH_LEN),
+                ("outfile",           ctypes.c_char * PATH_LEN),
                 # decod_format:  input file format 0: J2K, 1: JP2, 2: JPT
                 ("decod_format",      ctypes.c_int),
                 # cod_format:  output file format 0: PGX, 1: PxM, 2: BMP
@@ -87,8 +90,11 @@ class dparameters_t(ctypes.Structure):
                 ("flags",             ctypes.c_uint)]
 
 
-class image_comp_t(ctypes.Structure):
-    """Defines a single image component. """
+class ImageCompType(ctypes.Structure):
+    """Defines a single image component.
+
+    Corresponds to image_comp_t type in openjpeg.
+    """
     _fields_ = [("dx", ctypes.c_int),
                 ("dy", ctypes.c_int),
                 ("w", ctypes.c_int),
@@ -103,87 +109,105 @@ class image_comp_t(ctypes.Structure):
                 ("data", ctypes.POINTER(ctypes.c_int))]
 
 
-class image_t(ctypes.Structure):
-    """Defines image data and characteristics."""
+class ImageType(ctypes.Structure):
+    """Defines image data and characteristics.
+
+    Corresponds to image_t type in openjpeg headers.
+    """
     _fields_ = [("x0", ctypes.c_int),
                 ("y0", ctypes.c_int),
                 ("x1", ctypes.c_int),
                 ("y1", ctypes.c_int),
                 ("numcomps", ctypes.c_int),
                 ("color_space", ctypes.c_int),
-                ("comps", ctypes.POINTER(image_comp_t)),
+                ("comps", ctypes.POINTER(ImageCompType)),
                 ("icc_profile_buf", ctypes.c_char_p),
                 ("icc_profile_len", ctypes.c_int)]
 
-def _cio_open(cinfo, src):
-    """Wrapper for openjpeg library function opj_cio_open."""
-    argtypes = [ctypes.POINTER(common_struct_t), ctypes.c_char_p, ctypes.c_int]
-    _OPENJPEG.opj_cio_open.argtypes = argtypes
-    _OPENJPEG.opj_cio_open.restype = ctypes.POINTER(cio_t)
 
-    cio = _OPENJPEG.opj_cio_open(ctypes.cast(cinfo, ctypes.POINTER(common_struct_t)),
-                                 src, len(src))
+def cio_open(cinfo, src):
+    """Wrapper for openjpeg library function opj_cio_open."""
+    argtypes = [ctypes.POINTER(CommonStructType), ctypes.c_char_p,
+                ctypes.c_int]
+    OPENJPEG.opj_cio_open.argtypes = argtypes
+    OPENJPEG.opj_cio_open.restype = ctypes.POINTER(CioType)
+
+    cio = OPENJPEG.opj_cio_open(ctypes.cast(cinfo,
+                                            ctypes.POINTER(CommonStructType)),
+                                src, len(src))
     return cio
 
-def _cio_close(cio):
+
+def cio_close(cio):
     """Wraps openjpeg library function cio_close.
     """
-    _OPENJPEG.opj_cio_close.argtypes = [ctypes.POINTER(cio_t)]
-    _OPENJPEG.opj_cio_close(cio)
+    OPENJPEG.opj_cio_close.argtypes = [ctypes.POINTER(CioType)]
+    OPENJPEG.opj_cio_close(cio)
 
-def _create_decompress(fmt):
+
+def create_decompress(fmt):
     """Wraps openjpeg library function opj_create_decompress.
     """
-    _OPENJPEG.opj_create_decompress.argtypes = [ctypes.c_int]
-    _OPENJPEG.opj_create_decompress.restype = ctypes.POINTER(dinfo_t)
-    dinfo = _OPENJPEG.opj_create_decompress(fmt)
+    OPENJPEG.opj_create_decompress.argtypes = [ctypes.c_int]
+    restype = ctypes.POINTER(DecompressionInfoType)
+    OPENJPEG.opj_create_decompress.restype = restype
+    dinfo = OPENJPEG.opj_create_decompress(fmt)
     return dinfo
 
-def _decode(dinfo, cio):
+
+def decode(dinfo, cio):
     """Wrapper for opj_decode.
     """
-    argtypes = [ctypes.POINTER(dinfo_t), ctypes.POINTER(cio_t)]
-    _OPENJPEG.opj_decode.argtypes = argtypes
-    _OPENJPEG.opj_decode.restype = ctypes.POINTER(image_t)
-    image = _OPENJPEG.opj_decode(dinfo, cio)
+    argtypes = [ctypes.POINTER(DecompressionInfoType), ctypes.POINTER(CioType)]
+    OPENJPEG.opj_decode.argtypes = argtypes
+    OPENJPEG.opj_decode.restype = ctypes.POINTER(ImageType)
+    image = OPENJPEG.opj_decode(dinfo, cio)
     return image
 
-def _destroy_decompress(dinfo):
+
+def destroy_decompress(dinfo):
     """Wraps openjpeg library function opj_destroy_decompress."""
-    _OPENJPEG.opj_destroy_decompress.argtypes = [ctypes.POINTER(dinfo_t)]
-    _OPENJPEG.opj_destroy_decompress(dinfo)
+    argtypes = [ctypes.POINTER(DecompressionInfoType)]
+    OPENJPEG.opj_destroy_decompress.argtypes = argtypes
+    OPENJPEG.opj_destroy_decompress(dinfo)
 
-def _image_destroy(image):
+
+def image_destroy(image):
     """Wraps openjpeg library function opj_image_destroy."""
-    _OPENJPEG.opj_image_destroy.argtypes = [ctypes.POINTER(image_t)]
-    _OPENJPEG.opj_image_destroy(image)
+    OPENJPEG.opj_image_destroy.argtypes = [ctypes.POINTER(ImageType)]
+    OPENJPEG.opj_image_destroy(image)
 
-def _set_default_decoder_parameters(dparams_p):
+
+def set_default_decoder_parameters(dparams_p):
     """Wrapper for opj_set_default_decoder_parameters.
     """
-    argtypes = [ctypes.POINTER(dparameters_t)]
-    _OPENJPEG.opj_set_default_decoder_parameters.argtypes = argtypes
-    _OPENJPEG.opj_set_default_decoder_parameters(dparams_p)
+    argtypes = [ctypes.POINTER(DecompressionParametersType)]
+    OPENJPEG.opj_set_default_decoder_parameters.argtypes = argtypes
+    OPENJPEG.opj_set_default_decoder_parameters(dparams_p)
 
 
-def _set_event_mgr(dinfo, event_mgr, context=None):
+def set_event_mgr(dinfo, event_mgr, context=None):
     """Wrapper for openjpeg library function opj_set_event_mgr.
     """
-    argtypes = [ctypes.POINTER(common_struct_t),
-                ctypes.POINTER(event_mgr_t),
+    argtypes = [ctypes.POINTER(CommonStructType),
+                ctypes.POINTER(EventMgrType),
                 ctypes.c_void_p]
-    _OPENJPEG.opj_set_event_mgr(ctypes.cast(dinfo,
-                                            ctypes.POINTER(common_struct_t)),
-                                event_mgr, context)
+    OPENJPEG.opj_set_event_mgr.argtypes = argtypes
+    OPENJPEG.opj_set_event_mgr(ctypes.cast(dinfo,
+                                           ctypes.POINTER(CommonStructType)),
+                               event_mgr, context)
 
-def _setup_decoder(dinfo, dparams):
+
+def setup_decoder(dinfo, dparams):
     """Wrapper for openjpeg library function opj_setup_decoder."""
-    argtypes = [ctypes.POINTER(dinfo_t), ctypes.POINTER(dparameters_t)]
-    _OPENJPEG.opj_setup_decoder.argtypes = argtypes
-    _OPENJPEG.opj_setup_decoder(dinfo, dparams)
+    argtypes = [ctypes.POINTER(DecompressionInfoType),
+                ctypes.POINTER(DecompressionParametersType)]
+    OPENJPEG.opj_setup_decoder.argtypes = argtypes
+    OPENJPEG.opj_setup_decoder(dinfo, dparams)
 
-def _version():
+
+def version():
     """Wrapper for opj_version library routine."""
-    _OPENJPEG.opj_version.restype = ctypes.c_char_p
-    v = _OPENJPEG.opj_version()
-    return v.decode('utf-8')
+    OPENJPEG.opj_version.restype = ctypes.c_char_p
+    library_version = OPENJPEG.opj_version()
+    return library_version.decode('utf-8')

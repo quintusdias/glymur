@@ -33,12 +33,12 @@ except:
 
 # Doc tests should be run as well.
 def load_tests(loader, tests, ignore):
-    if glymur.lib.openjp2._OPENJP2 is not None:
+    if glymur.lib.openjp2.OPENJP2 is not None:
         tests.addTests(doctest.DocTestSuite('glymur.jp2k'))
     return tests
 
 
-@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
 class TestJp2k(unittest.TestCase):
 
@@ -88,11 +88,11 @@ class TestJp2k(unittest.TestCase):
         with self.assertWarns(UserWarning) as cw:
             jp2k = Jp2k(self._bad_xml_file)
 
-    def test_reduce_max(self):
-        # Verify that reduce=-1 gets us the lowest resolution image
+    def test_rlevel_max(self):
+        # Verify that rlevel=-1 gets us the lowest resolution image
         j = Jp2k(self.j2kfile)
-        thumbnail1 = j.read(reduce=-1)
-        thumbnail2 = j.read(reduce=5)
+        thumbnail1 = j.read(rlevel=-1)
+        thumbnail2 = j.read(rlevel=5)
         np.testing.assert_array_equal(thumbnail1, thumbnail2)
         self.assertEqual(thumbnail1.shape, (25, 15, 3))
 
@@ -102,7 +102,7 @@ class TestJp2k(unittest.TestCase):
             warnings.simplefilter("ignore")
             jp2k = Jp2k(self._bad_xml_file)
 
-        self.assertEqual(jp2k.box[3].id, 'xml ')
+        self.assertEqual(jp2k.box[3].box_id, 'xml ')
         self.assertEqual(jp2k.box[3].offset, 77)
         self.assertEqual(jp2k.box[3].length, 28)
         self.assertIsNone(jp2k.box[3].xml)
@@ -120,11 +120,11 @@ class TestJp2k(unittest.TestCase):
             # End corner must be >= start corner
             d = j.read(area=(10, 10, 8, 8))
 
-    def test_reduce_too_high(self):
+    def test_rlevel_too_high(self):
         # Verify that we error out appropriately if not given a JPEG 2000 file.
         j = Jp2k(self.jp2file)
         with self.assertRaises(IOError):
-            d = j.read(reduce=6)
+            d = j.read(rlevel=6)
 
     def test_not_JPEG2000(self):
         # Verify that we error out appropriately if not given a JPEG 2000 file.
@@ -153,7 +153,7 @@ class TestJp2k(unittest.TestCase):
             np.testing.assert_array_equal(actdata, expdata)
 
             c = ofile.get_codestream()
-            self.assertEqual(c.segment[2].SPcod[3], 0)  # no mct
+            self.assertEqual(c.segment[2].spcod[3], 0)  # no mct
 
     def test_write_grayscale_with_mct(self):
         # MCT usage makes no sense for grayscale images.
@@ -167,7 +167,7 @@ class TestJp2k(unittest.TestCase):
     def test_write_cprl(self):
         # Issue 17
         j = Jp2k(self.jp2file)
-        expdata = j.read(reduce=1)
+        expdata = j.read(rlevel=1)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             ofile = Jp2k(tfile.name, 'wb')
             ofile.write(expdata, prog='CPRL')
@@ -175,7 +175,7 @@ class TestJp2k(unittest.TestCase):
             np.testing.assert_array_equal(actdata, expdata)
 
             c = ofile.get_codestream()
-            self.assertEqual(c.segment[2].SPcod[0], glymur.core.CPRL)
+            self.assertEqual(c.segment[2].spcod[0], glymur.core.CPRL)
 
     def test_jp2_boxes(self):
         # Verify the boxes of a JP2 file.
@@ -184,37 +184,37 @@ class TestJp2k(unittest.TestCase):
         # top-level boxes
         self.assertEqual(len(jp2k.box), 6)
 
-        self.assertEqual(jp2k.box[0].id, 'jP  ')
+        self.assertEqual(jp2k.box[0].box_id, 'jP  ')
         self.assertEqual(jp2k.box[0].offset, 0)
         self.assertEqual(jp2k.box[0].length, 12)
         self.assertEqual(jp2k.box[0].longname, 'JPEG 2000 Signature')
 
-        self.assertEqual(jp2k.box[1].id, 'ftyp')
+        self.assertEqual(jp2k.box[1].box_id, 'ftyp')
         self.assertEqual(jp2k.box[1].offset, 12)
         self.assertEqual(jp2k.box[1].length, 20)
         self.assertEqual(jp2k.box[1].longname, 'File Type')
 
-        self.assertEqual(jp2k.box[2].id, 'jp2h')
+        self.assertEqual(jp2k.box[2].box_id, 'jp2h')
         self.assertEqual(jp2k.box[2].offset, 32)
         self.assertEqual(jp2k.box[2].length, 45)
         self.assertEqual(jp2k.box[2].longname, 'JP2 Header')
 
-        self.assertEqual(jp2k.box[3].id, 'uuid')
+        self.assertEqual(jp2k.box[3].box_id, 'uuid')
         self.assertEqual(jp2k.box[3].offset, 77)
         self.assertEqual(jp2k.box[3].length, 638)
 
-        self.assertEqual(jp2k.box[4].id, 'uuid')
+        self.assertEqual(jp2k.box[4].box_id, 'uuid')
         self.assertEqual(jp2k.box[4].offset, 715)
         self.assertEqual(jp2k.box[4].length, 2412)
 
-        self.assertEqual(jp2k.box[5].id, 'jp2c')
+        self.assertEqual(jp2k.box[5].box_id, 'jp2c')
         self.assertEqual(jp2k.box[5].offset, 3127)
         self.assertEqual(jp2k.box[5].length, 1132296)
 
         # jp2h super box
         self.assertEqual(len(jp2k.box[2].box), 2)
 
-        self.assertEqual(jp2k.box[2].box[0].id, 'ihdr')
+        self.assertEqual(jp2k.box[2].box[0].box_id, 'ihdr')
         self.assertEqual(jp2k.box[2].box[0].offset, 40)
         self.assertEqual(jp2k.box[2].box[0].length, 22)
         self.assertEqual(jp2k.box[2].box[0].longname, 'Image Header')
@@ -227,7 +227,7 @@ class TestJp2k(unittest.TestCase):
         self.assertEqual(jp2k.box[2].box[0].colorspace_unknown, False)
         self.assertEqual(jp2k.box[2].box[0].ip_provided, False)
 
-        self.assertEqual(jp2k.box[2].box[1].id, 'colr')
+        self.assertEqual(jp2k.box[2].box[1].box_id, 'colr')
         self.assertEqual(jp2k.box[2].box[1].offset, 62)
         self.assertEqual(jp2k.box[2].box[1].length, 15)
         self.assertEqual(jp2k.box[2].box[1].longname, 'Colour Specification')
@@ -272,7 +272,7 @@ class TestJp2k(unittest.TestCase):
 
             jp2k = Jp2k(tfile.name)
 
-            self.assertEqual(jp2k.box[5].id, 'jp2c')
+            self.assertEqual(jp2k.box[5].box_id, 'jp2c')
             self.assertEqual(jp2k.box[5].offset, 3127)
             self.assertEqual(jp2k.box[5].length, 1133427 + 8)
 
@@ -303,8 +303,8 @@ class TestJp2k(unittest.TestCase):
 
             # The top level boxes in each file should match.
             for j in range(len(baseline_jp2.box)):
-                self.assertEqual(new_jp2.box[j].id,
-                                 baseline_jp2.box[j].id)
+                self.assertEqual(new_jp2.box[j].box_id,
+                                 baseline_jp2.box[j].box_id)
                 self.assertEqual(new_jp2.box[j].offset,
                                  baseline_jp2.box[j].offset)
                 self.assertEqual(new_jp2.box[j].length,
@@ -344,7 +344,7 @@ class TestJp2k(unittest.TestCase):
             c = j.get_codestream()
 
             # Code block size is reported as XY in the codestream.
-            self.assertEqual(tuple(c.segment[2].SPcod[5:7]), (3, 2))
+            self.assertEqual(tuple(c.segment[2].spcod[5:7]), (3, 2))
 
     def test_negative_too_many_dimensions(self):
         # OpenJP2 only allows 2D or 3D images.
@@ -479,23 +479,23 @@ class TestJp2k(unittest.TestCase):
 
             jp2k = Jp2k(tfile.name)
 
-            self.assertEqual(jp2k.box[3].id, 'uinf')
+            self.assertEqual(jp2k.box[3].box_id, 'uinf')
             self.assertEqual(jp2k.box[3].offset, 77)
             self.assertEqual(jp2k.box[3].length, 50)
 
-            self.assertEqual(jp2k.box[3].box[0].id, 'ulst')
+            self.assertEqual(jp2k.box[3].box[0].box_id, 'ulst')
             self.assertEqual(jp2k.box[3].box[0].offset, 85)
             self.assertEqual(jp2k.box[3].box[0].length, 26)
             ulst = []
             ulst.append(uuid.UUID('00000000-0000-0000-0000-000000000000'))
             self.assertEqual(jp2k.box[3].box[0].ulst, ulst)
 
-            self.assertEqual(jp2k.box[3].box[1].id, 'url ')
+            self.assertEqual(jp2k.box[3].box[1].box_id, 'url ')
             self.assertEqual(jp2k.box[3].box[1].offset, 111)
             self.assertEqual(jp2k.box[3].box[1].length, 16)
             self.assertEqual(jp2k.box[3].box[1].version, 0)
             self.assertEqual(jp2k.box[3].box[1].flag, (0, 0, 0))
-            self.assertEqual(jp2k.box[3].box[1].URL, 'abcd')
+            self.assertEqual(jp2k.box[3].box[1].url, 'abcd')
 
     def test_xml_box_with_trailing_nulls(self):
         # ElementTree does not like trailing null chars after valid XML
@@ -522,14 +522,14 @@ class TestJp2k(unittest.TestCase):
 
             jp2k = Jp2k(tfile.name)
 
-            self.assertEqual(jp2k.box[3].id, 'xml ')
+            self.assertEqual(jp2k.box[3].box_id, 'xml ')
             self.assertEqual(jp2k.box[3].offset, 77)
             self.assertEqual(jp2k.box[3].length, 36)
 
     def test_asoc_label_box(self):
         # Construct a fake file with an asoc and a label box, as
         # OpenJPEG doesn't have such a file.
-        data = Jp2k(self.jp2file).read(reduce=1)
+        data = Jp2k(self.jp2file).read(rlevel=1)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             j = Jp2k(tfile.name, 'wb')
             j.write(data)
@@ -567,10 +567,10 @@ class TestJp2k(unittest.TestCase):
                 tfile2.flush()
 
                 jasoc = Jp2k(tfile2.name)
-                self.assertEqual(jasoc.box[3].id, 'asoc')
-                self.assertEqual(jasoc.box[3].box[0].id, 'lbl ')
+                self.assertEqual(jasoc.box[3].box_id, 'asoc')
+                self.assertEqual(jasoc.box[3].box[0].box_id, 'lbl ')
                 self.assertEqual(jasoc.box[3].box[0].label, 'label')
-                self.assertEqual(jasoc.box[3].box[1].id, 'xml ')
+                self.assertEqual(jasoc.box[3].box[1].box_id, 'xml ')
 
     def test_openjpeg_library_message(self):
         # Verify the error message produced by the openjpeg library.
@@ -599,11 +599,11 @@ class TestJp2k(unittest.TestCase):
                                         Invalid\svalues\sfor\scomp\s=\s0\s+
                                         :\sdx=1\sdy=0''', re.VERBOSE)
                 if sys.hexversion < 0x03020000:
-                    with self.assertRaisesRegexp(IOError, regexp) as ce:
-                        d = j.read(reduce=3)
+                    with self.assertRaisesRegexp((IOError, OSError), regexp) as ce:
+                        d = j.read(rlevel=1)
                 else:
-                    with self.assertRaisesRegex(IOError, regexp) as ce:
-                        d = j.read(reduce=3)
+                    with self.assertRaisesRegex((IOError, OSError), regexp) as ce:
+                        d = j.read(rlevel=1)
 
     def test_xmp_attribute(self):
         # Verify that we can read the XMP packet in our shipping example file.
@@ -648,20 +648,20 @@ class TestJp2k(unittest.TestCase):
             self.assertFalse('Make' in exif['Image'].keys())
 
 
-@unittest.skipIf(glymur.lib.openjpeg._OPENJPEG is None,
+@unittest.skipIf(glymur.lib.openjpeg.OPENJPEG is None,
                  "Missing openjpeg library.")
 class TestJp2k15(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
         # Monkey patch the package so as to use OPENJPEG instead of OPENJP2
-        cls.openjp2 = glymur.lib.openjp2._OPENJP2
-        glymur.lib.openjp2._OPENJP2 = None
+        cls.openjp2 = glymur.lib.openjp2.OPENJP2
+        glymur.lib.openjp2.OPENJP2 = None
 
     @classmethod
     def tearDownClass(cls):
         # Restore OPENJP2
-        glymur.lib.openjp2._OPENJP2 = cls.openjp2
+        glymur.lib.openjp2.OPENJP2 = cls.openjp2
 
     def setUp(self):
         self.jp2file = glymur.data.nemo()
@@ -699,7 +699,7 @@ class TestJp2k15(unittest.TestCase):
         # and OPJ_DATA_ROOT is not set.  We need at least one
         # working JP2 test.
         j2k = Jp2k(self.jp2file)
-        d = j2k.read(reduce=1)
+        d = j2k.read(rlevel=1)
 
     def test_basic_j2k(self):
         # This test is only useful when openjp2 is not available
