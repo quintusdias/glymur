@@ -10,8 +10,10 @@ import warnings
 import sys
 if sys.hexversion <= 0x03000000:
     from ConfigParser import SafeConfigParser as ConfigParser
+    from ConfigParser import NoOptionError
 else:
     from configparser import ConfigParser
+    from configparser import NoOptionError
 
 
 def glymurrc_fname():
@@ -28,7 +30,6 @@ def glymurrc_fname():
     if os.path.exists(fname):
         return fname
 
-    # Either GLYMURCONFIGDIR/glymurrc or $HOME/.glymur/glymurrc
     confdir = get_configdir()
     if confdir is not None:
         fname = os.path.join(confdir, 'glymurrc')
@@ -39,10 +40,12 @@ def glymurrc_fname():
     return None
 
 
-def get_openjpeg_config():
-    """ Try to find openjpeg library on the system path first.
+def load_openjpeg(libopenjpeg_path):
+    """Load the openjpeg library, falling back on defaults if necessary.
     """
-    libopenjpeg_path = find_library('openjpeg')
+    if libopenjpeg_path is None:
+        # Let ctypes try to find it.
+        libopenjpeg_path = find_library('openjpeg')
 
     # If we could not find it, then look in some likely locations.
     if libopenjpeg_path is None:
@@ -74,24 +77,36 @@ def get_openjpeg_config():
     return openjpeg_lib
 
 
-def get_openjp2_config():
+def read_config_file():
     """
     We expect to not find openjp2 on the system path since the only version
     that we currently care about is still in the svn trunk at openjpeg.org.
     We must use a configuration file that the user must write.
     """
+    lib = {}
     filename = glymurrc_fname()
     if filename is not None:
         # Read the configuration file for the library location.
         parser = ConfigParser()
         parser.read(filename)
-        libopenjp2_path = parser.get('library', 'openjp2')
-    else:
+        try:
+            lib['openjp2'] = parser.get('library', 'openjp2')
+        except NoOptionError:
+            lib['openjp2'] = None
+        try:
+            lib['openjpeg'] = parser.get('library', 'openjpeg')
+        except NoOptionError:
+            lib['openjpeg'] = None
+
+    return lib
+
+
+def load_openjp2(libopenjp2_path):
+    """Load the openjp2 library, falling back on defaults if necessary.
+    """
+    if libopenjp2_path is None:
         # No help from the config file, try to find it ourselves.
         libopenjp2_path = find_library('openjp2')
-
-    if libopenjp2_path is None:
-        return None
 
     try:
         if os.name == "nt":
@@ -103,15 +118,16 @@ def get_openjp2_config():
         msg = msg.format(libopenjp2_path)
         warnings.warn(msg, UserWarning)
         openjp2_lib = None
-    return openjp2_lib
 
+    return openjp2_lib
 
 def glymur_config():
     """Try to ascertain locations of openjp2, openjpeg libraries.
     """
-    openjp2_lib = get_openjp2_config()
-    openjpeg_lib = get_openjpeg_config()
-    return openjp2_lib, openjpeg_lib
+    libs = read_config_file()
+    libopenjp2_handle = load_openjp2(libs['openjp2'])
+    libopenjpeg_handle = load_openjpeg(libs['openjpeg'])
+    return libopenjp2_handle, libopenjpeg_handle
 
 
 def get_configdir():
