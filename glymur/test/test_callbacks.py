@@ -99,7 +99,7 @@ class TestCallbacks15(unittest.TestCase):
 
         regex = re.compile(r"""\[INFO\]\stile\s1\sof\s1\s+
                                \[INFO\]\s-\stiers-1\stook\s[0-9]+\.[0-9]+\ss\s+
-                               \[INFO\]\s-\sdwt\stook\s[0-9]+\.[0-9]+\ss\s+
+                               \[INFO\]\s-\sdwt\stook\s(-){0,1}[0-9]+\.[0-9]+\ss\s+
                                \[INFO\]\s-\stile\sdecoded\sin\s[0-9]+\.[0-9]+\ss""",
                            re.VERBOSE)
         if sys.hexversion <= 0x03020000:
