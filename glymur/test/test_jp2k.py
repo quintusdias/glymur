@@ -39,9 +39,10 @@ def load_tests(loader, tests, ignore):
     return tests
 
 
+@unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
 @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
-class TestJp2k(unittest.TestCase):
+class TestJp2kBadXmlFile(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
@@ -89,14 +90,6 @@ class TestJp2k(unittest.TestCase):
         with self.assertWarns(UserWarning) as cw:
             jp2k = Jp2k(self._bad_xml_file)
 
-    def test_rlevel_max(self):
-        # Verify that rlevel=-1 gets us the lowest resolution image
-        j = Jp2k(self.j2kfile)
-        thumbnail1 = j.read(rlevel=-1)
-        thumbnail2 = j.read(rlevel=5)
-        np.testing.assert_array_equal(thumbnail1, thumbnail2)
-        self.assertEqual(thumbnail1.shape, (25, 15, 3))
-
     def test_invalid_xml_box(self):
         # Should be able to recover from xml box with bad xml.
         with warnings.catch_warnings():
@@ -107,6 +100,27 @@ class TestJp2k(unittest.TestCase):
         self.assertEqual(jp2k.box[3].offset, 77)
         self.assertEqual(jp2k.box[3].length, 28)
         self.assertIsNone(jp2k.box[3].xml)
+
+
+
+@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
+                 "Missing openjp2 library.")
+class TestJp2k(unittest.TestCase):
+
+    def setUp(self):
+        self.jp2file = glymur.data.nemo()
+        self.j2kfile = glymur.data.goodstuff()
+
+    def tearDown(self):
+        pass
+
+    def test_rlevel_max(self):
+        # Verify that rlevel=-1 gets us the lowest resolution image
+        j = Jp2k(self.j2kfile)
+        thumbnail1 = j.read(rlevel=-1)
+        thumbnail2 = j.read(rlevel=5)
+        np.testing.assert_array_equal(thumbnail1, thumbnail2)
+        self.assertEqual(thumbnail1.shape, (25, 15, 3))
 
     def test_bad_area_parameter(self):
         # Verify that we error out appropriately if given a bad area parameter.
@@ -144,6 +158,7 @@ class TestJp2k(unittest.TestCase):
             filename = 'this file does not actually exist on the file system.'
             jp2k = Jp2k(filename)
 
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_write_srgb_without_mct(self):
         j2k = Jp2k(self.j2kfile)
         expdata = j2k.read()
@@ -156,6 +171,7 @@ class TestJp2k(unittest.TestCase):
             c = ofile.get_codestream()
             self.assertEqual(c.segment[2].spcod[3], 0)  # no mct
 
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_write_grayscale_with_mct(self):
         # MCT usage makes no sense for grayscale images.
         j2k = Jp2k(self.j2kfile)
@@ -165,6 +181,7 @@ class TestJp2k(unittest.TestCase):
             with self.assertRaises(IOError):
                 ofile.write(expdata[:, :, 0], mct=True)
 
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_write_cprl(self):
         # Issue 17
         j = Jp2k(self.jp2file)
@@ -245,6 +262,7 @@ class TestJp2k(unittest.TestCase):
         jp2k = Jp2k(filename)
         self.assertEqual(len(jp2k.box), 0)
 
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_64bit_XL_field(self):
         # Verify that boxes with the XL field are properly read.
         # Don't have such a file on hand, so we create one.  Copy our example
@@ -277,6 +295,7 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(jp2k.box[5].offset, 3127)
             self.assertEqual(jp2k.box[5].length, 1133427 + 8)
 
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_L_is_zero(self):
         # Verify that boxes with the L field as zero are correctly read.
         # This should only happen in the last box of a JPEG 2000 file.
@@ -332,6 +351,7 @@ class TestJp2k(unittest.TestCase):
         j = Jp2k(filename)
         self.assertEqual(j.box, [])
 
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_code_block_height_different_than_width(self):
         # Verify that we can set a code block size where height does not equal
         # width.
@@ -347,6 +367,7 @@ class TestJp2k(unittest.TestCase):
             # Code block size is reported as XY in the codestream.
             self.assertEqual(tuple(c.segment[2].spcod[5:7]), (3, 2))
 
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_negative_too_many_dimensions(self):
         # OpenJP2 only allows 2D or 3D images.
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
@@ -355,6 +376,7 @@ class TestJp2k(unittest.TestCase):
                 data = np.zeros((128, 128, 2, 2), dtype=np.uint8)
                 j.write(data)
 
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_unrecognized_jp2_colorspace(self):
         # We only allow RGB and GRAYSCALE.
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
@@ -363,6 +385,7 @@ class TestJp2k(unittest.TestCase):
                 data = np.zeros((128, 128, 3), dtype=np.uint8)
                 j.write(data, colorspace='cmyk')
 
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_2D_rgb(self):
         # RGB must have at least 3 components.
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
@@ -371,6 +394,7 @@ class TestJp2k(unittest.TestCase):
                 data = np.zeros((128, 128, 2), dtype=np.uint8)
                 j.write(data, colorspace='rgb')
 
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_colorspace_with_j2k(self):
         # Specifying a colorspace with J2K does not make sense.
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
@@ -379,6 +403,7 @@ class TestJp2k(unittest.TestCase):
                 data = np.zeros((128, 128, 3), dtype=np.uint8)
                 j.write(data, colorspace='rgb')
 
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_specify_rgb(self):
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             j = Jp2k(tfile.name, 'wb')
@@ -386,6 +411,7 @@ class TestJp2k(unittest.TestCase):
             j.write(data, colorspace='rgb')
             self.assertEqual(j.box[2].box[1].colorspace, glymur.core.SRGB)
 
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_specify_gray(self):
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             j = Jp2k(tfile.name, 'wb')
@@ -394,6 +420,7 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(j.box[2].box[1].colorspace,
                              glymur.core.GREYSCALE)
 
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_specify_grey(self):
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             j = Jp2k(tfile.name, 'wb')
@@ -402,6 +429,7 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(j.box[2].box[1].colorspace,
                              glymur.core.GREYSCALE)
 
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_grey_with_extra_component(self):
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             j = Jp2k(tfile.name, 'wb')
@@ -413,6 +441,7 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(j.box[2].box[1].colorspace,
                              glymur.core.GREYSCALE)
 
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_grey_with_two_extra_components(self):
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             j = Jp2k(tfile.name, 'wb')
@@ -424,6 +453,7 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(j.box[2].box[1].colorspace,
                              glymur.core.GREYSCALE)
 
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_rgb_with_extra_component(self):
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             j = Jp2k(tfile.name, 'wb')
@@ -442,6 +472,7 @@ class TestJp2k(unittest.TestCase):
                 data = np.zeros((128, 128, 3), dtype=np.uint8)
                 j.write(data, colorspace='ycc')
 
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_uinf_ulst_url_boxes(self):
         # Verify that we can read UINF, ULST, and URL boxes.  I don't have
         # easy access to such a file, and there's no such file in the
@@ -498,6 +529,7 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(jp2k.box[3].box[1].flag, (0, 0, 0))
             self.assertEqual(jp2k.box[3].box[1].url, 'abcd')
 
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_xml_box_with_trailing_nulls(self):
         # ElementTree does not like trailing null chars after valid XML
         # text.
@@ -527,6 +559,7 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(jp2k.box[3].offset, 77)
             self.assertEqual(jp2k.box[3].length, 36)
 
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_asoc_label_box(self):
         # Construct a fake file with an asoc and a label box, as
         # OpenJPEG doesn't have such a file.
@@ -573,6 +606,7 @@ class TestJp2k(unittest.TestCase):
                 self.assertEqual(jasoc.box[3].box[0].label, 'label')
                 self.assertEqual(jasoc.box[3].box[1].box_id, 'xml ')
 
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_openjpeg_library_message(self):
         # Verify the error message produced by the openjpeg library.
         # This will confirm that the error callback mechanism is working.
@@ -617,6 +651,7 @@ class TestJp2k(unittest.TestCase):
         attr_value = elt.attrib['{0}CreatorTool'.format(ns1)]
         self.assertEqual(attr_value, 'glymur')
 
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_unrecognized_exif_tag(self):
         # An unrecognized exif tag should be handled gracefully.
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
