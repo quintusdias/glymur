@@ -1,3 +1,4 @@
+#pylint:  disable-all
 import os
 import pkg_resources
 import struct
@@ -21,6 +22,7 @@ except:
     raise
 
 
+@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
 @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
 class TestPrintingNeedsLib(unittest.TestCase):
@@ -782,8 +784,7 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(os.name == "nt", 
-                     "Problems using NamedTemporaryFile on windows.")
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_less_common_boxes(self):
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             with open(self.jp2file, 'rb') as ifile:

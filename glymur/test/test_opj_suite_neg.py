@@ -2,6 +2,7 @@
 The tests here do not correspond directly to the OpenJPEG test suite, but
 seem like logical negative tests to add.
 """
+#pylint:  disable-all
 import os
 import sys
 import tempfile
@@ -71,6 +72,7 @@ class TestSuiteNegative(unittest.TestCase):
     def tearDown(self):
         pass
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_negative_psnr_with_cratios(self):
         # Using psnr with cratios options is not allowed.
         # Not an OpenJPEG test, but close.
@@ -126,6 +128,7 @@ class TestSuiteNegative(unittest.TestCase):
         # the end of SOT.
         self.assertEqual(c.segment[-1].marker_id, 'SOD')
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_code_block_dimensions(self):
         # opj_compress doesn't allow the dimensions of a codeblock
         # to be too small or too big, so neither will we.
@@ -154,6 +157,7 @@ class TestSuiteNegative(unittest.TestCase):
         with self.assertWarns(UserWarning) as cw:
             j = Jp2k(infile)
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_precinct_size_not_multiple_of_two(self):
         # Seems like precinct sizes should be powers of two.
         ifile = Jp2k(self.j2kfile)
@@ -163,6 +167,7 @@ class TestSuiteNegative(unittest.TestCase):
             with self.assertRaises(IOError) as ce:
                 ofile.write(data, psizes=[(13, 13)])
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_codeblock_size_not_multiple_of_two(self):
         # Seems like code block sizes should be powers of two.
         ifile = Jp2k(self.j2kfile)
@@ -172,6 +177,7 @@ class TestSuiteNegative(unittest.TestCase):
             with self.assertRaises(IOError) as ce:
                 ofile.write(data, cbsize=(13, 12))
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_codeblock_size_with_precinct_size(self):
         # Seems like code block sizes should never exceed half that of
         # precinct size.

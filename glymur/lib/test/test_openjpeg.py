@@ -1,3 +1,4 @@
+#pylint:  disable-all
 import ctypes
 import unittest
 

@@ -17,8 +17,8 @@ def nemo():
     file : str
         Platform-independent path to nemo.jp2.
     """
-    file = pkg_resources.resource_filename(__name__, "nemo.jp2")
-    return file
+    filename = pkg_resources.resource_filename(__name__, "nemo.jp2")
+    return filename
 
 
 def goodstuff():
@@ -29,5 +29,5 @@ def goodstuff():
     file : str
         Platform-independent path to goodstuff.j2k.
     """
-    file = pkg_resources.resource_filename(__name__, "goodstuff.j2k")
-    return file
+    filename = pkg_resources.resource_filename(__name__, "goodstuff.j2k")
+    return filename

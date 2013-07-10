@@ -1,7 +1,11 @@
 | OS         | Python 2.7 | Python 3.3 | Notes                                |
 +------------+------------+------------+--------------------------------------+
-| Windows    |     X      |            | Python(xy) with OpenJPEG 1.5.1.      |
-|            |            |            | At least 25 tests should pass        |
+| Windows    |     X      |            | Python(xy) with OpenJPEG 1.5.1.  At  |
+|            |            |            | least 155 of 444 tests should pass.  |
++------------+------------+------------+--------------------------------------+
+| Windows    |     X      |            | Python(xy) with OpenJPEG 1.5.1 and   |
+|            |            |            | OpenJPEG svn.  At least 282 of 444   |
+|            |            |            | tests should pass.                   |
 +------------+------------+------------+--------------------------------------+
 | Mac        |     X      |            | MacPorts with both OpenJPEG 1.5.1    |
 |            |            |            | and OpenJPEG svn.  370 of 450 tests  |
