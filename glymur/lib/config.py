@@ -108,6 +108,9 @@ def load_openjp2(libopenjp2_path):
         # No help from the config file, try to find it ourselves.
         libopenjp2_path = find_library('openjp2')
 
+    if libopenjp2_path is None:
+	return None	
+
     try:
         if os.name == "nt":
             openjp2_lib = ctypes.windll.LoadLibrary(libopenjp2_path)
