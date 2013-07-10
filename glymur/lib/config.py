@@ -92,11 +92,11 @@ def read_config_file():
         try:
             lib['openjp2'] = parser.get('library', 'openjp2')
         except NoOptionError:
-            pass		
+            pass
         try:
             lib['openjpeg'] = parser.get('library', 'openjpeg')
         except NoOptionError:
-            pass		
+            pass
 
     return lib
 
@@ -109,7 +109,7 @@ def load_openjp2(libopenjp2_path):
         libopenjp2_path = find_library('openjp2')
 
     if libopenjp2_path is None:
-	return None	
+        return None
 
     try:
         if os.name == "nt":
@@ -123,6 +123,7 @@ def load_openjp2(libopenjp2_path):
         openjp2_lib = None
 
     return openjp2_lib
+
 
 def glymur_config():
     """Try to ascertain locations of openjp2, openjpeg libraries.

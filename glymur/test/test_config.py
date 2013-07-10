@@ -1,4 +1,4 @@
-"""These tests are for edge cases where OPENJPEG does not exist, but 
+"""These tests are for edge cases where OPENJPEG does not exist, but
 OPENJP2 may be present in some form or other.
 """
 #pylint:  disable-all

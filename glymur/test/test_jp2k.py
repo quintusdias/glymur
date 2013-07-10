@@ -102,7 +102,6 @@ class TestJp2kBadXmlFile(unittest.TestCase):
         self.assertIsNone(jp2k.box[3].xml)
 
 
-
 @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
 class TestJp2k(unittest.TestCase):
@@ -634,10 +633,10 @@ class TestJp2k(unittest.TestCase):
                                         Invalid\svalues\sfor\scomp\s=\s0\s+
                                         :\sdx=1\sdy=0''', re.VERBOSE)
                 if sys.hexversion < 0x03020000:
-                    with self.assertRaisesRegexp((IOError, OSError), regexp) as ce:
+                    with self.assertRaisesRegexp((IOError, OSError), regexp):
                         d = j.read(rlevel=1)
                 else:
-                    with self.assertRaisesRegex((IOError, OSError), regexp) as ce:
+                    with self.assertRaisesRegex((IOError, OSError), regexp):
                         d = j.read(rlevel=1)
 
     def test_xmp_attribute(self):

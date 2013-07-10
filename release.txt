@@ -22,8 +22,9 @@
 |            |            |            | gracefully.                          |
 +------------+------------+------------+--------------------------------------+
 | Fedora 18  |            |     X      | Ships with 1.5.1.  167 of 445 tests  |
-|            |            |            | should pass (no OPJ_DATA_ROOT).      |
+|            |            |            | should pass.                         |
 +------------+------------+------------+--------------------------------------+
 
 Pylint on entire package should be at least 0.95.
 pep8 should be pass cleanly.
+Coverage should exceed 95%.

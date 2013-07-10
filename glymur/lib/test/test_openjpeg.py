@@ -4,6 +4,7 @@ import unittest
 
 import glymur
 
+
 @unittest.skipIf(glymur.lib._openjpeg.OPENJPEG is None,
                  "Missing openjpeg library.")
 class TestOpenJPEG(unittest.TestCase):
@@ -36,4 +37,3 @@ class TestOpenJPEG(unittest.TestCase):
         self.assertEqual(dp.jpwl_max_tiles, 0)
         self.assertEqual(dp.cp_limit_decoding, 0)
         self.assertEqual(dp.flags, 0)
-

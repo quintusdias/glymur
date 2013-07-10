@@ -297,7 +297,7 @@ class TestXML(unittest.TestCase):
         with self.assertRaises((IOError, OSError)) as ce:
             xmlb = glymur.jp2box.XMLBox(filename=self.xmlfile, xml=xml_object)
 
-    @unittest.skipIf(os.name == "nt", 
+    @unittest.skipIf(os.name == "nt",
                      "Problems using NamedTemporaryFile on windows.")
     def test_basic_xml(self):
         # Should be able to write an XMLBox.
@@ -319,7 +319,7 @@ class TestXML(unittest.TestCase):
             self.assertEqual(ET.tostring(jp2.box[3].xml),
                              b'<data>0</data>')
 
-    @unittest.skipIf(os.name == "nt", 
+    @unittest.skipIf(os.name == "nt",
                      "Problems using NamedTemporaryFile on windows.")
     def test_xml_from_file(self):
         j2k = Jp2k(self.j2kfile)
@@ -365,7 +365,7 @@ class TestColourSpecificationBox(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @unittest.skipIf(os.name == "nt", 
+    @unittest.skipIf(os.name == "nt",
                      "Problems using NamedTemporaryFile on windows.")
     def test_color_specification_box_with_out_enumerated_colorspace(self):
         j2k = Jp2k(self.j2kfile)

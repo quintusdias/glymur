@@ -3,6 +3,7 @@ import sys
 
 import numpy as np
 
+
 def mse(amat, bmat):
     """Mean Square Error"""
     diff = amat.astype(np.double) - bmat.astype(np.double)
@@ -88,5 +89,3 @@ def read_pgx(pgx_file):
         data = np.fromfile(file=fptr, dtype=dtype).reshape(shape)
 
     return(data.byteswap(swapbytes))
-
-
