@@ -7,15 +7,15 @@ Glymur Configuration
 ''''''''''''''''''''''
 
 The default glymur installation process relies upon OpenJPEG version
-1.5.1 being properly installed on your system.  This will, however,
-only give you you basic read capabilities, so if you wish to take
-advantage of more of glymur's features, you should compile OpenJPEG as
-a shared library from the developmental source that you can retrieve
-via subversion.  As of this time of writing, svn revision 2345 works.
-You should also download the test data for the purpose of configuring
-and running OpenJPEG's test suite, check their instructions for all this.
-You should set the **OPJ_DATA_ROOT** environment variable for the purpose
-of running Glymur's test suite. ::
+1.5.1 being properly installed on your system.  This will, however, only
+give you you basic read capabilities, so if you wish to take advantage
+of more of glymur's features, you should compile OpenJPEG as a shared
+library (named *openjp2* instead of *openjpeg*) from the developmental
+source that you can retrieve via subversion.  As of this time of writing,
+svn revision 2345 works.  You should also download the test data for
+the purpose of configuring and running OpenJPEG's test suite, check
+their instructions for all this.  You should set the **OPJ_DATA_ROOT**
+environment variable for the purpose of running Glymur's test suite. ::
 
     $ svn co http://openjpeg.googlecode.com/svn/data 
     $ export OPJ_DATA_ROOT=`pwd`/data
@@ -75,10 +75,22 @@ development version via SVN *is* supported).
 Linux
 -----
 
+Fedora 19
+'''''''''
+Fedora 18 ships with Python 3.3 and all the necessary RPMs are available to 
+run the maximum number of tests.
+
+      * python3 
+      * python3-numpy
+      * python3-setuptools
+      * python3-matplotlib (for running tests)
+      * python3-matplotlib-tk (or whichever matplotlib backend you prefer)
+      * python3-pillow (for running tests)
+
 Fedora 18
 '''''''''
-Fedora 18 ships with Python 3.3, so all the necessary RPMs are available to 
-meet the minimal set of requirements.
+Fedora 18 ships with Python 3.3 and the following RPMs are available to 
+meet the minimal set of requirements for running glymur.
 
       * python3 
       * python3-numpy

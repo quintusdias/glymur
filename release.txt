@@ -15,14 +15,14 @@
 |            |            |            | and OpenJPEG svn.  390 of 450        |
 |            |            |            | tests should pass.                   |
 +------------+------------+------------+--------------------------------------+
-| Raspberry  |     X      |            | Ships with only 1.3.  Should         |
-|            |            |            | error out gracefully.                |
-+------------+------------+------------+--------------------------------------+
-| Fedora 17  |     X      |            | Ships with 1.4.  Should error out    |
-|            |            |            | gracefully.                          |
+| Fedora 19  |            |     X      | Ships with 1.5.1.  390 of 450 tests  |
+|            |            |            | should pass.                         |
 +------------+------------+------------+--------------------------------------+
 | Fedora 18  |            |     X      | Ships with 1.5.1.  167 of 445 tests  |
 |            |            |            | should pass.                         |
++------------+------------+------------+--------------------------------------+
+| Fedora 17  |     X      |            | Ships with 1.4.  Should error out    |
+|            |            |            | gracefully.                          |
 +------------+------------+------------+--------------------------------------+
 
 Pylint on entire package should be at least 0.95.
