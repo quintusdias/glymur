@@ -32,13 +32,16 @@ the openjp2 library.  You may create the configuration file as follows::
     > openjp2: /opt/openjp2-svn/lib/libopenjp2.so
     > EOF
 
-That assumes, of course, that you've installed OpenJPEG into
+This assumes, of course, that you've installed OpenJPEG into
 /opt/openjp2-svn on a linux system.  You may also substitute
 **$XDG_CONFIG_HOME** for **$HOME/.config**.
 
-Again, though, the configuration file is not required if you only wish to
-read JPEG 2000 files using OpenJPEG version 1.5.1.
+You may also include a line for the version 1.5.1 library if you have it installed
+in a non-standard place, i.e. ::
 
+    [library]
+    openjp2: /opt/openjp2-svn/lib/libopenjp2.so
+    openjpeg: /not/the/usual/location/lib/libopenjpeg.so
 
 '''''''''''''''''''''''''''''''''''''''''''
 Package Management Suggestions for Testing
@@ -98,28 +101,6 @@ repositories::
     $ pip-python3 install Pillow --user
     $ export PYTHONPATH=$HOME/.local/lib/python3.3/site-packages:$PYTHONPATH
 
-Raspbian
-''''''''
-Yeah, this was the first thing I tried after getting my new Raspberry
-Pi hooked up (couldn't help myself :-)  Raspbian ships with Python
-3.2 and 2.7, so these steps detail working with 2.7.
-
-Additional required OS packages include::
-
-    * python-pip
-    * python-pkg-resources
-    * python-mock
-
-You must install contextlib2 via pip, and then you can run at least
-a minimal number of tests.  To attempt to run more of the tests,
-install the following debs::
-
-    * python-dev
-    * python-matplotlib
-
-and then install Pillow via pip.  The tests take about 30 minutes to run, with
-one unexpected failure as of the time of writing.
-
 Fedora 17
 '''''''''
 Fedora 17 ships with Python 3.2 and 2.7, but OpenJPEG is only at version 1.4,
@@ -156,8 +137,9 @@ Windows
 -------
 The only configuration I've tested is Python(xy), which uses Python 2.7.  
 Python(xy) already comes with numpy, but you will have to install pip and then
-contextlib2 as well.  This configuration assumes you've installed OpenJPEG 
-1.5.1.
+contextlib2 and mock as well.  Both 1.5.1 and the svn development versions of
+openjpeg work.
+
 
 '''''''
 Testing
