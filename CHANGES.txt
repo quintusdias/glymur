@@ -1,4 +1,4 @@
-Jul 11, 2013 - v0.2.1  Fixed mistake with trove classifier.
+Jul 11, 2013 - v0.2.2  Fixed mistakes with trove classifier, pypi releases.
 
 Jul 11, 2013 - v0.2.0  Support for Python 2.7 on windows, OpenJPEG 1.5.1.
 
