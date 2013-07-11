@@ -1,16 +1,57 @@
------------------------------------------------------
-Detailed Instructions for Package Management, Testing
------------------------------------------------------
+----------------------------------
+Detailed Installation Instructions
+----------------------------------
 
-You only need to read this page if you want detailed 
+''''''''''''''''''''''
+Glymur Configuration
+''''''''''''''''''''''
+
+The default glymur installation process relies upon OpenJPEG version
+1.5.1 being properly installed on your system.  This will, however, only
+give you you basic read capabilities, so if you wish to take advantage
+of more of glymur's features, you should compile OpenJPEG as a shared
+library (named *openjp2* instead of *openjpeg*) from the developmental
+source that you can retrieve via subversion.  As of this time of writing,
+svn revision 2345 works.  You should also download the test data for
+the purpose of configuring and running OpenJPEG's test suite, check
+their instructions for all this.  You should set the **OPJ_DATA_ROOT**
+environment variable for the purpose of running Glymur's test suite. ::
+
+    $ svn co http://openjpeg.googlecode.com/svn/data 
+    $ export OPJ_DATA_ROOT=`pwd`/data
+
+Glymur uses ctypes (for the moment) to access the openjp2 library, and
+because ctypes access libraries in a platform-dependent manner, it is 
+recommended that you create a configuration file to help Glymur properly find
+the openjp2 library.  You may create the configuration file as follows::
+
+    $ mkdir -p ~/.config/glymur
+    $ cd ~/.config/glymur
+    $ cat > glymurrc << EOF
+    > [library]
+    > openjp2: /opt/openjp2-svn/lib/libopenjp2.so
+    > EOF
+
+This assumes, of course, that you've installed OpenJPEG into
+/opt/openjp2-svn on a linux system.  You may also substitute
+**$XDG_CONFIG_HOME** for **$HOME/.config**.
+
+You may also include a line for the version 1.5.1 library if you have it installed
+in a non-standard place, i.e. ::
+
+    [library]
+    openjp2: /opt/openjp2-svn/lib/libopenjp2.so
+    openjpeg: /not/the/usual/location/lib/libopenjpeg.so
+
+'''''''''''''''''''''''''''''''''''''''''''
+Package Management Suggestions for Testing
+'''''''''''''''''''''''''''''''''''''''''''
+
+You only need to read this section if you want detailed 
 platform-specific instructions on running as many tests as possible or wish to
 use your system's package manager to install as many required 
-packages/RPMs/ports/whatever without going through pip.  Otherwise go on to
-the next page.
+packages/RPMs/ports/whatever without going through pip.
 
-''''''''
-Platform
-''''''''
 
 Mac OS X
 --------
@@ -27,13 +68,29 @@ additionally be installed:
       * py33-scikit-image and either py33-Pillow or freeimage
       * py33-matplotlib and py33-Pillow
 
+MacPorts supplies both OpenJPEG 1.5.0 and OpenJPEG 2.0.0.  As previously
+mentioned, the 2.0.0 official release is not supported (although the 2.0+
+development version via SVN *is* supported).
+
 Linux
 -----
 
+Fedora 19
+'''''''''
+Fedora 18 ships with Python 3.3 and all the necessary RPMs are available to 
+run the maximum number of tests.
+
+      * python3 
+      * python3-numpy
+      * python3-setuptools
+      * python3-matplotlib (for running tests)
+      * python3-matplotlib-tk (or whichever matplotlib backend you prefer)
+      * python3-pillow (for running tests)
+
 Fedora 18
 '''''''''
-Fedora 18 ships with Python 3.3, so all the necessary RPMs are available to 
-meet the minimal set of requirements.
+Fedora 18 ships with Python 3.3 and the following RPMs are available to 
+meet the minimal set of requirements for running glymur.
 
       * python3 
       * python3-numpy
@@ -56,31 +113,10 @@ repositories::
     $ pip-python3 install Pillow --user
     $ export PYTHONPATH=$HOME/.local/lib/python3.3/site-packages:$PYTHONPATH
 
-Raspbian
-''''''''
-Yeah, this was the first thing I tried after getting my new Raspberry Pi hooked
-up (couldn't help myself :-)  Raspbian ships with Python 3.2 and 2.7, so these steps detail working with 2.7.
-
-Additional required OS packages include::
-
-    * python-pip
-    * python-pkg-resources
-    * python-mock
-
-You must install contextlib2 via pip, and then you can run at least
-a minimal number of tests.  To attempt to run more of the tests,
-install the following debs::
-
-    * python-dev
-    * python-matplotlib
-
-and then install Pillow via pip.  The tests take about 30 minutes to run, with
-one unexpected failure as of the time of writing.
-
 Fedora 17
 '''''''''
-Fedora 17 ships with Python 3.2 and 2.7, so these steps detail working with 
-2.7.  
+Fedora 17 ships with Python 3.2 and 2.7, but OpenJPEG is only at version 1.4,
+so these steps detail working with Python 2.7 and the svn version of OpenJPEG.
 
 Required RPMs include::
 
@@ -111,19 +147,23 @@ it was installable via pip::
 
 Windows
 -------
-Not currently supported.
+The only configuration I've tested is Python(xy), which uses Python 2.7.  
+Python(xy) already comes with numpy, but you will have to install pip and then
+contextlib2 and mock as well.  Both 1.5.1 and the svn development versions of
+openjpeg work.
+
 
 '''''''
 Testing
 '''''''
 
-If you wish to run the tests (strongly suggested :-), you can either run them
+If you wish to run the tests (strongly recommended :-), you can either run them
 from within python as follows ... ::
 
     >>> import glymur
     >>> glymur.runtests()
 
-or from the unix command line. ::
+or from the command line. ::
 
     $ cd /to/where/you/unpacked/glymur
     $ python -m unittest discover

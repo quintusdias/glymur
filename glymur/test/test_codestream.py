@@ -1,3 +1,4 @@
+#pylint:  disable-all
 import os
 import struct
 import sys
@@ -29,6 +30,7 @@ class TestCodestream(unittest.TestCase):
     def tearDown(self):
         pass
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_reserved_marker_segment(self):
         # Some marker segments were reserved in FCD15444-1.  Since that
         # standard is old, some of them may have come into use.
@@ -54,10 +56,11 @@ class TestCodestream(unittest.TestCase):
             j = Jp2k(tfile.name)
             c = j.get_codestream()
 
-            self.assertEqual(c.segment[2].id, '0xff6f')
+            self.assertEqual(c.segment[2].marker_id, '0xff6f')
             self.assertEqual(c.segment[2].length, 3)
-            self.assertEqual(c.segment[2].data, b'\x00')
+            self.assertEqual(c.segment[2]._data, b'\x00')
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
     def test_unknown_marker_segment(self):
@@ -84,9 +87,9 @@ class TestCodestream(unittest.TestCase):
                 j = Jp2k(tfile.name)
                 c = j.get_codestream()
 
-            self.assertEqual(c.segment[2].id, '0xff79')
+            self.assertEqual(c.segment[2].marker_id, '0xff79')
             self.assertEqual(c.segment[2].length, 3)
-            self.assertEqual(c.segment[2].data, b'\x00')
+            self.assertEqual(c.segment[2]._data, b'\x00')
 
 if __name__ == "__main__":
     unittest.main()

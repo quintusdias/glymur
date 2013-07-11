@@ -1,3 +1,8 @@
+"""These tests are for edge cases where OPENJPEG does not exist, but
+OPENJP2 may be present in some form or other.
+"""
+#pylint:  disable-all
+
 import imp
 import os
 import sys
@@ -16,14 +21,28 @@ from glymur import Jp2k
 from glymur.lib import openjp2 as opj2
 
 
+@unittest.skip("Cannot work when both OPENJPEG and OPENJP2 are both present.")
+@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
+                 "Needs openjp2 library first before these tests make sense.")
 @unittest.skipIf(sys.hexversion < 0x03020000,
                  "Uses features introduced in 3.2.")
-class TestJp2k(unittest.TestCase):
+class TestSuite(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        # Monkey patch the package so as to ignore OPENJPEG if it exists.
+        cls.openjpeg = glymur.lib.openjpeg._OPENJPEG
+        glymur.lib.openjp2._OPENJPEG = None
+
+    @classmethod
+    def tearDownClass(cls):
+        # Restore OPENJPEG
+        glymur.lib.openjpeg._OPENJPEG = cls.openjpeg
+
     def setUp(self):
-        self.jp2file = pkg_resources.resource_filename(glymur.__name__,
-                                                       "data/nemo.jp2")
         imp.reload(glymur)
         imp.reload(glymur.lib.openjp2)
+        self.jp2file = glymur.data.nemo()
 
     def tearDown(self):
         imp.reload(glymur)
@@ -37,7 +56,7 @@ class TestJp2k(unittest.TestCase):
             filename = os.path.join(configdir, 'glymurrc')
             with open(filename, 'wb') as tfile:
                 tfile.write('[library]\n'.encode())
-                libloc = glymur.lib.openjp2._OPENJP2._name
+                libloc = glymur.lib.openjp2.OPENJP2._name
                 line = 'openjp2: {0}\n'.format(libloc)
                 tfile.write(line.encode())
                 tfile.flush()

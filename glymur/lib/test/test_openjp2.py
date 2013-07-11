@@ -1,3 +1,4 @@
+#pylint:  disable-all
 import doctest
 import os
 import pkg_resources
@@ -12,13 +13,8 @@ import numpy as np
 import glymur
 
 
-def load_tests(loader, tests, ignore):
-    if glymur.lib.openjp2._OPENJP2 is not None:
-        tests.addTests(doctest.DocTestSuite('glymur.lib.openjp2'))
-    return tests
-
-
-@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+@unittest.skipIf(glymur.lib._openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
 class TestOpenJP2(unittest.TestCase):
 
@@ -29,7 +25,7 @@ class TestOpenJP2(unittest.TestCase):
         pass
 
     def test_set_default_encoder_parameters(self):
-        cparams = glymur.lib.openjp2._set_default_encoder_parameters()
+        cparams = glymur.lib._openjp2.set_default_encoder_parameters()
 
         self.assertEqual(cparams.res_spec, 0)
         self.assertEqual(cparams.cblockw_init, 64)
@@ -38,7 +34,7 @@ class TestOpenJP2(unittest.TestCase):
         self.assertEqual(cparams.subsampling_dx, 1)
         self.assertEqual(cparams.subsampling_dy, 1)
         self.assertEqual(cparams.mode, 0)
-        self.assertEqual(cparams.prog_order, glymur.lib.openjp2.LRCP)
+        self.assertEqual(cparams.prog_order, glymur.core.LRCP)
         self.assertEqual(cparams.roi_shift, 0)
         self.assertEqual(cparams.cp_tx0, 0)
         self.assertEqual(cparams.cp_ty0, 0)
@@ -46,7 +42,7 @@ class TestOpenJP2(unittest.TestCase):
         self.assertEqual(cparams.irreversible, 0)
 
     def test_set_default_decoder_parameters(self):
-        dparams = glymur.lib.openjp2._set_default_decoder_parameters()
+        dparams = glymur.lib._openjp2.set_default_decoder_parameters()
 
         self.assertEqual(dparams.DA_x0, 0)
         self.assertEqual(dparams.DA_y0, 0)
@@ -55,34 +51,34 @@ class TestOpenJP2(unittest.TestCase):
 
     def tile_macro(self, codec, stream, imagep, tidx):
         # called only by j2k_random_tile_access
-        glymur.lib.openjp2._get_decoded_tile(codec, stream, imagep, tidx)
+        glymur.lib._openjp2.get_decoded_tile(codec, stream, imagep, tidx)
         for j in range(imagep.contents.numcomps):
             self.assertIsNotNone(imagep.contents.comps[j].data)
 
     def j2k_random_tile_access(self, filename, codec_format=None):
         # called by the test_rtaX methods
-        dparam = glymur.lib.openjp2._set_default_decoder_parameters()
+        dparam = glymur.lib._openjp2.set_default_decoder_parameters()
 
         infile = filename.encode()
-        nelts = glymur.lib.openjp2._PATH_LEN - len(infile)
+        nelts = glymur.lib._openjp2.PATH_LEN - len(infile)
         infile += b'0' * nelts
         dparam.infile = infile
 
         dparam.decod_format = codec_format
 
-        codec = glymur.lib.openjp2._create_decompress(codec_format)
+        codec = glymur.lib._openjp2.create_decompress(codec_format)
 
-        glymur.lib.openjp2._set_info_handler(codec, None)
-        glymur.lib.openjp2._set_warning_handler(codec, None)
-        glymur.lib.openjp2._set_error_handler(codec, None)
+        glymur.lib._openjp2.set_info_handler(codec, None)
+        glymur.lib._openjp2.set_warning_handler(codec, None)
+        glymur.lib._openjp2.set_error_handler(codec, None)
 
         x = (filename, True)
-        stream = glymur.lib.openjp2._stream_create_default_file_stream_v3(*x)
+        stream = glymur.lib._openjp2.stream_create_default_file_stream_v3(*x)
 
-        glymur.lib.openjp2._setup_decoder(codec, dparam)
-        image = glymur.lib.openjp2._read_header(stream, codec)
+        glymur.lib._openjp2.setup_decoder(codec, dparam)
+        image = glymur.lib._openjp2.read_header(stream, codec)
 
-        cstr_info = glymur.lib.openjp2._get_cstr_info(codec)
+        cstr_info = glymur.lib._openjp2.get_cstr_info(codec)
 
         tile_ul = 0
         tile_ur = cstr_info.contents.tw - 1
@@ -94,18 +90,18 @@ class TestOpenJP2(unittest.TestCase):
         self.tile_macro(codec, stream, image, tile_lr)
         self.tile_macro(codec, stream, image, tile_ll)
 
-        glymur.lib.openjp2._destroy_cstr_info(cstr_info)
+        glymur.lib._openjp2.destroy_cstr_info(cstr_info)
 
-        glymur.lib.openjp2._end_decompress(codec, stream)
-        glymur.lib.openjp2._destroy_codec(codec)
-        glymur.lib.openjp2._stream_destroy_v3(stream)
-        glymur.lib.openjp2._image_destroy(image)
+        glymur.lib._openjp2.end_decompress(codec, stream)
+        glymur.lib._openjp2.destroy_codec(codec)
+        glymur.lib._openjp2.stream_destroy_v3(stream)
+        glymur.lib._openjp2.image_destroy(image)
 
     def tile_decoder(self, x0=None, y0=None, x1=None, y1=None, filename=None,
                      codec_format=None):
         x = (filename, True)
-        stream = glymur.lib.openjp2._stream_create_default_file_stream_v3(*x)
-        dparam = glymur.lib.openjp2._set_default_decoder_parameters()
+        stream = glymur.lib._openjp2.stream_create_default_file_stream_v3(*x)
+        dparam = glymur.lib._openjp2.set_default_decoder_parameters()
 
         dparam.decod_format = codec_format
 
@@ -115,30 +111,30 @@ class TestOpenJP2(unittest.TestCase):
         # do not use resolution reductions.
         dparam.cp_reduce = 0
 
-        codec = glymur.lib.openjp2._create_decompress(codec_format)
+        codec = glymur.lib._openjp2.create_decompress(codec_format)
 
-        glymur.lib.openjp2._set_info_handler(codec, None)
-        glymur.lib.openjp2._set_warning_handler(codec, None)
-        glymur.lib.openjp2._set_error_handler(codec, None)
+        glymur.lib._openjp2.set_info_handler(codec, None)
+        glymur.lib._openjp2.set_warning_handler(codec, None)
+        glymur.lib._openjp2.set_error_handler(codec, None)
 
-        glymur.lib.openjp2._setup_decoder(codec, dparam)
-        image = glymur.lib.openjp2._read_header(stream, codec)
-        glymur.lib.openjp2._set_decode_area(codec, image, x0, y0, x1, y1)
+        glymur.lib._openjp2.setup_decoder(codec, dparam)
+        image = glymur.lib._openjp2.read_header(stream, codec)
+        glymur.lib._openjp2.set_decode_area(codec, image, x0, y0, x1, y1)
 
         data = np.zeros((1150, 2048, 3), dtype=np.uint8)
         while True:
-            rargs = glymur.lib.openjp2._read_tile_header(codec, stream)
+            rargs = glymur.lib._openjp2.read_tile_header(codec, stream)
             tidx = rargs[0]
             sz = rargs[1]
             go_on = rargs[-1]
             if not go_on:
                 break
-            glymur.lib.openjp2._decode_tile_data(codec, tidx, data, sz, stream)
+            glymur.lib._openjp2.decode_tile_data(codec, tidx, data, sz, stream)
 
-        glymur.lib.openjp2._end_decompress(codec, stream)
-        glymur.lib.openjp2._destroy_codec(codec)
-        glymur.lib.openjp2._stream_destroy_v3(stream)
-        glymur.lib.openjp2._image_destroy(image)
+        glymur.lib._openjp2.end_decompress(codec, stream)
+        glymur.lib._openjp2.destroy_codec(codec)
+        glymur.lib._openjp2.stream_destroy_v3(stream)
+        glymur.lib._openjp2.image_destroy(image)
 
     def tile_encoder(self, num_comps=None, tile_width=None, tile_height=None,
                      filename=None, codec=None, comp_prec=None,
@@ -150,7 +146,7 @@ class TestOpenJP2(unittest.TestCase):
         data = np.random.random((tile_height, tile_width, num_comps))
         data = (data * 255).astype(np.uint8)
 
-        l_param = glymur.lib.openjp2._set_default_encoder_parameters()
+        l_param = glymur.lib._openjp2.set_default_encoder_parameters()
 
         l_param.tcp_numlayers = 1
         l_param.cp_fixed_quality = 1
@@ -170,9 +166,9 @@ class TestOpenJP2(unittest.TestCase):
 
         l_param.numresolution = 6
 
-        l_param.prog_order = glymur.lib.openjp2.LRCP
+        l_param.prog_order = glymur.core.LRCP
 
-        l_params = (glymur.lib.openjp2._image_comptparm_t * num_comps)()
+        l_params = (glymur.lib._openjp2.ImageComptParmType * num_comps)()
         for j in range(num_comps):
             l_params[j].dx = 1
             l_params[j].dy = 1
@@ -183,38 +179,38 @@ class TestOpenJP2(unittest.TestCase):
             l_params[j].x0 = 0
             l_params[j].y0 = 0
 
-        codec = glymur.lib.openjp2._create_compress(codec)
+        codec = glymur.lib._openjp2.create_compress(codec)
 
-        glymur.lib.openjp2._set_info_handler(codec, None)
-        glymur.lib.openjp2._set_warning_handler(codec, None)
-        glymur.lib.openjp2._set_error_handler(codec, None)
+        glymur.lib._openjp2.set_info_handler(codec, None)
+        glymur.lib._openjp2.set_warning_handler(codec, None)
+        glymur.lib._openjp2.set_error_handler(codec, None)
 
-        cspace = glymur.lib.openjp2._CLRSPC_SRGB
-        l_image = glymur.lib.openjp2._image_tile_create(l_params, cspace)
+        cspace = glymur.lib._openjp2.CLRSPC_SRGB
+        l_image = glymur.lib._openjp2.image_tile_create(l_params, cspace)
 
         l_image.contents.x0 = 0
         l_image.contents.y0 = 0
         l_image.contents.x1 = image_width
         l_image.contents.y1 = image_height
-        l_image.contents.color_space = glymur.lib.openjp2._CLRSPC_SRGB
+        l_image.contents.color_space = glymur.lib._openjp2.CLRSPC_SRGB
 
-        glymur.lib.openjp2._setup_encoder(codec, l_param, l_image)
+        glymur.lib._openjp2.setup_encoder(codec, l_param, l_image)
 
         x = (filename, False)
-        stream = glymur.lib.openjp2._stream_create_default_file_stream_v3(*x)
-        glymur.lib.openjp2._start_compress(codec, l_image, stream)
+        stream = glymur.lib._openjp2.stream_create_default_file_stream_v3(*x)
+        glymur.lib._openjp2.start_compress(codec, l_image, stream)
 
         for j in np.arange(num_tiles):
-            glymur.lib.openjp2._write_tile(codec, j, data, tile_size, stream)
+            glymur.lib._openjp2.write_tile(codec, j, data, tile_size, stream)
 
-        glymur.lib.openjp2._end_compress(codec, stream)
-        glymur.lib.openjp2._stream_destroy_v3(stream)
-        glymur.lib.openjp2._destroy_codec(codec)
-        glymur.lib.openjp2._image_destroy(l_image)
+        glymur.lib._openjp2.end_compress(codec, stream)
+        glymur.lib._openjp2.stream_destroy_v3(stream)
+        glymur.lib._openjp2.destroy_codec(codec)
+        glymur.lib._openjp2.image_destroy(l_image)
 
     def tte0_setup(self, filename):
         kwargs = {'filename': filename,
-                  'codec': glymur.lib.openjp2._CODEC_J2K,
+                  'codec': glymur.lib._openjp2.CODEC_J2K,
                   'comp_prec': 8,
                   'irreversible': 1,
                   'num_comps': 3,
@@ -241,12 +237,12 @@ class TestOpenJP2(unittest.TestCase):
                       'x1': 1000,
                       'y1': 1000,
                       'filename': tfile.name,
-                      'codec_format': glymur.lib.openjp2._CODEC_J2K}
+                      'codec_format': glymur.lib._openjp2.CODEC_J2K}
             self.tile_decoder(**kwargs)
 
     def tte1_setup(self, filename):
         kwargs = {'filename': filename,
-                  'codec': glymur.lib.openjp2._CODEC_J2K,
+                  'codec': glymur.lib._openjp2.CODEC_J2K,
                   'comp_prec': 8,
                   'irreversible': 1,
                   'num_comps': 3,
@@ -273,7 +269,7 @@ class TestOpenJP2(unittest.TestCase):
                       'x1': 128,
                       'y1': 128,
                       'filename': tfile.name,
-                      'codec_format': glymur.lib.openjp2._CODEC_J2K}
+                      'codec_format': glymur.lib._openjp2.CODEC_J2K}
             self.tile_decoder(**kwargs)
 
     def test_rta1(self):
@@ -281,12 +277,12 @@ class TestOpenJP2(unittest.TestCase):
             # Runs test designated rta1 in OpenJPEG test suite.
             self.tte1_setup(tfile.name)
 
-            kwargs = {'codec_format':  glymur.lib.openjp2._CODEC_J2K}
+            kwargs = {'codec_format':  glymur.lib._openjp2.CODEC_J2K}
             self.j2k_random_tile_access(tfile.name, **kwargs)
 
     def tte2_setup(self, filename):
         kwargs = {'filename': filename,
-                  'codec': glymur.lib.openjp2._CODEC_JP2,
+                  'codec': glymur.lib._openjp2.CODEC_JP2,
                   'comp_prec': 8,
                   'irreversible': 1,
                   'num_comps': 3,
@@ -312,7 +308,7 @@ class TestOpenJP2(unittest.TestCase):
                       'x1': 128,
                       'y1': 128,
                       'filename': tfile.name,
-                      'codec_format': glymur.lib.openjp2._CODEC_JP2}
+                      'codec_format': glymur.lib._openjp2.CODEC_JP2}
             self.tile_decoder(**kwargs)
 
     def test_rta2(self):
@@ -320,12 +316,12 @@ class TestOpenJP2(unittest.TestCase):
             # Runs test designated rta2 in OpenJPEG test suite.
             self.tte2_setup(tfile.name)
 
-            kwargs = {'codec_format':  glymur.lib.openjp2._CODEC_JP2}
+            kwargs = {'codec_format':  glymur.lib._openjp2.CODEC_JP2}
             self.j2k_random_tile_access(tfile.name, **kwargs)
 
     def tte3_setup(self, filename):
         kwargs = {'filename': filename,
-                  'codec': glymur.lib.openjp2._CODEC_J2K,
+                  'codec': glymur.lib._openjp2.CODEC_J2K,
                   'comp_prec': 8,
                   'irreversible': 1,
                   'num_comps': 1,
@@ -345,12 +341,12 @@ class TestOpenJP2(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
             self.tte3_setup(tfile.name)
 
-            kwargs = {'codec_format':  glymur.lib.openjp2._CODEC_J2K}
+            kwargs = {'codec_format':  glymur.lib._openjp2.CODEC_J2K}
             self.j2k_random_tile_access(tfile.name, **kwargs)
 
     def tte4_setup(self, filename):
         kwargs = {'filename': filename,
-                  'codec': glymur.lib.openjp2._CODEC_J2K,
+                  'codec': glymur.lib._openjp2.CODEC_J2K,
                   'comp_prec': 8,
                   'irreversible': 0,
                   'num_comps': 1,
@@ -370,12 +366,12 @@ class TestOpenJP2(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
             self.tte4_setup(tfile.name)
 
-            kwargs = {'codec_format':  glymur.lib.openjp2._CODEC_J2K}
+            kwargs = {'codec_format':  glymur.lib._openjp2.CODEC_J2K}
             self.j2k_random_tile_access(tfile.name, **kwargs)
 
     def tte5_setup(self, filename):
         kwargs = {'filename': filename,
-                  'codec': glymur.lib.openjp2._CODEC_J2K,
+                  'codec': glymur.lib._openjp2.CODEC_J2K,
                   'comp_prec': 8,
                   'irreversible': 0,
                   'num_comps': 1,
@@ -395,7 +391,7 @@ class TestOpenJP2(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
             self.tte5_setup(tfile.name)
 
-            kwargs = {'codec_format':  glymur.lib.openjp2._CODEC_J2K}
+            kwargs = {'codec_format':  glymur.lib._openjp2.CODEC_J2K}
             self.j2k_random_tile_access(tfile.name, **kwargs)
 
 if __name__ == "__main__":

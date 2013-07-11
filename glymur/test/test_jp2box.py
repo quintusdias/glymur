@@ -1,4 +1,6 @@
+#pylint:  disable-all
 import doctest
+import os
 import tempfile
 import xml.etree.cElementTree as ET
 import unittest
@@ -13,10 +15,16 @@ from glymur.jp2box import *
 
 # Doc tests should be run as well.
 def load_tests(loader, tests, ignore):
+    if os.name == "nt":
+        # Can't do it on windows, temporary file issue.
+        return tests
     tests.addTests(doctest.DocTestSuite('glymur.jp2box'))
     return tests
 
 
+@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
+                 "Missing openjp2 library.")
 class TestChannelDefinition(unittest.TestCase):
 
     @classmethod
@@ -55,9 +63,9 @@ class TestChannelDefinition(unittest.TestCase):
 
         j2k = Jp2k(self.j2kfile)
         c = j2k.get_codestream()
-        height = c.segment[1].Ysiz
-        width = c.segment[1].Xsiz
-        num_components = len(c.segment[1].XRsiz)
+        height = c.segment[1].ysiz
+        width = c.segment[1].xsiz
+        num_components = len(c.segment[1].xrsiz)
 
         self.jP = JPEG2000SignatureBox()
         self.ftyp = FileTypeBox()
@@ -85,7 +93,7 @@ class TestChannelDefinition(unittest.TestCase):
 
             jp2 = Jp2k(tfile.name)
             jp2h = jp2.box[2]
-            boxes = [box.id for box in jp2h.box]
+            boxes = [box.box_id for box in jp2h.box]
             self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
             self.assertEqual(jp2h.box[2].index, (0, 1, 2))
             self.assertEqual(jp2h.box[2].channel_type, (0, 0, 0))
@@ -105,7 +113,7 @@ class TestChannelDefinition(unittest.TestCase):
 
             jp2 = Jp2k(tfile.name)
             jp2h = jp2.box[2]
-            boxes = [box.id for box in jp2h.box]
+            boxes = [box.box_id for box in jp2h.box]
             self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
             self.assertEqual(jp2h.box[2].index, (0, 1, 2, 3))
             self.assertEqual(jp2h.box[2].channel_type, (0, 0, 0, 1))
@@ -138,7 +146,7 @@ class TestChannelDefinition(unittest.TestCase):
 
             jp2 = Jp2k(tfile.name)
             jp2h = jp2.box[2]
-            boxes = [box.id for box in jp2h.box]
+            boxes = [box.box_id for box in jp2h.box]
             self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
             self.assertEqual(jp2h.box[2].index, (0,))
             self.assertEqual(jp2h.box[2].channel_type, (0,))
@@ -158,7 +166,7 @@ class TestChannelDefinition(unittest.TestCase):
 
             jp2 = Jp2k(tfile.name)
             jp2h = jp2.box[2]
-            boxes = [box.id for box in jp2h.box]
+            boxes = [box.box_id for box in jp2h.box]
             self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
             self.assertEqual(jp2h.box[2].index, (0, 1))
             self.assertEqual(jp2h.box[2].channel_type, (0, 1))
@@ -229,6 +237,7 @@ class TestChannelDefinition(unittest.TestCase):
                                                      association=[1, 2, 3])
 
 
+@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
 class TestXML(unittest.TestCase):
 
     def setUp(self):
@@ -265,9 +274,9 @@ class TestXML(unittest.TestCase):
 
         j2k = Jp2k(self.j2kfile)
         c = j2k.get_codestream()
-        height = c.segment[1].Ysiz
-        width = c.segment[1].Xsiz
-        num_components = len(c.segment[1].XRsiz)
+        height = c.segment[1].ysiz
+        width = c.segment[1].xsiz
+        num_components = len(c.segment[1].xrsiz)
 
         self.jP = JPEG2000SignatureBox()
         self.ftyp = FileTypeBox()
@@ -288,6 +297,8 @@ class TestXML(unittest.TestCase):
         with self.assertRaises((IOError, OSError)) as ce:
             xmlb = glymur.jp2box.XMLBox(filename=self.xmlfile, xml=xml_object)
 
+    @unittest.skipIf(os.name == "nt",
+                     "Problems using NamedTemporaryFile on windows.")
     def test_basic_xml(self):
         # Should be able to write an XMLBox.
         j2k = Jp2k(self.j2kfile)
@@ -304,10 +315,12 @@ class TestXML(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             j2k.wrap(tfile.name, boxes=boxes)
             jp2 = Jp2k(tfile.name)
-            self.assertEqual(jp2.box[3].id, 'xml ')
+            self.assertEqual(jp2.box[3].box_id, 'xml ')
             self.assertEqual(ET.tostring(jp2.box[3].xml),
                              b'<data>0</data>')
 
+    @unittest.skipIf(os.name == "nt",
+                     "Problems using NamedTemporaryFile on windows.")
     def test_xml_from_file(self):
         j2k = Jp2k(self.j2kfile)
 
@@ -319,7 +332,7 @@ class TestXML(unittest.TestCase):
             j2k.wrap(tfile.name, boxes=boxes)
             jp2 = Jp2k(tfile.name)
 
-            output_boxes = [box.id for box in jp2.box]
+            output_boxes = [box.box_id for box in jp2.box]
             self.assertEqual(output_boxes, ['jP  ', 'ftyp', 'jp2h', 'xml ',
                                             'jp2c'])
 
@@ -338,9 +351,9 @@ class TestColourSpecificationBox(unittest.TestCase):
 
         j2k = Jp2k(self.j2kfile)
         c = j2k.get_codestream()
-        height = c.segment[1].Ysiz
-        width = c.segment[1].Xsiz
-        num_components = len(c.segment[1].XRsiz)
+        height = c.segment[1].ysiz
+        width = c.segment[1].xsiz
+        num_components = len(c.segment[1].xrsiz)
 
         self.jP = JPEG2000SignatureBox()
         self.ftyp = FileTypeBox()
@@ -352,6 +365,8 @@ class TestColourSpecificationBox(unittest.TestCase):
     def tearDown(self):
         pass
 
+    @unittest.skipIf(os.name == "nt",
+                     "Problems using NamedTemporaryFile on windows.")
     def test_color_specification_box_with_out_enumerated_colorspace(self):
         j2k = Jp2k(self.j2kfile)
 
@@ -361,6 +376,7 @@ class TestColourSpecificationBox(unittest.TestCase):
             with self.assertRaises(NotImplementedError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_missing_colr_box(self):
         j2k = Jp2k(self.j2kfile)
         boxes = [self.jP, self.ftyp, self.jp2h, self.jp2c]
@@ -400,7 +416,7 @@ class TestColourSpecificationBox(unittest.TestCase):
                                                      approximation=approx)
 
 
-@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
 class TestJp2Boxes(unittest.TestCase):
 
@@ -440,37 +456,37 @@ class TestJp2Boxes(unittest.TestCase):
 
     def test_default_ContiguousCodestreamBox(self):
         b = ContiguousCodestreamBox()
-        self.assertEqual(b.id, 'jp2c')
-        self.assertEqual(b.main_header, [])
+        self.assertEqual(b.box_id, 'jp2c')
+        self.assertIsNone(b.main_header)
 
     def verify_wrapped_raw(self, jp2file):
         # Shared method by at least two tests.
         jp2 = Jp2k(jp2file)
         self.assertEqual(len(jp2.box), 4)
 
-        self.assertEqual(jp2.box[0].id, 'jP  ')
+        self.assertEqual(jp2.box[0].box_id, 'jP  ')
         self.assertEqual(jp2.box[0].offset, 0)
         self.assertEqual(jp2.box[0].length, 12)
         self.assertEqual(jp2.box[0].longname, 'JPEG 2000 Signature')
 
-        self.assertEqual(jp2.box[1].id, 'ftyp')
+        self.assertEqual(jp2.box[1].box_id, 'ftyp')
         self.assertEqual(jp2.box[1].offset, 12)
         self.assertEqual(jp2.box[1].length, 20)
         self.assertEqual(jp2.box[1].longname, 'File Type')
 
-        self.assertEqual(jp2.box[2].id, 'jp2h')
+        self.assertEqual(jp2.box[2].box_id, 'jp2h')
         self.assertEqual(jp2.box[2].offset, 32)
         self.assertEqual(jp2.box[2].length, 45)
         self.assertEqual(jp2.box[2].longname, 'JP2 Header')
 
-        self.assertEqual(jp2.box[3].id, 'jp2c')
+        self.assertEqual(jp2.box[3].box_id, 'jp2c')
         self.assertEqual(jp2.box[3].offset, 77)
         self.assertEqual(jp2.box[3].length, 115228)
 
         # jp2h super box
         self.assertEqual(len(jp2.box[2].box), 2)
 
-        self.assertEqual(jp2.box[2].box[0].id, 'ihdr')
+        self.assertEqual(jp2.box[2].box[0].box_id, 'ihdr')
         self.assertEqual(jp2.box[2].box[0].offset, 40)
         self.assertEqual(jp2.box[2].box[0].length, 22)
         self.assertEqual(jp2.box[2].box[0].longname, 'Image Header')
@@ -483,7 +499,7 @@ class TestJp2Boxes(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
         self.assertEqual(jp2.box[2].box[0].ip_provided, False)
 
-        self.assertEqual(jp2.box[2].box[1].id, 'colr')
+        self.assertEqual(jp2.box[2].box[1].box_id, 'colr')
         self.assertEqual(jp2.box[2].box[1].offset, 62)
         self.assertEqual(jp2.box[2].box[1].length, 15)
         self.assertEqual(jp2.box[2].box[1].longname, 'Colour Specification')
@@ -492,19 +508,22 @@ class TestJp2Boxes(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.SRGB)
         self.assertIsNone(jp2.box[2].box[1].icc_profile)
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_wrap(self):
         j2k = Jp2k(self.j2kfile)
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             j2k.wrap(tfile.name)
             self.verify_wrapped_raw(tfile.name)
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_wrap_jp2(self):
         j2k = Jp2k(self.j2kfile)
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             jp2 = j2k.wrap(tfile.name)
-        boxes = [box.id for box in jp2.box]
+        boxes = [box.box_id for box in jp2.box]
         self.assertEqual(boxes, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_default_layout_but_with_specified_boxes(self):
         j2k = Jp2k(self.j2kfile)
         boxes = [JPEG2000SignatureBox(),
@@ -512,9 +531,9 @@ class TestJp2Boxes(unittest.TestCase):
                  JP2HeaderBox(),
                  ContiguousCodestreamBox()]
         c = j2k.get_codestream()
-        height = c.segment[1].Ysiz
-        width = c.segment[1].Xsiz
-        num_components = len(c.segment[1].XRsiz)
+        height = c.segment[1].ysiz
+        width = c.segment[1].xsiz
+        num_components = len(c.segment[1].xrsiz)
         boxes[2].box = [ImageHeaderBox(height=height,
                                        width=width,
                                        num_components=num_components),
@@ -523,6 +542,7 @@ class TestJp2Boxes(unittest.TestCase):
             j2k.wrap(tfile.name, boxes=boxes)
             self.verify_wrapped_raw(tfile.name)
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_image_header_box_not_first_in_jp2_header(self):
         # The specification says that ihdr must be the first box in jp2h.
         j2k = Jp2k(self.j2kfile)
@@ -531,9 +551,9 @@ class TestJp2Boxes(unittest.TestCase):
                  JP2HeaderBox(),
                  ContiguousCodestreamBox()]
         c = j2k.get_codestream()
-        height = c.segment[1].Ysiz
-        width = c.segment[1].Xsiz
-        num_components = len(c.segment[1].XRsiz)
+        height = c.segment[1].ysiz
+        width = c.segment[1].xsiz
+        num_components = len(c.segment[1].xrsiz)
         boxes[2].box = [ColourSpecificationBox(colorspace=glymur.core.SRGB),
                         ImageHeaderBox(height=height,
                                        width=width,
@@ -542,12 +562,13 @@ class TestJp2Boxes(unittest.TestCase):
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_first_2_boxes_not_jP_and_ftyp(self):
         j2k = Jp2k(self.j2kfile)
         c = j2k.get_codestream()
-        height = c.segment[1].Ysiz
-        width = c.segment[1].Xsiz
-        num_components = len(c.segment[1].XRsiz)
+        height = c.segment[1].ysiz
+        width = c.segment[1].xsiz
+        num_components = len(c.segment[1].xrsiz)
 
         jP = JPEG2000SignatureBox()
         ftyp = FileTypeBox()
@@ -562,12 +583,13 @@ class TestJp2Boxes(unittest.TestCase):
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_jp2h_not_preceeding_jp2c(self):
         j2k = Jp2k(self.j2kfile)
         c = j2k.get_codestream()
-        height = c.segment[1].Ysiz
-        width = c.segment[1].Xsiz
-        num_components = len(c.segment[1].XRsiz)
+        height = c.segment[1].ysiz
+        width = c.segment[1].xsiz
+        num_components = len(c.segment[1].xrsiz)
 
         jP = JPEG2000SignatureBox()
         ftyp = FileTypeBox()
@@ -582,12 +604,13 @@ class TestJp2Boxes(unittest.TestCase):
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_missing_codestream(self):
         j2k = Jp2k(self.j2kfile)
         c = j2k.get_codestream()
-        height = c.segment[1].Ysiz
-        width = c.segment[1].Xsiz
-        num_components = len(c.segment[1].XRsiz)
+        height = c.segment[1].ysiz
+        width = c.segment[1].xsiz
+        num_components = len(c.segment[1].xrsiz)
 
         jP = JPEG2000SignatureBox()
         ftyp = FileTypeBox()

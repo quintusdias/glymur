@@ -2,6 +2,7 @@
 The tests here do not correspond directly to the OpenJPEG test suite, but
 seem like logical negative tests to add.
 """
+#pylint:  disable-all
 import os
 import sys
 import tempfile
@@ -57,7 +58,7 @@ def read_image(infile):
     return data
 
 
-@unittest.skipIf(glymur.lib.openjp2._OPENJP2 is None,
+@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
 @unittest.skipIf(no_read_backend, no_read_backend_msg)
 @unittest.skipIf(data_root is None,
@@ -65,12 +66,13 @@ def read_image(infile):
 class TestSuiteNegative(unittest.TestCase):
 
     def setUp(self):
-        self.jp2file = pkg_resources.resource_filename(glymur.__name__,
-                                                       "data/nemo.jp2")
+        self.jp2file = glymur.data.nemo()
+        self.j2kfile = glymur.data.goodstuff()
 
     def tearDown(self):
         pass
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_negative_psnr_with_cratios(self):
         # Using psnr with cratios options is not allowed.
         # Not an OpenJPEG test, but close.
@@ -94,7 +96,7 @@ class TestSuiteNegative(unittest.TestCase):
         # Verify that the last segment returned in the codestream is SOD,
         # not EOC.  Codestream parsing should stop when we try to jump to
         # the end of SOT.
-        self.assertEqual(c.segment[-1].id, 'SOD')
+        self.assertEqual(c.segment[-1].marker_id, 'SOD')
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
@@ -109,7 +111,7 @@ class TestSuiteNegative(unittest.TestCase):
         # Verify that the last segment returned in the codestream is SOD,
         # not EOC.  Codestream parsing should stop when we try to jump to
         # the end of SOT.
-        self.assertEqual(c.segment[-1].id, 'SOD')
+        self.assertEqual(c.segment[-1].marker_id, 'SOD')
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
@@ -124,8 +126,9 @@ class TestSuiteNegative(unittest.TestCase):
         # Verify that the last segment returned in the codestream is SOD,
         # not EOC.  Codestream parsing should stop when we try to jump to
         # the end of SOT.
-        self.assertEqual(c.segment[-1].id, 'SOD')
+        self.assertEqual(c.segment[-1].marker_id, 'SOD')
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_code_block_dimensions(self):
         # opj_compress doesn't allow the dimensions of a codeblock
         # to be too small or too big, so neither will we.
@@ -154,29 +157,32 @@ class TestSuiteNegative(unittest.TestCase):
         with self.assertWarns(UserWarning) as cw:
             j = Jp2k(infile)
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_precinct_size_not_multiple_of_two(self):
         # Seems like precinct sizes should be powers of two.
-        ifile = Jp2k(self.jp2file)
-        data = ifile.read(reduce=3)
+        ifile = Jp2k(self.j2kfile)
+        data = ifile.read(rlevel=2)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             ofile = Jp2k(tfile.name, 'wb')
             with self.assertRaises(IOError) as ce:
                 ofile.write(data, psizes=[(13, 13)])
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_codeblock_size_not_multiple_of_two(self):
         # Seems like code block sizes should be powers of two.
-        ifile = Jp2k(self.jp2file)
-        data = ifile.read(reduce=3)
+        ifile = Jp2k(self.j2kfile)
+        data = ifile.read(rlevel=2)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             ofile = Jp2k(tfile.name, 'wb')
             with self.assertRaises(IOError) as ce:
                 ofile.write(data, cbsize=(13, 12))
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_codeblock_size_with_precinct_size(self):
         # Seems like code block sizes should never exceed half that of
         # precinct size.
-        ifile = Jp2k(self.jp2file)
-        data = ifile.read(reduce=3)
+        ifile = Jp2k(self.j2kfile)
+        data = ifile.read(rlevel=2)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             ofile = Jp2k(tfile.name, 'wb')
             with self.assertRaises(IOError) as ce:

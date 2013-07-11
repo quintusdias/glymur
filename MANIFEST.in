@@ -1,3 +1,4 @@
 include *.txt *.md
 prune build
 exclude readthedocs-pip-requirements.txt
+exclude release.txt
