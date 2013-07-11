@@ -157,13 +157,13 @@ openjpeg work.
 Testing
 '''''''
 
-If you wish to run the tests (strongly suggested :-), you can either run them
+If you wish to run the tests (strongly recommended :-), you can either run them
 from within python as follows ... ::
 
     >>> import glymur
     >>> glymur.runtests()
 
-or from the unix command line. ::
+or from the command line. ::
 
     $ cd /to/where/you/unpacked/glymur
     $ python -m unittest discover
