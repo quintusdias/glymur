@@ -98,7 +98,7 @@ class Jp2k(Jp2kBox):
 
         # Parse the file for JP2/JPX contents only if we are reading it.
         if mode == 'rb':
-            self._parse()
+            self.parse()
 
     def __str__(self):
         metadata = ['File:  ' + os.path.basename(self.filename)]
@@ -110,7 +110,7 @@ class Jp2k(Jp2kBox):
             metadata.append(str(codestream))
         return '\n'.join(metadata)
 
-    def _parse(self):
+    def parse(self):
         """Parses the JPEG 2000 file.
 
         Raises
@@ -425,7 +425,7 @@ class Jp2k(Jp2kBox):
         _opj2.destroy_codec(codec)
         _opj2.image_destroy(image)
 
-        self._parse()
+        self.parse()
 
     def wrap(self, filename, boxes=None):
         """Write the codestream back out to file, wrapped in new JP2 jacket.

@@ -2,6 +2,7 @@
 The tests defined here roughly correspond to what is in the OpenJPEG test
 suite.
 """
+#pylint:  disable-all
 
 from contextlib import contextmanager
 import os
@@ -4215,7 +4216,8 @@ class TestSuiteDump(unittest.TestCase):
 
         # Jp2 Header
         # Colour specification
-        self.assertEqual(jp2.box[3].box[1].method, glymur.core.RESTRICTED_ICC_PROFILE)  # enumerated
+        self.assertEqual(jp2.box[3].box[1].method,
+                         glymur.core.RESTRICTED_ICC_PROFILE)  # enumerated
         self.assertEqual(jp2.box[3].box[1].precedence, 0)
         self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact
         self.assertEqual(jp2.box[3].box[1].icc_profile['Size'], 546)
@@ -4312,7 +4314,8 @@ class TestSuiteDump(unittest.TestCase):
 
         # Jp2 Header
         # Colour specification
-        self.assertEqual(jp2.box[3].box[1].method, glymur.core.RESTRICTED_ICC_PROFILE)
+        self.assertEqual(jp2.box[3].box[1].method,
+                         glymur.core.RESTRICTED_ICC_PROFILE)
         self.assertEqual(jp2.box[3].box[1].precedence, 0)
         self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact
         self.assertEqual(jp2.box[3].box[1].icc_profile['Size'], 13332)
@@ -4362,7 +4365,8 @@ class TestSuiteDump(unittest.TestCase):
 
         # Jp2 Header
         # Colour specification
-        self.assertEqual(jp2.box[2].box[1].method, glymur.core.RESTRICTED_ICC_PROFILE)  # enumerated
+        self.assertEqual(jp2.box[2].box[1].method,
+                         glymur.core.RESTRICTED_ICC_PROFILE)  # enumerated
         self.assertEqual(jp2.box[2].box[1].precedence, 0)
         self.assertEqual(jp2.box[2].box[1].approximation, 1)  # JPX exact
         self.assertEqual(jp2.box[2].box[1].icc_profile['Size'], 414)
@@ -7079,7 +7083,8 @@ class TestSuiteDump(unittest.TestCase):
 
         # Jp2 Header
         # Colour specification
-        self.assertEqual(jp2.box[2].box[1].method, glymur.core.RESTRICTED_ICC_PROFILE)  # res icc
+        self.assertEqual(jp2.box[2].box[1].method,
+                         glymur.core.RESTRICTED_ICC_PROFILE)
         self.assertEqual(jp2.box[2].box[1].precedence, 0)
         self.assertEqual(jp2.box[2].box[1].approximation, 0)  # JP2
         self.assertIsNone(jp2.box[2].box[1].icc_profile)

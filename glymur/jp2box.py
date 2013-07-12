@@ -38,11 +38,13 @@ _METHOD_DISPLAY = {
     ANY_ICC_PROFILE: 'any ICC profile',
     VENDOR_COLOR_METHOD: 'vendor color method'}
 
-_ = {1: 'accurately represents correct colorspace definition',
-     2: 'approximates correct colorspace definition, exceptional quality',
-     3: 'approximates correct colorspace definition, reasonable quality',
-     4: 'approximates correct colorspace definition, poor quality'}
-_approximation_display = _
+_APPROX_DISPLAY = {1: 'accurately represents correct colorspace definition',
+                   2: 'approximates correct colorspace definition, '
+                      + 'exceptional quality',
+                   3: 'approximates correct colorspace definition, '
+                      + 'reasonable quality',
+                   4: 'approximates correct colorspace definition, '
+                      + 'poor quality'}
 
 
 class Jp2kBox(object):
@@ -66,12 +68,15 @@ class Jp2kBox(object):
         self.offset = offset
         self.longname = longname
 
+        # should never be used except for last box in file.
+        self._file_size = -1
+
     def __str__(self):
         msg = "{0} Box ({1})".format(self.longname, self.box_id)
         msg += " @ ({0}, {1})".format(self.offset, self.length)
         return msg
 
-    def write(self, fptr):
+    def write(self, _):
         """Must be implemented in a subclass.
         """
         msg = "Not supported for {0} box.".format(self.longname)
@@ -120,7 +125,7 @@ class Jp2kBox(object):
 
             # Call the proper parser for the given box with ID "T".
             try:
-                box = _BOX_WITH_ID[box_id]._parse(fptr, start, num_bytes)
+                box = _BOX_WITH_ID[box_id].parse(fptr, start, num_bytes)
             except KeyError:
                 msg = 'Unrecognized box ({0}) encountered.'.format(box_id)
                 warnings.warn(msg)
@@ -177,6 +182,7 @@ class ColourSpecificationBox(Jp2kBox):
         ICC profile header according to ICC profile specification.  If
         colorspace is not None, then icc_profile must be empty.
     """
+
     def __init__(self, method=ENUMERATED_COLORSPACE, precedence=0,
                  approximation=0, colorspace=None, icc_profile=None,
                  length=0, offset=-1):
@@ -203,8 +209,9 @@ class ColourSpecificationBox(Jp2kBox):
         msg += '\n    Precedence:  {0}'.format(self.precedence)
 
         if self.approximation is not 0:
-            dispvalue = _approximation_display[self.approximation]
+            dispvalue = _APPROX_DISPLAY[self.approximation]
             msg += '\n    Approximation:  {0}'.format(dispvalue)
+
         if self.colorspace is not None:
             dispvalue = _COLORSPACE_MAP_DISPLAY[self.colorspace]
             msg += '\n    Colorspace:  {0}'.format(dispvalue)
@@ -240,7 +247,7 @@ class ColourSpecificationBox(Jp2kBox):
         fptr.write(read_buffer)
 
     @staticmethod
-    def _parse(fptr, offset, length):
+    def parse(fptr, offset, length):
         """Parse JPEG 2000 color specification box.
 
         Parameters
@@ -468,7 +475,7 @@ class ChannelDefinitionBox(Jp2kBox):
                                    self.association[j]))
 
     @staticmethod
-    def _parse(fptr, offset, length):
+    def parse(fptr, offset, length):
         """Parse component definition box.
 
         Parameters
@@ -542,7 +549,7 @@ class ComponentMappingBox(Jp2kBox):
         return msg
 
     @staticmethod
-    def _parse(fptr, offset, length):
+    def parse(fptr, offset, length):
         """Parse component mapping box.
 
         Parameters
@@ -607,7 +614,7 @@ class ContiguousCodestreamBox(Jp2kBox):
         return msg
 
     @staticmethod
-    def _parse(fptr, offset=0, length=0):
+    def parse(fptr, offset=0, length=0):
         """Parse a codestream box.
 
         Parameters
@@ -685,7 +692,7 @@ class FileTypeBox(Jp2kBox):
             fptr.write(item.encode())
 
     @staticmethod
-    def _parse(fptr, offset, length):
+    def parse(fptr, offset, length):
         """Parse JPEG 2000 file type box.
 
         Parameters
@@ -812,7 +819,7 @@ class ImageHeaderBox(Jp2kBox):
         fptr.write(read_buffer)
 
     @staticmethod
-    def _parse(fptr, offset, length):
+    def parse(fptr, offset, length):
         """Parse JPEG 2000 image header box.
 
         Parameters
@@ -883,7 +890,7 @@ class AssociationBox(Jp2kBox):
         return msg
 
     @staticmethod
-    def _parse(fptr, offset, length):
+    def parse(fptr, offset, length):
         """Parse association box.
 
         Parameters
@@ -956,7 +963,7 @@ class JP2HeaderBox(Jp2kBox):
         fptr.seek(end_pos)
 
     @staticmethod
-    def _parse(fptr, offset, length):
+    def parse(fptr, offset, length):
         """Parse JPEG 2000 header box.
 
         Parameters
@@ -1017,7 +1024,7 @@ class JPEG2000SignatureBox(Jp2kBox):
         fptr.write(struct.pack('>BBBB', *self.signature))
 
     @staticmethod
-    def _parse(fptr, offset, length):
+    def parse(fptr, offset, length):
         """Parse JPEG 2000 signature box.
 
         Parameters
@@ -1073,7 +1080,7 @@ class PaletteBox(Jp2kBox):
         return msg
 
     @staticmethod
-    def _parse(fptr, offset, length):
+    def parse(fptr, offset, length):
         """Parse palette box.
 
         Parameters
@@ -1220,6 +1227,8 @@ _READER_REQUIREMENTS_DISPLAY = {
          + 'requirements in M.9.2.3',
     73:  'YPbPr(1125/60) enumerated colourspace',
     74:  'YPbPr(1250/50) enumerated colourspace'}
+
+
 class ReaderRequirementsBox(Jp2kBox):
     """Container for reader requirements box information.
 
@@ -1276,7 +1285,7 @@ class ReaderRequirementsBox(Jp2kBox):
         return msg
 
     @staticmethod
-    def _parse(fptr, offset, length):
+    def parse(fptr, offset, length):
         """Parse reader requirements box.
 
         Parameters
@@ -1380,7 +1389,7 @@ class ResolutionBox(Jp2kBox):
         return msg
 
     @staticmethod
-    def _parse(fptr, offset, length):
+    def parse(fptr, offset, length):
         """Parse Resolution box.
 
         Parameters
@@ -1436,7 +1445,7 @@ class CaptureResolutionBox(Jp2kBox):
         return msg
 
     @staticmethod
-    def _parse(fptr, offset, length):
+    def parse(fptr, offset, length):
         """Parse Resolution box.
 
         Parameters
@@ -1493,7 +1502,7 @@ class DisplayResolutionBox(Jp2kBox):
         return msg
 
     @staticmethod
-    def _parse(fptr, offset, length):
+    def parse(fptr, offset, length):
         """Parse Resolution box.
 
         Parameters
@@ -1548,7 +1557,7 @@ class LabelBox(Jp2kBox):
         return msg
 
     @staticmethod
-    def _parse(fptr, offset, length):
+    def parse(fptr, offset, length):
         """Parse Label box.
 
         Parameters
@@ -1633,7 +1642,7 @@ class XMLBox(Jp2kBox):
         fptr.write(read_buffer)
 
     @staticmethod
-    def _parse(fptr, offset, length):
+    def parse(fptr, offset, length):
         """Parse XML box.
 
         Parameters
@@ -1697,7 +1706,7 @@ class UUIDListBox(Jp2kBox):
         return(msg)
 
     @staticmethod
-    def _parse(fptr, offset, length):
+    def parse(fptr, offset, length):
         """Parse UUIDList box.
 
         Parameters
@@ -1760,7 +1769,7 @@ class UUIDInfoBox(Jp2kBox):
         return(msg)
 
     @staticmethod
-    def _parse(fptr, offset, length):
+    def parse(fptr, offset, length):
         """Parse UUIDInfo super box.
 
         Parameters
@@ -1828,7 +1837,7 @@ class DataEntryURLBox(Jp2kBox):
         return msg
 
     @staticmethod
-    def _parse(fptr, offset, length):
+    def parse(fptr, offset, length):
         """Parse Data Entry URL box.
 
         Parameters
@@ -1949,7 +1958,7 @@ class UUIDBox(Jp2kBox):
         return msg
 
     @staticmethod
-    def _parse(fptr, offset, length):
+    def parse(fptr, offset, length):
         """Parse UUID box.
 
         Parameters

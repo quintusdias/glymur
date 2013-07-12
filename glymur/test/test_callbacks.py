@@ -1,3 +1,4 @@
+#pylint:  disable-all
 import os
 import pkg_resources
 import re
@@ -29,6 +30,7 @@ class TestCallbacks(unittest.TestCase):
         # Restore stdout.
         sys.stdout = self.stdout
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_info_callback_on_write(self):
         # Verify the messages printed when writing an image in verbose mode.
         j = glymur.Jp2k(self.jp2file)
@@ -96,15 +98,17 @@ class TestCallbacks15(unittest.TestCase):
         actual = sys.stdout.getvalue().strip()
 
         regex = re.compile(r"""\[INFO\]\stile\s1\sof\s1\s+
-                               \[INFO\]\s-\stiers-1\stook\s[0-9]+\.[0-9]+\ss\s+
-                               \[INFO\]\s-\sdwt\stook\s[0-9]+\.[0-9]+\ss\s+
-                               \[INFO\]\s-\stile\sdecoded\sin\s[0-9]+\.[0-9]+\ss""",
+                               \[INFO\]\s-\stiers-1\stook\s
+                                       [0-9]+\.[0-9]+\ss\s+
+                               \[INFO\]\s-\sdwt\stook\s
+                                       (-){0,1}[0-9]+\.[0-9]+\ss\s+
+                               \[INFO\]\s-\stile\sdecoded\sin\s
+                                       [0-9]+\.[0-9]+\ss""",
                            re.VERBOSE)
         if sys.hexversion <= 0x03020000:
             self.assertRegexpMatches(actual, regex)
         else:
             self.assertRegex(actual, regex)
-
 
 
 if __name__ == "__main__":
