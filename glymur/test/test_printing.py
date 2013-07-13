@@ -4,7 +4,11 @@ import pkg_resources
 import struct
 import sys
 import tempfile
-import unittest
+
+if sys.hexversion < 0x02070000:
+    import unittest2 as unittest
+else:
+    import unittest
 
 if sys.hexversion < 0x03000000:
     from StringIO import StringIO
@@ -577,6 +581,8 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
+    @unittest.skipIf(sys.hexversion < 0x02070000,
+                     "Differences in XML printing between 2.6 and 2.7")
     def test_xmp(self):
         # Verify the printing of a UUID/XMP box.
         j = glymur.Jp2k(self.jp2file)
@@ -645,6 +651,8 @@ class TestPrinting(unittest.TestCase):
         self.maxDiff = None
         self.assertEqual(actual, expected)
 
+    @unittest.skipIf(sys.hexversion < 0x02070000,
+                     "Differences in XML printing between 2.6 and 2.7")
     @unittest.skipIf(data_root is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_xml(self):

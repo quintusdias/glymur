@@ -4,7 +4,12 @@ import os
 import struct
 import sys
 import tempfile
-import unittest
+
+if sys.hexversion < 0x02070000:
+    import unittest2 as unittest
+else:
+    import unittest
+
 import warnings
 from xml.etree import cElementTree as ET
 

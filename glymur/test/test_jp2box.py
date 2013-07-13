@@ -1,9 +1,14 @@
 #pylint:  disable-all
 import doctest
 import os
+import sys
 import tempfile
 import xml.etree.cElementTree as ET
-import unittest
+
+if sys.hexversion < 0x02070000:
+    import unittest2 as unittest
+else:
+    import unittest
 
 import numpy as np
 import pkg_resources

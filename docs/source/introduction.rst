@@ -14,7 +14,7 @@ some very limited support for reading JPX metadata.  For instance,
 **asoc** and **labl** boxes are recognized, so GMLJP2 metadata can
 be retrieved from such JPX files.
 
-Glymur works on Python 2.7 and 3.3.  Python 3.3 is strongly recommended.
+Glymur works on Python 2.6, 2.7, and 3.3.  Python 3.3 is strongly recommended.
 
 OpenJPEG Installation
 =====================
@@ -27,8 +27,8 @@ about OpenJPEG, please consult http://www.openjpeg.org.
 If you use MacPorts on the mac or if you have a sufficiently recent version of
 Linux, your package manager should already provide you with at least version
 1.5.1 of OpenJPEG, which means that glymur can be installed ready to read JPEG
-2000 images.  If you use windows, I suggest using the 1.5.1 windows installer
-provided to you by the OpenJPEG folks at
+2000 images.  If your platform is windows, I suggest using the 1.5.1 windows 
+installer provided to you by the OpenJPEG folks at
 https://code.google.com/p/openjpeg/downloads/list .
 
 Glymur Installation

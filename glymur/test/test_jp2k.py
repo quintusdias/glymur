@@ -7,7 +7,12 @@ import struct
 import sys
 import tempfile
 import uuid
-import unittest
+
+if sys.hexversion < 0x02070000:
+    import unittest2 as unittest
+else:
+    import unittest
+
 if sys.hexversion <= 0x03030000:
     from mock import patch
 else:
@@ -33,6 +38,9 @@ except:
 def load_tests(loader, tests, ignore):
     if os.name == "nt":
         # Can't do it on windows, temporary file issue.
+        return tests
+    if sys.hexversion < 0x02070000:
+        # Don't bother with doctests on 2.6 for the time being.
         return tests
     if glymur.lib.openjp2.OPENJP2 is not None:
         tests.addTests(doctest.DocTestSuite('glymur.jp2k'))

@@ -10,7 +10,12 @@ import platform
 import re
 import sys
 from xml.etree import cElementTree as ET
-import unittest
+
+if sys.hexversion < 0x02070000:
+    import unittest2 as unittest
+else:
+    import unittest
+
 import warnings
 
 if sys.hexversion <= 0x03030000:

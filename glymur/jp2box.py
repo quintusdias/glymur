@@ -13,7 +13,6 @@ References
 
 # pylint: disable=C0302,R0903,R0913
 
-import collections
 import copy
 import datetime
 import math
@@ -23,6 +22,12 @@ import sys
 import uuid
 import warnings
 import xml.etree.cElementTree as ET
+if sys.hexversion < 0x02070000:
+    from ordereddict import OrderedDict
+    from xml.etree.cElementTree import XMLParserError as ParseError
+else:
+    from xml.etree.cElementTree import ParseError
+    from collections import OrderedDict
 
 import numpy as np
 
@@ -342,7 +347,7 @@ class _ICCProfile(object):
 
     def __init__(self, read_buffer):
         self._raw_buffer = read_buffer
-        header = collections.OrderedDict()
+        header = OrderedDict()
 
         data = struct.unpack('>IIBB', self._raw_buffer[0:10])
         header['Size'] = data[0]
@@ -1012,8 +1017,9 @@ class JPEG2000SignatureBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        msg += '\n    Signature:  {:02x}{:02x}{:02x}{:02x}'
-        msg = msg.format(*self.signature)
+        msg += '\n    Signature:  {0:02x}{1:02x}{2:02x}{3:02x}'
+        msg = msg.format(self.signature[0], self.signature[1],
+                         self.signature[2], self.signature[3])
         return msg
 
     def write(self, fptr):
@@ -1634,7 +1640,8 @@ class XMLBox(Jp2kBox):
         """
         try:
             read_buffer = ET.tostring(self.xml, encoding='utf-8')
-        except AttributeError:
+        except (AttributeError, AssertionError):
+            # AssertionError on 2.6
             read_buffer = ET.tostring(self.xml.getroot(), encoding='utf-8')
 
         fptr.write(struct.pack('>I', len(read_buffer) + 8))
@@ -1667,7 +1674,7 @@ class XMLBox(Jp2kBox):
 
         try:
             xml = ET.fromstring(text)
-        except ET.ParseError as parse_error:
+        except ParseError as parse_error:
             msg = 'A problem was encountered while parsing an XML box:  "{0}"'
             msg = msg.format(str(parse_error))
             warnings.warn(msg, UserWarning)
@@ -1910,14 +1917,16 @@ class UUIDBox(Jp2kBox):
             # XMP data.  Parse as XML.  Seems to be a difference between
             # ElementTree in version 2.7 and 3.3.
             if sys.hexversion < 0x03000000:
-                parser = ET.XMLParser(encoding='utf-8')
-                self.data = ET.fromstringlist(raw_data, parser=parser)
+                #parser = ET.XMLParser(encoding='utf-8')
+                #import pdb; pdb.set_trace()
+                #self.data = ET.fromstringlist(raw_data, parser=parser)
+                self.data = ET.fromstring(raw_data)
             else:
                 text = raw_data.decode('utf-8')
                 self.data = ET.fromstring(text)
         elif the_uuid.bytes == b'JpgTiffExif->JP2':
             exif_obj = Exif(raw_data)
-            ifds = collections.OrderedDict()
+            ifds = OrderedDict()
             ifds['Image'] = exif_obj.exif_image
             ifds['Photo'] = exif_obj.exif_photo
             ifds['GPSInfo'] = exif_obj.exif_gpsinfo
@@ -2067,7 +2076,7 @@ class _Ifd(object):
     def __init__(self, endian, read_buffer, offset):
         self.endian = endian
         self.read_buffer = read_buffer
-        self.processed_ifd = collections.OrderedDict()
+        self.processed_ifd = OrderedDict()
 
         self.num_tags, = struct.unpack(endian + 'H',
                                        read_buffer[offset:offset + 2])
@@ -2075,7 +2084,7 @@ class _Ifd(object):
         fmt = self.endian + 'HHII' * self.num_tags
         ifd_buffer = read_buffer[offset + 2:offset + 2 + self.num_tags * 12]
         data = struct.unpack(fmt, ifd_buffer)
-        self.raw_ifd = collections.OrderedDict()
+        self.raw_ifd = OrderedDict()
         for j, tag in enumerate(data[0::4]):
             # The offset to the tag offset/payload is the offset to the IFD
             # plus 2 bytes for the number of tags plus 12 bytes for each
