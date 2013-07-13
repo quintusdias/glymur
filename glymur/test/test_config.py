@@ -7,7 +7,12 @@ import imp
 import os
 import sys
 import tempfile
-import unittest
+
+if sys.hexversion < 0x02070000:
+    import unittest2 as unittest
+else:
+    import unittest
+
 if sys.hexversion <= 0x03030000:
     from mock import patch
 else:

@@ -4,13 +4,17 @@ import pkg_resources
 import re
 import sys
 import tempfile
-import unittest
 import warnings
 
 if sys.hexversion < 0x03000000:
     from StringIO import StringIO
 else:
     from io import StringIO
+
+if sys.hexversion < 0x02070000:
+    import unittest2 as unittest
+else:
+    import unittest
 
 import glymur
 

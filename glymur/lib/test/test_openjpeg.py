@@ -1,6 +1,10 @@
 #pylint:  disable-all
 import ctypes
-import unittest
+
+if sys.hexversion < 0x02070000:
+    import unittest2 as unittest
+else:
+    import unittest
 
 import glymur
 
