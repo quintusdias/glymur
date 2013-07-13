@@ -39,6 +39,9 @@ def load_tests(loader, tests, ignore):
     if os.name == "nt":
         # Can't do it on windows, temporary file issue.
         return tests
+    if sys.hexversion < 0x02070000:
+        # Don't bother with doctests on 2.6 for the time being.
+        return tests
     if glymur.lib.openjp2.OPENJP2 is not None:
         tests.addTests(doctest.DocTestSuite('glymur.jp2k'))
     return tests

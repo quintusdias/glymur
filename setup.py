@@ -19,9 +19,13 @@ instllrqrs = ['numpy>1.6.2']
 if sys.hexversion < 0x03030000:
     instllrqrs.append('contextlib2>=0.4')
     instllrqrs.append('mock>=1.0.1')
+if sys.hexversion < 0x02070000:
+    instllrqrs.append('ordereddict>=1.1')
+    instllrqrs.append('unittest2>=0.5.1')
 kwargs['install_requires'] = instllrqrs
 
 clssfrs = ["Programming Language :: Python",
+           "Programming Language :: Python :: 2.6",
            "Programming Language :: Python :: 2.7",
            "Programming Language :: Python :: 3.3",
            "Programming Language :: Python :: Implementation :: CPython",

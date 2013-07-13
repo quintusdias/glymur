@@ -581,6 +581,8 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
+    @unittest.skipIf(sys.hexversion < 0x02070000,
+                     "Differences in XML printing between 2.6 and 2.7")
     def test_xmp(self):
         # Verify the printing of a UUID/XMP box.
         j = glymur.Jp2k(self.jp2file)
@@ -649,6 +651,8 @@ class TestPrinting(unittest.TestCase):
         self.maxDiff = None
         self.assertEqual(actual, expected)
 
+    @unittest.skipIf(sys.hexversion < 0x02070000,
+                     "Differences in XML printing between 2.6 and 2.7")
     @unittest.skipIf(data_root is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_xml(self):
