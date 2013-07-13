@@ -67,13 +67,6 @@ def load_openjpeg(libopenjpeg_path):
     except OSError:
         openjpeg_lib = None
 
-    if openjpeg_lib is not None:
-        # Must be at least 1.5.0
-        openjpeg_lib.opj_version.restype = ctypes.c_char_p
-        version = openjpeg_lib.opj_version().decode('utf-8')
-        _, minor, _ = version.split('.')
-        if minor != '5':
-            openjpeg_lib = None
     return openjpeg_lib
 
 
