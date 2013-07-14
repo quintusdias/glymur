@@ -1,5 +1,6 @@
 """glymur - read, write, and interrogate JPEG 2000 files
 """
+import sys
 
 from .jp2k import Jp2k
 from .jp2dump import jp2dump
