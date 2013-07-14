@@ -7765,13 +7765,14 @@ class TestSuite15(unittest.TestCase):
         jpdata = jp2k.read()
         self.assertEqual(jpdata.shape, (400, 700))
 
-    @unittest.skipIf(glymur.lib.openjpeg.version().startswith('1.3'),
-                     "Version 1.3 reads palette images wrong.")
     def test_ETS_JP2_file9(self):
         jfile = os.path.join(data_root, 'input/conformance/file9.jp2')
         jp2k = Jp2k(jfile)
         jpdata = jp2k.read()
-        self.assertEqual(jpdata.shape, (512, 768, 3))
+        if glymur.lib.openjpeg.version().startswith('1.3'):
+            self.assertEqual(jpdata.shape, (512, 768))
+        else:
+            self.assertEqual(jpdata.shape, (512, 768, 3))
 
     def test_NR_DEC_Bretagne2_j2k_1_decode(self):
         jfile = os.path.join(data_root,
