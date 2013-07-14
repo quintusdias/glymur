@@ -23,7 +23,7 @@ class TestOpenJPEG(unittest.TestCase):
 
     def test_version(self):
         version = glymur.lib._openjpeg.version()
-        regex = re.compile('1.[45].[0-9]')
+        regex = re.compile('1.[345].[0-9]')
         if sys.hexversion <= 0x03020000:
             self.assertRegexpMatches(version, regex)
         else:

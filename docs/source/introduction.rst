@@ -18,18 +18,17 @@ Glymur works on Python 2.6, 2.7, and 3.3.  Python 3.3 is strongly recommended.
 
 OpenJPEG Installation
 =====================
-The OpenJPEG library version must be either 1.4, 1.5, or the trunk/development
-version of OpenJPEG.  Version 2.0.0 or versions earlier than 1.4.0
+The OpenJPEG library version must be 1.3, 1.4, 1.5, or the trunk/development
+version of OpenJPEG.  Version 2.0.0 or versions earlier than 1.3.0
 are not supported.  Furthermore, the 1.4 and 1.5 versions of OpenJPEG are
 currently only utilized for read-only purposes.  For more information
 about OpenJPEG, please consult http://www.openjpeg.org.
 
 If you use MacPorts on the mac or if you have a sufficiently recent version of
-Linux, your package manager should already provide you with at least version
-1.5.1 of OpenJPEG, which means that glymur can be installed ready to read JPEG
-2000 images.  If your platform is windows, I suggest using the 1.5.1 windows 
-installer provided to you by the OpenJPEG folks at
-https://code.google.com/p/openjpeg/downloads/list .
+Linux, your package manager should already provide you with a version
+of OpenJPEG with which glymur can already use.  If your platform is
+windows, I suggest using the 1.5.1 windows installer provided to you by
+the OpenJPEG folks at https://code.google.com/p/openjpeg/downloads/list .
 
 Glymur Installation
 ===================
@@ -56,5 +55,5 @@ You can run the tests from within python as follows::
     >>> glymur.runtests()
 
 Many tests are currently skipped; in fact most of them are skipped if you 
-are relying on OpenJPEG 1.4 or 1.5.  But the important thing, though, is whether or
+are relying on OpenJPEG 1.3, 1.4, or 1.5.  The important thing, though, is whether or
 not any tests fail.
