@@ -9,11 +9,11 @@
 |         |        |        |        | tests should pass.                    |
 +---------+--------+--------+--------+---------------------------------------+
 | Mac     |        |   X    |        | MacPorts with both OpenJPEG 1.5.1     |
-|         |        |        |        | and OpenJPEG svn.  370 of 450 tests   |
+|         |        |        |        | and OpenJPEG svn.  372 of 450 tests   |
 |         |        |        |        | should pass.                          |
 +---------+--------+--------+--------+---------------------------------------+
 | Mac     |        |        |   X    | MacPorts with both OpenJPEG 1.5.1     |
-|         |        |        |        | and OpenJPEG svn.  390 of 450         |
+|         |        |        |        | and OpenJPEG svn.  392 of 450         |
 |         |        |        |        | tests should pass.                    |
 +---------+--------+--------+------------------------------------------------+
 | Fedora  |        |        |   X    | Ships with 1.5.1.  390 of 450 tests   |
