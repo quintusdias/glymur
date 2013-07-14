@@ -11,6 +11,9 @@ from . import test
 def runtests():
     """Discover and run all tests for the glymur package.
     """
-    import unittest
+    if sys.hexversion <= 0x02070000:
+        import unittest2 as unittest
+    else:
+        import unittest
     suite = unittest.defaultTestLoader.discover(__path__[0])
     unittest.TextTestRunner(verbosity=2).run(suite)
