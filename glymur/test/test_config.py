@@ -25,24 +25,22 @@ import glymur
 from glymur import Jp2k
 from glymur.lib import openjp2 as opj2
 
-
-@unittest.skip("Cannot work when both OPENJPEG and OPENJP2 are both present.")
-@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
-                 "Needs openjp2 library first before these tests make sense.")
 @unittest.skipIf(sys.hexversion < 0x03020000,
                  "Uses features introduced in 3.2.")
+@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
+                 "Needs openjp2 library first before these tests make sense.")
 class TestSuite(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
         # Monkey patch the package so as to ignore OPENJPEG if it exists.
-        cls.openjpeg = glymur.lib.openjpeg._OPENJPEG
-        glymur.lib.openjp2._OPENJPEG = None
+        cls.openjpeg = glymur.lib.openjpeg.OPENJPEG
+        glymur.lib.openjp2.OPENJPEG = None
 
     @classmethod
     def tearDownClass(cls):
         # Restore OPENJPEG
-        glymur.lib.openjpeg._OPENJPEG = cls.openjpeg
+        glymur.lib.openjpeg.OPENJPEG = cls.openjpeg
 
     def setUp(self):
         imp.reload(glymur)
@@ -53,17 +51,18 @@ class TestSuite(unittest.TestCase):
         imp.reload(glymur)
         imp.reload(glymur.lib.openjp2)
 
+    @unittest.skip("blah")
     def test_config_file_via_environ(self):
         """Verify that we can read a configuration file set via environ var."""
         with tempfile.TemporaryDirectory() as tdir:
             configdir = os.path.join(tdir, 'glymur')
             os.mkdir(configdir)
             filename = os.path.join(configdir, 'glymurrc')
-            with open(filename, 'wb') as tfile:
-                tfile.write('[library]\n'.encode())
+            with open(filename, 'wt') as tfile:
+                tfile.write('[library]\n')
                 libloc = glymur.lib.openjp2.OPENJP2._name
                 line = 'openjp2: {0}\n'.format(libloc)
-                tfile.write(line.encode())
+                tfile.write(line)
                 tfile.flush()
                 with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
                     imp.reload(glymur.lib.openjp2)
