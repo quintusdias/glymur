@@ -118,9 +118,8 @@ class Jp2k(Jp2kBox):
         IOError
             The file was not JPEG 2000.
         """
-        stat = os.stat(self.filename)
-        self.length = stat.st_size
-        self._file_size = stat.st_size
+        self.length = os.path.getsize(self.filename)
+        self._file_size = os.path.getsize(self.filename)
 
         with open(self.filename, 'rb') as fptr:
 

@@ -73,7 +73,7 @@ class Jp2kBox(object):
         self.offset = offset
         self.longname = longname
 
-        # should never be used except for last box in file.
+        # should never be used except maybe for last box in file.
         self._file_size = -1
 
     def __str__(self):
