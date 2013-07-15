@@ -35,6 +35,9 @@ def glymurrc_fname():
         fname = os.path.join(confdir, 'glymurrc')
         if os.path.exists(fname):
             return fname
+        else:
+            msg = "Configuration directory '{0}' does not exist.".format(fname)
+            warnings.warn(msg)
 
     # didn't find a configuration file.
     return None
@@ -133,7 +136,6 @@ def get_configdir():
     Default is $HOME/.config/glymur.  You can override this with the
     XDG_CONFIG_HOME environment variable.
     """
-
     if 'XDG_CONFIG_HOME' in os.environ:
         return os.path.join(os.environ['XDG_CONFIG_HOME'], 'glymur')
 
