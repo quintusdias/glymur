@@ -612,8 +612,12 @@ class Jp2k(Jp2kBox):
         """
         if _opj2.OPENJP2 is not None:
             img = self._read_openjp2(**kwargs)
-        else:
+        elif _opj.OPENJPEG is not None:
             img = self._read_openjpeg(**kwargs)
+        else:
+            raise IOError("You must have either a recent version of OpenJPEG "
+                          "or the development version of OpenJP2 installed "
+                          "before using this functionality.")
         return img
 
     def _read_openjpeg(self, rlevel=0, verbose=False):
