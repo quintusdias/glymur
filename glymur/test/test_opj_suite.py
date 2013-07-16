@@ -216,7 +216,7 @@ class TestSuite(unittest.TestCase):
                                'baseline/conformance/c0p0_13.pgx')
         pgxdata = read_pgx(pgxfile)
 
-        np.testing.assert_array_equal(jpdata[:,:,0], pgxdata)
+        np.testing.assert_array_equal(jpdata[:, :, 0], pgxdata)
 
     @unittest.skip("Known failure in OPENJPEG test suite.")
     def test_ETS_C0P0_p0_14_j2k(self):

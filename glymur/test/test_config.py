@@ -25,6 +25,7 @@ import glymur
 from glymur import Jp2k
 from glymur.lib import openjp2 as opj2
 
+
 @unittest.skipIf(sys.hexversion < 0x03020000,
                  "TemporaryDirectory introduced in 3.2.")
 @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
@@ -33,23 +34,19 @@ class TestSuite(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        # Monkey patch the package so as to ignore OPENJPEG if it exists.
-        cls.openjpeg = glymur.lib.openjpeg.OPENJPEG
-        glymur.lib.openjpeg.OPENJPEG = None
+        imp.reload(glymur)
+        imp.reload(glymur.lib.openjp2)
 
     @classmethod
     def tearDownClass(cls):
-        # Restore OPENJPEG
-        glymur.lib.openjpeg.OPENJPEG = cls.openjpeg
-
-    def setUp(self):
         imp.reload(glymur)
         imp.reload(glymur.lib.openjp2)
+
+    def setUp(self):
         self.jp2file = glymur.data.nemo()
 
     def tearDown(self):
-        imp.reload(glymur)
-        imp.reload(glymur.lib.openjp2)
+        pass
 
     def test_config_file_via_environ(self):
         """Verify that we can read a configuration file set via environ var."""
