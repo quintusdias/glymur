@@ -35,7 +35,7 @@ class TestSuite(unittest.TestCase):
     def setUpClass(cls):
         # Monkey patch the package so as to ignore OPENJPEG if it exists.
         cls.openjpeg = glymur.lib.openjpeg.OPENJPEG
-        glymur.lib.openjp2.OPENJPEG = None
+        glymur.lib.openjpeg.OPENJPEG = None
 
     @classmethod
     def tearDownClass(cls):
