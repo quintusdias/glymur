@@ -226,6 +226,9 @@ class Jp2k(Jp2kBox):
         >>> j = Jp2k(tfile.name, mode='wb')
         >>> j.write(data.astype(np.uint8))
         """
+        if _opj2.OPENJP2 is None:
+            raise IOError("You must have the development version of OpenJP2 "
+                          "installed before using this functionality.")
 
         cparams = _opj2.set_default_encoder_parameters()
 
@@ -965,8 +968,8 @@ class Jp2k(Jp2kBox):
             If the openjp2 library is not available.
         """
         if _opj2.OPENJP2 is None:
-            msg = "Requires openjp2 library."
-            raise NotImplementedError(msg)
+            raise IOError("You must have the development version of OpenJP2 "
+                          "installed before using this functionality.")
 
         lst = self._read_common(rlevel=rlevel,
                                 layer=layer,

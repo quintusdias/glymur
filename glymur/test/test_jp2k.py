@@ -47,6 +47,44 @@ def load_tests(loader, tests, ignore):
     return tests
 
 
+class TestConfig(unittest.TestCase):
+
+    def setUp(self):
+        self.jp2file = glymur.data.nemo()
+        self.j2kfile = glymur.data.goodstuff()
+
+    def tearDown(self):
+        pass
+
+    def test_read_without_library_backing_us_up(self):
+        """Don't have either openjp2 or openjpeg libraries?  Must error out.
+        """
+        with patch('glymur.lib.openjp2.OPENJP2', new=None):
+            with  patch('glymur.lib.openjpeg.OPENJPEG', new=None):
+                with self.assertRaises((IOError, OSError)):
+                    d = glymur.Jp2k(self.jp2file).read()
+
+    def test_read_bands_without_library_backing_us_up(self):
+        """Don't have openjp2 library?  Must error out.
+        """
+        with patch('glymur.lib.openjp2.OPENJP2', new=None):
+            with  patch('glymur.lib.openjpeg.OPENJPEG', new=None):
+                with self.assertRaises((IOError, OSError)):
+                    d = glymur.Jp2k(self.jp2file).read_bands()
+
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+    def test_write_without_library_backing_us_up(self):
+        """Don't have openjp2 library?  Must error out.
+        """
+        data = glymur.Jp2k(self.j2kfile).read()
+        with patch('glymur.lib.openjp2.OPENJP2', new=None):
+            with  patch('glymur.lib.openjpeg.OPENJPEG', new=None):
+                with self.assertRaises((IOError, OSError)):
+                    with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+                        ofile = Jp2k(tfile.name, 'wb')
+                        ofile.write(data)
+
+
 @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
 @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
@@ -712,13 +750,6 @@ class TestJp2k15(unittest.TestCase):
 
     def tearDown(self):
         pass
-
-    def test_bands(self):
-        """Reading individual bands is an advanced maneuver.
-        """
-        jp2k = Jp2k(self.j2kfile)
-        with self.assertRaises(NotImplementedError):
-            jp2k.read_bands()
 
     def test_area(self):
         """Area option not allowed for 1.5.1.

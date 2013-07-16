@@ -25,23 +25,6 @@ import glymur
 from glymur import Jp2k
 from glymur.lib import openjp2 as opj2
 
-class TestConfig(unittest.TestCase):
-
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
-
-    def tearDown(self):
-        pass
-
-    def test_read_without_library_backing_us_up(self):
-        """Don't have either openjp2 or openjpeg libraries?  Must error out.
-        """
-        with patch('glymur.lib.openjp2.OPENJP2', new=None):
-            with  patch('glymur.lib.openjpeg.OPENJPEG', new=None):
-                with self.assertRaises((IOError, OSError)):
-                    d = glymur.Jp2k(self.jp2file).read()
-
-
 @unittest.skipIf(sys.hexversion < 0x03020000,
                  "TemporaryDirectory introduced in 3.2.")
 @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
