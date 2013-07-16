@@ -19,30 +19,15 @@ import pkg_resources
 
 from glymur.lib import openjp2 as opj2
 
-# Need some combination of matplotlib, PIL, or scikits-image for reading
-# other image formats.
-no_read_backend = True
-msg = "Either scikit-image with the freeimage backend or matplotlib "
-msg += "with the PIL backend must be available in order to run the "
+msg = "Matplotlib with the PIL backend must be available in order to run the "
 msg += "tests in this suite."
 no_read_backend_msg = msg
 try:
-    import skimage.io
-    try:
-        skimage.io.use_plugin('freeimage')
-        from skimage.io import imread
-        no_read_backend = False
-    except RuntimeError:
-        skimage.io.use_plugin('PIL')
-        from skimage.io import imread
-        no_read_backend = False
+    from PIL import Image
+    from matplotlib.pyplot import imread
+    no_read_backend = False
 except:
-    try:
-        from PIL import Image
-        from matplotlib.pyplot import imread
-        no_read_backend = False
-    except:
-        pass
+    no_read_backend = True
 
 from glymur import Jp2k
 import glymur
