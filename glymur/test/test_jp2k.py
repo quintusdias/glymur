@@ -61,7 +61,7 @@ class TestConfig(unittest.TestCase):
         """
         with patch('glymur.lib.openjp2.OPENJP2', new=None):
             with  patch('glymur.lib.openjpeg.OPENJPEG', new=None):
-                with self.assertRaises((IOError, OSError)):
+                with self.assertRaises(glymur.jp2k.LibraryNotFoundError):
                     d = glymur.Jp2k(self.jp2file).read()
 
     def test_read_bands_without_library_backing_us_up(self):
@@ -69,7 +69,7 @@ class TestConfig(unittest.TestCase):
         """
         with patch('glymur.lib.openjp2.OPENJP2', new=None):
             with  patch('glymur.lib.openjpeg.OPENJPEG', new=None):
-                with self.assertRaises((IOError, OSError)):
+                with self.assertRaises(glymur.jp2k.LibraryNotFoundError):
                     d = glymur.Jp2k(self.jp2file).read_bands()
 
     @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
@@ -79,7 +79,7 @@ class TestConfig(unittest.TestCase):
         data = glymur.Jp2k(self.j2kfile).read()
         with patch('glymur.lib.openjp2.OPENJP2', new=None):
             with  patch('glymur.lib.openjpeg.OPENJPEG', new=None):
-                with self.assertRaises((IOError, OSError)):
+                with self.assertRaises(glymur.jp2k.LibraryNotFoundError):
                     with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
                         ofile = Jp2k(tfile.name, 'wb')
                         ofile.write(data)
