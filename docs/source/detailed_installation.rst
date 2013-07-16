@@ -56,17 +56,13 @@ packages/RPMs/ports/whatever without going through pip.
 Mac OS X
 --------
 All the necessary packages are available to use glymur with Python 3.3 via
-MacPorts.  A minimal set of ports includes
+MacPorts.  You should install the following set of ports:
 
       * python33
       * py33-numpy
       * py33-distribute
-
-To run all the testing, one of the following combinations of ports must
-additionally be installed:
-
-      * py33-scikit-image and either py33-Pillow or freeimage
-      * py33-matplotlib and py33-Pillow
+      * py33-matplotlib (optional, for running certain tests)
+      * py33-Pillow (optional, for running certain tests)
 
 MacPorts supplies both OpenJPEG 1.5.0 and OpenJPEG 2.0.0.  As previously
 mentioned, the 2.0.0 official release is not supported (although the 2.0+
@@ -98,15 +94,9 @@ meet the minimal set of requirements for running glymur.
       * python3-matplotlib (for running tests)
       * python3-matplotlib-tk (or whichever matplotlib backend you prefer)
 
-A few tests still will not run, however, unless one of the following
-combinations of RPMs / Python packages is installed.
-
-      * scikit-image and either Pillow or freeimage
-      * matplotlib and Pillow
-
-The 2nd route is probably the easiest, so go ahead and install Pillow
-via pip since Pillow is not yet available in Fedora 18 default
-repositories::
+Pillow is also needed in order to run the maximum number of tests, so
+go ahead and install Pillow via pip since Pillow is not yet available
+in Fedora 18 default repositories::
 
     $ yum install python3-devel       # pip needs this in order to compile Pillow
     $ yum install python3-pip
@@ -115,8 +105,7 @@ repositories::
 
 Fedora 17
 '''''''''
-Fedora 17 ships with Python 3.2 and 2.7, but OpenJPEG is only at version 1.4,
-so these steps detail working with Python 2.7 and the svn version of OpenJPEG.
+Fedora 17 ships with Python 2.7 and OpenJPEG 1.4.
 
 Required RPMs include::
 
@@ -137,11 +126,8 @@ combinations of RPMs / Python packages is installed.
 scikit-image was not available in the Fedora 17 default repositories, but 
 it was installable via pip::
 
-    $ yum install Cython       # pip needs this in order to compile scikit-image
-    $ yum install python-devel # pip needs this in order to compile scikit-image
-    $ yum install freeimage    # scikit-image uses this as a backend
-    $ yum install scipy        # needed by scikit-image
-    $ pip-python install scikit-image --user
+    $ yum install python-devel # pip needs this in order to compile Pillow
+    $ pip-python3 install Pillow --user
     $ pip-python install contextlib2 --user
     $ export PYTHONPATH=$HOME/.local/lib/python2.7/site-packages:$PYTHONPATH
 

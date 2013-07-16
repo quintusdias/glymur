@@ -13,9 +13,10 @@ kwargs = {'name': 'Glymur',
           'package_data': {'glymur': ['data/*.jp2', 'data/*.j2k']},
           'scripts': ['bin/jp2dump'],
           'license': 'LICENSE.txt',
+          'test_suite': 'glymur.test',
           'platforms': ['darwin']}
 
-instllrqrs = ['numpy>1.6.2']
+instllrqrs = ['numpy>=1.4.1']
 if sys.hexversion < 0x03030000:
     instllrqrs.append('contextlib2>=0.4')
     instllrqrs.append('mock>=1.0.1')
