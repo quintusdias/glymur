@@ -7,7 +7,7 @@ Glymur Configuration
 ''''''''''''''''''''''
 
 The default glymur installation process relies upon OpenJPEG version
-1.5.1 being properly installed on your system.  This will, however, only
+1.4 or 1.5 being properly installed on your system.  This will, however, only
 give you you basic read capabilities, so if you wish to take advantage
 of more of glymur's features, you should compile OpenJPEG as a shared
 library (named *openjp2* instead of *openjpeg*) from the developmental
@@ -23,21 +23,18 @@ environment variable for the purpose of running Glymur's test suite. ::
 Glymur uses ctypes (for the moment) to access the openjp2 library, and
 because ctypes access libraries in a platform-dependent manner, it is 
 recommended that you create a configuration file to help Glymur properly find
-the openjp2 library.  You may create the configuration file as follows::
+the openjp2 library.  The configuration format is the same as used by Python's
+configparser module, i.e. ::
 
-    $ mkdir -p ~/.config/glymur
-    $ cd ~/.config/glymur
-    $ cat > glymurrc << EOF
-    > [library]
-    > openjp2: /opt/openjp2-svn/lib/libopenjp2.so
-    > EOF
+    [library]
+    openjp2: /opt/openjp2-svn/lib/libopenjp2.so
 
 This assumes, of course, that you've installed OpenJPEG into
 /opt/openjp2-svn on a linux system.  You may also substitute
 **$XDG_CONFIG_HOME** for **$HOME/.config**.
 
-You may also include a line for the version 1.5.1 library if you have it installed
-in a non-standard place, i.e. ::
+You may also include a line for the version 1.x openjpeg library if you have it
+installed in a non-standard place, i.e. ::
 
     [library]
     openjp2: /opt/openjp2-svn/lib/libopenjp2.so
@@ -95,7 +92,7 @@ meet the minimal set of requirements for running glymur.
       * python3-matplotlib-tk (or whichever matplotlib backend you prefer)
 
 Pillow is also needed in order to run the maximum number of tests, so
-go ahead and install Pillow via pip since Pillow is not yet available
+go ahead and install Pillow via pip since Pillow is not available
 in Fedora 18 default repositories::
 
     $ yum install python3-devel       # pip needs this in order to compile Pillow
@@ -114,20 +111,12 @@ Required RPMs include::
       * python-pip
       * python-setuptools
       * numpy
+      * matplotlib (optional)
 
-In addition, you must install contextlib2 via pip.
-
-A few tests still will not run, however, unless one of the following 
-combinations of RPMs / Python packages is installed.
-
-      * scikit-image and either Pillow or freeimage
-      * matplotlib and Pillow
-
-scikit-image was not available in the Fedora 17 default repositories, but 
-it was installable via pip::
+In addition, you must install contextlib2 and Pillow via pip.
 
     $ yum install python-devel # pip needs this in order to compile Pillow
-    $ pip-python3 install Pillow --user
+    $ pip-python install Pillow --user
     $ pip-python install contextlib2 --user
     $ export PYTHONPATH=$HOME/.local/lib/python2.7/site-packages:$PYTHONPATH
 
