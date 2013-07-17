@@ -43,14 +43,14 @@ _COLORSPACE_MAP_DISPLAY = {
     ROMM_RGB:  'ROMM-RGB'}
 
 # enumerated color channel types
-_COLOR = 0
-_OPACITY = 1
-_PRE_MULTIPLIED_OPACITY = 2
+COLOR = 0
+OPACITY = 1
+PRE_MULTIPLIED_OPACITY = 2
 _UNSPECIFIED = 65535
 _COLOR_TYPE_MAP_DISPLAY = {
-    _COLOR:  'color',
-    _OPACITY:  'opacity',
-    _PRE_MULTIPLIED_OPACITY:  'pre-multiplied opacity',
+    COLOR:  'color',
+    OPACITY:  'opacity',
+    PRE_MULTIPLIED_OPACITY:  'pre-multiplied opacity',
     _UNSPECIFIED:  'unspecified'}
 
 # color channel definitions.
@@ -58,6 +58,7 @@ RED = 1
 GREEN = 2
 BLUE = 3
 GREY = 1
+WHOLE_IMAGE = 0
 
 # enumerated color channel associations
 _COLORSPACE = {SRGB: {"R": 1, "G": 2, "B": 3},
