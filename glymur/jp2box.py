@@ -16,6 +16,7 @@ References
 import copy
 import datetime
 import math
+import os
 import pprint
 import struct
 import sys
@@ -73,9 +74,6 @@ class Jp2kBox(object):
         self.offset = offset
         self.longname = longname
 
-        # should never be used except maybe for last box in file.
-        self._file_size = -1
-
     def __str__(self):
         msg = "{0} Box ({1})".format(self.longname, self.box_id)
         msg += " @ ({0}, {1})".format(self.offset, self.length)
@@ -118,7 +116,7 @@ class Jp2kBox(object):
             if box_length == 0:
                 # The length of the box is presumed to last until the end of
                 # the file.  Compute the effective length of the box.
-                num_bytes = self._file_size - fptr.tell() + 8
+                num_bytes = os.path.getsize(fptr.name) - fptr.tell() + 8
 
             elif box_length == 1:
                 # The length of the box is in the XL field, a 64-bit value.

@@ -101,7 +101,6 @@ class Jp2k(Jp2kBox):
         self.mode = mode
         self.box = []
         self._codec_format = None
-        self._file_size = 0
 
         # Parse the file for JP2/JPX contents only if we are reading it.
         if mode == 'rb':
@@ -126,7 +125,6 @@ class Jp2k(Jp2kBox):
             The file was not JPEG 2000.
         """
         self.length = os.path.getsize(self.filename)
-        self._file_size = os.path.getsize(self.filename)
 
         with open(self.filename, 'rb') as fptr:
 
