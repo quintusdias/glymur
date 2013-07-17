@@ -3,6 +3,34 @@ How do I...?
 ------------
 
 
+Create an image with an alpha layer?
+====================================
+::
+
+    >>> import numpy as np
+    >>> import glymur
+    >>> rgb = glymur.Jp2k(glymur.data.goodstuff()).read()
+    >>> lx, ly = rgb.shape[0:2]
+    >>> X, Y = np.ogrid[0:lx, 0:ly]
+    >>> mask = (X - lx / 2) ** 2 + (Y - ly / 2) ** 2 > lx * ly / 4
+    >>> alpha = 255 * np.ones((lx, ly, 1), dtype=np.uint8)
+    >>> alpha[mask] = 0
+    >>> rgba = np.concatenate((rgb, alpha), axis=2)
+    >>> jp2 = glymur.Jp2k('tmp.jp2', 'wb')
+    >>> jp2.write(rgba)
+
+::
+
+    >>> boxes = jp2.box  # The box attribute is the list of JP2 boxes
+    >>> index = [0, 1, 2, 3]
+    >>> ctype = [0, 0, 0, 1]
+    >>> asoc = [1, 2, 3, 0]
+    >>> cdef = glymur.jp2box.ChannelDefinitionBox(index, ctype, asoc)
+    >>> boxes[2].box.append(cdef)
+    >>> jp2_rgba = jp2.wrap("goodstuff_rgba.jp2", boxes=boxes)
+
+    
+
 Read the lowest resolution thumbnail?
 =====================================
 Printing the Jp2k object should reveal the number of resolutions (look in the
