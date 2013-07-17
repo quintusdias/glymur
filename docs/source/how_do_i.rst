@@ -123,12 +123,14 @@ Create an image with an alpha layer?
 ====================================
 
 OpenJPEG can create JP2 files with more than 3 components, but by default, any
-extra components are not described.  In order to specify an alpha layer as such,
+extra components are not described as such.  In order to do so, 
 we need to rewrap such an image in a set of boxes that includes a channel
 definition box.
 
 This example is based on SciPy example code found at 
-http://scipy-lectures.github.io/advanced/image_processing/#basic-manipulations .  ::
+http://scipy-lectures.github.io/advanced/image_processing/#basic-manipulations . 
+Instead of a circular mask, however, we'll make it an ellipse since the source
+image isn't square.
 
     >>> import numpy as np
     >>> import glymur
@@ -143,16 +145,18 @@ http://scipy-lectures.github.io/advanced/image_processing/#basic-manipulations .
     >>> jp2 = Jp2k('tmp.jp2', 'wb')
     >>> jp2.write(rgba)
 
-The first three channels are color channels, but the fourth will be identified
-as an alpha channel::
+Next we need to specify what types of channels we have.
+The first three channels are color channels, but we identify the fourth as
+an alpha channel::
 
     >>> from glymur.core import COLOR, OPACITY
     >>> ctype = [COLOR, COLOR, COLOR, OPACITY]
 
 And finally we have to specify just exactly how each channel is to be
-interpreted.  The color channels are straightforward, but the alpha channel
-in this case is to be applied against the entire image (it is possible to
-apply an alpha channel to a single color channel, but we aren't doing that). ::
+interpreted.  The color channels are straightforward, they correspond to R-G-B,
+but the alpha (or opacity) channel in this case is to be applied against the 
+entire image (it is possible to apply an alpha channel to a single color 
+channel, but we aren't doing that). ::
 
     >>> from glymur.core import RED, GREEN, BLUE, WHOLE_IMAGE
     >>> asoc = [RED, GREEN, BLUE, WHOLE_IMAGE]
@@ -165,6 +169,10 @@ go into the jp2 header box, and then we can rewrap the image. ::
     >>> boxes = jp2.box  # The box attribute is the list of JP2 boxes
     >>> boxes[2].box.append(cdef)
     >>> jp2_rgba = jp2.wrap("goodstuff_rgba.jp2", boxes=boxes)
+
+Here's how the Preview application on the mac shows the RGBA image.
+
+.. image:: goodstuff_alpha.png
 
     
 Work with XMP UUIDs?
