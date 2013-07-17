@@ -3,34 +3,6 @@ How do I...?
 ------------
 
 
-Create an image with an alpha layer?
-====================================
-::
-
-    >>> import numpy as np
-    >>> import glymur
-    >>> rgb = glymur.Jp2k(glymur.data.goodstuff()).read()
-    >>> lx, ly = rgb.shape[0:2]
-    >>> X, Y = np.ogrid[0:lx, 0:ly]
-    >>> mask = (X - lx / 2) ** 2 + (Y - ly / 2) ** 2 > lx * ly / 4
-    >>> alpha = 255 * np.ones((lx, ly, 1), dtype=np.uint8)
-    >>> alpha[mask] = 0
-    >>> rgba = np.concatenate((rgb, alpha), axis=2)
-    >>> jp2 = glymur.Jp2k('tmp.jp2', 'wb')
-    >>> jp2.write(rgba)
-
-::
-
-    >>> boxes = jp2.box  # The box attribute is the list of JP2 boxes
-    >>> index = [0, 1, 2, 3]
-    >>> ctype = [0, 0, 0, 1]
-    >>> asoc = [1, 2, 3, 0]
-    >>> cdef = glymur.jp2box.ChannelDefinitionBox(index, ctype, asoc)
-    >>> boxes[2].box.append(cdef)
-    >>> jp2_rgba = jp2.wrap("goodstuff_rgba.jp2", boxes=boxes)
-
-    
-
 Read the lowest resolution thumbnail?
 =====================================
 Printing the Jp2k object should reveal the number of resolutions (look in the
@@ -147,6 +119,54 @@ and add it after the JP2 header box, but before the codestream box ::
         . (truncated)
         .
 
+Create an image with an alpha layer?
+====================================
+
+OpenJPEG can create JP2 files with more than 3 components, but by default, any
+extra components are not described.  In order to specify an alpha layer as such,
+we need to rewrap such an image in a set of boxes that includes a channel
+definition box.
+
+This example is based on SciPy example code found at 
+http://scipy-lectures.github.io/advanced/image_processing/#basic-manipulations .  ::
+
+    >>> import numpy as np
+    >>> import glymur
+    >>> from glymur import Jp2k
+    >>> rgb = Jp2k(glymur.data.goodstuff()).read()
+    >>> lx, ly = rgb.shape[0:2]
+    >>> X, Y = np.ogrid[0:lx, 0:ly]
+    >>> mask = ly**2*(X - lx / 2) ** 2 + lx**2*(Y - ly / 2) ** 2 > (lx * ly / 2)**2
+    >>> alpha = 255 * np.ones((lx, ly, 1), dtype=np.uint8)
+    >>> alpha[mask] = 0
+    >>> rgba = np.concatenate((rgb, alpha), axis=2)
+    >>> jp2 = Jp2k('tmp.jp2', 'wb')
+    >>> jp2.write(rgba)
+
+The first three channels are color channels, but the fourth will be identified
+as an alpha channel::
+
+    >>> from glymur.core import COLOR, OPACITY
+    >>> ctype = [COLOR, COLOR, COLOR, OPACITY]
+
+And finally we have to specify just exactly how each channel is to be
+interpreted.  The color channels are straightforward, but the alpha channel
+in this case is to be applied against the entire image (it is possible to
+apply an alpha channel to a single color channel, but we aren't doing that). ::
+
+    >>> from glymur.core import RED, GREEN, BLUE, WHOLE_IMAGE
+    >>> asoc = [RED, GREEN, BLUE, WHOLE_IMAGE]
+    >>> cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=ctype, association=asoc)
+
+It's easiest to take the existing jp2 jacket and just add the channel
+definition box in the appropriate spot.  The channel definition box **must**
+go into the jp2 header box, and then we can rewrap the image. ::
+
+    >>> boxes = jp2.box  # The box attribute is the list of JP2 boxes
+    >>> boxes[2].box.append(cdef)
+    >>> jp2_rgba = jp2.wrap("goodstuff_rgba.jp2", boxes=boxes)
+
+    
 Work with XMP UUIDs?
 ====================
 The example JP2 file shipped with glymur has an XMP UUID. ::
