@@ -4,12 +4,21 @@ import pkg_resources
 import struct
 import sys
 import tempfile
-import unittest
+
+if sys.hexversion < 0x02070000:
+    import unittest2 as unittest
+else:
+    import unittest
 
 if sys.hexversion < 0x03000000:
     from StringIO import StringIO
 else:
     from io import StringIO
+
+if sys.hexversion <= 0x03030000:
+    from mock import patch
+else:
+    from unittest.mock import patch
 
 import glymur
 from glymur import Jp2k
@@ -47,10 +56,6 @@ class TestPrintingNeedsLib(unittest.TestCase):
     def setUp(self):
         self.jp2file = glymur.data.nemo()
         self.j2kfile = glymur.data.goodstuff()
-
-        # Save sys.stdout.
-        self.stdout = sys.stdout
-        sys.stdout = StringIO()
 
         # Save the output of dumping nemo.jp2 for more than one test.
         lines = ['JPEG 2000 Signature Box (jP  ) @ (0, 12)',
@@ -118,8 +123,7 @@ class TestPrintingNeedsLib(unittest.TestCase):
         self.expectedPlain = '\n'.join(lines)
 
     def tearDown(self):
-        # Restore stdout.
-        sys.stdout = self.stdout
+        pass
 
     def test_asoc_label_box(self):
         # Construct a fake file with an asoc and a label box, as
@@ -162,8 +166,9 @@ class TestPrintingNeedsLib(unittest.TestCase):
                 tfile2.flush()
 
                 jasoc = glymur.Jp2k(tfile2.name)
-                print(jasoc.box[3])
-                actual = sys.stdout.getvalue().strip()
+                with patch('sys.stdout', new=StringIO()) as fake_out:
+                    print(jasoc.box[3])
+                    actual = fake_out.getvalue().strip()
                 lines = ['Association Box (asoc) @ (77, 56)',
                          '    Label Box (lbl ) @ (85, 13)',
                          '        Label:  label',
@@ -173,20 +178,21 @@ class TestPrintingNeedsLib(unittest.TestCase):
                 self.assertEqual(actual, expected)
 
     def test_jp2dump(self):
-        glymur.jp2dump(self._plain_nemo_file)
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            glymur.jp2dump(self._plain_nemo_file)
+            actual = fake_out.getvalue().strip()
 
         # Get rid of the filename line, as it is not set in stone.
         lst = actual.split('\n')
         lst = lst[1:]
         actual = '\n'.join(lst)
-        self.maxDiff = None
         self.assertEqual(actual, self.expectedPlain)
 
     def test_entire_file(self):
         j = glymur.Jp2k(self._plain_nemo_file)
-        print(j)
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j)
+            actual = fake_out.getvalue().strip()
 
         # Get rid of the filename line, as it is not set in stone.
         lst = actual.split('\n')
@@ -200,20 +206,17 @@ class TestPrinting(unittest.TestCase):
 
     def setUp(self):
         # Save sys.stdout.
-        self.stdout = sys.stdout
-        sys.stdout = StringIO()
-        self.jp2file = pkg_resources.resource_filename(glymur.__name__,
-                                                       "data/nemo.jp2")
+        self.jp2file = glymur.data.nemo()
 
     def tearDown(self):
-        # Restore stdout.
-        sys.stdout = self.stdout
+        pass
 
     def test_COC_segment(self):
         j = glymur.Jp2k(self.jp2file)
         codestream = j.get_codestream(header_only=False)
-        print(codestream.segment[6])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(codestream.segment[6])
+            actual = fake_out.getvalue().strip()
 
         lines = ['COC marker segment @ (3260, 9)',
                  '    Associated component:  1',
@@ -233,14 +236,14 @@ class TestPrinting(unittest.TestCase):
                  '            Segmentation symbols:  False']
 
         expected = '\n'.join(lines)
-        self.maxDiff = None
         self.assertEqual(actual, expected)
 
     def test_COD_segment(self):
         j = glymur.Jp2k(self.jp2file)
         codestream = j.get_codestream()
-        print(codestream.segment[2])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(codestream.segment[2])
+            actual = fake_out.getvalue().strip()
 
         lines = ['COD marker segment @ (3186, 12)',
                  '    Coding style:',
@@ -275,8 +278,9 @@ class TestPrinting(unittest.TestCase):
     def test_icc_profile(self):
         filename = os.path.join(data_root, 'input/nonregression/text_GBR.jp2')
         j = glymur.Jp2k(filename)
-        print(j.box[3].box[1])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j.box[3].box[1])
+            actual = fake_out.getvalue().strip()
         lin27 = ["Colour Specification Box (colr) @ (179, 1339)",
                  "    Method:  any ICC profile",
                  "    Precedence:  2",
@@ -340,8 +344,9 @@ class TestPrinting(unittest.TestCase):
         filename = os.path.join(data_root, 'input/conformance/p0_03.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream()
-        print(codestream.segment[-5])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(codestream.segment[-5])
+            actual = fake_out.getvalue().strip()
         lines = ['CRG marker segment at (87, 6)',
                  '    Vertical, Horizontal offset:  (0.50, 1.00)']
         expected = '\n'.join(lines)
@@ -353,8 +358,9 @@ class TestPrinting(unittest.TestCase):
         filename = os.path.join(data_root, 'input/conformance/p0_03.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream(header_only=False)
-        print(codestream.segment[12])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(codestream.segment[12])
+            actual = fake_out.getvalue().strip()
         lines = ['RGN marker segment @ (310, 5)',
                  '    Associated component:  0',
                  '    ROI style:  0',
@@ -368,8 +374,9 @@ class TestPrinting(unittest.TestCase):
         filename = os.path.join(data_root, 'input/conformance/p0_03.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream(header_only=False)
-        print(codestream.segment[-2])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(codestream.segment[-2])
+            actual = fake_out.getvalue().strip()
         lines = ['SOP marker segment @ (12836, 4)',
                  '    Nsop:  15']
         expected = '\n'.join(lines)
@@ -383,8 +390,9 @@ class TestPrinting(unittest.TestCase):
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream()
         # 2nd to last segment in the main header
-        print(codestream.segment[-2])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(codestream.segment[-2])
+            actual = fake_out.getvalue().strip()
         lines = ['CME marker segment @ (85, 45)',
                  '    "Creator: AV-J2K (c) 2000,2001 Algo Vision"']
         expected = '\n'.join(lines)
@@ -393,8 +401,9 @@ class TestPrinting(unittest.TestCase):
     def test_EOC_segment(self):
         j = glymur.Jp2k(self.jp2file)
         codestream = j.get_codestream(header_only=False)
-        print(codestream.segment[-1])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(codestream.segment[-1])
+            actual = fake_out.getvalue().strip()
 
         lines = ['EOC marker segment @ (1135421, 0)']
         expected = '\n'.join(lines)
@@ -406,8 +415,9 @@ class TestPrinting(unittest.TestCase):
         filename = os.path.join(data_root, 'input/conformance/p0_07.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream(header_only=False)
-        print(codestream.segment[49935])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(codestream.segment[49935])
+            actual = fake_out.getvalue().strip()
 
         lines = ['PLT marker segment @ (7871146, 38)',
                  '    Index:  0',
@@ -423,8 +433,9 @@ class TestPrinting(unittest.TestCase):
         filename = os.path.join(data_root, 'input/conformance/p0_13.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream()
-        print(codestream.segment[8])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(codestream.segment[8])
+            actual = fake_out.getvalue().strip()
 
         lines = ['POD marker segment @ (878, 20)',
                  '    Progression change 0:',
@@ -451,8 +462,9 @@ class TestPrinting(unittest.TestCase):
         filename = os.path.join(data_root, 'input/conformance/p1_03.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream()
-        print(codestream.segment[9])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(codestream.segment[9])
+            actual = fake_out.getvalue().strip()
 
         lines = ['PPM marker segment @ (213, 43712)',
                  '    Index:  0',
@@ -467,8 +479,9 @@ class TestPrinting(unittest.TestCase):
         filename = os.path.join(data_root, 'input/conformance/p1_06.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream(header_only=False)
-        print(codestream.segment[6])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(codestream.segment[6])
+            actual = fake_out.getvalue().strip()
 
         lines = ['PPT marker segment @ (155, 109)',
                  '    Index:  0',
@@ -480,8 +493,9 @@ class TestPrinting(unittest.TestCase):
     def test_QCC_segment(self):
         j = glymur.Jp2k(self.jp2file)
         codestream = j.get_codestream(header_only=False)
-        print(codestream.segment[7])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(codestream.segment[7])
+            actual = fake_out.getvalue().strip()
 
         lines = ['QCC marker segment @ (3271, 8)',
                  '    Associated Component:  1',
@@ -494,8 +508,9 @@ class TestPrinting(unittest.TestCase):
     def test_QCD_segment_5x3_transform(self):
         j = glymur.Jp2k(self.jp2file)
         codestream = j.get_codestream()
-        print(codestream.segment[3])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(codestream.segment[3])
+            actual = fake_out.getvalue().strip()
 
         lines = ['QCD marker segment @ (3200, 7)',
                  '    Quantization style:  no quantization, 2 guard bits',
@@ -507,8 +522,9 @@ class TestPrinting(unittest.TestCase):
     def test_SIZ_segment(self):
         j = glymur.Jp2k(self.jp2file)
         codestream = j.get_codestream()
-        print(codestream.segment[1])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(codestream.segment[1])
+            actual = fake_out.getvalue().strip()
 
         lines = ['SIZ marker segment @ (3137, 47)',
                  '    Profile:  2',
@@ -527,8 +543,9 @@ class TestPrinting(unittest.TestCase):
     def test_SOC_segment(self):
         j = glymur.Jp2k(self.jp2file)
         codestream = j.get_codestream()
-        print(codestream.segment[0])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(codestream.segment[0])
+            actual = fake_out.getvalue().strip()
 
         lines = ['SOC marker segment @ (3135, 0)']
         expected = '\n'.join(lines)
@@ -537,8 +554,9 @@ class TestPrinting(unittest.TestCase):
     def test_SOD_segment(self):
         j = glymur.Jp2k(self.jp2file)
         codestream = j.get_codestream(header_only=False)
-        print(codestream.segment[10])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(codestream.segment[10])
+            actual = fake_out.getvalue().strip()
 
         lines = ['SOD marker segment @ (3302, 0)']
         expected = '\n'.join(lines)
@@ -547,8 +565,9 @@ class TestPrinting(unittest.TestCase):
     def test_SOT_segment(self):
         j = glymur.Jp2k(self.jp2file)
         codestream = j.get_codestream(header_only=False)
-        print(codestream.segment[5])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(codestream.segment[5])
+            actual = fake_out.getvalue().strip()
 
         lines = ['SOT marker segment @ (3248, 10)',
                  '    Tile part index:  0',
@@ -566,8 +585,9 @@ class TestPrinting(unittest.TestCase):
         filename = os.path.join(data_root, 'input/conformance/p0_15.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream()
-        print(codestream.segment[10])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(codestream.segment[10])
+            actual = fake_out.getvalue().strip()
 
         lines = ['TLM marker segment @ (268, 28)',
                  '    Index:  0',
@@ -577,11 +597,15 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
+    @unittest.skipIf(sys.hexversion < 0x02070000,
+                     "Differences in XML printing between 2.6 and 2.7")
     def test_xmp(self):
         # Verify the printing of a UUID/XMP box.
         j = glymur.Jp2k(self.jp2file)
-        print(j.box[4])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j.box[4])
+            actual = fake_out.getvalue().strip()
+
         lst = ['UUID Box (uuid) @ (715, 2412)',
                '    UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)',
                '    UUID Data:  ',
@@ -599,8 +623,9 @@ class TestPrinting(unittest.TestCase):
 
     def test_codestream(self):
         j = glymur.Jp2k(self.jp2file)
-        print(j.get_codestream())
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j.get_codestream())
+            actual = fake_out.getvalue().strip()
         lst = ['Codestream:',
                '    SOC marker segment @ (3135, 0)',
                '    SIZ marker segment @ (3137, 47)',
@@ -645,13 +670,16 @@ class TestPrinting(unittest.TestCase):
         self.maxDiff = None
         self.assertEqual(actual, expected)
 
+    @unittest.skipIf(sys.hexversion < 0x02070000,
+                     "Differences in XML printing between 2.6 and 2.7")
     @unittest.skipIf(data_root is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_xml(self):
         filename = os.path.join(data_root, 'input/conformance/file1.jp2')
         j = glymur.Jp2k(filename)
-        print(j.box[2])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j.box[2])
+            actual = fake_out.getvalue().strip()
 
         lines = ['XML Box (xml ) @ (36, 439)',
                  '    <ns0:IMAGE_CREATION '
@@ -679,8 +707,9 @@ class TestPrinting(unittest.TestCase):
     def test_channel_definition(self):
         filename = os.path.join(data_root, 'input/conformance/file2.jp2')
         j = glymur.Jp2k(filename)
-        print(j.box[2].box[2])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j.box[2].box[2])
+            actual = fake_out.getvalue().strip()
         lines = ['Channel Definition Box (cdef) @ (81, 28)',
                  '    Channel 0 (color) ==> (3)',
                  '    Channel 1 (color) ==> (2)',
@@ -693,8 +722,9 @@ class TestPrinting(unittest.TestCase):
     def test_component_mapping(self):
         filename = os.path.join(data_root, 'input/conformance/file9.jp2')
         j = glymur.Jp2k(filename)
-        print(j.box[2].box[2])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j.box[2].box[2])
+            actual = fake_out.getvalue().strip()
         lines = ['Component Mapping Box (cmap) @ (848, 20)',
                  '    Component 0 ==> palette column 0',
                  '    Component 0 ==> palette column 1',
@@ -707,8 +737,9 @@ class TestPrinting(unittest.TestCase):
     def test_palette(self):
         filename = os.path.join(data_root, 'input/conformance/file9.jp2')
         j = glymur.Jp2k(filename)
-        print(j.box[2].box[1])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j.box[2].box[1])
+            actual = fake_out.getvalue().strip()
         lines = ['Palette Box (pclr) @ (66, 782)',
                  '    Size:  (256 x 3)']
         expected = '\n'.join(lines)
@@ -719,8 +750,9 @@ class TestPrinting(unittest.TestCase):
     def test_palette(self):
         filename = os.path.join(data_root, 'input/conformance/file7.jp2')
         j = glymur.Jp2k(filename)
-        print(j.box[2])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j.box[2])
+            actual = fake_out.getvalue().strip()
         lines = ['Reader Requirements Box (rreq) @ (44, 24)',
                  '    Standard Features:',
                  '        Feature 005:  '
@@ -742,8 +774,9 @@ class TestPrinting(unittest.TestCase):
         filename = os.path.join(data_root, 'input/conformance/p0_03.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream()
-        print(codestream.segment[6])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(codestream.segment[6])
+            actual = fake_out.getvalue().strip()
         lines = ['CRG marker segment @ (87, 6)',
                  '    Vertical, Horizontal offset:  (0.50, 1.00)']
         expected = '\n'.join(lines)
@@ -756,8 +789,9 @@ class TestPrinting(unittest.TestCase):
         filename = os.path.join(data_root, 'input/conformance/p0_05.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream()
-        print(codestream.segment[1])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(codestream.segment[1])
+            actual = fake_out.getvalue().strip()
         lines = ['SIZ marker segment @ (2, 50)',
                  '    Profile:  0',
                  '    Reference Grid Height, Width:  (1024 x 1024)',
@@ -777,8 +811,9 @@ class TestPrinting(unittest.TestCase):
         # Verify that palette (pclr) boxes are printed without error.
         filename = os.path.join(data_root, 'input/conformance/file9.jp2')
         j = glymur.Jp2k(filename)
-        print(j.box[2].box[1])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j.box[2].box[1])
+            actual = fake_out.getvalue().strip()
         lines = ['Palette Box (pclr) @ (66, 782)',
                  '    Size:  (256 x 3)']
         expected = '\n'.join(lines)
@@ -837,9 +872,10 @@ class TestPrinting(unittest.TestCase):
                 tfile.flush()
 
             jp2k = glymur.Jp2k(tfile.name)
-            print(jp2k.box[3])
-            print(jp2k.box[4])
-            actual = sys.stdout.getvalue().strip()
+            with patch('sys.stdout', new=StringIO()) as fake_out:
+                print(jp2k.box[3])
+                print(jp2k.box[4])
+                actual = fake_out.getvalue().strip()
             lines = ['UUIDInfo Box (uinf) @ (77, 50)',
                      '    UUID List Box (ulst) @ (85, 26)',
                      '        UUID[0]:  00000000-0000-0000-0000-000000000000',
@@ -868,8 +904,9 @@ class TestPrinting(unittest.TestCase):
         filename = os.path.join(data_root, 'input/nonregression/text_GBR.jp2')
         j = glymur.Jp2k(filename)
 
-        print(j.box[3].box[1])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j.box[3].box[1])
+            actual = fake_out.getvalue().strip()
         lines = ["Colour Specification Box (colr) @ (179, 1339)",
                  "    Method:  any ICC profile",
                  "    Precedence:  2",
@@ -907,8 +944,9 @@ class TestPrinting(unittest.TestCase):
         filename = os.path.join(data_root, 'input/nonregression/text_GBR.jp2')
         j = glymur.Jp2k(filename)
 
-        print(j.box[4])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j.box[4])
+            actual = fake_out.getvalue().strip()
         lines = ['UUID Box (uuid) @ (1544, 25)',
                  '    UUID:  3a0d0218-0ae9-4115-b376-4bca41ce0e71',
                  '    UUID Data:  1 bytes']
@@ -921,8 +959,9 @@ class TestPrinting(unittest.TestCase):
     def test_exif_uuid(self):
         j = glymur.Jp2k(self.jp2file)
 
-        print(j.box[3])
-        actual = sys.stdout.getvalue().strip()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j.box[3])
+            actual = fake_out.getvalue().strip()
 
         lines = ["UUID Box (uuid) @ (77, 638)",
                  "    UUID:  4a706754-6966-6645-7869-662d3e4a5032 (Exif)",

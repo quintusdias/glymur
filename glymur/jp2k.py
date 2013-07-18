@@ -65,6 +65,13 @@ _INFO_CALLBACK = _CMPFUNC(_default_info_handler)
 _WARNING_CALLBACK = _CMPFUNC(_default_warning_handler)
 
 
+class LibraryNotFoundError(IOError):
+    """Raised if functionality is requested without the necessary library.
+    """
+    def __init__(self, msg):
+        IOError.__init__(self, msg)
+
+
 class Jp2k(Jp2kBox):
     """JPEG 2000 file.
 
@@ -94,7 +101,6 @@ class Jp2k(Jp2kBox):
         self.mode = mode
         self.box = []
         self._codec_format = None
-        self._file_size = 0
 
         # Parse the file for JP2/JPX contents only if we are reading it.
         if mode == 'rb':
@@ -118,9 +124,7 @@ class Jp2k(Jp2kBox):
         IOError
             The file was not JPEG 2000.
         """
-        stat = os.stat(self.filename)
-        self.length = stat.st_size
-        self._file_size = stat.st_size
+        self.length = os.path.getsize(self.filename)
 
         with open(self.filename, 'rb') as fptr:
 
@@ -226,7 +230,16 @@ class Jp2k(Jp2kBox):
         >>> tfile = NamedTemporaryFile(suffix='.jp2', delete=False)
         >>> j = Jp2k(tfile.name, mode='wb')
         >>> j.write(data.astype(np.uint8))
+
+        Raises
+        ------
+        glymur.LibraryNotFoundError
+            If glymur is unable to load the openjp2 library.
         """
+        if _opj2.OPENJP2 is None:
+            raise LibraryNotFoundError("You must have the development version "
+                                       "of OpenJP2 installed before using "
+                                       "this functionality.")
 
         cparams = _opj2.set_default_encoder_parameters()
 
@@ -575,7 +588,7 @@ class Jp2k(Jp2kBox):
         rlevel : int, optional
             Factor by which to rlevel output resolution.  Use -1 to get the
             lowest resolution thumbnail.  This is the only keyword option
-            available to use when only OpenJPEG version 1.5.1 is present.
+            available to use when only the OpenJPEG version 1.5.1 is present.
         layer : int, optional
             Number of quality layer to decode.
         area : tuple, optional
@@ -593,6 +606,9 @@ class Jp2k(Jp2kBox):
 
         Raises
         ------
+        glymur.LibraryNotFoundError
+            If glymur is unable to load either the openjpeg or openjp2
+            libraries.
         IOError
             If the image has differing subsample factors.
 
@@ -613,8 +629,13 @@ class Jp2k(Jp2kBox):
         """
         if _opj2.OPENJP2 is not None:
             img = self._read_openjp2(**kwargs)
-        else:
+        elif _opj.OPENJPEG is not None:
             img = self._read_openjpeg(**kwargs)
+        else:
+            raise LibraryNotFoundError("You must have either a recent version "
+                                       "of OpenJPEG or the development "
+                                       "version of OpenJP2 installed before "
+                                       "using this functionality.")
         return img
 
     def _read_openjpeg(self, rlevel=0, verbose=False):
@@ -958,12 +979,13 @@ class Jp2k(Jp2kBox):
 
         Raises
         ------
-        NotImplementedError
-            If the openjp2 library is not available.
+        glymur.LibraryNotFoundError
+            If glymur is unable to load the openjp2 library.
         """
         if _opj2.OPENJP2 is None:
-            msg = "Requires openjp2 library."
-            raise NotImplementedError(msg)
+            raise LibraryNotFoundError("You must have the development version "
+                                       "of OpenJP2 installed before using "
+                                       "this functionality.")
 
         lst = self._read_common(rlevel=rlevel,
                                 layer=layer,

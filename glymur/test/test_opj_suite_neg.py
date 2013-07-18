@@ -6,7 +6,12 @@ seem like logical negative tests to add.
 import os
 import sys
 import tempfile
-import unittest
+
+if sys.hexversion < 0x02070000:
+    import unittest2 as unittest
+else:
+    import unittest
+
 import warnings
 
 import numpy as np
@@ -14,30 +19,15 @@ import pkg_resources
 
 from glymur.lib import openjp2 as opj2
 
-# Need some combination of matplotlib, PIL, or scikits-image for reading
-# other image formats.
-no_read_backend = False
-msg = "Either scikit-image with the freeimage backend or matplotlib "
-msg += "with the PIL backend must be available in order to run the "
+msg = "Matplotlib with the PIL backend must be available in order to run the "
 msg += "tests in this suite."
 no_read_backend_msg = msg
 try:
-    import skimage.io
-    try:
-        skimage.io.use_plugin('freeimage')
-        from skimage.io import imread
-    except ImportError:
-        try:
-            skimage.io.use_plugin('PIL')
-            from skimage.io import imread
-        except ImportError:
-            raise
-except ImportError:
-    try:
-        from PIL import Image
-        from matplotlib.pyplot import imread
-    except ImportError:
-        no_read_backend = True
+    from PIL import Image
+    from matplotlib.pyplot import imread
+    no_read_backend = False
+except:
+    no_read_backend = True
 
 from glymur import Jp2k
 import glymur

@@ -6,7 +6,11 @@ import shutil
 import struct
 import sys
 import tempfile
-import unittest
+
+if sys.hexversion < 0x02070000:
+    import unittest2 as unittest
+else:
+    import unittest
 
 import numpy as np
 

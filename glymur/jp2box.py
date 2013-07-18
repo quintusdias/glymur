@@ -13,16 +13,22 @@ References
 
 # pylint: disable=C0302,R0903,R0913
 
-import collections
 import copy
 import datetime
 import math
+import os
 import pprint
 import struct
 import sys
 import uuid
 import warnings
 import xml.etree.cElementTree as ET
+if sys.hexversion < 0x02070000:
+    from ordereddict import OrderedDict
+    from xml.etree.cElementTree import XMLParserError as ParseError
+else:
+    from xml.etree.cElementTree import ParseError
+    from collections import OrderedDict
 
 import numpy as np
 
@@ -68,9 +74,6 @@ class Jp2kBox(object):
         self.offset = offset
         self.longname = longname
 
-        # should never be used except for last box in file.
-        self._file_size = -1
-
     def __str__(self):
         msg = "{0} Box ({1})".format(self.longname, self.box_id)
         msg += " @ ({0}, {1})".format(self.offset, self.length)
@@ -113,7 +116,7 @@ class Jp2kBox(object):
             if box_length == 0:
                 # The length of the box is presumed to last until the end of
                 # the file.  Compute the effective length of the box.
-                num_bytes = self._file_size - fptr.tell() + 8
+                num_bytes = os.path.getsize(fptr.name) - fptr.tell() + 8
 
             elif box_length == 1:
                 # The length of the box is in the XL field, a 64-bit value.
@@ -342,7 +345,7 @@ class _ICCProfile(object):
 
     def __init__(self, read_buffer):
         self._raw_buffer = read_buffer
-        header = collections.OrderedDict()
+        header = OrderedDict()
 
         data = struct.unpack('>IIBB', self._raw_buffer[0:10])
         header['Size'] = data[0]
@@ -423,14 +426,24 @@ class ChannelDefinitionBox(Jp2kBox):
     longname : str
         more verbose description of the box.
     index : int
-        number of the channel
+        number of the channel.  Defaults to monotonically increasing sequence,
+        i.e. [0, 1, 2, ...]
     channel_type : int
         type of the channel
     association : int
         index of the associated color
     """
-    def __init__(self, index, channel_type, association, **kwargs):
+    def __init__(self, index=None, channel_type=None, association=None,
+                 **kwargs):
         Jp2kBox.__init__(self, box_id='cdef', longname='Channel Definition')
+
+        # channel type and association must be specified.
+        if channel_type is None or association is None:
+            raise IOError("channel_type and association must be specified.")
+
+        if index is None:
+            index = list(range(len(channel_type)))
+
         if len(index) != len(channel_type) or len(index) != len(association):
             msg = "Length of channel definition box inputs must be the same."
             raise IOError(msg)
@@ -501,8 +514,9 @@ class ChannelDefinitionBox(Jp2kBox):
         channel_type = data[1:num_components * 6:3]
         association = data[2:num_components * 6:3]
 
-        box = ChannelDefinitionBox(index, channel_type, association,
-                                   length=length, offset=offset)
+        box = ChannelDefinitionBox(index=index, channel_type=channel_type,
+                                   association=association, length=length,
+                                   offset=offset)
         return box
 
 
@@ -1012,8 +1026,9 @@ class JPEG2000SignatureBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        msg += '\n    Signature:  {:02x}{:02x}{:02x}{:02x}'
-        msg = msg.format(*self.signature)
+        msg += '\n    Signature:  {0:02x}{1:02x}{2:02x}{3:02x}'
+        msg = msg.format(self.signature[0], self.signature[1],
+                         self.signature[2], self.signature[3])
         return msg
 
     def write(self, fptr):
@@ -1634,7 +1649,8 @@ class XMLBox(Jp2kBox):
         """
         try:
             read_buffer = ET.tostring(self.xml, encoding='utf-8')
-        except AttributeError:
+        except (AttributeError, AssertionError):
+            # AssertionError on 2.6
             read_buffer = ET.tostring(self.xml.getroot(), encoding='utf-8')
 
         fptr.write(struct.pack('>I', len(read_buffer) + 8))
@@ -1667,7 +1683,7 @@ class XMLBox(Jp2kBox):
 
         try:
             xml = ET.fromstring(text)
-        except ET.ParseError as parse_error:
+        except ParseError as parse_error:
             msg = 'A problem was encountered while parsing an XML box:  "{0}"'
             msg = msg.format(str(parse_error))
             warnings.warn(msg, UserWarning)
@@ -1910,14 +1926,16 @@ class UUIDBox(Jp2kBox):
             # XMP data.  Parse as XML.  Seems to be a difference between
             # ElementTree in version 2.7 and 3.3.
             if sys.hexversion < 0x03000000:
-                parser = ET.XMLParser(encoding='utf-8')
-                self.data = ET.fromstringlist(raw_data, parser=parser)
+                #parser = ET.XMLParser(encoding='utf-8')
+                #import pdb; pdb.set_trace()
+                #self.data = ET.fromstringlist(raw_data, parser=parser)
+                self.data = ET.fromstring(raw_data)
             else:
                 text = raw_data.decode('utf-8')
                 self.data = ET.fromstring(text)
         elif the_uuid.bytes == b'JpgTiffExif->JP2':
             exif_obj = Exif(raw_data)
-            ifds = collections.OrderedDict()
+            ifds = OrderedDict()
             ifds['Image'] = exif_obj.exif_image
             ifds['Photo'] = exif_obj.exif_photo
             ifds['GPSInfo'] = exif_obj.exif_gpsinfo
@@ -2067,7 +2085,7 @@ class _Ifd(object):
     def __init__(self, endian, read_buffer, offset):
         self.endian = endian
         self.read_buffer = read_buffer
-        self.processed_ifd = collections.OrderedDict()
+        self.processed_ifd = OrderedDict()
 
         self.num_tags, = struct.unpack(endian + 'H',
                                        read_buffer[offset:offset + 2])
@@ -2075,7 +2093,7 @@ class _Ifd(object):
         fmt = self.endian + 'HHII' * self.num_tags
         ifd_buffer = read_buffer[offset + 2:offset + 2 + self.num_tags * 12]
         data = struct.unpack(fmt, ifd_buffer)
-        self.raw_ifd = collections.OrderedDict()
+        self.raw_ifd = OrderedDict()
         for j, tag in enumerate(data[0::4]):
             # The offset to the tag offset/payload is the offset to the IFD
             # plus 2 bytes for the number of tags plus 12 bytes for each

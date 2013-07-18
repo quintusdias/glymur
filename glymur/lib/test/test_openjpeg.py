@@ -1,6 +1,12 @@
 #pylint:  disable-all
 import ctypes
-import unittest
+import re
+import sys
+
+if sys.hexversion < 0x02070000:
+    import unittest2 as unittest
+else:
+    import unittest
 
 import glymur
 
@@ -16,13 +22,18 @@ class TestOpenJPEG(unittest.TestCase):
         pass
 
     def test_version(self):
-        v = glymur.lib._openjpeg.version()
-        parts = v.split('.')
-        self.assertEqual(parts[0], '1')
-        self.assertEqual(parts[1], '5')
+        version = glymur.lib._openjpeg.version()
+        regex = re.compile('1.[345].[0-9]')
+        if sys.hexversion <= 0x03020000:
+            self.assertRegexpMatches(version, regex)
+        else:
+            self.assertRegex(version, regex)
 
     def test_set_default_decoder_parameters(self):
         # Verify that we properly set the default decode parameters.
+        version = glymur.lib._openjpeg.version()
+        minor = int(version.split('.')[1])
+
         dp = glymur.lib._openjpeg.DecompressionParametersType()
         glymur.lib._openjpeg.set_default_decoder_parameters(ctypes.byref(dp))
 
@@ -36,4 +47,6 @@ class TestOpenJPEG(unittest.TestCase):
         self.assertEqual(dp.jpwl_exp_comps, 0)
         self.assertEqual(dp.jpwl_max_tiles, 0)
         self.assertEqual(dp.cp_limit_decoding, 0)
-        self.assertEqual(dp.flags, 0)
+        if minor > 4:
+            # Introduced in 1.5.x
+            self.assertEqual(dp.flags, 0)

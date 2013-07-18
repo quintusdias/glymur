@@ -10,7 +10,12 @@ import platform
 import re
 import sys
 from xml.etree import cElementTree as ET
-import unittest
+
+if sys.hexversion < 0x02070000:
+    import unittest2 as unittest
+else:
+    import unittest
+
 import warnings
 
 if sys.hexversion <= 0x03030000:
@@ -102,7 +107,6 @@ class TestSuite(unittest.TestCase):
         self.assertTrue(peak_tolerance(jpdata[:, :, 2], pgxdata) < 33)
         self.assertTrue(mse(jpdata[:, :, 2], pgxdata) < 55.8)
 
-    @unittest.skip("Known failure in OPENJPEG test suite.")
     def test_ETS_C0P0_p0_05_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_05.j2k')
         jp2k = Jp2k(jfile)
@@ -114,17 +118,19 @@ class TestSuite(unittest.TestCase):
         self.assertTrue(peak_tolerance(jpdata[0], pgxdata) < 54)
         self.assertTrue(mse(jpdata[0], pgxdata) < 68)
 
-    @unittest.skip("Known failure in OPENJPEG test suite.")
+    @unittest.skip("8-bit pgx data vs 12-bit j2k data")
     def test_ETS_C0P0_p0_06_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_06.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=3)
+        jpdata = jp2k.read_bands(rlevel=3)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p0_06.pgx')
         pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[:, :, 0], pgxdata) < 109)
-        self.assertTrue(mse(jpdata[:, :, 0], pgxdata) < 743)
+        tol = peak_tolerance(jpdata[0], pgxdata)
+        self.assertTrue(tol < 109)
+        m = mse(jpdata[0], pgxdata)
+        self.assertTrue(m < 743)
 
     @unittest.skip("Known failure in OPENJPEG test suite.")
     def test_ETS_C0P0_p0_07_j2k(self):
@@ -139,7 +145,7 @@ class TestSuite(unittest.TestCase):
         self.assertTrue(peak_tolerance(jpdata[:, :, 0], pgxdata) < 10)
         self.assertTrue(mse(jpdata[:, :, 0], pgxdata) < 0.34)
 
-    @unittest.skip("Known failure in OPENJPEG test suite.")
+    @unittest.skip("8-bit pgx data vs 12-bit j2k data")
     def test_ETS_C0P0_p0_08_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_08.j2k')
         jp2k = Jp2k(jfile)
@@ -210,7 +216,7 @@ class TestSuite(unittest.TestCase):
                                'baseline/conformance/c0p0_13.pgx')
         pgxdata = read_pgx(pgxfile)
 
-        np.testing.assert_array_equal(jpdata, pgxdata)
+        np.testing.assert_array_equal(jpdata[:, :, 0], pgxdata)
 
     @unittest.skip("Known failure in OPENJPEG test suite.")
     def test_ETS_C0P0_p0_14_j2k(self):
@@ -279,27 +285,20 @@ class TestSuite(unittest.TestCase):
                                'baseline/conformance/c0p1_02.pgx')
         pgxdata = read_pgx(pgxfile)
 
-        print(peak_tolerance(jpdata[:, :, 0], pgxdata))
-        print(peak_tolerance(jpdata[:, :, 1], pgxdata))
-        print(peak_tolerance(jpdata[:, :, 2], pgxdata))
         self.assertTrue(peak_tolerance(jpdata[:, :, 0], pgxdata) < 35)
         self.assertTrue(mse(jpdata[:, :, 0], pgxdata) < 74)
 
-    @unittest.skip("Known failure in OPENJPEG test suite operation.")
     def test_ETS_C0P1_p1_03_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_03.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=3)
+        jpdata = jp2k.read_bands(rlevel=3)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p1_03.pgx')
         pgxdata = read_pgx(pgxfile)
 
-        print(peak_tolerance(jpdata[:, :, 0], pgxdata))
-        print(peak_tolerance(jpdata[:, :, 1], pgxdata))
-        print(peak_tolerance(jpdata[:, :, 2], pgxdata))
-        self.assertTrue(peak_tolerance(jpdata[:, :, 0], pgxdata) < 28)
-        self.assertTrue(mse(jpdata[:, :, 0], pgxdata) < 18.8)
+        self.assertTrue(peak_tolerance(jpdata[0], pgxdata) < 28)
+        self.assertTrue(mse(jpdata[0], pgxdata) < 18.8)
 
     @unittest.skip("Known failure in OPENJPEG test suite operation.")
     def test_ETS_C0P1_p1_04_j2k(self):
@@ -359,20 +358,17 @@ class TestSuite(unittest.TestCase):
         self.assertTrue(peak_tolerance(jpdata[:, :, 0], pgxdata) < 128)
         self.assertTrue(mse(jpdata[:, :, 0], pgxdata) < 16384)
 
-    @unittest.skip("Known failure in OPENJPEG test suite operation.")
+    @unittest.skip("fprintf stderr output in r2345.")
     def test_ETS_C0P1_p1_07_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_07.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=0)
+        jpdata = jp2k.read_bands(rlevel=0)
 
         pgxfile = os.path.join(data_root,
                                'baseline/conformance/c0p1_07.pgx')
         pgxdata = read_pgx(pgxfile)
 
-        # This one works.
-        np.testing.assert_array_equal(jpdata[:, :, 0], pgxdata)
-        # This one does not.
-        np.testing.assert_array_equal(jpdata[:, :, 1], pgxdata)
+        np.testing.assert_array_equal(jpdata[0], pgxdata)
 
     def test_ETS_C1P0_p0_01_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_01.j2k')
@@ -7764,7 +7760,10 @@ class TestSuite15(unittest.TestCase):
         jfile = os.path.join(data_root, 'input/conformance/file9.jp2')
         jp2k = Jp2k(jfile)
         jpdata = jp2k.read()
-        self.assertEqual(jpdata.shape, (512, 768, 3))
+        if glymur.lib.openjpeg.version().startswith('1.3'):
+            self.assertEqual(jpdata.shape, (512, 768))
+        else:
+            self.assertEqual(jpdata.shape, (512, 768, 3))
 
     def test_NR_DEC_Bretagne2_j2k_1_decode(self):
         jfile = os.path.join(data_root,

@@ -4,11 +4,26 @@
 # pylint: disable=R0903
 
 import ctypes
+import sys
 
 from .config import glymur_config
 _, OPENJPEG = glymur_config()
 
 PATH_LEN = 4096  # maximum allowed size for filenames
+
+
+def version():
+    """Wrapper for opj_version library routine."""
+    OPENJPEG.opj_version.restype = ctypes.c_char_p
+    library_version = OPENJPEG.opj_version()
+    if sys.hexversion >= 0x03000000:
+        return library_version.decode('utf-8')
+    else:
+        return library_version
+
+# Need to get the minor version, make sure we are at least at 1.4.x
+#import pdb; pdb.set_trace()
+_MINOR = version().split('.')[1]
 
 
 class EventMgrType(ctypes.Structure):
@@ -86,8 +101,10 @@ class DecompressionParametersType(ctypes.Structure):
                 ("jpwl_max_tiles",    ctypes.c_int),
                 # cp_limit_decoding:  whether decoding should be done on the
                 # entire codestream or be limited to the main header
-                ("cp_limit_decoding", ctypes.c_int),
-                ("flags",             ctypes.c_uint)]
+                ("cp_limit_decoding", ctypes.c_int)]
+
+    if _MINOR == '5':
+        _fields_.append(("flags",             ctypes.c_uint))
 
 
 class ImageCompType(ctypes.Structure):
@@ -204,10 +221,3 @@ def setup_decoder(dinfo, dparams):
                 ctypes.POINTER(DecompressionParametersType)]
     OPENJPEG.opj_setup_decoder.argtypes = argtypes
     OPENJPEG.opj_setup_decoder(dinfo, dparams)
-
-
-def version():
-    """Wrapper for opj_version library routine."""
-    OPENJPEG.opj_version.restype = ctypes.c_char_p
-    library_version = OPENJPEG.opj_version()
-    return library_version.decode('utf-8')
