@@ -7,7 +7,7 @@ Glymur Configuration
 ''''''''''''''''''''''
 
 The default glymur installation process relies upon OpenJPEG version
-1.4 or 1.5 being properly installed on your system.  This will, however, only
+1.X being properly installed on your system.  This will, however, only
 give you you basic read capabilities, so if you wish to take advantage
 of more of glymur's features, you should compile OpenJPEG as a shared
 library (named *openjp2* instead of *openjpeg*) from the developmental
@@ -88,7 +88,10 @@ meet the minimal set of requirements for running glymur.
       * python3 
       * python3-numpy
       * python3-setuptools
-      * python3-matplotlib (for running tests)
+
+For running the maximal number of tests, you also need 
+
+      * python3-matplotlib
       * python3-matplotlib-tk (or whichever matplotlib backend you prefer)
 
 Pillow is also needed in order to run the maximum number of tests, so
@@ -102,9 +105,8 @@ in Fedora 18 default repositories::
 
 Fedora 17
 '''''''''
-Fedora 17 ships with Python 2.7 and OpenJPEG 1.4.
-
-Required RPMs include::
+Fedora 17 ships with Python 2.7 and OpenJPEG 1.4.  You should have the
+following RPMs installed.
 
       * python
       * python-mock

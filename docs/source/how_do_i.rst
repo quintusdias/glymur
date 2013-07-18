@@ -38,8 +38,8 @@ Add XML Metadata?
 =================
 An existing raw codestream (or JP2 file) can be wrapped (re-wrapped) in a 
 user-defined set of JP2 boxes.  To get just a minimal JP2 jacket on the 
-codestream provided by `goodstuff.j2k`, you can use the **wrap** method with 
-no box argument: ::
+codestream provided by `goodstuff.j2k` (a file consisting of a raw codestream),
+you can use the **wrap** method with no box argument: ::
 
     >>> import glymur
     >>> jfile = glymur.data.goodstuff()
