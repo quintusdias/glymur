@@ -2,8 +2,8 @@
 |         |  2.6   |  2.7   |  3.3   |                                       |
 +---------+--------+--------+--------+---------------------------------------+
 | Windows |        |   X    |        | Python(xy) with OpenJPEG 1.5.1 and    |
-|         |        |        |        | OpenJPEG svn.  At least 282 of 444    |
-|         |        |        |        | tests should pass.                    |
+|         |        |        |        | OpenJPEG svn.  285 of 448 tests       |
+|         |        |        |        | pass.                                 |
 +---------+--------+--------+--------+---------------------------------------+
 | Mac     |   X    |        |        | MacPorts with both OpenJPEG 1.5.1     |
 |         |        |        |        | and OpenJPEG svn.  353 of 449 tests   |
