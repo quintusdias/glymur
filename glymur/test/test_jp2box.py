@@ -16,6 +16,8 @@ import pkg_resources
 import glymur
 from glymur import Jp2k
 from glymur.jp2box import *
+from glymur.core import COLOR, OPACITY
+from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE
 
 
 # Doc tests should be run as well.
@@ -84,12 +86,19 @@ class TestChannelDefinition(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_rgb(self):
+    def test_cdef_no_inputs(self):
+        """channel_type and association are required inputs."""
+        with self.assertRaises(IOError):
+            glymur.jp2box.ChannelDefinitionBox()
+
+    def test_rgb_with_index(self):
         """Just regular RGB."""
         j2k = Jp2k(self.j2kfile)
+        channel_type = [COLOR, COLOR, COLOR]
+        association = [RED, GREEN, BLUE]
         cdef = glymur.jp2box.ChannelDefinitionBox(index=[0, 1, 2],
-                                                  channel_type=[0, 0, 0],
-                                                  association=[1, 2, 3])
+                                                  channel_type=channel_type,
+                                                  association=association)
         boxes = [self.ihdr, self.colr_rgb, cdef]
         self.jp2h.box = boxes
         boxes = [self.jP, self.ftyp, self.jp2h, self.jp2c]
@@ -101,15 +110,41 @@ class TestChannelDefinition(unittest.TestCase):
             boxes = [box.box_id for box in jp2h.box]
             self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
             self.assertEqual(jp2h.box[2].index, (0, 1, 2))
-            self.assertEqual(jp2h.box[2].channel_type, (0, 0, 0))
-            self.assertEqual(jp2h.box[2].association, (1, 2, 3))
+            self.assertEqual(jp2h.box[2].channel_type,
+                             (COLOR, COLOR, COLOR))
+            self.assertEqual(jp2h.box[2].association,
+                             (RED, GREEN, BLUE))
+
+    def test_rgb(self):
+        """Just regular RGB, but don't supply the optional index."""
+        j2k = Jp2k(self.j2kfile)
+        channel_type = [COLOR, COLOR, COLOR]
+        association = [RED, GREEN, BLUE]
+        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
+                                                  association=association)
+        boxes = [self.ihdr, self.colr_rgb, cdef]
+        self.jp2h.box = boxes
+        boxes = [self.jP, self.ftyp, self.jp2h, self.jp2c]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            j2k.wrap(tfile.name, boxes=boxes)
+
+            jp2 = Jp2k(tfile.name)
+            jp2h = jp2.box[2]
+            boxes = [box.box_id for box in jp2h.box]
+            self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
+            self.assertEqual(jp2h.box[2].index, (0, 1, 2))
+            self.assertEqual(jp2h.box[2].channel_type,
+                             (COLOR, COLOR, COLOR))
+            self.assertEqual(jp2h.box[2].association,
+                             (RED, GREEN, BLUE))
 
     def test_rgba(self):
         """Just regular RGBA."""
         j2k = Jp2k(self.four_planes)
-        cdef = glymur.jp2box.ChannelDefinitionBox(index=[0, 1, 2, 3],
-                                                  channel_type=[0, 0, 0, 1],
-                                                  association=[1, 2, 3, 0])
+        channel_type = (COLOR, COLOR, COLOR, OPACITY)
+        association = (RED, GREEN, BLUE, WHOLE_IMAGE)
+        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
+                                                  association=association)
         boxes = [self.ihdr, self.colr_rgb, cdef]
         self.jp2h.box = boxes
         boxes = [self.jP, self.ftyp, self.jp2h, self.jp2c]
@@ -121,15 +156,16 @@ class TestChannelDefinition(unittest.TestCase):
             boxes = [box.box_id for box in jp2h.box]
             self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
             self.assertEqual(jp2h.box[2].index, (0, 1, 2, 3))
-            self.assertEqual(jp2h.box[2].channel_type, (0, 0, 0, 1))
-            self.assertEqual(jp2h.box[2].association, (1, 2, 3, 0))
+            self.assertEqual(jp2h.box[2].channel_type, channel_type)
+            self.assertEqual(jp2h.box[2].association, association)
 
     def test_bad_rgba(self):
         """R, G, and B must be specified."""
         j2k = Jp2k(self.four_planes)
-        cdef = glymur.jp2box.ChannelDefinitionBox(index=[0, 1, 2, 3],
-                                                  channel_type=[0, 0, 1, 1],
-                                                  association=[1, 2, 3, 0])
+        channel_type = (COLOR, COLOR, OPACITY, OPACITY)
+        association = (RED, GREEN, BLUE, WHOLE_IMAGE)
+        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
+                                                  association=association)
         boxes = [self.ihdr, self.colr_rgb, cdef]
         self.jp2h.box = boxes
         boxes = [self.jP, self.ftyp, self.jp2h, self.jp2c]
@@ -140,9 +176,10 @@ class TestChannelDefinition(unittest.TestCase):
     def test_grey(self):
         """Just regular greyscale."""
         j2k = Jp2k(self.one_plane)
-        cdef = glymur.jp2box.ChannelDefinitionBox(index=[0],
-                                                  channel_type=[0],
-                                                  association=[1])
+        channel_type = (COLOR,)
+        association = (GREY,)
+        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
+                                                  association=association)
         boxes = [self.ihdr, self.colr_gr, cdef]
         self.jp2h.box = boxes
         boxes = [self.jP, self.ftyp, self.jp2h, self.jp2c]
@@ -154,15 +191,16 @@ class TestChannelDefinition(unittest.TestCase):
             boxes = [box.box_id for box in jp2h.box]
             self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
             self.assertEqual(jp2h.box[2].index, (0,))
-            self.assertEqual(jp2h.box[2].channel_type, (0,))
-            self.assertEqual(jp2h.box[2].association, (1,))
+            self.assertEqual(jp2h.box[2].channel_type, channel_type)
+            self.assertEqual(jp2h.box[2].association, association)
 
     def test_grey_alpha(self):
         """Just regular greyscale plus alpha."""
         j2k = Jp2k(self.two_planes)
-        cdef = glymur.jp2box.ChannelDefinitionBox(index=[0, 1],
-                                                  channel_type=[0, 1],
-                                                  association=[1, 0])
+        channel_type = (COLOR, OPACITY)
+        association = (GREY, WHOLE_IMAGE)
+        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
+                                                  association=association)
         boxes = [self.ihdr, self.colr_gr, cdef]
         self.jp2h.box = boxes
         boxes = [self.jP, self.ftyp, self.jp2h, self.jp2c]
@@ -174,17 +212,19 @@ class TestChannelDefinition(unittest.TestCase):
             boxes = [box.box_id for box in jp2h.box]
             self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
             self.assertEqual(jp2h.box[2].index, (0, 1))
-            self.assertEqual(jp2h.box[2].channel_type, (0, 1))
-            self.assertEqual(jp2h.box[2].association, (1, 0))
+            self.assertEqual(jp2h.box[2].channel_type, channel_type)
+            self.assertEqual(jp2h.box[2].association, association)
 
     def test_bad_grey_alpha(self):
-        """A greyscale image with alpha layer must specify Y"""
+        """A greyscale image with alpha layer must specify a color channel"""
         j2k = Jp2k(self.two_planes)
 
+        channel_type = (OPACITY, OPACITY)
+        association = (GREY, WHOLE_IMAGE)
+
         # This cdef box
-        cdef = glymur.jp2box.ChannelDefinitionBox(index=[0, 1],
-                                                  channel_type=[1, 1],
-                                                  association=[0, 1])
+        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
+                                                  association=association)
         boxes = [self.ihdr, self.colr_gr, cdef]
         self.jp2h.box = boxes
         boxes = [self.jP, self.ftyp, self.jp2h, self.jp2c]
@@ -196,9 +236,10 @@ class TestChannelDefinition(unittest.TestCase):
         """There can only be one channel definition box in the jp2 header."""
         j2k = Jp2k(self.j2kfile)
 
-        cdef = glymur.jp2box.ChannelDefinitionBox(index=[0, 1, 2],
-                                                  channel_type=[0, 0, 0],
-                                                  association=[1, 2, 3])
+        channel_type = (COLOR, COLOR, COLOR)
+        association = (RED, GREEN, BLUE)
+        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
+                                                  association=association)
 
         boxes = [self.ihdr, cdef, self.colr_rgb, cdef]
         self.jp2h.box = boxes
@@ -214,9 +255,10 @@ class TestChannelDefinition(unittest.TestCase):
         boxes = [self.ihdr, self.colr_rgb]
         self.jp2h.box = boxes
 
-        cdef = glymur.jp2box.ChannelDefinitionBox(index=[0, 1, 2],
-                                                  channel_type=[0, 0, 0],
-                                                  association=[1, 2, 3])
+        channel_type = (COLOR, COLOR, COLOR)
+        association = (RED, GREEN, BLUE)
+        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
+                                                  association=association)
 
         boxes = [self.jP, self.ftyp, self.jp2h, cdef, self.jp2c]
 
@@ -228,18 +270,20 @@ class TestChannelDefinition(unittest.TestCase):
         # Channel types are limited to 0, 1, 2, 65535
         # Should reject if not all of index, channel_type, association the
         # same length.
+        channel_type = (COLOR, COLOR, 3)
+        association = (RED, GREEN, BLUE)
         with self.assertRaises(IOError):
-            box = glymur.jp2box.ChannelDefinitionBox(index=[0, 1, 2],
-                                                     channel_type=[0, 0, 3],
-                                                     association=[1, 2, 3])
+            box = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
+                                                     association=association)
 
     def test_wrong_lengths(self):
         # Should reject if not all of index, channel_type, association the
         # same length.
+        channel_type = (COLOR, COLOR)
+        association = (RED, GREEN, BLUE)
         with self.assertRaises(IOError):
-            box = glymur.jp2box.ChannelDefinitionBox(index=[0, 1, 2],
-                                                     channel_type=[0, 0],
-                                                     association=[1, 2, 3])
+            box = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
+                                                     association=association)
 
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
@@ -427,6 +471,7 @@ class TestJp2Boxes(unittest.TestCase):
 
     def setUp(self):
         self.j2kfile = glymur.data.goodstuff()
+        self.jp2file = glymur.data.nemo()
 
     def tearDown(self):
         pass
@@ -522,7 +567,7 @@ class TestJp2Boxes(unittest.TestCase):
 
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_wrap_jp2(self):
-        j2k = Jp2k(self.j2kfile)
+        j2k = Jp2k(self.jp2file)
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             jp2 = j2k.wrap(tfile.name)
         boxes = [box.box_id for box in jp2.box]

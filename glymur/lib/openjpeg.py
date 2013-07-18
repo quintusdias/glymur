@@ -23,7 +23,7 @@ def version():
 
 # Need to get the minor version, make sure we are at least at 1.4.x
 #import pdb; pdb.set_trace()
-_minor = version().split('.')[1]
+_MINOR = version().split('.')[1]
 
 
 class EventMgrType(ctypes.Structure):
@@ -103,7 +103,7 @@ class DecompressionParametersType(ctypes.Structure):
                 # entire codestream or be limited to the main header
                 ("cp_limit_decoding", ctypes.c_int)]
 
-    if _minor != '4':
+    if _MINOR == '5':
         _fields_.append(("flags",             ctypes.c_uint))
 
 

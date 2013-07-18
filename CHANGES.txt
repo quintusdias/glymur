@@ -1,3 +1,6 @@
+Jul 18, 2013 - v0.2.3  Support for Python 2.6, OpenJPEG 1.4.  Incompatible
+    change to ChannelDefinitionBox constructor.  Added RGBA example.
+
 Jul 11, 2013 - v0.2.2  Fixed mistakes with trove classifier, pypi releases.
 
 Jul 11, 2013 - v0.2.0  Support for Python 2.7 on windows, OpenJPEG 1.5.1.

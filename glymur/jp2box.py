@@ -16,6 +16,7 @@ References
 import copy
 import datetime
 import math
+import os
 import pprint
 import struct
 import sys
@@ -73,9 +74,6 @@ class Jp2kBox(object):
         self.offset = offset
         self.longname = longname
 
-        # should never be used except maybe for last box in file.
-        self._file_size = -1
-
     def __str__(self):
         msg = "{0} Box ({1})".format(self.longname, self.box_id)
         msg += " @ ({0}, {1})".format(self.offset, self.length)
@@ -118,7 +116,7 @@ class Jp2kBox(object):
             if box_length == 0:
                 # The length of the box is presumed to last until the end of
                 # the file.  Compute the effective length of the box.
-                num_bytes = self._file_size - fptr.tell() + 8
+                num_bytes = os.path.getsize(fptr.name) - fptr.tell() + 8
 
             elif box_length == 1:
                 # The length of the box is in the XL field, a 64-bit value.
@@ -428,14 +426,24 @@ class ChannelDefinitionBox(Jp2kBox):
     longname : str
         more verbose description of the box.
     index : int
-        number of the channel
+        number of the channel.  Defaults to monotonically increasing sequence,
+        i.e. [0, 1, 2, ...]
     channel_type : int
         type of the channel
     association : int
         index of the associated color
     """
-    def __init__(self, index, channel_type, association, **kwargs):
+    def __init__(self, index=None, channel_type=None, association=None,
+                 **kwargs):
         Jp2kBox.__init__(self, box_id='cdef', longname='Channel Definition')
+
+        # channel type and association must be specified.
+        if channel_type is None or association is None:
+            raise IOError("channel_type and association must be specified.")
+
+        if index is None:
+            index = list(range(len(channel_type)))
+
         if len(index) != len(channel_type) or len(index) != len(association):
             msg = "Length of channel definition box inputs must be the same."
             raise IOError(msg)
@@ -506,8 +514,9 @@ class ChannelDefinitionBox(Jp2kBox):
         channel_type = data[1:num_components * 6:3]
         association = data[2:num_components * 6:3]
 
-        box = ChannelDefinitionBox(index, channel_type, association,
-                                   length=length, offset=offset)
+        box = ChannelDefinitionBox(index=index, channel_type=channel_type,
+                                   association=association, length=length,
+                                   offset=offset)
         return box
 
 
