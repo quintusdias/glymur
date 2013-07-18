@@ -34,6 +34,10 @@
 | Debian 7  |        |        |        |                                      |
 +-----------+--------+--------+--------+--------------------------------------+
 
+Make release branch, qualify on all platforms.
 Pylint on entire package should exceed 0.95.
 pep8 should be pass cleanly.
 Coverage should exceed 95%.
+Make release candidate, push to Pypi, qualify in virtual environment.
+Merge release branch to master, tag, push to master, push to Pypi.
+
