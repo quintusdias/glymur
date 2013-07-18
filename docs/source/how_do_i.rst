@@ -161,6 +161,12 @@ channel, but we aren't doing that). ::
     >>> from glymur.core import RED, GREEN, BLUE, WHOLE_IMAGE
     >>> asoc = [RED, GREEN, BLUE, WHOLE_IMAGE]
     >>> cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=ctype, association=asoc)
+    >>> print(cdef)
+    Channel Definition Box (cdef) @ (0, 0)
+        Channel 0 (color) ==> (1)
+        Channel 1 (color) ==> (2)
+        Channel 2 (color) ==> (3)
+        Channel 3 (opacity) ==> (whole image)
 
 It's easiest to take the existing jp2 jacket and just add the channel
 definition box in the appropriate spot.  The channel definition box **must**
