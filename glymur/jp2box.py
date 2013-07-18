@@ -433,7 +433,8 @@ class ChannelDefinitionBox(Jp2kBox):
     association : int
         index of the associated color
     """
-    def __init__(self, index=None, channel_type=None, association=None, **kwargs):
+    def __init__(self, index=None, channel_type=None, association=None,
+                 **kwargs):
         Jp2kBox.__init__(self, box_id='cdef', longname='Channel Definition')
 
         # channel type and association must be specified.
@@ -513,8 +514,8 @@ class ChannelDefinitionBox(Jp2kBox):
         channel_type = data[1:num_components * 6:3]
         association = data[2:num_components * 6:3]
 
-        box = ChannelDefinitionBox(index=index, channel_type=channel_type, 
-                                   association=association, length=length, 
+        box = ChannelDefinitionBox(index=index, channel_type=channel_type,
+                                   association=association, length=length,
                                    offset=offset)
         return box
 
