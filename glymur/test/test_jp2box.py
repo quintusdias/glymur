@@ -471,6 +471,7 @@ class TestJp2Boxes(unittest.TestCase):
 
     def setUp(self):
         self.j2kfile = glymur.data.goodstuff()
+        self.jp2file = glymur.data.nemo()
 
     def tearDown(self):
         pass
@@ -566,7 +567,7 @@ class TestJp2Boxes(unittest.TestCase):
 
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_wrap_jp2(self):
-        j2k = Jp2k(self.j2kfile)
+        j2k = Jp2k(self.jp2file)
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             jp2 = j2k.wrap(tfile.name)
         boxes = [box.box_id for box in jp2.box]
