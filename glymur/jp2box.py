@@ -644,7 +644,7 @@ class ContiguousCodestreamBox(Jp2kBox):
         -------
         ContiguousCodestreamBox instance
         """
-        main_header = Codestream(fptr, header_only=True)
+        main_header = Codestream(fptr, length, header_only=True)
         box = ContiguousCodestreamBox(main_header, length=length,
                                       offset=offset)
         return box

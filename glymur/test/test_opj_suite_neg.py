@@ -73,25 +73,16 @@ class TestSuiteNegative(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 j.write(data, psnr=[30, 35, 40], cratios=[2, 3, 4])
 
-    @unittest.skipIf(sys.hexversion < 0x03020000,
-                     "Uses features introduced in 3.2.")
     def test_NR_MarkerIsNotCompliant_j2k_dump(self):
-        # SOT marker gives bad offset.
         relpath = 'input/nonregression/MarkerIsNotCompliant.j2k'
         jfile = os.path.join(data_root, relpath)
         jp2k = Jp2k(jfile)
-        with self.assertWarns(UserWarning) as cw:
-            c = jp2k.get_codestream(header_only=False)
-
-        # Verify that the last segment returned in the codestream is SOD,
-        # not EOC.  Codestream parsing should stop when we try to jump to
-        # the end of SOT.
-        self.assertEqual(c.segment[-1].marker_id, 'SOD')
+        c = jp2k.get_codestream(header_only=False)
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
     def test_NR_illegalcolortransform_dump(self):
-        # SOT marker gives bad offset.
+        # EOC marker is bad
         relpath = 'input/nonregression/illegalcolortransform.j2k'
         jfile = os.path.join(data_root, relpath)
         jp2k = Jp2k(jfile)
@@ -103,20 +94,11 @@ class TestSuiteNegative(unittest.TestCase):
         # the end of SOT.
         self.assertEqual(c.segment[-1].marker_id, 'SOD')
 
-    @unittest.skipIf(sys.hexversion < 0x03020000,
-                     "Uses features introduced in 3.2.")
     def test_NR_Cannotreaddatawithnosizeknown_j2k(self):
-        # SOT marker gives bad offset.
         relpath = 'input/nonregression/Cannotreaddatawithnosizeknown.j2k'
         jfile = os.path.join(data_root, relpath)
         jp2k = Jp2k(jfile)
-        with self.assertWarns(UserWarning) as cw:
-            c = jp2k.get_codestream(header_only=False)
-
-        # Verify that the last segment returned in the codestream is SOD,
-        # not EOC.  Codestream parsing should stop when we try to jump to
-        # the end of SOT.
-        self.assertEqual(c.segment[-1].marker_id, 'SOD')
+        c = jp2k.get_codestream(header_only=False)
 
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_code_block_dimensions(self):
