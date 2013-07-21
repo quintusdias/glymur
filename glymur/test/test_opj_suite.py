@@ -7813,6 +7813,8 @@ class TestSuite15(unittest.TestCase):
             data = jp2.read()
         self.assertTrue(True)
 
+    @unittest.skipIf(glymur.lib.openjpeg.version().startswith('1.3'),
+                     "Segfaults openjpeg 1.3.")
     def test_NR_DEC_broken2_jp2_5_decode(self):
         # Null pointer access
         jfile = os.path.join(data_root, 'input/nonregression/broken2.jp2')
@@ -7834,6 +7836,8 @@ class TestSuite15(unittest.TestCase):
         with self.assertRaises(ValueError) as ce:
             d = j.read()
 
+    @unittest.skipIf(glymur.lib.openjpeg.version().startswith('1.3'),
+                     "Segfaults openjpeg 1.3.")
     def test_NR_DEC_broken4_jp2_7_decode(self):
         # Null pointer access
         jfile = os.path.join(data_root, 'input/nonregression/broken4.jp2')
