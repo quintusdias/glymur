@@ -115,7 +115,7 @@ following RPMs installed.
       * numpy
       * matplotlib (optional)
 
-In addition, you must install contextlib2 and Pillow via pip.
+In addition, you must install contextlib2 and Pillow via pip. ::
 
     $ yum install python-devel # pip needs this in order to compile Pillow
     $ pip-python install Pillow --user
