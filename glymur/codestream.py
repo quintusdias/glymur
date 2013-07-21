@@ -5,6 +5,7 @@ codestreams.
 """
 # pylint: disable=C0302,R0902,R0903,R0913
 
+from itertools import takewhile
 import math
 import struct
 import sys
@@ -114,11 +115,6 @@ class Codestream(object):
             read_buffer = fptr.read(2)
             marker_id, = struct.unpack('>H', read_buffer)
 
-            if marker_id == 0xff90 and header_only:
-                # start-of-tile (SOT) means we are out of the main header.
-                # No need to go any further.
-                break
-
             try:
                 segment = self._process_marker_segment(fptr, marker_id)
             except Exception as error:
@@ -135,13 +131,20 @@ class Codestream(object):
 
             if marker_id == 0xff93:
                 # If SOD, then we need to seek past the tile part bit stream.
-                if self._parse_tpart_flag:
+                if self._parse_tpart_flag and not header_only:
                     # But first parse the tile part bit stream for SOP and
                     # EPH segments.
                     self._parse_tile_part_bit_stream(fptr, segment,
                                                      self._tile_length[-1])
 
                 fptr.seek(self._tile_offset[-1] + self._tile_length[-1])
+
+        if header_only:
+            # start-of-tile (SOT) means we are out of the main header.
+            # No need to go any further.
+            gen = takewhile(lambda s:  s.marker_id != 'SOT', self.segment)
+            self.segment = list(gen)
+
 
     def _process_marker_segment(self, fptr, marker_id):
         """Process and return a segment from the codestream.
