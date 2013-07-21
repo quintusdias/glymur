@@ -28,8 +28,7 @@ except:
 class TestCodestream(unittest.TestCase):
 
     def setUp(self):
-        self.jp2file = pkg_resources.resource_filename(glymur.__name__,
-                                                       "data/nemo.jp2")
+        self.jp2file = glymur.data.nemo()
 
     def tearDown(self):
         pass
@@ -94,6 +93,17 @@ class TestCodestream(unittest.TestCase):
             self.assertEqual(c.segment[2].marker_id, '0xff79')
             self.assertEqual(c.segment[2].length, 3)
             self.assertEqual(c.segment[2]._data, b'\x00')
+
+    def test_psot_is_zero(self):
+        # Psot=0 in SOT is perfectly legal.  Issue #78.
+        filename = os.path.join(data_root,
+                                'input/nonregression/123.j2c')
+        j = Jp2k(filename)
+        c = j.get_codestream(header_only=False)
+
+        # The codestream is valid, so we should be able to get the entire
+        # codestream, so the last one is EOC.
+        self.assertEqual(c.segment[-1].marker_id, 'EOC')
 
 if __name__ == "__main__":
     unittest.main()
