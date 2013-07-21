@@ -57,7 +57,12 @@ class Codestream(object):
 
     Attributes
     ----------
-    segment : list of marker segments
+    segment : iterable
+        list of marker segments
+    offset : int
+        Offset of the codestream from start of the file in bytes.
+    length : int
+        Length of the codestream in bytes.
 
     Raises
     ------
@@ -70,16 +75,21 @@ class Codestream(object):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, fptr, header_only=True):
+    def __init__(self, fptr, length, header_only=True):
         """
         Parameters
         ----------
         fptr : file
             Open file object.
+        length : int
+            Length of the codestream in bytes.
         header_only : bool, optional
             If True, only marker segments in the main header are parsed.
             Supplying False may impose a large performance penalty.
         """
+
+        self.offset = fptr.tell()
+        self.length = length
 
         # Number of components.  Must be kept track of for the processing of
         # many segments.
@@ -111,9 +121,9 @@ class Codestream(object):
 
             try:
                 segment = self._process_marker_segment(fptr, marker_id)
-            except InconsistentStartOfTileError as isote:
+            except Exception as error:
                 # Treat this as a warning.
-                msg = str(isote)
+                msg = str(error)
                 warnings.warn(msg)
                 break
 
@@ -199,7 +209,11 @@ class Codestream(object):
             segment = _parse_sot_segment(fptr)
             if segment.offset not in self._tile_offset:
                 self._tile_offset.append(segment.offset)
-                self._tile_length.append(segment.psot)
+                if segment.psot == 0:
+                    tile_part_length = self.offset + self.length - segment.offset - 2
+                else:
+                    tile_part_length = segment.psot
+                self._tile_length.append(tile_part_length)
             else:
                 msg = "Inconsistent start-of-tile (SOT) marker segment "
                 msg += "encountered in tile with index {0}.  "

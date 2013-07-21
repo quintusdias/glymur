@@ -115,7 +115,7 @@ following RPMs installed.
       * numpy
       * matplotlib (optional)
 
-In addition, you must install contextlib2 and Pillow via pip.
+In addition, you must install contextlib2 and Pillow via pip. ::
 
     $ yum install python-devel # pip needs this in order to compile Pillow
     $ pip-python install Pillow --user
@@ -126,8 +126,11 @@ Windows
 -------
 The only configuration I've tested is Python(xy), which uses Python 2.7.  
 Python(xy) already comes with numpy, but you will have to install pip and then
-contextlib2 and mock as well.  Both 1.5.1 and the svn development versions of
-openjpeg work.
+contextlib2 and mock as well.  Glymur seems to work with both 1.5.1 and the 
+svn development versions of openjpeg.
+
+Glymur has been tested **far less** extensively on Windows than on the other 
+platforms.  
 
 
 '''''''

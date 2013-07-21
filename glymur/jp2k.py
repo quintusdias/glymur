@@ -1033,7 +1033,8 @@ class Jp2k(Jp2kBox):
         """
         with open(self.filename, 'rb') as fptr:
             if self._codec_format == _opj2.CODEC_J2K:
-                codestream = Codestream(fptr, header_only=header_only)
+                codestream = Codestream(fptr, self.length,
+                                        header_only=header_only)
             else:
                 box = [x for x in self.box if x.box_id == 'jp2c']
                 if len(box) != 1:
@@ -1042,9 +1043,15 @@ class Jp2k(Jp2kBox):
                 fptr.seek(box[0].offset)
                 read_buffer = fptr.read(8)
                 (box_length, _) = struct.unpack('>I4s', read_buffer)
-                if box_length == 1:
+                if box_length == 0:
+                    # The length of the box is presumed to last until the end
+                    # of the file.  Compute the effective length of the box.
+                    box_length = os.path.getsize(fptr.name) - fptr.tell() + 8
+                elif box_length == 1:
                     # Seek past the XL field.
                     read_buffer = fptr.read(8)
-                codestream = Codestream(fptr, header_only=header_only)
+                    box_length, = struct.unpack('>Q', read_buffer)
+                codestream = Codestream(fptr, box_length - 8,
+                                        header_only=header_only)
 
             return codestream

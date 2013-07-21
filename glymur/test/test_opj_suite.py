@@ -823,11 +823,15 @@ class TestSuite(unittest.TestCase):
         self.assertTrue(True)
 
     def test_NR_DEC_broken2_jp2_5_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/broken2.jp2')
+        # Null pointer access
+        jfile = os.path.join(data_root, 'input/nonregression/broken2.jp2')
         with self.assertRaises(IOError):
-            data = Jp2k(jfile).read()
+            with warnings.catch_warnings():
+                # Library warning, invalid number of subbands.
+                warnings.simplefilter("ignore")
+                data = Jp2k(jfile).read()
         self.assertTrue(True)
+
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
@@ -845,7 +849,10 @@ class TestSuite(unittest.TestCase):
         jfile = os.path.join(data_root,
                              'input/nonregression/broken4.jp2')
         with self.assertRaises(IOError):
-            data = Jp2k(jfile).read()
+            with warnings.catch_warnings():
+                # Library warning, invalid number of subbands.
+                warnings.simplefilter("ignore")
+                data = Jp2k(jfile).read()
         self.assertTrue(True)
 
     @unittest.skip("fprintf stderr output in r2343.")
@@ -6003,12 +6010,15 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[6]._exponent,
                          [8] + [9, 9, 10] * 5)
 
+    @unittest.skipIf(sys.hexversion < 0x03020000,
+                     "Uses features introduced in 3.2, 'assertWarns'.")
     def test_NR_broken2_jp2_dump(self):
         # Invalid marker ID on codestream.
-        jfile = os.path.join(data_root,
-                             'input/nonregression/broken2.jp2')
-        with self.assertRaises(IOError):
+        jfile = os.path.join(data_root, 'input/nonregression/broken2.jp2')
+        with self.assertWarns(UserWarning):
             jp2 = Jp2k(jfile)
+
+        self.assertEqual(jp2.box[-1].main_header.segment[-1].marker_id, 'QCC')
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
@@ -6137,11 +6147,15 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[6]._exponent,
                          [8] + [9, 9, 10] * 5)
 
+    @unittest.skipIf(sys.hexversion < 0x03020000,
+                     "Uses features introduced in 3.2, 'assertWarns'")
     def test_NR_broken4_jp2_dump(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/broken4.jp2')
-        with self.assertRaises(IOError):
+        # Has an invalid marker in the main header
+        jfile = os.path.join(data_root, 'input/nonregression/broken4.jp2')
+        with self.assertWarns(UserWarning):
             jp2 = Jp2k(jfile)
+
+        self.assertEqual(jp2.box[-1].main_header.segment[-1].marker_id, 'QCC')
 
     def test_NR_file409752(self):
         jfile = os.path.join(data_root,
@@ -7799,18 +7813,22 @@ class TestSuite15(unittest.TestCase):
             data = jp2.read()
         self.assertTrue(True)
 
+    @unittest.skipIf(int(glymur.lib.openjpeg.version().split('.')[1]) < 5,
+                     "Segfaults openjpeg 1.4 and earlier.")
     def test_NR_DEC_broken2_jp2_5_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/broken2.jp2')
-        with self.assertRaises(IOError):
-            data = Jp2k(jfile).read()
+        # Null pointer access
+        jfile = os.path.join(data_root, 'input/nonregression/broken2.jp2')
+        with self.assertRaises(ValueError):
+            with warnings.catch_warnings():
+                # Library warning, invalid number of subbands.
+                warnings.simplefilter("ignore")
+                data = Jp2k(jfile).read()
         self.assertTrue(True)
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
     def test_NR_DEC_broken3_jp2_6_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/broken3.jp2')
+        jfile = os.path.join(data_root, 'input/nonregression/broken3.jp2')
         with self.assertWarns(UserWarning) as cw:
             # colr box has bad length.
             j = Jp2k(jfile)
@@ -7818,11 +7836,16 @@ class TestSuite15(unittest.TestCase):
         with self.assertRaises(ValueError) as ce:
             d = j.read()
 
+    @unittest.skipIf(int(glymur.lib.openjpeg.version().split('.')[1]) < 5,
+                     "Segfaults openjpeg 1.4 and earlier.")
     def test_NR_DEC_broken4_jp2_7_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/broken4.jp2')
-        with self.assertRaises(IOError):
-            data = Jp2k(jfile).read()
+        # Null pointer access
+        jfile = os.path.join(data_root, 'input/nonregression/broken4.jp2')
+        with self.assertRaises(ValueError):
+            with warnings.catch_warnings():
+                # Library warning, invalid number of subbands.
+                warnings.simplefilter("ignore")
+                data = Jp2k(jfile).read()
         self.assertTrue(True)
 
     @unittest.skip("fprintf stderr output in r2343.")

@@ -6,34 +6,38 @@
 |           |        |        |        | pass.                                |
 +-----------+--------+--------+--------+--------------------------------------+
 | Mac       |   X    |        |        | MacPorts with both OpenJPEG 1.5.1    |
-| 10.6.8    |        |        |        | and OpenJPEG svn.  353 of 449 tests  |
+| 10.6.8    |        |        |        | and OpenJPEG svn.  352 of 450 tests  |
 |           |        |        |        | should pass.                         |
 +-----------+--------+--------+--------+--------------------------------------+
 | Mac       |        |   X    |        | MacPorts with both OpenJPEG 1.5.1    |
-| 10.6.8    |        |        |        | and OpenJPEG svn.  376 of 454 tests  |
+| 10.6.8    |        |        |        | and OpenJPEG svn.  377 of 455 tests  |
 |           |        |        |        | should pass.                         |
 +-----------+--------+--------+--------+--------------------------------------+
 | Mac       |        |        |   X    | MacPorts with both OpenJPEG 1.5.1    |
-| 10.6.8    |        |        |        | and OpenJPEG svn.  401 of 454        |
+| 10.6.8    |        |        |        | and OpenJPEG svn.  402 of 455        |
 |           |        |        |        | tests should pass.                   |
 +-----------+--------+--------+-----------------------------------------------+
 | Fedora 19 |        |        |   X    | Ships with 1.5.1, openjp2 built too. |
-|           |        |        |        | 401 of 454 tests should pass.        |
+|           |        |        |        | 402 of 455 tests should pass.        |
 +-----------+--------+--------+--------+--------------------------------------+
 | Fedora 18 |        |        |   X    | Ships with 1.5.1.  169 of 449 tests  |
 |           |        |        |        | should pass.                         |
 +-----------+--------+--------+--------+--------------------------------------+
-| Fedora 17 |        |   X    |        | Ships with 1.4.0.  169 of 449 tests  |
+| Fedora 17 |        |   X    |        | Ships with 1.4.0.  166 of 450 tests  |
 |           |        |        |        | should pass.                         |
 +-----------+--------+--------+--------+--------------------------------------+
-| CentOS    |   X    |        |        | Ships with 1.3.0.  167 of 449 tests  |
+| CentOS    |   X    |        |        | Ships with 1.3.0.  164 of 450 tests  |
 |   6.3     |        |        |        | should pass.                         |
 +-----------+--------+--------+--------+--------------------------------------+
-| Raspberry |        |   X    |        | Ships with 1.3.0.  169 of 449 tests  |
+| Raspberry |        |   X    |        | Ships with 1.3.0.  166 of 450 tests  |
 |    Pi     |        |        |        | should pass.                         |
 | Debian 7  |        |        |        |                                      |
 +-----------+--------+--------+--------+--------------------------------------+
 
+Make release branch, qualify on all platforms.
 Pylint on entire package should exceed 0.95.
 pep8 should be pass cleanly.
 Coverage should exceed 95%.
+Make release candidate, push to Pypi, qualify in virtual environment.
+Merge release branch to master, tag, push to master, push to Pypi.
+
