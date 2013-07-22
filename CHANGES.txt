@@ -1,3 +1,6 @@
+Jul 23, 2013 - v0.2.5  Fixed inconsistency in XML handling, now all instances
+    are always ElementTree objects (issue82).
+
 Jul 21, 2013 - v0.2.4  Fixed markdown bug for Fedora 17 information, fixed
     out-of-date windows information (issue79).  Fixed incorrect
     interpretation of Psot parameter (issue78).
