@@ -51,5 +51,20 @@ class TestSuite(unittest.TestCase):
         with self.assertRaises(OSError):
             j2k.read(rlevel=-1)
 
+    def test_balloon_trunc2(self):
+        # Shortened by 5000 bytes.
+        jfile = os.path.join(data_root,
+                             'jp2k-test/byteCorruption/balloon_trunc2.jp2')
+        j2k = Jp2k(jfile)
+        with self.assertWarns(UserWarning):
+            c = j2k.get_codestream(header_only=False)
+        
+        # The last segment is truncated, so there should not be an EOC marker.
+        self.assertNotEqual(c.segment[-1].marker_id, 'EOC')
+
+        # The codestream is not as long as claimed.
+        with self.assertRaises(OSError):
+            j2k.read(rlevel=-1)
+
 if __name__ == "__main__":
     unittest.main()
