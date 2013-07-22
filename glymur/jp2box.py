@@ -1608,7 +1608,7 @@ class XMLBox(Jp2kBox):
         offset of the box from the start of the file.
     longname : str
         more verbose description of the box.
-    xml : ElementTree.Element
+    xml : ElementTree object
         XML section.
     """
     def __init__(self, xml=None, filename=None, length=0, offset=-1):
@@ -1636,10 +1636,7 @@ class XMLBox(Jp2kBox):
         msg = Jp2kBox.__str__(self)
         xml = self.xml
         if self.xml is not None:
-            try:
-                msg += _pretty_print_xml(self.xml)
-            except TypeError:
-                msg += _pretty_print_xml(self.xml.getroot())
+            msg += _pretty_print_xml(self.xml)
         else:
             msg += '\n    {0}'.format(xml)
         return msg
@@ -1682,7 +1679,8 @@ class XMLBox(Jp2kBox):
         text = text.rstrip('\0')
 
         try:
-            xml = ET.fromstring(text)
+            elt = ET.fromstring(text)
+            xml = ET.ElementTree(elt)
         except ParseError as parse_error:
             msg = 'A problem was encountered while parsing an XML box:  "{0}"'
             msg = msg.format(str(parse_error))
@@ -1926,13 +1924,11 @@ class UUIDBox(Jp2kBox):
             # XMP data.  Parse as XML.  Seems to be a difference between
             # ElementTree in version 2.7 and 3.3.
             if sys.hexversion < 0x03000000:
-                #parser = ET.XMLParser(encoding='utf-8')
-                #import pdb; pdb.set_trace()
-                #self.data = ET.fromstringlist(raw_data, parser=parser)
-                self.data = ET.fromstring(raw_data)
+                elt = ET.fromstring(raw_data)
             else:
                 text = raw_data.decode('utf-8')
-                self.data = ET.fromstring(text)
+                elt = ET.fromstring(text)
+            self.data = ET.ElementTree(elt)
         elif the_uuid.bytes == b'JpgTiffExif->JP2':
             exif_obj = Exif(raw_data)
             ifds = OrderedDict()
@@ -2555,8 +2551,8 @@ def _pretty_print_xml(xml, level=0):
     """Pretty print XML data.
     """
     xml = copy.deepcopy(xml)
-    _indent(xml, level=level)
-    xmltext = ET.tostring(xml).decode('utf-8')
+    _indent(xml.getroot(), level=level)
+    xmltext = ET.tostring(xml.getroot()).decode('utf-8')
 
     # Indent it a bit.
     lst = [('    ' + x) for x in xmltext.split('\n')]
