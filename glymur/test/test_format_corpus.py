@@ -47,5 +47,9 @@ class TestSuite(unittest.TestCase):
         # The last segment is truncated, so there should not be an EOC marker.
         self.assertNotEqual(c.segment[-1].marker_id, 'EOC')
 
+        # The codestream is not as long as claimed.
+        with self.assertRaises(OSError):
+            j2k.read(rlevel=-1)
+
 if __name__ == "__main__":
     unittest.main()
