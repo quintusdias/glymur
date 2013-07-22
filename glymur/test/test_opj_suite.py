@@ -4021,7 +4021,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[1].compatibility_list[1], 'jp2 ')
 
         # XML box
-        tags = [x.tag for x in jp2.box[2].xml]
+        tags = [x.tag for x in jp2.box[2].xml.getroot()]
         self.assertEqual(tags,
                          ['{http://www.jpeg.org/jpx/1.0/xml}'
                           + 'GENERAL_CREATION_INFO'])
@@ -4046,7 +4046,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[3].box[1].colorspace, glymur.core.SRGB)
 
         # XML box
-        tags = [x.tag for x in jp2.box[4].xml]
+        tags = [x.tag for x in jp2.box[4].xml.getroot()]
         self.assertEqual(tags, ['{http://www.jpeg.org/jpx/1.0/xml}CAPTION',
                                 '{http://www.jpeg.org/jpx/1.0/xml}LOCATION',
                                 '{http://www.jpeg.org/jpx/1.0/xml}EVENT'])
@@ -4376,13 +4376,13 @@ class TestSuiteDump(unittest.TestCase):
         self.assertIsNone(jp2.box[2].box[1].colorspace)
 
         # XML box
-        tags = [x.tag for x in jp2.box[3].xml]
+        tags = [x.tag for x in jp2.box[3].xml.getroot()]
         self.assertEqual(tags,
                          ['{http://www.jpeg.org/jpx/1.0/xml}'
                           + 'GENERAL_CREATION_INFO'])
 
         # XML box
-        tags = [x.tag for x in jp2.box[5].xml]
+        tags = [x.tag for x in jp2.box[5].xml.getroot()]
         self.assertEqual(tags,
                          ['{http://www.jpeg.org/jpx/1.0/xml}CAPTION',
                           '{http://www.jpeg.org/jpx/1.0/xml}LOCATION',
@@ -6954,8 +6954,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[3]._exponent, [4] + [5, 5, 6] * 5)
 
     def test_NR_merged_dump(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/merged.jp2')
+        jfile = os.path.join(data_root, 'input/nonregression/merged.jp2')
         jp2 = Jp2k(jfile)
 
         ids = [box.box_id for box in jp2.box]

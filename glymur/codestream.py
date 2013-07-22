@@ -42,16 +42,6 @@ for _marker in range(0xff90, 0xff94):
     _VALID_MARKERS.append(_marker)
 
 
-class InconsistentStartOfTileError(IOError):
-    """To be raised if bad SOT segment encountered.
-
-    SOT segment offsets are recorded as encountered.  The offsets should all be
-    different.
-    """
-    def __init__(self, msg):
-        IOError.__init__(self, msg)
-
-
 class Codestream(object):
     """Container for codestream information.
 
@@ -115,8 +105,8 @@ class Codestream(object):
             marker_id, = struct.unpack('>H', read_buffer)
 
             if marker_id == 0xff90 and header_only:
-                # start-of-tile (SOT) means we are out of the main header.
-                # No need to go any further.
+                # Start-of-tile (SOT) means that we are out of the main header
+                # and there is no need to go further.
                 break
 
             try:
@@ -135,13 +125,14 @@ class Codestream(object):
 
             if marker_id == 0xff93:
                 # If SOD, then we need to seek past the tile part bit stream.
-                if self._parse_tpart_flag:
+                if self._parse_tpart_flag and not header_only:
                     # But first parse the tile part bit stream for SOP and
                     # EPH segments.
                     self._parse_tile_part_bit_stream(fptr, segment,
                                                      self._tile_length[-1])
 
                 fptr.seek(self._tile_offset[-1] + self._tile_length[-1])
+
 
     def _process_marker_segment(self, fptr, marker_id):
         """Process and return a segment from the codestream.
@@ -207,19 +198,12 @@ class Codestream(object):
             # we encounter start-of-data marker segments.
 
             segment = _parse_sot_segment(fptr)
-            if segment.offset not in self._tile_offset:
-                self._tile_offset.append(segment.offset)
-                if segment.psot == 0:
-                    tile_part_length = self.offset + self.length - segment.offset - 2
-                else:
-                    tile_part_length = segment.psot
-                self._tile_length.append(tile_part_length)
+            self._tile_offset.append(segment.offset)
+            if segment.psot == 0:
+                tile_part_length = self.offset + self.length - segment.offset - 2
             else:
-                msg = "Inconsistent start-of-tile (SOT) marker segment "
-                msg += "encountered in tile with index {0}.  "
-                msg += "Codestream parsing terminated."
-                msg = msg.format(segment.isot)
-                raise InconsistentStartOfTileError(msg)
+                tile_part_length = segment.psot
+            self._tile_length.append(tile_part_length)
 
         elif marker_id == 0xff93:
             # start of data.  Need to seek past the current tile part.
