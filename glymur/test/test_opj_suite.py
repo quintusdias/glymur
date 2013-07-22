@@ -6954,8 +6954,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[3]._exponent, [4] + [5, 5, 6] * 5)
 
     def test_NR_merged_dump(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/merged.jp2')
+        jfile = os.path.join(data_root, 'input/nonregression/merged.jp2')
         jp2 = Jp2k(jfile)
 
         ids = [box.box_id for box in jp2.box]
