@@ -365,7 +365,7 @@ class TestXML(unittest.TestCase):
             j2k.wrap(tfile.name, boxes=boxes)
             jp2 = Jp2k(tfile.name)
             self.assertEqual(jp2.box[3].box_id, 'xml ')
-            self.assertEqual(ET.tostring(jp2.box[3].xml),
+            self.assertEqual(ET.tostring(jp2.box[3].xml.getroot()),
                              b'<data>0</data>')
 
     @unittest.skipIf(os.name == "nt",
