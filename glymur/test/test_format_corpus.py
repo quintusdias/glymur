@@ -81,5 +81,16 @@ class TestSuite(unittest.TestCase):
         #with self.assertRaises(OSError):
         #    j2k.read(rlevel=-1)
 
+    def test_jp2_brand_vs_any_icc_profile(self):
+        # If 'jp2 ', then the method cannot be any icc profile.
+        jfile = os.path.join(data_root,
+                             'jp2k-test/icc/balloon_eciRGBv2_ps_adobeplugin.jpf')
+        with self.assertWarns(UserWarning):
+            j2k = Jp2k(jfile)
+        
+        # Should error out, it does not.
+        #with self.assertRaises(OSError):
+        #    j2k.read(rlevel=-1)
+
 if __name__ == "__main__":
     unittest.main()
