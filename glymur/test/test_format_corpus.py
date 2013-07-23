@@ -17,18 +17,23 @@ from glymur import Jp2k
 import glymur
 
 try:
-    data_root = os.environ['FORMAT_CORPUS_ROOT']
+    format_corpus_data_root = os.environ['FORMAT_CORPUS_DATA_ROOT']
 except KeyError:
-    data_root = None
+    format_corpus_data_root = None
+except:
+    raise
+
+try:
+    opj_data_root = os.environ['OPJ_DATA_ROOT']
+except KeyError:
+    opj_corpus_data_root = None
 except:
     raise
 
 
 @unittest.skipIf(sys.hexversion < 0x03020000,
                  "Requires features introduced in 3.2 (assertWarns)")
-@unittest.skipIf(data_root is None,
-                 "FORMAT_CORPUS_ROOT environment variable not set")
-class TestSuite(unittest.TestCase):
+class TestSuiteFormatCorpus(unittest.TestCase):
 
     def setUp(self):
         pass
@@ -36,9 +41,11 @@ class TestSuite(unittest.TestCase):
     def tearDown(self):
         pass
 
+    @unittest.skipIf(format_corpus_data_root is None,
+                     "FORMAT_CORPUS_DATA_ROOT environment variable not set")
     def test_balloon_trunc1(self):
         # Has one byte shaved off of EOC marker.
-        jfile = os.path.join(data_root,
+        jfile = os.path.join(format_corpus_data_root,
                              'jp2k-test/byteCorruption/balloon_trunc1.jp2')
         j2k = Jp2k(jfile)
         with self.assertWarns(UserWarning):
@@ -51,9 +58,11 @@ class TestSuite(unittest.TestCase):
         with self.assertRaises(OSError):
             j2k.read(rlevel=-1)
 
+    @unittest.skipIf(format_corpus_data_root is None,
+                     "FORMAT_CORPUS_DATA_ROOT environment variable not set")
     def test_balloon_trunc2(self):
         # Shortened by 5000 bytes.
-        jfile = os.path.join(data_root,
+        jfile = os.path.join(format_corpus_data_root,
                              'jp2k-test/byteCorruption/balloon_trunc2.jp2')
         j2k = Jp2k(jfile)
         with self.assertWarns(UserWarning):
@@ -66,9 +75,11 @@ class TestSuite(unittest.TestCase):
         with self.assertRaises(OSError):
             j2k.read(rlevel=-1)
 
+    @unittest.skipIf(format_corpus_data_root is None,
+                     "FORMAT_CORPUS_DATA_ROOT environment variable not set")
     def test_balloon_trunc3(self):
         # Most of last tile is missing.
-        jfile = os.path.join(data_root,
+        jfile = os.path.join(format_corpus_data_root,
                              'jp2k-test/byteCorruption/balloon_trunc3.jp2')
         j2k = Jp2k(jfile)
         with self.assertWarns(UserWarning):
@@ -81,16 +92,35 @@ class TestSuite(unittest.TestCase):
         #with self.assertRaises(OSError):
         #    j2k.read(rlevel=-1)
 
+    @unittest.skipIf(format_corpus_data_root is None,
+                     "FORMAT_CORPUS_DATA_ROOT environment variable not set")
     def test_jp2_brand_vs_any_icc_profile(self):
         # If 'jp2 ', then the method cannot be any icc profile.
-        jfile = os.path.join(data_root,
-                             'jp2k-test/icc/balloon_eciRGBv2_ps_adobeplugin.jpf')
+        jfile = os.path.join(format_corpus_data_root,
+                             'jp2k-test', 'icc',
+                             'balloon_eciRGBv2_ps_adobeplugin.jpf')
         with self.assertWarns(UserWarning):
             j2k = Jp2k(jfile)
         
-        # Should error out, it does not.
-        #with self.assertRaises(OSError):
-        #    j2k.read(rlevel=-1)
 
+@unittest.skipIf(sys.hexversion < 0x03020000,
+                 "Requires features introduced in 3.2 (assertWarns)")
+class TestSuiteOpj(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    @unittest.skipIf(opj_data_root is None,
+                     "OPJ_DATA_ROOT environment variable not set")
+    def test_jp2_brand_vs_any_icc_profile(self):
+        # If 'jp2 ', then the method cannot be any icc profile.
+        filename = os.path.join(opj_data_root,
+                                'input/nonregression/text_GBR.jp2')
+        with self.assertWarns(UserWarning):
+            j2k = Jp2k(filename)
+        
 if __name__ == "__main__":
     unittest.main()
