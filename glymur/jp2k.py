@@ -167,15 +167,16 @@ class Jp2k(Jp2kBox):
         """
         # A jp2-branded file cannot contain an "any ICC profile
         ftyp = self.box[1]
-        jp2h = [box for box in self.box if box.box_id == 'jp2h'][0]
-        colr = [box for box in jp2h.box if box.box_id == 'colr'][0]
-        if (((ftyp.brand == 'jp2 ') and 
-             (colr.method not in (ENUMERATED_COLORSPACE,
-                                  RESTRICTED_ICC_PROFILE)))):
-            msg = "Color Specification box method must specify either an "
-            msg += "enumerated colorspace or a restricted ICC profile if the "
-            msg += "file type box brand is 'jp2 '."
-            warnings.warn(msg)
+        if ftyp.brand == 'jp2 ':
+            jp2h = [box for box in self.box if box.box_id == 'jp2h'][0]
+            colrs = [box for box in jp2h.box if box.box_id == 'colr']
+            for colr in colrs: 
+                if colr.method not in (ENUMERATED_COLORSPACE,
+                                       RESTRICTED_ICC_PROFILE):
+                    msg = "Color Specification box method must specify either "
+                    msg += "an enumerated colorspace or a restricted ICC "
+                    msg += "profile if the file type box brand is 'jp2 '."
+                    warnings.warn(msg)
 
 
     # pylint:  disable-msg=W0221
