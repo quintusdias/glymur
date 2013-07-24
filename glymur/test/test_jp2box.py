@@ -19,6 +19,11 @@ from glymur.jp2box import *
 from glymur.core import COLOR, OPACITY
 from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE
 
+try:
+    format_corpus_data_root = os.environ['FORMAT_CORPUS_DATA_ROOT']
+except KeyError:
+    format_corpus_data_root = None
+
 
 # Doc tests should be run as well.
 def load_tests(loader, tests, ignore):
@@ -365,7 +370,7 @@ class TestXML(unittest.TestCase):
             j2k.wrap(tfile.name, boxes=boxes)
             jp2 = Jp2k(tfile.name)
             self.assertEqual(jp2.box[3].box_id, 'xml ')
-            self.assertEqual(ET.tostring(jp2.box[3].xml),
+            self.assertEqual(ET.tostring(jp2.box[3].xml.getroot()),
                              b'<data>0</data>')
 
     @unittest.skipIf(os.name == "nt",
@@ -467,7 +472,7 @@ class TestColourSpecificationBox(unittest.TestCase):
 
 @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
-class TestJp2Boxes(unittest.TestCase):
+class TestWrap(unittest.TestCase):
 
     def setUp(self):
         self.j2kfile = glymur.data.goodstuff()
@@ -475,39 +480,6 @@ class TestJp2Boxes(unittest.TestCase):
 
     def tearDown(self):
         pass
-
-    def test_default_JPEG2000SignatureBox(self):
-        # Should be able to instantiate a JPEG2000SignatureBox
-        b = glymur.jp2box.JPEG2000SignatureBox()
-        self.assertEqual(b.signature, (13, 10, 135, 10))
-
-    def test_default_FileTypeBox(self):
-        # Should be able to instantiate a FileTypeBox
-        b = glymur.jp2box.FileTypeBox()
-        self.assertEqual(b.brand, 'jp2 ')
-        self.assertEqual(b.minor_version, 0)
-        self.assertEqual(b.compatibility_list, ['jp2 '])
-
-    def test_default_ImageHeaderBox(self):
-        # Should be able to instantiate an image header box.
-        b = glymur.jp2box.ImageHeaderBox(height=512, width=256,
-                                         num_components=3)
-        self.assertEqual(b.height,  512)
-        self.assertEqual(b.width,  256)
-        self.assertEqual(b.num_components,  3)
-        self.assertEqual(b.bits_per_component, 8)
-        self.assertFalse(b.signed)
-        self.assertFalse(b.colorspace_unknown)
-
-    def test_default_JP2HeaderBox(self):
-        b1 = JP2HeaderBox()
-        b1.box = [ImageHeaderBox(height=512, width=256),
-                  ColourSpecificationBox(colorspace=glymur.core.GREYSCALE)]
-
-    def test_default_ContiguousCodestreamBox(self):
-        b = ContiguousCodestreamBox()
-        self.assertEqual(b.box_id, 'jp2c')
-        self.assertIsNone(b.main_header)
 
     def verify_wrapped_raw(self, jp2file):
         # Shared method by at least two tests.
@@ -672,6 +644,76 @@ class TestJp2Boxes(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
+
+
+class TestJp2Boxes(unittest.TestCase):
+
+    def test_default_JPEG2000SignatureBox(self):
+        # Should be able to instantiate a JPEG2000SignatureBox
+        b = glymur.jp2box.JPEG2000SignatureBox()
+        self.assertEqual(b.signature, (13, 10, 135, 10))
+
+    def test_default_FileTypeBox(self):
+        # Should be able to instantiate a FileTypeBox
+        b = glymur.jp2box.FileTypeBox()
+        self.assertEqual(b.brand, 'jp2 ')
+        self.assertEqual(b.minor_version, 0)
+        self.assertEqual(b.compatibility_list, ['jp2 '])
+
+    def test_default_ImageHeaderBox(self):
+        # Should be able to instantiate an image header box.
+        b = glymur.jp2box.ImageHeaderBox(height=512, width=256,
+                                         num_components=3)
+        self.assertEqual(b.height,  512)
+        self.assertEqual(b.width,  256)
+        self.assertEqual(b.num_components,  3)
+        self.assertEqual(b.bits_per_component, 8)
+        self.assertFalse(b.signed)
+        self.assertFalse(b.colorspace_unknown)
+
+    def test_default_JP2HeaderBox(self):
+        b1 = JP2HeaderBox()
+        b1.box = [ImageHeaderBox(height=512, width=256),
+                  ColourSpecificationBox(colorspace=glymur.core.GREYSCALE)]
+
+    def test_default_ContiguousCodestreamBox(self):
+        b = ContiguousCodestreamBox()
+        self.assertEqual(b.box_id, 'jp2c')
+        self.assertIsNone(b.main_header)
+
+
+class TestJpxBoxes(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    @unittest.skipIf(format_corpus_data_root is None,
+                     "FORMAT_CORPUS_DATA_ROOT environment variable not set")
+    def test_codestream_header(self):
+        # Should recognize codestream header box.
+        jfile = os.path.join(format_corpus_data_root,
+                             'jp2k-formats/balloon.jpf')
+        jpx = Jp2k(jfile)
+
+        # This superbox just happens to be empty.
+        self.assertEqual(jpx.box[4].box_id, 'jpch')
+        self.assertEqual(len(jpx.box[4].box), 0)
+
+    @unittest.skipIf(format_corpus_data_root is None,
+                     "FORMAT_CORPUS_DATA_ROOT environment variable not set")
+    def test_compositing_layer_header(self):
+        # Should recognize compositing layer header box.
+        jfile = os.path.join(format_corpus_data_root,
+                             'jp2k-formats/balloon.jpf')
+        jpx = Jp2k(jfile)
+
+        # This superbox just happens to be empty.
+        self.assertEqual(jpx.box[5].box_id, 'jplh')
+        self.assertEqual(len(jpx.box[5].box), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

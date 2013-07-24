@@ -115,7 +115,7 @@ following RPMs installed.
       * numpy
       * matplotlib (optional)
 
-In addition, you must install contextlib2 and Pillow via pip.
+In addition, you must install contextlib2 and Pillow via pip. ::
 
     $ yum install python-devel # pip needs this in order to compile Pillow
     $ pip-python install Pillow --user
@@ -137,8 +137,17 @@ platforms.
 Testing
 '''''''
 
-If you wish to run the tests (strongly recommended :-), you can either run them
-from within python as follows ... ::
+There are two environment variables you may wish to set before running the
+tests.  
+
+    * **OPJ_DATA_ROOT** - points to directory for OpenJPEG test data
+    * **FORMAT_CORPUS_ROOT** - points to directory for format-corpus repository  (see https://github.com/openplanets/format-corpus)
+
+Setting these two environment variables is not required, as any tests using 
+either of them will be skipped.
+
+In order to run the tests, you can either run them from within
+python as follows ... ::
 
     >>> import glymur
     >>> glymur.runtests()

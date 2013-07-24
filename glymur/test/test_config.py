@@ -81,40 +81,5 @@ class TestSuite(unittest.TestCase):
                         with self.assertWarns(UserWarning) as cw:
                             imp.reload(glymur.lib.openjp2)
 
-    def test_missing_config_file_via_environ(self):
-        # Verify that we error out properly if the configuration file
-        # specified via environment variable is not found.
-        with tempfile.TemporaryDirectory() as tdir:
-            with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
-                # Misconfigured new configuration file should
-                # be rejected.
-                with self.assertWarns(UserWarning) as cw:
-                    imp.reload(glymur.lib.openjp2)
-
-    def test_home_dir_missing_config_dir(self):
-        # Verify no exception is raised if $HOME is missing .config directory.
-        with tempfile.TemporaryDirectory() as tdir:
-            with patch.dict('os.environ', {'HOME': tdir}):
-                # Misconfigured new configuration file should
-                # be rejected.
-                with self.assertWarns(UserWarning) as cw:
-                    imp.reload(glymur.lib.openjp2)
-
-    def test_home_dir_missing_glymur_rc_dir(self):
-        # Should warn but not error if $HOME/.config but no glymurrc dir.
-        with tempfile.TemporaryDirectory() as tdir:
-            # We need the subdirectory to be specifically named as ".config"
-            # in order for this test to work.  A specifically-named temporary
-            # directory does not seem to be possible, so try to symlink it.
-            # Supposedly the symlink gets cleaned up with tdir gets cleaned up.
-            with tempfile.TemporaryDirectory(suffix=".config", dir=tdir) \
-                    as tdir_config:
-                os.symlink(tdir_config, os.path.join(tdir, '.config'))
-                with patch.dict('os.environ', {'HOME': tdir}):
-                    # Misconfigured new configuration file should
-                    # be rejected.
-                    with self.assertWarns(UserWarning) as cw:
-                        imp.reload(glymur.lib.openjp2)
-
 if __name__ == "__main__":
     unittest.main()

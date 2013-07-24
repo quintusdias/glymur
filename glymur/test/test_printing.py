@@ -4,6 +4,7 @@ import pkg_resources
 import struct
 import sys
 import tempfile
+import warnings
 
 if sys.hexversion < 0x02070000:
     import unittest2 as unittest
@@ -277,9 +278,12 @@ class TestPrinting(unittest.TestCase):
                      "OPJ_DATA_ROOT environment variable not set")
     def test_icc_profile(self):
         filename = os.path.join(data_root, 'input/nonregression/text_GBR.jp2')
-        j = glymur.Jp2k(filename)
+        with warnings.catch_warnings():
+            # brand is 'jp2 ', but has any icc profile.
+            warnings.simplefilter("ignore")
+            jp2 = Jp2k(filename)
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(j.box[3].box[1])
+            print(jp2.box[3].box[1])
             actual = fake_out.getvalue().strip()
         lin27 = ["Colour Specification Box (colr) @ (179, 1339)",
                  "    Method:  any ICC profile",
@@ -902,10 +906,13 @@ class TestPrinting(unittest.TestCase):
         # ICC profiles may be used in JP2, but the approximation field should
         # be zero unless we have jpx.  This file does both.
         filename = os.path.join(data_root, 'input/nonregression/text_GBR.jp2')
-        j = glymur.Jp2k(filename)
+        with warnings.catch_warnings():
+            # brand is 'jp2 ', but has any icc profile.
+            warnings.simplefilter("ignore")
+            jp2 = Jp2k(filename)
 
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(j.box[3].box[1])
+            print(jp2.box[3].box[1])
             actual = fake_out.getvalue().strip()
         lines = ["Colour Specification Box (colr) @ (179, 1339)",
                  "    Method:  any ICC profile",
@@ -942,10 +949,13 @@ class TestPrinting(unittest.TestCase):
     def test_uuid(self):
         # UUID box
         filename = os.path.join(data_root, 'input/nonregression/text_GBR.jp2')
-        j = glymur.Jp2k(filename)
+        with warnings.catch_warnings():
+            # brand is 'jp2 ', but has any icc profile.
+            warnings.simplefilter("ignore")
+            jp2 = Jp2k(filename)
 
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(j.box[4])
+            print(jp2.box[4])
             actual = fake_out.getvalue().strip()
         lines = ['UUID Box (uuid) @ (1544, 25)',
                  '    UUID:  3a0d0218-0ae9-4115-b376-4bca41ce0e71',
