@@ -6,7 +6,6 @@ from .jp2k import Jp2k
 from .jp2dump import jp2dump
 
 from . import data
-#from . import test
 
 
 def runtests():
