@@ -185,9 +185,8 @@ Work with XMP UUIDs?
 ====================
 The example JP2 file shipped with glymur has an XMP UUID. ::
 
-    >>> from glymur import Jp2k
-    >>> file = glymur.data.nemo()
-    >>> j = Jp2k(file)
+    >>> import glymur
+    >>> j = glymur.Jp2k(glymur.data.nemo())
     >>> print(j.box[4])
     UUID Box (uuid) @ (715, 2412)
         UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
@@ -198,7 +197,7 @@ The example JP2 file shipped with glymur has an XMP UUID. ::
           </rdf:RDF>
         </ns0:xmpmeta>
 
-Since the UUID data in this case is returned as an ElementTree Element, one can
+Since the UUID data in this case is returned as an ElementTree instance, one can
 use ElementTree to access the data.  For example, to extract the 
 **CreatorTool** attribute value, the following would work::
 
