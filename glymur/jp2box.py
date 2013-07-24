@@ -520,6 +520,195 @@ class ChannelDefinitionBox(Jp2kBox):
         return box
 
 
+class CodestreamHeaderBox(Jp2kBox):
+    """Container for codestream header box information.
+
+    Attributes
+    ----------
+    box_id : str
+        4-character identifier for the box.
+    length : int
+        length of the box in bytes.
+    offset : int
+        offset of the box from the start of the file.
+    longname : str
+        more verbose description of the box.
+    box : list
+        List of boxes contained in this superbox.
+    """
+    def __init__(self, length=0, offset=-1):
+        Jp2kBox.__init__(self, box_id='jpch', longname='Codestream Header')
+        self.length = length
+        self.offset = offset
+        self.box = []
+
+    def __str__(self):
+        msg = Jp2kBox.__str__(self)
+        for box in self.box:
+            boxstr = str(box)
+
+            # Add indentation.
+            strs = [('\n    ' + x) for x in boxstr.split('\n')]
+            msg += ''.join(strs)
+        return msg
+
+    @staticmethod
+    def parse(fptr, offset, length):
+        """Parse codestream header box.
+
+        Parameters
+        ----------
+        fptr : file
+            Open file object.
+        offset : int
+            Start position of box in bytes.
+        length : int
+            Length of the box in bytes.
+
+        Returns
+        -------
+        AssociationBox instance
+        """
+        box = CodestreamHeaderBox(length=length, offset=offset)
+
+        # The codestream header box is a superbox, so go ahead and parse its 
+        # child boxes.
+        box.box = box.parse_superbox(fptr)
+
+        return box
+
+
+class CompositingLayerHeaderBox(Jp2kBox):
+    """Container for compositing layer header box information.
+
+    Attributes
+    ----------
+    box_id : str
+        4-character identifier for the box.
+    length : int
+        length of the box in bytes.
+    offset : int
+        offset of the box from the start of the file.
+    longname : str
+        more verbose description of the box.
+    box : list
+        List of boxes contained in this superbox.
+    """
+    def __init__(self, length=0, offset=-1):
+        Jp2kBox.__init__(self, box_id='jplh',
+                         longname='Compositing Layer Header')
+        self.length = length
+        self.offset = offset
+        self.box = []
+
+    def __str__(self):
+        msg = Jp2kBox.__str__(self)
+        for box in self.box:
+            boxstr = str(box)
+
+            # Add indentation.
+            strs = [('\n    ' + x) for x in boxstr.split('\n')]
+            msg += ''.join(strs)
+        return msg
+
+    @staticmethod
+    def parse(fptr, offset, length):
+        """Parse compositing layer header box.
+
+        Parameters
+        ----------
+        fptr : file
+            Open file object.
+        offset : int
+            Start position of box in bytes.
+        length : int
+            Length of the box in bytes.
+
+        Returns
+        -------
+        AssociationBox instance
+        """
+        box = CompositingLayerHeaderBox(length=length, offset=offset)
+
+        # This box is a superbox, so go ahead and parse its # child boxes.
+        box.box = box.parse_superbox(fptr)
+
+        return box
+
+
+class JP2HeaderBox(Jp2kBox):
+    """Container for JP2 header box information.
+
+    Attributes
+    ----------
+    box_id : str
+        4-character identifier for the box.
+    length : int
+        length of the box in bytes.
+    offset : int
+        offset of the box from the start of the file.
+    longname : str
+        more verbose description of the box.
+    box : list
+        List of boxes contained in this superbox.
+    """
+    def __init__(self, length=0, offset=-1):
+        Jp2kBox.__init__(self, box_id='jp2h', longname='JP2 Header')
+        self.length = length
+        self.offset = offset
+        self.box = []
+
+    def __str__(self):
+        msg = Jp2kBox.__str__(self)
+        for box in self.box:
+            boxstr = str(box)
+
+            # Add indentation.
+            strs = [('\n    ' + x) for x in boxstr.split('\n')]
+            msg += ''.join(strs)
+        return msg
+
+    def write(self, fptr):
+        """Write a JP2 Header box to file.
+        """
+        # Write the contained boxes, then come back and write the length.
+        orig_pos = fptr.tell()
+        fptr.write(struct.pack('>I', 0))
+        fptr.write('jp2h'.encode())
+        for box in self.box:
+            box.write(fptr)
+
+        end_pos = fptr.tell()
+        fptr.seek(orig_pos)
+        fptr.write(struct.pack('>I', end_pos - orig_pos))
+        fptr.seek(end_pos)
+
+    @staticmethod
+    def parse(fptr, offset, length):
+        """Parse JPEG 2000 header box.
+
+        Parameters
+        ----------
+        fptr : file
+            Open file object.
+        offset : int
+            Start position of box in bytes.
+        length : int
+            Length of the box in bytes.
+
+        Returns
+        -------
+        JP2HeaderBox instance
+        """
+        box = JP2HeaderBox(length=length, offset=offset)
+
+        # The JP2 header box is a superbox, so go ahead and parse its child
+        # boxes.
+        box.box = box.parse_superbox(fptr)
+
+        return box
+
+
 class ComponentMappingBox(Jp2kBox):
     """Container for channel identification information.
 
@@ -2509,11 +2698,13 @@ _BOX_WITH_ID = {
     'cdef': ChannelDefinitionBox,
     'cmap': ComponentMappingBox,
     'colr': ColourSpecificationBox,
-    'jP  ': JPEG2000SignatureBox,
     'ftyp': FileTypeBox,
     'ihdr': ImageHeaderBox,
-    'jp2h': JP2HeaderBox,
+    'jP  ': JPEG2000SignatureBox,
+    'jpch': CodestreamHeaderBox,
+    'jplh': CompositingLayerHeaderBox,
     'jp2c': ContiguousCodestreamBox,
+    'jp2h': JP2HeaderBox,
     'lbl ': LabelBox,
     'pclr': PaletteBox,
     'res ': ResolutionBox,
