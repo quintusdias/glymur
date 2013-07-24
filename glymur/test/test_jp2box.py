@@ -19,6 +19,11 @@ from glymur.jp2box import *
 from glymur.core import COLOR, OPACITY
 from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE
 
+try:
+    format_corpus_data_root = os.environ['FORMAT_CORPUS_DATA_ROOT']
+except KeyError:
+    format_corpus_data_root = None
+
 
 # Doc tests should be run as well.
 def load_tests(loader, tests, ignore):
@@ -672,6 +677,40 @@ class TestJp2Boxes(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
+
+
+class TestJpxBoxes(unittest.TestCase):
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    @unittest.skipIf(format_corpus_data_root is None,
+                     "FORMAT_CORPUS_DATA_ROOT environment variable not set")
+    def test_codestream_header(self):
+        # Should recognize codestream header box.
+        jfile = os.path.join(format_corpus_data_root,
+                             'jp2k-formats/balloon.jpf')
+        jpx = Jp2k(jfile)
+
+        # This superbox just happens to be empty.
+        self.assertEqual(jpx.box[4].box_id, 'jpch')
+        self.assertEqual(len(jpx.box[4].box), 0)
+
+    @unittest.skipIf(format_corpus_data_root is None,
+                     "FORMAT_CORPUS_DATA_ROOT environment variable not set")
+    def test_compositing_layer_header(self):
+        # Should recognize compositing layer header box.
+        jfile = os.path.join(format_corpus_data_root,
+                             'jp2k-formats/balloon.jpf')
+        jpx = Jp2k(jfile)
+
+        # This superbox just happens to be empty.
+        self.assertEqual(jpx.box[5].box_id, 'jplh')
+        self.assertEqual(len(jpx.box[5].box), 0)
+
 
 if __name__ == "__main__":
     unittest.main()

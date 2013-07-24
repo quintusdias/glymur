@@ -20,15 +20,11 @@ try:
     format_corpus_data_root = os.environ['FORMAT_CORPUS_DATA_ROOT']
 except KeyError:
     format_corpus_data_root = None
-except:
-    raise
 
 try:
     opj_data_root = os.environ['OPJ_DATA_ROOT']
 except KeyError:
     opj_data_root = None
-except:
-    raise
 
 
 @unittest.skipIf(format_corpus_data_root is None,
