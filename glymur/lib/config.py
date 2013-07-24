@@ -35,9 +35,6 @@ def glymurrc_fname():
         fname = os.path.join(confdir, 'glymurrc')
         if os.path.exists(fname):
             return fname
-        else:
-            msg = "Configuration directory '{0}' does not exist.".format(fname)
-            warnings.warn(msg)
 
     # didn't find a configuration file.
     return None
