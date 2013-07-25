@@ -102,7 +102,14 @@ class Codestream(object):
         while True:
 
             read_buffer = fptr.read(2)
-            marker_id, = struct.unpack('>H', read_buffer)
+            try:
+                marker_id, = struct.unpack('>H', read_buffer)
+            except struct.error:
+                # Treat this as a warning.
+                msg = "Marker had length {0} instead of expected length of 2 "
+                msg += "bytes.  Codestream parsing terminated."
+                warnings.warn(msg.format(len(read_buffer)))
+                break
 
             if marker_id == 0xff90 and header_only:
                 # Start-of-tile (SOT) means that we are out of the main header

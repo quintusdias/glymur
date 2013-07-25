@@ -990,7 +990,11 @@ class TestSuite(unittest.TestCase):
     def test_NR_DEC_text_GBR_jp2_29_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/text_GBR.jp2')
-        data = Jp2k(jfile).read()
+        with warnings.catch_warnings():
+            # brand is 'jp2 ', but has any icc profile.
+            warnings.simplefilter("ignore")
+            jp2 = Jp2k(jfile)
+        data = jp2.read()
         self.assertTrue(True)
 
     def test_NR_DEC_pacs_ge_j2k_30_decode(self):
@@ -7260,7 +7264,10 @@ class TestSuiteDump(unittest.TestCase):
     def test_NR_text_GBR_dump(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/text_GBR.jp2')
-        jp2 = Jp2k(jfile)
+        with warnings.catch_warnings():
+            # brand is 'jp2 ', but has any icc profile.
+            warnings.simplefilter("ignore")
+            jp2 = Jp2k(jfile)
 
         ids = [box.box_id for box in jp2.box]
         lst = ['jP  ', 'ftyp', 'rreq', 'jp2h',

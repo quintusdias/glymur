@@ -22,6 +22,7 @@ from .codestream import Codestream
 from .core import SRGB
 from .core import GREYSCALE
 from .core import PROGRESSION_ORDER
+from .core import ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE
 from .jp2box import Jp2kBox
 from .jp2box import JPEG2000SignatureBox
 from .jp2box import FileTypeBox
@@ -159,6 +160,24 @@ class Jp2k(Jp2kBox):
             # boxes) here.
             fptr.seek(0)
             self.box = self.parse_superbox(fptr)
+            self._validate()
+
+    def _validate(self):
+        """Validate the JPEG 2000 outermost superbox.
+        """
+        # A jp2-branded file cannot contain an "any ICC profile
+        ftyp = self.box[1]
+        if ftyp.brand == 'jp2 ':
+            jp2h = [box for box in self.box if box.box_id == 'jp2h'][0]
+            colrs = [box for box in jp2h.box if box.box_id == 'colr']
+            for colr in colrs: 
+                if colr.method not in (ENUMERATED_COLORSPACE,
+                                       RESTRICTED_ICC_PROFILE):
+                    msg = "Color Specification box method must specify either "
+                    msg += "an enumerated colorspace or a restricted ICC "
+                    msg += "profile if the file type box brand is 'jp2 '."
+                    warnings.warn(msg)
+
 
     # pylint:  disable-msg=W0221
     def write(self, img_array, cratios=None, eph=False, psnr=None, numres=None,

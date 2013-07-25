@@ -1,3 +1,7 @@
+Jul 24, 2013 - v0.2.6  No longer warning when configuration file not found.
+    Added read support for jpch, jplh boxes.  Added testing of files in
+    format-corpus repository.
+
 Jul 23, 2013 - v0.2.5  Fixed inconsistency in XML handling, now all instances
     are always ElementTree objects (issue82).
 
