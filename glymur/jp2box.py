@@ -571,7 +571,7 @@ class CodestreamHeaderBox(Jp2kBox):
         """
         box = CodestreamHeaderBox(length=length, offset=offset)
 
-        # The codestream header box is a superbox, so go ahead and parse its 
+        # The codestream header box is a superbox, so go ahead and parse its
         # child boxes.
         box.box = box.parse_superbox(fptr)
 
