@@ -143,10 +143,11 @@ def get_configdir():
     if 'XDG_CONFIG_HOME' in os.environ:
         return os.path.join(os.environ['XDG_CONFIG_HOME'], 'glymur')
 
-    if 'HOME' in os.environ:
+    if 'HOME' in os.environ and os.name != 'nt':
+        # HOME is set by WinPython to something unusual, so we don't
+        # want that. 
         return os.path.join(os.environ['HOME'], '.config', 'glymur')
 
-    if 'USERPROFILE' in os.environ:
-        # Windows?
-        return os.path.join(os.environ['USERPROFILE'], 'Application Data',
-                            'glymur')
+    if os.name == 'nt':
+        # Windows.
+        return os.path.join(os.path.expanduser('~'), 'glymur')
