@@ -22,8 +22,15 @@ def version():
         return library_version
 
 # Need to get the minor version, make sure we are at least at 1.4.x
-#import pdb; pdb.set_trace()
-_MINOR = version().split('.')[1]
+if OPENJPEG is not None:
+    _MINOR = version().split('.')[1]
+else:
+    # Does not really matter.  But version should not be called if there is no
+    # OpenJPEG library found.
+    _MINOR = 0
+    # Redefine version so that we can use it.
+    def version():
+        return '0.0.0'
 
 
 class EventMgrType(ctypes.Structure):

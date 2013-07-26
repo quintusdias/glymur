@@ -47,6 +47,9 @@ def load_tests(loader, tests, ignore):
     return tests
 
 
+@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None and
+                 glymur.lib.openjpeg.OPENJPEG is None,
+                 "Missing openjp2 library.")
 class TestConfig(unittest.TestCase):
 
     def setUp(self):

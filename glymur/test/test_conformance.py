@@ -46,7 +46,7 @@ class TestSuiteFormatCorpus(unittest.TestCase):
         j2k = Jp2k(jfile)
         with self.assertWarns(UserWarning):
             c = j2k.get_codestream(header_only=False)
-        
+
         # The last segment is truncated, so there should not be an EOC marker.
         self.assertNotEqual(c.segment[-1].marker_id, 'EOC')
 
@@ -61,7 +61,7 @@ class TestSuiteFormatCorpus(unittest.TestCase):
         j2k = Jp2k(jfile)
         with self.assertWarns(UserWarning):
             c = j2k.get_codestream(header_only=False)
-        
+
         # The last segment is truncated, so there should not be an EOC marker.
         self.assertNotEqual(c.segment[-1].marker_id, 'EOC')
 
@@ -76,7 +76,7 @@ class TestSuiteFormatCorpus(unittest.TestCase):
         j2k = Jp2k(jfile)
         with self.assertWarns(UserWarning):
             c = j2k.get_codestream(header_only=False)
-        
+
         # The last segment is truncated, so there should not be an EOC marker.
         self.assertNotEqual(c.segment[-1].marker_id, 'EOC')
 
@@ -91,7 +91,7 @@ class TestSuiteFormatCorpus(unittest.TestCase):
                              'balloon_eciRGBv2_ps_adobeplugin.jpf')
         with self.assertWarns(UserWarning):
             j2k = Jp2k(jfile)
-        
+
     def test_jp2_brand_vs_any_icc_profile_multiple_colr(self):
         # Has colr box, one that conforms, one that does not.
 
@@ -104,7 +104,7 @@ class TestSuiteFormatCorpus(unittest.TestCase):
         jfile = os.path.join(*lst)
         with self.assertWarns(UserWarning):
             j2k = Jp2k(jfile)
-        
+
 
 @unittest.skipIf(opj_data_root is None,
                  "OPJ_DATA_ROOT environment variable not set")
@@ -124,6 +124,6 @@ class TestSuiteOpj(unittest.TestCase):
                                 'input/nonregression/text_GBR.jp2')
         with self.assertWarns(UserWarning):
             j2k = Jp2k(filename)
-        
+
 if __name__ == "__main__":
     unittest.main()

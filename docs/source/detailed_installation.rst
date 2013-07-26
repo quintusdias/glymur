@@ -1,5 +1,5 @@
 ----------------------------------
-Detailed Installation Instructions
+Advanced Installation Instructions
 ----------------------------------
 
 ''''''''''''''''''''''
@@ -30,8 +30,22 @@ configparser module, i.e. ::
     openjp2: /opt/openjp2-svn/lib/libopenjp2.so
 
 This assumes, of course, that you've installed OpenJPEG into
-/opt/openjp2-svn on a linux system.  You may also substitute
-**$XDG_CONFIG_HOME** for **$HOME/.config**.
+/opt/openjp2-svn on a linux system.  The location of the configuration file
+is platform-dependent (of course).  If you use either linux or mac, the path
+to the configuration file would normally be ::
+
+    $HOME/.config/glymur/glymurrc 
+
+but if you have **$XDG_CONFIG_HOME** defined, the path will be ::
+
+    $XDG_CONFIG_HOME/glymur/glymurrc 
+
+On windows, the path to the configuration file can be determined by starting up Python
+and typing ::
+
+    import os
+    os.path.join(os.path.expanduser('~'), 'glymur', 'glymurrc')
+        
 
 You may also include a line for the version 1.x openjpeg library if you have it
 installed in a non-standard place, i.e. ::
@@ -124,12 +138,11 @@ In addition, you must install contextlib2 and Pillow via pip. ::
 
 Windows
 -------
-The only configuration I've tested is Python(xy), which uses Python 2.7.  
-Python(xy) already comes with numpy, but you will have to install pip and then
-contextlib2 and mock as well.  Glymur seems to work with both 1.5.1 and the 
-svn development versions of openjpeg.
+I would recommend using WinPython, but Python(xy) also seems to work.  WinPython 3.3
+should work with no additional installations required, but 2.7 versions still require
+contextlib2 and mock to be installed via pip.
 
-Glymur has been tested **far less** extensively on Windows than on the other 
+Glymur has been tested far less extensively on Windows than on the other 
 platforms.  
 
 
@@ -141,7 +154,7 @@ There are two environment variables you may wish to set before running the
 tests.  
 
     * **OPJ_DATA_ROOT** - points to directory for OpenJPEG test data
-    * **FORMAT_CORPUS_ROOT** - points to directory for format-corpus repository  (see https://github.com/openplanets/format-corpus)
+    * **FORMAT_CORPUS_ROOT** - points to directory for format-corpus repository  (see https://github.com/openplanets/format-corpus if you wish, but you really don't need to bother with this)
 
 Setting these two environment variables is not required, as any tests using 
 either of them will be skipped.
