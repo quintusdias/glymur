@@ -140,7 +140,6 @@ class Codestream(object):
 
                 fptr.seek(self._tile_offset[-1] + self._tile_length[-1])
 
-
     def _process_marker_segment(self, fptr, marker_id):
         """Process and return a segment from the codestream.
         """
@@ -207,7 +206,8 @@ class Codestream(object):
             segment = _parse_sot_segment(fptr)
             self._tile_offset.append(segment.offset)
             if segment.psot == 0:
-                tile_part_length = self.offset + self.length - segment.offset - 2
+                tile_part_length = (self.offset + self.length -
+                                    segment.offset - 2)
             else:
                 tile_part_length = segment.psot
             self._tile_length.append(tile_part_length)

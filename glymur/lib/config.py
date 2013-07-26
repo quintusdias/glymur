@@ -35,9 +35,6 @@ def glymurrc_fname():
         fname = os.path.join(confdir, 'glymurrc')
         if os.path.exists(fname):
             return fname
-        else:
-            msg = "Configuration directory '{0}' does not exist.".format(fname)
-            warnings.warn(msg)
 
     # didn't find a configuration file.
     return None
@@ -61,6 +58,9 @@ def load_openjpeg(libopenjpeg_path):
                                 'bin', 'openjpeg.dll')
             if os.path.exists(path):
                 libopenjpeg_path = path
+        else:
+            # No sense trying further on Linux
+            return None
 
     try:
         if os.name == "nt":
@@ -127,6 +127,10 @@ def glymur_config():
     libs = read_config_file()
     libopenjp2_handle = load_openjp2(libs['openjp2'])
     libopenjpeg_handle = load_openjpeg(libs['openjpeg'])
+    if libopenjp2_handle is None and libopenjpeg_handle is None:
+        msg = "Neither the openjp2 nor the openjpeg library could be loaded.  "
+        msg += "Operating in severely degraded mode."
+        warnings.warn(msg, UserWarning)
     return libopenjp2_handle, libopenjpeg_handle
 
 

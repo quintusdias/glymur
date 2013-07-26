@@ -832,7 +832,6 @@ class TestSuite(unittest.TestCase):
                 data = Jp2k(jfile).read()
         self.assertTrue(True)
 
-
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
     def test_NR_DEC_broken3_jp2_6_decode(self):
