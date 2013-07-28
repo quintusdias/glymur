@@ -32,6 +32,7 @@ from .jp2box import ImageHeaderBox
 from .jp2box import ColourSpecificationBox
 from .lib import _openjpeg as _opj
 from .lib import _openjp2 as _opj2
+from .lib import c
 
 _COLORSPACE_MAP = {'rgb': _opj2.CLRSPC_SRGB,
                    'gray': _opj2.CLRSPC_GRAY,
@@ -882,9 +883,15 @@ class Jp2k(Jp2kBox):
             dparam.nb_tile_to_decode = 1
 
         with ExitStack() as stack:
-            stream = _opj2.stream_create_default_file_stream_v3(self.filename,
-                                                                True)
-            stack.callback(_opj2.stream_destroy_v3, stream)
+            if hasattr(_opj2.OPENJPEG, 'opj_stream_create_default_file_stream_v3'):
+                stream = _opj2.stream_create_default_file_stream_v3(self.filename,
+                                                                    True)
+                stack.callback(_opj2.stream_destroy_v3, stream)
+            else:
+                fptr = c.fopen(self.filename, 'rb')
+                stack.callback(c.fclose, fptr)
+                stream = _opj2.stream_create_default_file_stream(fptr, True)
+                stack.callback(_opj2.stream_destroy, stream)
             codec = _opj2.create_decompress(self._codec_format)
             stack.callback(_opj2.destroy_codec, codec)
 
