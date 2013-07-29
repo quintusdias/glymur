@@ -30,6 +30,11 @@ import numpy as np
 from glymur import Jp2k
 import glymur
 
+OPENJP2_IS_V2_OFFICIAL=False
+if glymur.lib.openjp2.OPENJP2 is not None:
+    if not hasattr(glymur.lib.openjp2.OPENJP2, 'opj_stream_create_default_file_stream_v3'):
+        OPENJP2_IS_V2_OFFICIAL=True
+
 from .fixtures import *
 
 try:
@@ -1056,6 +1061,8 @@ class TestSuite(unittest.TestCase):
             with self.assertRaises(IOError):
                 data = j.read()
 
+    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
+                     "Test not in done in v2.0.0 official")
     def test_NR_DEC_gdal_fuzzer_check_number_of_tiles_jp2_38_decode(self):
         relpath = 'input/nonregression/gdal_fuzzer_check_number_of_tiles.jp2'
         jfile = os.path.join(data_root, relpath)
@@ -1065,6 +1072,8 @@ class TestSuite(unittest.TestCase):
             with self.assertRaises(IOError):
                 data = j.read()
 
+    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
+                     "Test not in done in v2.0.0 official")
     def test_NR_DEC_gdal_fuzzer_check_comp_dx_dy_jp2_39_decode(self):
         relpath = 'input/nonregression/gdal_fuzzer_check_comp_dx_dy.jp2'
         jfile = os.path.join(data_root, relpath)
