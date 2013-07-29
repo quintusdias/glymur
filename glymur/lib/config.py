@@ -105,6 +105,12 @@ def load_openjp2(libopenjp2_path):
         libopenjp2_path = find_library('openjp2')
 
     if libopenjp2_path is None:
+        if platform.system() == 'Darwin':
+            path = '/opt/local/lib/libopenjp2.dylib'
+            if os.path.exists(path):
+                libopenjp2_path = path
+
+    if libopenjp2_path is None:
         return None
 
     try:
