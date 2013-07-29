@@ -188,8 +188,8 @@ class Jp2k(Jp2kBox):
                     warnings.warn(msg)
 
     def _validate_write_parameters(self, img_array, code_block_size,
-                                   precinct_sizes, cratios, psnr, mct,
-                                   colorspace, codec_fmt):
+                                   precinct_sizes, cratios, psnr, colorspace,
+                                   codec_fmt):
         """Check that the input parameters to the write function are valid.
 
         Parameters
@@ -362,7 +362,7 @@ class Jp2k(Jp2kBox):
             codec_fmt = _opj2.CODEC_J2K
 
         self._validate_write_parameters(img_array, cbsize, psizes, cratios,
-                                        psnr, mct, colorspace, codec_fmt)
+                                        psnr, colorspace, codec_fmt)
 
         cparams = _opj2.set_default_encoder_parameters()
 

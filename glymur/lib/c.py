@@ -5,8 +5,8 @@ Wraps fopen and fclose functions in libc.
 import ctypes
 import ctypes.util
 
-libc_path = ctypes.util.find_library('c')
-C_LIB = ctypes.CDLL(libc_path)
+LIBC_PATH = ctypes.util.find_library('c')
+C_LIB = ctypes.CDLL(LIBC_PATH)
 
 
 def fopen(filename, mode):
