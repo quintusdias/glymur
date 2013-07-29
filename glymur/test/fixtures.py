@@ -5,10 +5,11 @@ import numpy as np
 
 import glymur
 
-OPENJP2_IS_V2_OFFICIAL=False
+OPENJP2_IS_V2_OFFICIAL = False
 if glymur.lib.openjp2.OPENJP2 is not None:
-    if not hasattr(glymur.lib.openjp2.OPENJP2, 'opj_stream_create_default_file_stream_v3'):
-        OPENJP2_IS_V2_OFFICIAL=True
+    if not hasattr(glymur.lib.openjp2.OPENJP2,
+                   'opj_stream_create_default_file_stream_v3'):
+        OPENJP2_IS_V2_OFFICIAL = True
 
 
 def mse(amat, bmat):

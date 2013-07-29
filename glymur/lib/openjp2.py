@@ -1384,6 +1384,7 @@ def set_error_message(msg):
     global ERROR_MSG_LST
     ERROR_MSG_LST.append(msg)
 
+
 def version():
     """Wrapper for opj_version library routine."""
     OPENJP2.opj_version.restype = ctypes.c_char_p
@@ -1392,4 +1393,3 @@ def version():
         return library_version.decode('utf-8')
     else:
         return library_version
-

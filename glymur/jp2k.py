@@ -187,8 +187,9 @@ class Jp2k(Jp2kBox):
                     msg += "profile if the file type box brand is 'jp2 '."
                     warnings.warn(msg)
 
-    def _validate_write_parameters(self, img_array, code_block_size, precinct_sizes, cratios,
-                                   psnr, mct, colorspace, codec_fmt):
+    def _validate_write_parameters(self, img_array, code_block_size,
+                                   precinct_sizes, cratios, psnr, mct,
+                                   colorspace, codec_fmt):
         """Check that the input parameters to the write function are valid.
 
         Parameters
@@ -250,7 +251,7 @@ class Jp2k(Jp2kBox):
             raise IOError(msg)
 
         if _OPENJP2_IS_OFFICIAL_V2:
-            if (((img_array.ndim != 2) and 
+            if (((img_array.ndim != 2) and
                  (img_array.shape[2] != 1 and img_array.shape[2] != 3))):
                 msg = "Writing images is restricted to single-channel "
                 msg += "greyscale images or three-channel RGB images when "
@@ -273,7 +274,6 @@ class Jp2k(Jp2kBox):
         if img_array.dtype != np.uint8 and img_array.dtype != np.uint16:
             msg = "Only uint8 and uint16 images are currently supported."
             raise RuntimeError(msg)
-
 
     # pylint:  disable-msg=W0221
     def write(self, img_array, cratios=None, eph=False, psnr=None, numres=None,

@@ -145,7 +145,7 @@ def get_configdir():
 
     if 'HOME' in os.environ and os.name != 'nt':
         # HOME is set by WinPython to something unusual, so we don't
-        # necessarily want that. 
+        # necessarily want that.
         return os.path.join(os.environ['HOME'], '.config', 'glymur')
 
     # Last stand.  Should handle windows... others?

@@ -8,6 +8,7 @@ import ctypes.util
 libc_path = ctypes.util.find_library('c')
 C_LIB = ctypes.CDLL(libc_path)
 
+
 def fopen(filename, mode):
     """Opens the file with the specified mode.
 
@@ -29,6 +30,7 @@ def fopen(filename, mode):
                        ctypes.c_char_p(mode.encode()))
     return fptr
 
+
 def fclose(fptr):
     """Closes a file stream.
 
@@ -42,4 +44,3 @@ def fclose(fptr):
     status = C_LIB.fclose(fptr)
     if status != 0:
         raise IOError("Unable to close file.")
-
