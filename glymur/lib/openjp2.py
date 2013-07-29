@@ -5,6 +5,7 @@ Wraps individual functions in openjp2 library.
 # pylint: disable=C0302,R0903
 
 import ctypes
+import sys
 
 from .config import glymur_config
 OPENJP2, OPENJPEG = glymur_config()
@@ -1382,3 +1383,13 @@ def set_error_message(msg):
     """The openjpeg error handler has recorded an error message."""
     global ERROR_MSG_LST
     ERROR_MSG_LST.append(msg)
+
+def version():
+    """Wrapper for opj_version library routine."""
+    OPENJP2.opj_version.restype = ctypes.c_char_p
+    library_version = OPENJP2.opj_version()
+    if sys.hexversion >= 0x03000000:
+        return library_version.decode('utf-8')
+    else:
+        return library_version
+

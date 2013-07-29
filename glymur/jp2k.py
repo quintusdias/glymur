@@ -34,6 +34,14 @@ from .lib import _openjpeg as _opj
 from .lib import _openjp2 as _opj2
 from .lib import c
 
+# Need to known if openjp2 library is the officially release v2.0.0 or not.
+_OPENJP2_IS_OFFICIAL_V2 = False
+if _opj2.OPENJP2 is not None:
+    if _opj2.version() == '2.0.0':
+        if not hasattr(_opj2.OPENJP2,
+                       'opj_stream_create_default_file_stream_v3'):
+            _OPENJP2_IS_OFFICIAL_V2 = True
+
 _COLORSPACE_MAP = {'rgb': _opj2.CLRSPC_SRGB,
                    'gray': _opj2.CLRSPC_GRAY,
                    'grey': _opj2.CLRSPC_GRAY,
@@ -371,6 +379,13 @@ class Jp2k(Jp2kBox):
             raise IOError(msg)
 
         numrows, numcols, num_comps = img_array.shape
+        if _OPENJP2_IS_OFFICIAL_V2:
+            if img_array.shape[2] != 1 and img_array.shape[2] != 3:
+                msg = "Writing images is restricted to single-channel "
+                msg += "greyscale images or three-channel RGB images when "
+                msg += "the OpenJPEG library version is the official 2.0.0 "
+                msg += "release."
+                raise IOError(msg)
 
         if colorspace is None:
             if img_array.shape[2] == 1 or img_array.shape[2] == 2:
@@ -449,11 +464,24 @@ class Jp2k(Jp2kBox):
         _opj2.set_warning_handler(codec, _WARNING_CALLBACK)
         _opj2.set_error_handler(codec, _ERROR_CALLBACK)
         _opj2.setup_encoder(codec, cparams, image)
-        strm = _opj2.stream_create_default_file_stream_v3(self.filename, False)
+
+        if hasattr(_opj2.OPENJP2, 'opj_stream_create_default_file_stream_v3'):
+            strm = _opj2.stream_create_default_file_stream_v3(self.filename,
+                                                              False)
+        else:
+            fptr = c.fopen(self.filename, 'wb')
+            strm = _opj2.stream_create_default_file_stream(fptr, False)
+
         _opj2.start_compress(codec, image, strm)
         _opj2.encode(codec, strm)
         _opj2.end_compress(codec, strm)
-        _opj2.stream_destroy_v3(strm)
+
+        if hasattr(_opj2.OPENJP2, 'opj_stream_create_default_file_stream_v3'):
+            _opj2.stream_destroy_v3(strm)
+        else:
+            _opj2.stream_destroy(strm)
+            c.fclose(fptr)
+
         _opj2.destroy_codec(codec)
         _opj2.image_destroy(image)
 
