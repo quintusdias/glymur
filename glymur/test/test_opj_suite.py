@@ -30,6 +30,8 @@ import numpy as np
 from glymur import Jp2k
 import glymur
 
+from .fixtures import OPENJP2_IS_V2_OFFICIAL
+
 from .fixtures import *
 
 try:
@@ -986,6 +988,8 @@ class TestSuite(unittest.TestCase):
         data = Jp2k(jfile).read()
         self.assertTrue(True)
 
+    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
+                     "Test known to fail in v2.0.0 official")
     def test_NR_DEC_text_GBR_jp2_29_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/text_GBR.jp2')
@@ -1002,12 +1006,16 @@ class TestSuite(unittest.TestCase):
         data = Jp2k(jfile).read()
         self.assertTrue(True)
 
+    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
+                     "Test known to fail in v2.0.0 official")
     def test_NR_DEC_kodak_2layers_lrcp_j2c_31_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/kodak_2layers_lrcp.j2c')
         data = Jp2k(jfile).read()
         self.assertTrue(True)
 
+    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
+                     "Test known to fail in v2.0.0 official")
     def test_NR_DEC_kodak_2layers_lrcp_j2c_32_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/kodak_2layers_lrcp.j2c')
@@ -1020,6 +1028,8 @@ class TestSuite(unittest.TestCase):
         data = Jp2k(jfile).read()
         self.assertTrue(True)
 
+    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
+                     "Test known to fail in v2.0.0 official")
     def test_NR_DEC_mem_b2ace68c_1381_jp2_34_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/mem-b2ace68c-1381.jp2')
@@ -1030,6 +1040,8 @@ class TestSuite(unittest.TestCase):
         data = j.read()
         self.assertTrue(True)
 
+    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
+                     "Test known to fail in v2.0.0 official")
     def test_NR_DEC_mem_b2b86b74_2753_jp2_35_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/mem-b2b86b74-2753.jp2')
@@ -1045,6 +1057,8 @@ class TestSuite(unittest.TestCase):
             with self.assertRaises(IOError):
                 data = j.read()
 
+    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
+                     "Test not in done in v2.0.0 official")
     def test_NR_DEC_jp2_36_decode(self):
         lst = ('input',
                'nonregression',
@@ -1056,6 +1070,8 @@ class TestSuite(unittest.TestCase):
             with self.assertRaises(IOError):
                 data = j.read()
 
+    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
+                     "Test not in done in v2.0.0 official")
     def test_NR_DEC_gdal_fuzzer_check_number_of_tiles_jp2_38_decode(self):
         relpath = 'input/nonregression/gdal_fuzzer_check_number_of_tiles.jp2'
         jfile = os.path.join(data_root, relpath)
@@ -1065,6 +1081,8 @@ class TestSuite(unittest.TestCase):
             with self.assertRaises(IOError):
                 data = j.read()
 
+    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
+                     "Test not in done in v2.0.0 official")
     def test_NR_DEC_gdal_fuzzer_check_comp_dx_dy_jp2_39_decode(self):
         relpath = 'input/nonregression/gdal_fuzzer_check_comp_dx_dy.jp2'
         jfile = os.path.join(data_root, relpath)
@@ -1079,6 +1097,8 @@ class TestSuite(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             data = Jp2k(jfile).read()
 
+    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
+                     "Test not in done in v2.0.0 official")
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
     def test_NR_DEC_issue188_beach_64bitsbox_jp2_41_decode(self):
@@ -1089,6 +1109,8 @@ class TestSuite(unittest.TestCase):
         with self.assertWarns(UserWarning) as cw:
             data = Jp2k(jfile).read()
 
+    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
+                     "Test not in done in v2.0.0 official")
     def test_NR_DEC_issue206_image_000_jp2_42_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/issue206_image-000.jp2')

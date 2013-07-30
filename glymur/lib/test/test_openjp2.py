@@ -16,10 +16,17 @@ import numpy as np
 
 import glymur
 
+OPENJP2_IS_V2_OFFICIAL = False
+if glymur.lib.openjp2.OPENJP2 is not None:
+    if not hasattr(glymur.lib.openjp2.OPENJP2,
+                   'opj_stream_create_default_file_stream_v3'):
+        OPENJP2_IS_V2_OFFICIAL = True
+
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-@unittest.skipIf(glymur.lib._openjp2.OPENJP2 is None,
+@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
+@unittest.skipIf(OPENJP2_IS_V2_OFFICIAL, "API followed here specific to V2.0+")
 class TestOpenJP2(unittest.TestCase):
 
     def setUp(self):

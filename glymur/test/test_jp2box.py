@@ -19,6 +19,8 @@ from glymur.jp2box import *
 from glymur.core import COLOR, OPACITY
 from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE
 
+from .fixtures import OPENJP2_IS_V2_OFFICIAL
+
 try:
     format_corpus_data_root = os.environ['FORMAT_CORPUS_DATA_ROOT']
 except KeyError:
@@ -34,6 +36,8 @@ def load_tests(loader, tests, ignore):
     return tests
 
 
+@unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
+                 "Requires v2.0.0+ in order to run.")
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
 @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")

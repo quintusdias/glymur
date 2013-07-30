@@ -75,8 +75,6 @@ def load_openjpeg(libopenjpeg_path):
 
 def read_config_file():
     """
-    We expect to not find openjp2 on the system path since the only version
-    that we currently care about is still in the svn trunk at openjpeg.org.
     We must use a configuration file that the user must write.
     """
     lib = {'openjp2':  None, 'openjpeg':  None}
@@ -103,6 +101,17 @@ def load_openjp2(libopenjp2_path):
     if libopenjp2_path is None:
         # No help from the config file, try to find it ourselves.
         libopenjp2_path = find_library('openjp2')
+
+    if libopenjp2_path is None:
+        if platform.system() == 'Darwin':
+            path = '/opt/local/lib/libopenjp2.dylib'
+            if os.path.exists(path):
+                libopenjp2_path = path
+        elif os.name == 'nt':
+            path = os.path.join('C:\\', 'Program files', 'OpenJPEG 2.0',
+                                'bin', 'openjp2.dll')
+            if os.path.exists(path):
+                libopenjp2_path = path
 
     if libopenjp2_path is None:
         return None
@@ -145,9 +154,8 @@ def get_configdir():
 
     if 'HOME' in os.environ and os.name != 'nt':
         # HOME is set by WinPython to something unusual, so we don't
-        # want that. 
+        # necessarily want that.
         return os.path.join(os.environ['HOME'], '.config', 'glymur')
 
-    if os.name == 'nt':
-        # Windows.
-        return os.path.join(os.path.expanduser('~'), 'glymur')
+    # Last stand.  Should handle windows... others?
+    return os.path.join(os.path.expanduser('~'), 'glymur')
