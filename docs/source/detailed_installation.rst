@@ -137,12 +137,14 @@ In addition, you must install contextlib2 and Pillow via pip. ::
 
 Windows
 -------
-I would recommend using WinPython, but Python(xy) also seems to work.  WinPython 3.3
-should work with no additional installations required, but 2.7 versions still require
-contextlib2 and mock to be installed via pip.
+32-bit WinPython 2.7.5 seems to work with OpenJPEG 1.X, 2.0, and the
+development version, but still requires contextlib2 and mock to be
+installed via pip.   WinPython 3.3.2, however, seems to have trouble
+with OpenJPEG 2.0, so I would suggest using the development version
+there (I'm unwilling to spend ANY more time trying to figure out what
+the problem is there).
 
-Glymur has been tested far less extensively on Windows than on the other 
-platforms.  
+64-bit windows is completely untested.
 
 
 '''''''
