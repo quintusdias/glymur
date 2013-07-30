@@ -66,7 +66,7 @@ class TestCallbacks(unittest.TestCase):
         self.assertEqual(actual, expected)
 
 
-@unittest.skipIf(glymur.lib.openjp2.OPENJPEG is None,
+@unittest.skipIf(glymur.lib.openjpeg.OPENJPEG is None,
                  "Missing openjpeg library.")
 class TestCallbacks15(unittest.TestCase):
     """This test suite is for OpenJPEG 1.5.1 properties.
