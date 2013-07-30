@@ -109,6 +109,11 @@ def load_openjp2(libopenjp2_path):
             path = '/opt/local/lib/libopenjp2.dylib'
             if os.path.exists(path):
                 libopenjp2_path = path
+        elif os.name == 'nt':
+            path = os.path.join('C:\\', 'Program files', 'OpenJPEG 2.0',
+                                'bin', 'openjp2.dll')
+            if os.path.exists(path):
+                libopenjpeg_path = path
 
     if libopenjp2_path is None:
         return None
