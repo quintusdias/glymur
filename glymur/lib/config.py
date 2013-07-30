@@ -75,8 +75,6 @@ def load_openjpeg(libopenjpeg_path):
 
 def read_config_file():
     """
-    We expect to not find openjp2 on the system path since the only version
-    that we currently care about is still in the svn trunk at openjpeg.org.
     We must use a configuration file that the user must write.
     """
     lib = {'openjp2':  None, 'openjpeg':  None}
@@ -113,7 +111,7 @@ def load_openjp2(libopenjp2_path):
             path = os.path.join('C:\\', 'Program files', 'OpenJPEG 2.0',
                                 'bin', 'openjp2.dll')
             if os.path.exists(path):
-                libopenjpeg_path = path
+                libopenjp2_path = path
 
     if libopenjp2_path is None:
         return None
