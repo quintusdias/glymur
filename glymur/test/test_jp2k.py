@@ -694,8 +694,6 @@ class TestJp2k(unittest.TestCase):
 
                 tfile.write(data[3186:])
                 tfile.flush()
-                import shutil
-                shutil.copyfile(tfile.name, '/home/jevans/tmp/a.jp2')
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     j = Jp2k(tfile.name)
