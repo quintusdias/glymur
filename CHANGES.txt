@@ -1,3 +1,5 @@
+Jul 31, 2013 - v0.3.0  Added support for official 2.0.0.
+
 Jul 27, 2013 - v0.2.8  Fixed inconsistency regarding configuration
     file directory on windows (issue91).
 
