@@ -70,7 +70,7 @@ class TestSuiteNegative(unittest.TestCase):
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
-            with self.assertRaises(RuntimeError):
+            with self.assertRaises(IOError):
                 j.write(data, psnr=[30, 35, 40], cratios=[2, 3, 4])
 
     def test_NR_MarkerIsNotCompliant_j2k_dump(self):
@@ -109,13 +109,13 @@ class TestSuiteNegative(unittest.TestCase):
             j = Jp2k(tfile.name, 'wb')
 
             # opj_compress doesn't allow code block area to exceed 4096.
-            with self.assertRaises(RuntimeError) as cr:
+            with self.assertRaises(IOError) as cr:
                 j.write(data, cbsize=(256, 256))
 
             # opj_compress doesn't allow either dimension to be less than 4.
-            with self.assertRaises(RuntimeError) as cr:
+            with self.assertRaises(IOError) as cr:
                 j.write(data, cbsize=(2048, 2))
-            with self.assertRaises(RuntimeError) as cr:
+            with self.assertRaises(IOError) as cr:
                 j.write(data, cbsize=(2, 2048))
 
     @unittest.skipIf(sys.hexversion < 0x03020000,

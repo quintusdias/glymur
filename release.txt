@@ -1,35 +1,51 @@
 | OS        | Python | Python | Python | Notes                                |
 |           |  2.6   |  2.7   |  3.3   |                                      |
 +-----------+--------+--------+--------+--------------------------------------+
-| Windows   |        |   X    |        | Python(xy) with OpenJPEG 1.5.1 and   |
-|           |        |        |        | OpenJPEG svn.  285 of 448 tests      |
+| Windows   |        |   X    |        | WinPython with OpenJPEG 1.5.1 and    |
+|           |        |        |        | OpenJPEG 2.0.0.  267 of 455 tests    |
+|           |        |        |        | pass.                                |
++-----------+--------+--------+--------+--------------------------------------+
+| Windows   |        |        |   X    | WinPython with OpenJPEG 1.5.1 and    |
+|           |        |        |        | OpenJPEG svn.    307 of 455 tests    |
 |           |        |        |        | pass.                                |
 +-----------+--------+--------+--------+--------------------------------------+
 | Mac       |   X    |        |        | MacPorts with both OpenJPEG 1.5.1    |
-| 10.6.8    |        |        |        | and OpenJPEG svn.  354 of 455 tests  |
+| 10.6.8    |        |        |        | and OpenJPEG svn.  354 of 456 tests  |
+|           |        |        |        | should pass.                         |
++-----------+--------+--------+--------+--------------------------------------+
+| Mac       |   X    |        |        | MacPorts with both OpenJPEG 1.5.1    |
+| 10.6.8    |        |        |        | and OpenJPEG 2.0.  315 of 456 tests  |
 |           |        |        |        | should pass.                         |
 +-----------+--------+--------+--------+--------------------------------------+
 | Mac       |        |   X    |        | MacPorts with both OpenJPEG 1.5.1    |
-| 10.6.8    |        |        |        | and OpenJPEG svn.  379 of 460 tests  |
+| 10.6.8    |        |        |        | and OpenJPEG svn.  379 of 461 tests  |
+|           |        |        |        | should pass.                         |
++-----------+--------+--------+--------+--------------------------------------+
+| Mac       |        |   X    |        | MacPorts with both OpenJPEG 1.5.1    |
+| 10.6.8    |        |        |        | and OpenJPEG 2.0.  340 of 461 tests  |
 |           |        |        |        | should pass.                         |
 +-----------+--------+--------+--------+--------------------------------------+
 | Mac       |        |        |   X    | MacPorts with both OpenJPEG 1.5.1    |
-| 10.6.8    |        |        |        | and OpenJPEG svn.  407 of 460        |
+| 10.6.8    |        |        |        | and OpenJPEG svn.  407 of 461        |
+|           |        |        |        | tests should pass.                   |
++-----------+--------+--------+--------+--------------------------------------+
+| Mac       |        |        |   X    | MacPorts with both OpenJPEG 1.5.1    |
+| 10.6.8    |        |        |        | and OpenJPEG 2.0.  355 of 461        |
 |           |        |        |        | tests should pass.                   |
 +-----------+--------+--------+-----------------------------------------------+
-| Fedora 19 |        |        |   X    | Ships with 1.5.1, openjp2 built too. |
-|           |        |        |        | 402 of 455 tests should pass.        |
+| Fedora 19 |        |        |   X    | Ships with 1.5.1, openjp2 svn built, |
+|           |        |        |        | too.  407 of 461 tests should pass.  |
 +-----------+--------+--------+--------+--------------------------------------+
-| Fedora 18 |        |        |   X    | Ships with 1.5.1.  169 of 449 tests  |
+| Fedora 18 |        |   X    |        | Ships with 1.5.1.  173 of 456 tests  |
 |           |        |        |        | should pass.                         |
 +-----------+--------+--------+--------+--------------------------------------+
-| Fedora 17 |        |   X    |        | Ships with 1.4.0.  166 of 450 tests  |
+| Fedora 17 |        |   X    |        | Ships with 1.4.0.  171 of 456 tests  |
 |           |        |        |        | should pass.                         |
 +-----------+--------+--------+--------+--------------------------------------+
-| CentOS    |   X    |        |        | Ships with 1.3.0.  169 of 455 tests  |
+| CentOS    |   X    |        |        | Ships with 1.3.0.  169 of 456 tests  |
 |   6.3     |        |        |        | should pass.                         |
 +-----------+--------+--------+--------+--------------------------------------+
-| Raspberry |        |   X    |        | Ships with 1.3.0.  171 of 455 tests  |
+| Raspberry |        |   X    |        | Ships with 1.3.0.  171 of 456 tests  |
 |    Pi     |        |        |        | should pass.                         |
 | Debian 7  |        |        |        |                                      |
 +-----------+--------+--------+--------+--------------------------------------+

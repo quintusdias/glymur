@@ -28,9 +28,6 @@ else:
     # Does not really matter.  But version should not be called if there is no
     # OpenJPEG library found.
     _MINOR = 0
-    # Redefine version so that we can use it.
-    def version():
-        return '0.0.0'
 
 
 class EventMgrType(ctypes.Structure):
