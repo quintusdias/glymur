@@ -9,24 +9,36 @@
 | 10.6.8    |        |        |        | and OpenJPEG svn.  354 of 455 tests  |
 |           |        |        |        | should pass.                         |
 +-----------+--------+--------+--------+--------------------------------------+
+| Mac       |   X    |        |        | MacPorts with both OpenJPEG 1.5.1    |
+| 10.6.8    |        |        |        | and OpenJPEG 2.0.  315 of 456 tests  |
+|           |        |        |        | should pass.                         |
++-----------+--------+--------+--------+--------------------------------------+
 | Mac       |        |   X    |        | MacPorts with both OpenJPEG 1.5.1    |
 | 10.6.8    |        |        |        | and OpenJPEG svn.  379 of 460 tests  |
+|           |        |        |        | should pass.                         |
++-----------+--------+--------+--------+--------------------------------------+
+| Mac       |        |   X    |        | MacPorts with both OpenJPEG 1.5.1    |
+| 10.6.8    |        |        |        | and OpenJPEG 2.0.  340 of 461 tests  |
 |           |        |        |        | should pass.                         |
 +-----------+--------+--------+--------+--------------------------------------+
 | Mac       |        |        |   X    | MacPorts with both OpenJPEG 1.5.1    |
 | 10.6.8    |        |        |        | and OpenJPEG svn.  407 of 460        |
 |           |        |        |        | tests should pass.                   |
++-----------+--------+--------+--------+--------------------------------------+
+| Mac       |        |        |   X    | MacPorts with both OpenJPEG 1.5.1    |
+| 10.6.8    |        |        |        | and OpenJPEG 2.0.  355 of 461        |
+|           |        |        |        | tests should pass.                   |
 +-----------+--------+--------+-----------------------------------------------+
 | Fedora 19 |        |        |   X    | Ships with 1.5.1, openjp2 built too. |
 |           |        |        |        | 402 of 455 tests should pass.        |
 +-----------+--------+--------+--------+--------------------------------------+
-| Fedora 18 |        |        |   X    | Ships with 1.5.1.  169 of 449 tests  |
+| Fedora 18 |        |        |   X    | Ships with 1.5.1.  173 of 456 tests  |
 |           |        |        |        | should pass.                         |
 +-----------+--------+--------+--------+--------------------------------------+
-| Fedora 17 |        |   X    |        | Ships with 1.4.0.  166 of 450 tests  |
+| Fedora 17 |        |   X    |        | Ships with 1.4.0.  171 of 456 tests  |
 |           |        |        |        | should pass.                         |
 +-----------+--------+--------+--------+--------------------------------------+
-| CentOS    |   X    |        |        | Ships with 1.3.0.  169 of 455 tests  |
+| CentOS    |   X    |        |        | Ships with 1.3.0.  169 of 456 tests  |
 |   6.3     |        |        |        | should pass.                         |
 +-----------+--------+--------+--------+--------------------------------------+
 | Raspberry |        |   X    |        | Ships with 1.3.0.  171 of 455 tests  |
