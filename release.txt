@@ -1,8 +1,12 @@
 | OS        | Python | Python | Python | Notes                                |
 |           |  2.6   |  2.7   |  3.3   |                                      |
 +-----------+--------+--------+--------+--------------------------------------+
-| Windows   |        |   X    |        | Python(xy) with OpenJPEG 1.5.1 and   |
-|           |        |        |        | OpenJPEG svn.  285 of 448 tests      |
+| Windows   |        |   X    |        | WinPython with OpenJPEG 1.5.1 and    |
+|           |        |        |        | OpenJPEG 2.0.0.  267 of 455 tests    |
+|           |        |        |        | pass.                                |
++-----------+--------+--------+--------+--------------------------------------+
+| Windows   |        |        |   X    | WinPython with OpenJPEG 1.5.1 and    |
+|           |        |        |        | OpenJPEG svn.    307 of 455 tests    |
 |           |        |        |        | pass.                                |
 +-----------+--------+--------+--------+--------------------------------------+
 | Mac       |   X    |        |        | MacPorts with both OpenJPEG 1.5.1    |
@@ -29,10 +33,10 @@
 | 10.6.8    |        |        |        | and OpenJPEG 2.0.  355 of 461        |
 |           |        |        |        | tests should pass.                   |
 +-----------+--------+--------+-----------------------------------------------+
-| Fedora 19 |        |        |   X    | Ships with 1.5.1, openjp2 built too. |
-|           |        |        |        | 402 of 455 tests should pass.        |
+| Fedora 19 |        |        |   X    | Ships with 1.5.1, openjp2 svn built, |
+|           |        |        |        | too.  407 of 461 tests should pass.  |
 +-----------+--------+--------+--------+--------------------------------------+
-| Fedora 18 |        |        |   X    | Ships with 1.5.1.  173 of 456 tests  |
+| Fedora 18 |        |   X    |        | Ships with 1.5.1.  173 of 456 tests  |
 |           |        |        |        | should pass.                         |
 +-----------+--------+--------+--------+--------------------------------------+
 | Fedora 17 |        |   X    |        | Ships with 1.4.0.  171 of 456 tests  |
