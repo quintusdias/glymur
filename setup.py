@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 import sys
 
 kwargs = {'name': 'Glymur',
-          'version': '0.2.8',
+          'version': '0.3.0',
           'description': 'Tools for accessing JPEG2000 files',
           'long_description': open('README.md').read(),
           'author': 'John Evans',

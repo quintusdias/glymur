@@ -26,6 +26,8 @@ import glymur
 from glymur import Jp2k
 from glymur.lib import openjp2 as opj2
 
+from .fixtures import OPENJP2_IS_V2_OFFICIAL
+
 try:
     data_root = os.environ['OPJ_DATA_ROOT']
 except KeyError:
@@ -477,6 +479,8 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(j.box[2].box[1].colorspace,
                              glymur.core.GREYSCALE)
 
+    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
+                     "Does not seem to work on official v2.0.0 release.")
     @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_grey_with_extra_component(self):
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
@@ -501,6 +505,8 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(j.box[2].box[1].colorspace,
                              glymur.core.GREYSCALE)
 
+    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
+                     "Does not seem to work on official v2.0.0 release.")
     @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_rgb_with_extra_component(self):
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
@@ -511,6 +517,17 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(j.box[2].box[0].width, 128)
             self.assertEqual(j.box[2].box[0].num_components, 4)
             self.assertEqual(j.box[2].box[1].colorspace, glymur.core.SRGB)
+
+    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL is False,
+                     "Test is specific for v2.0.0 release")
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+    def test_extra_components_on_v2_official(self):
+        # Extra components seems to require 2.0+.  Verify that we error out.
+        with self.assertRaises(IOError):
+            with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+                j = Jp2k(tfile.name, 'wb')
+                data = np.zeros((128, 128, 4), dtype=np.uint8)
+                j.write(data)
 
     def test_specify_ycc(self):
         # We don't support writing YCC at the moment.
@@ -655,6 +672,8 @@ class TestJp2k(unittest.TestCase):
                 self.assertEqual(jasoc.box[3].box[1].box_id, 'xml ')
 
     @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
+                     "Segfault on official v2.0.0 release.")
     def test_openjpeg_library_message(self):
         # Verify the error message produced by the openjpeg library.
         # This will confirm that the error callback mechanism is working.

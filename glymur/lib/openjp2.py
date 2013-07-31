@@ -5,6 +5,7 @@ Wraps individual functions in openjp2 library.
 # pylint: disable=C0302,R0903
 
 import ctypes
+import sys
 
 from .config import glymur_config
 OPENJP2, OPENJPEG = glymur_config()
@@ -639,9 +640,16 @@ if OPENJP2 is not None:
                 ctypes.POINTER(ImageType)]
     OPENJP2.opj_setup_encoder.argtypes = ARGTYPES
 
-    ARGTYPES = [ctypes.c_char_p, ctypes.c_int32]
-    OPENJP2.opj_stream_create_default_file_stream_v3.argtypes = ARGTYPES
-    OPENJP2.opj_stream_create_default_file_stream_v3.restype = STREAM_TYPE_P
+    if hasattr(OPENJP2, 'opj_stream_create_default_file_stream_v3'):
+        ARGTYPES = [ctypes.c_char_p, ctypes.c_int32]
+        OPENJP2.opj_stream_create_default_file_stream_v3.argtypes = ARGTYPES
+        OPENJP2.opj_stream_create_default_file_stream_v3.restype = STREAM_TYPE_P
+        OPENJP2.opj_stream_destroy_v3.argtypes = [STREAM_TYPE_P]
+    else:
+        ARGTYPES = [ctypes.c_void_p, ctypes.c_int32]
+        OPENJP2.opj_stream_create_default_file_stream.argtypes = ARGTYPES
+        OPENJP2.opj_stream_create_default_file_stream.restype = STREAM_TYPE_P
+        OPENJP2.opj_stream_destroy.argtypes = [STREAM_TYPE_P]
 
     ARGTYPES = [CODEC_TYPE, ctypes.POINTER(ImageType), STREAM_TYPE_P]
     OPENJP2.opj_start_compress.argtypes = ARGTYPES
@@ -649,7 +657,6 @@ if OPENJP2 is not None:
     OPENJP2.opj_end_compress.argtypes = [CODEC_TYPE, STREAM_TYPE_P]
     OPENJP2.opj_end_decompress.argtypes = [CODEC_TYPE, STREAM_TYPE_P]
 
-    OPENJP2.opj_stream_destroy_v3.argtypes = [STREAM_TYPE_P]
     OPENJP2.opj_destroy_codec.argtypes = [CODEC_TYPE]
 
     ARGTYPES = [CODEC_TYPE,
@@ -1267,16 +1274,17 @@ def start_compress(codec, image, stream):
     OPENJP2.opj_start_compress(codec, image, stream)
 
 
-def stream_create_default_file_stream_v3(fname, a_read_stream):
-    """Wraps openjp2 library function opj_stream_create_default_vile_stream_v3.
+def stream_create_default_file_stream(fptr, isa_read_stream):
+    """Wraps openjp2 library function opj_stream_create_default_vile_stream.
 
-    Sets the stream to be a file stream.
+    Sets the stream to be a file stream.  This is valid only for version 2.0.0
+    of OpenJPEG.
 
     Parameters
     ----------
-    fname : str
-        Specifies a file.
-    a_read_stream:  bool
+    fptr : ctypes.c_void_p
+        Corresponds to C file pointer.  Must be obtained from libc.fopen.
+    isa_read_stream:  bool
         True (read) or False (write)
 
     Returns
@@ -1284,15 +1292,51 @@ def stream_create_default_file_stream_v3(fname, a_read_stream):
     stream : stream_t
         An OpenJPEG file stream.
     """
-    read_stream = 1 if a_read_stream else 0
+    read_stream = 1 if isa_read_stream else 0
+    stream = OPENJP2.opj_stream_create_default_file_stream(fptr, read_stream)
+    return stream
+
+
+def stream_create_default_file_stream_v3(fname, isa_read_stream):
+    """Wraps openjp2 library function opj_stream_create_default_vile_stream_v3.
+
+    Sets the stream to be a file stream.  This function is only valid for the
+    trunk/development 2.0+ version of the openjp2 library.
+
+    Parameters
+    ----------
+    fname : str
+        Specifies a file.
+    isa_read_stream:  bool
+        True (read) or False (write)
+
+    Returns
+    -------
+    stream : stream_t
+        An OpenJPEG file stream.
+    """
+    read_stream = 1 if isa_read_stream else 0
     file_argument = ctypes.c_char_p(fname.encode())
     stream = OPENJP2.opj_stream_create_default_file_stream_v3(file_argument,
                                                               read_stream)
     return stream
 
 
-def stream_destroy_v3(stream):
+def stream_destroy(stream):
     """Wraps openjp2 library function opj_stream_destroy.
+
+    Destroys the stream created by create_stream.
+
+    Parameters
+    ----------
+    stream : STREAM_TYPE_P
+        The file stream.
+    """
+    OPENJP2.opj_stream_destroy(stream)
+
+
+def stream_destroy_v3(stream):
+    """Wraps openjp2 library function opj_stream_destroy_v3.
 
     Destroys the stream created by create_stream_v3.
 
@@ -1339,3 +1383,13 @@ def set_error_message(msg):
     """The openjpeg error handler has recorded an error message."""
     global ERROR_MSG_LST
     ERROR_MSG_LST.append(msg)
+
+
+def version():
+    """Wrapper for opj_version library routine."""
+    OPENJP2.opj_version.restype = ctypes.c_char_p
+    library_version = OPENJP2.opj_version()
+    if sys.hexversion >= 0x03000000:
+        return library_version.decode('utf-8')
+    else:
+        return library_version

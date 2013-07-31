@@ -122,10 +122,10 @@ and add it after the JP2 header box, but before the codestream box ::
 Create an image with an alpha layer?
 ====================================
 
-OpenJPEG can create JP2 files with more than 3 components, but by default, any
-extra components are not described as such.  In order to do so, 
-we need to rewrap such an image in a set of boxes that includes a channel
-definition box.
+OpenJPEG can create JP2 files with more than 3 components (requires
+the development version), but by default, any extra components are
+not described as such.  In order to do so, we need to rewrap such
+an image in a set of boxes that includes a channel definition box.
 
 This example is based on SciPy example code found at 
 http://scipy-lectures.github.io/advanced/image_processing/#basic-manipulations . 

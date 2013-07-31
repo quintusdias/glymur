@@ -9,13 +9,14 @@ Glymur Configuration
 The default glymur installation process relies upon OpenJPEG version
 1.X being properly installed on your system.  This will, however, only
 give you you basic read capabilities, so if you wish to take advantage
-of more of glymur's features, you should compile OpenJPEG as a shared
-library (named *openjp2* instead of *openjpeg*) from the developmental
-source that you can retrieve via subversion.  As of this time of writing,
-svn revision 2345 works.  You should also download the test data for
-the purpose of configuring and running OpenJPEG's test suite, check
-their instructions for all this.  You should set the **OPJ_DATA_ROOT**
-environment variable for the purpose of running Glymur's test suite. ::
+of more of glymur's features, you should install version 2.0 or
+compile OpenJPEG as a shared library (named *openjp2* instead of
+*openjpeg*) from the developmental source that you can retrieve via
+subversion.  As of this time of writing, svn revision 2345 works.
+You should also download the test data for the purpose of configuring
+and running OpenJPEG's test suite, check their instructions for all
+this.  You should set the **OPJ_DATA_ROOT** environment variable
+for the purpose of running Glymur's test suite. ::
 
     $ svn co http://openjpeg.googlecode.com/svn/data 
     $ export OPJ_DATA_ROOT=`pwd`/data
@@ -40,8 +41,8 @@ but if you have **$XDG_CONFIG_HOME** defined, the path will be ::
 
     $XDG_CONFIG_HOME/glymur/glymurrc 
 
-On windows, the path to the configuration file can be determined by starting up Python
-and typing ::
+On windows, the path to the configuration file can be determined
+by starting up Python and typing ::
 
     import os
     os.path.join(os.path.expanduser('~'), 'glymur', 'glymurrc')
@@ -75,9 +76,7 @@ MacPorts.  You should install the following set of ports:
       * py33-matplotlib (optional, for running certain tests)
       * py33-Pillow (optional, for running certain tests)
 
-MacPorts supplies both OpenJPEG 1.5.0 and OpenJPEG 2.0.0.  As previously
-mentioned, the 2.0.0 official release is not supported (although the 2.0+
-development version via SVN *is* supported).
+MacPorts supplies both OpenJPEG 1.5.0 and OpenJPEG 2.0.0.
 
 Linux
 -----
@@ -138,12 +137,14 @@ In addition, you must install contextlib2 and Pillow via pip. ::
 
 Windows
 -------
-I would recommend using WinPython, but Python(xy) also seems to work.  WinPython 3.3
-should work with no additional installations required, but 2.7 versions still require
-contextlib2 and mock to be installed via pip.
+32-bit WinPython 2.7.5 seems to work with OpenJPEG 1.X, 2.0, and the
+development version, but still requires contextlib2 and mock to be
+installed via pip.   WinPython 3.3.2, however, seems to have trouble
+with OpenJPEG 2.0, so I would suggest using the development version
+there (I'm unwilling to spend ANY more time trying to figure out what
+the problem is there).
 
-Glymur has been tested far less extensively on Windows than on the other 
-platforms.  
+64-bit windows is completely untested.
 
 
 '''''''
