@@ -77,6 +77,66 @@ class Codestream(object):
             If True, only marker segments in the main header are parsed.
             Supplying False may impose a large performance penalty.
         """
+        # Map each of the known markers to a method that processes them.
+        process_marker_segment = {
+                0xff00:  self._parse_reserved_segment,
+                0xff01:  self._parse_reserved_segment,
+                0xff30:  self._parse_reserved_marker,
+                0xff31:  self._parse_reserved_marker,
+                0xff32:  self._parse_reserved_marker,
+                0xff33:  self._parse_reserved_marker,
+                0xff34:  self._parse_reserved_marker,
+                0xff35:  self._parse_reserved_marker,
+                0xff36:  self._parse_reserved_marker,
+                0xff37:  self._parse_reserved_marker,
+                0xff38:  self._parse_reserved_marker,
+                0xff39:  self._parse_reserved_marker,
+                0xff3a:  self._parse_reserved_marker,
+                0xff3b:  self._parse_reserved_marker,
+                0xff3c:  self._parse_reserved_marker,
+                0xff3d:  self._parse_reserved_marker,
+                0xff3e:  self._parse_reserved_marker,
+                0xff3f:  self._parse_reserved_marker,
+                0xff4f:  self._parse_reserved_segment,
+                0xff50:  self._parse_reserved_segment,
+                0xff51:  self._parse_siz_segment,
+                0xff52:  self._parse_cod_segment,
+                0xff53:  self._parse_coc_segment,
+                0xff54:  self._parse_reserved_segment,
+                0xff55:  self._parse_tlm_segment,
+                0xff56:  self._parse_reserved_segment,
+                0xff57:  self._parse_reserved_segment,
+                0xff58:  self._parse_plt_segment,
+                0xff59:  self._parse_reserved_segment,
+                0xff5a:  self._parse_reserved_segment,
+                0xff5b:  self._parse_reserved_segment,
+                0xff5c:  self._parse_qcd_segment,
+                0xff5d:  self._parse_qcc_segment,
+                0xff5e:  self._parse_rgn_segment,
+                0xff5f:  self._parse_pod_segment,
+                0xff60:  self._parse_ppm_segment,
+                0xff61:  self._parse_ppt_segment,
+                0xff62:  self._parse_reserved_segment,
+                0xff63:  self._parse_crg_segment,
+                0xff64:  self._parse_cme_segment,
+                0xff65:  self._parse_reserved_segment,
+                0xff66:  self._parse_reserved_segment,
+                0xff67:  self._parse_reserved_segment,
+                0xff68:  self._parse_reserved_segment,
+                0xff69:  self._parse_reserved_segment,
+                0xff6a:  self._parse_reserved_segment,
+                0xff6b:  self._parse_reserved_segment,
+                0xff6c:  self._parse_reserved_segment,
+                0xff6d:  self._parse_reserved_segment,
+                0xff6e:  self._parse_reserved_segment,
+                0xff6f:  self._parse_reserved_segment,
+                0xff79:  self._parse_unrecognized_segment,
+                0xff90:  self._parse_sot_segment,
+                0xff91:  self._parse_unrecognized_segment,
+                0xff92:  self._parse_unrecognized_segment,
+                0xff93:  self._parse_sod_segment,
+                0xffd9:  self._parse_eoc_segment,
+                }
 
         self.offset = fptr.tell()
         self.length = length
@@ -119,7 +179,13 @@ class Codestream(object):
                 break
 
             try:
-                segment = self._process_marker_segment(fptr)
+                segment = process_marker_segment[self._marker_id](fptr)
+            except KeyError:
+                msg = 'Invalid marker id encountered at byte {0:d} '
+                msg += 'in codestream:  "0x{1:x}"'
+                msg = msg.format(self._offset, self._marker_id)
+                warnings.warn(msg)
+                break
             except Exception as error:
                 # Treat this as a warning.
                 msg = str(error)
@@ -142,78 +208,9 @@ class Codestream(object):
 
                 fptr.seek(self._tile_offset[-1] + self._tile_length[-1])
 
-    def _process_marker_segment(self, fptr):
-        """Process and return a segment from the codestream.
-        """
-        if self._marker_id >= 0xff30 and self._marker_id <= 0xff3f:
-            segment = self._parse_reserved_marker(fptr)
-
-        elif self._marker_id == 0xff51:
-            segment = self._parse_siz_segment(fptr)
-
-        elif self._marker_id == 0xff52:
-            segment = self._parse_cod_segment(fptr)
-
-        elif self._marker_id == 0xff53:
-            segment = self._parse_coc_segment(fptr)
-
-        elif self._marker_id == 0xff55:
-            segment = self._parse_tlm_segment(fptr)
-
-        elif self._marker_id == 0xff58:
-            segment = self._parse_plt_segment(fptr)
-
-        elif self._marker_id == 0xff5c:
-            segment = self._parse_qcd_segment(fptr)
-
-        elif self._marker_id == 0xff5d:
-            segment = self._parse_qcc_segment(fptr)
-
-        elif self._marker_id == 0xff5e:
-            segment = self._parse_rgn_segment(fptr)
-
-        elif self._marker_id == 0xff5f:
-            segment = self._parse_pod_segment(fptr)
-
-        elif self._marker_id == 0xff60:
-            segment = self._parse_ppm_segment(fptr)
-
-        elif self._marker_id == 0xff61:
-            segment = self._parse_ppt_segment(fptr)
-
-        elif self._marker_id == 0xff63:
-            segment = self._parse_crg_segment(fptr)
-
-        elif self._marker_id == 0xff64:
-            segment = self._parse_cme_segment(fptr)
-
-        elif self._marker_id == 0xff90:
-            segment = self._parse_sot_segment(fptr)
-
-        elif self._marker_id == 0xff93:
-            segment = self._parse_sod_segment(fptr)
-
-        elif self._marker_id == 0xffd9:
-            segment = self._parse_eoc_segment(fptr)
-
-        elif self._marker_id in _VALID_MARKERS:
-            # It's a reserved marker that I don't know anything about.
-            # See table A-1 in ISO/IEC FCD15444-1.
-            segment = self._parse_reserved_segment(fptr)
-
-        elif self._marker_id == 0xff79:
-            segment = self._parse_unrecognized_segment(fptr)
-
-        else:
-            msg = 'Invalid marker id encountered at byte {0:d} '
-            msg += 'in codestream:  "0x{1:x}"'
-            msg = msg.format(self._offset, self._marker_id)
-            raise IOError(msg)
-
-        return segment
 
     def _parse_unrecognized_segment(self, fptr):
-        """Looks like a marker, but not sure what it is.
+        """Looks like a valid marker, but not sure from reading the specs.
         """
         msg = "Unrecognized marker id:  0x{0:x}".format(self._marker_id)
         warnings.warn(msg)
@@ -240,7 +237,7 @@ class Codestream(object):
         
 
     def _parse_reserved_segment(self, fptr):
-        """Parse a marker segment for which we know nothing of the segment itself.
+        """Parse valid marker segment, segment description is unknown.
     
         Parameters
         ----------

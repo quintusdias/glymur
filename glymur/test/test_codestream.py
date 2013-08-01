@@ -63,9 +63,9 @@ class TestCodestream(unittest.TestCase):
             self.assertEqual(c.segment[2].length, 3)
             self.assertEqual(c.segment[2]._data, b'\x00')
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_unknown_marker_segment(self):
         # Let's inject a marker segment whose marker does not appear to
         # be valid.  We still parse the file, but warn about the offending
@@ -86,13 +86,13 @@ class TestCodestream(unittest.TestCase):
                 tfile.write(buffer)
                 tfile.flush()
 
-            with self.assertWarns(UserWarning) as cw:
-                j = Jp2k(tfile.name)
-                c = j.get_codestream()
+                with self.assertWarns(UserWarning):
+                    j = Jp2k(tfile.name)
+                    c = j.get_codestream()
 
-            self.assertEqual(c.segment[2].marker_id, '0xff79')
-            self.assertEqual(c.segment[2].length, 3)
-            self.assertEqual(c.segment[2]._data, b'\x00')
+                self.assertEqual(c.segment[2].marker_id, '0xff79')
+                self.assertEqual(c.segment[2].length, 3)
+                self.assertEqual(c.segment[2]._data, b'\x00')
 
     def test_psot_is_zero(self):
         # Psot=0 in SOT is perfectly legal.  Issue #78.
