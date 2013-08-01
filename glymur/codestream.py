@@ -78,65 +78,63 @@ class Codestream(object):
             Supplying False may impose a large performance penalty.
         """
         # Map each of the known markers to a method that processes them.
-        process_marker_segment = {
-                0xff00:  self._parse_reserved_segment,
-                0xff01:  self._parse_reserved_segment,
-                0xff30:  self._parse_reserved_marker,
-                0xff31:  self._parse_reserved_marker,
-                0xff32:  self._parse_reserved_marker,
-                0xff33:  self._parse_reserved_marker,
-                0xff34:  self._parse_reserved_marker,
-                0xff35:  self._parse_reserved_marker,
-                0xff36:  self._parse_reserved_marker,
-                0xff37:  self._parse_reserved_marker,
-                0xff38:  self._parse_reserved_marker,
-                0xff39:  self._parse_reserved_marker,
-                0xff3a:  self._parse_reserved_marker,
-                0xff3b:  self._parse_reserved_marker,
-                0xff3c:  self._parse_reserved_marker,
-                0xff3d:  self._parse_reserved_marker,
-                0xff3e:  self._parse_reserved_marker,
-                0xff3f:  self._parse_reserved_marker,
-                0xff4f:  self._parse_reserved_segment,
-                0xff50:  self._parse_reserved_segment,
-                0xff51:  self._parse_siz_segment,
-                0xff52:  self._parse_cod_segment,
-                0xff53:  self._parse_coc_segment,
-                0xff54:  self._parse_reserved_segment,
-                0xff55:  self._parse_tlm_segment,
-                0xff56:  self._parse_reserved_segment,
-                0xff57:  self._parse_reserved_segment,
-                0xff58:  self._parse_plt_segment,
-                0xff59:  self._parse_reserved_segment,
-                0xff5a:  self._parse_reserved_segment,
-                0xff5b:  self._parse_reserved_segment,
-                0xff5c:  self._parse_qcd_segment,
-                0xff5d:  self._parse_qcc_segment,
-                0xff5e:  self._parse_rgn_segment,
-                0xff5f:  self._parse_pod_segment,
-                0xff60:  self._parse_ppm_segment,
-                0xff61:  self._parse_ppt_segment,
-                0xff62:  self._parse_reserved_segment,
-                0xff63:  self._parse_crg_segment,
-                0xff64:  self._parse_cme_segment,
-                0xff65:  self._parse_reserved_segment,
-                0xff66:  self._parse_reserved_segment,
-                0xff67:  self._parse_reserved_segment,
-                0xff68:  self._parse_reserved_segment,
-                0xff69:  self._parse_reserved_segment,
-                0xff6a:  self._parse_reserved_segment,
-                0xff6b:  self._parse_reserved_segment,
-                0xff6c:  self._parse_reserved_segment,
-                0xff6d:  self._parse_reserved_segment,
-                0xff6e:  self._parse_reserved_segment,
-                0xff6f:  self._parse_reserved_segment,
-                0xff79:  self._parse_unrecognized_segment,
-                0xff90:  self._parse_sot_segment,
-                0xff91:  self._parse_unrecognized_segment,
-                0xff92:  self._parse_unrecognized_segment,
-                0xff93:  self._parse_sod_segment,
-                0xffd9:  self._parse_eoc_segment,
-                }
+        process_marker_segment = {0xff00:  self._parse_reserved_segment,
+                                  0xff01:  self._parse_reserved_segment,
+                                  0xff30:  self._parse_reserved_marker,
+                                  0xff31:  self._parse_reserved_marker,
+                                  0xff32:  self._parse_reserved_marker,
+                                  0xff33:  self._parse_reserved_marker,
+                                  0xff34:  self._parse_reserved_marker,
+                                  0xff35:  self._parse_reserved_marker,
+                                  0xff36:  self._parse_reserved_marker,
+                                  0xff37:  self._parse_reserved_marker,
+                                  0xff38:  self._parse_reserved_marker,
+                                  0xff39:  self._parse_reserved_marker,
+                                  0xff3a:  self._parse_reserved_marker,
+                                  0xff3b:  self._parse_reserved_marker,
+                                  0xff3c:  self._parse_reserved_marker,
+                                  0xff3d:  self._parse_reserved_marker,
+                                  0xff3e:  self._parse_reserved_marker,
+                                  0xff3f:  self._parse_reserved_marker,
+                                  0xff4f:  self._parse_reserved_segment,
+                                  0xff50:  self._parse_reserved_segment,
+                                  0xff51:  self._parse_siz_segment,
+                                  0xff52:  self._parse_cod_segment,
+                                  0xff53:  self._parse_coc_segment,
+                                  0xff54:  self._parse_reserved_segment,
+                                  0xff55:  self._parse_tlm_segment,
+                                  0xff56:  self._parse_reserved_segment,
+                                  0xff57:  self._parse_reserved_segment,
+                                  0xff58:  self._parse_plt_segment,
+                                  0xff59:  self._parse_reserved_segment,
+                                  0xff5a:  self._parse_reserved_segment,
+                                  0xff5b:  self._parse_reserved_segment,
+                                  0xff5c:  self._parse_qcd_segment,
+                                  0xff5d:  self._parse_qcc_segment,
+                                  0xff5e:  self._parse_rgn_segment,
+                                  0xff5f:  self._parse_pod_segment,
+                                  0xff60:  self._parse_ppm_segment,
+                                  0xff61:  self._parse_ppt_segment,
+                                  0xff62:  self._parse_reserved_segment,
+                                  0xff63:  self._parse_crg_segment,
+                                  0xff64:  self._parse_cme_segment,
+                                  0xff65:  self._parse_reserved_segment,
+                                  0xff66:  self._parse_reserved_segment,
+                                  0xff67:  self._parse_reserved_segment,
+                                  0xff68:  self._parse_reserved_segment,
+                                  0xff69:  self._parse_reserved_segment,
+                                  0xff6a:  self._parse_reserved_segment,
+                                  0xff6b:  self._parse_reserved_segment,
+                                  0xff6c:  self._parse_reserved_segment,
+                                  0xff6d:  self._parse_reserved_segment,
+                                  0xff6e:  self._parse_reserved_segment,
+                                  0xff6f:  self._parse_reserved_segment,
+                                  0xff79:  self._parse_unrecognized_segment,
+                                  0xff90:  self._parse_sot_segment,
+                                  0xff91:  self._parse_unrecognized_segment,
+                                  0xff92:  self._parse_unrecognized_segment,
+                                  0xff93:  self._parse_sod_segment,
+                                  0xffd9:  self._parse_eoc_segment}
 
         self.offset = fptr.tell()
         self.length = length
@@ -150,9 +148,8 @@ class Codestream(object):
 
         self.segment = []
 
-        # First two bytes are the SOC marker
+        # First two bytes are the SOC marker.  We already know that.
         read_buffer = fptr.read(2)
-        marker_id, = struct.unpack('>H', read_buffer)
         segment = SOCsegment(offset=fptr.tell() - 2, length=0)
         self.segment.append(segment)
 
@@ -208,7 +205,6 @@ class Codestream(object):
 
                 fptr.seek(self._tile_offset[-1] + self._tile_length[-1])
 
-
     def _parse_unrecognized_segment(self, fptr):
         """Looks like a valid marker, but not sure from reading the specs.
         """
@@ -225,39 +221,36 @@ class Codestream(object):
                               offset=self._offset, length=0)
         else:
             segment = self._parse_reserved_segment(fptr)
-        return segment 
-        
+        return segment
 
     def _parse_reserved_marker(self, fptr):
         """Marker range between 0xff30 and 0xff39.
         """
         the_id = '0x{0:x}'.format(self._marker_id)
         segment = Segment(marker_id=the_id, offset=self._offset, length=0)
-        return segment 
-        
+        return segment
 
     def _parse_reserved_segment(self, fptr):
         """Parse valid marker segment, segment description is unknown.
-    
+
         Parameters
         ----------
         fptr : file
             Open file object.
-    
+
         Returns
         -------
         Segment instance.
         """
         offset = fptr.tell() - 2
-    
+
         read_buffer = fptr.read(2)
         length, = struct.unpack('>H', read_buffer)
         data = fptr.read(length-2)
-    
+
         segment = Segment(marker_id='0x{0:x}'.format(self._marker_id),
                           offset=offset, length=length, data=data)
         return segment
-
 
     def _parse_tile_part_bit_stream(self, fptr, sod_marker, tile_length):
         """Parse the tile part bit stream for SOP, EPH marker segments."""
@@ -296,29 +289,29 @@ class Codestream(object):
             msg += ''.join(strs)
         return msg
 
+    # pylint: disable=R0201
     def _parse_cme_segment(self, fptr):
         """Parse the CME marker segment.
-    
+
         Parameters
         ----------
         fptr : file
             Open file object.
-    
+
         Returns
         -------
         CME segment instance.
         """
         offset = fptr.tell() - 2
-    
+
         read_buffer = fptr.read(4)
         data = struct.unpack('>HH', read_buffer)
         length = data[0]
         rcme = data[1]
         ccme = fptr.read(length - 4)
-    
+
         return CMEsegment(rcme, ccme, length, offset)
-    
-    
+
     def _parse_coc_segment(self, fptr):
         """Parse the COC marker segment.
 
@@ -357,25 +350,24 @@ class Codestream(object):
 
         return COCsegment(ccoc, scoc, spcoc, length, offset)
 
-
     def _parse_cod_segment(self, fptr):
         """Parse the COD segment.
-    
+
         Parameters
         ----------
         fptr : file
             Open file object.
-    
+
         Returns
         -------
         COD segment instance.
         """
         offset = fptr.tell() - 2
         offset = fptr.tell() - 2
-    
+
         read_buffer = fptr.read(3)
         length, scod = struct.unpack('>HB', read_buffer)
-    
+
         numbytes = offset + 2 + length - fptr.tell()
         spcod = fptr.read(numbytes)
         spcod = np.frombuffer(spcod, dtype=np.uint8)
@@ -388,77 +380,73 @@ class Codestream(object):
         else:
             self._parse_tpart_flag = False
 
-    
         return CODsegment(scod, spcod, length, offset)
-    
-    
+
     def _parse_crg_segment(self, fptr):
         """Parse the CRG marker segment.
-    
+
         Parameters
         ----------
         fptr : file
             Open file object.
-    
+
         Returns
         -------
         CRG segment instance.
         """
         offset = fptr.tell() - 2
-    
+
         read_buffer = fptr.read(2)
         length, = struct.unpack('>H', read_buffer)
-    
+
         read_buffer = fptr.read(4 * self._csiz)
         data = struct.unpack('>' + 'HH' * self._csiz, read_buffer)
         xcrg = data[0::2]
         ycrg = data[1::2]
-    
-        return CRGsegment(xcrg, ycrg, length, offset)
 
+        return CRGsegment(xcrg, ycrg, length, offset)
 
     def _parse_eoc_segment(self, fptr):
         """Parse the EOC (end-of-codestream) marker segment.
-    
+
         Parameters
         ----------
         fptr : file
             Open file object.
-    
+
         Returns
         -------
         EOC Segment instance.
         """
         offset = fptr.tell() - 2
         length = 0
-    
+
         return EOCsegment(length, offset)
-    
-    
+
     def _parse_plt_segment(self, fptr):
         """Parse the PLT segment.
-    
+
         The packet headers are not parsed, i.e. they remain "uninterpreted"
         raw data beffers.
-    
+
         Parameters
         ----------
         fptr : file
             Open file object.
-    
+
         Returns
         -------
         PLT segment instance.
         """
         offset = fptr.tell() - 2
-    
+
         read_buffer = fptr.read(3)
         length, zplt = struct.unpack('>HB', read_buffer)
-    
+
         numbytes = length - 3
         read_buffer = fptr.read(numbytes)
         iplt = np.frombuffer(read_buffer, dtype=np.uint8)
-    
+
         packet_len = []
         plen = 0
         for byte in iplt:
@@ -469,12 +457,11 @@ class Codestream(object):
             else:
                 packet_len.append(plen)
                 plen = 0
-    
+
         iplt = packet_len
-    
+
         return PLTsegment(zplt, iplt, length, offset)
-    
-    
+
     def _parse_pod_segment(self, fptr):
         """Parse the POD segment.
 
@@ -507,54 +494,52 @@ class Codestream(object):
 
     def _parse_ppm_segment(self, fptr):
         """Parse the PPM segment.
-    
+
         Parameters
         ----------
         fptr : file
             Open file object.
-    
+
         Returns
         -------
         PPM segment instance.
         """
         offset = fptr.tell() - 2
-    
+
         read_buffer = fptr.read(3)
         length, zppm = struct.unpack('>HB', read_buffer)
-    
+
         numbytes = length - 3
         read_buffer = fptr.read(numbytes)
-    
+
         return PPMsegment(zppm, read_buffer, length, offset)
-    
-    
+
     def _parse_ppt_segment(self, fptr):
         """Parse the PPT segment.
-    
+
         The packet headers are not parsed, i.e. they remain "uninterpreted"
         raw data beffers.
-    
+
         Parameters
         ----------
         fptr : file
             Open file object.
-    
+
         Returns
         -------
         PPT segment instance.
         """
         offset = fptr.tell() - 2
-    
+
         read_buffer = fptr.read(3)
         length, zppt = struct.unpack('>HB', read_buffer)
         length = length
         zppt = zppt
-    
+
         numbytes = length - 3
         ippt = fptr.read(numbytes)
-    
-        return PPTsegment(zppt, ippt, length, offset)
 
+        return PPTsegment(zppt, ippt, length, offset)
 
     def _parse_qcc_segment(self, fptr):
         """Parse the QCC segment.
@@ -594,22 +579,22 @@ class Codestream(object):
 
     def _parse_qcd_segment(self, fptr):
         """Parse the QCD segment.
-    
+
         Parameters
         ----------
         fptr : file
             Open file object.
-    
+
         Returns
         -------
         QCD Segment instance.
         """
         offset = fptr.tell() - 2
-    
+
         read_buffer = fptr.read(3)
         length, sqcd = struct.unpack('>HB', read_buffer)
         spqcd = fptr.read(length - 3)
-    
+
         return QCDsegment(sqcd, spqcd, length, offset)
 
     def _parse_rgn_segment(self, fptr):
@@ -645,44 +630,43 @@ class Codestream(object):
 
     def _parse_siz_segment(self, fptr):
         """Parse the SIZ segment.
-    
+
         Parameters
         ----------
         fptr : file
             Open file object.
-    
+
         Returns
         -------
         SIZsegment instance.
         """
         offset = fptr.tell() - 2
-    
+
         read_buffer = fptr.read(2)
         length, = struct.unpack('>H', read_buffer)
-    
+
         xy_buffer = fptr.read(36)
-    
+
         num_components, = struct.unpack('>H', xy_buffer[-2:])
-    
+
         component_buffer = fptr.read(num_components * 3)
 
         segment = SIZsegment(xy_buffer, component_buffer, length, offset)
-    
+
         # Need to keep track of the number of components from SIZ for
         # other markers
         self._csiz = len(segment.ssiz)
 
         return segment
-    
-    
+
     def _parse_sod_segment(self, fptr):
         """Parse the SOD (start-of-data) segment.
-    
+
         Parameters
         ----------
         fptr : file
             Open file object.
-    
+
         Returns
         -------
         SOD segment instance.
@@ -692,30 +676,29 @@ class Codestream(object):
 
         return SODsegment(length, offset)
 
-
     def _parse_sot_segment(self, fptr):
         """Parse the SOT segment.
-    
+
         Parameters
         ----------
         fptr : file
             Open file object.
-    
+
         Returns
         -------
         SOT segment instance.
         """
         offset = fptr.tell() - 2
-    
+
         read_buffer = fptr.read(10)
         data = struct.unpack('>HHIBB', read_buffer)
-    
+
         length = data[0]
         isot = data[1]
         psot = data[2]
         tpsot = data[3]
         tnsot = data[4]
-    
+
         segment = SOTsegment(isot, psot, tpsot, tnsot, length, offset)
 
         # Need to keep easy access to tile offsets and lengths for when
@@ -730,36 +713,35 @@ class Codestream(object):
         self._tile_length.append(tile_part_length)
 
         return segment
-    
-    
+
     def _parse_tlm_segment(self, fptr):
         """Parse the TLM segment.
-    
+
         Parameters
         ----------
         fptr : file
             Open file object.
-    
+
         Returns
         -------
         TLM segment instance.
         """
         offset = fptr.tell() - 2
-    
+
         read_buffer = fptr.read(2)
         length, = struct.unpack('>H', read_buffer)
-    
+
         read_buffer = fptr.read(2)
         ztlm, stlm = struct.unpack('>BB', read_buffer)
         ttlm_st = (stlm >> 4) & 0x3
         ptlm_sp = (stlm >> 6) & 0x1
-    
+
         nbytes = length - 4
         if ttlm_st == 0:
             ntiles = nbytes / ((ptlm_sp + 1) * 2)
         else:
             ntiles = nbytes / (ttlm_st + (ptlm_sp + 1) * 2)
-    
+
         read_buffer = fptr.read(nbytes)
         if ttlm_st == 0:
             ttlm = None
@@ -768,12 +750,12 @@ class Codestream(object):
             fmt = 'B'
         elif ttlm_st == 2:
             fmt = 'H'
-    
+
         if ptlm_sp == 0:
             fmt += 'H'
         else:
             fmt += 'I'
-    
+
         data = struct.unpack('>' + fmt * int(ntiles), read_buffer)
         if ttlm_st == 0:
             ttlm = None
@@ -781,9 +763,8 @@ class Codestream(object):
         else:
             ttlm = data[0::2]
             ptlm = data[1::2]
-    
+
         return TLMsegment(length, offset, ztlm, ttlm, ptlm)
-    
 
 
 class Segment(object):
