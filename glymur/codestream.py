@@ -103,7 +103,7 @@ class Codestream(object):
 
             read_buffer = fptr.read(2)
             try:
-                marker_id, = struct.unpack('>H', read_buffer)
+                self._marker_id, = struct.unpack('>H', read_buffer)
             except struct.error:
                 # Treat this as a warning.
                 msg = "Marker had length {0} instead of expected length of 2 "
@@ -111,13 +111,15 @@ class Codestream(object):
                 warnings.warn(msg.format(len(read_buffer)))
                 break
 
-            if marker_id == 0xff90 and header_only:
+            self._offset = fptr.tell() - 2
+
+            if self._marker_id == 0xff90 and header_only:
                 # Start-of-tile (SOT) means that we are out of the main header
                 # and there is no need to go further.
                 break
 
             try:
-                segment = self._process_marker_segment(fptr, marker_id)
+                segment = self._process_marker_segment(fptr)
             except Exception as error:
                 # Treat this as a warning.
                 msg = str(error)
@@ -126,11 +128,11 @@ class Codestream(object):
 
             self.segment.append(segment)
 
-            if marker_id == 0xffd9:
+            if self._marker_id == 0xffd9:
                 # end of codestream, should break.
                 break
 
-            if marker_id == 0xff93:
+            if self._marker_id == 0xff93:
                 # If SOD, then we need to seek past the tile part bit stream.
                 if self._parse_tpart_flag and not header_only:
                     # But first parse the tile part bit stream for SOP and
@@ -140,92 +142,125 @@ class Codestream(object):
 
                 fptr.seek(self._tile_offset[-1] + self._tile_length[-1])
 
-    def _process_marker_segment(self, fptr, marker_id):
+    def _process_marker_segment(self, fptr):
         """Process and return a segment from the codestream.
         """
-        offset = fptr.tell() - 2
+        if self._marker_id >= 0xff30 and self._marker_id <= 0xff3f:
+            segment = self._parse_reserved_marker(fptr)
 
-        if marker_id >= 0xff30 and marker_id <= 0xff3f:
-            the_id = '0x{0:x}'.format(marker_id)
-            segment = Segment(marker_id=the_id, offset=offset, length=0)
-
-        elif marker_id == 0xff51:
+        elif self._marker_id == 0xff51:
             segment = self._parse_siz_segment(fptr)
 
-        elif marker_id == 0xff52:
+        elif self._marker_id == 0xff52:
             segment = self._parse_cod_segment(fptr)
 
-        elif marker_id == 0xff53:
+        elif self._marker_id == 0xff53:
             segment = self._parse_coc_segment(fptr)
 
-        elif marker_id == 0xff55:
+        elif self._marker_id == 0xff55:
             segment = self._parse_tlm_segment(fptr)
 
-        elif marker_id == 0xff58:
+        elif self._marker_id == 0xff58:
             segment = self._parse_plt_segment(fptr)
 
-        elif marker_id == 0xff5c:
+        elif self._marker_id == 0xff5c:
             segment = self._parse_qcd_segment(fptr)
 
-        elif marker_id == 0xff5d:
+        elif self._marker_id == 0xff5d:
             segment = self._parse_qcc_segment(fptr)
 
-        elif marker_id == 0xff5e:
+        elif self._marker_id == 0xff5e:
             segment = self._parse_rgn_segment(fptr)
 
-        elif marker_id == 0xff5f:
+        elif self._marker_id == 0xff5f:
             segment = self._parse_pod_segment(fptr)
 
-        elif marker_id == 0xff60:
+        elif self._marker_id == 0xff60:
             segment = self._parse_ppm_segment(fptr)
 
-        elif marker_id == 0xff61:
+        elif self._marker_id == 0xff61:
             segment = self._parse_ppt_segment(fptr)
 
-        elif marker_id == 0xff63:
+        elif self._marker_id == 0xff63:
             segment = self._parse_crg_segment(fptr)
 
-        elif marker_id == 0xff64:
+        elif self._marker_id == 0xff64:
             segment = self._parse_cme_segment(fptr)
 
-        elif marker_id == 0xff90:
+        elif self._marker_id == 0xff90:
             segment = self._parse_sot_segment(fptr)
 
-        elif marker_id == 0xff93:
+        elif self._marker_id == 0xff93:
             segment = self._parse_sod_segment(fptr)
 
-        elif marker_id == 0xffd9:
+        elif self._marker_id == 0xffd9:
             segment = self._parse_eoc_segment(fptr)
 
-        elif marker_id in _VALID_MARKERS:
+        elif self._marker_id in _VALID_MARKERS:
             # It's a reserved marker that I don't know anything about.
             # See table A-1 in ISO/IEC FCD15444-1.
-            segment = _parse_generic_segment(fptr, marker_id)
+            segment = self._parse_reserved_segment(fptr)
 
-        elif ((marker_id & 0xff00) >> 8) == 255:
-            # Peek ahead to see if the next two bytes are a marker or not.
-            # Then seek back.
-            msg = "Unrecognized marker id:  0x{0:x}".format(marker_id)
-            warnings.warn(msg)
-            cpos = fptr.tell()
-            read_buffer = fptr.read(2)
-            next_item, = struct.unpack('>H', read_buffer)
-            fptr.seek(cpos)
-            if ((next_item & 0xff00) >> 8) == 255:
-                # No segment associated with this marker, so reset
-                # to two bytes after it.
-                segment = Segment(id='0x{0:x}'.format(marker_id),
-                                  offset=offset, length=0)
-            else:
-                segment = _parse_generic_segment(fptr, marker_id)
+        elif self._marker_id == 0xff79:
+            segment = self._parse_unrecognized_segment(fptr)
 
         else:
             msg = 'Invalid marker id encountered at byte {0:d} '
             msg += 'in codestream:  "0x{1:x}"'
-            msg = msg.format(offset, marker_id)
+            msg = msg.format(self._offset, self._marker_id)
             raise IOError(msg)
 
         return segment
+
+    def _parse_unrecognized_segment(self, fptr):
+        """Looks like a marker, but not sure what it is.
+        """
+        msg = "Unrecognized marker id:  0x{0:x}".format(self._marker_id)
+        warnings.warn(msg)
+        cpos = fptr.tell()
+        read_buffer = fptr.read(2)
+        next_item, = struct.unpack('>H', read_buffer)
+        fptr.seek(cpos)
+        if ((next_item & 0xff00) >> 8) == 255:
+                # No segment associated with this marker, so reset
+                # to two bytes after it.
+            segment = Segment(id='0x{0:x}'.format(self._marker_id),
+                              offset=self._offset, length=0)
+        else:
+            segment = self._parse_reserved_segment(fptr)
+        return segment 
+        
+
+    def _parse_reserved_marker(self, fptr):
+        """Marker range between 0xff30 and 0xff39.
+        """
+        the_id = '0x{0:x}'.format(self._marker_id)
+        segment = Segment(marker_id=the_id, offset=self._offset, length=0)
+        return segment 
+        
+
+    def _parse_reserved_segment(self, fptr):
+        """Parse a marker segment for which we know nothing of the segment itself.
+    
+        Parameters
+        ----------
+        fptr : file
+            Open file object.
+    
+        Returns
+        -------
+        Segment instance.
+        """
+        offset = fptr.tell() - 2
+    
+        read_buffer = fptr.read(2)
+        length, = struct.unpack('>H', read_buffer)
+        data = fptr.read(length-2)
+    
+        segment = Segment(marker_id='0x{0:x}'.format(self._marker_id),
+                          offset=offset, length=length, data=data)
+        return segment
+
 
     def _parse_tile_part_bit_stream(self, fptr, sod_marker, tile_length):
         """Parse the tile part bit stream for SOP, EPH marker segments."""
@@ -1763,26 +1798,3 @@ def _print_quantization_style(sqcc):
     elif sqcc & 0x1f == 2:
         msg += 'scalar explicit, '
     return msg
-
-
-def _parse_generic_segment(fptr, marker_id):
-    """Parse a generic marker segment.
-
-    Parameters
-    ----------
-    fptr : file
-        Open file object.
-
-    Returns
-    -------
-    Segment instance.
-    """
-    offset = fptr.tell() - 2
-
-    read_buffer = fptr.read(2)
-    length, = struct.unpack('>H', read_buffer)
-    data = fptr.read(length-2)
-
-    segment = Segment(marker_id='0x{0:x}'.format(marker_id), offset=offset,
-                      length=length, data=data)
-    return segment
