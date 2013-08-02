@@ -12,7 +12,7 @@ kwargs = {'name': 'Glymur',
                        'glymur.lib.test'],
           'package_data': {'glymur': ['data/*.jp2', 'data/*.j2k']},
           'scripts': ['bin/jp2dump'],
-          'license': 'LICENSE.txt',
+          'license': 'MIT',
           'test_suite': 'glymur.test',
           'platforms': ['darwin']}
 
