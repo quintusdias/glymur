@@ -1791,14 +1791,15 @@ class XMLBox(Jp2kBox):
         read_buffer = fptr.read(num_bytes)
         text = read_buffer.decode('utf-8')
 
-        # Strip out any trailing nulls.
+        # Strip out any trailing nulls, as they can foul up XML parsing.
         text = text.rstrip('\0')
 
         try:
             elt = ET.fromstring(text)
             xml = ET.ElementTree(elt)
         except ParseError as parse_error:
-            msg = 'A problem was encountered while parsing an XML box:  "{0}"'
+            msg = 'A problem was encountered while parsing an XML box:'
+            msg += '\n\n\t"{0}"\n\nNo XML was retrieved.'  
             msg = msg.format(str(parse_error))
             warnings.warn(msg, UserWarning)
             xml = None
