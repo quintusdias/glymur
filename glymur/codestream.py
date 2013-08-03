@@ -183,11 +183,6 @@ class Codestream(object):
                 msg = msg.format(self._offset, self._marker_id)
                 warnings.warn(msg)
                 break
-            except Exception as error:
-                # Treat this as a warning.
-                msg = str(error)
-                warnings.warn(msg)
-                break
 
             self.segment.append(segment)
 
@@ -221,13 +216,6 @@ class Codestream(object):
                               offset=self._offset, length=0)
         else:
             segment = self._parse_reserved_segment(fptr)
-        return segment
-
-    def _parse_reserved_marker(self, fptr):
-        """Marker range between 0xff30 and 0xff39.
-        """
-        the_id = '0x{0:x}'.format(self._marker_id)
-        segment = Segment(marker_id=the_id, offset=self._offset, length=0)
         return segment
 
     def _parse_reserved_segment(self, fptr):
@@ -765,6 +753,14 @@ class Codestream(object):
             ptlm = data[1::2]
 
         return TLMsegment(length, offset, ztlm, ttlm, ptlm)
+
+    # pylint: disable=W0613
+    def _parse_reserved_marker(self, fptr):
+        """Marker range between 0xff30 and 0xff39.
+        """
+        the_id = '0x{0:x}'.format(self._marker_id)
+        segment = Segment(marker_id=the_id, offset=self._offset, length=0)
+        return segment
 
 
 class Segment(object):
