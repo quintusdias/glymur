@@ -3809,7 +3809,7 @@ class TestSuiteDump(unittest.TestCase):
                           32, 32, 131, 2002, 2002, 1888])
         self.assertEqual(c.segment[3]._exponent,
                          [17, 17, 17, 17, 16, 16, 16, 15, 15, 15, 14, 14,
-                         14, 13, 13, 13, 11, 11, 11, 11, 11, 11])
+                          14, 13, 13, 13, 11, 11, 11, 11, 11, 11])
 
         # COM: comment
         # Registration
@@ -4596,10 +4596,10 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[7].sqcc & 0x1f, 2)  # none
         self.assertEqual(c.segment[7]._mantissa,
                          [1824, 1776, 1776, 1728, 1792, 1792, 1760, 1872,
-                         1872, 1896, 5, 5, 71, 2003, 2003, 1890])
+                          1872, 1896, 5, 5, 71, 2003, 2003, 1890])
         self.assertEqual(c.segment[7]._exponent,
                          [18, 18, 18, 18, 17, 17, 17, 16, 16, 16, 14, 14,
-                         14, 14, 14, 14])
+                          14, 14, 14, 14])
 
         # COM: comment
         # Registration
@@ -5634,7 +5634,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[3]._mantissa, [0] * 16)
         self.assertEqual(c.segment[3]._exponent,
                          [18, 19, 19, 20, 19, 19, 20, 19, 19, 20, 19, 19, 20,
-                         19, 19, 20])
+                          19, 19, 20])
 
         # COM: comment
         # Registration

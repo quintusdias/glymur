@@ -57,7 +57,7 @@ def read_pgx(pgx_file):
                     header += chr(char[0])
 
     header = header.rstrip()
-    tokens = re.split('\s', header)
+    tokens = re.split(r'\s', header)
 
     if (tokens[1][0] == 'M') and (sys.byteorder == 'little'):
         swapbytes = True

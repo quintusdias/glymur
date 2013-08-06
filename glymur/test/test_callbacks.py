@@ -88,7 +88,7 @@ class TestCallbacks15(unittest.TestCase):
             with patch('sys.stdout', new=StringIO()) as fake_out:
                 d = j.read(rlevel=1, verbose=True)
                 actual = fake_out.getvalue().strip()
-    
+
             regex = re.compile(r"""\[INFO\]\stile\s1\sof\s1\s+
                                    \[INFO\]\s-\stiers-1\stook\s
                                            [0-9]+\.[0-9]+\ss\s+
