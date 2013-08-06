@@ -7,6 +7,7 @@ import struct
 import sys
 import tempfile
 import uuid
+from xml.etree import cElementTree as ET
 
 if sys.hexversion < 0x02070000:
     import unittest2 as unittest
@@ -623,6 +624,8 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(jp2k.box[3].box_id, 'xml ')
             self.assertEqual(jp2k.box[3].offset, 77)
             self.assertEqual(jp2k.box[3].length, 36)
+            self.assertEqual(ET.tostring(jp2k.box[3].xml.getroot()),
+                             b'<test>this is a test</test>')
 
     @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_asoc_label_box(self):
