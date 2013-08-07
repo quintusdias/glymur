@@ -1,6 +1,7 @@
 #pylint:  disable-all
 import os
 import pkg_resources
+import re
 import struct
 import sys
 import tempfile
@@ -1025,6 +1026,7 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
 
         self.assertEqual(actual, expected)
+
 
 if __name__ == "__main__":
     unittest.main()

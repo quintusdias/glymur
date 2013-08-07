@@ -556,8 +556,8 @@ class Codestream(object):
             mantissa_exponent_buffer_length = length - 4
         cqcc, sqcc = struct.unpack(fmt, read_buffer)
         if cqcc >= self._csiz:
-            msg = "Invalid component number (%d), "
-            msg += "number of components is only %d."
+            msg = "Invalid component number ({0}), "
+            msg += "number of components is only {1}."
             msg = msg.format(cqcc, self._csiz)
             warnings.warn(msg)
 

@@ -66,11 +66,10 @@ class TestSuite(unittest.TestCase):
 
     def test_ETS_C0P0_p0_02_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_02.j2k')
+        jp2k = Jp2k(jfile)
         with warnings.catch_warnings():
-            # There's a 0xff30 marker segment.  Not illegal, but we don't
-            # really know what to do with it.  Just ignore.
+            # Invalid marker ID.
             warnings.simplefilter("ignore")
-            jp2k = Jp2k(jfile)
             jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c0p0_02.pgx')
@@ -385,11 +384,7 @@ class TestSuite(unittest.TestCase):
 
     def test_ETS_C1P0_p0_02_j2k(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_02.j2k')
-        with warnings.catch_warnings():
-            # There's a 0xff30 marker segment.  Not illegal, but we don't
-            # really know what to do with it.  Just ignore.
-            warnings.simplefilter("ignore")
-            jp2k = Jp2k(jfile)
+        jp2k = Jp2k(jfile)
         jpdata = jp2k.read(rlevel=0)
 
         pgxfile = os.path.join(data_root, 'baseline/conformance/c1p0_02_0.pgx')
@@ -830,7 +825,7 @@ class TestSuite(unittest.TestCase):
         jfile = os.path.join(data_root, 'input/nonregression/broken2.jp2')
         with self.assertRaises(IOError):
             with warnings.catch_warnings():
-                # Library warning, invalid number of subbands.
+                # Invalid marker ID.
                 warnings.simplefilter("ignore")
                 data = Jp2k(jfile).read()
         self.assertTrue(True)
@@ -852,7 +847,7 @@ class TestSuite(unittest.TestCase):
                              'input/nonregression/broken4.jp2')
         with self.assertRaises(IOError):
             with warnings.catch_warnings():
-                # Library warning, invalid number of subbands.
+                # invalid number of subbands, bad marker ID
                 warnings.simplefilter("ignore")
                 data = Jp2k(jfile).read()
         self.assertTrue(True)
@@ -1053,6 +1048,7 @@ class TestSuite(unittest.TestCase):
         f = 'input/nonregression/gdal_fuzzer_unchecked_numresolutions.jp2'
         jfile = os.path.join(data_root, f)
         with warnings.catch_warnings():
+            # Invalid number of resolutions.
             warnings.simplefilter("ignore")
             j = Jp2k(jfile)
             with self.assertRaises(IOError):
@@ -1066,6 +1062,7 @@ class TestSuite(unittest.TestCase):
                'gdal_fuzzer_assert_in_opj_j2k_read_SQcd_SQcc.patch.jp2')
         jfile = os.path.join(data_root, '/'.join(lst))
         with warnings.catch_warnings():
+            # Invalid component number.
             warnings.simplefilter("ignore")
             j = Jp2k(jfile)
             with self.assertRaises(IOError):
@@ -1077,6 +1074,7 @@ class TestSuite(unittest.TestCase):
         relpath = 'input/nonregression/gdal_fuzzer_check_number_of_tiles.jp2'
         jfile = os.path.join(data_root, relpath)
         with warnings.catch_warnings():
+            # Invalid number of tiles.
             warnings.simplefilter("ignore")
             j = Jp2k(jfile)
             with self.assertRaises(IOError):
@@ -1088,6 +1086,7 @@ class TestSuite(unittest.TestCase):
         relpath = 'input/nonregression/gdal_fuzzer_check_comp_dx_dy.jp2'
         jfile = os.path.join(data_root, relpath)
         with warnings.catch_warnings():
+            # Invalid subsampling value
             warnings.simplefilter("ignore")
             with self.assertRaises(IOError):
                 j = Jp2k(jfile).read()
@@ -1220,36 +1219,28 @@ class TestSuite(unittest.TestCase):
     def test_NR_DEC_p1_04_j2k_57_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
         jp2k = Jp2k(jfile)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            tdata = jp2k.read(tile=63)  # last tile
+        tdata = jp2k.read(tile=63)  # last tile
         odata = jp2k.read()
         np.testing.assert_array_equal(tdata, odata[896:1024, 896:1024])
 
     def test_NR_DEC_p1_04_j2k_58_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
         jp2k = Jp2k(jfile)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            tdata = jp2k.read(tile=63, rlevel=2)  # last tile
+        tdata = jp2k.read(tile=63, rlevel=2)  # last tile
         odata = jp2k.read(rlevel=2)
         np.testing.assert_array_equal(tdata, odata[224:256, 224:256])
 
     def test_NR_DEC_p1_04_j2k_59_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
         jp2k = Jp2k(jfile)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            tdata = jp2k.read(tile=12)  # 2nd row, 5th column
+        tdata = jp2k.read(tile=12)  # 2nd row, 5th column
         odata = jp2k.read()
         np.testing.assert_array_equal(tdata, odata[128:256, 512:640])
 
     def test_NR_DEC_p1_04_j2k_60_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p1_04.j2k')
         jp2k = Jp2k(jfile)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            tdata = jp2k.read(tile=12, rlevel=1)  # 2nd row, 5th column
+        tdata = jp2k.read(tile=12, rlevel=1)  # 2nd row, 5th column
         odata = jp2k.read(rlevel=1)
         np.testing.assert_array_equal(tdata, odata[64:128, 256:320])
 
@@ -1366,9 +1357,7 @@ class TestSuite(unittest.TestCase):
         jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
         jp2k = Jp2k(jfile)
         fulldata = jp2k.read()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            tiledata = jp2k.read(tile=0)
+        tiledata = jp2k.read(tile=0)
         np.testing.assert_array_equal(tiledata, fulldata[0:3, 0:3])
 
     @unittest.skip("fprintf stderr output in r2343.")
@@ -1376,9 +1365,7 @@ class TestSuite(unittest.TestCase):
         jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
         jp2k = Jp2k(jfile)
         fulldata = jp2k.read()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            tiledata = jp2k.read(tile=5)
+        tiledata = jp2k.read(tile=5)
         np.testing.assert_array_equal(tiledata, fulldata[3:6, 3:6])
 
     @unittest.skip("fprintf stderr output in r2343.")
@@ -3809,7 +3796,7 @@ class TestSuiteDump(unittest.TestCase):
                           32, 32, 131, 2002, 2002, 1888])
         self.assertEqual(c.segment[3]._exponent,
                          [17, 17, 17, 17, 16, 16, 16, 15, 15, 15, 14, 14,
-                         14, 13, 13, 13, 11, 11, 11, 11, 11, 11])
+                          14, 13, 13, 13, 11, 11, 11, 11, 11, 11])
 
         # COM: comment
         # Registration
@@ -4596,10 +4583,10 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[7].sqcc & 0x1f, 2)  # none
         self.assertEqual(c.segment[7]._mantissa,
                          [1824, 1776, 1776, 1728, 1792, 1792, 1760, 1872,
-                         1872, 1896, 5, 5, 71, 2003, 2003, 1890])
+                          1872, 1896, 5, 5, 71, 2003, 2003, 1890])
         self.assertEqual(c.segment[7]._exponent,
                          [18, 18, 18, 18, 17, 17, 17, 16, 16, 16, 14, 14,
-                         14, 14, 14, 14])
+                          14, 14, 14, 14])
 
         # COM: comment
         # Registration
@@ -5634,7 +5621,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[3]._mantissa, [0] * 16)
         self.assertEqual(c.segment[3]._exponent,
                          [18, 19, 19, 20, 19, 19, 20, 19, 19, 20, 19, 19, 20,
-                         19, 19, 20])
+                          19, 19, 20])
 
         # COM: comment
         # Registration

@@ -966,8 +966,10 @@ class Jp2k(Jp2kBox):
             dparam.nb_tile_to_decode = 1
 
         with ExitStack() as stack:
-            if hasattr(_opj2.OPENJP2, 'opj_stream_create_default_file_stream_v3'):
-                stream = _opj2.stream_create_default_file_stream_v3(self.filename,
+            if hasattr(_opj2.OPENJP2,
+                       'opj_stream_create_default_file_stream_v3'):
+                filename = self.filename
+                stream = _opj2.stream_create_default_file_stream_v3(filename,
                                                                     True)
                 stack.callback(_opj2.stream_destroy_v3, stream)
             else:

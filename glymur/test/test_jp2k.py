@@ -7,6 +7,7 @@ import struct
 import sys
 import tempfile
 import uuid
+from xml.etree import cElementTree as ET
 
 if sys.hexversion < 0x02070000:
     import unittest2 as unittest
@@ -65,7 +66,7 @@ class TestConfig(unittest.TestCase):
         """Don't have either openjp2 or openjpeg libraries?  Must error out.
         """
         with patch('glymur.lib.openjp2.OPENJP2', new=None):
-            with  patch('glymur.lib.openjpeg.OPENJPEG', new=None):
+            with patch('glymur.lib.openjpeg.OPENJPEG', new=None):
                 with self.assertRaises(glymur.jp2k.LibraryNotFoundError):
                     d = glymur.Jp2k(self.jp2file).read()
 
@@ -73,7 +74,7 @@ class TestConfig(unittest.TestCase):
         """Don't have openjp2 library?  Must error out.
         """
         with patch('glymur.lib.openjp2.OPENJP2', new=None):
-            with  patch('glymur.lib.openjpeg.OPENJPEG', new=None):
+            with patch('glymur.lib.openjpeg.OPENJPEG', new=None):
                 with self.assertRaises(glymur.jp2k.LibraryNotFoundError):
                     d = glymur.Jp2k(self.jp2file).read_bands()
 
@@ -83,7 +84,7 @@ class TestConfig(unittest.TestCase):
         """
         data = glymur.Jp2k(self.j2kfile).read()
         with patch('glymur.lib.openjp2.OPENJP2', new=None):
-            with  patch('glymur.lib.openjpeg.OPENJPEG', new=None):
+            with patch('glymur.lib.openjpeg.OPENJPEG', new=None):
                 with self.assertRaises(glymur.jp2k.LibraryNotFoundError):
                     with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
                         ofile = Jp2k(tfile.name, 'wb')
@@ -623,6 +624,8 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(jp2k.box[3].box_id, 'xml ')
             self.assertEqual(jp2k.box[3].offset, 77)
             self.assertEqual(jp2k.box[3].length, 36)
+            self.assertEqual(ET.tostring(jp2k.box[3].xml.getroot()),
+                             b'<test>this is a test</test>')
 
     @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_asoc_label_box(self):
