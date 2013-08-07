@@ -17,17 +17,7 @@ import pkg_resources
 
 from glymur.lib import openjp2 as opj2
 
-from .fixtures import read_image
-
-msg = "Matplotlib with the PIL backend must be available in order to run the "
-msg += "tests in this suite."
-no_read_backend_msg = msg
-try:
-    from PIL import Image
-    from matplotlib.pyplot import imread
-    no_read_backend = False
-except:
-    no_read_backend = True
+from .fixtures import read_image, NO_READ_BACKEND, NO_READ_BACKEND_MSG
 
 from glymur import Jp2k
 import glymur
@@ -42,7 +32,7 @@ except:
 
 @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
-@unittest.skipIf(no_read_backend, no_read_backend_msg)
+@unittest.skipIf(NO_READ_BACKEND, NO_READ_BACKEND_MSG)
 @unittest.skipIf(data_root is None,
                  "OPJ_DATA_ROOT environment variable not set")
 class TestSuiteNegative(unittest.TestCase):

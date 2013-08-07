@@ -34,4 +34,3 @@ def jp2dump(filename, codestream=False):
                                              warning.lineno,
                                              warning.category.__name__,
                                              warning.message))
-

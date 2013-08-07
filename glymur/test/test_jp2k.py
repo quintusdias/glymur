@@ -66,7 +66,7 @@ class TestConfig(unittest.TestCase):
         """Don't have either openjp2 or openjpeg libraries?  Must error out.
         """
         with patch('glymur.lib.openjp2.OPENJP2', new=None):
-            with  patch('glymur.lib.openjpeg.OPENJPEG', new=None):
+            with patch('glymur.lib.openjpeg.OPENJPEG', new=None):
                 with self.assertRaises(glymur.jp2k.LibraryNotFoundError):
                     d = glymur.Jp2k(self.jp2file).read()
 
@@ -74,7 +74,7 @@ class TestConfig(unittest.TestCase):
         """Don't have openjp2 library?  Must error out.
         """
         with patch('glymur.lib.openjp2.OPENJP2', new=None):
-            with  patch('glymur.lib.openjpeg.OPENJPEG', new=None):
+            with patch('glymur.lib.openjpeg.OPENJPEG', new=None):
                 with self.assertRaises(glymur.jp2k.LibraryNotFoundError):
                     d = glymur.Jp2k(self.jp2file).read_bands()
 
@@ -84,7 +84,7 @@ class TestConfig(unittest.TestCase):
         """
         data = glymur.Jp2k(self.j2kfile).read()
         with patch('glymur.lib.openjp2.OPENJP2', new=None):
-            with  patch('glymur.lib.openjpeg.OPENJPEG', new=None):
+            with patch('glymur.lib.openjpeg.OPENJPEG', new=None):
                 with self.assertRaises(glymur.jp2k.LibraryNotFoundError):
                     with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
                         ofile = Jp2k(tfile.name, 'wb')

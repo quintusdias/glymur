@@ -17,7 +17,7 @@ import numpy as np
 
 from glymur.lib import openjp2 as opj2
 
-from .fixtures import read_image, no_read_backend, no_read_backend_msg
+from .fixtures import read_image, NO_READ_BACKEND, NO_READ_BACKEND_MSG
 
 from glymur import Jp2k
 import glymur
@@ -33,7 +33,7 @@ except:
 @unittest.skipIf(os.name == "nt", "no write support on windows, period")
 @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
-@unittest.skipIf(no_read_backend, no_read_backend_msg)
+@unittest.skipIf(NO_READ_BACKEND, NO_READ_BACKEND_MSG)
 @unittest.skipIf(data_root is None,
                  "OPJ_DATA_ROOT environment variable not set")
 class TestSuiteWrite(unittest.TestCase):
