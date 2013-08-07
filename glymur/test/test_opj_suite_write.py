@@ -13,21 +13,11 @@ if sys.hexversion < 0x02070000:
 else:
     import unittest
 
-import warnings
-
 import numpy as np
 
 from glymur.lib import openjp2 as opj2
 
-msg = "Matplotlib with the PIL backend must be available in order to run the "
-msg += "tests in this suite."
-no_read_backend_msg = msg
-try:
-    from PIL import Image
-    from matplotlib.pyplot import imread
-    no_read_backend = False
-except:
-    no_read_backend = True
+from .fixtures import read_image, no_read_backend, no_read_backend_msg
 
 from glymur import Jp2k
 import glymur
@@ -38,14 +28,6 @@ except KeyError:
     data_root = None
 except:
     raise
-
-
-def read_image(infile):
-    # PIL issues warnings which we do not care about, so suppress them.
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        data = imread(infile)
-    return data
 
 
 @unittest.skipIf(os.name == "nt", "no write support on windows, period")

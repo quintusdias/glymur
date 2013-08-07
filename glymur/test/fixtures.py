@@ -1,5 +1,6 @@
 import re
 import sys
+import warnings
 
 import numpy as np
 
@@ -18,6 +19,24 @@ if glymur.lib.openjp2.OPENJP2 is not None:
     if not hasattr(glymur.lib.openjp2.OPENJP2,
                    'opj_stream_create_default_file_stream_v3'):
         OPENJP2_IS_V2_OFFICIAL = True
+
+
+msg = "Matplotlib with the PIL backend must be available in order to run the "
+msg += "tests in this suite."
+no_read_backend_msg = msg
+try:
+    from PIL import Image
+    from matplotlib.pyplot import imread
+    no_read_backend = False
+except:
+    no_read_backend = True
+
+def read_image(infile):
+    # PIL issues warnings which we do not care about, so suppress them.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        data = imread(infile)
+    return data
 
 
 def mse(amat, bmat):
