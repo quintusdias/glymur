@@ -582,72 +582,7 @@ class Jp2k(Jp2kBox):
                                            num_components=num_components),
                             ColourSpecificationBox(colorspace=SRGB)]
 
-        # Check for a bad sequence of boxes.
-        # 1st two boxes must be 'jP  ' and 'ftyp'
-        if boxes[0].box_id != 'jP  ' or boxes[1].box_id != 'ftyp':
-            msg = "The first box must be the signature box and the second "
-            msg += "must be the file type box."
-            raise IOError(msg)
-
-        # jp2c must be preceeded by jp2h
-        jp2h_lst = [idx for (idx, box) in enumerate(boxes)
-                    if box.box_id == 'jp2h']
-        jp2h_idx = jp2h_lst[0]
-        jp2c_lst = [idx for (idx, box) in enumerate(boxes)
-                    if box.box_id == 'jp2c']
-        if len(jp2c_lst) == 0:
-            msg = "A codestream box must be defined in the outermost "
-            msg += "list of boxes."
-            raise IOError(msg)
-
-        jp2c_idx = jp2c_lst[0]
-        if jp2h_idx >= jp2c_idx:
-            msg = "The codestream box must be preceeded by a jp2 header box."
-            raise IOError(msg)
-
-        # 1st jp2 header box must be ihdr
-        jp2h = boxes[jp2h_idx]
-        if jp2h.box[0].box_id != 'ihdr':
-            msg = "The first box in the jp2 header box must be the image "
-            msg += "header box."
-            raise IOError(msg)
-
-        # colr must be present in jp2 header box.
-        colr_lst = [j for (j, box) in enumerate(jp2h.box)
-                    if box.box_id == 'colr']
-        if len(colr_lst) == 0:
-            msg = "The jp2 header box must contain a color definition box."
-            raise IOError(msg)
-        colr = jp2h.box[colr_lst[0]]
-
-        # Any cdef box must be in the jp2 header following the image header.
-        cdef_lst = [j for (j, box) in enumerate(boxes) if box.box_id == 'cdef']
-        if len(cdef_lst) != 0:
-            msg = "Any channel defintion box must be in the JP2 header "
-            msg += "following the image header."
-            raise IOError(msg)
-
-        cdef_lst = [j for (j, box) in enumerate(jp2h.box)
-                    if box.box_id == 'cdef']
-        if len(cdef_lst) > 1:
-            msg = "Only one channel definition box is allowed in the "
-            msg += "JP2 header."
-            raise IOError(msg)
-        elif len(cdef_lst) == 1:
-            cdef = jp2h.box[cdef_lst[0]]
-            assn = cdef.association
-            typ = cdef.channel_type
-            if colr.colorspace == SRGB:
-                if any([chan + 1 not in assn or typ[chan] != 0
-                        for chan in [0, 1, 2]]):
-                    msg = "All color channels must be defined in the "
-                    msg += "channel definition box."
-                    raise IOError(msg)
-            elif colr.colorspace == GREYSCALE:
-                if 0 not in typ:
-                    msg = "All color channels must be defined in the "
-                    msg += "channel definition box."
-                    raise IOError(msg)
+        _validate_jp2_box_sequence(boxes)
 
         with open(filename, 'wb') as ofile:
             for box in boxes:
@@ -740,6 +675,18 @@ class Jp2k(Jp2kBox):
                                        "using this functionality.")
         return img
 
+    def _subsampling_sanity_check(self):
+        """Check for differing subsample factors.
+        """
+        codestream = self.get_codestream(header_only=True)
+        dxs = np.array(codestream.segment[1].xrsiz)
+        dys = np.array(codestream.segment[1].yrsiz)
+        if np.any(dxs - dxs[0]) or np.any(dys - dys[0]):
+            msg = "Components must all have the same subsampling factors "
+            msg += "to use this method.  Please consider using OPENJP2 and "
+            msg += "the read_bands method instead."
+            raise RuntimeError(msg)
+
     def _read_openjpeg(self, rlevel=0, verbose=False):
         """Read a JPEG 2000 image using libopenjpeg.
 
@@ -761,15 +708,7 @@ class Jp2k(Jp2kBox):
         RuntimeError
             If the image has differing subsample factors.
         """
-        # Check for differing subsample factors.
-        codestream = self.get_codestream(header_only=True)
-        dxs = np.array(codestream.segment[1].xrsiz)
-        dys = np.array(codestream.segment[1].yrsiz)
-        if np.any(dxs - dxs[0]) or np.any(dys - dys[0]):
-            msg = "Components must all have the same subsampling factors "
-            msg += "to use this method with OpenJPEG 1.5.1.  Please consider "
-            msg += "using OPENJP2 instead."
-            raise RuntimeError(msg)
+        self._subsampling_sanity_check()
 
         with ExitStack() as stack:
             # Set decoding parameters.
@@ -808,20 +747,7 @@ class Jp2k(Jp2kBox):
 
             ncomps = image.contents.numcomps
             component = image.contents.comps[0]
-            if component.sgnd:
-                if component.prec <= 8:
-                    dtype = np.int8
-                elif component.prec <= 16:
-                    dtype = np.int16
-                else:
-                    raise RuntimeError("Unhandled precision, datatype")
-            else:
-                if component.prec <= 8:
-                    dtype = np.uint8
-                elif component.prec <= 16:
-                    dtype = np.uint16
-                else:
-                    raise RuntimeError("Unhandled precision, datatype")
+            dtype = component2dtype(component)
 
             nrows = image.contents.comps[0].h
             ncols = image.contents.comps[0].w
@@ -833,12 +759,7 @@ class Jp2k(Jp2kBox):
                 nrows = component.h
                 ncols = component.w
 
-                if nrows == 0 or ncols == 0:
-                    # Letting this situation continue would segfault
-                    # Python.
-                    msg = "Component {0} has dimensions {1} x {2}"
-                    msg = msg.format(k, nrows, ncols)
-                    raise IOError(msg)
+                _validate_nonzero_image_size(nrows, ncols, k)
 
                 addr = ctypes.addressof(component.data.contents)
                 with warnings.catch_warnings():
@@ -884,13 +805,7 @@ class Jp2k(Jp2kBox):
         RuntimeError
             If the image has differing subsample factors.
         """
-        # Check for differing subsample factors.
-        codestream = self.get_codestream(header_only=True)
-        dxs = np.array(codestream.segment[1].xrsiz)
-        dys = np.array(codestream.segment[1].yrsiz)
-        if np.any(dxs - dxs[0]) or np.any(dys - dys[0]):
-            msg = "Components must all have the same subsampling factors."
-            raise RuntimeError(msg)
+        self._subsampling_sanity_check()
 
         img_array = self._read_common(rlevel=rlevel,
                                       layer=layer,
@@ -948,14 +863,10 @@ class Jp2k(Jp2kBox):
 
         dparam.cp_reduce = rlevel
         if area is not None:
-            if area[0] < 0 or area[1] < 0:
-                msg = "Upper left corner coordinates must be nonnegative:  {0}"
-                msg = msg.format(area)
-                raise IOError(msg)
-            if area[2] <= 0 or area[3] <= 0:
-                msg = "Lower right corner coordinates must be positive:  {0}"
-                msg = msg.format(area)
-                raise IOError(msg)
+            if area[0] < 0 or area[1] < 0 or area[2] <= 0 or area[3] <= 0:
+                msg = "Upper left corner coordinates must be nonnegative and "
+                msg += "lower right corner coordinates must be positive:  {0}"
+                raise IOError(msg.format(area))
             dparam.DA_y0 = area[0]
             dparam.DA_x0 = area[1]
             dparam.DA_y1 = area[2]
@@ -1001,20 +912,7 @@ class Jp2k(Jp2kBox):
                 _opj2.end_decompress(codec, stream)
 
             component = image.contents.comps[0]
-            if component.sgnd:
-                if component.prec <= 8:
-                    dtype = np.int8
-                elif component.prec <= 16:
-                    dtype = np.int16
-                else:
-                    raise RuntimeError("Unhandled precision, datatype")
-            else:
-                if component.prec <= 8:
-                    dtype = np.uint8
-                elif component.prec <= 16:
-                    dtype = np.uint16
-                else:
-                    raise RuntimeError("Unhandled precision, datatype")
+            dtype = component2dtype(component)
 
             if as_bands:
                 data = []
@@ -1029,12 +927,7 @@ class Jp2k(Jp2kBox):
                 nrows = component.h
                 ncols = component.w
 
-                if nrows == 0 or ncols == 0:
-                    # Letting this situation continue would segfault
-                    # Python.
-                    msg = "Component {0} has dimensions {1} x {2}"
-                    msg = msg.format(k, nrows, ncols)
-                    raise IOError(msg)
+                _validate_nonzero_image_size(nrows, ncols, k)
 
                 addr = ctypes.addressof(component.data.contents)
                 with warnings.catch_warnings():
@@ -1165,3 +1058,115 @@ class Jp2k(Jp2kBox):
                                         header_only=header_only)
 
             return codestream
+
+def component2dtype(component):
+    """Take an OpenJPEG component structure and determine the numpy datatype.
+
+    Parameters
+    ----------
+    component : ctypes pointer to ImageCompType (image_comp_t)
+        single image component structure.
+
+    Returns
+    -------
+    dtype : builtins.type
+        numpy datatype to be used to construct an image array.
+    """
+    if component.sgnd:
+        if component.prec <= 8:
+            dtype = np.int8
+        elif component.prec <= 16:
+            dtype = np.int16
+        else:
+            raise RuntimeError("Unhandled precision, datatype")
+    else:
+        if component.prec <= 8:
+            dtype = np.uint8
+        elif component.prec <= 16:
+            dtype = np.uint16
+        else:
+            raise RuntimeError("Unhandled precision, datatype")
+
+    return dtype
+
+
+def _validate_nonzero_image_size(nrows, ncols, component_index):
+    """The image cannot have area of zero.
+    """
+    if nrows == 0 or ncols == 0:
+        # Letting this situation continue would segfault Python.
+        msg = "Component {0} has dimensions {1} x {2}"
+        msg = msg.format(component_index, nrows, ncols)
+        raise IOError(msg)
+
+def _validate_jp2_box_sequence(boxes):
+    """Run through series of tests for JP2 box legality.
+
+    This is non-exhaustive.
+    """
+    # Check for a bad sequence of boxes.
+    # 1st two boxes must be 'jP  ' and 'ftyp'
+    if boxes[0].box_id != 'jP  ' or boxes[1].box_id != 'ftyp':
+        msg = "The first box must be the signature box and the second "
+        msg += "must be the file type box."
+        raise IOError(msg)
+
+    # jp2c must be preceeded by jp2h
+    jp2h_lst = [idx for (idx, box) in enumerate(boxes)
+                if box.box_id == 'jp2h']
+    jp2h_idx = jp2h_lst[0]
+    jp2c_lst = [idx for (idx, box) in enumerate(boxes)
+                if box.box_id == 'jp2c']
+    if len(jp2c_lst) == 0:
+        msg = "A codestream box must be defined in the outermost "
+        msg += "list of boxes."
+        raise IOError(msg)
+
+    jp2c_idx = jp2c_lst[0]
+    if jp2h_idx >= jp2c_idx:
+        msg = "The codestream box must be preceeded by a jp2 header box."
+        raise IOError(msg)
+
+    # 1st jp2 header box must be ihdr
+    jp2h = boxes[jp2h_idx]
+    if jp2h.box[0].box_id != 'ihdr':
+        msg = "The first box in the jp2 header box must be the image "
+        msg += "header box."
+        raise IOError(msg)
+
+    # colr must be present in jp2 header box.
+    colr_lst = [j for (j, box) in enumerate(jp2h.box)
+                if box.box_id == 'colr']
+    if len(colr_lst) == 0:
+        msg = "The jp2 header box must contain a color definition box."
+        raise IOError(msg)
+    colr = jp2h.box[colr_lst[0]]
+
+    # Any cdef box must be in the jp2 header following the image header.
+    cdef_lst = [j for (j, box) in enumerate(boxes) if box.box_id == 'cdef']
+    if len(cdef_lst) != 0:
+        msg = "Any channel defintion box must be in the JP2 header "
+        msg += "following the image header."
+        raise IOError(msg)
+
+    cdef_lst = [j for (j, box) in enumerate(jp2h.box)
+                if box.box_id == 'cdef']
+    if len(cdef_lst) > 1:
+        msg = "Only one channel definition box is allowed in the "
+        msg += "JP2 header."
+        raise IOError(msg)
+    elif len(cdef_lst) == 1:
+        cdef = jp2h.box[cdef_lst[0]]
+        if colr.colorspace == SRGB:
+            if any([chan + 1 not in cdef.association
+                    or cdef.channel_type[chan] != 0
+                    for chan in [0, 1, 2]]):
+                msg = "All color channels must be defined in the "
+                msg += "channel definition box."
+                raise IOError(msg)
+        elif colr.colorspace == GREYSCALE:
+            if 0 not in cdef.channel_type:
+                msg = "All color channels must be defined in the "
+                msg += "channel definition box."
+                raise IOError(msg)
+
