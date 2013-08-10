@@ -187,8 +187,6 @@ class Jp2k(Jp2kBox):
                     msg += "profile if the file type box brand is 'jp2 '."
                     warnings.warn(msg)
 
-    #def _populate_cparams(self, cbsize, cratios, eph, grid_offset, modesw,
-    #                      numres, prog, psnr, psizes, sop, subsam, tilesize):
     def _populate_cparams(self, **kwargs):
         """Populate compression parameters structure from input arguments.
 
@@ -374,36 +372,6 @@ class Jp2k(Jp2kBox):
             msg = "Only uint8 and uint16 images are currently supported."
             raise RuntimeError(msg)
     
-    def _set_multi_component_transform(self, colorspace, cparams, mct=None):
-        """Set multi component transform usage.
-
-        Parameters
-        ----------
-        colorspace : int
-            Either CLRSPC_SRGB or CLRSPC_GRAY
-        cparams : CompressionParametersType(ctypes.Structure)
-            Corresponds to cparameters_t type in openjp2 headers.
-        mct : bool, optional
-            Specifies usage of the multi component transform.  If not
-            specified, defaults to True if the colorspace is RGB.
-        """
-        if mct is None:
-            # If the multi component transform was not specified, we infer
-            # that it should be used if the color space is RGB.
-            if colorspace == _opj2.CLRSPC_SRGB:
-                cparams.tcp_mct = 1
-            else:
-                cparams.tcp_mct = 0
-        else:
-            # MCT was specified.  Does it make sense?
-            if mct and colorspace == _opj2.CLRSPC_GRAY:
-                # Cannot check for this in the validate routine, as we need
-                # to know what the target colorspace has been determined to be.
-                msg = "Cannot specify usage of the multi component transform "
-                msg += "if the colorspace is gray."
-                raise IOError(msg)
-            cparams.tcp_mct = 1 if mct else 0
-
     def _process_write_inputs(self, img_array, colorspace=None, **kwargs):
         """Directs processing of write method arguments.
 
@@ -414,6 +382,10 @@ class Jp2k(Jp2kBox):
 
         Parameters
         ----------
+        img_array : ndarray
+            Image data to be written to file.
+        colorspace : str, optional
+            Either 'rgb' or 'gray'.
 
         Returns
         -------
@@ -421,6 +393,9 @@ class Jp2k(Jp2kBox):
             Corresponds to cparameters_t type in openjp2 headers.
         colorspace : int
             Either CLRSPC_SRGB or CLRSPC_GRAY
+        mct : bool, optional
+            Specifies usage of the multi component transform.  If not
+            specified, defaults to True if the colorspace is RGB.
         """
 
         if 'cratios' in kwargs and 'psnr' in kwargs:
@@ -434,9 +409,20 @@ class Jp2k(Jp2kBox):
 
         try:
             mct = kwargs['mct']
+            if mct and colorspace == _opj2.CLRSPC_GRAY:
+                # Cannot check for this in the validate routine, as we need
+                # to know what the target colorspace has been determined to be.
+                msg = "Cannot specify usage of the multi component transform "
+                msg += "if the colorspace is gray."
+                raise IOError(msg)
+            cparams.tcp_mct = 1 if mct else 0
         except KeyError:
-            mct = None
-        self._set_multi_component_transform(colorspace, cparams, mct)
+            # If the multi component transform was not specified, we infer
+            # that it should be used if the color space is RGB.
+            if colorspace == _opj2.CLRSPC_SRGB:
+                cparams.tcp_mct = 1
+            else:
+                cparams.tcp_mct = 0
 
         return cparams, colorspace
 

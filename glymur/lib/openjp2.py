@@ -1381,7 +1381,6 @@ def write_tile(codec, tile_index, data, data_size, stream):
 
 def set_error_message(msg):
     """The openjpeg error handler has recorded an error message."""
-    global ERROR_MSG_LST
     ERROR_MSG_LST.append(msg)
 
 
