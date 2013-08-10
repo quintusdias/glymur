@@ -1234,13 +1234,13 @@ class PaletteBox(Jp2kBox):
 
         # Need to determine bps and signed or not
         read_buffer = fptr.read(num_columns)
-        #data = struct.unpack('>' + 'B' * num_columns, read_buffer)
-        bps = [((x & 0x07f) + 1) for x in read_buffer]
-        signed = [((x & 0x80) > 1) for x in read_buffer]
+        data = struct.unpack('>' + 'B' * num_columns, read_buffer)
+        bps = [((x & 0x07f) + 1) for x in data]
+        signed = [((x & 0x80) > 1) for x in data]
 
         # Each palette component is padded out to the next largest byte.
         # That means a list comprehension does this in one shot.
-        row_nbytes = sum([math.ceil(x/8) for x in bps])
+        row_nbytes = sum([int(math.ceil(x/8.0)) for x in bps])
 
         # Form the format string so that we can intelligently unpack the
         # colormap.  We have to do this because it is possible that the

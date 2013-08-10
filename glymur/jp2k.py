@@ -187,36 +187,147 @@ class Jp2k(Jp2kBox):
                     msg += "profile if the file type box brand is 'jp2 '."
                     warnings.warn(msg)
 
-    def _validate_write_parameters(self, img_array, code_block_size,
-                                   precinct_sizes, cratios, psnr, colorspace,
-                                   codec_fmt):
-        """Check that the input parameters to the write function are valid.
+    #def _populate_cparams(self, cbsize, cratios, eph, grid_offset, modesw,
+    #                      numres, prog, psnr, psizes, sop, subsam, tilesize):
+    def _populate_cparams(self, **kwargs):
+        """Populate compression parameters structure from input arguments.
 
+        Parameters
+        ----------
+        cbsize : tuple, optional
+            Code block size (DY, DX).
+        cratios : iterable
+            Compression ratios for successive layers.
+        eph : bool, optional
+            If true, write SOP marker after each header packet.
+        grid_offset : tuple, optional
+            Offset (DY, DX) of the origin of the image in the reference grid.
+        mct : bool, optional
+            Specifies usage of the multi component transform.  If not
+            specified, defaults to True if the colorspace is RGB.
+        modesw : int, optional
+            Mode switch.
+                1 = BYPASS(LAZY)
+                2 = RESET
+                4 = RESTART(TERMALL)
+                8 = VSC
+                16 = ERTERM(SEGTERM)
+                32 = SEGMARK(SEGSYM)
+        numres : int, optional
+            Number of resolutions.
+        prog : str, optional
+            Progression order, one of "LRCP" "RLCP", "RPCL", "PCRL", "CPRL".
+        psnr : iterable, optional
+            Different PSNR for successive layers.
+        psizes : list, optional
+            List of precinct sizes.  Each precinct size tuple is defined in
+            (height x width).
+        sop : bool, optional
+            If true, write SOP marker before each packet.
+        subsam : tuple, optional
+            Subsampling factors (dy, dx).
+        tilesize : tuple, optional
+            Numeric tuple specifying tile size in terms of (numrows, numcols),
+            not (X, Y).
+
+        Returns
+        -------
+        cparams : CompressionParametersType(ctypes.Structure)
+            Corresponds to cparameters_t type in openjp2 headers.
+        """
+
+        cparams = _opj2.set_default_encoder_parameters()
+
+        outfile = self.filename.encode()
+        num_pad_bytes = _opj2.PATH_LEN - len(outfile)
+        outfile += b'0' * num_pad_bytes
+        cparams.outfile = outfile
+
+        if self.filename[-4:].lower() == '.jp2':
+            cparams.codec_fmt = _opj2.CODEC_JP2
+        else:
+            cparams.codec_fmt = _opj2.CODEC_J2K
+
+        # Set defaults to lossless to begin.
+        cparams.tcp_rates[0] = 0
+        cparams.tcp_numlayers = 1
+        cparams.cp_disto_alloc = 1
+
+        if 'cbsize' in kwargs:
+            cparams.cblockw_init = kwargs['cbsize'][1]
+            cparams.cblockh_init = kwargs['cbsize'][0]
+
+        if 'cratios' in kwargs:
+            cparams.tcp_numlayers = len(kwargs['cratios'])
+            for j, cratio in enumerate(kwargs['cratios']):
+                cparams.tcp_rates[j] = cratio
+            cparams.cp_disto_alloc = 1
+
+        if 'eph' in kwargs:
+            cparams.csty |= 0x04
+
+        if 'grid_offset' in kwargs:
+            cparams.image_offset_x0 = kwargs['grid_offset'][1]
+            cparams.image_offset_y0 = kwargs['grid_offset'][0]
+
+        if 'modesw' in kwargs:
+            for shift in range(6):
+                power_of_two = 1 << shift
+                if kwargs['modesw'] & power_of_two:
+                    cparams.mode |= power_of_two
+
+        if 'numres' in kwargs:
+            cparams.numresolution = kwargs['numres']
+
+        if 'prog' in kwargs:
+            prog = kwargs['prog'].upper()
+            cparams.prog_order = PROGRESSION_ORDER[prog]
+
+        if 'psnr' in kwargs:
+            cparams.tcp_numlayers = len(kwargs['psnr'])
+            for j, snr_layer in enumerate(kwargs['psnr']):
+                cparams.tcp_distoratio[j] = snr_layer
+            cparams.cp_fixed_quality = 1
+
+        if 'psizes' in kwargs:
+            for j, (prch, prcw) in enumerate(kwargs['psizes']):
+                cparams.prcw_init[j] = prcw
+                cparams.prch_init[j] = prch
+            cparams.csty |= 0x01
+            cparams.res_spec = len(kwargs['psizes'])
+
+        if 'sop' in kwargs:
+            cparams.csty |= 0x02
+
+        if 'subsam' in kwargs:
+            cparams.subsampling_dy = kwargs['subsam'][0]
+            cparams.subsampling_dx = kwargs['subsam'][1]
+
+        if 'tilesize' in kwargs:
+            cparams.cp_tdx = kwargs['tilesize'][1]
+            cparams.cp_tdy = kwargs['tilesize'][0]
+            cparams.tile_size_on = _opj2.TRUE
+
+        return cparams
+
+    def _validate_compression_params(self, img_array, cparams):
+        """Check that the compression parameters are valid.
+    
         Parameters
         ----------
         img_array : ndarray
             Image data to be written to file.
-        code_block_size : tuple
-            Code block size (DY, DX).
-        precinct_sizes : list
-            List of precinct sizes.  Each precinct size tuple is defined in
-            (height x width).
-        cratios : iterable
-            Compression ratios for successive layers.
-        psnr : iterable
-            Different PSNR for successive layers.
-        mct : bool
-            Specifies usage of the multi component transform.  If not
-            specified, defaults to True if the colorspace is RGB.
-        colorspace : str, optional
-            Either 'rgb' or 'gray'.
-        codec_fmt : int
-            Are we writing a JP2 file or a J2K file?
+        cparams : CompressionParametersType(ctypes.Structure)
+            Corresponds to cparameters_t type in openjp2 headers.
         """
-        # Validate code block size and precinct sizes.
-        if code_block_size is not None:
-            width = code_block_size[1]
-            height = code_block_size[0]
+
+        # Code block size
+        code_block_specified = False
+        if cparams.cblockw_init != 0 and cparams.cblockh_init != 0:
+            # These fields ARE zero if uninitialized.
+            width = cparams.cblockw_init
+            height = cparams.cblockh_init
+            code_block_specified = True
             if height * width > 4096 or height < 4 or width < 4:
                 msg = "Code block area cannot exceed 4096.  "
                 msg += "Code block height and width must be larger than 4."
@@ -226,12 +337,16 @@ class Jp2k(Jp2kBox):
                 msg = "Bad code block size ({0}, {1}), "
                 msg += "must be powers of 2."
                 raise IOError(msg.format(height, width))
-
-        if precinct_sizes is not None:
-            for j, (prch, prcw) in enumerate(precinct_sizes):
-                if j == 0 and code_block_size is not None:
-                    cblkh, cblkw = code_block_size
-                    if cblkh * 2 > prch or cblkw * 2 > prcw:
+    
+        # Precinct size
+        if cparams.res_spec != 0:
+            # precinct size was not specified if this field is zero.
+            for j in range(cparams.res_spec):
+                prch = cparams.prch_init[j]
+                prcw = cparams.prcw_init[j]
+                if j == 0 and code_block_specified:
+                    height, width = cparams.cblockh_init, cparams.cblockw_init
+                    if height * 2 > prch or width * 2 > prcw:
                         msg = "Highest Resolution precinct size must be at "
                         msg += "least twice that of the code block dimensions."
                         raise IOError(msg)
@@ -240,16 +355,12 @@ class Jp2k(Jp2kBox):
                     msg = "Bad precinct sizes ({0}, {1}), "
                     msg += "must be powers of 2."
                     raise IOError(msg.format(prch, prcw))
-
-        if cratios is not None and psnr is not None:
-            msg = "Cannot specify cratios and psnr together."
-            raise IOError(msg)
-
+        
         # What would the point of 1D images be?
         if img_array.ndim == 1 or img_array.ndim > 3:
             msg = "{0}D imagery is not allowed.".format(img_array.ndim)
             raise IOError(msg)
-
+    
         if _OPENJP2_IS_OFFICIAL_V2:
             if (((img_array.ndim != 2) and
                  (img_array.shape[2] != 1 and img_array.shape[2] != 3))):
@@ -258,28 +369,110 @@ class Jp2k(Jp2kBox):
                 msg += "the OpenJPEG library version is the official 2.0.0 "
                 msg += "release."
                 raise IOError(msg)
-
-        if colorspace is not None:
-            if codec_fmt == _opj2.CODEC_J2K:
-                msg = 'Do not specify a colorspace when writing a raw '
-                msg += 'codestream.'
-                raise IOError(msg)
-            if colorspace.lower() not in ('rgb', 'grey', 'gray'):
-                msg = 'Invalid colorspace "{0}"'.format(colorspace)
-                raise IOError(msg)
-            elif colorspace.lower() == 'rgb' and img_array.shape[2] < 3:
-                msg = 'RGB colorspace requires at least 3 components.'
-                raise IOError(msg)
-
+    
         if img_array.dtype != np.uint8 and img_array.dtype != np.uint16:
             msg = "Only uint8 and uint16 images are currently supported."
             raise RuntimeError(msg)
+    
+    def _set_multi_component_transform(self, colorspace, cparams, mct=None):
+        """Set multi component transform usage.
 
-    # pylint:  disable-msg=W0221
-    def write(self, img_array, cratios=None, eph=False, psnr=None, numres=None,
-              cbsize=None, psizes=None, grid_offset=None, sop=False,
-              subsam=None, tilesize=None, prog=None, modesw=None,
-              colorspace=None, verbose=False, mct=None):
+        Parameters
+        ----------
+        colorspace : int
+            Either CLRSPC_SRGB or CLRSPC_GRAY
+        cparams : CompressionParametersType(ctypes.Structure)
+            Corresponds to cparameters_t type in openjp2 headers.
+        mct : bool, optional
+            Specifies usage of the multi component transform.  If not
+            specified, defaults to True if the colorspace is RGB.
+        """
+        if mct is None:
+            # If the multi component transform was not specified, we infer
+            # that it should be used if the color space is RGB.
+            if colorspace == _opj2.CLRSPC_SRGB:
+                cparams.tcp_mct = 1
+            else:
+                cparams.tcp_mct = 0
+        else:
+            # MCT was specified.  Does it make sense?
+            if mct and colorspace == _opj2.CLRSPC_GRAY:
+                # Cannot check for this in the validate routine, as we need
+                # to know what the target colorspace has been determined to be.
+                msg = "Cannot specify usage of the multi component transform "
+                msg += "if the colorspace is gray."
+                raise IOError(msg)
+            cparams.tcp_mct = 1 if mct else 0
+
+    def _process_write_inputs(self, img_array, colorspace=None, **kwargs):
+        """Directs processing of write method arguments.
+
+        It's somewhat awkward to process all the kwargs arguments at once.
+        The "colorspace" is not a parameter that gets processed into the 
+        compression parameters structure, and it unfortunately must be handled
+        in the middle of the compression parameter processing.
+
+        Parameters
+        ----------
+
+        Returns
+        -------
+        cparams : CompressionParametersType(ctypes.Structure)
+            Corresponds to cparameters_t type in openjp2 headers.
+        colorspace : int
+            Either CLRSPC_SRGB or CLRSPC_GRAY
+        """
+
+        if 'cratios' in kwargs and 'psnr' in kwargs:
+            msg = "Cannot specify cratios and psnr together."
+            raise IOError(msg)
+
+        cparams = self._populate_cparams(**kwargs)
+        self._validate_compression_params(img_array, cparams)
+
+        colorspace = _unpack_colorspace(colorspace, img_array, cparams)
+
+        try:
+            mct = kwargs['mct']
+        except KeyError:
+            mct = None
+        self._set_multi_component_transform(colorspace, cparams, mct)
+
+        return cparams, colorspace
+
+    def _populate_image_struct(self, cparams, image, imgdata):
+        """Populates image struct needed for compression.
+
+        Parameters
+        ----------
+        cparams : CompressionParametersType(ctypes.Structure)
+            Corresponds to cparameters_t type in openjp2 headers.
+        image : ImageType(ctypes.Structure)
+            Corresponds to image_t type in openjp2 headers.
+        imgarray : ndarray
+            Image data to be written to file.
+        """
+
+        numrows, numcols, num_comps = imgdata.shape
+
+        # set image offset and reference grid
+        image.contents.x0 = cparams.image_offset_x0
+        image.contents.y0 = cparams.image_offset_y0
+        image.contents.x1 = (image.contents.x0 +
+                             (numcols - 1) * cparams.subsampling_dx + 1)
+        image.contents.y1 = (image.contents.y0 +
+                             (numrows - 1) * cparams.subsampling_dy + 1)
+
+        # Stage the image data to the openjpeg data structure.
+        for k in range(0, num_comps):
+            layer = np.ascontiguousarray(imgdata[:, :, k], dtype=np.int32)
+            dest = image.contents.comps[k].data
+            src = layer.ctypes.data
+            ctypes.memmove(dest, src, layer.nbytes)
+
+        return image
+
+    def write(self, img_array, verbose=False, **kwargs):
         """Write image data to a JP2/JPX/J2k file.  Intended usage of the
         various parameters follows that of OpenJPEG's opj_compress utility.
 
@@ -290,11 +483,6 @@ class Jp2k(Jp2kBox):
         ----------
         img_array : ndarray
             Image data to be written to file.
-        callbacks : bool, optional
-            If true, enable default info handler such that INFO messages
-            produced by the OpenJPEG library are output to the console.  By
-            default, OpenJPEG warning and error messages are captured by
-            Python's own warning and error mechanisms.
         cbsize : tuple, optional
             Code block size (DY, DX).
         colorspace : str, optional
@@ -356,128 +544,17 @@ class Jp2k(Jp2kBox):
                                        "installed before using this "
                                        "functionality.")
 
-        if self.filename[-4:].lower() == '.jp2':
-            codec_fmt = _opj2.CODEC_JP2
-        else:
-            codec_fmt = _opj2.CODEC_J2K
-
-        self._validate_write_parameters(img_array, cbsize, psizes, cratios,
-                                        psnr, colorspace, codec_fmt)
-
-        cparams = _opj2.set_default_encoder_parameters()
-
-        outfile = self.filename.encode()
-        num_pad_bytes = _opj2.PATH_LEN - len(outfile)
-        outfile += b'0' * num_pad_bytes
-        cparams.outfile = outfile
-
-        cparams.cod_format = codec_fmt
-
-        # Set defaults to lossless to begin.
-        cparams.tcp_rates[0] = 0
-        cparams.tcp_numlayers = 1
-        cparams.cp_disto_alloc = 1
-
-        if cbsize is not None:
-            width = cbsize[1]
-            height = cbsize[0]
-            cparams.cblockw_init = width
-            cparams.cblockh_init = height
-
-        if cratios is not None:
-            cparams.tcp_numlayers = len(cratios)
-            for j, cratio in enumerate(cratios):
-                cparams.tcp_rates[j] = cratio
-            cparams.cp_disto_alloc = 1
-
-        if eph:
-            cparams.csty |= 0x04
-
-        if grid_offset is not None:
-            cparams.image_offset_x0 = grid_offset[1]
-            cparams.image_offset_y0 = grid_offset[0]
-
-        if modesw is not None:
-            for shift in range(6):
-                power_of_two = 1 << shift
-                if modesw & power_of_two:
-                    cparams.mode |= power_of_two
-
-        if numres is not None:
-            cparams.numresolution = numres
-
-        if prog is not None:
-            prog = prog.upper()
-            cparams.prog_order = PROGRESSION_ORDER[prog]
-
-        if psnr is not None:
-            cparams.tcp_numlayers = len(psnr)
-            for j, snr_layer in enumerate(psnr):
-                cparams.tcp_distoratio[j] = snr_layer
-            cparams.cp_fixed_quality = 1
-
-        if psizes is not None:
-            for j, (prch, prcw) in enumerate(psizes):
-                cparams.prcw_init[j] = prcw
-                cparams.prch_init[j] = prch
-            cparams.csty |= 0x01
-            cparams.res_spec = len(psizes)
-
-        if sop:
-            cparams.csty |= 0x02
-
-        if subsam is not None:
-            cparams.subsampling_dy = subsam[0]
-            cparams.subsampling_dx = subsam[1]
-
-        if tilesize is not None:
-            cparams.cp_tdx = tilesize[1]
-            cparams.cp_tdy = tilesize[0]
-            cparams.tile_size_on = _opj2.TRUE
+        cparams, colorspace = self._process_write_inputs(img_array, **kwargs)
 
         if img_array.ndim == 2:
-            # Force it to be 3D.  Just makes things easier later on.
+            # Force the image to be 3D.  Just makes things easier later on.
             numrows, numcols = img_array.shape
             img_array = img_array.reshape(numrows, numcols, 1)
 
+        # Only two precisions are possible. 
+        comp_prec = 8 if img_array.dtype == np.uint8 else 16
+
         numrows, numcols, num_comps = img_array.shape
-
-        if colorspace is None:
-            # Must infer the colorspace from the image dimensions.
-            if img_array.shape[2] == 1 or img_array.shape[2] == 2:
-                # A single channel image or an image with two channels is going
-                # to be greyscale.
-                colorspace = _opj2.CLRSPC_GRAY
-            else:
-                # Anything else must be RGB, right?
-                colorspace = _opj2.CLRSPC_SRGB
-        else:
-            # Turn the colorspace from a string to the enumerated value that
-            # the library expects.
-            colorspace = _COLORSPACE_MAP[colorspace.lower()]
-
-        if mct is None:
-            # If the multi component transform was not specified, we infer
-            # that it should be used if the color space is RGB.
-            if colorspace == _opj2.CLRSPC_SRGB:
-                cparams.tcp_mct = 1
-            else:
-                cparams.tcp_mct = 0
-        else:
-            if mct and colorspace == _opj2.CLRSPC_GRAY:
-                # Cannot check for this in the validate routine, as we need
-                # to know what the target colorspace has been determined to be.
-                msg = "Cannot specify usage of the multi component transform "
-                msg += "if the colorspace is gray."
-                raise IOError(msg)
-            cparams.tcp_mct = 1 if mct else 0
-
-        if img_array.dtype == np.uint8:
-            comp_prec = 8
-        else:
-            # We already know it cannot be anything else than uint16.
-            comp_prec = 16
-
         comptparms = (_opj2.ImageComptParmType * num_comps)()
         for j in range(num_comps):
             comptparms[j].dx = cparams.subsampling_dx
@@ -491,37 +568,22 @@ class Jp2k(Jp2kBox):
             comptparms[j].sgnd = 0
 
         image = _opj2.image_create(comptparms, colorspace)
+        self._populate_image_struct(cparams, image, img_array)
 
-        # set image offset and reference grid
-        image.contents.x0 = cparams.image_offset_x0
-        image.contents.y0 = cparams.image_offset_y0
-        image.contents.x1 = (image.contents.x0 +
-                             (numcols - 1) * cparams.subsampling_dx + 1)
-        image.contents.y1 = (image.contents.y0 +
-                             (numrows - 1) * cparams.subsampling_dy + 1)
+        codec = _opj2.create_compress(cparams.codec_fmt)
 
-        # Stage the image data to the openjpeg data structure.
-        for k in range(0, num_comps):
-            layer = np.ascontiguousarray(img_array[:, :, k], dtype=np.int32)
-            dest = image.contents.comps[k].data
-            src = layer.ctypes.data
-            ctypes.memmove(dest, src, layer.nbytes)
-
-        codec = _opj2.create_compress(codec_fmt)
-
-        if verbose:
-            _opj2.set_info_handler(codec, _INFO_CALLBACK)
-        else:
-            _opj2.set_info_handler(codec, None)
-
+        info_handler = _INFO_CALLBACK if verbose else None
+        _opj2.set_info_handler(codec, info_handler)
         _opj2.set_warning_handler(codec, _WARNING_CALLBACK)
         _opj2.set_error_handler(codec, _ERROR_CALLBACK)
+
         _opj2.setup_encoder(codec, cparams, image)
 
         if _OPENJP2_IS_OFFICIAL_V2:
             fptr = _libc.fopen(self.filename, 'wb')
             strm = _opj2.stream_create_default_file_stream(fptr, False)
         else:
+            # This routine introduced in 2.0 devel series.
             strm = _opj2.stream_create_default_file_stream_v3(self.filename,
                                                               False)
 
@@ -534,6 +596,7 @@ class Jp2k(Jp2kBox):
             _opj2.stream_destroy(strm)
             _libc.fclose(fptr)
         else:
+            # This routine introduced in 2.0 devel series.
             _opj2.stream_destroy_v3(strm)
 
         _opj2.destroy_codec(codec)
@@ -745,32 +808,11 @@ class Jp2k(Jp2kBox):
             stack.callback(_opj.destroy_decompress, dinfo)
             stack.callback(_opj.cio_close, cio)
 
-            ncomps = image.contents.numcomps
-            component = image.contents.comps[0]
-            dtype = component2dtype(component)
-
-            nrows = image.contents.comps[0].h
-            ncols = image.contents.comps[0].w
-            ncomps = image.contents.numcomps
-            data = np.zeros((nrows, ncols, ncomps), dtype)
-
-            for k in range(image.contents.numcomps):
-                component = image.contents.comps[k]
-                nrows = component.h
-                ncols = component.w
-
-                _validate_nonzero_image_size(nrows, ncols, k)
-
-                addr = ctypes.addressof(component.data.contents)
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    nelts = nrows * ncols
-                    band = np.ctypeslib.as_array(
-                        (ctypes.c_int32 * nelts).from_address(addr))
-                    data[:, :, k] = np.reshape(band.astype(dtype),
-                                               (nrows, ncols))
+            data = extract_image_cube(image)
 
         if data.shape[2] == 1:
+            # The third dimension has just a single layer.  Make the image
+            # data 2D instead of 3D.
             data = data.view()
             data.shape = data.shape[0:2]
 
@@ -820,6 +862,59 @@ class Jp2k(Jp2kBox):
 
         return img_array
 
+    def _populate_dparam(self, layer, rlevel, area, tile):
+        """Populate decompression structure with appropriate input parameters.
+        
+        Parameters
+        ----------
+        layer : int, optional
+            Number of quality layer to decode.
+        rlevel : int, optional
+            Factor by which to rlevel output resolution.
+        area : tuple, optional
+            Specifies decoding image area,
+            (first_row, first_col, last_row, last_col)
+        tile : int, optional
+            Number of tile to decode.
+
+        Returns
+        -------
+        dparam : DecompressionParametersType (ctypes)
+            Corresponds to openjp2 decompression parameters structure.
+        """
+        dparam = _opj2.set_default_decoder_parameters()
+
+        infile = self.filename.encode()
+        nelts = _opj2.PATH_LEN - len(infile)
+        infile += b'0' * nelts
+        dparam.infile = infile
+
+        dparam.decod_format = self._codec_format
+
+        dparam.cp_layer = layer
+
+        if rlevel == -1:
+            # Get the lowest resolution thumbnail.
+            codestream = self.get_codestream()
+            rlevel = codestream.segment[2].spcod[4]
+        dparam.cp_reduce = rlevel
+
+        if area is not None:
+            if area[0] < 0 or area[1] < 0 or area[2] <= 0 or area[3] <= 0:
+                msg = "Upper left corner coordinates must be nonnegative and "
+                msg += "lower right corner coordinates must be positive:  {0}"
+                raise IOError(msg.format(area))
+            dparam.DA_y0 = area[0]
+            dparam.DA_x0 = area[1]
+            dparam.DA_y1 = area[2]
+            dparam.DA_x1 = area[3]
+
+        if tile is not None:
+            dparam.tile_index = tile
+            dparam.nb_tile_to_decode = 1
+
+        return dparam
+
     def _read_common(self, rlevel=0, layer=0, area=None, tile=None,
                      verbose=False, as_bands=False):
         """Read a JPEG 2000 image.
@@ -845,36 +940,7 @@ class Jp2k(Jp2kBox):
         img_array : ndarray
             The individual image components or a single array.
         """
-        dparam = _opj2.set_default_decoder_parameters()
-
-        infile = self.filename.encode()
-        nelts = _opj2.PATH_LEN - len(infile)
-        infile += b'0' * nelts
-        dparam.infile = infile
-
-        dparam.decod_format = self._codec_format
-
-        dparam.cp_layer = layer
-
-        if rlevel == -1:
-            # Get the lowest resolution thumbnail.
-            codestream = self.get_codestream()
-            rlevel = codestream.segment[2].spcod[4]
-
-        dparam.cp_reduce = rlevel
-        if area is not None:
-            if area[0] < 0 or area[1] < 0 or area[2] <= 0 or area[3] <= 0:
-                msg = "Upper left corner coordinates must be nonnegative and "
-                msg += "lower right corner coordinates must be positive:  {0}"
-                raise IOError(msg.format(area))
-            dparam.DA_y0 = area[0]
-            dparam.DA_x0 = area[1]
-            dparam.DA_y1 = area[2]
-            dparam.DA_x1 = area[3]
-
-        if tile is not None:
-            dparam.tile_index = tile
-            dparam.nb_tile_to_decode = 1
+        dparam = self._populate_dparam(layer, rlevel, area, tile)
 
         with ExitStack() as stack:
             if hasattr(_opj2.OPENJP2,
@@ -911,34 +977,10 @@ class Jp2k(Jp2kBox):
                 _opj2.decode(codec, stream, image)
                 _opj2.end_decompress(codec, stream)
 
-            component = image.contents.comps[0]
-            dtype = component2dtype(component)
-
             if as_bands:
-                data = []
+                data = extract_image_bands(image)
             else:
-                nrows = image.contents.comps[0].h
-                ncols = image.contents.comps[0].w
-                ncomps = image.contents.numcomps
-                data = np.zeros((nrows, ncols, ncomps), dtype)
-
-            for k in range(image.contents.numcomps):
-                component = image.contents.comps[k]
-                nrows = component.h
-                ncols = component.w
-
-                _validate_nonzero_image_size(nrows, ncols, k)
-
-                addr = ctypes.addressof(component.data.contents)
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    band = np.ctypeslib.as_array(
-                        (ctypes.c_int32 * nrows * ncols).from_address(addr))
-                if as_bands:
-                    data.append(np.reshape(band.astype(dtype), (nrows, ncols)))
-                else:
-                    data[:, :, k] = np.reshape(band.astype(dtype),
-                                               (nrows, ncols))
+                data = extract_image_cube(image)
 
         return data
 
@@ -1170,3 +1212,98 @@ def _validate_jp2_box_sequence(boxes):
                 msg += "channel definition box."
                 raise IOError(msg)
 
+def extract_image_cube(image):
+    """Extract 3D image from openjpeg data structure.
+    """
+    ncomps = image.contents.numcomps
+    component = image.contents.comps[0]
+    dtype = component2dtype(component)
+
+    nrows = component.h
+    ncols = component.w
+    data = np.zeros((nrows, ncols, ncomps), dtype)
+
+    for k in range(image.contents.numcomps):
+        component = image.contents.comps[k]
+        nrows = component.h
+        ncols = component.w
+
+        _validate_nonzero_image_size(nrows, ncols, k)
+
+        addr = ctypes.addressof(component.data.contents)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            nelts = nrows * ncols
+            band = np.ctypeslib.as_array(
+                (ctypes.c_int32 * nelts).from_address(addr))
+            data[:, :, k] = np.reshape(band.astype(dtype), (nrows, ncols))
+
+    return data
+
+def extract_image_bands(image):
+    """Extract unequally-sized image bands.
+
+    This routine need only be called when subsampling differs across image
+    components, such as is often the case with YCbCr imagery.
+    """
+    data = []
+    for k in range(image.contents.numcomps):
+        component = image.contents.comps[k]
+
+        dtype = component2dtype(component)
+        nrows = component.h
+        ncols = component.w
+
+        _validate_nonzero_image_size(nrows, ncols, k)
+
+        addr = ctypes.addressof(component.data.contents)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            band = np.ctypeslib.as_array(
+                    (ctypes.c_int32 * nrows * ncols).from_address(addr))
+        data.append(np.reshape(band.astype(dtype), (nrows, ncols)))
+
+    return data
+
+def _unpack_colorspace(colorspace, img_array, cparams):
+    """Determine the colorspace from the supplied inputs.
+
+    Parameters
+    ----------
+    colorspace : int
+        Either CLRSPC_SRGB or CLRSPC_GRAY
+    img_array : ndarray
+        Image data to be written to file.
+    cparams : CompressionParametersType(ctypes.Structure)
+        Corresponds to cparameters_t type in openjp2 headers.
+    """
+    if colorspace is None:
+        # Must infer the colorspace from the image dimensions.
+        if img_array.ndim < 3:
+            # A single channel image is grayscale.
+            colorspace = _opj2.CLRSPC_GRAY
+        elif img_array.shape[2] == 1 or img_array.shape[2] == 2:
+            # A single channel image or an image with two channels is going
+            # to be greyscale.
+            colorspace = _opj2.CLRSPC_GRAY
+        else:
+            # Anything else must be RGB, right?
+            colorspace = _opj2.CLRSPC_SRGB
+    else:
+        # Supplied a string colorspace, so we must validate it.
+        if cparams.codec_fmt == _opj2.CODEC_J2K:
+            msg = 'Do not specify a colorspace when writing a raw '
+            msg += 'codestream.'
+            raise IOError(msg)
+        if colorspace.lower() not in ('rgb', 'grey', 'gray'):
+            msg = 'Invalid colorspace "{0}"'.format(colorspace)
+            raise IOError(msg)
+        elif colorspace.lower() == 'rgb' and img_array.shape[2] < 3:
+            msg = 'RGB colorspace requires at least 3 components.'
+            raise IOError(msg)
+
+        # Turn the colorspace from a string to the enumerated value that
+        # the library expects.
+        colorspace = _COLORSPACE_MAP[colorspace.lower()]
+
+    return colorspace
