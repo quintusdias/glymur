@@ -3,7 +3,9 @@
 License:  MIT
 """
 
-# pylint: disable=C0302
+# W0201:  Since we are using ctypes Structures, we often have to access
+# attributes that are not defined in __init__ but in _fields_ instead.
+# pylint: disable=W0201
 
 import sys
 if sys.hexversion >= 0x03030000:
@@ -32,7 +34,7 @@ from .jp2box import ImageHeaderBox
 from .jp2box import ColourSpecificationBox
 from .lib import openjpeg as opj
 from .lib import openjp2 as opj2
-from .lib import c as _libc
+from .lib import c as libc
 
 # Need to known if openjp2 library is the officially release v2.0.0 or not.
 _OPENJP2_IS_OFFICIAL_V2 = False
@@ -233,7 +235,6 @@ class Jp2k(Jp2kBox):
         cparams : CompressionParametersType(ctypes.Structure)
             Corresponds to cparameters_t type in openjp2 headers.
         """
-
         cparams = opj2.set_default_encoder_parameters()
 
         outfile = self.filename.encode()
@@ -308,70 +309,6 @@ class Jp2k(Jp2kBox):
 
         return cparams
 
-    def _validate_compression_params(self, img_array, cparams):
-        """Check that the compression parameters are valid.
-
-        Parameters
-        ----------
-        img_array : ndarray
-            Image data to be written to file.
-        cparams : CompressionParametersType(ctypes.Structure)
-            Corresponds to cparameters_t type in openjp2 headers.
-        """
-
-        # Code block size
-        code_block_specified = False
-        if cparams.cblockw_init != 0 and cparams.cblockh_init != 0:
-            # These fields ARE zero if uninitialized.
-            width = cparams.cblockw_init
-            height = cparams.cblockh_init
-            code_block_specified = True
-            if height * width > 4096 or height < 4 or width < 4:
-                msg = "Code block area cannot exceed 4096.  "
-                msg += "Code block height and width must be larger than 4."
-                raise IOError(msg)
-            if ((math.log(height, 2) != math.floor(math.log(height, 2)) or
-                 math.log(width, 2) != math.floor(math.log(width, 2)))):
-                msg = "Bad code block size ({0}, {1}), "
-                msg += "must be powers of 2."
-                raise IOError(msg.format(height, width))
-
-        # Precinct size
-        if cparams.res_spec != 0:
-            # precinct size was not specified if this field is zero.
-            for j in range(cparams.res_spec):
-                prch = cparams.prch_init[j]
-                prcw = cparams.prcw_init[j]
-                if j == 0 and code_block_specified:
-                    height, width = cparams.cblockh_init, cparams.cblockw_init
-                    if height * 2 > prch or width * 2 > prcw:
-                        msg = "Highest Resolution precinct size must be at "
-                        msg += "least twice that of the code block dimensions."
-                        raise IOError(msg)
-                if ((math.log(prch, 2) != math.floor(math.log(prch, 2)) or
-                     math.log(prcw, 2) != math.floor(math.log(prcw, 2)))):
-                    msg = "Bad precinct sizes ({0}, {1}), "
-                    msg += "must be powers of 2."
-                    raise IOError(msg.format(prch, prcw))
-
-        # What would the point of 1D images be?
-        if img_array.ndim == 1 or img_array.ndim > 3:
-            msg = "{0}D imagery is not allowed.".format(img_array.ndim)
-            raise IOError(msg)
-
-        if _OPENJP2_IS_OFFICIAL_V2:
-            if (((img_array.ndim != 2) and
-                 (img_array.shape[2] != 1 and img_array.shape[2] != 3))):
-                msg = "Writing images is restricted to single-channel "
-                msg += "greyscale images or three-channel RGB images when "
-                msg += "the OpenJPEG library version is the official 2.0.0 "
-                msg += "release."
-                raise IOError(msg)
-
-        if img_array.dtype != np.uint8 and img_array.dtype != np.uint16:
-            msg = "Only uint8 and uint16 images are currently supported."
-            raise RuntimeError(msg)
-
     def _process_write_inputs(self, img_array, colorspace=None, **kwargs):
         """Directs processing of write method arguments.
 
@@ -403,7 +340,7 @@ class Jp2k(Jp2kBox):
             raise IOError(msg)
 
         cparams = self._populate_cparams(**kwargs)
-        self._validate_compression_params(img_array, cparams)
+        _validate_compression_params(img_array, cparams)
 
         colorspace = _unpack_colorspace(colorspace, img_array, cparams)
 
@@ -425,38 +362,6 @@ class Jp2k(Jp2kBox):
                 cparams.tcp_mct = 0
 
         return cparams, colorspace
-
-    def _populate_image_struct(self, cparams, image, imgdata):
-        """Populates image struct needed for compression.
-
-        Parameters
-        ----------
-        cparams : CompressionParametersType(ctypes.Structure)
-            Corresponds to cparameters_t type in openjp2 headers.
-        image : ImageType(ctypes.Structure)
-            Corresponds to image_t type in openjp2 headers.
-        imgarray : ndarray
-            Image data to be written to file.
-        """
-
-        numrows, numcols, num_comps = imgdata.shape
-
-        # set image offset and reference grid
-        image.contents.x0 = cparams.image_offset_x0
-        image.contents.y0 = cparams.image_offset_y0
-        image.contents.x1 = (image.contents.x0 +
-                             (numcols - 1) * cparams.subsampling_dx + 1)
-        image.contents.y1 = (image.contents.y0 +
-                             (numrows - 1) * cparams.subsampling_dy + 1)
-
-        # Stage the image data to the openjpeg data structure.
-        for k in range(0, num_comps):
-            layer = np.ascontiguousarray(imgdata[:, :, k], dtype=np.int32)
-            dest = image.contents.comps[k].data
-            src = layer.ctypes.data
-            ctypes.memmove(dest, src, layer.nbytes)
-
-        return image
 
     def write(self, img_array, verbose=False, **kwargs):
         """Write image data to a JP2/JPX/J2k file.  Intended usage of the
@@ -537,24 +442,10 @@ class Jp2k(Jp2kBox):
             numrows, numcols = img_array.shape
             img_array = img_array.reshape(numrows, numcols, 1)
 
-        # Only two precisions are possible.
-        comp_prec = 8 if img_array.dtype == np.uint8 else 16
-
-        numrows, numcols, num_comps = img_array.shape
-        comptparms = (opj2.ImageComptParmType * num_comps)()
-        for j in range(num_comps):
-            comptparms[j].dx = cparams.subsampling_dx
-            comptparms[j].dy = cparams.subsampling_dy
-            comptparms[j].w = numcols
-            comptparms[j].h = numrows
-            comptparms[j].x0 = cparams.image_offset_x0
-            comptparms[j].y0 = cparams.image_offset_y0
-            comptparms[j].prec = comp_prec
-            comptparms[j].bpp = comp_prec
-            comptparms[j].sgnd = 0
+        comptparms = _populate_comptparms(img_array, cparams)
 
         image = opj2.image_create(comptparms, colorspace)
-        self._populate_image_struct(cparams, image, img_array)
+        _populate_image_struct(cparams, image, img_array)
 
         codec = opj2.create_compress(cparams.codec_fmt)
 
@@ -566,7 +457,7 @@ class Jp2k(Jp2kBox):
         opj2.setup_encoder(codec, cparams, image)
 
         if _OPENJP2_IS_OFFICIAL_V2:
-            fptr = _libc.fopen(self.filename, 'wb')
+            fptr = libc.fopen(self.filename, 'wb')
             strm = opj2.stream_create_default_file_stream(fptr, False)
         else:
             # This routine introduced in 2.0 devel series.
@@ -580,7 +471,7 @@ class Jp2k(Jp2kBox):
 
         if _OPENJP2_IS_OFFICIAL_V2:
             opj2.stream_destroy(strm)
-            _libc.fclose(fptr)
+            libc.fclose(fptr)
         else:
             # This routine introduced in 2.0 devel series.
             opj2.stream_destroy_v3(strm)
@@ -804,8 +695,7 @@ class Jp2k(Jp2kBox):
 
         return data
 
-    def _read_openjp2(self, rlevel=0, layer=0, area=None, tile=None,
-                      verbose=False):
+    def _read_openjp2(self, **kwargs):
         """Read a JPEG 2000 image using libopenjp2.
 
         Parameters
@@ -835,12 +725,7 @@ class Jp2k(Jp2kBox):
         """
         self._subsampling_sanity_check()
 
-        img_array = self._read_common(rlevel=rlevel,
-                                      layer=layer,
-                                      area=area,
-                                      tile=tile,
-                                      verbose=verbose,
-                                      as_bands=False)
+        img_array = self._read_common(as_bands=False, **kwargs)
 
         if img_array.shape[2] == 1:
             img_array = img_array.view()
@@ -936,8 +821,8 @@ class Jp2k(Jp2kBox):
                                                                    True)
                 stack.callback(opj2.stream_destroy_v3, stream)
             else:
-                fptr = _libc.fopen(self.filename, 'rb')
-                stack.callback(_libc.fclose, fptr)
+                fptr = libc.fopen(self.filename, 'rb')
+                stack.callback(libc.fclose, fptr)
                 stream = opj2.stream_create_default_file_stream(fptr, True)
                 stack.callback(opj2.stream_destroy, stream)
             codec = opj2.create_decompress(self._codec_format)
@@ -970,8 +855,7 @@ class Jp2k(Jp2kBox):
 
         return data
 
-    def read_bands(self, rlevel=0, layer=0, area=None, tile=None,
-                   verbose=False):
+    def read_bands(self, **kwargs):
         """Read a JPEG 2000 image.
 
         The only time you should use this method is when the image has
@@ -1018,13 +902,7 @@ class Jp2k(Jp2kBox):
                                        "of OpenJP2 installed before using "
                                        "this functionality.")
 
-        lst = self._read_common(rlevel=rlevel,
-                                layer=layer,
-                                area=area,
-                                tile=tile,
-                                verbose=verbose,
-                                as_bands=True)
-
+        lst = self._read_common(as_bands=True, **kwargs)
         return lst
 
     def get_codestream(self, header_only=True):
@@ -1298,3 +1176,138 @@ def _unpack_colorspace(colorspace, img_array, cparams):
         colorspace = _COLORSPACE_MAP[colorspace.lower()]
 
     return colorspace
+
+def _populate_comptparms(img_array, cparams):
+    """Instantiate and populate comptparms structure.
+
+    This structure defines the image components.
+
+    Parameters
+    ----------
+    img_array : ndarray
+        Image data to be written to file.
+    cparams : CompressionParametersType(ctypes.Structure)
+        Corresponds to cparameters_t type in openjp2 headers.
+
+    Returns
+    -------
+    comptparms : ImageCompType(ctypes.Structure)
+        Corresponds to image_comp_t type in openjp2 headers.
+    """
+    # Only two precisions are possible.
+    if img_array.dtype == np.uint8:
+        comp_prec = 8
+    else:
+        comp_prec = 16
+
+    numrows, numcols, num_comps = img_array.shape
+    comptparms = (opj2.ImageComptParmType * num_comps)()
+    for j in range(num_comps):
+        comptparms[j].dx = cparams.subsampling_dx
+        comptparms[j].dy = cparams.subsampling_dy
+        comptparms[j].w = numcols
+        comptparms[j].h = numrows
+        comptparms[j].x0 = cparams.image_offset_x0
+        comptparms[j].y0 = cparams.image_offset_y0
+        comptparms[j].prec = comp_prec
+        comptparms[j].bpp = comp_prec
+        comptparms[j].sgnd = 0
+
+    return comptparms
+
+def _populate_image_struct(cparams, image, imgdata):
+    """Populates image struct needed for compression.
+
+    Parameters
+    ----------
+    cparams : CompressionParametersType(ctypes.Structure)
+        Corresponds to cparameters_t type in openjp2 headers.
+    image : ImageType(ctypes.Structure)
+        Corresponds to image_t type in openjp2 headers.
+    imgarray : ndarray
+        Image data to be written to file.
+    """
+
+    numrows, numcols, num_comps = imgdata.shape
+
+    # set image offset and reference grid
+    image.contents.x0 = cparams.image_offset_x0
+    image.contents.y0 = cparams.image_offset_y0
+    image.contents.x1 = (image.contents.x0 +
+                         (numcols - 1) * cparams.subsampling_dx + 1)
+    image.contents.y1 = (image.contents.y0 +
+                         (numrows - 1) * cparams.subsampling_dy + 1)
+
+    # Stage the image data to the openjpeg data structure.
+    for k in range(0, num_comps):
+        layer = np.ascontiguousarray(imgdata[:, :, k], dtype=np.int32)
+        dest = image.contents.comps[k].data
+        src = layer.ctypes.data
+        ctypes.memmove(dest, src, layer.nbytes)
+
+    return image
+
+def _validate_compression_params(img_array, cparams):
+    """Check that the compression parameters are valid.
+
+    Parameters
+    ----------
+    img_array : ndarray
+        Image data to be written to file.
+    cparams : CompressionParametersType(ctypes.Structure)
+        Corresponds to cparameters_t type in openjp2 headers.
+    """
+
+    # Code block size
+    code_block_specified = False
+    if cparams.cblockw_init != 0 and cparams.cblockh_init != 0:
+        # These fields ARE zero if uninitialized.
+        width = cparams.cblockw_init
+        height = cparams.cblockh_init
+        code_block_specified = True
+        if height * width > 4096 or height < 4 or width < 4:
+            msg = "Code block area cannot exceed 4096.  "
+            msg += "Code block height and width must be larger than 4."
+            raise IOError(msg)
+        if ((math.log(height, 2) != math.floor(math.log(height, 2)) or
+             math.log(width, 2) != math.floor(math.log(width, 2)))):
+            msg = "Bad code block size ({0}, {1}), "
+            msg += "must be powers of 2."
+            raise IOError(msg.format(height, width))
+
+    # Precinct size
+    if cparams.res_spec != 0:
+        # precinct size was not specified if this field is zero.
+        for j in range(cparams.res_spec):
+            prch = cparams.prch_init[j]
+            prcw = cparams.prcw_init[j]
+            if j == 0 and code_block_specified:
+                height, width = cparams.cblockh_init, cparams.cblockw_init
+                if height * 2 > prch or width * 2 > prcw:
+                    msg = "Highest Resolution precinct size must be at "
+                    msg += "least twice that of the code block dimensions."
+                    raise IOError(msg)
+            if ((math.log(prch, 2) != math.floor(math.log(prch, 2)) or
+                 math.log(prcw, 2) != math.floor(math.log(prcw, 2)))):
+                msg = "Bad precinct sizes ({0}, {1}), "
+                msg += "must be powers of 2."
+                raise IOError(msg.format(prch, prcw))
+
+    # What would the point of 1D images be?
+    if img_array.ndim == 1 or img_array.ndim > 3:
+        msg = "{0}D imagery is not allowed.".format(img_array.ndim)
+        raise IOError(msg)
+
+    if _OPENJP2_IS_OFFICIAL_V2:
+        if (((img_array.ndim != 2) and
+             (img_array.shape[2] != 1 and img_array.shape[2] != 3))):
+            msg = "Writing images is restricted to single-channel "
+            msg += "greyscale images or three-channel RGB images when "
+            msg += "the OpenJPEG library version is the official 2.0.0 "
+            msg += "release."
+            raise IOError(msg)
+
+    if img_array.dtype != np.uint8 and img_array.dtype != np.uint16:
+        msg = "Only uint8 and uint16 images are currently supported."
+        raise RuntimeError(msg)
+
