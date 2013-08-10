@@ -1249,14 +1249,28 @@ class PaletteBox(Jp2kBox):
         # This means that we store the palette as a list of 1D arrays,
         # which reverses the usual indexing scheme.
         read_buffer = fptr.read(num_entries * row_nbytes)
-        palette = buffer2palette(read_buffer, num_entries, num_columns, bps)
+        palette = _buffer2palette(read_buffer, num_entries, num_columns, bps)
 
-        box = PaletteBox(palette, bps, signed, length=length,
-                         offset=offset)
+        box = PaletteBox(palette, bps, signed, length=length, offset=offset)
         return box
 
-def buffer2palette(read_buffer, num_rows, num_cols, bps):
+
+def _buffer2palette(read_buffer, num_rows, num_cols, bps):
     """Construct the palette from the buffer read from file.
+
+    Parameters
+    ----------
+    read_buffer : iterable
+        Byte array of palette information read from file.
+    num_rows, num_cols : int
+        Size of palette.
+    bps : iterable
+        Bits per sample for each channel.
+
+    Returns
+    -------
+    palette : list of 1D arrays
+        Each 1D array corresponds to a channel.
     """
     row_nbytes = 0
     palette = []
@@ -1277,7 +1291,6 @@ def buffer2palette(read_buffer, num_rows, num_cols, bps):
         else:
             msg = 'Unsupported palette bitdepth (%d).'.format(bps[j])
             raise IOError(msg)
-
 
     for j in range(num_rows):
         row_buffer = read_buffer[(row_nbytes * j):(row_nbytes * (j + 1))]
@@ -1497,6 +1510,7 @@ def _parse_standard_flag(fptr, mask_length):
     standard_mask = data[1:num_standard_flags * 2:2]
 
     return standard_flag, standard_mask
+
 
 def _parse_vendor_features(fptr, mask_length):
     """Construct vendor features, vendor mask data from the file.
