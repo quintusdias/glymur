@@ -3,10 +3,6 @@
 License:  MIT
 """
 
-# W0201:  Since we are using ctypes Structures, we often have to access
-# attributes that are not defined in __init__ but in _fields_ instead.
-# pylint: disable=W0201
-
 import sys
 if sys.hexversion >= 0x03030000:
     from contextlib import ExitStack
