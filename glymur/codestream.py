@@ -775,12 +775,15 @@ class Segment(object):
     length : int
         Length of marker segment in bytes.  This number does not include the
         two bytes constituting the marker.
+    data : bytes iterable or None
+        Uninterpreted buffer of raw bytes, only used where a segment is not
+        well understood.
     """
     def __init__(self, marker_id='', offset=-1, length=-1, data=None):
         self.marker_id = marker_id
         self.offset = offset
         self.length = length
-        self._data = data
+        self.data = data
 
     def __str__(self):
         msg = '{0} marker segment @ ({1}, {2})'.format(self.marker_id,
@@ -1203,8 +1206,8 @@ class PPMsegment(Segment):
         Segment.__init__(self, marker_id='PPM')
         self.zppm = zppm
 
-        # both Nppm and Ippms information stored in _data
-        self._data = data
+        # both Nppm and Ippms information stored in data
+        self.data = data
 
         self.length = length
         self.offset = offset
@@ -1213,7 +1216,7 @@ class PPMsegment(Segment):
         msg = Segment.__str__(self)
         msg += '\n    Index:  {0}'
         msg += '\n    Data:  {1} uninterpreted bytes'
-        msg = msg.format(self.zppm, len(self._data))
+        msg = msg.format(self.zppm, len(self.data))
         return msg
 
 
