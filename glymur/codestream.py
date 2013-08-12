@@ -1291,18 +1291,18 @@ class QCCsegment(Segment):
         self.length = length
         self.offset = offset
 
-        self._mantissa, self._exponent = parse_quantization(self.spqcc,
+        self.mantissa, self.exponent = parse_quantization(self.spqcc,
                                                             self.sqcc)
-        self._guard_bits = (self.sqcc & 0xe0) >> 5
+        self.guard_bits = (self.sqcc & 0xe0) >> 5
 
     def __str__(self):
         msg = Segment.__str__(self)
 
         msg += '\n    Associated Component:  {0}'.format(self.cqcc)
         msg += _print_quantization_style(self.sqcc)
-        msg += '{0} guard bits'.format(self._guard_bits)
+        msg += '{0} guard bits'.format(self.guard_bits)
 
-        step_size = zip(self._mantissa, self._exponent)
+        step_size = zip(self.mantissa, self.exponent)
         msg += '\n    Step size:  ' + str(list(step_size))
         return msg
 
@@ -1339,18 +1339,18 @@ class QCDsegment(Segment):
         self.offset = offset
 
         mantissa, exponent = parse_quantization(self.spqcd, self.sqcd)
-        self._mantissa = mantissa
-        self._exponent = exponent
-        self._guard_bits = (self.sqcd & 0xe0) >> 5
+        self.mantissa = mantissa
+        self.exponent = exponent
+        self.guard_bits = (self.sqcd & 0xe0) >> 5
 
     def __str__(self):
         msg = Segment.__str__(self)
 
         msg += _print_quantization_style(self.sqcd)
 
-        msg += '{0} guard bits'.format(self._guard_bits)
+        msg += '{0} guard bits'.format(self.guard_bits)
 
-        step_size = zip(self._mantissa, self._exponent)
+        step_size = zip(self.mantissa, self.exponent)
         msg += '\n    Step size:  ' + str(list(step_size))
         return msg
 

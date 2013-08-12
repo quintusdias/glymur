@@ -7,8 +7,22 @@ suite.
 # case.
 # pylint: disable=C0103
 
+# All of these tests correspond to tests in openjpeg, so no docstring is really
+# needed.
+# pylint: disable=C0111
+
+# This module is very long, cannot be helped.
+# pylint: disable=C0302
+
 # unittest fools pylint with "too many public methods"
 # pylint: disable=R0904
+
+# Some tests use numpy test infrastructure, which means the tests never 
+# reference "self", so pylint claims it should be a function.  No, no, no.
+# pylint: disable=R0201
+
+# Many tests are pretty long and that can't be helped.
+# pylint:  disable=R0915
 
 # asserWarns introduced in python 3.2 (python2.7/pylint issue)
 # pylint: disable=E1101
@@ -31,6 +45,7 @@ import glymur
 
 from .fixtures import OPENJPEG_VERSION
 from .fixtures import OPENJP2_IS_V2_OFFICIAL
+from .fixtures import mse, peak_tolerance, read_pgx
 
 
 try:
@@ -788,14 +803,14 @@ class TestSuite(unittest.TestCase):
         jfile = os.path.join(data_root,
                              'input/nonregression/Bretagne2.j2k')
         jp2 = Jp2k(jfile)
-        data = jp2.read()
+        jp2.read()
         self.assertTrue(True)
 
     def test_NR_DEC__00042_j2k_2_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/_00042.j2k')
         jp2 = Jp2k(jfile)
-        data = jp2.read()
+        jp2.read()
         self.assertTrue(True)
 
     @unittest.skip("fprintf stderr output in r2343.")
@@ -803,7 +818,7 @@ class TestSuite(unittest.TestCase):
         jfile = os.path.join(data_root,
                              'input/nonregression/123.j2c')
         jp2 = Jp2k(jfile)
-        data = jp2.read()
+        jp2.read()
         self.assertTrue(True)
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
@@ -811,11 +826,11 @@ class TestSuite(unittest.TestCase):
     def test_NR_DEC_broken_jp2_4_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/broken.jp2')
-        with self.assertWarns(UserWarning) as cw:
+        with self.assertWarns(UserWarning):
             # colr box has bad length.
             jp2 = Jp2k(jfile)
         with self.assertRaises(IOError):
-            data = jp2.read()
+            jp2.read()
         self.assertTrue(True)
 
     def test_NR_DEC_broken2_jp2_5_decode(self):
@@ -825,66 +840,60 @@ class TestSuite(unittest.TestCase):
             with warnings.catch_warnings():
                 # Invalid marker ID.
                 warnings.simplefilter("ignore")
-                data = Jp2k(jfile).read()
+                Jp2k(jfile).read()
         self.assertTrue(True)
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
     def test_NR_DEC_broken3_jp2_6_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/broken3.jp2')
-        with self.assertWarns(UserWarning) as cw:
+        jfile = os.path.join(data_root, 'input/nonregression/broken3.jp2')
+        with self.assertWarns(UserWarning):
             # colr box has bad length.
             j = Jp2k(jfile)
 
-        with self.assertRaises(IOError) as ce:
-            d = j.read()
+        with self.assertRaises(IOError):
+            j.read()
 
     def test_NR_DEC_broken4_jp2_7_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/broken4.jp2')
+        jfile = os.path.join(data_root, 'input/nonregression/broken4.jp2')
         with self.assertRaises(IOError):
             with warnings.catch_warnings():
                 # invalid number of subbands, bad marker ID
                 warnings.simplefilter("ignore")
-                data = Jp2k(jfile).read()
+                Jp2k(jfile).read()
         self.assertTrue(True)
 
     @unittest.skip("fprintf stderr output in r2343.")
     def test_NR_DEC_bug_j2c_8_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/bug.j2c')
-        data = Jp2k(jfile).read()
+        jfile = os.path.join(data_root, 'input/nonregression/bug.j2c')
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_buxI_j2k_9_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/buxI.j2k')
-        data = Jp2k(jfile).read()
+        jfile = os.path.join(data_root, 'input/nonregression/buxI.j2k')
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_buxR_j2k_10_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/buxR.j2k')
-        data = Jp2k(jfile).read()
+        jfile = os.path.join(data_root, 'input/nonregression/buxR.j2k')
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_Cannotreaddatawithnosizeknown_j2k_11_decode(self):
         relpath = 'input/nonregression/Cannotreaddatawithnosizeknown.j2k'
         jfile = os.path.join(data_root, relpath)
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_cthead1_j2k_12_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/cthead1.j2k')
-        data = Jp2k(jfile).read()
+        jfile = os.path.join(data_root, 'input/nonregression/cthead1.j2k')
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_CT_Phillips_JPEG2K_Decompr_Problem_j2k_13_decode(self):
         relpath = 'input/nonregression/CT_Phillips_JPEG2K_Decompr_Problem.j2k'
         jfile = os.path.join(data_root, relpath)
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     @unittest.skip("fprintf stderr output in r2343.")
@@ -892,67 +901,64 @@ class TestSuite(unittest.TestCase):
         # Stream too short, expected SOT.
         jfile = os.path.join(data_root,
                              'input/nonregression/illegalcolortransform.j2k')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_j2k32_j2k_15_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/j2k32.j2k')
-        data = Jp2k(jfile).read()
+        jfile = os.path.join(data_root, 'input/nonregression/j2k32.j2k')
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_kakadu_v4_4_openjpegv2_broken_j2k_16_decode(self):
         relpath = 'input/nonregression/kakadu_v4-4_openjpegv2_broken.j2k'
         jfile = os.path.join(data_root, relpath)
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_MarkerIsNotCompliant_j2k_17_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/MarkerIsNotCompliant.j2k')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_Marrin_jp2_18_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/Marrin.jp2')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_merged_jp2_19_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/merged.jp2')
-        data = Jp2k(jfile).read_bands()
+        Jp2k(jfile).read_bands()
         self.assertTrue(True)
 
     def test_NR_DEC_movie_00000_j2k_20_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/movie_00000.j2k')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_movie_00001_j2k_21_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/movie_00001.j2k')
-        data = Jp2k(jfile).read()
+        jfile = os.path.join(data_root, 'input/nonregression/movie_00001.j2k')
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_movie_00002_j2k_22_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/movie_00002.j2k')
-        data = Jp2k(jfile).read()
+        jfile = os.path.join(data_root, 'input/nonregression/movie_00002.j2k')
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_orb_blue_lin_j2k_j2k_23_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/orb-blue10-lin-j2k.j2k')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_orb_blue_win_j2k_j2k_24_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/orb-blue10-win-j2k.j2k')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_orb_blue_lin_jp2_25_decode(self):
@@ -961,25 +967,25 @@ class TestSuite(unittest.TestCase):
         with warnings.catch_warnings():
             # This file has an invalid ICC profile
             warnings.simplefilter("ignore")
-            data = Jp2k(jfile).read()
+            Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_orb_blue_win_jp2_26_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/orb-blue10-win-jp2.jp2')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_relax_jp2_27_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/relax.jp2')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_test_lossless_j2k_28_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/test_lossless.j2k')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
@@ -991,13 +997,13 @@ class TestSuite(unittest.TestCase):
             # brand is 'jp2 ', but has any icc profile.
             warnings.simplefilter("ignore")
             jp2 = Jp2k(jfile)
-        data = jp2.read()
+        jp2.read()
         self.assertTrue(True)
 
     def test_NR_DEC_pacs_ge_j2k_30_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/pacs.ge.j2k')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
@@ -1005,7 +1011,7 @@ class TestSuite(unittest.TestCase):
     def test_NR_DEC_kodak_2layers_lrcp_j2c_31_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/kodak_2layers_lrcp.j2c')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
@@ -1013,13 +1019,13 @@ class TestSuite(unittest.TestCase):
     def test_NR_DEC_kodak_2layers_lrcp_j2c_32_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/kodak_2layers_lrcp.j2c')
-        data = Jp2k(jfile).read(layer=2)
+        Jp2k(jfile).read(layer=2)
         self.assertTrue(True)
 
     def test_NR_DEC_issue104_jpxstream_jp2_33_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/issue104_jpxstream.jp2')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
@@ -1031,7 +1037,7 @@ class TestSuite(unittest.TestCase):
             # This file has a bad pclr box, we test for this elsewhere.
             warnings.simplefilter("ignore")
             j = Jp2k(jfile)
-        data = j.read()
+        j.read()
         self.assertTrue(True)
 
     @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
@@ -1039,7 +1045,7 @@ class TestSuite(unittest.TestCase):
     def test_NR_DEC_mem_b2b86b74_2753_jp2_35_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/mem-b2b86b74-2753.jp2')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_gdal_fuzzer_unchecked_num_resolutions_jp2_36_decode(self):
@@ -1050,7 +1056,7 @@ class TestSuite(unittest.TestCase):
             warnings.simplefilter("ignore")
             j = Jp2k(jfile)
             with self.assertRaises(IOError):
-                data = j.read()
+                j.read()
 
     @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
                      "Test not in done in v2.0.0 official")
@@ -1064,7 +1070,7 @@ class TestSuite(unittest.TestCase):
             warnings.simplefilter("ignore")
             j = Jp2k(jfile)
             with self.assertRaises(IOError):
-                data = j.read()
+                j.read()
 
     @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
                      "Test not in done in v2.0.0 official")
@@ -1076,7 +1082,7 @@ class TestSuite(unittest.TestCase):
             warnings.simplefilter("ignore")
             j = Jp2k(jfile)
             with self.assertRaises(IOError):
-                data = j.read()
+                j.read()
 
     @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
                      "Test not in done in v2.0.0 official")
@@ -1087,13 +1093,12 @@ class TestSuite(unittest.TestCase):
             # Invalid subsampling value
             warnings.simplefilter("ignore")
             with self.assertRaises(IOError):
-                j = Jp2k(jfile).read()
+                Jp2k(jfile).read()
 
     def test_NR_DEC_file_409752_jp2_40_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/file409752.jp2')
+        jfile = os.path.join(data_root, 'input/nonregression/file409752.jp2')
         with self.assertRaises(RuntimeError):
-            data = Jp2k(jfile).read()
+            Jp2k(jfile).read()
 
     @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
                      "Test not in done in v2.0.0 official")
@@ -1104,15 +1109,15 @@ class TestSuite(unittest.TestCase):
         # really does deserve a warning.
         relpath = 'input/nonregression/issue188_beach_64bitsbox.jp2'
         jfile = os.path.join(data_root, relpath)
-        with self.assertWarns(UserWarning) as cw:
-            data = Jp2k(jfile).read()
+        with self.assertWarns(UserWarning):
+            Jp2k(jfile).read()
 
     @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
                      "Test not in done in v2.0.0 official")
     def test_NR_DEC_issue206_image_000_jp2_42_decode(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/issue206_image-000.jp2')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_p1_04_j2k_43_decode(self):
@@ -1347,8 +1352,8 @@ class TestSuite(unittest.TestCase):
         # Image size would be 0 x 0.
         jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
         jp2k = Jp2k(jfile)
-        with self.assertRaises((IOError, OSError)) as ce:
-            ssdata = jp2k.read(area=(9, 9, 12, 12), rlevel=2)
+        with self.assertRaises((IOError, OSError)):
+            jp2k.read(area=(9, 9, 12, 12), rlevel=2)
 
     @unittest.skip("fprintf stderr output in r2343.")
     def test_NR_DEC_p1_06_j2k_76_decode(self):
@@ -1393,7 +1398,7 @@ class TestSuite(unittest.TestCase):
         jp2k = Jp2k(jfile)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            tiledata = jp2k.read(tile=0, rlevel=2)
+            jp2k.read(tile=0, rlevel=2)
 
     @unittest.skip("fprintf stderr output in r2343.")
     def test_NR_DEC_p1_06_j2k_81_decode(self):
@@ -1402,7 +1407,7 @@ class TestSuite(unittest.TestCase):
         jp2k = Jp2k(jfile)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            tiledata = jp2k.read(tile=5, rlevel=2)
+            jp2k.read(tile=5, rlevel=2)
 
     @unittest.skip("fprintf stderr output in r2343.")
     def test_NR_DEC_p1_06_j2k_82_decode(self):
@@ -1411,7 +1416,7 @@ class TestSuite(unittest.TestCase):
         jp2k = Jp2k(jfile)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            tiledata = jp2k.read(tile=9, rlevel=2)
+            jp2k.read(tile=9, rlevel=2)
 
     @unittest.skip("fprintf stderr output in r2343.")
     def test_NR_DEC_p1_06_j2k_83_decode(self):
@@ -1420,15 +1425,15 @@ class TestSuite(unittest.TestCase):
         jp2k = Jp2k(jfile)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            with self.assertRaises((IOError, OSError)) as ce:
-                tiledata = jp2k.read(tile=15, rlevel=2)
+            with self.assertRaises((IOError, OSError)):
+                jp2k.read(tile=15, rlevel=2)
 
     @unittest.skip("fprintf stderr output in r2343.")
     def test_NR_DEC_p1_06_j2k_84_decode(self):
         # Just read the data, don't bother verifying.
         jfile = os.path.join(data_root, 'input/conformance/p1_06.j2k')
         jp2k = Jp2k(jfile)
-        data = jp2k.read(rlevel=4)
+        jp2k.read(rlevel=4)
 
     def test_NR_DEC_p0_04_j2k_85_decode(self):
         jfile = os.path.join(data_root, 'input/conformance/p0_04.j2k')
@@ -1556,10 +1561,10 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[2].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[2]._guard_bits, 2)
-        self.assertEqual(c.segment[2]._exponent,
+        self.assertEqual(c.segment[2].guard_bits, 2)
+        self.assertEqual(c.segment[2].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10])
-        self.assertEqual(c.segment[2]._mantissa,
+        self.assertEqual(c.segment[2].mantissa,
                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
         # COD: Coding style default
@@ -1663,10 +1668,10 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[4].sqcd & 0x1f, 0)  # none
-        self.assertEqual(c.segment[4]._guard_bits, 3)
-        self.assertEqual(c.segment[4]._exponent,
+        self.assertEqual(c.segment[4].guard_bits, 3)
+        self.assertEqual(c.segment[4].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10])
-        self.assertEqual(c.segment[4]._mantissa,
+        self.assertEqual(c.segment[4].mantissa,
                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
         # COM: comment
@@ -1749,18 +1754,18 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[3].sqcd & 0x1f, 1)  # scalar implicit
-        self.assertEqual(c.segment[3]._guard_bits, 2)
-        self.assertEqual(c.segment[3]._exponent, [0])
-        self.assertEqual(c.segment[3]._mantissa, [0])
+        self.assertEqual(c.segment[3].guard_bits, 2)
+        self.assertEqual(c.segment[3].exponent, [0])
+        self.assertEqual(c.segment[3].mantissa, [0])
 
         # QCC: Quantization component
         # associated component
         self.assertEqual(c.segment[4].cqcc, 0)
-        self.assertEqual(c.segment[4]._guard_bits, 2)
+        self.assertEqual(c.segment[4].guard_bits, 2)
         # quantization type
         self.assertEqual(c.segment[4].sqcc & 0x1f, 0)  # none
-        self.assertEqual(c.segment[4]._exponent, [4, 5, 5, 6])
-        self.assertEqual(c.segment[4]._mantissa, [0, 0, 0, 0])
+        self.assertEqual(c.segment[4].exponent, [4, 5, 5, 6])
+        self.assertEqual(c.segment[4].mantissa, [0, 0, 0, 0])
 
         # POD: progression order change
         self.assertEqual(c.segment[5].rspod, (0,))
@@ -1869,11 +1874,11 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[3].sqcd & 0x1f, 2)  # scalar expounded
-        self.assertEqual(c.segment[3]._guard_bits, 3)
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].guard_bits, 3)
+        self.assertEqual(c.segment[3].exponent,
                          [16, 16, 16, 16, 15, 15, 15, 14, 14, 14, 13, 13, 13,
                           11, 11, 11, 11, 11, 11])
-        self.assertEqual(c.segment[3]._mantissa,
+        self.assertEqual(c.segment[3].mantissa,
                          [1814, 1815, 1815, 1817, 1821, 1821, 1827, 1845, 1845,
                           1868, 1925, 1925, 2007, 32, 32, 131, 2002, 2002,
                           1888])
@@ -1883,11 +1888,11 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[4].cqcc, 1)
         # quantization type
         self.assertEqual(c.segment[4].sqcc & 0x1f, 2)  # none
-        self.assertEqual(c.segment[4]._guard_bits, 3)
-        self.assertEqual(c.segment[4]._exponent,
+        self.assertEqual(c.segment[4].guard_bits, 3)
+        self.assertEqual(c.segment[4].exponent,
                          [14, 14, 14, 14, 13, 13, 13, 12, 12, 12, 11, 11, 11,
                           9, 9, 9, 9, 9, 9])
-        self.assertEqual(c.segment[4]._mantissa,
+        self.assertEqual(c.segment[4].mantissa,
                          [1814, 1815, 1815, 1817, 1821, 1821, 1827, 1845,
                           1845, 1868, 1925, 1925, 2007, 32, 32, 131, 2002,
                           2002, 1888])
@@ -1897,11 +1902,11 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[5].cqcc, 2)
         # quantization type
         self.assertEqual(c.segment[5].sqcc & 0x1f, 2)  # none
-        self.assertEqual(c.segment[5]._guard_bits, 3)
-        self.assertEqual(c.segment[5]._exponent,
+        self.assertEqual(c.segment[5].guard_bits, 3)
+        self.assertEqual(c.segment[5].exponent,
                          [14, 14, 14, 14, 13, 13, 13, 12, 12, 12, 11, 11, 11,
                           9, 9, 9, 9, 9, 9])
-        self.assertEqual(c.segment[5]._mantissa,
+        self.assertEqual(c.segment[5].mantissa,
                          [1814, 1815, 1815, 1817, 1821, 1821, 1827, 1845,
                           1845, 1868, 1925, 1925, 2007, 32, 32, 131, 2002,
                           2002, 1888])
@@ -2016,11 +2021,11 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[5].sqcd & 0x1f, 2)  # scalar expounded
-        self.assertEqual(c.segment[5]._guard_bits, 3)
-        self.assertEqual(c.segment[5]._exponent,
+        self.assertEqual(c.segment[5].guard_bits, 3)
+        self.assertEqual(c.segment[5].exponent,
                          [16, 16, 16, 16, 15, 15, 15, 14, 14, 14, 13, 13, 13,
                           11, 11, 11, 11, 11, 11])
-        self.assertEqual(c.segment[5]._mantissa,
+        self.assertEqual(c.segment[5].mantissa,
                          [1814, 1815, 1815, 1817, 1821, 1821, 1827, 1845,
                           1845, 1868, 1925, 1925, 2007, 32, 32, 131, 2002,
                           2002, 1888])
@@ -2030,20 +2035,20 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[6].cqcc, 0)
         # quantization type
         self.assertEqual(c.segment[6].sqcc & 0x1f, 1)  # scalar derived
-        self.assertEqual(c.segment[6]._guard_bits, 3)
-        self.assertEqual(c.segment[6]._exponent, [14])
-        self.assertEqual(c.segment[6]._mantissa, [0])
+        self.assertEqual(c.segment[6].guard_bits, 3)
+        self.assertEqual(c.segment[6].exponent, [14])
+        self.assertEqual(c.segment[6].mantissa, [0])
 
         # QCC: Quantization component
         # associated component
         self.assertEqual(c.segment[7].cqcc, 3)
         # quantization type
         self.assertEqual(c.segment[7].sqcc & 0x1f, 0)  # none
-        self.assertEqual(c.segment[7]._guard_bits, 3)
-        self.assertEqual(c.segment[7]._exponent,
+        self.assertEqual(c.segment[7].guard_bits, 3)
+        self.assertEqual(c.segment[7].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10,
                           9, 9, 10])
-        self.assertEqual(c.segment[7]._mantissa, [0] * 19)
+        self.assertEqual(c.segment[7].mantissa, [0] * 19)
 
         # COM: comment
         # Registration
@@ -2119,11 +2124,11 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[3].sqcd & 0x1f, 2)  # scalar expounded
-        self.assertEqual(c.segment[3]._guard_bits, 3)
-        self.assertEqual(c.segment[3]._mantissa,
+        self.assertEqual(c.segment[3].guard_bits, 3)
+        self.assertEqual(c.segment[3].mantissa,
                          [512, 518, 522, 524, 516, 524, 522, 527, 523, 549,
                           557, 561, 853, 852, 700, 163, 78, 1508, 1831])
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].exponent,
                          [7, 7, 7, 7, 6, 6, 6, 5, 5, 5, 4, 4, 4, 3, 3, 2, 1, 2,
                           1])
 
@@ -2132,11 +2137,11 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[4].cqcc, 1)
         # quantization type
         self.assertEqual(c.segment[4].sqcc & 0x1f, 2)  # scalar derived
-        self.assertEqual(c.segment[4]._guard_bits, 4)
-        self.assertEqual(c.segment[4]._mantissa,
+        self.assertEqual(c.segment[4].guard_bits, 4)
+        self.assertEqual(c.segment[4].mantissa,
                          [1527, 489, 665, 506, 487, 502, 493, 493, 500, 485,
                           505, 491, 490, 491, 499, 509, 503, 496, 558])
-        self.assertEqual(c.segment[4]._exponent,
+        self.assertEqual(c.segment[4].exponent,
                          [10, 10, 10, 10, 9, 9, 9, 8, 8, 8, 7, 7, 7, 6, 6, 6,
                           5, 5, 5])
 
@@ -2145,11 +2150,11 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[5].cqcc, 2)
         # quantization type
         self.assertEqual(c.segment[5].sqcc & 0x1f, 2)  # scalar derived
-        self.assertEqual(c.segment[5]._guard_bits, 5)
-        self.assertEqual(c.segment[5]._mantissa,
+        self.assertEqual(c.segment[5].guard_bits, 5)
+        self.assertEqual(c.segment[5].mantissa,
                          [1337, 728, 890, 719, 716, 726, 700, 718, 704, 704,
                           712, 712, 717, 719, 701, 749, 753, 718, 841])
-        self.assertEqual(c.segment[5]._exponent,
+        self.assertEqual(c.segment[5].exponent,
                          [10, 10, 10, 10, 9, 9, 9, 8, 8, 8, 7, 7, 7, 6, 6, 6,
                           5, 5, 5])
 
@@ -2158,9 +2163,9 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[6].cqcc, 3)
         # quantization type
         self.assertEqual(c.segment[6].sqcc & 0x1f, 0)  # none
-        self.assertEqual(c.segment[6]._guard_bits, 6)
-        self.assertEqual(c.segment[6]._mantissa, [0] * 19)
-        self.assertEqual(c.segment[6]._exponent,
+        self.assertEqual(c.segment[6].guard_bits, 6)
+        self.assertEqual(c.segment[6].mantissa, [0] * 19)
+        self.assertEqual(c.segment[6].exponent,
                          [12, 13, 13, 14, 13, 13, 14, 13, 13, 14, 13, 13, 14,
                           13, 13, 14, 13, 13, 14])
 
@@ -2256,9 +2261,9 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)  # none
-        self.assertEqual(c.segment[3]._guard_bits, 1)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 10)
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].guard_bits, 1)
+        self.assertEqual(c.segment[3].mantissa, [0] * 10)
+        self.assertEqual(c.segment[3].exponent,
                          [14, 15, 15, 16, 15, 15, 16, 15, 15, 16])
 
         # COM: comment
@@ -2401,9 +2406,9 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[6].sqcd & 0x1f, 0)  # none
-        self.assertEqual(c.segment[6]._guard_bits, 4)
-        self.assertEqual(c.segment[6]._mantissa, [0] * 22)
-        self.assertEqual(c.segment[6]._exponent,
+        self.assertEqual(c.segment[6].guard_bits, 4)
+        self.assertEqual(c.segment[6].mantissa, [0] * 22)
+        self.assertEqual(c.segment[6].exponent,
                          [11, 12, 12, 13, 12, 12, 13, 12, 12, 13, 12, 12, 13,
                           12, 12, 13, 12, 12, 13, 12, 12, 13])
 
@@ -2412,9 +2417,9 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[7].cqcc, 0)
         # quantization type
         self.assertEqual(c.segment[7].sqcc & 0x1f, 0)  # none
-        self.assertEqual(c.segment[7]._guard_bits, 4)
-        self.assertEqual(c.segment[7]._mantissa, [0] * 19)
-        self.assertEqual(c.segment[7]._exponent,
+        self.assertEqual(c.segment[7].guard_bits, 4)
+        self.assertEqual(c.segment[7].mantissa, [0] * 19)
+        self.assertEqual(c.segment[7].exponent,
                          [11, 12, 12, 13, 12, 12, 13, 12, 12, 13, 12, 12, 13,
                              12, 12, 13, 12, 12, 13])
 
@@ -2423,9 +2428,9 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[8].cqcc, 2)
         # quantization type
         self.assertEqual(c.segment[8].sqcc & 0x1f, 0)  # none
-        self.assertEqual(c.segment[8]._guard_bits, 4)
-        self.assertEqual(c.segment[8]._mantissa, [0] * 25)
-        self.assertEqual(c.segment[8]._exponent,
+        self.assertEqual(c.segment[8].guard_bits, 4)
+        self.assertEqual(c.segment[8].mantissa, [0] * 25)
+        self.assertEqual(c.segment[8].exponent,
                          [11, 12, 12, 13, 12, 12, 13, 12, 12, 13, 12, 12, 13,
                           12, 12, 13, 12, 12, 13, 12, 12, 13, 12, 12, 13])
 
@@ -2494,11 +2499,11 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[3].sqcd & 0x1f, 2)  # scalar expounded
-        self.assertEqual(c.segment[3]._guard_bits, 1)
-        self.assertEqual(c.segment[3]._mantissa,
+        self.assertEqual(c.segment[3].guard_bits, 1)
+        self.assertEqual(c.segment[3].mantissa,
                          [1915, 1884, 1884, 1853, 1884, 1884, 1853, 1962, 1962,
                           1986, 53, 53, 120, 26, 26, 1983])
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].exponent,
                          [16, 16, 16, 16, 15, 15, 15, 14, 14, 14, 12, 12, 12,
                           11, 11, 12])
 
@@ -2574,9 +2579,9 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)  # none
-        self.assertEqual(c.segment[3]._guard_bits, 0)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 10)
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].guard_bits, 0)
+        self.assertEqual(c.segment[3].mantissa, [0] * 10)
+        self.assertEqual(c.segment[3].exponent,
                          [11, 12, 12, 13, 12, 12, 13, 12, 12, 13])
 
         # SOT: start of tile part
@@ -2715,9 +2720,9 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)  # none
-        self.assertEqual(c.segment[3]._guard_bits, 3)
-        self.assertEqual(c.segment[3]._mantissa, [0])
-        self.assertEqual(c.segment[3]._exponent, [8])
+        self.assertEqual(c.segment[3].guard_bits, 3)
+        self.assertEqual(c.segment[3].mantissa, [0])
+        self.assertEqual(c.segment[3].exponent, [8])
 
         # COM: comment
         # Registration
@@ -2796,9 +2801,9 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)  # none
-        self.assertEqual(c.segment[3]._guard_bits, 3)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 10)
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].guard_bits, 3)
+        self.assertEqual(c.segment[3].mantissa, [0] * 10)
+        self.assertEqual(c.segment[3].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
         # COM: comment
@@ -2896,28 +2901,28 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[4].sqcd & 0x1f, 0)  # none
-        self.assertEqual(c.segment[4]._guard_bits, 2)
-        self.assertEqual(c.segment[4]._mantissa, [0] * 4)
-        self.assertEqual(c.segment[4]._exponent,
+        self.assertEqual(c.segment[4].guard_bits, 2)
+        self.assertEqual(c.segment[4].mantissa, [0] * 4)
+        self.assertEqual(c.segment[4].exponent,
                          [8, 9, 9, 10])
 
         # QCC: Quantization component
         # associated component
         self.assertEqual(c.segment[5].cqcc, 1)
-        self.assertEqual(c.segment[5]._guard_bits, 3)
+        self.assertEqual(c.segment[5].guard_bits, 3)
         # quantization type
         self.assertEqual(c.segment[5].sqcc & 0x1f, 0)  # none
-        self.assertEqual(c.segment[5]._exponent, [9, 10, 10, 11])
-        self.assertEqual(c.segment[5]._mantissa, [0, 0, 0, 0])
+        self.assertEqual(c.segment[5].exponent, [9, 10, 10, 11])
+        self.assertEqual(c.segment[5].mantissa, [0, 0, 0, 0])
 
         # QCC: Quantization component
         # associated component
         self.assertEqual(c.segment[6].cqcc, 2)
-        self.assertEqual(c.segment[6]._guard_bits, 2)
+        self.assertEqual(c.segment[6].guard_bits, 2)
         # quantization type
         self.assertEqual(c.segment[6].sqcc & 0x1f, 0)  # none
-        self.assertEqual(c.segment[6]._exponent, [9, 10, 10, 11])
-        self.assertEqual(c.segment[6]._mantissa, [0, 0, 0, 0])
+        self.assertEqual(c.segment[6].exponent, [9, 10, 10, 11])
+        self.assertEqual(c.segment[6].mantissa, [0, 0, 0, 0])
 
         # RGN: region of interest
         self.assertEqual(c.segment[7].crgn, 3)
@@ -3003,9 +3008,9 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)  # none
-        self.assertEqual(c.segment[3]._guard_bits, 1)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].guard_bits, 1)
+        self.assertEqual(c.segment[3].mantissa, [0] * 16)
+        self.assertEqual(c.segment[3].exponent,
                          [10, 11, 11, 12, 11, 11, 12, 11, 11, 12, 11, 11, 12,
                           11, 11, 12])
 
@@ -3079,18 +3084,18 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[3].sqcd & 0x1f, 1)  # derived
-        self.assertEqual(c.segment[3]._guard_bits, 2)
-        self.assertEqual(c.segment[3]._mantissa, [0])
-        self.assertEqual(c.segment[3]._exponent, [0])
+        self.assertEqual(c.segment[3].guard_bits, 2)
+        self.assertEqual(c.segment[3].mantissa, [0])
+        self.assertEqual(c.segment[3].exponent, [0])
 
         # QCC: Quantization component
         # associated component
         self.assertEqual(c.segment[4].cqcc, 0)
-        self.assertEqual(c.segment[4]._guard_bits, 2)
+        self.assertEqual(c.segment[4].guard_bits, 2)
         # quantization type
         self.assertEqual(c.segment[4].sqcc & 0x1f, 0)  # none
-        self.assertEqual(c.segment[4]._mantissa, [0] * 4)
-        self.assertEqual(c.segment[4]._exponent, [4, 5, 5, 6])
+        self.assertEqual(c.segment[4].mantissa, [0] * 4)
+        self.assertEqual(c.segment[4].exponent, [4, 5, 5, 6])
 
         # POD: progression order change
         self.assertEqual(c.segment[5].rspod, (0,))
@@ -3233,9 +3238,9 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)  # none
-        self.assertEqual(c.segment[3]._guard_bits, 2)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 10)
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].guard_bits, 2)
+        self.assertEqual(c.segment[3].mantissa, [0] * 10)
+        self.assertEqual(c.segment[3].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
         # SOT: start of tile part
@@ -3320,9 +3325,9 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[4].sqcd & 0x1f, 0)  # none
-        self.assertEqual(c.segment[4]._guard_bits, 3)
-        self.assertEqual(c.segment[4]._mantissa, [0] * 10)
-        self.assertEqual(c.segment[4]._exponent,
+        self.assertEqual(c.segment[4].guard_bits, 3)
+        self.assertEqual(c.segment[4].mantissa, [0] * 10)
+        self.assertEqual(c.segment[4].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
         # COM: comment
@@ -3404,40 +3409,40 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[3].sqcd & 0x1f, 2)  # expounded
-        self.assertEqual(c.segment[3]._guard_bits, 3)
-        self.assertEqual(c.segment[3]._mantissa,
+        self.assertEqual(c.segment[3].guard_bits, 3)
+        self.assertEqual(c.segment[3].mantissa,
                          [1814, 1815, 1815, 1817, 1821, 1821, 1827, 1845, 1845,
                           1868, 1925, 1925, 2007, 32, 32, 131, 2002, 2002,
                           1888])
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].exponent,
                          [16, 16, 16, 16, 15, 15, 15, 14, 14, 14, 13, 13, 13,
                           11, 11, 11, 11, 11, 11])
 
         # QCC: Quantization component
         # associated component
         self.assertEqual(c.segment[4].cqcc, 1)
-        self.assertEqual(c.segment[4]._guard_bits, 3)
+        self.assertEqual(c.segment[4].guard_bits, 3)
         # quantization type
         self.assertEqual(c.segment[4].sqcc & 0x1f, 2)  # expounded
-        self.assertEqual(c.segment[4]._mantissa,
+        self.assertEqual(c.segment[4].mantissa,
                          [1814, 1815, 1815, 1817, 1821, 1821, 1827, 1845, 1845,
                           1868, 1925, 1925, 2007, 32, 32, 131, 2002, 2002,
                           1888])
-        self.assertEqual(c.segment[4]._exponent,
+        self.assertEqual(c.segment[4].exponent,
                          [14, 14, 14, 14, 13, 13, 13, 12, 12, 12, 11, 11, 11,
                           9, 9, 9, 9, 9, 9])
 
         # QCC: Quantization component
         # associated component
         self.assertEqual(c.segment[5].cqcc, 2)
-        self.assertEqual(c.segment[5]._guard_bits, 3)
+        self.assertEqual(c.segment[5].guard_bits, 3)
         # quantization type
         self.assertEqual(c.segment[5].sqcc & 0x1f, 2)  # expounded
-        self.assertEqual(c.segment[5]._mantissa,
+        self.assertEqual(c.segment[5].mantissa,
                          [1814, 1815, 1815, 1817, 1821, 1821, 1827, 1845, 1845,
                           1868, 1925, 1925, 2007, 32, 32, 131, 2002, 2002,
                           1888])
-        self.assertEqual(c.segment[5]._exponent,
+        self.assertEqual(c.segment[5].exponent,
                          [14, 14, 14, 14, 13, 13, 13, 12, 12, 12, 11, 11, 11,
                           9, 9, 9, 9, 9, 9])
 
@@ -3554,32 +3559,32 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[5].sqcd & 0x1f, 2)  # expounded
-        self.assertEqual(c.segment[5]._guard_bits, 3)
-        self.assertEqual(c.segment[5]._mantissa,
+        self.assertEqual(c.segment[5].guard_bits, 3)
+        self.assertEqual(c.segment[5].mantissa,
                          [1814, 1815, 1815, 1817, 1821, 1821, 1827, 1845, 1845,
                              1868, 1925, 1925, 2007, 32, 32, 131, 2002, 2002,
                              1888])
-        self.assertEqual(c.segment[5]._exponent,
+        self.assertEqual(c.segment[5].exponent,
                          [16, 16, 16, 16, 15, 15, 15, 14, 14, 14, 13, 13, 13,
                              11, 11, 11, 11, 11, 11])
 
         # QCC: Quantization component
         # associated component
         self.assertEqual(c.segment[6].cqcc, 0)
-        self.assertEqual(c.segment[6]._guard_bits, 3)
+        self.assertEqual(c.segment[6].guard_bits, 3)
         # quantization type
         self.assertEqual(c.segment[6].sqcc & 0x1f, 1)  # derived
-        self.assertEqual(c.segment[6]._mantissa, [0])
-        self.assertEqual(c.segment[6]._exponent, [14])
+        self.assertEqual(c.segment[6].mantissa, [0])
+        self.assertEqual(c.segment[6].exponent, [14])
 
         # QCC: Quantization component
         # associated component
         self.assertEqual(c.segment[7].cqcc, 3)
-        self.assertEqual(c.segment[7]._guard_bits, 3)
+        self.assertEqual(c.segment[7].guard_bits, 3)
         # quantization type
         self.assertEqual(c.segment[7].sqcc & 0x1f, 0)  # none
-        self.assertEqual(c.segment[7]._mantissa, [0] * 19)
-        self.assertEqual(c.segment[7]._exponent,
+        self.assertEqual(c.segment[7].mantissa, [0] * 19)
+        self.assertEqual(c.segment[7].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10,
                           9, 9, 10])
 
@@ -3662,10 +3667,10 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[3].sqcd & 0x1f, 2)  # expounded
-        self.assertEqual(c.segment[3]._guard_bits, 2)
-        self.assertEqual(c.segment[3]._mantissa,
+        self.assertEqual(c.segment[3].guard_bits, 2)
+        self.assertEqual(c.segment[3].mantissa,
                          [84, 423, 408, 435, 450, 435, 470, 549, 520, 618])
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].exponent,
                          [8, 10, 10, 10, 9, 9, 9, 8, 8, 8])
 
         # TLM (tile-part length)
@@ -3705,11 +3710,11 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[9].sqcd & 0x1f, 2)  # expounded
-        self.assertEqual(c.segment[9]._guard_bits, 2)
-        self.assertEqual(c.segment[9]._mantissa,
+        self.assertEqual(c.segment[9].guard_bits, 2)
+        self.assertEqual(c.segment[9].mantissa,
                          [75, 1093, 1098, 1115, 1157, 1134, 1186, 1217, 1245,
                           1248])
-        self.assertEqual(c.segment[9]._exponent,
+        self.assertEqual(c.segment[9].exponent,
                          [8, 10, 10, 10, 9, 9, 9, 8, 8, 8])
 
         # SOD:  start of data
@@ -3787,12 +3792,12 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].precinct_size, [(16, 16)] * 8)
 
         self.assertEqual(c.segment[3].sqcd & 0x1f, 2)  # expounded
-        self.assertEqual(c.segment[3]._guard_bits, 3)
-        self.assertEqual(c.segment[3]._mantissa,
+        self.assertEqual(c.segment[3].guard_bits, 3)
+        self.assertEqual(c.segment[3].mantissa,
                          [1813, 1814, 1814, 1814, 1815, 1815, 1817, 1821,
                           1821, 1827, 1845, 1845, 1868, 1925, 1925, 2007,
                           32, 32, 131, 2002, 2002, 1888])
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].exponent,
                          [17, 17, 17, 17, 16, 16, 16, 15, 15, 15, 14, 14,
                           14, 13, 13, 13, 11, 11, 11, 11, 11, 11])
 
@@ -3877,11 +3882,11 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[3].sqcd & 0x1f, 2)  # expounded
-        self.assertEqual(c.segment[3]._guard_bits, 3)
-        self.assertEqual(c.segment[3]._mantissa,
+        self.assertEqual(c.segment[3].guard_bits, 3)
+        self.assertEqual(c.segment[3].mantissa,
                          [1821, 1845, 1845, 1868, 1925, 1925, 2007, 32,
                           32, 131, 2002, 2002, 1888])
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].exponent,
                          [14, 14, 14, 14, 13, 13, 13, 11, 11, 11,
                           11, 11, 11])
 
@@ -3990,9 +3995,9 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[4].sqcd & 0x1f, 0)  # none
-        self.assertEqual(c.segment[4]._guard_bits, 2)
-        self.assertEqual(c.segment[4]._mantissa, [0] * 4)
-        self.assertEqual(c.segment[4]._exponent, [8, 9, 9, 10])
+        self.assertEqual(c.segment[4].guard_bits, 2)
+        self.assertEqual(c.segment[4].mantissa, [0] * 4)
+        self.assertEqual(c.segment[4].exponent, [8, 9, 9, 10])
 
         # COM: comment
         # Registration
@@ -4514,11 +4519,11 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[3].sqcd & 0x1f, 2)
-        self.assertEqual(c.segment[3]._guard_bits, 2)
-        self.assertEqual(c.segment[3]._mantissa,
+        self.assertEqual(c.segment[3].guard_bits, 2)
+        self.assertEqual(c.segment[3].mantissa,
                          [1824, 1776, 1776, 1728, 1792, 1792, 1760, 1872,
                           1872, 1896, 5, 5, 71, 2003, 2003, 1890])
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].exponent,
                          [18, 18, 18, 18, 17, 17, 17, 16,
                           16, 16, 14, 14, 14, 14, 14, 14])
 
@@ -4544,13 +4549,13 @@ class TestSuiteDump(unittest.TestCase):
         # QCC: Quantization component
         # associated component
         self.assertEqual(c.segment[5].cqcc, 1)
-        self.assertEqual(c.segment[5]._guard_bits, 2)
+        self.assertEqual(c.segment[5].guard_bits, 2)
         # quantization type
         self.assertEqual(c.segment[5].sqcc & 0x1f, 2)
-        self.assertEqual(c.segment[5]._mantissa,
+        self.assertEqual(c.segment[5].mantissa,
                          [1824, 1776, 1776, 1728, 1792, 1792, 1760, 1872,
                           1872, 1896, 5, 5, 71, 2003, 2003, 1890])
-        self.assertEqual(c.segment[5]._exponent,
+        self.assertEqual(c.segment[5].exponent,
                          [18, 18, 18, 18, 17, 17, 17, 16, 16, 16, 14, 14, 14,
                           14, 14, 14])
 
@@ -4576,13 +4581,13 @@ class TestSuiteDump(unittest.TestCase):
         # QCC: Quantization component
         # associated component
         self.assertEqual(c.segment[7].cqcc, 2)
-        self.assertEqual(c.segment[7]._guard_bits, 2)
+        self.assertEqual(c.segment[7].guard_bits, 2)
         # quantization type
         self.assertEqual(c.segment[7].sqcc & 0x1f, 2)  # none
-        self.assertEqual(c.segment[7]._mantissa,
+        self.assertEqual(c.segment[7].mantissa,
                          [1824, 1776, 1776, 1728, 1792, 1792, 1760, 1872,
                           1872, 1896, 5, 5, 71, 2003, 2003, 1890])
-        self.assertEqual(c.segment[7]._exponent,
+        self.assertEqual(c.segment[7].exponent,
                          [18, 18, 18, 18, 17, 17, 17, 16, 16, 16, 14, 14,
                           14, 14, 14, 14])
 
@@ -4837,9 +4842,9 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[3]._guard_bits, 4)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 34)
-        self.assertEqual(c.segment[3]._exponent, [16] + [17, 17, 18] * 11)
+        self.assertEqual(c.segment[3].guard_bits, 4)
+        self.assertEqual(c.segment[3].mantissa, [0] * 34)
+        self.assertEqual(c.segment[3].exponent, [16] + [17, 17, 18] * 11)
 
     def test_NR_CT_Phillips_JPEG2K_Decompr_Problem_dump(self):
         jfile = os.path.join(data_root,
@@ -4899,11 +4904,11 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[3].sqcd & 0x1f, 2)
-        self.assertEqual(c.segment[3]._guard_bits, 1)
-        self.assertEqual(c.segment[3]._mantissa,
+        self.assertEqual(c.segment[3].guard_bits, 1)
+        self.assertEqual(c.segment[3].mantissa,
                          [442, 422, 422, 403, 422, 422, 403, 472, 472, 487,
                           591, 591, 676, 558, 558, 485])
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].exponent,
                          [22, 22, 22, 22, 21, 21, 21, 20, 20, 20, 19, 19, 19,
                           18, 18, 18])
 
@@ -4970,9 +4975,9 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[3]._guard_bits, 1)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].guard_bits, 1)
+        self.assertEqual(c.segment[3].mantissa, [0] * 16)
+        self.assertEqual(c.segment[3].exponent,
                          [9, 10, 10, 11, 10, 10, 11, 10, 10, 11, 10, 10, 10,
                           9, 9, 10])
 
@@ -5047,9 +5052,9 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[3]._guard_bits, 4)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 34)
-        self.assertEqual(c.segment[3]._exponent, [16] + [17, 17, 18] * 11)
+        self.assertEqual(c.segment[3].guard_bits, 4)
+        self.assertEqual(c.segment[3].mantissa, [0] * 34)
+        self.assertEqual(c.segment[3].exponent, [16] + [17, 17, 18] * 11)
 
     def test_NR_j2k32_dump(self):
         jfile = os.path.join(data_root, 'input/nonregression/j2k32.j2k')
@@ -5107,9 +5112,9 @@ class TestSuiteDump(unittest.TestCase):
         # QCD: Quantization default
         # quantization type
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[3]._guard_bits, 2)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[3]._exponent, [8, 9, 9, 10, 9, 9, 10, 9, 9,
+        self.assertEqual(c.segment[3].guard_bits, 2)
+        self.assertEqual(c.segment[3].mantissa, [0] * 16)
+        self.assertEqual(c.segment[3].exponent, [8, 9, 9, 10, 9, 9, 10, 9, 9,
                          10, 9, 9, 10, 9, 9, 10])
 
         # COM: comment
@@ -5172,9 +5177,9 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[3]._guard_bits, 1)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 25)
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].guard_bits, 1)
+        self.assertEqual(c.segment[3].mantissa, [0] * 25)
+        self.assertEqual(c.segment[3].exponent,
                          [17, 18, 18, 19, 18, 18, 19, 18, 18, 19, 18, 18, 19,
                           18, 18, 19, 18, 18, 19, 18, 18, 19, 18, 18, 19])
 
@@ -5257,9 +5262,9 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[3]._guard_bits, 4)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 34)
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].guard_bits, 4)
+        self.assertEqual(c.segment[3].mantissa, [0] * 34)
+        self.assertEqual(c.segment[3].exponent,
                          [16, 17, 17, 18, 17, 17, 18, 17, 17, 18, 17, 17, 18,
                           17, 17, 18, 17, 17, 18, 17, 17, 18, 17, 17, 18, 17,
                           17, 18, 17, 17, 18, 17, 17, 18])
@@ -5317,9 +5322,9 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[3]._guard_bits, 2)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].guard_bits, 2)
+        self.assertEqual(c.segment[3].mantissa, [0] * 16)
+        self.assertEqual(c.segment[3].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
     def test_NR_movie_00001(self):
@@ -5375,9 +5380,9 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[3]._guard_bits, 2)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].guard_bits, 2)
+        self.assertEqual(c.segment[3].mantissa, [0] * 16)
+        self.assertEqual(c.segment[3].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
     def test_NR_movie_00002(self):
@@ -5433,9 +5438,9 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[3]._guard_bits, 2)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].guard_bits, 2)
+        self.assertEqual(c.segment[3].mantissa, [0] * 16)
+        self.assertEqual(c.segment[3].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
     def test_NR_orb_blue10_lin_j2k_dump(self):
@@ -5494,9 +5499,9 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[3]._guard_bits, 2)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].guard_bits, 2)
+        self.assertEqual(c.segment[3].mantissa, [0] * 16)
+        self.assertEqual(c.segment[3].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
     def test_NR_orb_blue10_win_j2k_dump(self):
@@ -5555,9 +5560,9 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[3]._guard_bits, 2)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].guard_bits, 2)
+        self.assertEqual(c.segment[3].mantissa, [0] * 16)
+        self.assertEqual(c.segment[3].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
     def test_NR_pacs_ge_j2k_dump(self):
@@ -5615,9 +5620,9 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[3]._guard_bits, 1)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].guard_bits, 1)
+        self.assertEqual(c.segment[3].mantissa, [0] * 16)
+        self.assertEqual(c.segment[3].exponent,
                          [18, 19, 19, 20, 19, 19, 20, 19, 19, 20, 19, 19, 20,
                           19, 19, 20])
 
@@ -5685,9 +5690,9 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[3]._guard_bits, 2)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].guard_bits, 2)
+        self.assertEqual(c.segment[3].mantissa, [0] * 16)
+        self.assertEqual(c.segment[3].exponent,
                          [12, 13, 13, 14, 13, 13, 14, 13, 13, 14, 13, 13, 14,
                           13, 13, 14])
 
@@ -5755,9 +5760,9 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[3]._guard_bits, 4)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 34)
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].guard_bits, 4)
+        self.assertEqual(c.segment[3].mantissa, [0] * 34)
+        self.assertEqual(c.segment[3].exponent,
                          [16] + [17, 17, 18] * 11)
 
     def test_NR_bug_j2c_dump(self):
@@ -5817,9 +5822,9 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[3]._guard_bits, 4)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 34)
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].guard_bits, 4)
+        self.assertEqual(c.segment[3].mantissa, [0] * 34)
+        self.assertEqual(c.segment[3].exponent,
                          [16] + [17, 17, 18] * 11)
 
     def test_NR_kodak_2layers_lrcp_j2c_dump(self):
@@ -5881,9 +5886,9 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[3].sqcd & 0x1f, 2)
-        self.assertEqual(c.segment[3]._guard_bits, 2)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].guard_bits, 2)
+        self.assertEqual(c.segment[3].mantissa, [0] * 16)
+        self.assertEqual(c.segment[3].exponent,
                          [13, 12, 12, 12, 12, 12, 12, 13, 13, 13, 13, 13, 13,
                           13, 13, 13])
 
@@ -5899,7 +5904,7 @@ class TestSuiteDump(unittest.TestCase):
     def test_NR_broken_jp2_dump(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/broken.jp2')
-        with self.assertWarns(UserWarning) as cw:
+        with self.assertWarns(UserWarning):
             # colr box has bad length.
             jp2 = Jp2k(jfile)
 
@@ -5996,29 +6001,29 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[4].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[4]._guard_bits, 2)
-        self.assertEqual(c.segment[4]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[4]._exponent,
+        self.assertEqual(c.segment[4].guard_bits, 2)
+        self.assertEqual(c.segment[4].mantissa, [0] * 16)
+        self.assertEqual(c.segment[4].exponent,
                          [8] + [9, 9, 10] * 5)
 
         # QCC: Quantization component
         # associated component
         self.assertEqual(c.segment[5].cqcc, 1)
-        self.assertEqual(c.segment[5]._guard_bits, 2)
+        self.assertEqual(c.segment[5].guard_bits, 2)
         # quantization type
         self.assertEqual(c.segment[5].sqcc & 0x1f, 0)  # none
-        self.assertEqual(c.segment[5]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[5]._exponent,
+        self.assertEqual(c.segment[5].mantissa, [0] * 16)
+        self.assertEqual(c.segment[5].exponent,
                          [8] + [9, 9, 10] * 5)
 
         # QCC: Quantization component
         # associated component
         self.assertEqual(c.segment[6].cqcc, 2)
-        self.assertEqual(c.segment[6]._guard_bits, 2)
+        self.assertEqual(c.segment[6].guard_bits, 2)
         # quantization type
         self.assertEqual(c.segment[6].sqcc & 0x1f, 0)  # none
-        self.assertEqual(c.segment[6]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[6]._exponent,
+        self.assertEqual(c.segment[6].mantissa, [0] * 16)
+        self.assertEqual(c.segment[6].exponent,
                          [8] + [9, 9, 10] * 5)
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
@@ -6036,7 +6041,7 @@ class TestSuiteDump(unittest.TestCase):
     def test_NR_broken3_jp2_dump(self):
         jfile = os.path.join(data_root,
                              'input/nonregression/broken3.jp2')
-        with self.assertWarns(UserWarning) as cw:
+        with self.assertWarns(UserWarning):
             # colr box has bad length.
             jp2 = Jp2k(jfile)
 
@@ -6133,29 +6138,29 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[4].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[4]._guard_bits, 2)
-        self.assertEqual(c.segment[4]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[4]._exponent,
+        self.assertEqual(c.segment[4].guard_bits, 2)
+        self.assertEqual(c.segment[4].mantissa, [0] * 16)
+        self.assertEqual(c.segment[4].exponent,
                          [8] + [9, 9, 10] * 5)
 
         # QCC: Quantization component
         # associated component
         self.assertEqual(c.segment[5].cqcc, 1)
-        self.assertEqual(c.segment[5]._guard_bits, 2)
+        self.assertEqual(c.segment[5].guard_bits, 2)
         # quantization type
         self.assertEqual(c.segment[5].sqcc & 0x1f, 0)  # none
-        self.assertEqual(c.segment[5]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[5]._exponent,
+        self.assertEqual(c.segment[5].mantissa, [0] * 16)
+        self.assertEqual(c.segment[5].exponent,
                          [8] + [9, 9, 10] * 5)
 
         # QCC: Quantization component
         # associated component
         self.assertEqual(c.segment[6].cqcc, 2)
-        self.assertEqual(c.segment[6]._guard_bits, 2)
+        self.assertEqual(c.segment[6].guard_bits, 2)
         # quantization type
         self.assertEqual(c.segment[6].sqcc & 0x1f, 0)  # none
-        self.assertEqual(c.segment[6]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[6]._exponent,
+        self.assertEqual(c.segment[6].mantissa, [0] * 16)
+        self.assertEqual(c.segment[6].exponent,
                          [8] + [9, 9, 10] * 5)
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
@@ -6259,11 +6264,11 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[3].sqcd & 0x1f, 2)
-        self.assertEqual(c.segment[3]._guard_bits, 1)
-        self.assertEqual(c.segment[3]._mantissa,
+        self.assertEqual(c.segment[3].guard_bits, 1)
+        self.assertEqual(c.segment[3].mantissa,
                          [1816, 1792, 1792, 1724, 1770, 1770, 1724, 1868,
                           1868, 1892, 3, 3, 69, 2002, 2002, 1889])
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].exponent,
                          [13] * 4 + [12] * 3 + [11] * 3 + [9] * 6)
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
@@ -6273,7 +6278,7 @@ class TestSuiteDump(unittest.TestCase):
                'gdal_fuzzer_assert_in_opj_j2k_read_SQcd_SQcc.patch.jp2']
         jfile = os.path.join(data_root, '/'.join(lst))
         with self.assertWarns(UserWarning):
-            jp2 = Jp2k(jfile)
+            Jp2k(jfile)
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
@@ -6281,7 +6286,7 @@ class TestSuiteDump(unittest.TestCase):
         lst = ['input', 'nonregression', 'gdal_fuzzer_check_comp_dx_dy.jp2']
         jfile = os.path.join(data_root, '/'.join(lst))
         with self.assertWarns(UserWarning):
-            jp2 = Jp2k(jfile)
+            Jp2k(jfile)
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
@@ -6291,7 +6296,7 @@ class TestSuiteDump(unittest.TestCase):
                'gdal_fuzzer_check_number_of_tiles.jp2']
         jfile = os.path.join(data_root, '/'.join(lst))
         with self.assertWarns(UserWarning):
-            jp2 = Jp2k(jfile)
+            Jp2k(jfile)
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
@@ -6301,7 +6306,7 @@ class TestSuiteDump(unittest.TestCase):
                'gdal_fuzzer_unchecked_numresolutions.jp2']
         jfile = os.path.join(data_root, '/'.join(lst))
         with self.assertWarns(UserWarning):
-            jp2 = Jp2k(jfile)
+            Jp2k(jfile)
 
     def test_NR_issue104_jpxstream_dump(self):
         jfile = os.path.join(data_root,
@@ -6413,9 +6418,9 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[3]._guard_bits, 2)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[3]._exponent, [8] + [9, 9, 10] * 5)
+        self.assertEqual(c.segment[3].guard_bits, 2)
+        self.assertEqual(c.segment[3].mantissa, [0] * 16)
+        self.assertEqual(c.segment[3].exponent, [8] + [9, 9, 10] * 5)
 
     def test_NR_issue188_beach_64bitsbox(self):
         lst = ['input', 'nonregression', 'issue188_beach_64bitsbox.jp2']
@@ -6514,7 +6519,7 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[3].sqcd & 0x1f, 2)
-        self.assertEqual(c.segment[3]._guard_bits, 1)
+        self.assertEqual(c.segment[3].guard_bits, 1)
 
     def test_NR_issue206_image_000_dump(self):
         jfile = os.path.join(data_root,
@@ -6613,9 +6618,9 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[3].sqcd & 0x1f, 2)
-        self.assertEqual(c.segment[3]._guard_bits, 2)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[3]._exponent, [8] + [9, 9, 10] * 5)
+        self.assertEqual(c.segment[3].guard_bits, 2)
+        self.assertEqual(c.segment[3].mantissa, [0] * 16)
+        self.assertEqual(c.segment[3].exponent, [8] + [9, 9, 10] * 5)
 
     def test_NR_Marrin_jp2_dump(self):
         jfile = os.path.join(data_root,
@@ -6717,11 +6722,11 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[3].sqcd & 0x1f, 2)
-        self.assertEqual(c.segment[3]._guard_bits, 1)
-        self.assertEqual(c.segment[3]._mantissa,
+        self.assertEqual(c.segment[3].guard_bits, 1)
+        self.assertEqual(c.segment[3].mantissa,
                          [1822, 1770, 1770, 1724, 1792, 1792, 1762, 1868, 1868,
                           1892, 3, 3, 69, 2002, 2002, 1889])
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].exponent,
                          [14] * 4 + [13] * 3 + [12] * 3 + [10] * 6)
 
         # COM: comment
@@ -6845,9 +6850,9 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[3]._guard_bits, 3)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[3]._exponent, [1] + [2, 2, 3] * 5)
+        self.assertEqual(c.segment[3].guard_bits, 3)
+        self.assertEqual(c.segment[3].mantissa, [0] * 16)
+        self.assertEqual(c.segment[3].exponent, [1] + [2, 2, 3] * 5)
 
     def test_NR_mem_b2b86b74_2753_dump(self):
         jfile = os.path.join(data_root,
@@ -6960,9 +6965,9 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[3]._guard_bits, 2)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[3]._exponent, [4] + [5, 5, 6] * 5)
+        self.assertEqual(c.segment[3].guard_bits, 2)
+        self.assertEqual(c.segment[3].mantissa, [0] * 16)
+        self.assertEqual(c.segment[3].exponent, [4] + [5, 5, 6] * 5)
 
     def test_NR_merged_dump(self):
         jfile = os.path.join(data_root, 'input/nonregression/merged.jp2')
@@ -7054,9 +7059,9 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[3]._guard_bits, 1)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[3]._exponent, [8] + [9, 9, 10] * 5)
+        self.assertEqual(c.segment[3].guard_bits, 1)
+        self.assertEqual(c.segment[3].mantissa, [0] * 16)
+        self.assertEqual(c.segment[3].exponent, [8] + [9, 9, 10] * 5)
 
         # POD: progression order change
         self.assertEqual(c.segment[4].rspod, (0, 0))
@@ -7163,9 +7168,9 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[3]._guard_bits, 2)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].guard_bits, 2)
+        self.assertEqual(c.segment[3].mantissa, [0] * 16)
+        self.assertEqual(c.segment[3].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
     def test_NR_orb_blue10_win_jp2_dump(self):
@@ -7263,9 +7268,9 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[3]._guard_bits, 2)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].guard_bits, 2)
+        self.assertEqual(c.segment[3].mantissa, [0] * 16)
+        self.assertEqual(c.segment[3].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
     def test_NR_text_GBR_dump(self):
@@ -7375,9 +7380,9 @@ class TestSuiteDump(unittest.TestCase):
 
         # QCD: Quantization default
         self.assertEqual(c.segment[3].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[3]._guard_bits, 2)
-        self.assertEqual(c.segment[3]._mantissa, [0] * 16)
-        self.assertEqual(c.segment[3]._exponent,
+        self.assertEqual(c.segment[3].guard_bits, 2)
+        self.assertEqual(c.segment[3].mantissa, [0] * 16)
+        self.assertEqual(c.segment[3].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
 
@@ -7763,28 +7768,28 @@ class TestSuite15(unittest.TestCase):
         """ETS_JP2_file5"""
         jfile = os.path.join(data_root, 'input/conformance/file5.jp2')
         jp2k = Jp2k(jfile)
-        jp2k.read()
+        jpdata = jp2k.read()
         self.assertEqual(jpdata.shape, (512, 768, 3))
 
     def test_ETS_JP2_file6(self):
         """ETS_JP2_file6"""
         jfile = os.path.join(data_root, 'input/conformance/file6.jp2')
         jp2k = Jp2k(jfile)
-        jp2k.read()
+        jpdata = jp2k.read()
         self.assertEqual(jpdata.shape, (512, 768))
 
     def test_ETS_JP2_file7(self):
         """ETS_JP2_file7"""
         jfile = os.path.join(data_root, 'input/conformance/file7.jp2')
         jp2k = Jp2k(jfile)
-        jp2k.read()
+        jpdata = jp2k.read()
         self.assertEqual(jpdata.shape, (640, 480, 3))
 
     def test_ETS_JP2_file8(self):
         """ETS_JP2_file8"""
         jfile = os.path.join(data_root, 'input/conformance/file8.jp2')
         jp2k = Jp2k(jfile)
-        jp2k.read()
+        jpdata = jp2k.read()
         self.assertEqual(jpdata.shape, (400, 700))
 
     def test_ETS_JP2_file9(self):
@@ -7792,7 +7797,7 @@ class TestSuite15(unittest.TestCase):
         jfile = os.path.join(data_root, 'input/conformance/file9.jp2')
         jp2k = Jp2k(jfile)
         jpdata = jp2k.read()
-        if re.match('[01]\.3', OPENJPEG_VERSION):
+        if re.match(r'[01]\.3', OPENJPEG_VERSION):
             # Version 1.3 reads in the image as the palette indices.
             self.assertEqual(jpdata.shape, (512, 768))
         else:
@@ -7832,7 +7837,7 @@ class TestSuite15(unittest.TestCase):
             jp2.read()
         self.assertTrue(True)
 
-    @unittest.skipIf(re.match('[01]\.[34]', OPENJPEG_VERSION),
+    @unittest.skipIf(re.match(r'[01]\.[34]', OPENJPEG_VERSION),
                      "Segfaults openjpeg 1.4 and earlier.")
     def test_NR_DEC_broken2_jp2_5_decode(self):
         """NR_DEC_broken2_jp2_5_decode"""
@@ -7857,7 +7862,7 @@ class TestSuite15(unittest.TestCase):
         with self.assertRaises(ValueError):
             j.read()
 
-    @unittest.skipIf(re.match('[01]\.[34]', OPENJPEG_VERSION),
+    @unittest.skipIf(re.match(r'[01]\.[34]', OPENJPEG_VERSION),
                      "Segfaults openjpeg 1.4 and earlier.")
     def test_NR_DEC_broken4_jp2_7_decode(self):
         """NR_DEC_broken4_jp2_7_decode"""
