@@ -2,14 +2,20 @@
 The tests defined here roughly correspond to what is in the OpenJPEG test
 suite.
 """
-#pylint:  disable-all
 
-from contextlib import contextmanager
+# Some test names correspond with openjpeg tests.  Long names are ok in this
+# case.
+# pylint: disable=C0103
+
+# unittest fools pylint with "too many public methods"
+# pylint: disable=R0904
+
+# asserWarns introduced in python 3.2 (python2.7/pylint issue)
+# pylint: disable=E1101
+
 import os
-import platform
 import re
 import sys
-from xml.etree import cElementTree as ET
 
 if sys.hexversion < 0x02070000:
     import unittest2 as unittest
@@ -17,13 +23,6 @@ else:
     import unittest
 
 import warnings
-
-if sys.hexversion <= 0x03030000:
-    from mock import patch
-    from StringIO import StringIO
-else:
-    from unittest.mock import patch
-    from io import StringIO
 
 import numpy as np
 
@@ -33,7 +32,6 @@ import glymur
 from .fixtures import OPENJPEG_VERSION
 from .fixtures import OPENJP2_IS_V2_OFFICIAL
 
-from .fixtures import *
 
 try:
     data_root = os.environ['OPJ_DATA_ROOT']
@@ -7762,30 +7760,35 @@ class TestSuite15(unittest.TestCase):
         self.assertEqual(jpdata.shape, (512, 768))
 
     def test_ETS_JP2_file5(self):
+        """ETS_JP2_file5"""
         jfile = os.path.join(data_root, 'input/conformance/file5.jp2')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read()
+        jp2k.read()
         self.assertEqual(jpdata.shape, (512, 768, 3))
 
     def test_ETS_JP2_file6(self):
+        """ETS_JP2_file6"""
         jfile = os.path.join(data_root, 'input/conformance/file6.jp2')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read()
+        jp2k.read()
         self.assertEqual(jpdata.shape, (512, 768))
 
     def test_ETS_JP2_file7(self):
+        """ETS_JP2_file7"""
         jfile = os.path.join(data_root, 'input/conformance/file7.jp2')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read()
+        jp2k.read()
         self.assertEqual(jpdata.shape, (640, 480, 3))
 
     def test_ETS_JP2_file8(self):
+        """ETS_JP2_file8"""
         jfile = os.path.join(data_root, 'input/conformance/file8.jp2')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read()
+        jp2k.read()
         self.assertEqual(jpdata.shape, (400, 700))
 
     def test_ETS_JP2_file9(self):
+        """ETS_JP2_file9"""
         jfile = os.path.join(data_root, 'input/conformance/file9.jp2')
         jp2k = Jp2k(jfile)
         jpdata = jp2k.read()
@@ -7796,214 +7799,231 @@ class TestSuite15(unittest.TestCase):
             self.assertEqual(jpdata.shape, (512, 768, 3))
 
     def test_NR_DEC_Bretagne2_j2k_1_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/Bretagne2.j2k')
+        """test_NR_DEC_Bretagne2_j2k_1_decode"""
+        jfile = os.path.join(data_root, 'input/nonregression/Bretagne2.j2k')
         jp2 = Jp2k(jfile)
-        data = jp2.read()
+        jp2.read()
         self.assertTrue(True)
 
     def test_NR_DEC__00042_j2k_2_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/_00042.j2k')
+        """NR_DEC__00042_j2k_2_decode"""
+        jfile = os.path.join(data_root, 'input/nonregression/_00042.j2k')
         jp2 = Jp2k(jfile)
-        data = jp2.read()
+        jp2.read()
         self.assertTrue(True)
 
     @unittest.skip("fprintf stderr output in r2343.")
     def test_NR_DEC_123_j2c_3_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/123.j2c')
+        """NR_DEC_123_j2c_3_decode"""
+        jfile = os.path.join(data_root, 'input/nonregression/123.j2c')
         jp2 = Jp2k(jfile)
-        data = jp2.read()
+        jp2.read()
         self.assertTrue(True)
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
     def test_NR_DEC_broken_jp2_4_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/broken.jp2')
-        with self.assertWarns(UserWarning) as cw:
+        """NR_DEC_broken_jp2_4_decode"""
+        jfile = os.path.join(data_root, 'input/nonregression/broken.jp2')
+        with self.assertWarns(UserWarning):
             # colr box has bad length.
             jp2 = Jp2k(jfile)
         with self.assertRaises(ValueError):
-            data = jp2.read()
+            jp2.read()
         self.assertTrue(True)
 
     @unittest.skipIf(re.match('[01]\.[34]', OPENJPEG_VERSION),
                      "Segfaults openjpeg 1.4 and earlier.")
     def test_NR_DEC_broken2_jp2_5_decode(self):
+        """NR_DEC_broken2_jp2_5_decode"""
         # Null pointer access
         jfile = os.path.join(data_root, 'input/nonregression/broken2.jp2')
         with self.assertRaises(ValueError):
             with warnings.catch_warnings():
                 # Library warning, invalid number of subbands.
                 warnings.simplefilter("ignore")
-                data = Jp2k(jfile).read()
+                Jp2k(jfile).read()
         self.assertTrue(True)
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
     def test_NR_DEC_broken3_jp2_6_decode(self):
+        """NR_DEC_broken3_jp2_6_decode"""
         jfile = os.path.join(data_root, 'input/nonregression/broken3.jp2')
-        with self.assertWarns(UserWarning) as cw:
+        with self.assertWarns(UserWarning):
             # colr box has bad length.
             j = Jp2k(jfile)
 
-        with self.assertRaises(ValueError) as ce:
-            d = j.read()
+        with self.assertRaises(ValueError):
+            j.read()
 
     @unittest.skipIf(re.match('[01]\.[34]', OPENJPEG_VERSION),
                      "Segfaults openjpeg 1.4 and earlier.")
     def test_NR_DEC_broken4_jp2_7_decode(self):
+        """NR_DEC_broken4_jp2_7_decode"""
         # Null pointer access
         jfile = os.path.join(data_root, 'input/nonregression/broken4.jp2')
         with self.assertRaises(ValueError):
             with warnings.catch_warnings():
                 # Library warning, invalid number of subbands.
                 warnings.simplefilter("ignore")
-                data = Jp2k(jfile).read()
+                Jp2k(jfile).read()
         self.assertTrue(True)
 
     @unittest.skip("fprintf stderr output in r2343.")
     def test_NR_DEC_bug_j2c_8_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/bug.j2c')
-        data = Jp2k(jfile).read()
+        """NR_DEC_bug_j2c_8_decode"""
+        jfile = os.path.join(data_root, 'input/nonregression/bug.j2c')
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_buxI_j2k_9_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/buxI.j2k')
-        data = Jp2k(jfile).read()
+        """NR_DEC_buxI_j2k_9_decode"""
+        jfile = os.path.join(data_root, 'input/nonregression/buxI.j2k')
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_buxR_j2k_10_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/buxR.j2k')
-        data = Jp2k(jfile).read()
+        """NR_DEC_buxR_j2k_10_decode"""
+        jfile = os.path.join(data_root, 'input/nonregression/buxR.j2k')
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_Cannotreaddatawithnosizeknown_j2k_11_decode(self):
+        """NR_DEC_Cannotreaddatawithnosizeknown_j2k_11_decode"""
         relpath = 'input/nonregression/Cannotreaddatawithnosizeknown.j2k'
         jfile = os.path.join(data_root, relpath)
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_cthead1_j2k_12_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/cthead1.j2k')
-        data = Jp2k(jfile).read()
+        """NR_DEC_cthead1_j2k_12_decode"""
+        jfile = os.path.join(data_root, 'input/nonregression/cthead1.j2k')
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_CT_Phillips_JPEG2K_Decompr_Problem_j2k_13_decode(self):
+        """NR_DEC_CT_Phillips_JPEG2K_Decompr_Problem_j2k_13_decode"""
         relpath = 'input/nonregression/CT_Phillips_JPEG2K_Decompr_Problem.j2k'
         jfile = os.path.join(data_root, relpath)
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     @unittest.skip("fprintf stderr output in r2343.")
     def test_NR_DEC_illegalcolortransform_j2k_14_decode(self):
-        # Stream too short, expected SOT.
+        """Stream too short, expected SOT."""
         jfile = os.path.join(data_root,
                              'input/nonregression/illegalcolortransform.j2k')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_j2k32_j2k_15_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/j2k32.j2k')
-        data = Jp2k(jfile).read()
+        """NR_DEC_j2k32_j2k_15_decode"""
+        jfile = os.path.join(data_root, 'input/nonregression/j2k32.j2k')
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_kakadu_v4_4_openjpegv2_broken_j2k_16_decode(self):
+        """NR_DEC_kakadu_v4_4_openjpegv2_broken_j2k_16_decode"""
         relpath = 'input/nonregression/kakadu_v4-4_openjpegv2_broken.j2k'
         jfile = os.path.join(data_root, relpath)
         with warnings.catch_warnings():
             # This file has an invalid ICC profile
             warnings.simplefilter("ignore")
-            data = Jp2k(jfile).read()
+            Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_MarkerIsNotCompliant_j2k_17_decode(self):
+        """NR_DEC_MarkerIsNotCompliant_j2k_17_decode"""
         jfile = os.path.join(data_root,
                              'input/nonregression/MarkerIsNotCompliant.j2k')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_Marrin_jp2_18_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/Marrin.jp2')
-        data = Jp2k(jfile).read()
+        """NR_DEC_Marrin_jp2_18_decode"""
+        jfile = os.path.join(data_root, 'input/nonregression/Marrin.jp2')
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_movie_00000_j2k_20_decode(self):
+        """test_NR_DEC_movie_00000_j2k_20_decode"""
         jfile = os.path.join(data_root,
                              'input/nonregression/movie_00000.j2k')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_movie_00001_j2k_21_decode(self):
+        """NR_DEC_movie_00001_j2k_21_decode"""
         jfile = os.path.join(data_root,
                              'input/nonregression/movie_00001.j2k')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_movie_00002_j2k_22_decode(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/movie_00002.j2k')
-        data = Jp2k(jfile).read()
+        """NR_DEC_movie_00002_j2k_22_decode"""
+        jfile = os.path.join(data_root, 'input/nonregression/movie_00002.j2k')
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_orb_blue_lin_j2k_j2k_23_decode(self):
+        """NR_DEC_orb_blue_lin_j2k_j2k_23_decode"""
         jfile = os.path.join(data_root,
                              'input/nonregression/orb-blue10-lin-j2k.j2k')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_orb_blue_win_j2k_j2k_24_decode(self):
+        """NR_DEC_orb_blue_win_j2k_j2k_24_decode"""
         jfile = os.path.join(data_root,
                              'input/nonregression/orb-blue10-win-j2k.j2k')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
-    def test_NR_DEC_orb_blue_lin_jp2_25_decode(self):
+    def test_nc_dec_orb_blue_lin_jp2_25_decode(self):
+        """NR-DEC-orb-blue-lin.jp2-25-decode"""
         jfile = os.path.join(data_root,
                              'input/nonregression/orb-blue10-lin-jp2.jp2')
         with warnings.catch_warnings():
             # This file has an invalid ICC profile
             warnings.simplefilter("ignore")
-            data = Jp2k(jfile).read()
+            Jp2k(jfile).read()
         self.assertTrue(True)
 
-    def test_NR_DEC_orb_blue_win_jp2_26_decode(self):
+    def test_nr_dec_orb_blue_win_jp2_26_decode(self):
+        """NR-DEC-orb-blue-win.jp2-26-decode"""
         jfile = os.path.join(data_root,
                              'input/nonregression/orb-blue10-win-jp2.jp2')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
-    def test_NR_DEC_relax_jp2_27_decode(self):
+    def test_nr_dec_relax_jp2_27_decode(self):
+        """NR-DEC-relax.jp2-27-decode"""
         jfile = os.path.join(data_root,
                              'input/nonregression/relax.jp2')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
-    def test_NR_DEC_test_lossless_j2k_28_decode(self):
+    def test_nr_dec_test_lossless_j2k_28_decode(self):
+        """NR-DEC-test-lossless.j2k-28-decode"""
         jfile = os.path.join(data_root,
                              'input/nonregression/test_lossless.j2k')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
-    def test_NR_DEC_issue104_jpxstream_jp2_33_decode(self):
+    def test_nr_dec_issue104_jpxstream_jp2_33_decode(self):
+        """NR-DEC-issue104-jpxstream.jp2-33-decode"""
         jfile = os.path.join(data_root,
                              'input/nonregression/issue104_jpxstream.jp2')
-        data = Jp2k(jfile).read()
+        Jp2k(jfile).read()
         self.assertTrue(True)
 
-    def test_NR_DEC_file_409752_jp2_40_decode(self):
+    def test_nr_dec_file_409752_jp2_40_decode(self):
+        """NR-DEC-file-409752.jp2-40-decode"""
         jfile = os.path.join(data_root, 'input/nonregression/file409752.jp2')
         j = Jp2k(jfile)
-        with self.assertRaises(RuntimeError) as ce:
-            data = j.read()
+        with self.assertRaises(RuntimeError):
+            j.read()
 
 if __name__ == "__main__":
     unittest.main()
