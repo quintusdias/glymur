@@ -4,10 +4,14 @@ License:  MIT
 """
 
 import sys
+
+# Exitstack not found in contextlib in 2.7
+# pylint: disable=E0611
 if sys.hexversion >= 0x03030000:
     from contextlib import ExitStack
 else:
     from contextlib2 import ExitStack
+
 import ctypes
 import math
 import os
@@ -22,62 +26,12 @@ from .core import GREYSCALE
 from .core import PROGRESSION_ORDER
 from .core import ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE
 from .jp2box import Jp2kBox
-from .jp2box import JPEG2000SignatureBox
-from .jp2box import FileTypeBox
-from .jp2box import JP2HeaderBox
-from .jp2box import ContiguousCodestreamBox
+from .jp2box import JPEG2000SignatureBox, FileTypeBox, JP2HeaderBox
+from .jp2box import ColourSpecificationBox, ContiguousCodestreamBox
 from .jp2box import ImageHeaderBox
-from .jp2box import ColourSpecificationBox
 from .lib import openjpeg as opj
 from .lib import openjp2 as opj2
 from .lib import c as libc
-
-# Need to known if openjp2 library is the officially release v2.0.0 or not.
-_OPENJP2_IS_OFFICIAL_V2 = False
-if opj2.OPENJP2 is not None:
-    if opj2.version() == '2.0.0':
-        if not hasattr(opj2.OPENJP2,
-                       'opj_stream_create_default_file_stream_v3'):
-            _OPENJP2_IS_OFFICIAL_V2 = True
-
-_COLORSPACE_MAP = {'rgb': opj2.CLRSPC_SRGB,
-                   'gray': opj2.CLRSPC_GRAY,
-                   'grey': opj2.CLRSPC_GRAY,
-                   'ycc': opj2.CLRSPC_YCC}
-
-# Setup the default callback handlers.  See the callback functions subsection
-# in the ctypes section of the Python documentation for a solid explanation of
-# what's going on here.
-_CMPFUNC = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_char_p, ctypes.c_void_p)
-
-
-def _default_error_handler(msg, _):
-    """Default error handler callback for openjpeg library."""
-    msg = "OpenJPEG library error:  {0}".format(msg.decode('utf-8').rstrip())
-    opj2.set_error_message(msg)
-
-
-def _default_info_handler(msg, _):
-    """Default info handler callback for openjpeg library."""
-    print("[INFO] {0}".format(msg.decode('utf-8').rstrip()))
-
-
-def _default_warning_handler(library_msg, _):
-    """Default warning handler callback for openjpeg library."""
-    library_msg = library_msg.decode('utf-8').rstrip()
-    msg = "OpenJPEG library warning:  {0}".format(library_msg)
-    warnings.warn(msg)
-
-_ERROR_CALLBACK = _CMPFUNC(_default_error_handler)
-_INFO_CALLBACK = _CMPFUNC(_default_info_handler)
-_WARNING_CALLBACK = _CMPFUNC(_default_warning_handler)
-
-
-class LibraryNotFoundError(IOError):
-    """Raised if functionality is requested without the necessary library.
-    """
-    def __init__(self, msg):
-        IOError.__init__(self, msg)
 
 
 class Jp2k(Jp2kBox):
@@ -1312,4 +1266,51 @@ def _validate_compression_params(img_array, cparams):
     if img_array.dtype != np.uint8 and img_array.dtype != np.uint16:
         msg = "Only uint8 and uint16 images are currently supported."
         raise RuntimeError(msg)
+
+# Need to known if openjp2 library is the officially release v2.0.0 or not.
+_OPENJP2_IS_OFFICIAL_V2 = False
+if opj2.OPENJP2 is not None:
+    if opj2.version() == '2.0.0':
+        if not hasattr(opj2.OPENJP2,
+                       'opj_stream_create_default_file_stream_v3'):
+            _OPENJP2_IS_OFFICIAL_V2 = True
+
+_COLORSPACE_MAP = {'rgb': opj2.CLRSPC_SRGB,
+                   'gray': opj2.CLRSPC_GRAY,
+                   'grey': opj2.CLRSPC_GRAY,
+                   'ycc': opj2.CLRSPC_YCC}
+
+# Setup the default callback handlers.  See the callback functions subsection
+# in the ctypes section of the Python documentation for a solid explanation of
+# what's going on here.
+_CMPFUNC = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_char_p, ctypes.c_void_p)
+
+
+def _default_error_handler(msg, _):
+    """Default error handler callback for openjpeg library."""
+    msg = "OpenJPEG library error:  {0}".format(msg.decode('utf-8').rstrip())
+    opj2.set_error_message(msg)
+
+
+def _default_info_handler(msg, _):
+    """Default info handler callback for openjpeg library."""
+    print("[INFO] {0}".format(msg.decode('utf-8').rstrip()))
+
+
+def _default_warning_handler(library_msg, _):
+    """Default warning handler callback for openjpeg library."""
+    library_msg = library_msg.decode('utf-8').rstrip()
+    msg = "OpenJPEG library warning:  {0}".format(library_msg)
+    warnings.warn(msg)
+
+_ERROR_CALLBACK = _CMPFUNC(_default_error_handler)
+_INFO_CALLBACK = _CMPFUNC(_default_info_handler)
+_WARNING_CALLBACK = _CMPFUNC(_default_warning_handler)
+
+
+class LibraryNotFoundError(IOError):
+    """Raised if functionality is requested without the necessary library.
+    """
+    def __init__(self, msg):
+        IOError.__init__(self, msg)
 

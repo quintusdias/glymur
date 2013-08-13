@@ -3,7 +3,19 @@
 The module contains classes used to store information parsed from JPEG 2000
 codestreams.
 """
-# pylint: disable=C0302,R0902,R0903,R0913
+
+# The number of lines in the module is long and that's ok.  It would not help
+# matters to move anything out to another file.
+# pylint: disable=C0302
+
+# "Too many instance attributes", "Too many arguments"
+# Some segments just have a lot of information.
+# It doesn't make sense to subclass just for that.
+# pylint: disable=R0902,R0913
+
+# "Too few public methods"  Some segments don't define any new methods from
+# the base Segment class.
+# pylint: disable=R0903
 
 import math
 import struct
@@ -1276,6 +1288,10 @@ class QCCsegment(Segment):
         Quantization style for this component.
     spqcc : iterable bytes
         Quantization value for each sub-band.
+    mantissa, exponent : iterable
+        Defines quantization factors.
+    guard_bits : int
+        Number of guard bits.
 
     References
     ----------
@@ -1323,6 +1339,10 @@ class QCDsegment(Segment):
         Quantization style for all components.
     spqcd : iterable bytes
         Quantization step size values (uninterpreted).
+    mantissa, exponent : iterable
+        Defines quantization factors.
+    guard_bits : int
+        Number of guard bits.
 
     References
     ----------

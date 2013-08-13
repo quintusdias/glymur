@@ -225,7 +225,7 @@ class TestJp2k(unittest.TestCase):
             Jp2k(filename)
 
     @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
-    def test_write_with_JP2_suffix(self):
+    def test_write_with_jp2_in_caps(self):
         """should be able to write with JP2 suffix."""
         j2k = Jp2k(self.j2kfile)
         expdata = j2k.read()
