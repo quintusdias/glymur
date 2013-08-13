@@ -8,6 +8,9 @@ seem like logical negative tests to add.
 # R0904:  Not too many methods in unittest.
 # pylint: disable=R0904
 
+# unittest2 is python2.6 only (pylint/python-2.7)
+# pylint: disable=F0401
+
 import os
 import sys
 import tempfile

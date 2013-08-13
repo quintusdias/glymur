@@ -1,6 +1,11 @@
 """
 Tests for OpenJPEG module.
 """
+# unittest2 is python2.6 only (pylint/python-2.7)
+# pylint: disable=F0401
+
+# pylint: disable=E1101,R0904
+
 import ctypes
 import re
 import sys
@@ -11,8 +16,6 @@ else:
     import unittest
 
 import glymur
-
-# pylint: disable=E1101,R0904
 
 @unittest.skipIf(glymur.lib.openjpeg.OPENJPEG is None,
                  "Missing openjpeg library.")

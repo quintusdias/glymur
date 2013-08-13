@@ -5,6 +5,10 @@ suite.
 # C0103:  method names longer that 30 chars are ok in tests, IMHO
 # R0904:  Seems like pylint is fooled in this situation
 # pylint: disable=R0904,C0103
+
+# unittest2 is python2.6 only (pylint/python-2.7)
+# pylint: disable=F0401
+
 import os
 import sys
 import tempfile

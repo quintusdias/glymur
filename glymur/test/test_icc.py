@@ -5,6 +5,9 @@ ICC profile tests.
 # unittest doesn't work well with R0904.
 # pylint: disable=R0904
 
+# unittest2 is python2.6 only (pylint/python-2.7)
+# pylint: disable=F0401
+
 import datetime
 import os
 import sys

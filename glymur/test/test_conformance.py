@@ -7,6 +7,8 @@ These tests deal with JPX/JP2/J2K images in the format-corpus repository.
 # E1101:  assertWarns introduced in python 3.2
 # pylint: disable=E1101
 
+# unittest2 is python2.6 only (pylint/python-2.7)
+# pylint: disable=F0401
 
 import os
 from os.path import join
