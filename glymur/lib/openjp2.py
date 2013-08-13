@@ -2,7 +2,7 @@
 Wraps individual functions in openjp2 library.
 """
 
-# pylint: disable=C0302,R0903
+# pylint: disable=C0302,R0903,W0201
 
 import ctypes
 import sys
@@ -1381,7 +1381,6 @@ def write_tile(codec, tile_index, data, data_size, stream):
 
 def set_error_message(msg):
     """The openjpeg error handler has recorded an error message."""
-    global ERROR_MSG_LST
     ERROR_MSG_LST.append(msg)
 
 

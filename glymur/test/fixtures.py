@@ -36,8 +36,8 @@ except ImportError:
 
 def read_image(infile):
     """Read image using matplotlib backend.
-    
-    Hopefully PIL(low) is installed as matplotlib's backend.  It issues 
+
+    Hopefully PIL(low) is installed as matplotlib's backend.  It issues
     warnings which we do not care about, so suppress them.
     """
     with warnings.catch_warnings():
@@ -101,6 +101,7 @@ def read_pgx(pgx_file):
 
     return(data.byteswap(swapbytes))
 
+
 def determine_pgx_datatype(signed, bitdepth):
     """Determine the datatype of the PGX file.
 
@@ -128,6 +129,7 @@ def determine_pgx_datatype(signed, bitdepth):
 
     return dtype
 
+
 def read_pgx_header(pgx_file):
     """Open the file in ascii mode (not really) and read the header line.
     Will look something like
@@ -150,4 +152,3 @@ def read_pgx_header(pgx_file):
 
     header = header.rstrip()
     return header, pos
-

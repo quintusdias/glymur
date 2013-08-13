@@ -1,3 +1,7 @@
+Aug 13, 2013 - v0.3.1  Exposed mantissa, exponent, and guard_bits fields in QCC
+    and QCD segments.  Exposed layers and code_block_size in COD segment.
+    Exposed precinct_size in COC segment.
+
 Jul 31, 2013 - v0.3.0  Added support for official 2.0.0.
 
 Jul 27, 2013 - v0.2.8  Fixed inconsistency regarding configuration

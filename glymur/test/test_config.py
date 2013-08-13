@@ -1,7 +1,15 @@
 """These tests are for edge cases where OPENJPEG does not exist, but
 OPENJP2 may be present in some form or other.
 """
-#pylint:  disable-all
+# unittest doesn't work well with R0904.
+# pylint: disable=R0904
+
+# tempfile.TemporaryDirectory, unittest.assertWarns introduced in 3.2 
+# pylint: disable=E1101
+
+# unittest.mock only in Python 3.3 (python2.7/pylint import issue)
+# pylint:  disable=E0611,F0401
+
 
 import imp
 import os
@@ -17,13 +25,9 @@ if sys.hexversion <= 0x03030000:
     from mock import patch
 else:
     from unittest.mock import patch
-import warnings
-
-import pkg_resources
 
 import glymur
 from glymur import Jp2k
-from glymur.lib import openjp2 as opj2
 
 
 @unittest.skipIf(sys.hexversion < 0x03020000,
@@ -31,6 +35,7 @@ from glymur.lib import openjp2 as opj2
 @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Needs openjp2 library first before these tests make sense.")
 class TestSuite(unittest.TestCase):
+    """Test suite for configuration file operation."""
 
     @classmethod
     def setUpClass(cls):
@@ -56,29 +61,33 @@ class TestSuite(unittest.TestCase):
             filename = os.path.join(configdir, 'glymurrc')
             with open(filename, 'wt') as tfile:
                 tfile.write('[library]\n')
+
+                # Need to reliably recover the location of the openjp2 library,
+                # so using '_name' appears to be the only way to do it.
+                # pylint:  disable=W0212
                 libloc = glymur.lib.openjp2.OPENJP2._name
                 line = 'openjp2: {0}\n'.format(libloc)
                 tfile.write(line)
                 tfile.flush()
                 with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
                     imp.reload(glymur.lib.openjp2)
-                    j = Jp2k(self.jp2file)
+                    Jp2k(self.jp2file)
 
-    def test_config_file_via_environ_is_wrong(self):
-        # A non-existant library location should be rejected.
+    def test_xdg_env_config_file_is_bad(self):
+        """A non-existant library location should be rejected."""
         with tempfile.TemporaryDirectory() as tdir:
             configdir = os.path.join(tdir, 'glymur')
             os.mkdir(configdir)
             fname = os.path.join(configdir, 'glymurrc')
-            with open(fname, 'w') as fp:
+            with open(fname, 'w') as fptr:
                 with tempfile.NamedTemporaryFile(suffix='.dylib') as tfile:
-                    fp.write('[library]\n')
-                    fp.write('openjp2: {0}.not.there\n'.format(tfile.name))
-                    fp.flush()
+                    fptr.write('[library]\n')
+                    fptr.write('openjp2: {0}.not.there\n'.format(tfile.name))
+                    fptr.flush()
                     with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
                         # Misconfigured new configuration file should
                         # be rejected.
-                        with self.assertWarns(UserWarning) as cw:
+                        with self.assertWarns(UserWarning):
                             imp.reload(glymur.lib.openjp2)
 
 if __name__ == "__main__":

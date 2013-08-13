@@ -3,7 +3,19 @@
 The module contains classes used to store information parsed from JPEG 2000
 codestreams.
 """
-# pylint: disable=C0302,R0902,R0903,R0913
+
+# The number of lines in the module is long and that's ok.  It would not help
+# matters to move anything out to another file.
+# pylint: disable=C0302
+
+# "Too many instance attributes", "Too many arguments"
+# Some segments just have a lot of information.
+# It doesn't make sense to subclass just for that.
+# pylint: disable=R0902,R0913
+
+# "Too few public methods"  Some segments don't define any new methods from
+# the base Segment class.
+# pylint: disable=R0903
 
 import math
 import struct
@@ -775,12 +787,15 @@ class Segment(object):
     length : int
         Length of marker segment in bytes.  This number does not include the
         two bytes constituting the marker.
+    data : bytes iterable or None
+        Uninterpreted buffer of raw bytes, only used where a segment is not
+        well understood.
     """
     def __init__(self, marker_id='', offset=-1, length=-1, data=None):
         self.marker_id = marker_id
         self.offset = offset
         self.length = length
-        self._data = data
+        self.data = data
 
     def __str__(self):
         msg = '{0} marker segment @ ({1}, {2})'.format(self.marker_id,
@@ -807,6 +822,8 @@ class COCsegment(Segment):
         Coding style for this component.
     spcoc : byte array
         Coding style parameters for this component.
+    precinct_size : list of tuples
+        Dimensions of precinct.
 
     References
     ----------
@@ -820,13 +837,13 @@ class COCsegment(Segment):
         self.scoc = scoc
         self.spcoc = spcoc
 
-        self._code_block_size = (4 * math.pow(2, self.spcoc[2]),
-                                 4 * math.pow(2, self.spcoc[1]))
+        self.code_block_size = (4 * math.pow(2, self.spcoc[2]),
+                                4 * math.pow(2, self.spcoc[1]))
 
         if len(self.spcoc) > 5:
-            self._precinct_size = _parse_precinct_size(self.spcoc[5:])
+            self.precinct_size = _parse_precinct_size(self.spcoc[5:])
         else:
-            self._precinct_size = None
+            self.precinct_size = None
 
         self.length = length
         self.offset = offset
@@ -847,16 +864,16 @@ class COCsegment(Segment):
         msg += '\n        Code block height, width:  ({1} x {2})'
         msg += '\n        Wavelet transform:  {3}'
         msg = msg.format(self.spcoc[0] + 1,
-                         int(self._code_block_size[0]),
-                         int(self._code_block_size[1]),
+                         int(self.code_block_size[0]),
+                         int(self.code_block_size[1]),
                          _WAVELET_TRANSFORM_DISPLAY[self.spcoc[4]])
 
         msg += '\n        '
         msg += _context_string(self.spcoc[3])
 
-        if self._precinct_size is not None:
+        if self.precinct_size is not None:
             msg += '\n        Precinct size:  '
-            for pps in self._precinct_size:
+            for pps in self.precinct_size:
                 msg += '(%d, %d)'.format(pps)
 
         return msg
@@ -876,10 +893,16 @@ class CODsegment(Segment):
         two bytes constituting the marker.
     scod : int
         Default coding style.
+    layers : int
+        Quality layers.
+    code_block_size : tuple
+        Size of code block.
     spcod : bytes
-        Coding style parameters, including quality layers, multicomponent
-        transform usage, decomposition levels, code block size, style of code-
-        block passes, and which wavelet transform is used.
+        Encoded coding style parameters, including quality layers,
+        multi component transform usage, decomposition levels, code block size,
+        style of code-block passes, and which wavelet transform is used.
+    precinct_size : list of tuples
+        Dimensions of precinct.
 
     References
     ----------
@@ -895,7 +918,7 @@ class CODsegment(Segment):
         self.offset = offset
 
         params = struct.unpack('>BHBBBBBB', self.spcod[0:9])
-        self._layers = params[1]
+        self.layers = params[1]
         self._numresolutions = params[3]
 
         if params[3] > opj2.J2K_MAXRLVLS:
@@ -906,12 +929,12 @@ class CODsegment(Segment):
         cblk_width = 4 * math.pow(2, params[4])
         cblk_height = 4 * math.pow(2, params[5])
         code_block_size = (cblk_height, cblk_width)
-        self._code_block_size = code_block_size
+        self.code_block_size = code_block_size
 
         if len(self.spcod) > 9:
-            self._precinct_size = _parse_precinct_size(self.spcod[9:])
+            self.precinct_size = _parse_precinct_size(self.spcod[9:])
         else:
-            self._precinct_size = None
+            self.precinct_size = None
 
     def __str__(self):
         msg = Segment.__str__(self)
@@ -944,18 +967,18 @@ class CODsegment(Segment):
         msg += '\n    '.join(lines)
 
         msg = msg.format(_PROGRESSION_ORDER_DISPLAY[self.spcod[0]],
-                         self._layers,
+                         self.layers,
                          mct,
                          self.spcod[4] + 1,
-                         int(self._code_block_size[0]),
-                         int(self._code_block_size[1]),
+                         int(self.code_block_size[0]),
+                         int(self.code_block_size[1]),
                          _WAVELET_TRANSFORM_DISPLAY[self.spcod[8]])
 
         msg += '\n        Precinct size:  '
-        if self._precinct_size is None:
+        if self.precinct_size is None:
             msg += 'default, 2^15 x 2^15'
         else:
-            for pps in self._precinct_size:
+            for pps in self.precinct_size:
                 msg += '({0}, {1})'.format(pps[0], pps[1])
 
         msg += '\n        '
@@ -1195,8 +1218,8 @@ class PPMsegment(Segment):
         Segment.__init__(self, marker_id='PPM')
         self.zppm = zppm
 
-        # both Nppm and Ippms information stored in _data
-        self._data = data
+        # both Nppm and Ippms information stored in data
+        self.data = data
 
         self.length = length
         self.offset = offset
@@ -1205,7 +1228,7 @@ class PPMsegment(Segment):
         msg = Segment.__str__(self)
         msg += '\n    Index:  {0}'
         msg += '\n    Data:  {1} uninterpreted bytes'
-        msg = msg.format(self.zppm, len(self._data))
+        msg = msg.format(self.zppm, len(self.data))
         return msg
 
 
@@ -1265,6 +1288,10 @@ class QCCsegment(Segment):
         Quantization style for this component.
     spqcc : iterable bytes
         Quantization value for each sub-band.
+    mantissa, exponent : iterable
+        Defines quantization factors.
+    guard_bits : int
+        Number of guard bits.
 
     References
     ----------
@@ -1280,18 +1307,18 @@ class QCCsegment(Segment):
         self.length = length
         self.offset = offset
 
-        self._mantissa, self._exponent = parse_quantization(self.spqcc,
+        self.mantissa, self.exponent = parse_quantization(self.spqcc,
                                                             self.sqcc)
-        self._guard_bits = (self.sqcc & 0xe0) >> 5
+        self.guard_bits = (self.sqcc & 0xe0) >> 5
 
     def __str__(self):
         msg = Segment.__str__(self)
 
         msg += '\n    Associated Component:  {0}'.format(self.cqcc)
         msg += _print_quantization_style(self.sqcc)
-        msg += '{0} guard bits'.format(self._guard_bits)
+        msg += '{0} guard bits'.format(self.guard_bits)
 
-        step_size = zip(self._mantissa, self._exponent)
+        step_size = zip(self.mantissa, self.exponent)
         msg += '\n    Step size:  ' + str(list(step_size))
         return msg
 
@@ -1312,6 +1339,10 @@ class QCDsegment(Segment):
         Quantization style for all components.
     spqcd : iterable bytes
         Quantization step size values (uninterpreted).
+    mantissa, exponent : iterable
+        Defines quantization factors.
+    guard_bits : int
+        Number of guard bits.
 
     References
     ----------
@@ -1328,18 +1359,18 @@ class QCDsegment(Segment):
         self.offset = offset
 
         mantissa, exponent = parse_quantization(self.spqcd, self.sqcd)
-        self._mantissa = mantissa
-        self._exponent = exponent
-        self._guard_bits = (self.sqcd & 0xe0) >> 5
+        self.mantissa = mantissa
+        self.exponent = exponent
+        self.guard_bits = (self.sqcd & 0xe0) >> 5
 
     def __str__(self):
         msg = Segment.__str__(self)
 
         msg += _print_quantization_style(self.sqcd)
 
-        msg += '{0} guard bits'.format(self._guard_bits)
+        msg += '{0} guard bits'.format(self.guard_bits)
 
-        step_size = zip(self._mantissa, self._exponent)
+        step_size = zip(self.mantissa, self.exponent)
         msg += '\n    Step size:  ' + str(list(step_size))
         return msg
 
@@ -1411,7 +1442,11 @@ class SIZsegment(Segment):
     xtosiz, ytosiz : int
         Horizontal and vertical offsets of tile from origin of reference grid.
     ssiz : iterable bytes
-        Precision (depth) in bits and sign of each component.
+        Encoded precision (depth) in bits and sign of each component.
+    bitdepth : iterable bytes
+        Precision (depth) in bits of each component.
+    signed : iterable bool
+        Signedness of each component.
     xrsiz, yrsiz : int
         Horizontal and vertical sample separations with respect to reference
         grid.
@@ -1459,8 +1494,8 @@ class SIZsegment(Segment):
         self.xrsiz = data[1::3]
         self.yrsiz = data[2::3]
 
-        self._bitdepth = tuple(((x & 0x7f) + 1) for x in self.ssiz)
-        self._signed = tuple(((x & 0xb0) > 0) for x in self.ssiz)
+        self.bitdepth = tuple(((x & 0x7f) + 1) for x in self.ssiz)
+        self.signed = tuple(((x & 0xb0) > 0) for x in self.ssiz)
 
         self.length = length
         self.offset = offset
@@ -1483,8 +1518,8 @@ class SIZsegment(Segment):
                          self.yosiz, self.xosiz,
                          self.ytsiz, self.xtsiz,
                          self.ytosiz, self.xtosiz,
-                         self._bitdepth,
-                         self._signed,
+                         self.bitdepth,
+                         self.signed,
                          tuple(zip(self.yrsiz, self.xrsiz)))
 
         return msg
