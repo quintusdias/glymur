@@ -686,12 +686,12 @@ class Jp2k(Jp2kBox):
         if data.shape[2] == 1:
             # The third dimension has just a single layer.  Make the image
             # data 2D instead of 3D.
-            data = data.view()
             data.shape = data.shape[0:2]
 
         return data
 
-    def _read_openjp2(self, **kwargs):
+    def _read_openjp2(self, rlevel=0, layer=0, area=None, tile=None,
+                      verbose=False):
         """Read a JPEG 2000 image using libopenjp2.
 
         Parameters
@@ -721,10 +721,46 @@ class Jp2k(Jp2kBox):
         """
         self._subsampling_sanity_check()
 
-        img_array = self._read_common(as_bands=False, **kwargs)
+        dparam = self._populate_dparam(layer, rlevel, area, tile)
+
+        with ExitStack() as stack:
+            if hasattr(opj2.OPENJP2,
+                       'opj_stream_create_default_file_stream_v3'):
+                filename = self.filename
+                stream = opj2.stream_create_default_file_stream_v3(filename,
+                                                                   True)
+                stack.callback(opj2.stream_destroy_v3, stream)
+            else:
+                fptr = libc.fopen(self.filename, 'rb')
+                stack.callback(libc.fclose, fptr)
+                stream = opj2.stream_create_default_file_stream(fptr, True)
+                stack.callback(opj2.stream_destroy, stream)
+            codec = opj2.create_decompress(self._codec_format)
+            stack.callback(opj2.destroy_codec, codec)
+
+            opj2.set_error_handler(codec, _ERROR_CALLBACK)
+            opj2.set_warning_handler(codec, _WARNING_CALLBACK)
+            if verbose:
+                opj2.set_info_handler(codec, _INFO_CALLBACK)
+            else:
+                opj2.set_info_handler(codec, None)
+
+            opj2.setup_decoder(codec, dparam)
+            image = opj2.read_header(stream, codec)
+            stack.callback(opj2.image_destroy, image)
+
+            if dparam.nb_tile_to_decode:
+                opj2.get_decoded_tile(codec, stream, image, dparam.tile_index)
+            else:
+                opj2.set_decode_area(codec, image,
+                                     dparam.DA_x0, dparam.DA_y0,
+                                     dparam.DA_x1, dparam.DA_y1)
+                opj2.decode(codec, stream, image)
+                opj2.end_decompress(codec, stream)
+
+            img_array = extract_image_cube(image)
 
         if img_array.shape[2] == 1:
-            img_array = img_array.view()
             img_array.shape = img_array.shape[0:2]
 
         return img_array
@@ -782,76 +818,8 @@ class Jp2k(Jp2kBox):
 
         return dparam
 
-    def _read_common(self, rlevel=0, layer=0, area=None, tile=None,
-                     verbose=False, as_bands=False):
-        """Read a JPEG 2000 image.
-
-        Parameters
-        ----------
-        layer : int, optional
-            Number of quality layer to decode.
-        rlevel : int, optional
-            Factor by which to rlevel output resolution.
-        area : tuple, optional
-            Specifies decoding image area,
-            (first_row, first_col, last_row, last_col)
-        tile : int, optional
-            Number of tile to decode.
-        verbose : bool, optional
-            Print informational messages produced by the OpenJPEG library.
-        as_bands : bool, optional
-            If true, return the individual 2D components in a list.
-
-        Returns
-        -------
-        img_array : ndarray
-            The individual image components or a single array.
-        """
-        dparam = self._populate_dparam(layer, rlevel, area, tile)
-
-        with ExitStack() as stack:
-            if hasattr(opj2.OPENJP2,
-                       'opj_stream_create_default_file_stream_v3'):
-                filename = self.filename
-                stream = opj2.stream_create_default_file_stream_v3(filename,
-                                                                   True)
-                stack.callback(opj2.stream_destroy_v3, stream)
-            else:
-                fptr = libc.fopen(self.filename, 'rb')
-                stack.callback(libc.fclose, fptr)
-                stream = opj2.stream_create_default_file_stream(fptr, True)
-                stack.callback(opj2.stream_destroy, stream)
-            codec = opj2.create_decompress(self._codec_format)
-            stack.callback(opj2.destroy_codec, codec)
-
-            opj2.set_error_handler(codec, _ERROR_CALLBACK)
-            opj2.set_warning_handler(codec, _WARNING_CALLBACK)
-            if verbose:
-                opj2.set_info_handler(codec, _INFO_CALLBACK)
-            else:
-                opj2.set_info_handler(codec, None)
-
-            opj2.setup_decoder(codec, dparam)
-            image = opj2.read_header(stream, codec)
-            stack.callback(opj2.image_destroy, image)
-
-            if dparam.nb_tile_to_decode:
-                opj2.get_decoded_tile(codec, stream, image, dparam.tile_index)
-            else:
-                opj2.set_decode_area(codec, image,
-                                     dparam.DA_x0, dparam.DA_y0,
-                                     dparam.DA_x1, dparam.DA_y1)
-                opj2.decode(codec, stream, image)
-                opj2.end_decompress(codec, stream)
-
-            if as_bands:
-                data = extract_image_bands(image)
-            else:
-                data = extract_image_cube(image)
-
-        return data
-
-    def read_bands(self, **kwargs):
+    def read_bands(self, rlevel=0, layer=0, area=None, tile=None,
+                   verbose=False):
         """Read a JPEG 2000 image.
 
         The only time you should use this method is when the image has
@@ -898,7 +866,45 @@ class Jp2k(Jp2kBox):
                                        "of OpenJP2 installed before using "
                                        "this functionality.")
 
-        lst = self._read_common(as_bands=True, **kwargs)
+        dparam = self._populate_dparam(layer, rlevel, area, tile)
+
+        with ExitStack() as stack:
+            if hasattr(opj2.OPENJP2,
+                       'opj_stream_create_default_file_stream_v3'):
+                filename = self.filename
+                stream = opj2.stream_create_default_file_stream_v3(filename,
+                                                                   True)
+                stack.callback(opj2.stream_destroy_v3, stream)
+            else:
+                fptr = libc.fopen(self.filename, 'rb')
+                stack.callback(libc.fclose, fptr)
+                stream = opj2.stream_create_default_file_stream(fptr, True)
+                stack.callback(opj2.stream_destroy, stream)
+            codec = opj2.create_decompress(self._codec_format)
+            stack.callback(opj2.destroy_codec, codec)
+
+            opj2.set_error_handler(codec, _ERROR_CALLBACK)
+            opj2.set_warning_handler(codec, _WARNING_CALLBACK)
+            if verbose:
+                opj2.set_info_handler(codec, _INFO_CALLBACK)
+            else:
+                opj2.set_info_handler(codec, None)
+
+            opj2.setup_decoder(codec, dparam)
+            image = opj2.read_header(stream, codec)
+            stack.callback(opj2.image_destroy, image)
+
+            if dparam.nb_tile_to_decode:
+                opj2.get_decoded_tile(codec, stream, image, dparam.tile_index)
+            else:
+                opj2.set_decode_area(codec, image,
+                                     dparam.DA_x0, dparam.DA_y0,
+                                     dparam.DA_x1, dparam.DA_y1)
+                opj2.decode(codec, stream, image)
+                opj2.end_decompress(codec, stream)
+
+            lst = extract_image_bands(image)
+
         return lst
 
     def get_codestream(self, header_only=True):
