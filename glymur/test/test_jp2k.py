@@ -225,6 +225,17 @@ class TestJp2k(unittest.TestCase):
             Jp2k(filename)
 
     @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+    def test_write_with_JP2_suffix(self):
+        """should be able to write with JP2 suffix."""
+        j2k = Jp2k(self.j2kfile)
+        expdata = j2k.read()
+        with tempfile.NamedTemporaryFile(suffix='.JP2') as tfile:
+            ofile = Jp2k(tfile.name, 'wb')
+            ofile.write(expdata)
+            actdata = ofile.read()
+            np.testing.assert_array_equal(actdata, expdata)
+
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_write_srgb_without_mct(self):
         """should be able to write RGB without specifying mct"""
         j2k = Jp2k(self.j2kfile)

@@ -238,7 +238,7 @@ class Jp2k(Jp2kBox):
         outfile += b'0' * num_pad_bytes
         cparams.outfile = outfile
 
-        if self.filename[-4:].lower() == '.jp2':
+        if self.filename[-4:].endswith(('.jp2', '.JP2')):
             cparams.codec_fmt = opj2.CODEC_JP2
         else:
             cparams.codec_fmt = opj2.CODEC_J2K
