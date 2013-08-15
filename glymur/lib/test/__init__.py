@@ -1,1 +1,3 @@
-#from .test_openjp2 import TestOpenJP2 as openjp2
+"""
+Test suite for openjp2, openjpeg low-level functionality.
+"""

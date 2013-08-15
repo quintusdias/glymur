@@ -24,6 +24,7 @@ import uuid
 import warnings
 import xml.etree.cElementTree as ET
 if sys.hexversion < 0x02070000:
+    # pylint: disable=F0401,E0611
     from ordereddict import OrderedDict
     from xml.etree.cElementTree import XMLParserError as ParseError
 else:
@@ -361,7 +362,8 @@ class _ICCProfile(object):
         header['Connection Space'] = data
 
         data = struct.unpack('>HHHHHH', self._raw_buffer[24:36])
-        header['Datetime'] = datetime.datetime(*data)
+        header['Datetime'] = datetime.datetime(data[0], data[1], data[2],
+                                               data[3], data[4], data[5])
         header['File Signature'] = read_buffer[36:40].decode('utf-8')
         if read_buffer[40:44] == b'\x00\x00\x00\x00':
             header['Platform'] = 'unrecognized'
@@ -369,10 +371,9 @@ class _ICCProfile(object):
             header['Platform'] = read_buffer[40:44].decode('utf-8')
 
         fval, = struct.unpack('>I', read_buffer[44:48])
-        flags = 'embedded, ' if fval & 0x01 else 'not embedded, '
-        flags += 'cannot ' if fval & 0x02 else 'can '
-        flags += 'be used independently'
-        header['Flags'] = flags
+        flags = "{0}embedded, {1} be used independently"
+        header['Flags'] = flags.format('' if fval & 0x01 else 'not ',
+                                       'cannot' if fval & 0x02 else 'can')
 
         header['Device Manufacturer'] = read_buffer[48:52].decode('utf-8')
         if read_buffer[52:56] == b'\x00\x00\x00\x00':
@@ -382,11 +383,11 @@ class _ICCProfile(object):
         header['Device Model'] = device_model
 
         val, = struct.unpack('>Q', read_buffer[56:64])
-        attr = 'transparency, ' if val & 0x01 else 'reflective, '
-        attr += 'matte, ' if val & 0x02 else 'glossy, '
-        attr += 'negative ' if val & 0x04 else 'positive '
-        attr += 'media polarity, '
-        attr += 'black and white media' if val & 0x08 else 'color media'
+        attr = "{0}, {1}, {2} media polarity, {3} media"
+        attr = attr.format('transparency' if val & 0x01 else 'reflective',
+                           'matte' if val & 0x02 else 'glossy',
+                           'negative' if val & 0x04 else 'positive',
+                           'black and white' if val & 0x08 else 'color')
         header['Device Attributes'] = attr
 
         rval, = struct.unpack('>I', read_buffer[64:68])
@@ -1237,42 +1238,67 @@ class PaletteBox(Jp2kBox):
         bps = [((x & 0x07f) + 1) for x in data]
         signed = [((x & 0x80) > 1) for x in data]
 
+        # Each palette component is padded out to the next largest byte.
+        # That means a list comprehension does this in one shot.
+        row_nbytes = sum([int(math.ceil(x/8.0)) for x in bps])
+
         # Form the format string so that we can intelligently unpack the
         # colormap.  We have to do this because it is possible that the
         # colormap columns could have different datatypes.
         #
         # This means that we store the palette as a list of 1D arrays,
         # which reverses the usual indexing scheme.
-        palette = []
-        fmt = '>'
-        row_nbytes = 0
-        for j in range(num_columns):
-            if bps[j] <= 8:
-                fmt += 'B'
-                row_nbytes += 1
-                palette.append(np.zeros(num_entries, dtype=np.uint8))
-            elif bps[j] <= 16:
-                fmt += 'H'
-                row_nbytes += 2
-                palette.append(np.zeros(num_entries, dtype=np.uint16))
-            elif bps[j] <= 32:
-                fmt += 'I'
-                row_nbytes += 4
-                palette.append(np.zeros(num_entries, dtype=np.uint32))
-            else:
-                msg = 'Unsupported palette bitdepth (%d).'.format(bps[j])
-                raise IOError(msg)
         read_buffer = fptr.read(num_entries * row_nbytes)
+        palette = _buffer2palette(read_buffer, num_entries, num_columns, bps)
 
-        for j in range(num_entries):
-            row_buffer = read_buffer[(row_nbytes * j):(row_nbytes * (j + 1))]
-            row = struct.unpack(fmt, row_buffer)
-            for k in range(num_columns):
-                palette[k][j] = row[k]
-
-        box = PaletteBox(palette, bps, signed, length=length,
-                         offset=offset)
+        box = PaletteBox(palette, bps, signed, length=length, offset=offset)
         return box
+
+
+def _buffer2palette(read_buffer, num_rows, num_cols, bps):
+    """Construct the palette from the buffer read from file.
+
+    Parameters
+    ----------
+    read_buffer : iterable
+        Byte array of palette information read from file.
+    num_rows, num_cols : int
+        Size of palette.
+    bps : iterable
+        Bits per sample for each channel.
+
+    Returns
+    -------
+    palette : list of 1D arrays
+        Each 1D array corresponds to a channel.
+    """
+    row_nbytes = 0
+    palette = []
+    fmt = '>'
+    for j in range(num_cols):
+        if bps[j] <= 8:
+            row_nbytes += 1
+            fmt += 'B'
+            palette.append(np.zeros(num_rows, dtype=np.uint8))
+        elif bps[j] <= 16:
+            row_nbytes += 2
+            fmt += 'H'
+            palette.append(np.zeros(num_rows, dtype=np.uint16))
+        elif bps[j] <= 32:
+            row_nbytes += 4
+            fmt += 'I'
+            palette.append(np.zeros(num_rows, dtype=np.uint32))
+        else:
+            msg = 'Unsupported palette bitdepth (%d).'.format(bps[j])
+            raise IOError(msg)
+
+    for j in range(num_rows):
+        row_buffer = read_buffer[(row_nbytes * j):(row_nbytes * (j + 1))]
+        row = struct.unpack(fmt, row_buffer)
+        for k in range(num_cols):
+            palette[k][j] = row[k]
+
+    return palette
 
 # Map rreq codes to display text.
 _READER_REQUIREMENTS_DISPLAY = {
@@ -1434,57 +1460,91 @@ class ReaderRequirementsBox(Jp2kBox):
         """
         read_buffer = fptr.read(1)
         mask_length, = struct.unpack('>B', read_buffer)
-        if mask_length == 1:
-            mask_format = 'B'
-        elif mask_length == 2:
-            mask_format = 'H'
-        elif mask_length == 4:
-            mask_format = 'I'
-        else:
-            msg = 'Unhandled reader requirements box mask length (%d).'
-            msg %= mask_length
-            raise RuntimeError(msg)
 
         # Fully Understands Aspect Mask
         # Decodes Completely Mask
         read_buffer = fptr.read(2 * mask_length)
-        data = struct.unpack('>' + mask_format * 2, read_buffer)
-        fuam = data[0]
-        dcm = data[1]
 
-        read_buffer = fptr.read(2)
-        num_standard_flags, = struct.unpack('>H', read_buffer)
+        # The mask length tells us the format string to use when unpacking
+        # from the buffer read from file.
+        mask_format = {1: 'B', 2: 'H', 4: 'I'}[mask_length]
+        fuam, dcm = struct.unpack('>' + mask_format * 2, read_buffer)
 
-        # Read in standard flags and standard masks.  Each standard flag should
-        # be two bytes, but the standard mask flag is as long as specified by
-        # the mask length.
-        read_buffer = fptr.read(num_standard_flags * (2 + mask_length))
-        data = struct.unpack('>' + ('H' + mask_format) * num_standard_flags,
-                             read_buffer)
-        standard_flag = data[0:num_standard_flags * 2:2]
-        standard_mask = data[1:num_standard_flags * 2:2]
-
-        # Vendor features
-        read_buffer = fptr.read(2)
-        num_vendor_features, = struct.unpack('>H', read_buffer)
-
-        # Each vendor feature consists of a 16-byte UUID plus a mask whose
-        # length is specified by, you guessed it, "mask_length".
-        entry_length = 16 + mask_length
-        read_buffer = fptr.read(num_vendor_features * entry_length)
-        vendor_feature = []
-        vendor_mask = []
-        for j in range(num_vendor_features):
-            ubuffer = read_buffer[j * entry_length:(j + 1) * entry_length]
-            vendor_feature.append(uuid.UUID(bytes=ubuffer[0:16]))
-
-            vmask = struct.unpack('>' + mask_format, ubuffer[16:])
-            vendor_mask.append(vmask)
+        standard_flag, standard_mask = _parse_standard_flag(fptr, mask_length)
+        vendor_feature, vendor_mask = _parse_vendor_features(fptr, mask_length)
 
         box = ReaderRequirementsBox(fuam, dcm, standard_flag, standard_mask,
                                     vendor_feature, vendor_mask,
                                     length=length, offset=offset)
         return box
+
+
+def _parse_standard_flag(fptr, mask_length):
+    """Construct standard flag, standard mask data from the file.
+
+    Specifically working on Reader Requirements box.
+
+    Parameters
+    ----------
+    fptr : file object
+        File object for JP2K file.
+    mask_length : int
+        Length of standard mask flag
+    """
+    # The mask length tells us the format string to use when unpacking
+    # from the buffer read from file.
+    mask_format = {1: 'B', 2: 'H', 4: 'I'}[mask_length]
+
+    read_buffer = fptr.read(2)
+    num_standard_flags, = struct.unpack('>H', read_buffer)
+
+    # Read in standard flags and standard masks.  Each standard flag should
+    # be two bytes, but the standard mask flag is as long as specified by
+    # the mask length.
+    read_buffer = fptr.read(num_standard_flags * (2 + mask_length))
+
+    fmt = '>' + ('H' + mask_format) * num_standard_flags
+    data = struct.unpack(fmt, read_buffer)
+
+    standard_flag = data[0:num_standard_flags * 2:2]
+    standard_mask = data[1:num_standard_flags * 2:2]
+
+    return standard_flag, standard_mask
+
+
+def _parse_vendor_features(fptr, mask_length):
+    """Construct vendor features, vendor mask data from the file.
+
+    Specifically working on Reader Requirements box.
+
+    Parameters
+    ----------
+    fptr : file object
+        File object for JP2K file.
+    mask_length : int
+        Length of vendor mask flag
+    """
+    # The mask length tells us the format string to use when unpacking
+    # from the buffer read from file.
+    mask_format = {1: 'B', 2: 'H', 4: 'I'}[mask_length]
+
+    read_buffer = fptr.read(2)
+    num_vendor_features, = struct.unpack('>H', read_buffer)
+
+    # Each vendor feature consists of a 16-byte UUID plus a mask whose
+    # length is specified by, you guessed it, "mask_length".
+    entry_length = 16 + mask_length
+    read_buffer = fptr.read(num_vendor_features * entry_length)
+    vendor_feature = []
+    vendor_mask = []
+    for j in range(num_vendor_features):
+        ubuffer = read_buffer[j * entry_length:(j + 1) * entry_length]
+        vendor_feature.append(uuid.UUID(bytes=ubuffer[0:16]))
+
+        vmask = struct.unpack('>' + mask_format, ubuffer[16:])
+        vendor_mask.append(vmask)
+
+    return vendor_feature, vendor_mask
 
 
 class ResolutionBox(Jp2kBox):
@@ -1791,14 +1851,15 @@ class XMLBox(Jp2kBox):
         read_buffer = fptr.read(num_bytes)
         text = read_buffer.decode('utf-8')
 
-        # Strip out any trailing nulls.
-        text = text.rstrip('\0')
+        # Strip out any trailing nulls, as they can foul up XML parsing.
+        text = text.rstrip(chr(0))
 
         try:
             elt = ET.fromstring(text)
             xml = ET.ElementTree(elt)
         except ParseError as parse_error:
-            msg = 'A problem was encountered while parsing an XML box:  "{0}"'
+            msg = 'A problem was encountered while parsing an XML box:'
+            msg += '\n\n\t"{0}"\n\nNo XML was retrieved.'
             msg = msg.format(str(parse_error))
             warnings.warn(msg, UserWarning)
             xml = None
