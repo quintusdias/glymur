@@ -29,6 +29,12 @@ NO_READ_BACKEND_MSG += "order to run the tests in this suite."
 
 try:
     from matplotlib.pyplot import imread
+
+    # The whole point of trying to import PIL is to determine if it's there 
+    # or not.  We won't use it directly.
+    # pylint:  disable=F0401,W0611
+    import PIL
+
     NO_READ_BACKEND = False
 except ImportError:
     NO_READ_BACKEND = True
