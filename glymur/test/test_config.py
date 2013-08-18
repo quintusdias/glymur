@@ -4,7 +4,7 @@ OPENJP2 may be present in some form or other.
 # unittest doesn't work well with R0904.
 # pylint: disable=R0904
 
-# tempfile.TemporaryDirectory, unittest.assertWarns introduced in 3.2 
+# tempfile.TemporaryDirectory, unittest.assertWarns introduced in 3.2
 # pylint: disable=E1101
 
 # unittest.mock only in Python 3.3 (python2.7/pylint import issue)

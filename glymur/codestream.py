@@ -1308,7 +1308,7 @@ class QCCsegment(Segment):
         self.offset = offset
 
         self.mantissa, self.exponent = parse_quantization(self.spqcc,
-                                                            self.sqcc)
+                                                          self.sqcc)
         self.guard_bits = (self.sqcc & 0xe0) >> 5
 
     def __str__(self):
