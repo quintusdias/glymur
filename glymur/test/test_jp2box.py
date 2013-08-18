@@ -18,8 +18,11 @@ Test suite specifically targeting JP2 box layout.
 
 import doctest
 import os
+import shutil
+import struct
 import sys
 import tempfile
+import uuid
 import xml.etree.cElementTree as ET
 
 if sys.hexversion < 0x02070000:
@@ -504,6 +507,100 @@ class TestColourSpecificationBox(unittest.TestCase):
 
 @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
+class TestAppend(unittest.TestCase):
+    """Tests for append method."""
+
+    def setUp(self):
+        self.j2kfile = glymur.data.goodstuff()
+        self.jp2file = glymur.data.nemo()
+
+    def tearDown(self):
+        pass
+
+    def test_append_xml(self):
+        """Should be able to append an XML box."""
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            shutil.copyfile(self.jp2file, tfile.name)
+
+            jp2 = Jp2k(tfile.name)
+            the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
+            xmlbox = glymur.jp2box.XMLBox(xml=the_xml)
+            jp2.append(xmlbox)
+
+            # The sequence of box IDs should be the same as before, but with an
+            # xml box at the end.
+            box_ids = [box.box_id for box in jp2.box]
+            expected = ['jP  ', 'ftyp', 'jp2h', 'uuid', 'uuid', 'jp2c', 'xml ']
+            self.assertEqual(box_ids, expected)
+            self.assertEqual(ET.tostring(jp2.box[-1].xml.getroot()),
+                             b'<data>0</data>')
+
+    def test_only_jp2_allowed_to_append(self):
+        """Only JP2 files are allowed to be appended."""
+        with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
+            shutil.copyfile(self.j2kfile, tfile.name)
+
+            jp2 = Jp2k(tfile.name)
+
+            # Make a UUID box.
+            uuid_instance = uuid.UUID('00000000-0000-0000-0000-000000000000')
+            data = b'0123456789'
+            uuidbox = glymur.jp2box.UUIDBox(uuid_instance, data)
+            with self.assertRaises(IOError):
+                jp2.append(uuidbox)
+
+    def test_length_field_is_zero(self):
+        """L=0 (length field in box header) is handled.
+
+        L=0 implies that the containing box is the last box.  If this is not
+        handled properly, the appended box is never seen.
+        """
+        baseline_jp2 = Jp2k(self.jp2file)
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            with open(self.jp2file, 'rb') as ifile:
+                # Everything up until the jp2c box.
+                offset = baseline_jp2.box[-1].offset
+                tfile.write(ifile.read(offset))
+
+                # Write the L, T fields of the jp2c box such that L == 0
+                write_buffer = struct.pack('>I4s', int(0), b'jp2c')
+                tfile.write(write_buffer)
+
+                # Write out the rest of the codestream.
+                ifile.seek(offset+8)
+                tfile.write(ifile.read())
+                tfile.flush()
+
+            jp2 = Jp2k(tfile.name)
+            the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
+            xmlbox = glymur.jp2box.XMLBox(xml=the_xml)
+            jp2.append(xmlbox)
+
+            # The sequence of box IDs should be the same as before, but with an
+            # xml box at the end.
+            box_ids = [box.box_id for box in jp2.box]
+            expected = ['jP  ', 'ftyp', 'jp2h', 'uuid', 'uuid', 'jp2c', 'xml ']
+            self.assertEqual(box_ids, expected)
+            self.assertEqual(ET.tostring(jp2.box[-1].xml.getroot()),
+                             b'<data>0</data>')
+
+    def test_only_xml_allowed_to_append(self):
+        """Only XML boxes are allowed to be appended."""
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            shutil.copyfile(self.jp2file, tfile.name)
+
+            jp2 = Jp2k(tfile.name)
+
+            # Make a UUID box.
+            uuid_instance = uuid.UUID('00000000-0000-0000-0000-000000000000')
+            data = b'0123456789'
+            uuidbox = glymur.jp2box.UUIDBox(uuid_instance, data)
+            with self.assertRaises(IOError):
+                jp2.append(uuidbox)
+
+
+@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
+                 "Missing openjp2 library.")
 class TestWrap(unittest.TestCase):
     """Tests for wrap method."""
 
@@ -703,7 +800,7 @@ class TestJp2Boxes(unittest.TestCase):
     def test_default_ihdr(self):
         """Should be able to instantiate an image header box."""
         ihdr = glymur.jp2box.ImageHeaderBox(height=512, width=256,
-                                         num_components=3)
+                                            num_components=3)
         self.assertEqual(ihdr.height,  512)
         self.assertEqual(ihdr.width,  256)
         self.assertEqual(ihdr.num_components,  3)
@@ -715,7 +812,7 @@ class TestJp2Boxes(unittest.TestCase):
         """Should be able to set jp2h boxes."""
         box = JP2HeaderBox()
         box.box = [ImageHeaderBox(height=512, width=256),
-                  ColourSpecificationBox(colorspace=glymur.core.GREYSCALE)]
+                   ColourSpecificationBox(colorspace=glymur.core.GREYSCALE)]
         self.assertTrue(True)
 
     def test_default_ccodestreambox(self):
