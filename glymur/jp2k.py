@@ -432,6 +432,42 @@ class Jp2k(Jp2kBox):
         # Refresh the metadata.
         self.parse()
 
+    def append(self, box):
+        """Append a JP2 box to the file in-place.
+
+        Parameters
+        ----------
+        box : Jp2Box
+            Instance of a JP2 box.  Currently only XML boxes are allowed.
+        """
+        if self._codec_format == opj2.CODEC_J2K:
+            msg = "Only JP2 files can currently have boxes appended to them."
+            raise IOError(msg)
+
+        if box.box_id != 'xml ':
+            raise IOError("Only XML boxes can currently be appended.")
+
+        # Check the last box.  If the length field is zero, then rewrite
+        # the length field to reflect the true length of the box.
+        with open(self.filename, 'rb') as ifile:
+            offset = self.box[-1].offset
+            ifile.seek(offset)
+            read_buffer = ifile.read(4)
+            box_length, = struct.unpack('>I', read_buffer)
+            if box_length == 0:
+                # Reopen the file in write mode and rewrite the length field.
+                true_box_length = os.path.getsize(ifile.name) - offset
+                with open(self.filename, 'r+b') as ofile:
+                    ofile.seek(offset)
+                    write_buffer = struct.pack('>I', true_box_length)
+                    ofile.write(write_buffer)
+
+        # Can now safely append the box.
+        with open(self.filename, 'ab') as ofile:
+            box.write(ofile)
+
+        self.parse()
+
     def wrap(self, filename, boxes=None):
         """Write the codestream back out to file, wrapped in new JP2 jacket.
 
@@ -1133,6 +1169,7 @@ def _unpack_colorspace(colorspace, img_array, cparams):
 
     return colorspace
 
+
 def _populate_comptparms(img_array, cparams):
     """Instantiate and populate comptparms structure.
 
@@ -1171,6 +1208,7 @@ def _populate_comptparms(img_array, cparams):
 
     return comptparms
 
+
 def _populate_image_struct(cparams, image, imgdata):
     """Populates image struct needed for compression.
 
@@ -1202,6 +1240,7 @@ def _populate_image_struct(cparams, image, imgdata):
         ctypes.memmove(dest, src, layer.nbytes)
 
     return image
+
 
 def _validate_compression_params(img_array, cparams):
     """Check that the compression parameters are valid.
@@ -1313,4 +1352,3 @@ class LibraryNotFoundError(IOError):
     """
     def __init__(self, msg):
         IOError.__init__(self, msg)
-
