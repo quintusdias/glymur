@@ -3,7 +3,7 @@ How do I...?
 ------------
 
 
-Read the lowest resolution thumbnail?
+read the lowest resolution thumbnail?
 =====================================
 Printing the Jp2k object should reveal the number of resolutions (look in the
 COD segment section), but you can take a shortcut by supplying -1 as the
@@ -14,7 +14,7 @@ resolution level. ::
     >>> j = glymur.Jp2k(file)
     >>> thumbnail = j.read(rlevel=-1)
 
-Display metadata?
+display metadata?
 =================
 There are two ways.  From the unix command line, the script *jp2dump* is
 available. ::
@@ -34,8 +34,41 @@ codestream box, only the main header is printed.  It is possible to print
 
     >>> print(j.get_codestream())
 
-Add XML Metadata?
+add XML metadata?
 =================
+You can append any number of XML boxes to a JP2 file (not to a raw codestream).
+Consider the following XML file `data.xml` : ::
+
+    <?xml version="1.0"?>
+    <info>
+        <locality>
+            <city>Boston</city>
+            <snowfall>24.9 inches</snowfall>
+        </locality>
+        <locality>
+            <city>Portland</city>
+            <snowfall>31.9 inches</snowfall>
+        </locality>
+        <locality>
+            <city>New York City</city>
+            <snowfall>11.4 inches</snowfall>
+        </locality>
+    </info>
+
+The **append** method can add an XML box (only XML boxes are currently
+allowed)::
+
+    >>> import shutil
+    >>> import glymur
+    >>> shutil.copyfile(glymur.data.nemo(), 'myfile.jp2')
+    >>> from xml.etree import cElementTree as ET
+    >>> jp2 = glymur.Jp2k('myfile.jp2')
+    >>> xmlbox = glymur.jp2box.XMLBox(filename='data.xml')
+    >>> jp2.append(xmlbox)
+    >>> print(jp2)
+
+add metadata in a more general fashion?
+=======================================
 An existing raw codestream (or JP2 file) can be wrapped (re-wrapped) in a 
 user-defined set of JP2 boxes.  To get just a minimal JP2 jacket on the 
 codestream provided by `goodstuff.j2k` (a file consisting of a raw codestream),
@@ -87,7 +120,7 @@ though.  Take the following example content in an XML file `favorites.xml` : ::
 and add it after the JP2 header box, but before the codestream box ::
 
     >>> boxes = jp2.box  # The box attribute is the list of JP2 boxes
-    >>> xmlbox = glymur.jp2box.XMLBox(file='favorites.xml')
+    >>> xmlbox = glymur.jp2box.XMLBox(filename='favorites.xml')
     >>> boxes.insert(3, xmlbox)
     >>> jp2_xml = jp2.wrap("newfile_with_xml.jp2", boxes=boxes)
     >>> print(jp2_xml)
@@ -119,7 +152,12 @@ and add it after the JP2 header box, but before the codestream box ::
         . (truncated)
         .
 
-Create an image with an alpha layer?
+As to the question of which method you should use, **append** or **wrap**,
+to add metadata, you should keep in mind that **wrap** produces a new JP2 file,
+while **append** modifies an existing file and is currently limited to XML
+boxes.
+
+create an image with an alpha layer?
 ====================================
 
 OpenJPEG can create JP2 files with more than 3 components (requires
@@ -181,7 +219,7 @@ Here's how the Preview application on the mac shows the RGBA image.
 .. image:: goodstuff_alpha.png
 
     
-Work with XMP UUIDs?
+work with XMP UUIDs?
 ====================
 The example JP2 file shipped with glymur has an XMP UUID. ::
 

@@ -5,7 +5,7 @@ Test suite for codestream parsing.
 # unittest doesn't work well with R0904.
 # pylint: disable=R0904
 
-# tempfile.TemporaryDirectory, unittest.assertWarns introduced in 3.2 
+# tempfile.TemporaryDirectory, unittest.assertWarns introduced in 3.2
 # pylint: disable=E1101
 
 # unittest2 is python2.6 only (pylint/python-2.7)

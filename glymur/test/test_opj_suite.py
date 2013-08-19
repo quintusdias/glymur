@@ -17,7 +17,7 @@ suite.
 # unittest fools pylint with "too many public methods"
 # pylint: disable=R0904
 
-# Some tests use numpy test infrastructure, which means the tests never 
+# Some tests use numpy test infrastructure, which means the tests never
 # reference "self", so pylint claims it should be a function.  No, no, no.
 # pylint: disable=R0201
 
