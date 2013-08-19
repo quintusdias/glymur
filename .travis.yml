@@ -6,7 +6,7 @@ python:
 
 before_install:
   - sudo apt-get update -qq
-  - sudo apt-get install -qq numpy
+  - sudo apt-get install -qq libopenjpeg2
 
 # command to install dependencies
 install:
