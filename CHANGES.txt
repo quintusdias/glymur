@@ -1,3 +1,5 @@
+Aug 18, 2013 - v0.4.0  Added append method.
+
 Aug 15, 2013 - v0.3.2  Fixed test bug where missing Pillow package caused test
     failures.
 
