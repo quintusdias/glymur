@@ -65,48 +65,6 @@ def load_tests(loader, tests, ignore):
     return tests
 
 
-@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None and
-                 glymur.lib.openjpeg.OPENJPEG is None,
-                 "Missing openjp2 library.")
-class TestConfig(unittest.TestCase):
-    """Test suite for reading without proper library in place."""
-
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
-        self.j2kfile = glymur.data.goodstuff()
-
-    def tearDown(self):
-        pass
-
-    def test_read_without_library(self):
-        """Don't have either openjp2 or openjpeg libraries?  Must error out.
-        """
-        with patch('glymur.lib.openjp2.OPENJP2', new=None):
-            with patch('glymur.lib.openjpeg.OPENJPEG', new=None):
-                with self.assertRaises(glymur.jp2k.LibraryNotFoundError):
-                    glymur.Jp2k(self.jp2file).read()
-
-    def test_read_bands_without_library(self):
-        """Don't have openjp2 library?  Must error out.
-        """
-        with patch('glymur.lib.openjp2.OPENJP2', new=None):
-            with patch('glymur.lib.openjpeg.OPENJPEG', new=None):
-                with self.assertRaises(glymur.jp2k.LibraryNotFoundError):
-                    glymur.Jp2k(self.jp2file).read_bands()
-
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
-    def test_write_without_library(self):
-        """Don't have openjp2 library?  Must error out.
-        """
-        data = glymur.Jp2k(self.j2kfile).read()
-        with patch('glymur.lib.openjp2.OPENJP2', new=None):
-            with patch('glymur.lib.openjpeg.OPENJPEG', new=None):
-                with self.assertRaises(glymur.jp2k.LibraryNotFoundError):
-                    with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-                        ofile = Jp2k(tfile.name, 'wb')
-                        ofile.write(data)
-
-
 @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
 @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
@@ -333,13 +291,10 @@ class TestJp2k(unittest.TestCase):
         self.assertEqual(jp2k.box[2].box[1].colorspace, glymur.core.SRGB)
         self.assertIsNone(jp2k.box[2].box[1].icc_profile)
 
-    @unittest.skipIf(DATA_ROOT is None,
-                     "OPJ_DATA_ROOT environment variable not set")
     def test_j2k_box(self):
         """A J2K/J2C file must not have any boxes."""
         # Verify that a J2K file has no boxes.
-        filename = os.path.join(DATA_ROOT, 'input/conformance/p0_01.j2k')
-        jp2k = Jp2k(filename)
+        jp2k = Jp2k(self.j2kfile)
         self.assertEqual(len(jp2k.box), 0)
 
     @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
@@ -425,14 +380,11 @@ class TestJp2k(unittest.TestCase):
         with self.assertRaises(RuntimeError):
             j.read()
 
-    @unittest.skipIf(DATA_ROOT is None,
-                     "OPJ_DATA_ROOT environment variable not set")
     def test_empty_box_with_j2k(self):
         """Verify that the list of boxes in a J2C/J2K file is present, but
         empty.
         """
-        filename = os.path.join(DATA_ROOT, 'input/conformance/p0_05.j2k')
-        j = Jp2k(filename)
+        j = Jp2k(self.j2kfile)
         self.assertEqual(j.box, [])
 
     @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
