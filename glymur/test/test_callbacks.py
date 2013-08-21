@@ -91,7 +91,7 @@ class TestCallbacks15(unittest.TestCase):
 
     def test_info_callbacks_on_read(self):
         """Verify stdout when reading.
-        
+
         Verify that we get the expected stdio output when our internal info
         callback handler is enabled.
         """

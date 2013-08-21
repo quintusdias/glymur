@@ -137,13 +137,14 @@ In addition, you must install contextlib2 and Pillow via pip. ::
 
 Windows
 -------
-32-bit WinPython 2.7.5 seems to work with OpenJPEG 1.X, 2.0, and the
-development version, but still requires contextlib2 and mock to be
+32-bit WinPython 2.7.5 seemed to work with OpenJPEG 1.X, 2.0, and the
+development version, but still required contextlib2 and mock to be
 installed via pip.   WinPython 3.3.2, however, seems to have trouble
 with OpenJPEG 2.0, so I would suggest using the development version
 there (I'm unwilling to spend ANY more time trying to figure out what
 the problem is there).
 
+At the moment I do not have access to a win32 machine, and
 64-bit windows is completely untested.
 
 

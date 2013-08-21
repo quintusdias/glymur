@@ -441,7 +441,8 @@ class TestSuiteWrite(unittest.TestCase):
             self.assertEqual(len(codestream.segment[2].spcod), 9)
 
             # 18 SOP segments.
-            nsops = [x.nsop for x in codestream.segment if x.marker_id == 'SOP']
+            nsops = [x.nsop for x in codestream.segment
+                     if x.marker_id == 'SOP']
             self.assertEqual(nsops, list(range(18)))
 
     def test_NR_ENC_Bretagne2_ppm_7_encode(self):
