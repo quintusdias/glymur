@@ -1,3 +1,5 @@
+Aug 21, 2013 - v0.4.1  Fixed segfault with openjpeg 1.x when rlevel=-1
+
 Aug 18, 2013 - v0.4.0  Added append method.
 
 Aug 15, 2013 - v0.3.2  Fixed test bug where missing Pillow package caused test

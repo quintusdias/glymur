@@ -55,8 +55,7 @@ Consider the following XML file `data.xml` : ::
         </locality>
     </info>
 
-The **append** method can add an XML box (only XML boxes are currently
-allowed)::
+The **append** method can add an XML box as shown below::
 
     >>> import shutil
     >>> import glymur
@@ -108,8 +107,8 @@ two additional boxes (image header and color specification) contained in the
 JP2 header superbox.
 
 XML boxes are not in the minimal set of box requirements for the JP2 format, so
-in order to add an XML box into the mix, we'll need to specify all of the
-boxes.  If you already have a JP2 jacket in place, you can just reuse it,
+in order to add an XML box into the mix before the codestream box, we'll need to 
+re-specify all of the boxes.  If you already have a JP2 jacket in place, you can just reuse that,
 though.  Take the following example content in an XML file `favorites.xml` : ::
 
     <?xml version="1.0"?>
@@ -117,7 +116,8 @@ though.  Take the following example content in an XML file `favorites.xml` : ::
         <category>Light Ale</category>
     </favorite_things>
 
-and add it after the JP2 header box, but before the codestream box ::
+In order to add the XML after the JP2 header box, but before the codestream box, 
+the following will work. ::
 
     >>> boxes = jp2.box  # The box attribute is the list of JP2 boxes
     >>> xmlbox = glymur.jp2box.XMLBox(filename='favorites.xml')
