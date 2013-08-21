@@ -12,6 +12,11 @@ before_install:
 # command to install dependencies
 install:
   - pip install . --use-mirrors
+
 # command to run tests
 script: 
   - "python -m unittest discover"
+
+notifications:
+  email:
+    - john.g.evans.ne@gmail.com
