@@ -636,6 +636,11 @@ class Jp2k(Jp2kBox):
         """
         self._subsampling_sanity_check()
 
+        if rlevel == -1:
+            # Get the lowest resolution thumbnail.
+            codestream = self.get_codestream()
+            rlevel = codestream.segment[2].spcod[4]
+
         with ExitStack() as stack:
             # Set decoding parameters.
             dparameters = opj.DecompressionParametersType()
