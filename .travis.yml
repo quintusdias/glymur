@@ -6,13 +6,11 @@ python:
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -qq libopenjpeg2
-  - sudo apt-get install -qq numpy
-  - sudo apt-get install -qq matplotlib
+  - sudo apt-get install -qq python-numpy
 
 # command to install dependencies
-# - pip install numpy -q --use-mirrors
-# - pip install matplotlib --use-mirrors
 install:
+  - pip install numpy -q --use-mirrors
   - pip install . --use-mirrors
 # command to run tests
 script: 
