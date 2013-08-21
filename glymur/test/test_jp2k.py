@@ -817,7 +817,7 @@ class TestJp2k15(unittest.TestCase):
     def test_rlevel_too_high(self):
         """Should error out appropriately if reduce level too high"""
         j = Jp2k(self.jp2file)
-        with self.assertRaises(ValueError):
+        with self.assertRaises(IOError):
             j.read(rlevel=6)
 
     def test_not_jpeg2000(self):

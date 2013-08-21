@@ -636,10 +636,18 @@ class Jp2k(Jp2kBox):
         """
         self._subsampling_sanity_check()
 
-        if rlevel == -1:
-            # Get the lowest resolution thumbnail.
+        if rlevel != 0:
+            # Must check the specified rlevel against the maximum.
+            # OpenJPEG 1.3 will segfault if rlevel is too high.
             codestream = self.get_codestream()
-            rlevel = codestream.segment[2].spcod[4]
+            max_rlevel = codestream.segment[2].spcod[4]
+            if rlevel == -1:
+                # -1 is shorthand for the largest rlevel
+                rlevel = max_rlevel
+            if rlevel < -1 or rlevel > max_rlevel:
+                msg = "rlevel must be in the range [-1, {0}] for this image."
+                msg = msg.format(max_rlevel)
+                raise IOError(msg)
 
         with ExitStack() as stack:
             # Set decoding parameters.
