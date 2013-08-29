@@ -25,10 +25,6 @@ if sys.hexversion < 0x02070000:
 else:
     import unittest
 
-if sys.hexversion <= 0x03030000:
-    from mock import patch
-else:
-    from unittest.mock import patch
 import warnings
 
 import numpy as np
@@ -39,13 +35,7 @@ from glymur import Jp2k
 
 from .fixtures import OPENJP2_IS_V2_OFFICIAL
 from .fixtures import OPENJPEG_VERSION
-
-try:
-    DATA_ROOT = os.environ['OPJ_DATA_ROOT']
-except KeyError:
-    DATA_ROOT = None
-except:
-    raise
+from .fixtures import OPJ_DATA_ROOT, opj_data_file
 
 
 # Doc tests should be run as well.
@@ -380,7 +370,7 @@ class TestJp2k(unittest.TestCase):
         j2k = Jp2k(self.j2kfile)
         j2k.read()
 
-    @unittest.skipIf(DATA_ROOT is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_read_differing_subsamples(self):
         """should error out with read used on differently subsampled images"""
@@ -388,7 +378,7 @@ class TestJp2k(unittest.TestCase):
         # on an image with differing subsamples
         #
         # Issue 86.
-        filename = os.path.join(DATA_ROOT, 'input/conformance/p0_05.j2k')
+        filename = opj_data_file('input/conformance/p0_05.j2k')
         j = Jp2k(filename)
         with self.assertRaises(RuntimeError):
             j.read()
@@ -1039,7 +1029,7 @@ class TestJp2k15(unittest.TestCase):
         j2k = Jp2k(self.j2kfile)
         j2k.read()
 
-    @unittest.skipIf(DATA_ROOT is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_read_differing_subsamples(self):
         """should error out with read used on differently subsampled images"""
@@ -1047,7 +1037,7 @@ class TestJp2k15(unittest.TestCase):
         # on an image with differing subsamples
         #
         # Issue 86.
-        filename = os.path.join(DATA_ROOT, 'input/conformance/p0_05.j2k')
+        filename = opj_data_file('input/conformance/p0_05.j2k')
         j = Jp2k(filename)
         with self.assertRaises(RuntimeError):
             j.read()
@@ -1347,7 +1337,8 @@ class TestJp2k15(unittest.TestCase):
                 self.assertEqual(jasoc.box[3].box[1].box_id, 'xml ')
 
     @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
-    @unittest.skipIf(re.match('1\.[345]\.\d', OPENJPEG_VERSION) is not None,
+    @unittest.skipIf(re.match(r"""1\.[345]\.\d""",
+                              OPENJPEG_VERSION) is not None,
                      "Segfault on official v1.x series.")
     def test_openjpeg_library_message(self):
         """Verify the error message produced by the openjpeg library"""
@@ -1424,7 +1415,6 @@ class TestJp2k15(unittest.TestCase):
             # Were the tag == 271, 'Make' would be in the keys instead.
             self.assertTrue(171 in exif['Image'].keys())
             self.assertFalse('Make' in exif['Image'].keys())
-
 
 
 if __name__ == "__main__":

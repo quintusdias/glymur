@@ -19,23 +19,17 @@ else:
     import unittest
 
 from .fixtures import read_image, NO_READ_BACKEND, NO_READ_BACKEND_MSG
+from .fixtures import OPJ_DATA_ROOT, opj_data_file
 
 from glymur import Jp2k
 import glymur
-
-try:
-    data_root = os.environ['OPJ_DATA_ROOT']
-except KeyError:
-    data_root = None
-except:
-    raise
 
 
 @unittest.skipIf(os.name == "nt", "no write support on windows, period")
 @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
 @unittest.skipIf(NO_READ_BACKEND, NO_READ_BACKEND_MSG)
-@unittest.skipIf(data_root is None,
+@unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 class TestSuiteWrite(unittest.TestCase):
     """Tests for writing with openjp2 backend.
@@ -51,7 +45,7 @@ class TestSuiteWrite(unittest.TestCase):
 
     def test_NR_ENC_Bretagne1_ppm_1_encode(self):
         """NR-ENC-Bretagne1.ppm-1-encode"""
-        infile = os.path.join(data_root, 'input/nonregression/Bretagne1.ppm')
+        infile = opj_data_file('input/nonregression/Bretagne1.ppm')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
@@ -115,7 +109,7 @@ class TestSuiteWrite(unittest.TestCase):
 
     def test_NR_ENC_Bretagne1_ppm_2_encode(self):
         """NR-ENC-Bretagne1.ppm-2-encode"""
-        infile = os.path.join(data_root, 'input/nonregression/Bretagne1.ppm')
+        infile = opj_data_file('input/nonregression/Bretagne1.ppm')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
@@ -180,7 +174,7 @@ class TestSuiteWrite(unittest.TestCase):
 
     def test_NR_ENC_Bretagne1_ppm_3_encode(self):
         """NR-ENC-Bretagne1.ppm-3-encode"""
-        infile = os.path.join(data_root, 'input/nonregression/Bretagne1.ppm')
+        infile = opj_data_file('input/nonregression/Bretagne1.ppm')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
@@ -247,7 +241,7 @@ class TestSuiteWrite(unittest.TestCase):
 
     def test_NR_ENC_Bretagne2_ppm_4_encode(self):
         """NR-ENC-Bretagne2.ppm-4-encode"""
-        infile = os.path.join(data_root, 'input/nonregression/Bretagne2.ppm')
+        infile = opj_data_file('input/nonregression/Bretagne2.ppm')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
@@ -316,7 +310,7 @@ class TestSuiteWrite(unittest.TestCase):
 
     def test_NR_ENC_Bretagne2_ppm_5_encode(self):
         """NR-ENC-Bretagne2.ppm-5-encode"""
-        infile = os.path.join(data_root, 'input/nonregression/Bretagne2.ppm')
+        infile = opj_data_file('input/nonregression/Bretagne2.ppm')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
@@ -379,7 +373,7 @@ class TestSuiteWrite(unittest.TestCase):
 
     def test_NR_ENC_Bretagne2_ppm_6_encode(self):
         """NR-ENC-Bretagne2.ppm-6-encode"""
-        infile = os.path.join(data_root, 'input/nonregression/Bretagne2.ppm')
+        infile = opj_data_file('input/nonregression/Bretagne2.ppm')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
@@ -447,7 +441,7 @@ class TestSuiteWrite(unittest.TestCase):
 
     def test_NR_ENC_Bretagne2_ppm_7_encode(self):
         """NR-ENC-Bretagne2.ppm-7-encode"""
-        infile = os.path.join(data_root, 'input/nonregression/Bretagne2.ppm')
+        infile = opj_data_file('input/nonregression/Bretagne2.ppm')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
@@ -514,7 +508,7 @@ class TestSuiteWrite(unittest.TestCase):
 
     def test_NR_ENC_Bretagne2_ppm_8_encode(self):
         """NR-ENC-Bretagne2.ppm-8-encode"""
-        infile = os.path.join(data_root, 'input/nonregression/Bretagne2.ppm')
+        infile = opj_data_file('input/nonregression/Bretagne2.ppm')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
@@ -578,7 +572,7 @@ class TestSuiteWrite(unittest.TestCase):
 
     def test_NR_ENC_Cevennes1_bmp_9_encode(self):
         """NR-ENC-Cevennes1.bmp-9-encode"""
-        infile = os.path.join(data_root, 'input/nonregression/Cevennes1.bmp')
+        infile = opj_data_file('input/nonregression/Cevennes1.bmp')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
@@ -641,7 +635,7 @@ class TestSuiteWrite(unittest.TestCase):
 
     def test_NR_ENC_Cevennes2_ppm_10_encode(self):
         """NR-ENC-Cevennes2.ppm-10-encode"""
-        infile = os.path.join(data_root, 'input/nonregression/Cevennes2.ppm')
+        infile = opj_data_file('input/nonregression/Cevennes2.ppm')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
@@ -704,8 +698,7 @@ class TestSuiteWrite(unittest.TestCase):
 
     def test_NR_ENC_Rome_bmp_11_encode(self):
         """NR-ENC-Rome.bmp-11-encode"""
-        data = read_image(os.path.join(data_root,
-                                       'input/nonregression/Rome.bmp'))
+        data = read_image(opj_data_file('input/nonregression/Rome.bmp'))
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             jp2 = Jp2k(tfile.name, 'wb')
             jp2.write(data, psnr=[30, 35, 50], prog='LRCP', numres=3)
@@ -804,8 +797,7 @@ class TestSuiteWrite(unittest.TestCase):
         """NR-ENC-random-issue-0005.tif-12-encode"""
         # opj_decompress has trouble reading it, but that is not an issue here.
         # The nature of the image itself seems to give the compressor trouble.
-        infile = os.path.join(data_root,
-                              'input/nonregression/random-issue-0005.tif')
+        infile = opj_data_file('input/nonregression/random-issue-0005.tif')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
