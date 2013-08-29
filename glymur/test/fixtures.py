@@ -1,6 +1,7 @@
 """
 Test fixtures common to more than one test point.
 """
+import os
 import re
 import sys
 import warnings
@@ -26,6 +27,19 @@ if glymur.lib.openjp2.OPENJP2 is not None:
 
 NO_READ_BACKEND_MSG = "Matplotlib with the PIL backend must be available in "
 NO_READ_BACKEND_MSG += "order to run the tests in this suite."
+
+try:
+    OPJ_DATA_ROOT = os.environ['OPJ_DATA_ROOT']
+except KeyError:
+    OPJ_DATA_ROOT = None
+except:
+    raise
+
+
+def opj_data_file(relative_file_name):
+    """Compact way of forming a full filename from OpenJPEG's test suite."""
+    jfile = os.path.join(OPJ_DATA_ROOT, relative_file_name)
+    return jfile
 
 try:
     from matplotlib.pyplot import imread
