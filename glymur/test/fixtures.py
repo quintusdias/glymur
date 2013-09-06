@@ -10,10 +10,12 @@ import numpy as np
 
 import glymur
 
-# Need to know the openjpeg version.  If openjpeg is not installed, we use
-# '0.0.0'
+# Need to know the version of the openjpeg software.  If openjpeg is not
+# installed, we use # '0.0.0'
 OPENJPEG_VERSION = '0.0.0'
-if glymur.lib.openjpeg.OPENJPEG is not None:
+if glymur.lib.openjp2.OPENJP2 is not None:
+    OPENJPEG_VERSION = glymur.lib.openjp2.version()
+elif glymur.lib.openjpeg.OPENJPEG is not None:
     OPENJPEG_VERSION = glymur.lib.openjpeg.version()
 
 # Need to know of the libopenjp2 version is the official 2.0.0 release and NOT
