@@ -114,29 +114,6 @@ class TestSuite(unittest.TestCase):
         self.assertTrue(peak_tolerance(jpdata[:, :, 2], pgxdata) < 33)
         self.assertTrue(mse(jpdata[:, :, 2], pgxdata) < 55.8)
 
-    def test_ETS_C0P0_p0_05_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_05.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read_bands(rlevel=3)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p0_05.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[0], pgxdata) < 54)
-        self.assertTrue(mse(jpdata[0], pgxdata) < 68)
-
-    @unittest.skip("8-bit pgx data vs 12-bit j2k data")
-    def test_ETS_C0P0_p0_06_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_06.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read_bands(rlevel=3)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p0_06.pgx')
-        pgxdata = read_pgx(pgxfile)
-        tol = peak_tolerance(jpdata[0], pgxdata)
-        self.assertTrue(tol < 109)
-        m = mse(jpdata[0], pgxdata)
-        self.assertTrue(m < 743)
-
     @unittest.skip("Known failure in OPENJPEG test suite.")
     def test_ETS_C0P0_p0_07_j2k(self):
         jfile = opj_data_file('input/conformance/p0_07.j2k')
@@ -280,17 +257,6 @@ class TestSuite(unittest.TestCase):
         self.assertTrue(peak_tolerance(jpdata[:, :, 0], pgxdata) < 35)
         self.assertTrue(mse(jpdata[:, :, 0], pgxdata) < 74)
 
-    def test_ETS_C0P1_p1_03_j2k(self):
-        jfile = opj_data_file('input/conformance/p1_03.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read_bands(rlevel=3)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p1_03.pgx')
-        pgxdata = read_pgx(pgxfile)
-
-        self.assertTrue(peak_tolerance(jpdata[0], pgxdata) < 28)
-        self.assertTrue(mse(jpdata[0], pgxdata) < 18.8)
-
     @unittest.skip("Known failure in OPENJPEG test suite operation.")
     def test_ETS_C0P1_p1_04_j2k(self):
         jfile = opj_data_file('input/conformance/p1_04.j2k')
@@ -406,56 +372,6 @@ class TestSuite(unittest.TestCase):
         self.assertTrue(peak_tolerance(jpdata[:, :, 2], pgxdata) < 6)
         self.assertTrue(mse(jpdata[:, :, 2], pgxdata) < 1.07)
 
-    def test_ETS_C1P0_p0_05_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_05.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read_bands()
-
-        pgxfile = opj_data_file('baseline/conformance/c1p0_05_0.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[0], pgxdata) < 2)
-        self.assertTrue(mse(jpdata[0], pgxdata) < 0.302)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p0_05_1.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[1], pgxdata) < 2)
-        self.assertTrue(mse(jpdata[1], pgxdata) < 0.307)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p0_05_2.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[2], pgxdata) < 2)
-        self.assertTrue(mse(jpdata[2], pgxdata) < 0.269)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p0_05_3.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[3], pgxdata) == 0)
-        self.assertTrue(mse(jpdata[3], pgxdata) == 0)
-
-    def test_ETS_C1P0_p0_06_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_06.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read_bands()
-
-        pgxfile = opj_data_file('baseline/conformance/c1p0_06_0.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[0], pgxdata) < 635)
-        self.assertTrue(mse(jpdata[0], pgxdata) < 11287)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p0_06_1.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[1], pgxdata) < 403)
-        self.assertTrue(mse(jpdata[1], pgxdata) < 6124)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p0_06_2.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[2], pgxdata) < 378)
-        self.assertTrue(mse(jpdata[2], pgxdata) < 3968)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p0_06_3.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[3], pgxdata) == 0)
-        self.assertTrue(mse(jpdata[3], pgxdata) == 0)
-
     @unittest.skip("Known failure in OPENJPEG test suite operation.")
     def test_ETS_C1P0_p0_07_j2k(self):
         jfile = opj_data_file('input/conformance/p0_07.j2k')
@@ -499,23 +415,6 @@ class TestSuite(unittest.TestCase):
         pgxfile = opj_data_file('baseline/conformance/c1p0_09_0.pgx')
         pgxdata = read_pgx(pgxfile)
         np.testing.assert_array_equal(jpdata, pgxdata)
-
-    def test_ETS_C1P0_p0_10_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_10.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=0)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p0_10_0.pgx')
-        pgxdata = read_pgx(pgxfile)
-        np.testing.assert_array_equal(jpdata[:, :, 0], pgxdata)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p0_10_1.pgx')
-        pgxdata = read_pgx(pgxfile)
-        np.testing.assert_array_equal(jpdata[:, :, 1], pgxdata)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p0_10_2.pgx')
-        pgxdata = read_pgx(pgxfile)
-        np.testing.assert_array_equal(jpdata[:, :, 2], pgxdata)
 
     def test_ETS_C1P0_p0_11_j2k(self):
         jfile = opj_data_file('input/conformance/p0_11.j2k')
@@ -621,30 +520,6 @@ class TestSuite(unittest.TestCase):
         pgxdata = read_pgx(pgxfile)
         self.assertTrue(peak_tolerance(jpdata[:, :, 2], pgxdata) < 6)
         self.assertTrue(mse(jpdata[:, :, 2], pgxdata) < 1.051)
-
-    def test_ETS_C1P1_p1_03_j2k(self):
-        jfile = opj_data_file('input/conformance/p1_03.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read_bands()
-
-        pgxfile = opj_data_file('baseline/conformance/c1p1_03_0.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[0], pgxdata) < 2)
-        self.assertTrue(mse(jpdata[0], pgxdata) < 0.3)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p1_03_1.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[1], pgxdata) < 2)
-        self.assertTrue(mse(jpdata[1], pgxdata) < 0.21)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p1_03_2.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[2], pgxdata) <= 1)
-        self.assertTrue(mse(jpdata[2], pgxdata) < 0.2)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p1_03_3.pgx')
-        pgxdata = read_pgx(pgxfile)
-        np.testing.assert_array_equal(jpdata[3], pgxdata)
 
     def test_ETS_C1P1_p1_04_j2k(self):
         jfile = opj_data_file('input/conformance/p1_04.j2k')
@@ -802,16 +677,6 @@ class TestSuite(unittest.TestCase):
             jp2.read()
         self.assertTrue(True)
 
-    def test_NR_DEC_broken2_jp2_5_decode(self):
-        # Null pointer access
-        jfile = opj_data_file('input/nonregression/broken2.jp2')
-        with self.assertRaises(IOError):
-            with warnings.catch_warnings():
-                # Invalid marker ID.
-                warnings.simplefilter("ignore")
-                Jp2k(jfile).read()
-        self.assertTrue(True)
-
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
     def test_NR_DEC_broken3_jp2_6_decode(self):
@@ -822,15 +687,6 @@ class TestSuite(unittest.TestCase):
 
         with self.assertRaises(IOError):
             j.read()
-
-    def test_NR_DEC_broken4_jp2_7_decode(self):
-        jfile = opj_data_file('input/nonregression/broken4.jp2')
-        with self.assertRaises(IOError):
-            with warnings.catch_warnings():
-                # invalid number of subbands, bad marker ID
-                warnings.simplefilter("ignore")
-                Jp2k(jfile).read()
-        self.assertTrue(True)
 
     @unittest.skip("fprintf stderr output in r2343.")
     def test_NR_DEC_bug_j2c_8_decode(self):
@@ -877,12 +733,6 @@ class TestSuite(unittest.TestCase):
         Jp2k(jfile).read()
         self.assertTrue(True)
 
-    def test_NR_DEC_kakadu_v4_4_openjpegv2_broken_j2k_16_decode(self):
-        relpath = 'input/nonregression/kakadu_v4-4_openjpegv2_broken.j2k'
-        jfile = opj_data_file(relpath)
-        Jp2k(jfile).read()
-        self.assertTrue(True)
-
     def test_NR_DEC_MarkerIsNotCompliant_j2k_17_decode(self):
         jfile = opj_data_file('input/nonregression/MarkerIsNotCompliant.j2k')
         Jp2k(jfile).read()
@@ -891,11 +741,6 @@ class TestSuite(unittest.TestCase):
     def test_NR_DEC_Marrin_jp2_18_decode(self):
         jfile = opj_data_file('input/nonregression/Marrin.jp2')
         Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_merged_jp2_19_decode(self):
-        jfile = opj_data_file('input/nonregression/merged.jp2')
-        Jp2k(jfile).read_bands()
         self.assertTrue(True)
 
     def test_NR_DEC_movie_00000_j2k_20_decode(self):
@@ -946,368 +791,10 @@ class TestSuite(unittest.TestCase):
         Jp2k(jfile).read()
         self.assertTrue(True)
 
-    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
-                     "Test known to fail in v2.0.0 official")
-    def test_NR_DEC_text_GBR_jp2_29_decode(self):
-        jfile = opj_data_file('input/nonregression/text_GBR.jp2')
-        with warnings.catch_warnings():
-            # brand is 'jp2 ', but has any icc profile.
-            warnings.simplefilter("ignore")
-            jp2 = Jp2k(jfile)
-        jp2.read()
-        self.assertTrue(True)
-
     def test_NR_DEC_pacs_ge_j2k_30_decode(self):
         jfile = opj_data_file('input/nonregression/pacs.ge.j2k')
         Jp2k(jfile).read()
         self.assertTrue(True)
-
-    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
-                     "Test known to fail in v2.0.0 official")
-    def test_NR_DEC_kodak_2layers_lrcp_j2c_31_decode(self):
-        jfile = opj_data_file('input/nonregression/kodak_2layers_lrcp.j2c')
-        Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
-                     "Test known to fail in v2.0.0 official")
-    def test_NR_DEC_kodak_2layers_lrcp_j2c_32_decode(self):
-        jfile = opj_data_file('input/nonregression/kodak_2layers_lrcp.j2c')
-        Jp2k(jfile).read(layer=2)
-        self.assertTrue(True)
-
-    def test_NR_DEC_issue104_jpxstream_jp2_33_decode(self):
-        jfile = opj_data_file('input/nonregression/issue104_jpxstream.jp2')
-        Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
-                     "Test known to fail in v2.0.0 official")
-    def test_NR_DEC_mem_b2ace68c_1381_jp2_34_decode(self):
-        jfile = opj_data_file('input/nonregression/mem-b2ace68c-1381.jp2')
-        with warnings.catch_warnings():
-            # This file has a bad pclr box, we test for this elsewhere.
-            warnings.simplefilter("ignore")
-            j = Jp2k(jfile)
-        j.read()
-        self.assertTrue(True)
-
-    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
-                     "Test known to fail in v2.0.0 official")
-    def test_NR_DEC_mem_b2b86b74_2753_jp2_35_decode(self):
-        jfile = opj_data_file('input/nonregression/mem-b2b86b74-2753.jp2')
-        Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_gdal_fuzzer_unchecked_num_resolutions_jp2_36_decode(self):
-        f = 'input/nonregression/gdal_fuzzer_unchecked_numresolutions.jp2'
-        jfile = opj_data_file(f)
-        with warnings.catch_warnings():
-            # Invalid number of resolutions.
-            warnings.simplefilter("ignore")
-            j = Jp2k(jfile)
-            with self.assertRaises(IOError):
-                j.read()
-
-    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
-                     "Test not in done in v2.0.0 official")
-    def test_NR_DEC_jp2_36_decode(self):
-        lst = ('input',
-               'nonregression',
-               'gdal_fuzzer_assert_in_opj_j2k_read_SQcd_SQcc.patch.jp2')
-        jfile = opj_data_file('/'.join(lst))
-        with warnings.catch_warnings():
-            # Invalid component number.
-            warnings.simplefilter("ignore")
-            j = Jp2k(jfile)
-            with self.assertRaises(IOError):
-                j.read()
-
-    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
-                     "Test not in done in v2.0.0 official")
-    def test_NR_DEC_gdal_fuzzer_check_number_of_tiles_jp2_38_decode(self):
-        relpath = 'input/nonregression/gdal_fuzzer_check_number_of_tiles.jp2'
-        jfile = opj_data_file(relpath)
-        with warnings.catch_warnings():
-            # Invalid number of tiles.
-            warnings.simplefilter("ignore")
-            j = Jp2k(jfile)
-            with self.assertRaises(IOError):
-                j.read()
-
-    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
-                     "Test not in done in v2.0.0 official")
-    @unittest.skipIf(re.match(r"""1\.[0125]\.\d""", OPENJPEG_VERSION),
-                     "Segfaults 1.5")
-    def test_NR_DEC_gdal_fuzzer_check_comp_dx_dy_jp2_39_decode(self):
-        relpath = 'input/nonregression/gdal_fuzzer_check_comp_dx_dy.jp2'
-        jfile = opj_data_file(relpath)
-        with warnings.catch_warnings():
-            # Invalid subsampling value
-            warnings.simplefilter("ignore")
-            with self.assertRaises(IOError):
-                Jp2k(jfile).read()
-
-    def test_NR_DEC_file_409752_jp2_40_decode(self):
-        jfile = opj_data_file('input/nonregression/file409752.jp2')
-        with self.assertRaises(RuntimeError):
-            Jp2k(jfile).read()
-
-    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
-                     "Test not in done in v2.0.0 official")
-    @unittest.skipIf(re.match(r"""1\.[0125]\.\d""", OPENJPEG_VERSION),
-                     "Segfaults 1.5")
-    @unittest.skipIf(sys.hexversion < 0x03020000,
-                     "Uses features introduced in 3.2.")
-    def test_NR_DEC_issue188_beach_64bitsbox_jp2_41_decode(self):
-        # Has an 'XML ' box instead of 'xml '.  Yes that is pedantic, but it
-        # really does deserve a warning.
-        relpath = 'input/nonregression/issue188_beach_64bitsbox.jp2'
-        jfile = opj_data_file(relpath)
-        with self.assertWarns(UserWarning):
-            Jp2k(jfile).read()
-
-    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
-                     "Test not in done in v2.0.0 official")
-    def test_NR_DEC_issue206_image_000_jp2_42_decode(self):
-        jfile = opj_data_file('input/nonregression/issue206_image-000.jp2')
-        Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_p1_04_j2k_43_decode(self):
-        jfile = opj_data_file('input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(0, 0, 1024, 1024))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata)
-
-    def test_NR_DEC_p1_04_j2k_44_decode(self):
-        jfile = opj_data_file('input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(640, 512, 768, 640))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[640:768, 512:640])
-
-    def test_NR_DEC_p1_04_j2k_45_decode(self):
-        jfile = opj_data_file('input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(896, 896, 1024, 1024))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[896:1024, 896:1024])
-
-    def test_NR_DEC_p1_04_j2k_46_decode(self):
-        jfile = opj_data_file('input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(500, 100, 800, 300))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[500:800, 100:300])
-
-    def test_NR_DEC_p1_04_j2k_47_decode(self):
-        jfile = opj_data_file('input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(520, 260, 600, 360))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[520:600, 260:360])
-
-    def test_NR_DEC_p1_04_j2k_48_decode(self):
-        jfile = opj_data_file('input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(520, 260, 660, 360))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[520:660, 260:360])
-
-    def test_NR_DEC_p1_04_j2k_49_decode(self):
-        jfile = opj_data_file('input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(520, 360, 600, 400))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[520:600, 360:400])
-
-    def test_NR_DEC_p1_04_j2k_50_decode(self):
-        jfile = opj_data_file('input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(0, 0, 1024, 1024), rlevel=2)
-        odata = jp2k.read(rlevel=2)
-
-        np.testing.assert_array_equal(ssdata, odata[0:256, 0:256])
-
-    def test_NR_DEC_p1_04_j2k_51_decode(self):
-        jfile = opj_data_file('input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(640, 512, 768, 640), rlevel=2)
-        odata = jp2k.read(rlevel=2)
-        np.testing.assert_array_equal(ssdata, odata[160:192, 128:160])
-
-    def test_NR_DEC_p1_04_j2k_52_decode(self):
-        jfile = opj_data_file('input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(896, 896, 1024, 1024), rlevel=2)
-        odata = jp2k.read(rlevel=2)
-        np.testing.assert_array_equal(ssdata, odata[224:352, 224:352])
-
-    def test_NR_DEC_p1_04_j2k_53_decode(self):
-        jfile = opj_data_file('input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(500, 100, 800, 300), rlevel=2)
-        odata = jp2k.read(rlevel=2)
-        np.testing.assert_array_equal(ssdata, odata[125:200, 25:75])
-
-    def test_NR_DEC_p1_04_j2k_54_decode(self):
-        jfile = opj_data_file('input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(520, 260, 600, 360), rlevel=2)
-        odata = jp2k.read(rlevel=2)
-        np.testing.assert_array_equal(ssdata, odata[130:150, 65:90])
-
-    def test_NR_DEC_p1_04_j2k_55_decode(self):
-        jfile = opj_data_file('input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(520, 260, 660, 360), rlevel=2)
-        odata = jp2k.read(rlevel=2)
-        np.testing.assert_array_equal(ssdata, odata[130:165, 65:90])
-
-    def test_NR_DEC_p1_04_j2k_56_decode(self):
-        jfile = opj_data_file('input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(520, 360, 600, 400), rlevel=2)
-        odata = jp2k.read(rlevel=2)
-        np.testing.assert_array_equal(ssdata, odata[130:150, 90:100])
-
-    def test_NR_DEC_p1_04_j2k_57_decode(self):
-        jfile = opj_data_file('input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        tdata = jp2k.read(tile=63)  # last tile
-        odata = jp2k.read()
-        np.testing.assert_array_equal(tdata, odata[896:1024, 896:1024])
-
-    def test_NR_DEC_p1_04_j2k_58_decode(self):
-        jfile = opj_data_file('input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        tdata = jp2k.read(tile=63, rlevel=2)  # last tile
-        odata = jp2k.read(rlevel=2)
-        np.testing.assert_array_equal(tdata, odata[224:256, 224:256])
-
-    def test_NR_DEC_p1_04_j2k_59_decode(self):
-        jfile = opj_data_file('input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        tdata = jp2k.read(tile=12)  # 2nd row, 5th column
-        odata = jp2k.read()
-        np.testing.assert_array_equal(tdata, odata[128:256, 512:640])
-
-    def test_NR_DEC_p1_04_j2k_60_decode(self):
-        jfile = opj_data_file('input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        tdata = jp2k.read(tile=12, rlevel=1)  # 2nd row, 5th column
-        odata = jp2k.read(rlevel=1)
-        np.testing.assert_array_equal(tdata, odata[64:128, 256:320])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_61_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(0, 0, 12, 12))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[0:12, 0:12])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_62_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(1, 8, 8, 11))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[1:8, 8:11])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_63_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(9, 9, 12, 12))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[9:12, 9:12])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_64_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(10, 4, 12, 10))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[10:12, 4:10])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_65_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(3, 3, 9, 9))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[3:9, 3:9])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_66_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(4, 4, 7, 7))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[4:7, 4:7])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_67_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(4, 4, 5, 5))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[4:5, 4: 5])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_68_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(0, 0, 12, 12), rlevel=1)
-        odata = jp2k.read(rlevel=1)
-        np.testing.assert_array_equal(ssdata, odata[0:6, 0:6])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_69_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(1, 8, 8, 11), rlevel=1)
-        self.assertEqual(ssdata.shape, (3, 2, 3))
-
-    def test_NR_DEC_p1_06_j2k_70_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(9, 9, 12, 12), rlevel=1)
-        self.assertEqual(ssdata.shape, (1, 1, 3))
-
-    def test_NR_DEC_p1_06_j2k_71_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(10, 4, 12, 10), rlevel=1)
-        self.assertEqual(ssdata.shape, (1, 3, 3))
-
-    def test_NR_DEC_p1_06_j2k_72_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(3, 3, 9, 9), rlevel=1)
-        self.assertEqual(ssdata.shape, (3, 3, 3))
-
-    def test_NR_DEC_p1_06_j2k_73_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(4, 4, 7, 7), rlevel=1)
-        self.assertEqual(ssdata.shape, (2, 2, 3))
-
-    def test_NR_DEC_p1_06_j2k_74_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(4, 4, 5, 5), rlevel=1)
-        self.assertEqual(ssdata.shape, (1, 1, 3))
-
-    def test_NR_DEC_p1_06_j2k_75_decode(self):
-        # Image size would be 0 x 0.
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        with self.assertRaises((IOError, OSError)):
-            jp2k.read(area=(9, 9, 12, 12), rlevel=2)
 
     @unittest.skip("fprintf stderr output in r2343.")
     def test_NR_DEC_p1_06_j2k_76_decode(self):
@@ -1388,90 +875,6 @@ class TestSuite(unittest.TestCase):
         jfile = opj_data_file('input/conformance/p1_06.j2k')
         jp2k = Jp2k(jfile)
         jp2k.read(rlevel=4)
-
-    def test_NR_DEC_p0_04_j2k_85_decode(self):
-        jfile = opj_data_file('input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(0, 0, 256, 256))
-        fulldata = jp2k.read()
-        np.testing.assert_array_equal(fulldata[0:256, 0:256], ssdata)
-
-    def test_NR_DEC_p0_04_j2k_86_decode(self):
-        jfile = opj_data_file('input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(0, 128, 128, 256))
-        fulldata = jp2k.read()
-        np.testing.assert_array_equal(fulldata[0:128, 128:256], ssdata)
-
-    def test_NR_DEC_p0_04_j2k_87_decode(self):
-        jfile = opj_data_file('input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(10, 50, 200, 120))
-        fulldata = jp2k.read()
-        np.testing.assert_array_equal(fulldata[10:200, 50:120], ssdata)
-
-    def test_NR_DEC_p0_04_j2k_88_decode(self):
-        jfile = opj_data_file('input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(150, 10, 210, 190))
-        fulldata = jp2k.read()
-        np.testing.assert_array_equal(fulldata[150:210, 10:190], ssdata)
-
-    def test_NR_DEC_p0_04_j2k_89_decode(self):
-        jfile = opj_data_file('input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(80, 100, 150, 200))
-        fulldata = jp2k.read()
-        np.testing.assert_array_equal(fulldata[80:150, 100:200], ssdata)
-
-    def test_NR_DEC_p0_04_j2k_90_decode(self):
-        jfile = opj_data_file('input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(20, 150, 50, 200))
-        fulldata = jp2k.read()
-        np.testing.assert_array_equal(fulldata[20:50, 150:200], ssdata)
-
-    def test_NR_DEC_p0_04_j2k_91_decode(self):
-        jfile = opj_data_file('input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(0, 0, 256, 256), rlevel=2)
-        fulldata = jp2k.read(rlevel=2)
-        np.testing.assert_array_equal(fulldata[0:64, 0:64], ssdata)
-
-    def test_NR_DEC_p0_04_j2k_92_decode(self):
-        jfile = opj_data_file('input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(0, 128, 128, 256), rlevel=2)
-        fulldata = jp2k.read(rlevel=2)
-        np.testing.assert_array_equal(fulldata[0:32, 32:64], ssdata)
-
-    def test_NR_DEC_p0_04_j2k_93_decode(self):
-        jfile = opj_data_file('input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(10, 50, 200, 120), rlevel=2)
-        fulldata = jp2k.read(rlevel=2)
-        np.testing.assert_array_equal(fulldata[3:50, 13:30], ssdata)
-
-    def test_NR_DEC_p0_04_j2k_94_decode(self):
-        jfile = opj_data_file('input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(150, 10, 210, 190), rlevel=2)
-        fulldata = jp2k.read(rlevel=2)
-        np.testing.assert_array_equal(fulldata[38:53, 3:48], ssdata)
-
-    def test_NR_DEC_p0_04_j2k_95_decode(self):
-        jfile = opj_data_file('input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(80, 100, 150, 200), rlevel=2)
-        fulldata = jp2k.read(rlevel=2)
-        np.testing.assert_array_equal(fulldata[20:38, 25:50], ssdata)
-
-    def test_NR_DEC_p0_04_j2k_96_decode(self):
-        jfile = opj_data_file('input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(20, 150, 50, 200), rlevel=2)
-        fulldata = jp2k.read(rlevel=2)
-        np.testing.assert_array_equal(fulldata[5:13, 38:50], ssdata)
 
 
 @unittest.skipIf(OPJ_DATA_ROOT is None,
@@ -7315,6 +6718,623 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[3].mantissa, [0] * 16)
         self.assertEqual(c.segment[3].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10])
+
+
+@unittest.skipIf(re.match(r"""1\.\d.\d""", OPENJPEG_VERSION),
+                 "Feature not supported in glymur until openjpeg 2.0")
+class TestSuite_bands(unittest.TestCase):
+    """Runs tests introduced in version 1.x but only pass in glymur with 2.0
+
+    The deal here is that the feature works with 1.x, but glymur only supports
+    it with version 2.0.
+    """
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_ETS_C0P0_p0_05_j2k(self):
+        jfile = opj_data_file('input/conformance/p0_05.j2k')
+        jp2k = Jp2k(jfile)
+        jpdata = jp2k.read_bands(rlevel=3)
+
+        pgxfile = opj_data_file('baseline/conformance/c0p0_05.pgx')
+        pgxdata = read_pgx(pgxfile)
+        self.assertTrue(peak_tolerance(jpdata[0], pgxdata) < 54)
+        self.assertTrue(mse(jpdata[0], pgxdata) < 68)
+
+    @unittest.skip("8-bit pgx data vs 12-bit j2k data")
+    def test_ETS_C0P0_p0_06_j2k(self):
+        jfile = opj_data_file('input/conformance/p0_06.j2k')
+        jp2k = Jp2k(jfile)
+        jpdata = jp2k.read_bands(rlevel=3)
+
+        pgxfile = opj_data_file('baseline/conformance/c0p0_06.pgx')
+        pgxdata = read_pgx(pgxfile)
+        tol = peak_tolerance(jpdata[0], pgxdata)
+        self.assertTrue(tol < 109)
+        m = mse(jpdata[0], pgxdata)
+        self.assertTrue(m < 743)
+
+    def test_ETS_C0P1_p1_03_j2k(self):
+        jfile = opj_data_file('input/conformance/p1_03.j2k')
+        jp2k = Jp2k(jfile)
+        jpdata = jp2k.read_bands(rlevel=3)
+
+        pgxfile = opj_data_file('baseline/conformance/c0p1_03.pgx')
+        pgxdata = read_pgx(pgxfile)
+
+        self.assertTrue(peak_tolerance(jpdata[0], pgxdata) < 28)
+        self.assertTrue(mse(jpdata[0], pgxdata) < 18.8)
+
+    def test_ETS_C1P1_p1_03_j2k(self):
+        jfile = opj_data_file('input/conformance/p1_03.j2k')
+        jp2k = Jp2k(jfile)
+        jpdata = jp2k.read_bands()
+
+        pgxfile = opj_data_file('baseline/conformance/c1p1_03_0.pgx')
+        pgxdata = read_pgx(pgxfile)
+        self.assertTrue(peak_tolerance(jpdata[0], pgxdata) < 2)
+        self.assertTrue(mse(jpdata[0], pgxdata) < 0.3)
+
+        pgxfile = opj_data_file('baseline/conformance/c1p1_03_1.pgx')
+        pgxdata = read_pgx(pgxfile)
+        self.assertTrue(peak_tolerance(jpdata[1], pgxdata) < 2)
+        self.assertTrue(mse(jpdata[1], pgxdata) < 0.21)
+
+        pgxfile = opj_data_file('baseline/conformance/c1p1_03_2.pgx')
+        pgxdata = read_pgx(pgxfile)
+        self.assertTrue(peak_tolerance(jpdata[2], pgxdata) <= 1)
+        self.assertTrue(mse(jpdata[2], pgxdata) < 0.2)
+
+        pgxfile = opj_data_file('baseline/conformance/c1p1_03_3.pgx')
+        pgxdata = read_pgx(pgxfile)
+        np.testing.assert_array_equal(jpdata[3], pgxdata)
+
+    def test_ETS_C1P0_p0_05_j2k(self):
+        jfile = opj_data_file('input/conformance/p0_05.j2k')
+        jp2k = Jp2k(jfile)
+        jpdata = jp2k.read_bands()
+
+        pgxfile = opj_data_file('baseline/conformance/c1p0_05_0.pgx')
+        pgxdata = read_pgx(pgxfile)
+        self.assertTrue(peak_tolerance(jpdata[0], pgxdata) < 2)
+        self.assertTrue(mse(jpdata[0], pgxdata) < 0.302)
+
+        pgxfile = opj_data_file('baseline/conformance/c1p0_05_1.pgx')
+        pgxdata = read_pgx(pgxfile)
+        self.assertTrue(peak_tolerance(jpdata[1], pgxdata) < 2)
+        self.assertTrue(mse(jpdata[1], pgxdata) < 0.307)
+
+        pgxfile = opj_data_file('baseline/conformance/c1p0_05_2.pgx')
+        pgxdata = read_pgx(pgxfile)
+        self.assertTrue(peak_tolerance(jpdata[2], pgxdata) < 2)
+        self.assertTrue(mse(jpdata[2], pgxdata) < 0.269)
+
+        pgxfile = opj_data_file('baseline/conformance/c1p0_05_3.pgx')
+        pgxdata = read_pgx(pgxfile)
+        self.assertTrue(peak_tolerance(jpdata[3], pgxdata) == 0)
+        self.assertTrue(mse(jpdata[3], pgxdata) == 0)
+
+    def test_ETS_C1P0_p0_06_j2k(self):
+        jfile = opj_data_file('input/conformance/p0_06.j2k')
+        jp2k = Jp2k(jfile)
+        jpdata = jp2k.read_bands()
+
+        pgxfile = opj_data_file('baseline/conformance/c1p0_06_0.pgx')
+        pgxdata = read_pgx(pgxfile)
+        self.assertTrue(peak_tolerance(jpdata[0], pgxdata) < 635)
+        self.assertTrue(mse(jpdata[0], pgxdata) < 11287)
+
+        pgxfile = opj_data_file('baseline/conformance/c1p0_06_1.pgx')
+        pgxdata = read_pgx(pgxfile)
+        self.assertTrue(peak_tolerance(jpdata[1], pgxdata) < 403)
+        self.assertTrue(mse(jpdata[1], pgxdata) < 6124)
+
+        pgxfile = opj_data_file('baseline/conformance/c1p0_06_2.pgx')
+        pgxdata = read_pgx(pgxfile)
+        self.assertTrue(peak_tolerance(jpdata[2], pgxdata) < 378)
+        self.assertTrue(mse(jpdata[2], pgxdata) < 3968)
+
+        pgxfile = opj_data_file('baseline/conformance/c1p0_06_3.pgx')
+        pgxdata = read_pgx(pgxfile)
+        self.assertTrue(peak_tolerance(jpdata[3], pgxdata) == 0)
+        self.assertTrue(mse(jpdata[3], pgxdata) == 0)
+
+    def test_NR_DEC_merged_jp2_19_decode(self):
+        jfile = opj_data_file('input/nonregression/merged.jp2')
+        Jp2k(jfile).read_bands()
+        self.assertTrue(True)
+
+
+@unittest.skipIf(re.match(r"""1\.\d.\d""", OPENJPEG_VERSION),
+                 "Tests not passing until 2.0")
+class TestSuite2point0(unittest.TestCase):
+    """Runs tests introduced in version 2.0 or that pass only in 2.0"""
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_ETS_C1P0_p0_10_j2k(self):
+        jfile = opj_data_file('input/conformance/p0_10.j2k')
+        jp2k = Jp2k(jfile)
+        jpdata = jp2k.read(rlevel=0)
+
+        pgxfile = opj_data_file('baseline/conformance/c1p0_10_0.pgx')
+        pgxdata = read_pgx(pgxfile)
+        np.testing.assert_array_equal(jpdata[:, :, 0], pgxdata)
+
+        pgxfile = opj_data_file('baseline/conformance/c1p0_10_1.pgx')
+        pgxdata = read_pgx(pgxfile)
+        np.testing.assert_array_equal(jpdata[:, :, 1], pgxdata)
+
+        pgxfile = opj_data_file('baseline/conformance/c1p0_10_2.pgx')
+        pgxdata = read_pgx(pgxfile)
+        np.testing.assert_array_equal(jpdata[:, :, 2], pgxdata)
+
+    def test_NR_DEC_broken2_jp2_5_decode(self):
+        # Null pointer access
+        jfile = opj_data_file('input/nonregression/broken2.jp2')
+        with self.assertRaises(IOError):
+            with warnings.catch_warnings():
+                # Invalid marker ID.
+                warnings.simplefilter("ignore")
+                Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_broken4_jp2_7_decode(self):
+        jfile = opj_data_file('input/nonregression/broken4.jp2')
+        with self.assertRaises(IOError):
+            with warnings.catch_warnings():
+                # invalid number of subbands, bad marker ID
+                warnings.simplefilter("ignore")
+                Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_kakadu_v4_4_openjpegv2_broken_j2k_16_decode(self):
+        # This test actually passes in 1.5, but produces unpleasant warning
+        # messages that cannot be turned off?
+        relpath = 'input/nonregression/kakadu_v4-4_openjpegv2_broken.j2k'
+        jfile = opj_data_file(relpath)
+        Jp2k(jfile).read()
+        self.assertTrue(True)
+
+
+@unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
+                 "Test not in done in v2.0.0 official")
+@unittest.skipIf(re.match(r"""1\.\d.\d""", OPENJPEG_VERSION),
+                 "Tests not introduced until 2.1")
+class TestSuite2point1(unittest.TestCase):
+    """Runs tests introduced in version 2.0+ or that pass only in 2.0+"""
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_NR_DEC_text_GBR_jp2_29_decode(self):
+        jfile = opj_data_file('input/nonregression/text_GBR.jp2')
+        with warnings.catch_warnings():
+            # brand is 'jp2 ', but has any icc profile.
+            warnings.simplefilter("ignore")
+            jp2 = Jp2k(jfile)
+        jp2.read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_kodak_2layers_lrcp_j2c_31_decode(self):
+        jfile = opj_data_file('input/nonregression/kodak_2layers_lrcp.j2c')
+        Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_kodak_2layers_lrcp_j2c_32_decode(self):
+        jfile = opj_data_file('input/nonregression/kodak_2layers_lrcp.j2c')
+        Jp2k(jfile).read(layer=2)
+        self.assertTrue(True)
+
+    def test_NR_DEC_issue104_jpxstream_jp2_33_decode(self):
+        jfile = opj_data_file('input/nonregression/issue104_jpxstream.jp2')
+        Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_mem_b2ace68c_1381_jp2_34_decode(self):
+        jfile = opj_data_file('input/nonregression/mem-b2ace68c-1381.jp2')
+        with warnings.catch_warnings():
+            # This file has a bad pclr box, we test for this elsewhere.
+            warnings.simplefilter("ignore")
+            j = Jp2k(jfile)
+        j.read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_mem_b2b86b74_2753_jp2_35_decode(self):
+        jfile = opj_data_file('input/nonregression/mem-b2b86b74-2753.jp2')
+        Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_gdal_fuzzer_unchecked_num_resolutions_jp2_36_decode(self):
+        f = 'input/nonregression/gdal_fuzzer_unchecked_numresolutions.jp2'
+        jfile = opj_data_file(f)
+        with warnings.catch_warnings():
+            # Invalid number of resolutions.
+            warnings.simplefilter("ignore")
+            j = Jp2k(jfile)
+            with self.assertRaises(IOError):
+                j.read()
+
+    def test_NR_DEC_gdal_fuzzer_check_number_of_tiles_jp2_38_decode(self):
+        relpath = 'input/nonregression/gdal_fuzzer_check_number_of_tiles.jp2'
+        jfile = opj_data_file(relpath)
+        with warnings.catch_warnings():
+            # Invalid number of tiles.
+            warnings.simplefilter("ignore")
+            j = Jp2k(jfile)
+            with self.assertRaises(IOError):
+                j.read()
+
+    def test_NR_DEC_gdal_fuzzer_check_comp_dx_dy_jp2_39_decode(self):
+        relpath = 'input/nonregression/gdal_fuzzer_check_comp_dx_dy.jp2'
+        jfile = opj_data_file(relpath)
+        with warnings.catch_warnings():
+            # Invalid subsampling value
+            warnings.simplefilter("ignore")
+            with self.assertRaises(IOError):
+                Jp2k(jfile).read()
+
+    def test_NR_DEC_file_409752_jp2_40_decode(self):
+        jfile = opj_data_file('input/nonregression/file409752.jp2')
+        with self.assertRaises(RuntimeError):
+            Jp2k(jfile).read()
+
+    @unittest.skipIf(sys.hexversion < 0x03020000,
+                     "Uses features introduced in 3.2.")
+    def test_NR_DEC_issue188_beach_64bitsbox_jp2_41_decode(self):
+        # Has an 'XML ' box instead of 'xml '.  Yes that is pedantic, but it
+        # really does deserve a warning.
+        relpath = 'input/nonregression/issue188_beach_64bitsbox.jp2'
+        jfile = opj_data_file(relpath)
+        with self.assertWarns(UserWarning):
+            Jp2k(jfile).read()
+
+    def test_NR_DEC_issue206_image_000_jp2_42_decode(self):
+        jfile = opj_data_file('input/nonregression/issue206_image-000.jp2')
+        Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_p1_04_j2k_43_decode(self):
+        jfile = opj_data_file('input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(0, 0, 1024, 1024))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata)
+
+    def test_NR_DEC_p1_04_j2k_44_decode(self):
+        jfile = opj_data_file('input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(640, 512, 768, 640))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[640:768, 512:640])
+
+    def test_NR_DEC_p1_04_j2k_45_decode(self):
+        jfile = opj_data_file('input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(896, 896, 1024, 1024))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[896:1024, 896:1024])
+
+    def test_NR_DEC_p1_04_j2k_46_decode(self):
+        jfile = opj_data_file('input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(500, 100, 800, 300))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[500:800, 100:300])
+
+    def test_NR_DEC_p1_04_j2k_47_decode(self):
+        jfile = opj_data_file('input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(520, 260, 600, 360))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[520:600, 260:360])
+
+    def test_NR_DEC_p1_04_j2k_48_decode(self):
+        jfile = opj_data_file('input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(520, 260, 660, 360))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[520:660, 260:360])
+
+    def test_NR_DEC_p1_04_j2k_49_decode(self):
+        jfile = opj_data_file('input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(520, 360, 600, 400))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[520:600, 360:400])
+
+    def test_NR_DEC_p1_04_j2k_50_decode(self):
+        jfile = opj_data_file('input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(0, 0, 1024, 1024), rlevel=2)
+        odata = jp2k.read(rlevel=2)
+
+        np.testing.assert_array_equal(ssdata, odata[0:256, 0:256])
+
+    def test_NR_DEC_p1_04_j2k_51_decode(self):
+        jfile = opj_data_file('input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(640, 512, 768, 640), rlevel=2)
+        odata = jp2k.read(rlevel=2)
+        np.testing.assert_array_equal(ssdata, odata[160:192, 128:160])
+
+    def test_NR_DEC_p1_04_j2k_52_decode(self):
+        jfile = opj_data_file('input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(896, 896, 1024, 1024), rlevel=2)
+        odata = jp2k.read(rlevel=2)
+        np.testing.assert_array_equal(ssdata, odata[224:352, 224:352])
+
+    def test_NR_DEC_p1_04_j2k_53_decode(self):
+        jfile = opj_data_file('input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(500, 100, 800, 300), rlevel=2)
+        odata = jp2k.read(rlevel=2)
+        np.testing.assert_array_equal(ssdata, odata[125:200, 25:75])
+
+    def test_NR_DEC_p1_04_j2k_54_decode(self):
+        jfile = opj_data_file('input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(520, 260, 600, 360), rlevel=2)
+        odata = jp2k.read(rlevel=2)
+        np.testing.assert_array_equal(ssdata, odata[130:150, 65:90])
+
+    def test_NR_DEC_p1_04_j2k_55_decode(self):
+        jfile = opj_data_file('input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(520, 260, 660, 360), rlevel=2)
+        odata = jp2k.read(rlevel=2)
+        np.testing.assert_array_equal(ssdata, odata[130:165, 65:90])
+
+    def test_NR_DEC_p1_04_j2k_56_decode(self):
+        jfile = opj_data_file('input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(520, 360, 600, 400), rlevel=2)
+        odata = jp2k.read(rlevel=2)
+        np.testing.assert_array_equal(ssdata, odata[130:150, 90:100])
+
+    def test_NR_DEC_p1_04_j2k_57_decode(self):
+        jfile = opj_data_file('input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        tdata = jp2k.read(tile=63)  # last tile
+        odata = jp2k.read()
+        np.testing.assert_array_equal(tdata, odata[896:1024, 896:1024])
+
+    def test_NR_DEC_p1_04_j2k_58_decode(self):
+        jfile = opj_data_file('input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        tdata = jp2k.read(tile=63, rlevel=2)  # last tile
+        odata = jp2k.read(rlevel=2)
+        np.testing.assert_array_equal(tdata, odata[224:256, 224:256])
+
+    def test_NR_DEC_p1_04_j2k_59_decode(self):
+        jfile = opj_data_file('input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        tdata = jp2k.read(tile=12)  # 2nd row, 5th column
+        odata = jp2k.read()
+        np.testing.assert_array_equal(tdata, odata[128:256, 512:640])
+
+    def test_NR_DEC_p1_04_j2k_60_decode(self):
+        jfile = opj_data_file('input/conformance/p1_04.j2k')
+        jp2k = Jp2k(jfile)
+        tdata = jp2k.read(tile=12, rlevel=1)  # 2nd row, 5th column
+        odata = jp2k.read(rlevel=1)
+        np.testing.assert_array_equal(tdata, odata[64:128, 256:320])
+
+    def test_NR_DEC_jp2_36_decode(self):
+        lst = ('input',
+               'nonregression',
+               'gdal_fuzzer_assert_in_opj_j2k_read_SQcd_SQcc.patch.jp2')
+        jfile = opj_data_file('/'.join(lst))
+        with warnings.catch_warnings():
+            # Invalid component number.
+            warnings.simplefilter("ignore")
+            j = Jp2k(jfile)
+            with self.assertRaises(IOError):
+                j.read()
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_61_decode(self):
+        jfile = opj_data_file('input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(0, 0, 12, 12))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[0:12, 0:12])
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_62_decode(self):
+        jfile = opj_data_file('input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(1, 8, 8, 11))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[1:8, 8:11])
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_63_decode(self):
+        jfile = opj_data_file('input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(9, 9, 12, 12))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[9:12, 9:12])
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_64_decode(self):
+        jfile = opj_data_file('input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(10, 4, 12, 10))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[10:12, 4:10])
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_65_decode(self):
+        jfile = opj_data_file('input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(3, 3, 9, 9))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[3:9, 3:9])
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_66_decode(self):
+        jfile = opj_data_file('input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(4, 4, 7, 7))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[4:7, 4:7])
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_67_decode(self):
+        jfile = opj_data_file('input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(4, 4, 5, 5))
+        odata = jp2k.read()
+        np.testing.assert_array_equal(ssdata, odata[4:5, 4: 5])
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_68_decode(self):
+        jfile = opj_data_file('input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(0, 0, 12, 12), rlevel=1)
+        odata = jp2k.read(rlevel=1)
+        np.testing.assert_array_equal(ssdata, odata[0:6, 0:6])
+
+    @unittest.skip("fprintf stderr output in r2343.")
+    def test_NR_DEC_p1_06_j2k_69_decode(self):
+        jfile = opj_data_file('input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(1, 8, 8, 11), rlevel=1)
+        self.assertEqual(ssdata.shape, (3, 2, 3))
+
+    def test_NR_DEC_p1_06_j2k_70_decode(self):
+        jfile = opj_data_file('input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(9, 9, 12, 12), rlevel=1)
+        self.assertEqual(ssdata.shape, (1, 1, 3))
+
+    def test_NR_DEC_p1_06_j2k_71_decode(self):
+        jfile = opj_data_file('input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(10, 4, 12, 10), rlevel=1)
+        self.assertEqual(ssdata.shape, (1, 3, 3))
+
+    def test_NR_DEC_p1_06_j2k_72_decode(self):
+        jfile = opj_data_file('input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(3, 3, 9, 9), rlevel=1)
+        self.assertEqual(ssdata.shape, (3, 3, 3))
+
+    def test_NR_DEC_p1_06_j2k_73_decode(self):
+        jfile = opj_data_file('input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(4, 4, 7, 7), rlevel=1)
+        self.assertEqual(ssdata.shape, (2, 2, 3))
+
+    def test_NR_DEC_p1_06_j2k_74_decode(self):
+        jfile = opj_data_file('input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(4, 4, 5, 5), rlevel=1)
+        self.assertEqual(ssdata.shape, (1, 1, 3))
+
+    def test_NR_DEC_p1_06_j2k_75_decode(self):
+        # Image size would be 0 x 0.
+        jfile = opj_data_file('input/conformance/p1_06.j2k')
+        jp2k = Jp2k(jfile)
+        with self.assertRaises((IOError, OSError)):
+            jp2k.read(area=(9, 9, 12, 12), rlevel=2)
+
+    def test_NR_DEC_p0_04_j2k_85_decode(self):
+        jfile = opj_data_file('input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(0, 0, 256, 256))
+        fulldata = jp2k.read()
+        np.testing.assert_array_equal(fulldata[0:256, 0:256], ssdata)
+
+    def test_NR_DEC_p0_04_j2k_86_decode(self):
+        jfile = opj_data_file('input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(0, 128, 128, 256))
+        fulldata = jp2k.read()
+        np.testing.assert_array_equal(fulldata[0:128, 128:256], ssdata)
+
+    def test_NR_DEC_p0_04_j2k_87_decode(self):
+        jfile = opj_data_file('input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(10, 50, 200, 120))
+        fulldata = jp2k.read()
+        np.testing.assert_array_equal(fulldata[10:200, 50:120], ssdata)
+
+    def test_NR_DEC_p0_04_j2k_88_decode(self):
+        jfile = opj_data_file('input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(150, 10, 210, 190))
+        fulldata = jp2k.read()
+        np.testing.assert_array_equal(fulldata[150:210, 10:190], ssdata)
+
+    def test_NR_DEC_p0_04_j2k_89_decode(self):
+        jfile = opj_data_file('input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(80, 100, 150, 200))
+        fulldata = jp2k.read()
+        np.testing.assert_array_equal(fulldata[80:150, 100:200], ssdata)
+
+    def test_NR_DEC_p0_04_j2k_90_decode(self):
+        jfile = opj_data_file('input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(20, 150, 50, 200))
+        fulldata = jp2k.read()
+        np.testing.assert_array_equal(fulldata[20:50, 150:200], ssdata)
+
+    def test_NR_DEC_p0_04_j2k_91_decode(self):
+        jfile = opj_data_file('input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(0, 0, 256, 256), rlevel=2)
+        fulldata = jp2k.read(rlevel=2)
+        np.testing.assert_array_equal(fulldata[0:64, 0:64], ssdata)
+
+    def test_NR_DEC_p0_04_j2k_92_decode(self):
+        jfile = opj_data_file('input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(0, 128, 128, 256), rlevel=2)
+        fulldata = jp2k.read(rlevel=2)
+        np.testing.assert_array_equal(fulldata[0:32, 32:64], ssdata)
+
+    def test_NR_DEC_p0_04_j2k_93_decode(self):
+        jfile = opj_data_file('input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(10, 50, 200, 120), rlevel=2)
+        fulldata = jp2k.read(rlevel=2)
+        np.testing.assert_array_equal(fulldata[3:50, 13:30], ssdata)
+
+    def test_NR_DEC_p0_04_j2k_94_decode(self):
+        jfile = opj_data_file('input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(150, 10, 210, 190), rlevel=2)
+        fulldata = jp2k.read(rlevel=2)
+        np.testing.assert_array_equal(fulldata[38:53, 3:48], ssdata)
+
+    def test_NR_DEC_p0_04_j2k_95_decode(self):
+        jfile = opj_data_file('input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(80, 100, 150, 200), rlevel=2)
+        fulldata = jp2k.read(rlevel=2)
+        np.testing.assert_array_equal(fulldata[20:38, 25:50], ssdata)
+
+    def test_NR_DEC_p0_04_j2k_96_decode(self):
+        jfile = opj_data_file('input/conformance/p0_04.j2k')
+        jp2k = Jp2k(jfile)
+        ssdata = jp2k.read(area=(20, 150, 50, 200), rlevel=2)
+        fulldata = jp2k.read(rlevel=2)
+        np.testing.assert_array_equal(fulldata[5:13, 38:50], ssdata)
 
 
 if __name__ == "__main__":

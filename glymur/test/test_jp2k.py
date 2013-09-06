@@ -752,6 +752,8 @@ class TestJp2k(unittest.TestCase):
             self.assertFalse('Make' in exif['Image'].keys())
 
 
+@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is not None,
+                 "Don't bother if openjp2 is present.")
 @unittest.skipIf(glymur.lib.openjpeg.OPENJPEG is None,
                  "Missing openjpeg library.")
 class TestJp2k15(unittest.TestCase):
