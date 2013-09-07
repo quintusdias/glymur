@@ -32,13 +32,7 @@ else:
 
 import glymur
 from glymur import Jp2k
-
-try:
-    DATA_ROOT = os.environ['OPJ_DATA_ROOT']
-except KeyError:
-    DATA_ROOT = None
-except:
-    raise
+from .fixtures import OPJ_DATA_ROOT, opj_data_file
 
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
@@ -287,11 +281,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(DATA_ROOT is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_icc_profile(self):
         """verify printing of colr box with ICC profile"""
-        filename = os.path.join(DATA_ROOT, 'input/nonregression/text_GBR.jp2')
+        filename = opj_data_file('input/nonregression/text_GBR.jp2')
         with warnings.catch_warnings():
             # brand is 'jp2 ', but has any icc profile.
             warnings.simplefilter("ignore")
@@ -356,11 +350,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(DATA_ROOT is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_crg(self):
         """verify printing of CRG segment"""
-        filename = os.path.join(DATA_ROOT, 'input/conformance/p0_03.j2k')
+        filename = opj_data_file('input/conformance/p0_03.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream()
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -371,11 +365,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(DATA_ROOT is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_rgn(self):
         """verify printing of RGN segment"""
-        filename = os.path.join(DATA_ROOT, 'input/conformance/p0_03.j2k')
+        filename = opj_data_file('input/conformance/p0_03.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream(header_only=False)
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -388,11 +382,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(DATA_ROOT is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_sop(self):
         """verify printing of SOP segment"""
-        filename = os.path.join(DATA_ROOT, 'input/conformance/p0_03.j2k')
+        filename = opj_data_file('input/conformance/p0_03.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream(header_only=False)
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -403,11 +397,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(DATA_ROOT is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_cme(self):
         """Test printing a CME or comment marker segment."""
-        filename = os.path.join(DATA_ROOT, 'input/conformance/p0_02.j2k')
+        filename = opj_data_file('input/conformance/p0_02.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream()
         # 2nd to last segment in the main header
@@ -431,11 +425,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(DATA_ROOT is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_plt_segment(self):
         """verify printing of PLT segment"""
-        filename = os.path.join(DATA_ROOT, 'input/conformance/p0_07.j2k')
+        filename = opj_data_file('input/conformance/p0_07.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream(header_only=False)
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -450,11 +444,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(DATA_ROOT is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_pod_segment(self):
         """verify printing of POD segment"""
-        filename = os.path.join(DATA_ROOT, 'input/conformance/p0_13.j2k')
+        filename = opj_data_file('input/conformance/p0_13.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream()
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -480,11 +474,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(DATA_ROOT is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_ppm_segment(self):
         """verify printing of PPM segment"""
-        filename = os.path.join(DATA_ROOT, 'input/conformance/p1_03.j2k')
+        filename = opj_data_file('input/conformance/p1_03.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream()
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -498,11 +492,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(DATA_ROOT is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_ppt_segment(self):
         """verify printing of ppt segment"""
-        filename = os.path.join(DATA_ROOT, 'input/conformance/p1_06.j2k')
+        filename = opj_data_file('input/conformance/p1_06.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream(header_only=False)
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -610,11 +604,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(DATA_ROOT is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_tlm_segment(self):
         """verify printing of TLM segment"""
-        filename = os.path.join(DATA_ROOT, 'input/conformance/p0_15.j2k')
+        filename = opj_data_file('input/conformance/p0_15.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream()
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -704,11 +698,11 @@ class TestPrinting(unittest.TestCase):
 
     @unittest.skipIf(sys.hexversion < 0x02070000,
                      "Differences in XML printing between 2.6 and 2.7")
-    @unittest.skipIf(DATA_ROOT is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_xml(self):
         """verify printing of XML box"""
-        filename = os.path.join(DATA_ROOT, 'input/conformance/file1.jp2')
+        filename = opj_data_file('input/conformance/file1.jp2')
         j = glymur.Jp2k(filename)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.box[2])
@@ -735,11 +729,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(DATA_ROOT is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_channel_definition(self):
         """verify printing of cdef box"""
-        filename = os.path.join(DATA_ROOT, 'input/conformance/file2.jp2')
+        filename = opj_data_file('input/conformance/file2.jp2')
         j = glymur.Jp2k(filename)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.box[2].box[2])
@@ -751,11 +745,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(DATA_ROOT is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_component_mapping(self):
         """verify printing of cmap box"""
-        filename = os.path.join(DATA_ROOT, 'input/conformance/file9.jp2')
+        filename = opj_data_file('input/conformance/file9.jp2')
         j = glymur.Jp2k(filename)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.box[2].box[2])
@@ -767,11 +761,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(DATA_ROOT is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_palette7(self):
         """verify printing of pclr box"""
-        filename = os.path.join(DATA_ROOT, 'input/conformance/file9.jp2')
+        filename = opj_data_file('input/conformance/file9.jp2')
         j = glymur.Jp2k(filename)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.box[2].box[1])
@@ -781,11 +775,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(DATA_ROOT is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_rreq(self):
         """verify printing of reader requirements box"""
-        filename = os.path.join(DATA_ROOT, 'input/conformance/file7.jp2')
+        filename = opj_data_file('input/conformance/file7.jp2')
         j = glymur.Jp2k(filename)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.box[2])
@@ -805,11 +799,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(DATA_ROOT is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_differing_subsamples(self):
         """verify printing of SIZ with different subsampling... Issue 86."""
-        filename = os.path.join(DATA_ROOT, 'input/conformance/p0_05.j2k')
+        filename = opj_data_file('input/conformance/p0_05.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream()
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -828,11 +822,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(DATA_ROOT is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_palette_box(self):
         """Verify that palette (pclr) boxes are printed without error."""
-        filename = os.path.join(DATA_ROOT, 'input/conformance/file9.jp2')
+        filename = opj_data_file('input/conformance/file9.jp2')
         j = glymur.Jp2k(filename)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.box[2].box[1])
@@ -921,13 +915,13 @@ class TestPrinting(unittest.TestCase):
 
     @unittest.skipIf(sys.hexversion < 0x03000000,
                      "Ordered dicts not printing well in 2.7")
-    @unittest.skipIf(DATA_ROOT is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_jpx_approx_icc_profile(self):
         """verify jpx with approx field equal to zero"""
         # ICC profiles may be used in JP2, but the approximation field should
         # be zero unless we have jpx.  This file does both.
-        filename = os.path.join(DATA_ROOT, 'input/nonregression/text_GBR.jp2')
+        filename = opj_data_file('input/nonregression/text_GBR.jp2')
         with warnings.catch_warnings():
             # brand is 'jp2 ', but has any icc profile.
             warnings.simplefilter("ignore")
@@ -966,11 +960,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(DATA_ROOT is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_uuid(self):
         """verify printing of UUID box"""
-        filename = os.path.join(DATA_ROOT, 'input/nonregression/text_GBR.jp2')
+        filename = opj_data_file('input/nonregression/text_GBR.jp2')
         with warnings.catch_warnings():
             # brand is 'jp2 ', but has any icc profile.
             warnings.simplefilter("ignore")

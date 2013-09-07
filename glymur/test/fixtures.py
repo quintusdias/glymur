@@ -1,6 +1,7 @@
 """
 Test fixtures common to more than one test point.
 """
+import os
 import re
 import sys
 import warnings
@@ -9,10 +10,12 @@ import numpy as np
 
 import glymur
 
-# Need to know the openjpeg version.  If openjpeg is not installed, we use
-# '0.0.0'
+# Need to know the version of the openjpeg software.  If openjpeg is not
+# installed, we use # '0.0.0'
 OPENJPEG_VERSION = '0.0.0'
-if glymur.lib.openjpeg.OPENJPEG is not None:
+if glymur.lib.openjp2.OPENJP2 is not None:
+    OPENJPEG_VERSION = glymur.lib.openjp2.version()
+elif glymur.lib.openjpeg.OPENJPEG is not None:
     OPENJPEG_VERSION = glymur.lib.openjpeg.version()
 
 # Need to know of the libopenjp2 version is the official 2.0.0 release and NOT
@@ -26,6 +29,19 @@ if glymur.lib.openjp2.OPENJP2 is not None:
 
 NO_READ_BACKEND_MSG = "Matplotlib with the PIL backend must be available in "
 NO_READ_BACKEND_MSG += "order to run the tests in this suite."
+
+try:
+    OPJ_DATA_ROOT = os.environ['OPJ_DATA_ROOT']
+except KeyError:
+    OPJ_DATA_ROOT = None
+except:
+    raise
+
+
+def opj_data_file(relative_file_name):
+    """Compact way of forming a full filename from OpenJPEG's test suite."""
+    jfile = os.path.join(OPJ_DATA_ROOT, relative_file_name)
+    return jfile
 
 try:
     from matplotlib.pyplot import imread

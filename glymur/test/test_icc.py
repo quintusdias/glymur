@@ -20,16 +20,10 @@ else:
 import numpy as np
 
 from glymur import Jp2k
-
-try:
-    DATA_ROOT = os.environ['OPJ_DATA_ROOT']
-except KeyError:
-    DATA_ROOT = None
-except:
-    raise
+from .fixtures import OPJ_DATA_ROOT, opj_data_file
 
 
-@unittest.skipIf(DATA_ROOT is None,
+@unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 class TestICC(unittest.TestCase):
     """ICC profile tests"""
@@ -42,7 +36,7 @@ class TestICC(unittest.TestCase):
 
     def test_file5(self):
         """basic ICC profile"""
-        filename = os.path.join(DATA_ROOT, 'input/conformance/file5.jp2')
+        filename = opj_data_file('input/conformance/file5.jp2')
         j = Jp2k(filename)
         profile = j.box[3].box[1].icc_profile
         self.assertEqual(profile['Size'], 546)
@@ -75,8 +69,7 @@ class TestICC(unittest.TestCase):
                      "Uses features introduced in 3.2.")
     def test_invalid_profile_header(self):
         """invalid ICC header data should cause UserWarning"""
-        jfile = os.path.join(DATA_ROOT,
-                             'input/nonregression/orb-blue10-lin-jp2.jp2')
+        jfile = opj_data_file('input/nonregression/orb-blue10-lin-jp2.jp2')
 
         # assertWarns in Python 3.3 (python2.7/pylint issue)
         # pylint: disable=E1101
