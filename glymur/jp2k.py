@@ -280,9 +280,6 @@ class Jp2k(Jp2kBox):
             Corresponds to cparameters_t type in openjp2 headers.
         colorspace : int
             Either CLRSPC_SRGB or CLRSPC_GRAY
-        mct : bool, optional
-            Specifies usage of the multi component transform.  If not
-            specified, defaults to True if the colorspace is RGB.
         """
 
         if 'cratios' in kwargs and 'psnr' in kwargs:
@@ -380,11 +377,215 @@ class Jp2k(Jp2kBox):
         glymur.LibraryNotFoundError
             If glymur is unable to load the openjp2 library.
         """
-        if opj2.OPENJP2 is None:
-            raise LibraryNotFoundError("You must have the openjp2 library "
-                                       "installed before using this "
+        if opj2.OPENJP2 is not None:
+            img = self._write_openjp2(img_array,  verbose=verbose, **kwargs)
+        elif opj.OPENJPEG is not None:
+            img = self._write_openjpeg(img_array, verbose=verbose, **kwargs)
+        else:
+            raise LibraryNotFoundError("You must have version 1.5 of OpenJPEG "
+                                       "or more recent before using this "
                                        "functionality.")
 
+    def _write_openjpeg(self, img_array, verbose=False, **kwargs):
+        """
+        """
+        if codeblock is not None:
+            if (np.prod(codeblock) > 4096) or (np.any(np.array(codeblock) < 4)) or (np.any(np.array(codeblock) > 1024)):
+                msg = 'Size of code block error.  '
+                msg += 'Restriction:  width*height <= 4096, '
+                msg += '4 <= width, height <= 1024'
+                raise(RuntimeError(msg))
+
+        if cratio is not None and len(cratio) >= opj.MAX_NUM_LAYERS:
+            msg = 'Maximum number of layers is %d.' % opj.MAX_NUM_LAYERS
+            raise(RuntimeError(msg))
+
+        if psnr is not None and len(psnr) >= opj.MAX_NUM_LAYERS:
+            msg = 'Maximum number of layers is %d.' % opj.MAX_NUM_LAYERS
+            raise(RuntimeError(msg))
+
+        if cratio is not None and psnr is not None:
+            msg = 'Psnr and cratio parameters cannot be specified together.'
+            raise(RuntimeError(msg))
+
+
+        cparams = opj.cparameters_t()
+
+        opj.set_default_encoder_parameters(ctypes.byref(cparams))
+
+        # Set default to lossless until we know otherwise.
+        cparams.tcp_rates[0] = 0
+        cparams.tcp_numlayers = 1
+        cparams.cp_disto_alloc = 1
+
+        outfile = self.jp2k_file
+        nelts = opj.OPJ_PATH_LEN - len(outfile)
+        outfile += b'0'*nelts
+        cparams.outfile = outfile
+
+        numrows = data.shape[0]
+        numcols = data.shape[1]
+        numlayers = data.shape[2]
+
+        if codeblock is not None: 
+            cparams.cblockw_init = codeblock[0]
+            cparams.cblockh_init = codeblock[1]
+
+        if comment is None:
+            comment = 'Created by OpenJPEG version %s' % opj.version()
+        cparams.cp_comment = ctypes.c_char_p(comment)
+
+
+        if cratio is not None: 
+            cparams.tcp_numlayers = len(cratio)
+            for j in range(0,len(cratio)):
+                cparams.tcp_rates[j] = cratio[j]
+            cparams.cp_disto_alloc = 1
+
+        if eph:
+            cparams.csty = cparams.csty | 0x04
+
+        if modeswitch is not None: 
+            cparams.mode = modeswitch
+
+        if numres is not None: 
+            cparams.numresolution = numres
+
+        if origin is not None: 
+            cparams.image_offset_x0 = origin[0]
+            cparams.image_offset_y0 = origin[1]
+
+        if progorder is not None: 
+            cparams.prog_order = opj.progression_order[progorder]
+
+        if precinct is not None: 
+            cparams.csty = cparams.csty | 0x01
+            cparams.res_spec = len(precinct)
+            for j in range(0,len(precinct)):
+                cparams.prcw_init[j] = precinct[j][0]
+                cparams.prch_init[j] = precinct[j][1]
+
+        if psnr is not None: 
+            cparams.tcp_numlayers = len(psnr)
+            for j in range(0,len(psnr)):
+                cparams.tcp_distoratio[j] = psnr[j]
+            cparams.cp_fixed_quality = 1
+
+        if sop:
+            cparams.csty = cparams.csty | 0x02
+
+        if tile is not None: 
+            cparams.tile_size_on = 1
+            cparams.cp_tdx = tile[0]
+            cparams.cp_tdy = tile[1]
+
+        # comment = what?
+        cmptparms = opj.image_cmptparm_t_from_np(data)
+        image = opj.image_create(cmptparms)
+
+        # set image offset and reference grid 
+        image.contents.x0 = cparams.image_offset_x0
+        image.contents.y0 = cparams.image_offset_y0
+        image.contents.x1 = image.contents.x0 + (numcols - 1) * cparams.subsampling_dx + 1
+        image.contents.y1 = image.contents.y0 + (numrows - 1) * cparams.subsampling_dy + 1
+
+        # Stage the image data to the openjpeg data structure.
+        for k in range(0,numlayers):
+            layer = np.ascontiguousarray(data[:,:,k], dtype=np.int32)
+            dest = image.contents.comps[k].data
+            src = layer.ctypes.data
+            ctypes.memmove(dest, src, layer.nbytes)
+
+        # set multi-component transform?
+        if image.contents.numcomps == 3:
+            cparams.tcp_mct = chr(1)
+        else:
+            cparams.tcp_mct = chr(0)
+
+        # set encode format
+        #cinfo = opj.create_compress(opj.codec_format[self.file_format])
+        cinfo = opj.create_compress(self.file_format)
+
+        event_mgr = opj.event_mgr_t(None, None, None)
+        opj.set_event_mgr(cparams, ctypes.byref(event_mgr), None)
+
+        opj.setup_encoder(cinfo, ctypes.byref(cparams), image)
+
+        # open a byte stream for writing 
+        # allocate memory for all tiles
+        cio = opj.cio_open(cinfo)
+        
+        opj.encode(cinfo, cio, image)
+        pos = opj.cio_tell(cio)
+
+        ss = ctypes.string_at(cio.contents.buffer, pos)
+        f = open(self.jp2k_file,'wb')
+        f.write(ss)
+        f.close()
+        opj.cio_close(cio);
+
+        opj.destroy_compress(cinfo);
+        opj.image_destroy(image);
+
+        self.parse()
+
+
+    def _write_openjp2(self, img_array, verbose=False, **kwargs):
+        """Write image data to a JP2/JPX/J2k file.  Intended usage of the
+        various parameters follows that of OpenJPEG's opj_compress utility.
+
+        This method can only be used to create JPEG 2000 images that can fit
+        in memory.
+
+        Parameters
+        ----------
+        img_array : ndarray
+            Image data to be written to file.
+        cbsize : tuple, optional
+            Code block size (DY, DX).
+        colorspace : str, optional
+            Either 'rgb' or 'gray'.
+        cratios : iterable
+            Compression ratios for successive layers.
+        eph : bool, optional
+            If true, write SOP marker after each header packet.
+        grid_offset : tuple, optional
+            Offset (DY, DX) of the origin of the image in the reference grid.
+        mct : bool, optional
+            Specifies usage of the multi component transform.  If not
+            specified, defaults to True if the colorspace is RGB.
+        modesw : int, optional
+            Mode switch.
+                1 = BYPASS(LAZY)
+                2 = RESET
+                4 = RESTART(TERMALL)
+                8 = VSC
+                16 = ERTERM(SEGTERM)
+                32 = SEGMARK(SEGSYM)
+        numres : int, optional
+            Number of resolutions.
+        prog : str, optional
+            Progression order, one of "LRCP" "RLCP", "RPCL", "PCRL", "CPRL".
+        psnr : iterable, optional
+            Different PSNR for successive layers.
+        psizes : list, optional
+            List of precinct sizes.  Each precinct size tuple is defined in
+            (height x width).
+        sop : bool, optional
+            If true, write SOP marker before each packet.
+        subsam : tuple, optional
+            Subsampling factors (dy, dx).
+        tilesize : tuple, optional
+            Numeric tuple specifying tile size in terms of (numrows, numcols),
+            not (X, Y).
+        verbose : bool, optional
+            Print informational messages produced by the OpenJPEG library.
+
+        Raises
+        ------
+        glymur.LibraryNotFoundError
+            If glymur is unable to load the openjp2 library.
+        """
         cparams, colorspace = self._process_write_inputs(img_array, **kwargs)
 
         if img_array.ndim == 2:
