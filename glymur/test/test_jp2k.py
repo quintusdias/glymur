@@ -679,6 +679,9 @@ class TestJp2k15(unittest.TestCase):
             j2k.read(layer=1)
 
     @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+    @unittest.skipIf(re.match(r"""1\.[01234]\.\d""",
+                              OPENJPEG_VERSION) is not None,
+                     "Writing only supported with openjpeg version 1.5+.")
     def test_2d_rgb(self):
         """RGB must have at least 3 components."""
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
