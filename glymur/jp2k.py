@@ -409,7 +409,7 @@ class Jp2k(Jp2kBox):
             raise(RuntimeError(msg))
 
 
-        cparams = opj.cparameters_t()
+        cparams = opj.CompressionParametersType()
 
         opj.set_default_encoder_parameters(ctypes.byref(cparams))
 
@@ -506,7 +506,7 @@ class Jp2k(Jp2kBox):
         #cinfo = opj.create_compress(opj.codec_format[self.file_format])
         cinfo = opj.create_compress(self.file_format)
 
-        event_mgr = opj.event_mgr_t(None, None, None)
+        event_mgr = opj.EventMgrType(None, None, None)
         opj.set_event_mgr(cparams, ctypes.byref(event_mgr), None)
 
         opj.setup_encoder(cinfo, ctypes.byref(cparams), image)
