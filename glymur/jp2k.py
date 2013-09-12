@@ -15,14 +15,14 @@ else:
 import ctypes
 import math
 import os
+import re
 import struct
 import warnings
 
 import numpy as np
 
 from .codestream import Codestream
-from .core import SRGB
-from .core import GREYSCALE
+from .core import SRGB, GREYSCALE
 from .core import PROGRESSION_ORDER
 from .core import ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE
 from .jp2box import Jp2kBox
@@ -32,6 +32,13 @@ from .jp2box import ImageHeaderBox
 from .lib import openjpeg as opj
 from .lib import openjp2 as opj2
 from .lib import c as libc
+
+if opj.OPENJPEG is None and opj2.OPENJP2 is None:
+    OPENJPEG_VERSION = '0.0.0'
+elif opj2.OPENJP2 is None:
+    OPENJPEG_VERSION = opj.version()
+else:
+    OPENJPEG_VERSION = opj2.version()
 
 
 class Jp2k(Jp2kBox):
@@ -185,7 +192,10 @@ class Jp2k(Jp2kBox):
         cparams : CompressionParametersType(ctypes.Structure)
             Corresponds to cparameters_t type in openjp2 headers.
         """
-        cparams = opj2.set_default_encoder_parameters()
+        if re.match(r"""1\.\d\.\d""", OPENJPEG_VERSION):
+            cparams = opj.set_default_encoder_parameters()
+        else:
+            cparams = opj2.set_default_encoder_parameters()
 
         outfile = self.filename.encode()
         num_pad_bytes = opj2.PATH_LEN - len(outfile)
@@ -280,9 +290,6 @@ class Jp2k(Jp2kBox):
             Corresponds to cparameters_t type in openjp2 headers.
         colorspace : int
             Either CLRSPC_SRGB or CLRSPC_GRAY
-        mct : bool, optional
-            Specifies usage of the multi component transform.  If not
-            specified, defaults to True if the colorspace is RGB.
         """
 
         if 'cratios' in kwargs and 'psnr' in kwargs:
@@ -380,11 +387,127 @@ class Jp2k(Jp2kBox):
         glymur.LibraryNotFoundError
             If glymur is unable to load the openjp2 library.
         """
-        if opj2.OPENJP2 is None:
-            raise LibraryNotFoundError("You must have the openjp2 library "
-                                       "installed before using this "
+        if opj2.OPENJP2 is not None:
+            img = self._write_openjp2(img_array,  verbose=verbose, **kwargs)
+        elif opj.OPENJPEG is not None:
+            img = self._write_openjpeg(img_array, verbose=verbose, **kwargs)
+        else:
+            raise LibraryNotFoundError("You must have version 1.5 of OpenJPEG "
+                                       "or more recent before using this "
                                        "functionality.")
 
+    def _write_openjpeg(self, img_array, verbose=False, **kwargs):
+        """
+        """
+        cparams, colorspace = self._process_write_inputs(img_array, **kwargs)
+
+        if img_array.ndim == 2:
+            # Force the image to be 3D.  Just makes things easier later on.
+            numrows, numcols = img_array.shape
+            img_array = img_array.reshape(numrows, numcols, 1)
+
+        comptparms = _populate_comptparms(img_array, cparams)
+
+        image = opj.image_create(comptparms, colorspace)
+
+        numrows, numcols, numlayers = img_array.shape
+
+        # set image offset and reference grid 
+        image.contents.x0 = cparams.image_offset_x0
+        image.contents.y0 = cparams.image_offset_y0
+        image.contents.x1 = image.contents.x0 + (numcols - 1) * cparams.subsampling_dx + 1
+        image.contents.y1 = image.contents.y0 + (numrows - 1) * cparams.subsampling_dy + 1
+
+        # Stage the image data to the openjpeg data structure.
+        for k in range(0,numlayers):
+            layer = np.ascontiguousarray(img_array[:,:,k], dtype=np.int32)
+            dest = image.contents.comps[k].data
+            src = layer.ctypes.data
+            ctypes.memmove(dest, src, layer.nbytes)
+
+        # set encode format
+        cinfo = opj.create_compress(cparams.codec_fmt)
+
+        event_mgr = opj.EventMgrType(None, None, None)
+        #opj.set_event_mgr(cparams, ctypes.byref(event_mgr), None)
+
+        opj.setup_encoder(cinfo, ctypes.byref(cparams), image)
+
+        # open a byte stream for writing 
+        # allocate memory for all tiles
+        cio = opj.cio_open(cinfo)
+        
+        opj.encode(cinfo, cio, image)
+        pos = opj.cio_tell(cio)
+
+        ss = ctypes.string_at(cio.contents.buffer, pos)
+        f = open(self.filename,'wb')
+        f.write(ss)
+        f.close()
+        opj.cio_close(cio);
+
+        opj.destroy_compress(cinfo);
+        opj.image_destroy(image);
+
+        self.parse()
+
+
+    def _write_openjp2(self, img_array, verbose=False, **kwargs):
+        """Write image data to a JP2/JPX/J2k file.  Intended usage of the
+        various parameters follows that of OpenJPEG's opj_compress utility.
+
+        This method can only be used to create JPEG 2000 images that can fit
+        in memory.
+
+        Parameters
+        ----------
+        img_array : ndarray
+            Image data to be written to file.
+        cbsize : tuple, optional
+            Code block size (DY, DX).
+        colorspace : str, optional
+            Either 'rgb' or 'gray'.
+        cratios : iterable
+            Compression ratios for successive layers.
+        eph : bool, optional
+            If true, write SOP marker after each header packet.
+        grid_offset : tuple, optional
+            Offset (DY, DX) of the origin of the image in the reference grid.
+        mct : bool, optional
+            Specifies usage of the multi component transform.  If not
+            specified, defaults to True if the colorspace is RGB.
+        modesw : int, optional
+            Mode switch.
+                1 = BYPASS(LAZY)
+                2 = RESET
+                4 = RESTART(TERMALL)
+                8 = VSC
+                16 = ERTERM(SEGTERM)
+                32 = SEGMARK(SEGSYM)
+        numres : int, optional
+            Number of resolutions.
+        prog : str, optional
+            Progression order, one of "LRCP" "RLCP", "RPCL", "PCRL", "CPRL".
+        psnr : iterable, optional
+            Different PSNR for successive layers.
+        psizes : list, optional
+            List of precinct sizes.  Each precinct size tuple is defined in
+            (height x width).
+        sop : bool, optional
+            If true, write SOP marker before each packet.
+        subsam : tuple, optional
+            Subsampling factors (dy, dx).
+        tilesize : tuple, optional
+            Numeric tuple specifying tile size in terms of (numrows, numcols),
+            not (X, Y).
+        verbose : bool, optional
+            Print informational messages produced by the OpenJPEG library.
+
+        Raises
+        ------
+        glymur.LibraryNotFoundError
+            If glymur is unable to load the openjp2 library.
+        """
         cparams, colorspace = self._process_write_inputs(img_array, **kwargs)
 
         if img_array.ndim == 2:
@@ -1207,7 +1330,10 @@ def _populate_comptparms(img_array, cparams):
         comp_prec = 16
 
     numrows, numcols, num_comps = img_array.shape
-    comptparms = (opj2.ImageComptParmType * num_comps)()
+    if re.match(r"""1\.\d\.\d""", OPENJPEG_VERSION):
+        comptparms = (opj.ImageComptParmType * num_comps)()
+    else:
+        comptparms = (opj2.ImageComptParmType * num_comps)()
     for j in range(num_comps):
         comptparms[j].dx = cparams.subsampling_dx
         comptparms[j].dy = cparams.subsampling_dy
