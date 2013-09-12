@@ -371,7 +371,7 @@ class DecompressionParametersType(ctypes.Structure):
         _fields_.append(("flags",             ctypes.c_uint))
 
 
-class ImageCmptparmType(ctypes.Structure):
+class ImageComptParmType(ctypes.Structure):
     """Component parameters structure used by the opj_image_create function.
     """
     _fields_ = [ 
@@ -395,7 +395,7 @@ class ImageCmptparmType(ctypes.Structure):
             # precision
             ('prec', ctypes.c_int),
 
-            # imgae depth in bits
+            # image depth in bits
             ('bpp', ctypes.c_int),
 
             # signed (1) / unsigned (0) 
@@ -403,22 +403,19 @@ class ImageCmptparmType(ctypes.Structure):
 
 
 class ImageCompType(ctypes.Structure):
-    """Defines a single image component.
-
-    Corresponds to image_comp_t type in openjpeg.
-    """
-    _fields_ = [("dx", ctypes.c_int),
-                ("dy", ctypes.c_int),
-                ("w", ctypes.c_int),
-                ("h", ctypes.c_int),
-                ("x0", ctypes.c_int),
-                ("y0", ctypes.c_int),
-                ("prec", ctypes.c_int),
-                ("bpp", ctypes.c_int),
-                ("sgnd", ctypes.c_int),
-                ("resno_decoded", ctypes.c_int),
-                ("factor", ctypes.c_int),
-                ("data", ctypes.POINTER(ctypes.c_int))]
+    """Defines a single image component. """
+    _fields_ = [("dx",        ctypes.c_int),
+            ("dy",            ctypes.c_int),
+            ("w",             ctypes.c_int),
+            ("h",             ctypes.c_int),
+            ("x0",            ctypes.c_int),
+            ("y0",            ctypes.c_int),
+            ("prec",          ctypes.c_int),
+            ("bpp",           ctypes.c_int),
+            ("sgnd",          ctypes.c_int),
+            ("resno_decoded", ctypes.c_int),
+            ("factor",        ctypes.c_int),
+            ("data",          ctypes.POINTER(ctypes.c_int))]
 
 
 class ImageType(ctypes.Structure):
@@ -437,16 +434,22 @@ class ImageType(ctypes.Structure):
                 ("icc_profile_len", ctypes.c_int)]
 
 
-def cio_open(cinfo, src):
+def cio_open(cinfo, src=None):
     """Wrapper for openjpeg library function opj_cio_open."""
     argtypes = [ctypes.POINTER(CommonStructType), ctypes.c_char_p,
                 ctypes.c_int]
     OPENJPEG.opj_cio_open.argtypes = argtypes
     OPENJPEG.opj_cio_open.restype = ctypes.POINTER(CioType)
 
+    if src is None:
+        length = 0
+    else:
+        length = len(src)
+
     cio = OPENJPEG.opj_cio_open(ctypes.cast(cinfo,
                                             ctypes.POINTER(CommonStructType)),
-                                src, len(src))
+                                src,
+                                length)
     return cio
 
 
@@ -456,6 +459,13 @@ def cio_close(cio):
     OPENJPEG.opj_cio_close.argtypes = [ctypes.POINTER(CioType)]
     OPENJPEG.opj_cio_close(cio)
 
+
+def cio_tell(cio):
+    """Get position in byte stream."""
+    OPENJPEG.cio_tell.argtypes = [ctypes.POINTER(CioType)]
+    OPENJPEG.cio_tell.restype = ctypes.c_int
+    pos = OPENJPEG.cio_tell(cio)
+    return pos
 
 def create_compress(fmt):
     """Wrapper for openjpeg library function opj_create_compress.
@@ -576,7 +586,7 @@ def image_create(cmptparms, cspace):
     """Wrapper for openjpeg library function opj_image_create.
     """
     OPENJPEG.opj_image_create.argtypes = [ctypes.c_int,
-            ctypes.POINTER(ImageCmptparmType),
+            ctypes.POINTER(ImageComptParmType),
             ctypes.c_int]
     OPENJPEG.opj_image_create.restype = ctypes.POINTER(ImageType)
 
@@ -590,12 +600,14 @@ def image_destroy(image):
     OPENJPEG.opj_image_destroy(image)
 
 
-def set_default_encoder_parameters(cparams_p):
+def set_default_encoder_parameters():
     """Wrapper for openjpeg library function opj_set_default_encoder_parameters.
     """
+    cparams = CompressionParametersType()
     argtypes = [ctypes.POINTER(CompressionParametersType)]
     OPENJPEG.opj_set_default_encoder_parameters.argtypes = argtypes
-    OPENJPEG.opj_set_default_encoder_parameters(cparams_p)
+    OPENJPEG.opj_set_default_encoder_parameters(ctypes.byref(cparams))
+    return cparams
 
 
 def set_default_decoder_parameters(dparams_p):

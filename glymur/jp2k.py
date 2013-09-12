@@ -15,14 +15,14 @@ else:
 import ctypes
 import math
 import os
+import re
 import struct
 import warnings
 
 import numpy as np
 
 from .codestream import Codestream
-from .core import SRGB
-from .core import GREYSCALE
+from .core import SRGB, GREYSCALE
 from .core import PROGRESSION_ORDER
 from .core import ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE
 from .jp2box import Jp2kBox
@@ -32,6 +32,13 @@ from .jp2box import ImageHeaderBox
 from .lib import openjpeg as opj
 from .lib import openjp2 as opj2
 from .lib import c as libc
+
+if opj.OPENJPEG is None and opj2.OPENJP2 is None:
+    OPENJPEG_VERSION = '0.0.0'
+elif opj2.OPENJP2 is None:
+    OPENJPEG_VERSION = opj.version()
+else:
+    OPENJPEG_VERSION = opj2.version()
 
 
 class Jp2k(Jp2kBox):
@@ -185,7 +192,10 @@ class Jp2k(Jp2kBox):
         cparams : CompressionParametersType(ctypes.Structure)
             Corresponds to cparameters_t type in openjp2 headers.
         """
-        cparams = opj2.set_default_encoder_parameters()
+        if re.match(r"""1\.\d\.\d""", OPENJPEG_VERSION):
+            cparams = opj.set_default_encoder_parameters()
+        else:
+            cparams = opj2.set_default_encoder_parameters()
 
         outfile = self.filename.encode()
         num_pad_bytes = opj2.PATH_LEN - len(outfile)
@@ -389,99 +399,18 @@ class Jp2k(Jp2kBox):
     def _write_openjpeg(self, img_array, verbose=False, **kwargs):
         """
         """
-        if codeblock is not None:
-            if (np.prod(codeblock) > 4096) or (np.any(np.array(codeblock) < 4)) or (np.any(np.array(codeblock) > 1024)):
-                msg = 'Size of code block error.  '
-                msg += 'Restriction:  width*height <= 4096, '
-                msg += '4 <= width, height <= 1024'
-                raise(RuntimeError(msg))
+        cparams, colorspace = self._process_write_inputs(img_array, **kwargs)
 
-        if cratio is not None and len(cratio) >= opj.MAX_NUM_LAYERS:
-            msg = 'Maximum number of layers is %d.' % opj.MAX_NUM_LAYERS
-            raise(RuntimeError(msg))
+        if img_array.ndim == 2:
+            # Force the image to be 3D.  Just makes things easier later on.
+            numrows, numcols = img_array.shape
+            img_array = img_array.reshape(numrows, numcols, 1)
 
-        if psnr is not None and len(psnr) >= opj.MAX_NUM_LAYERS:
-            msg = 'Maximum number of layers is %d.' % opj.MAX_NUM_LAYERS
-            raise(RuntimeError(msg))
+        comptparms = _populate_comptparms(img_array, cparams)
 
-        if cratio is not None and psnr is not None:
-            msg = 'Psnr and cratio parameters cannot be specified together.'
-            raise(RuntimeError(msg))
+        image = opj.image_create(comptparms, colorspace)
 
-
-        cparams = opj.CompressionParametersType()
-
-        opj.set_default_encoder_parameters(ctypes.byref(cparams))
-
-        # Set default to lossless until we know otherwise.
-        cparams.tcp_rates[0] = 0
-        cparams.tcp_numlayers = 1
-        cparams.cp_disto_alloc = 1
-
-        outfile = self.jp2k_file
-        nelts = opj.OPJ_PATH_LEN - len(outfile)
-        outfile += b'0'*nelts
-        cparams.outfile = outfile
-
-        numrows = data.shape[0]
-        numcols = data.shape[1]
-        numlayers = data.shape[2]
-
-        if codeblock is not None: 
-            cparams.cblockw_init = codeblock[0]
-            cparams.cblockh_init = codeblock[1]
-
-        if comment is None:
-            comment = 'Created by OpenJPEG version %s' % opj.version()
-        cparams.cp_comment = ctypes.c_char_p(comment)
-
-
-        if cratio is not None: 
-            cparams.tcp_numlayers = len(cratio)
-            for j in range(0,len(cratio)):
-                cparams.tcp_rates[j] = cratio[j]
-            cparams.cp_disto_alloc = 1
-
-        if eph:
-            cparams.csty = cparams.csty | 0x04
-
-        if modeswitch is not None: 
-            cparams.mode = modeswitch
-
-        if numres is not None: 
-            cparams.numresolution = numres
-
-        if origin is not None: 
-            cparams.image_offset_x0 = origin[0]
-            cparams.image_offset_y0 = origin[1]
-
-        if progorder is not None: 
-            cparams.prog_order = opj.progression_order[progorder]
-
-        if precinct is not None: 
-            cparams.csty = cparams.csty | 0x01
-            cparams.res_spec = len(precinct)
-            for j in range(0,len(precinct)):
-                cparams.prcw_init[j] = precinct[j][0]
-                cparams.prch_init[j] = precinct[j][1]
-
-        if psnr is not None: 
-            cparams.tcp_numlayers = len(psnr)
-            for j in range(0,len(psnr)):
-                cparams.tcp_distoratio[j] = psnr[j]
-            cparams.cp_fixed_quality = 1
-
-        if sop:
-            cparams.csty = cparams.csty | 0x02
-
-        if tile is not None: 
-            cparams.tile_size_on = 1
-            cparams.cp_tdx = tile[0]
-            cparams.cp_tdy = tile[1]
-
-        # comment = what?
-        cmptparms = opj.image_cmptparm_t_from_np(data)
-        image = opj.image_create(cmptparms)
+        numrows, numcols, numlayers = img_array.shape
 
         # set image offset and reference grid 
         image.contents.x0 = cparams.image_offset_x0
@@ -491,23 +420,16 @@ class Jp2k(Jp2kBox):
 
         # Stage the image data to the openjpeg data structure.
         for k in range(0,numlayers):
-            layer = np.ascontiguousarray(data[:,:,k], dtype=np.int32)
+            layer = np.ascontiguousarray(img_array[:,:,k], dtype=np.int32)
             dest = image.contents.comps[k].data
             src = layer.ctypes.data
             ctypes.memmove(dest, src, layer.nbytes)
 
-        # set multi-component transform?
-        if image.contents.numcomps == 3:
-            cparams.tcp_mct = chr(1)
-        else:
-            cparams.tcp_mct = chr(0)
-
         # set encode format
-        #cinfo = opj.create_compress(opj.codec_format[self.file_format])
-        cinfo = opj.create_compress(self.file_format)
+        cinfo = opj.create_compress(cparams.codec_fmt)
 
         event_mgr = opj.EventMgrType(None, None, None)
-        opj.set_event_mgr(cparams, ctypes.byref(event_mgr), None)
+        #opj.set_event_mgr(cparams, ctypes.byref(event_mgr), None)
 
         opj.setup_encoder(cinfo, ctypes.byref(cparams), image)
 
@@ -519,7 +441,7 @@ class Jp2k(Jp2kBox):
         pos = opj.cio_tell(cio)
 
         ss = ctypes.string_at(cio.contents.buffer, pos)
-        f = open(self.jp2k_file,'wb')
+        f = open(self.filename,'wb')
         f.write(ss)
         f.close()
         opj.cio_close(cio);
@@ -1408,7 +1330,10 @@ def _populate_comptparms(img_array, cparams):
         comp_prec = 16
 
     numrows, numcols, num_comps = img_array.shape
-    comptparms = (opj2.ImageComptParmType * num_comps)()
+    if re.match(r"""1\.\d\.\d""", OPENJPEG_VERSION):
+        comptparms = (opj.ImageComptParmType * num_comps)()
+    else:
+        comptparms = (opj2.ImageComptParmType * num_comps)()
     for j in range(num_comps):
         comptparms[j].dx = cparams.subsampling_dx
         comptparms[j].dy = cparams.subsampling_dy
