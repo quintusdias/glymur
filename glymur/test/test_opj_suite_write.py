@@ -10,6 +10,7 @@ suite.
 # pylint: disable=F0401
 
 import os
+import re
 import sys
 import tempfile
 
@@ -19,15 +20,16 @@ else:
     import unittest
 
 from .fixtures import read_image, NO_READ_BACKEND, NO_READ_BACKEND_MSG
-from .fixtures import OPJ_DATA_ROOT, opj_data_file
+from .fixtures import OPJ_DATA_ROOT, OPENJPEG_VERSION, opj_data_file
 
 from glymur import Jp2k
 import glymur
 
 
 @unittest.skipIf(os.name == "nt", "no write support on windows, period")
-@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
-                 "Missing openjp2 library.")
+@unittest.skipIf(re.match(r"""1\.[01234]\.\d""",
+                          OPENJPEG_VERSION) is not None,
+                 "Writing only supported with openjpeg version 1.5+.")
 @unittest.skipIf(NO_READ_BACKEND, NO_READ_BACKEND_MSG)
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")

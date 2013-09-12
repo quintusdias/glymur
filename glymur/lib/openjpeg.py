@@ -6,10 +6,16 @@
 import ctypes
 import sys
 
+import numpy as np
+
 from .config import glymur_config
 _, OPENJPEG = glymur_config()
 
-PATH_LEN = 4096  # maximum allowed size for filenames
+# Maximum number of tile parts expected by JPWL: increase at your will 
+JPWL_MAX_NO_TILESPECS = 16 
+
+J2K_MAXRLVLS = 33  # Number of maximum resolution level authorized
+PATH_LEN = 4096    # maximum allowed size for filenames
 
 
 def version():
@@ -52,14 +58,8 @@ class CommonStructType(ctypes.Structure):
                 ("mj2_handle", ctypes.c_void_p)]
 
 
-class DecompressionInfoType(ctypes.Structure):
-    """This is for decompression contexts.
-
-    Corresponds to dinfo_t type in openjpeg headers.
-    """
-    pass
-
-
+STREAM_READ  = 0x0001 # The stream was opened for reading. 
+STREAM_WRITE = 0x0002 # The stream was opened for writing.
 class CioType(ctypes.Structure):
     """Byte input-output stream (CIO)
 
@@ -78,6 +78,266 @@ class CioType(ctypes.Structure):
                 ("end", ctypes.c_char_p),
                 # pointer to current position
                 ("bp", ctypes.c_char_p)]
+
+
+class CompressionInfoType(CommonStructType):
+    """Common fields between JPEG-2000 compression and decompression contexts.  
+    This is for compression contexts.  Corresponds to common_struct_t.
+    """
+    pass
+
+
+class PocType(ctypes.Structure):
+    """Progression order changes."""
+    _fields_ = [("resno", ctypes.c_int),
+            # Resolution num start, Component num start, given by POC
+            ("compno0", ctypes.c_int), 
+
+            # Layer num end,Resolution num end, Component num end, given by POC
+            ("layno1", ctypes.c_int), 
+            ("resno1", ctypes.c_int), 
+            ("compno1", ctypes.c_int), 
+
+            # Layer num start,Precinct num start, Precinct num end 
+            ("layno0", ctypes.c_int), 
+            ("precno0", ctypes.c_int), 
+            ("precno1", ctypes.c_int), 
+
+            # Progression order enum
+            # OPJ_PROG_ORDER prg1,prg;
+            ("prg1", ctypes.c_int), 
+            ("prg", ctypes.c_int), 
+
+            # Progression order string 
+            # char progorder[5];
+            ("progorder",            ctypes.c_char * 5),
+
+            # Tile number 
+            # int tile;
+            ("tile", ctypes.c_int), 
+
+            # /** Start and end values for Tile width and height*/
+            # int tx0,tx1,ty0,ty1;
+            ("tx0", ctypes.c_int), 
+            ("tx1", ctypes.c_int), 
+            ("ty0", ctypes.c_int), 
+            ("ty1", ctypes.c_int), 
+
+            # /** Start value, initialised in pi_initialise_encode*/
+            # int layS, resS, compS, prcS;
+            ("layS", ctypes.c_int), 
+            ("resS", ctypes.c_int), 
+            ("compS", ctypes.c_int), 
+            ("prcS", ctypes.c_int),
+
+            # /** End value, initialised in pi_initialise_encode */
+            # int layE, resE, compE, prcE;
+            ("layE", ctypes.c_int), 
+            ("resE", ctypes.c_int), 
+            ("compE", ctypes.c_int), 
+            ("prcE", ctypes.c_int), 
+
+            # Start and end values of Tile width and height, initialised in
+            # pi_initialise_encode int txS,txE,tyS,tyE,dx,dy;
+            ("txS", ctypes.c_int), 
+            ("txE", ctypes.c_int), 
+            ("tyS", ctypes.c_int), 
+            ("tyE", ctypes.c_int), 
+            ("dx", ctypes.c_int), 
+            ("dy", ctypes.c_int), 
+
+            # Temporary values for Tile parts, initialised in pi_create_encode 
+            # int lay_t, res_t, comp_t, prc_t,tx0_t,ty0_t;
+            ("lay_t", ctypes.c_int), 
+            ("res_t", ctypes.c_int), 
+            ("comp_t", ctypes.c_int), 
+            ("prc_t", ctypes.c_int), 
+            ("tx0_t", ctypes.c_int), 
+            ("ty0_t", ctypes.c_int)]
+
+
+class CompressionParametersType(ctypes.Structure):
+    """Compression parameters.
+
+    Corresponds to cparameters_t type in openjp2 headers.
+    """
+    _fields_ = [
+        # size of tile:
+        #     tile_size_on = false (not in argument) or
+        #                  = true (in argument)
+        ("tile_size_on",     ctypes.c_int),
+
+        # XTOsiz, YTOsiz
+        ("cp_tx0",           ctypes.c_int),
+        ("cp_ty0",           ctypes.c_int),
+
+        # XTsiz, YTsiz
+        ("cp_tdx",           ctypes.c_int),
+        ("cp_tdy",           ctypes.c_int),
+
+        # allocation by rate/distortion
+        ("cp_disto_alloc",   ctypes.c_int),
+
+        # allocation by fixed layer
+        ("cp_fixed_alloc",   ctypes.c_int),
+
+        # add fixed_quality
+        ("cp_fixed_quality", ctypes.c_int),
+
+        # fixed layer
+        ("cp_matrice",       ctypes.c_void_p),
+
+        # comment for coding
+        ("cp_comment",       ctypes.c_char_p),
+
+        # csty : coding style
+        ("csty",             ctypes.c_int),
+
+        # progression order (default OPJ_LRCP)
+        ("prog_order",       ctypes.c_int),
+
+        # progression order changes
+        ("poc",              PocType * 32),
+
+        # number of progression order changes (POC), default to 0
+        ("numpocs",          ctypes.c_uint),
+
+        # number of layers
+        ("tcp_numlayers",    ctypes.c_int),
+
+        # rates of layers
+        ("tcp_rates",        ctypes.c_float * 100),
+
+        # different psnr for successive layers
+        ("tcp_distoratio",   ctypes.c_float * 100),
+
+        # number of resolutions
+        ("numresolution",    ctypes.c_int),
+
+        # initial code block width, default to 64
+        ("cblockw_init",     ctypes.c_int),
+
+        # initial code block height, default to 64
+        ("cblockh_init",     ctypes.c_int),
+
+        # mode switch (cblk_style)
+        ("mode",             ctypes.c_int),
+
+        # 1 : use the irreversible DWT 9-7
+        # 0 : use lossless compression (default)
+        ("irreversible",     ctypes.c_int),
+
+        # region of interest: affected component in [0..3], -1 means no ROI
+        ("roi_compno",       ctypes.c_int),
+
+        # region of interest: upshift value
+        ("roi_shift",        ctypes.c_int),
+
+        # number of precinct size specifications
+        ("res_spec",         ctypes.c_int),
+
+        # initial precinct width
+        ("prcw_init",        ctypes.c_int * J2K_MAXRLVLS),
+
+        # initial precinct height
+        ("prch_init",        ctypes.c_int * J2K_MAXRLVLS),
+
+        # input file name
+        ("infile",           ctypes.c_char * PATH_LEN),
+
+        # output file name
+        ("outfile",          ctypes.c_char * PATH_LEN),
+
+        # DEPRECATED.
+        ("index_on",         ctypes.c_int),
+
+        # DEPRECATED.
+        ("index",            ctypes.c_char * PATH_LEN),
+
+        # subimage encoding: origin image offset in x direction
+        # subimage encoding: origin image offset in y direction
+        ("image_offset_x0",  ctypes.c_int),
+        ("image_offset_y0",  ctypes.c_int),
+
+        # subsampling value for dx
+        # subsampling value for dy
+        ("subsampling_dx",  ctypes.c_int),
+        ("subsampling_dy",  ctypes.c_int),
+
+        # input file format 0: PGX, 1: PxM, 2: BMP 3:TIF
+        # output file format 0: J2K, 1: JP2, 2: JPT
+        ("decod_format",    ctypes.c_int),
+        ("cod_format",      ctypes.c_int),
+
+        # JPWL encoding parameters
+        # enables writing of EPC in MH, thus activating JPWL
+        ("jpwl_epc_on",     ctypes.c_int),
+
+        # error protection method for MH (0,1,16,32,37-128)
+        ("jpwl_hprot_mh",   ctypes.c_int),
+
+        # tile number of header protection specification (>=0)
+        ("jpwl_hprot_tph_tileno", ctypes.c_int * JPWL_MAX_NO_TILESPECS),
+
+        # error protection methods for TPHs (0,1,16,32,37-128)
+        ("jpwl_hprot_tph",        ctypes.c_int * JPWL_MAX_NO_TILESPECS),
+
+        # tile number of packet protection specification (>=0)
+        ("jpwl_pprot_tileno",     ctypes.c_int * JPWL_MAX_NO_TILESPECS),
+
+        # packet number of packet protection specification (>=0)
+        ("jpwl_pprot_packno",     ctypes.c_int * JPWL_MAX_NO_TILESPECS),
+
+        # error protection methods for packets (0,1,16,32,37-128)
+        ("jpwl_pprot",            ctypes.c_int * JPWL_MAX_NO_TILESPECS),
+
+        # enables writing of ESD, (0=no/1/2 bytes)
+        ("jpwl_sens_size",        ctypes.c_int),
+
+        # sensitivity addressing size (0=auto/2/4 bytes)
+        ("jpwl_sens_addr",        ctypes.c_int),
+
+        # sensitivity range (0-3)
+        ("jpwl_sens_range",       ctypes.c_int),
+
+        # sensitivity method for MH (-1=no,0-7)
+        ("jpwl_sens_mh",          ctypes.c_int),
+
+        # tile number of sensitivity specification (>=0)
+        ("jpwl_sens_tph_tileno",  ctypes.c_int * JPWL_MAX_NO_TILESPECS),
+
+        # sensitivity methods for TPHs (-1=no,0-7)
+        ("jpwl_sens_tph",         ctypes.c_int * JPWL_MAX_NO_TILESPECS),
+
+        # Digital Cinema compliance 0-not compliant, 1-compliant
+        ("cp_cinema",             ctypes.c_int),
+
+        # Maximum rate for each component.
+        # If == 0, component size limitation is not considered
+        ("max_comp_size",         ctypes.c_int),
+
+        # Profile name
+        ("cp_rsiz",               ctypes.c_int),
+
+        # Tile part generation
+        ("tp_on",                 ctypes.c_uint8),
+
+        # Flag for Tile part generation
+        ("tp_flag",               ctypes.c_uint8),
+
+        # MCT (multiple component transform)
+        ("tcp_mct",               ctypes.c_uint8),
+
+        # Enable JPIP indexing
+        ("jpip_on",               ctypes.c_int)]
+
+
+class DecompressionInfoType(ctypes.Structure):
+    """This is for decompression contexts.
+
+    Corresponds to dinfo_t type in openjpeg headers.
+    """
+    pass
 
 
 class DecompressionParametersType(ctypes.Structure):
@@ -111,23 +371,51 @@ class DecompressionParametersType(ctypes.Structure):
         _fields_.append(("flags",             ctypes.c_uint))
 
 
-class ImageCompType(ctypes.Structure):
-    """Defines a single image component.
-
-    Corresponds to image_comp_t type in openjpeg.
+class ImageComptParmType(ctypes.Structure):
+    """Component parameters structure used by the opj_image_create function.
     """
-    _fields_ = [("dx", ctypes.c_int),
-                ("dy", ctypes.c_int),
-                ("w", ctypes.c_int),
-                ("h", ctypes.c_int),
-                ("x0", ctypes.c_int),
-                ("y0", ctypes.c_int),
-                ("prec", ctypes.c_int),
-                ("bpp", ctypes.c_int),
-                ("sgnd", ctypes.c_int),
-                ("resno_decoded", ctypes.c_int),
-                ("factor", ctypes.c_int),
-                ("data", ctypes.POINTER(ctypes.c_int))]
+    _fields_ = [ 
+            # XRsiz: horizontal separation of a sample of ith component with 
+            # respect to the reference grid 
+            ("dx", ctypes.c_int), 
+
+            # YRsiz: vertical separation of a sample of ith component with 
+            # respect to the reference grid */
+            ("dy", ctypes.c_int), 
+            
+            # data width, height
+            ("w", ctypes.c_int), 
+            ("h", ctypes.c_int), 
+
+            # x component offset compared to the whole image 
+            # y component offset compared to the whole image 
+            ("x0", ctypes.c_int), 
+            ("y0", ctypes.c_int), 
+
+            # precision
+            ('prec', ctypes.c_int),
+
+            # image depth in bits
+            ('bpp', ctypes.c_int),
+
+            # signed (1) / unsigned (0) 
+            ('sgnd', ctypes.c_int)]
+
+
+class ImageCompType(ctypes.Structure):
+    """Defines a single image component. """
+    _fields_ = [("dx",        ctypes.c_int),
+            ("dy",            ctypes.c_int),
+            ("w",             ctypes.c_int),
+            ("h",             ctypes.c_int),
+            ("x0",            ctypes.c_int),
+            ("y0",            ctypes.c_int),
+            ("prec",          ctypes.c_int),
+            ("bpp",           ctypes.c_int),
+            ("sgnd",          ctypes.c_int),
+            ("resno_decoded", ctypes.c_int),
+            ("factor",        ctypes.c_int),
+            ("data",          ctypes.POINTER(ctypes.c_int))]
 
 
 class ImageType(ctypes.Structure):
@@ -146,16 +434,22 @@ class ImageType(ctypes.Structure):
                 ("icc_profile_len", ctypes.c_int)]
 
 
-def cio_open(cinfo, src):
+def cio_open(cinfo, src=None):
     """Wrapper for openjpeg library function opj_cio_open."""
     argtypes = [ctypes.POINTER(CommonStructType), ctypes.c_char_p,
                 ctypes.c_int]
     OPENJPEG.opj_cio_open.argtypes = argtypes
     OPENJPEG.opj_cio_open.restype = ctypes.POINTER(CioType)
 
+    if src is None:
+        length = 0
+    else:
+        length = len(src)
+
     cio = OPENJPEG.opj_cio_open(ctypes.cast(cinfo,
                                             ctypes.POINTER(CommonStructType)),
-                                src, len(src))
+                                src,
+                                length)
     return cio
 
 
@@ -164,6 +458,24 @@ def cio_close(cio):
     """
     OPENJPEG.opj_cio_close.argtypes = [ctypes.POINTER(CioType)]
     OPENJPEG.opj_cio_close(cio)
+
+
+def cio_tell(cio):
+    """Get position in byte stream."""
+    OPENJPEG.cio_tell.argtypes = [ctypes.POINTER(CioType)]
+    OPENJPEG.cio_tell.restype = ctypes.c_int
+    pos = OPENJPEG.cio_tell(cio)
+    return pos
+
+def create_compress(fmt):
+    """Wrapper for openjpeg library function opj_create_compress.
+
+    Creates a J2K/JPT/JP2 compression structure.
+    """
+    OPENJPEG.opj_create_compress.argtypes = [ctypes.c_int]
+    OPENJPEG.opj_create_compress.restype = ctypes.POINTER(CompressionInfoType)
+    cinfo = OPENJPEG.opj_create_compress(fmt)
+    return cinfo
 
 
 def create_decompress(fmt):
@@ -186,6 +498,39 @@ def decode(dinfo, cio):
     return image
 
 
+def destroy_compress(cinfo):
+    """Wrapper for openjpeg library function opj_destroy_compress.
+
+    Release resources for a compressor handle.
+    """
+    argtypes = [ctypes.POINTER(CompressionInfoType)]
+    OPENJPEG.opj_destroy_compress.argtypes = argtypes
+    OPENJPEG.opj_destroy_compress(cinfo)
+
+
+def encode(cinfo, cio, image):
+    """Wrapper for openjpeg library function opj_encode.
+
+    Encodes an image into a JPEG-2000 codestream.  
+
+    Parameters
+    ----------
+    cinfo : compression handle
+
+    cio : output buffer stream
+
+    image : image to encode
+    """
+    argtypes = [ctypes.POINTER(CompressionInfoType),
+                ctypes.POINTER(CioType),
+                ctypes.POINTER(ImageType)]
+    OPENJPEG.opj_encode.argtypes = argtypes
+    OPENJPEG.opj_encode.restype = ctypes.c_int
+    status = OPENJPEG.opj_encode(cinfo, cio, image)
+    if not status:
+        raise RuntimeError("opj_encode failed")
+
+
 def destroy_decompress(dinfo):
     """Wraps openjpeg library function opj_destroy_decompress."""
     argtypes = [ctypes.POINTER(DecompressionInfoType)]
@@ -193,10 +538,76 @@ def destroy_decompress(dinfo):
     OPENJPEG.opj_destroy_decompress(dinfo)
 
 
+def image_cmptparm_t_from_np(np_image):
+    """Return appropriate image_cmptparm_t based on given numpy array.
+    """
+    try: 
+        num_comps = np_image.shape[2]
+    except IndexError:
+        num_comps = 1
+
+    cmpt_parm_array_t = ImageCmptparmType * num_comps
+    tarr = cmpt_parm_array_t()
+
+    if np_image.dtype == np.uint8:
+        prec = 8
+        bpp = 8
+        sgnd = 0
+    elif np_image.dtype == np.int8:
+        prec = 8
+        bpp = 8
+        sgnd = 1
+    elif np_image.dtype == np.uint16:
+        prec = 16 
+        bpp = 16 
+        sgnd = 0
+    elif np_image.dtype == np.int16:
+        prec = 16 
+        bpp = 16 
+        sgnd = 1
+    else:
+        raise(TypeError("unhandled"))
+
+    for j in range(0, num_comps): 
+        tarr[j].dx = 1
+        tarr[j].dy = 1
+        tarr[j].w = np_image.shape[1]
+        tarr[j].h = np_image.shape[0]
+        tarr[j].x0 = 0
+        tarr[j].y0 = 0
+        tarr[j].prec = prec
+        tarr[j].bpp = bpp
+        tarr[j].sgnd = sgnd
+
+    return(tarr)
+
+
+def image_create(cmptparms, cspace):
+    """Wrapper for openjpeg library function opj_image_create.
+    """
+    OPENJPEG.opj_image_create.argtypes = [ctypes.c_int,
+            ctypes.POINTER(ImageComptParmType),
+            ctypes.c_int]
+    OPENJPEG.opj_image_create.restype = ctypes.POINTER(ImageType)
+
+    image = OPENJPEG.opj_image_create(len(cmptparms), cmptparms, cspace)
+    return(image)
+
+
 def image_destroy(image):
     """Wraps openjpeg library function opj_image_destroy."""
     OPENJPEG.opj_image_destroy.argtypes = [ctypes.POINTER(ImageType)]
     OPENJPEG.opj_image_destroy(image)
+
+
+def set_default_encoder_parameters():
+    """Wrapper for openjpeg library function opj_set_default_encoder_parameters.
+    """
+    cparams = CompressionParametersType()
+    argtypes = [ctypes.POINTER(CompressionParametersType)]
+    OPENJPEG.opj_set_default_encoder_parameters.argtypes = argtypes
+    OPENJPEG.opj_set_default_encoder_parameters(ctypes.byref(cparams))
+    return cparams
 
 
 def set_default_decoder_parameters(dparams_p):
@@ -217,6 +628,15 @@ def set_event_mgr(dinfo, event_mgr, context=None):
     OPENJPEG.opj_set_event_mgr(ctypes.cast(dinfo,
                                            ctypes.POINTER(CommonStructType)),
                                event_mgr, context)
+
+
+def setup_encoder(cinfo, cparameters, image):
+    """Wrapper for openjpeg library function opj_setup_decoder."""
+    argtypes = [ctypes.POINTER(CompressionInfoType),
+                ctypes.POINTER(CompressionParametersType),
+                ctypes.POINTER(ImageType)]
+    OPENJPEG.opj_setup_encoder.argtypes = argtypes
+    OPENJPEG.opj_setup_encoder(cinfo, cparameters, image)
 
 
 def setup_decoder(dinfo, dparams):
