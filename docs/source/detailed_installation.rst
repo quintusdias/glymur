@@ -80,60 +80,42 @@ MacPorts supplies both OpenJPEG 1.5.0 and OpenJPEG 2.0.0.
 
 Linux
 -----
+For the most part, you only need python and numpy to run glymur.  In order to
+run as many tests as possible, however, the following Python packages may also
+need to be installed.
+
+      * setuptools
+      * matplotlib
+      * pillow
+      * contextlib2 (python 2.7 only)
+      * mock (python 2.7 only)
+
+OpenSUSE 12.3
+'''''''''''''
+Ships with Python 3.3 and 2.7.  You should use pip to install Pillow.
 
 Fedora 19
 '''''''''
-Fedora 18 ships with Python 3.3 and all the necessary RPMs are available to 
-run the maximum number of tests.
-
-      * python3 
-      * python3-numpy
-      * python3-setuptools
-      * python3-matplotlib (for running tests)
-      * python3-matplotlib-tk (or whichever matplotlib backend you prefer)
-      * python3-pillow (for running tests)
+Ships with Python 3.3 and 2.7.  All packages available as RPMs.
 
 Fedora 18
 '''''''''
-Fedora 18 ships with Python 3.3 and the following RPMs are available to 
-meet the minimal set of requirements for running glymur.
-
-      * python3 
-      * python3-numpy
-      * python3-setuptools
-
-For running the maximal number of tests, you also need 
-
-      * python3-matplotlib
-      * python3-matplotlib-tk (or whichever matplotlib backend you prefer)
-
-Pillow is also needed in order to run the maximum number of tests, so
-go ahead and install Pillow via pip since Pillow is not available
-in Fedora 18 default repositories::
+Fedora 18 ships with Python 3.3 and 2.7.  Most packages are available as 
+standard RPMS, but you should use pip to install Pillow as it is not available
+in the Fedora 18 default repositories::
 
     $ yum install python3-devel       # pip needs this in order to compile Pillow
     $ yum install python3-pip
     $ pip-python3 install Pillow --user
-    $ export PYTHONPATH=$HOME/.local/lib/python3.3/site-packages:$PYTHONPATH
 
 Fedora 17
 '''''''''
-Fedora 17 ships with Python 2.7 and OpenJPEG 1.4.  You should have the
-following RPMs installed.
-
-      * python
-      * python-mock
-      * python-pip
-      * python-setuptools
-      * numpy
-      * matplotlib (optional)
-
-In addition, you must install contextlib2 and Pillow via pip. ::
+Fedora 17 ships with Python 2.7 and OpenJPEG 1.4.  You must install contextlib2
+and Pillow via pip. ::
 
     $ yum install python-devel # pip needs this in order to compile Pillow
     $ pip-python install Pillow --user
     $ pip-python install contextlib2 --user
-    $ export PYTHONPATH=$HOME/.local/lib/python2.7/site-packages:$PYTHONPATH
 
 Windows
 -------
