@@ -685,7 +685,7 @@ def check_error(status):
             raise IOError("OpenJPEG function failure.")
 
 # These library functions all return an error status.  Circumvent that and
-# force # them to raise an exception.
+# force them to raise an exception.
 FCNS = ['opj_decode', 'opj_decode_tile_data', 'opj_end_compress',
         'opj_encode', 'opj_end_decompress', 'opj_get_decoded_tile',
         'opj_read_header', 'opj_read_tile_header', 'opj_set_decode_area',
