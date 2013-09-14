@@ -428,8 +428,13 @@ class Jp2k(Jp2kBox):
         # set encode format
         cinfo = opj.create_compress(cparams.codec_fmt)
 
-        event_mgr = opj.EventMgrType(None, None, None)
-        #opj.set_event_mgr(cparams, ctypes.byref(event_mgr), None)
+        event_mgr = opj.EventMgrType()
+        _info_handler = _INFO_CALLBACK if verbose else None
+        event_mgr.info_handler = _info_handler
+        event_mgr.warning_handler = ctypes.cast(_WARNING_CALLBACK,
+                                                ctypes.c_void_p)
+        event_mgr.error_handler = ctypes.cast(_ERROR_CALLBACK,
+                                              ctypes.c_void_p)
 
         opj.setup_encoder(cinfo, ctypes.byref(cparams), image)
 
@@ -437,7 +442,9 @@ class Jp2k(Jp2kBox):
         # allocate memory for all tiles
         cio = opj.cio_open(cinfo)
         
-        opj.encode(cinfo, cio, image)
+        if not opj.encode(cinfo, cio, image):
+            raise IOError("Encode error.")
+
         pos = opj.cio_tell(cio)
 
         ss = ctypes.string_at(cio.contents.buffer, pos)
@@ -773,41 +780,45 @@ class Jp2k(Jp2kBox):
                 raise IOError(msg)
 
         with ExitStack() as stack:
-            # Set decoding parameters.
-            dparameters = opj.DecompressionParametersType()
-            opj.set_default_decoder_parameters(ctypes.byref(dparameters))
-            dparameters.cp_reduce = rlevel
-            dparameters.decod_format = self._codec_format
+            try:
+                # Set decoding parameters.
+                dparameters = opj.DecompressionParametersType()
+                opj.set_default_decoder_parameters(ctypes.byref(dparameters))
+                dparameters.cp_reduce = rlevel
+                dparameters.decod_format = self._codec_format
+    
+                infile = self.filename.encode()
+                nelts = opj.PATH_LEN - len(infile)
+                infile += b'0' * nelts
+                dparameters.infile = infile
+    
+                dinfo = opj.create_decompress(dparameters.decod_format)
+    
+                event_mgr = opj.EventMgrType()
+                info_handler = ctypes.cast(_INFO_CALLBACK, ctypes.c_void_p)
+                event_mgr.info_handler = info_handler if verbose else None
+                event_mgr.warning_handler = ctypes.cast(_WARNING_CALLBACK,
+                                                        ctypes.c_void_p)
+                event_mgr.error_handler = ctypes.cast(_ERROR_CALLBACK,
+                                                      ctypes.c_void_p)
+                opj.set_event_mgr(dinfo, ctypes.byref(event_mgr))
+    
+                opj.setup_decoder(dinfo, dparameters)
+    
+                with open(self.filename, 'rb') as fptr:
+                    src = fptr.read()
+                cio = opj.cio_open(dinfo, src)
+    
+                image = opj.decode(dinfo, cio)
+    
+                stack.callback(opj.image_destroy, image)
+                stack.callback(opj.destroy_decompress, dinfo)
+                stack.callback(opj.cio_close, cio)
+    
+                data = extract_image_cube(image)
 
-            infile = self.filename.encode()
-            nelts = opj.PATH_LEN - len(infile)
-            infile += b'0' * nelts
-            dparameters.infile = infile
-
-            dinfo = opj.create_decompress(dparameters.decod_format)
-
-            event_mgr = opj.EventMgrType()
-            info_handler = ctypes.cast(_INFO_CALLBACK, ctypes.c_void_p)
-            event_mgr.info_handler = info_handler if verbose else None
-            event_mgr.warning_handler = ctypes.cast(_WARNING_CALLBACK,
-                                                    ctypes.c_void_p)
-            event_mgr.error_handler = ctypes.cast(_ERROR_CALLBACK,
-                                                  ctypes.c_void_p)
-            opj.set_event_mgr(dinfo, ctypes.byref(event_mgr))
-
-            opj.setup_decoder(dinfo, dparameters)
-
-            with open(self.filename, 'rb') as fptr:
-                src = fptr.read()
-            cio = opj.cio_open(dinfo, src)
-
-            image = opj.decode(dinfo, cio)
-
-            stack.callback(opj.image_destroy, image)
-            stack.callback(opj.destroy_decompress, dinfo)
-            stack.callback(opj.cio_close, cio)
-
-            data = extract_image_cube(image)
+            except ValueError:
+                opj2.check_error(0)
 
         if data.shape[2] == 1:
             # The third dimension has just a single layer.  Make the image
@@ -1465,18 +1476,18 @@ _CMPFUNC = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_char_p, ctypes.c_void_p)
 
 
 def _default_error_handler(msg, _):
-    """Default error handler callback for openjpeg library."""
+    """Default error handler callback for libopenjp2."""
     msg = "OpenJPEG library error:  {0}".format(msg.decode('utf-8').rstrip())
     opj2.set_error_message(msg)
 
 
 def _default_info_handler(msg, _):
-    """Default info handler callback for openjpeg library."""
+    """Default info handler callback."""
     print("[INFO] {0}".format(msg.decode('utf-8').rstrip()))
 
 
 def _default_warning_handler(library_msg, _):
-    """Default warning handler callback for openjpeg library."""
+    """Default warning handler callback."""
     library_msg = library_msg.decode('utf-8').rstrip()
     msg = "OpenJPEG library warning:  {0}".format(library_msg)
     warnings.warn(msg)

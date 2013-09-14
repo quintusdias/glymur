@@ -527,8 +527,7 @@ def encode(cinfo, cio, image):
     OPENJPEG.opj_encode.argtypes = argtypes
     OPENJPEG.opj_encode.restype = ctypes.c_int
     status = OPENJPEG.opj_encode(cinfo, cio, image)
-    if not status:
-        raise RuntimeError("opj_encode failed")
+    return status
 
 
 def destroy_decompress(dinfo):
