@@ -645,7 +645,11 @@ class TestSuite(unittest.TestCase):
         jfile = opj_data_file('input/conformance/file9.jp2')
         jp2k = Jp2k(jfile)
         jpdata = jp2k.read()
-        self.assertEqual(jpdata.shape, (512, 768, 3))
+        if re.match(r"""1\.3""", glymur.version.openjpeg_version):
+            # Version 1.3 reads the indexed image as indices, not as RGB.
+            self.assertEqual(jpdata.shape, (512, 768))
+        else:
+            self.assertEqual(jpdata.shape, (512, 768, 3))
 
     def test_NR_DEC_Bretagne2_j2k_1_decode(self):
         jfile = opj_data_file('input/nonregression/Bretagne2.j2k')
