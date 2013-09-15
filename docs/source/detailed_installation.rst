@@ -1,31 +1,33 @@
 ----------------------------------
 Advanced Installation Instructions
 ----------------------------------
+Most users won't need to read this!  You've been warned...
 
 ''''''''''''''''''''''
 Glymur Configuration
 ''''''''''''''''''''''
 
 The default glymur installation process relies upon OpenJPEG version
-1.X being properly installed on your system.  This will, however, only
-give you you basic read capabilities, so if you wish to take advantage
-of more of glymur's features, you should install version 2.0 or
-compile OpenJPEG as a shared library (named *openjp2* instead of
-*openjpeg*) from the developmental source that you can retrieve via
-subversion.  As of this time of writing, svn revision 2345 works.
+1.X being properly installed on your system.  If you have version 1.5 you can
+both read and write JPEG 2000 files, but you may wish to install version 2.0 
+or the 2.0+ version from OpenJPEG's development trunk for better performance.
+If you do that, you should compile it as a shared library (named *openjp2*
+instead of *openjpeg*) from the developmental source that you can retrieve
+via subversion.  As of this time of writing, svn revision 2345 works.
 You should also download the test data for the purpose of configuring
-and running OpenJPEG's test suite, check their instructions for all
-this.  You should set the **OPJ_DATA_ROOT** environment variable
-for the purpose of running Glymur's test suite. ::
+and running OpenJPEG's test suite, check their instructions for all this.
+You should set the **OPJ_DATA_ROOT** environment variable for the purpose
+of running Glymur's test suite. ::
 
     $ svn co http://openjpeg.googlecode.com/svn/data 
     $ export OPJ_DATA_ROOT=`pwd`/data
 
-Glymur uses ctypes (for the moment) to access the openjp2 library, and
-because ctypes access libraries in a platform-dependent manner, it is 
+Glymur uses ctypes to access the openjp2/openjpeg libraries,
+and because ctypes accesses libraries in a platform-dependent manner, it is 
 recommended that you create a configuration file to help Glymur properly find
-the openjp2 library.  The configuration format is the same as used by Python's
-configparser module, i.e. ::
+the openjpeg or openjp2 libraries (linux users don't need to bother if you are
+using OpenJPEG as provided by your package manager).  The configuration
+format is the same as used by Python's configparser module, i.e. ::
 
     [library]
     openjp2: /opt/openjp2-svn/lib/libopenjp2.so
@@ -37,7 +39,8 @@ to the configuration file would normally be ::
 
     $HOME/.config/glymur/glymurrc 
 
-but if you have **$XDG_CONFIG_HOME** defined, the path will be ::
+but if you have the **XDG_CONFIG_HOME** environment variable defined,
+the path will be ::
 
     $XDG_CONFIG_HOME/glymur/glymurrc 
 
@@ -52,12 +55,11 @@ You may also include a line for the version 1.x openjpeg library if you have it
 installed in a non-standard place, i.e. ::
 
     [library]
-    openjp2: /opt/openjp2-svn/lib/libopenjp2.so
     openjpeg: /not/the/usual/location/lib/libopenjpeg.so
 
-'''''''''''''''''''''''''''''''''''''''''''
-Package Management Suggestions for Testing
-'''''''''''''''''''''''''''''''''''''''''''
+''''''''''''''''''''''''''''''
+Package Management Suggestions
+''''''''''''''''''''''''''''''
 
 You only need to read this section if you want detailed 
 platform-specific instructions on running as many tests as possible or wish to
@@ -67,8 +69,8 @@ packages/RPMs/ports/whatever without going through pip.
 
 Mac OS X
 --------
-All the necessary packages are available to use glymur with Python 3.3 via
-MacPorts.  You should install the following set of ports:
+All the necessary packages are available to use glymur with Python 2.6, 2.7, 
+and 3.3 via MacPorts.  You should install the following set of ports:
 
       * python33
       * py33-numpy
@@ -80,54 +82,38 @@ MacPorts supplies both OpenJPEG 1.5.0 and OpenJPEG 2.0.0.
 
 Linux
 -----
-For the most part, you only need python and numpy to run glymur.  In order to
-run as many tests as possible, however, the following Python packages may also
-need to be installed.
+For the most part, you only need python and numpy to run glymur, so on
+just about all distributions you are already set to go (and you don't
+need to mess around with a configuration file, as the openjpeg shared
+libraries are found in the usual places thanks to your package manager).
+In order to run as many tests as possible, however, the following Python
+packages may also need to be installed.  Consult your package manager
+documentation or use pip.
 
       * setuptools
       * matplotlib
       * pillow
-      * contextlib2 (python 2.7 only)
-      * mock (python 2.7 only)
+      * contextlib2 (python 2.6, 2.7 only)
+      * mock (python 2.6, 2.7 only)
+      * ordereddict (python 2.6 only)
 
-OpenSUSE 12.3
-'''''''''''''
-Ships with Python 3.3 and 2.7.  You should use pip to install Pillow.
-
-Fedora 19
-'''''''''
-Ships with Python 3.3 and 2.7.  All packages available as RPMs.
-
-Fedora 18
-'''''''''
-Fedora 18 ships with Python 3.3 and 2.7.  Most packages are available as 
-standard RPMS, but you should use pip to install Pillow as it is not available
-in the Fedora 18 default repositories::
-
-    $ yum install python3-devel       # pip needs this in order to compile Pillow
-    $ yum install python3-pip
-    $ pip-python3 install Pillow --user
-
-Fedora 17
-'''''''''
-Fedora 17 ships with Python 2.7 and OpenJPEG 1.4.  You must install contextlib2
-and Pillow via pip. ::
-
-    $ yum install python-devel # pip needs this in order to compile Pillow
-    $ pip-python install Pillow --user
-    $ pip-python install contextlib2 --user
+Glymur's been tested on the following linux platforms without any unexpected
+difficulties:
+ 
+      * OpenSUSE 12.3
+      * Fedora 17, 18, 19
+      * Raspian
+      * Travis CI (currently Ubuntu 12.04?)
+      * CentOS 6.4
 
 Windows
 -------
 32-bit WinPython 2.7.5 seemed to work with OpenJPEG 1.X, 2.0, and the
 development version, but still required contextlib2 and mock to be
 installed via pip.   WinPython 3.3.2, however, seems to have trouble
-with OpenJPEG 2.0, so I would suggest using the development version
-there (I'm unwilling to spend ANY more time trying to figure out what
-the problem is there).
-
-At the moment I do not have access to a win32 machine, and
-64-bit windows is completely untested.
+with OpenJPEG 2.0, so I would suggest using the development version with
+that configuration.  I no longer have any access to a windows machine,
+so I cannot currently offer much guidance here.
 
 
 '''''''
@@ -137,8 +123,8 @@ Testing
 There are two environment variables you may wish to set before running the
 tests.  
 
-    * **OPJ_DATA_ROOT** - points to directory for OpenJPEG test data
-    * **FORMAT_CORPUS_ROOT** - points to directory for format-corpus repository  (see https://github.com/openplanets/format-corpus if you wish, but you really don't need to bother with this)
+    * **OPJ_DATA_ROOT** - points to directory for OpenJPEG test data (see above)
+    * **FORMAT_CORPUS_DATA_ROOT** - points to directory for format-corpus repository  (see https://github.com/openplanets/format-corpus if you wish, but you really don't need to bother with this)
 
 Setting these two environment variables is not required, as any tests using 
 either of them will be skipped.
@@ -157,7 +143,7 @@ or from the command line. ::
 Quite a few tests are currently skipped.  These include tests whose
 OpenJPEG counterparts are already failing, and others which do pass but
 still produce heaps of output on stderr.  Rather than let this swamp
-the signal (that most of the tests are actually passing), they've been
+the signal (that most of those tests are actually passing), they've been
 filtered out for now.  There are also more skipped tests on Python 2.7
 than on Python 3.3.  The important part is whether or not any test
 errors are reported at the end.
