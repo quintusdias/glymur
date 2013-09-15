@@ -19,7 +19,6 @@ else:
 import ctypes
 import math
 import os
-import re
 import struct
 import warnings
 
@@ -386,132 +385,85 @@ class Jp2k(Jp2kBox):
             If glymur is unable to load the openjp2 library.
         """
         if opj2.OPENJP2 is not None:
-            img = self._write_openjp2(img_array,  verbose=verbose, **kwargs)
+            self._write_openjp2(img_array,  verbose=verbose, **kwargs)
         elif opj.OPENJPEG is not None:
-            img = self._write_openjpeg(img_array, verbose=verbose, **kwargs)
+            self._write_openjpeg(img_array, verbose=verbose, **kwargs)
         else:
-            raise LibraryNotFoundError("You must have version 1.5 of OpenJPEG "
-                                       "or more recent before using this "
+            raise LibraryNotFoundError("You must have at least version 1.5 of "
+                                       "OpenJPEG before using this "
                                        "functionality.")
 
     def _write_openjpeg(self, img_array, verbose=False, **kwargs):
         """
+        Write JPEG 2000 file using OpenJPEG 1.5 interface.
         """
         cparams, colorspace = self._process_write_inputs(img_array, **kwargs)
 
         if img_array.ndim == 2:
             # Force the image to be 3D.  Just makes things easier later on.
-            numrows, numcols = img_array.shape
-            img_array = img_array.reshape(numrows, numcols, 1)
+            img_array = img_array.reshape(img_array.shape[0],
+                                          img_array.shape[1],
+                                          1)
 
         comptparms = _populate_comptparms(img_array, cparams)
 
-        image = opj.image_create(comptparms, colorspace)
+        with ExitStack() as stack:
+            image = opj.image_create(comptparms, colorspace)
+            stack.callback(opj.image_destroy, image)
 
-        numrows, numcols, numlayers = img_array.shape
+            numrows, numcols, numlayers = img_array.shape
 
-        # set image offset and reference grid 
-        image.contents.x0 = cparams.image_offset_x0
-        image.contents.y0 = cparams.image_offset_y0
-        image.contents.x1 = image.contents.x0 + (numcols - 1) * cparams.subsampling_dx + 1
-        image.contents.y1 = image.contents.y0 + (numrows - 1) * cparams.subsampling_dy + 1
+            # set image offset and reference grid
+            image.contents.x0 = cparams.image_offset_x0
+            image.contents.y0 = cparams.image_offset_y0
+            image.contents.x1 = image.contents.x0 \
+                              + (numcols - 1) * cparams.subsampling_dx + 1
+            image.contents.y1 = image.contents.y0 \
+                              + (numrows - 1) * cparams.subsampling_dy + 1
 
-        # Stage the image data to the openjpeg data structure.
-        for k in range(0,numlayers):
-            layer = np.ascontiguousarray(img_array[:,:,k], dtype=np.int32)
-            dest = image.contents.comps[k].data
-            src = layer.ctypes.data
-            ctypes.memmove(dest, src, layer.nbytes)
+            # Stage the image data to the openjpeg data structure.
+            for k in range(0, numlayers):
+                layer = np.ascontiguousarray(img_array[:, :, k],
+                                             dtype=np.int32)
+                dest = image.contents.comps[k].data
+                src = layer.ctypes.data
+                ctypes.memmove(dest, src, layer.nbytes)
 
-        # set encode format
-        cinfo = opj.create_compress(cparams.codec_fmt)
+            cinfo = opj.create_compress(cparams.codec_fmt)
+            stack.callback(opj.destroy_compress, cinfo)
 
-        event_mgr = opj.EventMgrType()
-        _info_handler = _INFO_CALLBACK if verbose else None
-        event_mgr.info_handler = _info_handler
-        event_mgr.warning_handler = ctypes.cast(_WARNING_CALLBACK,
-                                                ctypes.c_void_p)
-        event_mgr.error_handler = ctypes.cast(_ERROR_CALLBACK,
-                                              ctypes.c_void_p)
+            # Setup the info, warning, and error handlers.
+            # Always use the warning and error handler.  Use of an info
+            # handler is optional.
+            event_mgr = opj.EventMgrType()
+            _info_handler = _INFO_CALLBACK if verbose else None
+            event_mgr.info_handler = _info_handler
+            event_mgr.warning_handler = ctypes.cast(_WARNING_CALLBACK,
+                                                    ctypes.c_void_p)
+            event_mgr.error_handler = ctypes.cast(_ERROR_CALLBACK,
+                                                  ctypes.c_void_p)
 
-        opj.setup_encoder(cinfo, ctypes.byref(cparams), image)
+            opj.setup_encoder(cinfo, ctypes.byref(cparams), image)
 
-        # open a byte stream for writing 
-        # allocate memory for all tiles
-        cio = opj.cio_open(cinfo)
-        
-        if not opj.encode(cinfo, cio, image):
-            raise IOError("Encode error.")
+            cio = opj.cio_open(cinfo)
+            stack.callback(opj.cio_close, cio)
 
-        pos = opj.cio_tell(cio)
+            if not opj.encode(cinfo, cio, image):
+                raise IOError("Encode error.")
 
-        ss = ctypes.string_at(cio.contents.buffer, pos)
-        f = open(self.filename,'wb')
-        f.write(ss)
-        f.close()
-        opj.cio_close(cio);
+            pos = opj.cio_tell(cio)
 
-        opj.destroy_compress(cinfo);
-        opj.image_destroy(image);
+            blob = ctypes.string_at(cio.contents.buffer, pos)
+            fptr = open(self.filename, 'wb')
+            stack.callback(fptr.close)
+            fptr.write(blob)
 
         self.parse()
 
 
     def _write_openjp2(self, img_array, verbose=False, **kwargs):
-        """Write image data to a JP2/JPX/J2k file.  Intended usage of the
-        various parameters follows that of OpenJPEG's opj_compress utility.
-
-        This method can only be used to create JPEG 2000 images that can fit
-        in memory.
-
-        Parameters
-        ----------
-        img_array : ndarray
-            Image data to be written to file.
-        cbsize : tuple, optional
-            Code block size (DY, DX).
-        colorspace : str, optional
-            Either 'rgb' or 'gray'.
-        cratios : iterable
-            Compression ratios for successive layers.
-        eph : bool, optional
-            If true, write SOP marker after each header packet.
-        grid_offset : tuple, optional
-            Offset (DY, DX) of the origin of the image in the reference grid.
-        mct : bool, optional
-            Specifies usage of the multi component transform.  If not
-            specified, defaults to True if the colorspace is RGB.
-        modesw : int, optional
-            Mode switch.
-                1 = BYPASS(LAZY)
-                2 = RESET
-                4 = RESTART(TERMALL)
-                8 = VSC
-                16 = ERTERM(SEGTERM)
-                32 = SEGMARK(SEGSYM)
-        numres : int, optional
-            Number of resolutions.
-        prog : str, optional
-            Progression order, one of "LRCP" "RLCP", "RPCL", "PCRL", "CPRL".
-        psnr : iterable, optional
-            Different PSNR for successive layers.
-        psizes : list, optional
-            List of precinct sizes.  Each precinct size tuple is defined in
-            (height x width).
-        sop : bool, optional
-            If true, write SOP marker before each packet.
-        subsam : tuple, optional
-            Subsampling factors (dy, dx).
-        tilesize : tuple, optional
-            Numeric tuple specifying tile size in terms of (numrows, numcols),
-            not (X, Y).
-        verbose : bool, optional
-            Print informational messages produced by the OpenJPEG library.
-
-        Raises
-        ------
-        glymur.LibraryNotFoundError
-            If glymur is unable to load the openjp2 library.
+        """
+        Write JPEG 2000 file using OpenJPEG 1.5 interface.
         """
         cparams, colorspace = self._process_write_inputs(img_array, **kwargs)
 
@@ -784,14 +736,14 @@ class Jp2k(Jp2kBox):
                 opj.set_default_decoder_parameters(ctypes.byref(dparameters))
                 dparameters.cp_reduce = rlevel
                 dparameters.decod_format = self._codec_format
-    
+
                 infile = self.filename.encode()
                 nelts = opj.PATH_LEN - len(infile)
                 infile += b'0' * nelts
                 dparameters.infile = infile
-    
+
                 dinfo = opj.create_decompress(dparameters.decod_format)
-    
+
                 event_mgr = opj.EventMgrType()
                 info_handler = ctypes.cast(_INFO_CALLBACK, ctypes.c_void_p)
                 event_mgr.info_handler = info_handler if verbose else None
@@ -800,19 +752,19 @@ class Jp2k(Jp2kBox):
                 event_mgr.error_handler = ctypes.cast(_ERROR_CALLBACK,
                                                       ctypes.c_void_p)
                 opj.set_event_mgr(dinfo, ctypes.byref(event_mgr))
-    
+
                 opj.setup_decoder(dinfo, dparameters)
-    
+
                 with open(self.filename, 'rb') as fptr:
                     src = fptr.read()
                 cio = opj.cio_open(dinfo, src)
-    
+
                 image = opj.decode(dinfo, cio)
-    
+
                 stack.callback(opj.image_destroy, image)
                 stack.callback(opj.destroy_decompress, dinfo)
                 stack.callback(opj.cio_close, cio)
-    
+
                 data = extract_image_cube(image)
 
             except ValueError:
