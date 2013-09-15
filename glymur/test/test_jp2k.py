@@ -34,7 +34,6 @@ import glymur
 from glymur import Jp2k
 
 from .fixtures import OPENJP2_IS_V2_OFFICIAL
-from .fixtures import OPENJPEG_VERSION
 from .fixtures import OPJ_DATA_ROOT, opj_data_file
 
 
@@ -192,7 +191,7 @@ class TestJp2k_2_1(unittest.TestCase):
                         j.read(rlevel=1)
 
 
-@unittest.skipIf(re.match(r"""1\.\d.\d""", OPENJPEG_VERSION),
+@unittest.skipIf(glymur.version.openjpeg_version_tuple[0] < 2,
                  "Not tested for 1.x")
 class TestJp2k_2_0(unittest.TestCase):
     """Test suite requiring at least version 2.0"""
@@ -679,8 +678,7 @@ class TestJp2k15(unittest.TestCase):
             j2k.read(layer=1)
 
     @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
-    @unittest.skipIf(re.match(r"""1\.[01234]\.\d""",
-                              OPENJPEG_VERSION) is not None,
+    @unittest.skipIf(glymur.version.openjpeg_version_tuple[1] < 5,
                      "Writing only supported with openjpeg version 1.5+.")
     def test_2d_rgb(self):
         """RGB must have at least 3 components."""
@@ -723,8 +721,7 @@ class TestJp2k15(unittest.TestCase):
                              b'<test>this is a test</test>')
 
     @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
-    @unittest.skipIf(re.match(r"""1\.[345]\.\d""",
-                              OPENJPEG_VERSION) is not None,
+    @unittest.skipIf(glymur.version.openjpeg_version_tuple[0] < 2,
                      "Segfault on official v1.x series.")
     def test_openjpeg_library_message(self):
         """Verify the error message produced by the openjpeg library"""
@@ -760,8 +757,6 @@ class TestJp2k15(unittest.TestCase):
                         j.read(rlevel=1)
 
 
-@unittest.skipIf(re.match(r"""1\.[012]\.\d""", OPENJPEG_VERSION),
-                 "Unsupported version of openjpeg.")
 class TestJp2k(unittest.TestCase):
     """Test suite for openjpeg software starting at 1.3"""
 

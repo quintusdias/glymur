@@ -13,8 +13,7 @@ kwargs = {'name': 'Glymur',
           'package_data': {'glymur': ['data/*.jp2', 'data/*.j2k']},
           'scripts': ['bin/jp2dump'],
           'license': 'MIT',
-          'test_suite': 'glymur.test',
-          'platforms': ['darwin']}
+          'test_suite': 'glymur.test'}
 
 instllrqrs = ['numpy>=1.4.1']
 if sys.hexversion < 0x03030000:
