@@ -20,7 +20,7 @@ else:
     import unittest
 
 from .fixtures import read_image, NO_READ_BACKEND, NO_READ_BACKEND_MSG
-from .fixtures import OPJ_DATA_ROOT, OPENJPEG_VERSION, opj_data_file
+from .fixtures import OPJ_DATA_ROOT, opj_data_file
 
 from glymur import Jp2k
 import glymur
@@ -28,7 +28,7 @@ import glymur
 
 @unittest.skipIf(os.name == "nt", "no write support on windows, period")
 @unittest.skipIf(re.match(r"""1\.[01234]\.\d""",
-                          OPENJPEG_VERSION) is not None,
+                          glymur.version.openjpeg_version) is not None,
                  "Writing only supported with openjpeg version 1.5+.")
 @unittest.skipIf(NO_READ_BACKEND, NO_READ_BACKEND_MSG)
 @unittest.skipIf(OPJ_DATA_ROOT is None,

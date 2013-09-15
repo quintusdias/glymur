@@ -117,8 +117,10 @@ class TestConfig(unittest.TestCase):
         """
         with patch('glymur.lib.openjp2.OPENJP2', new=None):
             with patch('glymur.lib.openjpeg.OPENJPEG', new=None):
-                with self.assertRaises(glymur.jp2k.LibraryNotFoundError):
-                    glymur.Jp2k(self.jp2file).read_bands()
+                with patch('glymur.version.openjpeg_version_tuple',
+                           new=(0, 0, 0)):
+                    with self.assertRaises(glymur.jp2k.LibraryNotFoundError):
+                        glymur.Jp2k(self.jp2file).read_bands()
 
     @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_write_without_library(self):
