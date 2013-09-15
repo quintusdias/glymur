@@ -45,7 +45,7 @@ import numpy as np
 from glymur import Jp2k
 import glymur
 
-from .fixtures import OPENJPEG_VERSION, OPENJP2_IS_V2_OFFICIAL, OPJ_DATA_ROOT
+from .fixtures import OPENJP2_IS_V2_OFFICIAL, OPJ_DATA_ROOT
 from .fixtures import mse, peak_tolerance, read_pgx, opj_data_file
 
 
@@ -601,7 +601,7 @@ class TestSuite(unittest.TestCase):
         jpdata = jp2k.read()
         self.assertEqual(jpdata.shape, (640, 480, 3))
 
-    @unittest.skipIf(re.match(r"""1\.[0125]\.\d""", OPENJPEG_VERSION),
+    @unittest.skipIf(glymur.version.openjpeg_version_tuple[0] < 2,
                      "Functionality not implemented for 1.x")
     def test_ETS_JP2_file3(self):
         jfile = opj_data_file('input/conformance/file3.jp2')
@@ -6720,7 +6720,7 @@ class TestSuiteDump(unittest.TestCase):
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
 
-@unittest.skipIf(re.match(r"""1\.\d.\d""", OPENJPEG_VERSION),
+@unittest.skipIf(glymur.version.openjpeg_version_tuple[0] == 1,
                  "Feature not supported in glymur until openjpeg 2.0")
 class TestSuite_bands(unittest.TestCase):
     """Runs tests introduced in version 1.x but only pass in glymur with 2.0
@@ -6849,7 +6849,7 @@ class TestSuite_bands(unittest.TestCase):
         self.assertTrue(True)
 
 
-@unittest.skipIf(re.match(r"""1\.\d.\d""", OPENJPEG_VERSION),
+@unittest.skipIf(glymur.version.openjpeg_version_tuple[0] == 1,
                  "Tests not passing until 2.0")
 class TestSuite2point0(unittest.TestCase):
     """Runs tests introduced in version 2.0 or that pass only in 2.0"""
@@ -6901,13 +6901,19 @@ class TestSuite2point0(unittest.TestCase):
         # messages that cannot be turned off?
         relpath = 'input/nonregression/kakadu_v4-4_openjpegv2_broken.j2k'
         jfile = opj_data_file(relpath)
-        Jp2k(jfile).read()
+        if glymur.version.openjpeg_version_tuple[0] < 2:
+            with warnings.catch_warnings():
+                # Incorrect warning issued about tile parts.
+                warnings.simplefilter("ignore")
+                Jp2k(jfile).read()
+        else:
+            Jp2k(jfile).read()
         self.assertTrue(True)
 
 
 @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
                  "Test not in done in v2.0.0 official")
-@unittest.skipIf(re.match(r"""1\.\d.\d""", OPENJPEG_VERSION),
+@unittest.skipIf(glymur.version.openjpeg_version_tuple[0] == 1,
                  "Tests not introduced until 2.1")
 class TestSuite2point1(unittest.TestCase):
     """Runs tests introduced in version 2.0+ or that pass only in 2.0+"""

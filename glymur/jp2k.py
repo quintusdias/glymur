@@ -1,4 +1,8 @@
-"""Access to JPEG2000 files.
+"""This file is part of glymur, a Python interface for accessing JPEG 2000.
+
+http://glymur.readthedocs.org
+
+Copyright 2013 John Evans
 
 License:  MIT
 """
@@ -31,14 +35,8 @@ from .jp2box import ColourSpecificationBox, ContiguousCodestreamBox
 from .jp2box import ImageHeaderBox
 from .lib import openjpeg as opj
 from .lib import openjp2 as opj2
+from . import version
 from .lib import c as libc
-
-if opj.OPENJPEG is None and opj2.OPENJP2 is None:
-    OPENJPEG_VERSION = '0.0.0'
-elif opj2.OPENJP2 is None:
-    OPENJPEG_VERSION = opj.version()
-else:
-    OPENJPEG_VERSION = opj2.version()
 
 
 class Jp2k(Jp2kBox):
@@ -192,7 +190,7 @@ class Jp2k(Jp2kBox):
         cparams : CompressionParametersType(ctypes.Structure)
             Corresponds to cparameters_t type in openjp2 headers.
         """
-        if re.match(r"""1\.\d\.\d""", OPENJPEG_VERSION):
+        if version.openjpeg_version_tuple[0] == 1:
             cparams = opj.set_default_encoder_parameters()
         else:
             cparams = opj2.set_default_encoder_parameters()
@@ -998,8 +996,8 @@ class Jp2k(Jp2kBox):
         glymur.LibraryNotFoundError
             If glymur is unable to load the openjp2 library.
         """
-        if opj2.OPENJP2 is None:
-            raise LibraryNotFoundError("You must have the development version "
+        if version.openjpeg_version_tuple[0] < 2:
+            raise LibraryNotFoundError("You must have at least version 2.0.0"
                                        "of OpenJP2 installed before using "
                                        "this functionality.")
 
@@ -1341,7 +1339,7 @@ def _populate_comptparms(img_array, cparams):
         comp_prec = 16
 
     numrows, numcols, num_comps = img_array.shape
-    if re.match(r"""1\.\d\.\d""", OPENJPEG_VERSION):
+    if version.openjpeg_version_tuple[0] == 1:
         comptparms = (opj.ImageComptParmType * num_comps)()
     else:
         comptparms = (opj2.ImageComptParmType * num_comps)()
