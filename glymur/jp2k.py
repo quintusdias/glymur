@@ -949,7 +949,7 @@ class Jp2k(Jp2kBox):
             If glymur is unable to load the openjp2 library.
         """
         if version.openjpeg_version_tuple[0] < 2:
-            raise LibraryNotFoundError("You must have at least version 2.0.0"
+            raise LibraryNotFoundError("You must have at least version 2.0.0 "
                                        "of OpenJP2 installed before using "
                                        "this functionality.")
 
