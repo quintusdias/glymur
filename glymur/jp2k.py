@@ -1,4 +1,8 @@
-"""Access to JPEG2000 files.
+"""This file is part of glymur, a Python interface for accessing JPEG 2000.
+
+http://glymur.readthedocs.org
+
+Copyright 2013 John Evans
 
 License:  MIT
 """
@@ -21,8 +25,7 @@ import warnings
 import numpy as np
 
 from .codestream import Codestream
-from .core import SRGB
-from .core import GREYSCALE
+from .core import SRGB, GREYSCALE
 from .core import PROGRESSION_ORDER
 from .core import ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE
 from .jp2box import Jp2kBox
@@ -31,6 +34,7 @@ from .jp2box import ColourSpecificationBox, ContiguousCodestreamBox
 from .jp2box import ImageHeaderBox
 from .lib import openjpeg as opj
 from .lib import openjp2 as opj2
+from . import version
 from .lib import c as libc
 
 
@@ -185,7 +189,10 @@ class Jp2k(Jp2kBox):
         cparams : CompressionParametersType(ctypes.Structure)
             Corresponds to cparameters_t type in openjp2 headers.
         """
-        cparams = opj2.set_default_encoder_parameters()
+        if version.openjpeg_version_tuple[0] == 1:
+            cparams = opj.set_default_encoder_parameters()
+        else:
+            cparams = opj2.set_default_encoder_parameters()
 
         outfile = self.filename.encode()
         num_pad_bytes = opj2.PATH_LEN - len(outfile)
@@ -280,9 +287,6 @@ class Jp2k(Jp2kBox):
             Corresponds to cparameters_t type in openjp2 headers.
         colorspace : int
             Either CLRSPC_SRGB or CLRSPC_GRAY
-        mct : bool, optional
-            Specifies usage of the multi component transform.  If not
-            specified, defaults to True if the colorspace is RGB.
         """
 
         if 'cratios' in kwargs and 'psnr' in kwargs:
@@ -380,11 +384,87 @@ class Jp2k(Jp2kBox):
         glymur.LibraryNotFoundError
             If glymur is unable to load the openjp2 library.
         """
-        if opj2.OPENJP2 is None:
-            raise LibraryNotFoundError("You must have the openjp2 library "
-                                       "installed before using this "
+        if opj2.OPENJP2 is not None:
+            self._write_openjp2(img_array,  verbose=verbose, **kwargs)
+        elif opj.OPENJPEG is not None:
+            self._write_openjpeg(img_array, verbose=verbose, **kwargs)
+        else:
+            raise LibraryNotFoundError("You must have at least version 1.5 of "
+                                       "OpenJPEG before using this "
                                        "functionality.")
 
+    def _write_openjpeg(self, img_array, verbose=False, **kwargs):
+        """
+        Write JPEG 2000 file using OpenJPEG 1.5 interface.
+        """
+        cparams, colorspace = self._process_write_inputs(img_array, **kwargs)
+
+        if img_array.ndim == 2:
+            # Force the image to be 3D.  Just makes things easier later on.
+            img_array = img_array.reshape(img_array.shape[0],
+                                          img_array.shape[1],
+                                          1)
+
+        comptparms = _populate_comptparms(img_array, cparams)
+
+        with ExitStack() as stack:
+            image = opj.image_create(comptparms, colorspace)
+            stack.callback(opj.image_destroy, image)
+
+            numrows, numcols, numlayers = img_array.shape
+
+            # set image offset and reference grid
+            image.contents.x0 = cparams.image_offset_x0
+            image.contents.y0 = cparams.image_offset_y0
+            image.contents.x1 = image.contents.x0 \
+                              + (numcols - 1) * cparams.subsampling_dx + 1
+            image.contents.y1 = image.contents.y0 \
+                              + (numrows - 1) * cparams.subsampling_dy + 1
+
+            # Stage the image data to the openjpeg data structure.
+            for k in range(0, numlayers):
+                layer = np.ascontiguousarray(img_array[:, :, k],
+                                             dtype=np.int32)
+                dest = image.contents.comps[k].data
+                src = layer.ctypes.data
+                ctypes.memmove(dest, src, layer.nbytes)
+
+            cinfo = opj.create_compress(cparams.codec_fmt)
+            stack.callback(opj.destroy_compress, cinfo)
+
+            # Setup the info, warning, and error handlers.
+            # Always use the warning and error handler.  Use of an info
+            # handler is optional.
+            event_mgr = opj.EventMgrType()
+            _info_handler = _INFO_CALLBACK if verbose else None
+            event_mgr.info_handler = _info_handler
+            event_mgr.warning_handler = ctypes.cast(_WARNING_CALLBACK,
+                                                    ctypes.c_void_p)
+            event_mgr.error_handler = ctypes.cast(_ERROR_CALLBACK,
+                                                  ctypes.c_void_p)
+
+            opj.setup_encoder(cinfo, ctypes.byref(cparams), image)
+
+            cio = opj.cio_open(cinfo)
+            stack.callback(opj.cio_close, cio)
+
+            if not opj.encode(cinfo, cio, image):
+                raise IOError("Encode error.")
+
+            pos = opj.cio_tell(cio)
+
+            blob = ctypes.string_at(cio.contents.buffer, pos)
+            fptr = open(self.filename, 'wb')
+            stack.callback(fptr.close)
+            fptr.write(blob)
+
+        self.parse()
+
+
+    def _write_openjp2(self, img_array, verbose=False, **kwargs):
+        """
+        Write JPEG 2000 file using OpenJPEG 1.5 interface.
+        """
         cparams, colorspace = self._process_write_inputs(img_array, **kwargs)
 
         if img_array.ndim == 2:
@@ -650,41 +730,45 @@ class Jp2k(Jp2kBox):
                 raise IOError(msg)
 
         with ExitStack() as stack:
-            # Set decoding parameters.
-            dparameters = opj.DecompressionParametersType()
-            opj.set_default_decoder_parameters(ctypes.byref(dparameters))
-            dparameters.cp_reduce = rlevel
-            dparameters.decod_format = self._codec_format
+            try:
+                # Set decoding parameters.
+                dparameters = opj.DecompressionParametersType()
+                opj.set_default_decoder_parameters(ctypes.byref(dparameters))
+                dparameters.cp_reduce = rlevel
+                dparameters.decod_format = self._codec_format
 
-            infile = self.filename.encode()
-            nelts = opj.PATH_LEN - len(infile)
-            infile += b'0' * nelts
-            dparameters.infile = infile
+                infile = self.filename.encode()
+                nelts = opj.PATH_LEN - len(infile)
+                infile += b'0' * nelts
+                dparameters.infile = infile
 
-            dinfo = opj.create_decompress(dparameters.decod_format)
+                dinfo = opj.create_decompress(dparameters.decod_format)
 
-            event_mgr = opj.EventMgrType()
-            info_handler = ctypes.cast(_INFO_CALLBACK, ctypes.c_void_p)
-            event_mgr.info_handler = info_handler if verbose else None
-            event_mgr.warning_handler = ctypes.cast(_WARNING_CALLBACK,
-                                                    ctypes.c_void_p)
-            event_mgr.error_handler = ctypes.cast(_ERROR_CALLBACK,
-                                                  ctypes.c_void_p)
-            opj.set_event_mgr(dinfo, ctypes.byref(event_mgr))
+                event_mgr = opj.EventMgrType()
+                info_handler = ctypes.cast(_INFO_CALLBACK, ctypes.c_void_p)
+                event_mgr.info_handler = info_handler if verbose else None
+                event_mgr.warning_handler = ctypes.cast(_WARNING_CALLBACK,
+                                                        ctypes.c_void_p)
+                event_mgr.error_handler = ctypes.cast(_ERROR_CALLBACK,
+                                                      ctypes.c_void_p)
+                opj.set_event_mgr(dinfo, ctypes.byref(event_mgr))
 
-            opj.setup_decoder(dinfo, dparameters)
+                opj.setup_decoder(dinfo, dparameters)
 
-            with open(self.filename, 'rb') as fptr:
-                src = fptr.read()
-            cio = opj.cio_open(dinfo, src)
+                with open(self.filename, 'rb') as fptr:
+                    src = fptr.read()
+                cio = opj.cio_open(dinfo, src)
 
-            image = opj.decode(dinfo, cio)
+                image = opj.decode(dinfo, cio)
 
-            stack.callback(opj.image_destroy, image)
-            stack.callback(opj.destroy_decompress, dinfo)
-            stack.callback(opj.cio_close, cio)
+                stack.callback(opj.image_destroy, image)
+                stack.callback(opj.destroy_decompress, dinfo)
+                stack.callback(opj.cio_close, cio)
 
-            data = extract_image_cube(image)
+                data = extract_image_cube(image)
+
+            except ValueError:
+                opj2.check_error(0)
 
         if data.shape[2] == 1:
             # The third dimension has just a single layer.  Make the image
@@ -864,8 +948,8 @@ class Jp2k(Jp2kBox):
         glymur.LibraryNotFoundError
             If glymur is unable to load the openjp2 library.
         """
-        if opj2.OPENJP2 is None:
-            raise LibraryNotFoundError("You must have the development version "
+        if version.openjpeg_version_tuple[0] < 2:
+            raise LibraryNotFoundError("You must have at least version 2.0.0 "
                                        "of OpenJP2 installed before using "
                                        "this functionality.")
 
@@ -1207,7 +1291,10 @@ def _populate_comptparms(img_array, cparams):
         comp_prec = 16
 
     numrows, numcols, num_comps = img_array.shape
-    comptparms = (opj2.ImageComptParmType * num_comps)()
+    if version.openjpeg_version_tuple[0] == 1:
+        comptparms = (opj.ImageComptParmType * num_comps)()
+    else:
+        comptparms = (opj2.ImageComptParmType * num_comps)()
     for j in range(num_comps):
         comptparms[j].dx = cparams.subsampling_dx
         comptparms[j].dy = cparams.subsampling_dy
@@ -1339,18 +1426,18 @@ _CMPFUNC = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_char_p, ctypes.c_void_p)
 
 
 def _default_error_handler(msg, _):
-    """Default error handler callback for openjpeg library."""
+    """Default error handler callback for libopenjp2."""
     msg = "OpenJPEG library error:  {0}".format(msg.decode('utf-8').rstrip())
     opj2.set_error_message(msg)
 
 
 def _default_info_handler(msg, _):
-    """Default info handler callback for openjpeg library."""
+    """Default info handler callback."""
     print("[INFO] {0}".format(msg.decode('utf-8').rstrip()))
 
 
 def _default_warning_handler(library_msg, _):
-    """Default warning handler callback for openjpeg library."""
+    """Default warning handler callback."""
     library_msg = library_msg.decode('utf-8').rstrip()
     msg = "OpenJPEG library warning:  {0}".format(library_msg)
     warnings.warn(msg)

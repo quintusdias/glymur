@@ -1,3 +1,5 @@
+Sep 16, 2013 - v0.5.0  Added write support for 1.5.x.  Added version module.
+
 Aug 21, 2013 - v0.4.1  Fixed segfault with openjpeg 1.x when rlevel=-1
 
 Aug 18, 2013 - v0.4.0  Added append method.

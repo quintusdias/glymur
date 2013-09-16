@@ -20,7 +20,7 @@ OpenJPEG Installation
 =====================
 Glymur will read JPEG 2000 images with versions 1.3, 1.4, 1.5, 2.0,
 and the trunk/development version of OpenJPEG.  Writing images is
-only supported with the 2.0 series, however, and the trunk/development
+only supported with the 1.5 or better, however, and the trunk/development
 version is strongly recommended.  For more information about OpenJPEG,
 please consult http://www.openjpeg.org.
 
@@ -55,6 +55,5 @@ You can run the tests from within python as follows::
     >>> import glymur
     >>> glymur.runtests()
 
-Many tests are currently skipped; in fact most of them are skipped if you 
-are relying on OpenJPEG 1.X.  The important thing, though, is whether or
+Many tests are currently skipped, but the The important thing is whether or
 not any tests fail.

@@ -23,23 +23,17 @@ else:
 import numpy as np
 
 from .fixtures import read_image, NO_READ_BACKEND, NO_READ_BACKEND_MSG
+from .fixtures import OPJ_DATA_ROOT, opj_data_file
 
 from glymur import Jp2k
 import glymur
-
-try:
-    DATA_ROOT = os.environ['OPJ_DATA_ROOT']
-except KeyError:
-    DATA_ROOT = None
-except:
-    raise
 
 
 @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
 @unittest.skipIf(NO_READ_BACKEND, NO_READ_BACKEND_MSG)
-@unittest.skipIf(DATA_ROOT is None,
-                 "OPJ_DATA_ROOT environment variable not set")
+@unittest.skipIf(OPJ_DATA_ROOT is None,
+                 "OPJ_OPJ_DATA_ROOT environment variable not set")
 class TestSuiteNegative(unittest.TestCase):
     """Test suite for certain negative tests from openjpeg suite."""
 
@@ -54,7 +48,7 @@ class TestSuiteNegative(unittest.TestCase):
     def test_psnr_with_cratios(self):
         """Using psnr with cratios options is not allowed."""
         # Not an OpenJPEG test, but close.
-        infile = os.path.join(DATA_ROOT, 'input/nonregression/Bretagne1.ppm')
+        infile = opj_data_file('input/nonregression/Bretagne1.ppm')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
@@ -64,7 +58,7 @@ class TestSuiteNegative(unittest.TestCase):
     def test_nr_marker_not_compliant(self):
         """non-compliant marker, should still be able to read"""
         relpath = 'input/nonregression/MarkerIsNotCompliant.j2k'
-        jfile = os.path.join(DATA_ROOT, relpath)
+        jfile = opj_data_file(relpath)
         jp2k = Jp2k(jfile)
         jp2k.get_codestream(header_only=False)
         self.assertTrue(True)
@@ -74,7 +68,7 @@ class TestSuiteNegative(unittest.TestCase):
     def test_nr_illegalclrtransform(self):
         """EOC marker is bad"""
         relpath = 'input/nonregression/illegalcolortransform.j2k'
-        jfile = os.path.join(DATA_ROOT, relpath)
+        jfile = opj_data_file(relpath)
         jp2k = Jp2k(jfile)
         with self.assertWarns(UserWarning):
             codestream = jp2k.get_codestream(header_only=False)
@@ -87,7 +81,7 @@ class TestSuiteNegative(unittest.TestCase):
     def test_nr_cannotreadwnosizeknown(self):
         """not sure exactly what is wrong with this file"""
         relpath = 'input/nonregression/Cannotreaddatawithnosizeknown.j2k'
-        jfile = os.path.join(DATA_ROOT, relpath)
+        jfile = opj_data_file(relpath)
         jp2k = Jp2k(jfile)
         jp2k.get_codestream(header_only=False)
         self.assertTrue(True)
@@ -118,7 +112,7 @@ class TestSuiteNegative(unittest.TestCase):
         # Verify that a warning is issued if we read past the end of a box
         # This file has a palette (pclr) box whose length is impossibly
         # short.
-        infile = os.path.join(DATA_ROOT,
+        infile = os.path.join(OPJ_DATA_ROOT,
                               'input/nonregression/mem-b2ace68c-1381.jp2')
         with self.assertWarns(UserWarning):
             Jp2k(infile)
