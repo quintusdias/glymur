@@ -8,13 +8,13 @@
 
 import sys
 import numpy as np
-from distutils.version import StrictVersion
+from distutils.version import LooseVersion
 
 from .lib import openjpeg as opj
 from .lib import openjp2 as opj2
 
-version = "0.4.1"
-_sv = StrictVersion(version)
+version = "0.5.0rc2"
+_sv = LooseVersion(version)
 version_tuple = _sv.version
 
 
@@ -25,7 +25,7 @@ elif opj2.OPENJP2 is None:
 else:
     openjpeg_version = opj2.version()
 
-_sv = StrictVersion(openjpeg_version)
+_sv = LooseVersion(openjpeg_version)
 openjpeg_version_tuple = _sv.version
 
 __doc__ = """\

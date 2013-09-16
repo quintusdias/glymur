@@ -2,7 +2,6 @@ from setuptools import setup, find_packages
 import sys
 
 kwargs = {'name': 'Glymur',
-          'version': '0.4.1',
           'description': 'Tools for accessing JPEG2000 files',
           'long_description': open('README.md').read(),
           'author': 'John Evans',
@@ -38,4 +37,8 @@ clssfrs = ["Programming Language :: Python",
            "Intended Audience :: Information Technology",
            "Topic :: Software Development :: Libraries :: Python Modules"]
 kwargs['classifiers'] = clssfrs
+
+import glymur
+kwargs['version'] = glymur.version.version
+
 setup(**kwargs)
