@@ -12,6 +12,7 @@ These tests deal with JPX/JP2/J2K images in the format-corpus repository.
 
 import os
 from os.path import join
+import re
 import sys
 
 if sys.hexversion < 0x02070000:
@@ -19,6 +20,7 @@ if sys.hexversion < 0x02070000:
 else:
     import unittest
 
+import glymur
 from glymur import Jp2k
 
 try:
@@ -39,6 +41,9 @@ except KeyError:
 class TestSuiteFormatCorpus(unittest.TestCase):
     """Test suite for files in format corpus repository."""
 
+    @unittest.skipIf(re.match(r"""1\.[0123]""",
+                              glymur.version.openjpeg_version) is not None,
+                     "Needs 1.3+ to catch this.")
     def test_balloon_trunc1(self):
         """Has one byte shaved off of EOC marker."""
         jfile = os.path.join(FORMAT_CORPUS_DATA_ROOT,
@@ -54,6 +59,9 @@ class TestSuiteFormatCorpus(unittest.TestCase):
         with self.assertRaises(OSError):
             j2k.read(rlevel=-1)
 
+    @unittest.skipIf(re.match(r"""1\.[01234]""",
+                              glymur.version.openjpeg_version) is not None,
+                     "Needs 1.4+ to catch this.")
     def test_balloon_trunc2(self):
         """Shortened by 5000 bytes."""
         jfile = os.path.join(FORMAT_CORPUS_DATA_ROOT,
