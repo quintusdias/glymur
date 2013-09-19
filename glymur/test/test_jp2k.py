@@ -71,7 +71,7 @@ class TestJp2kBadXmlFile(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix='.jp2', delete=False) as tfile:
             cls._bad_xml_file = tfile.name
             with open(jp2file, 'rb') as ifile:
-                # Everything up until the jp2c box.
+                # Everything up until the UUID box.
                 write_buffer = ifile.read(77)
                 tfile.write(write_buffer)
 
@@ -119,7 +119,68 @@ class TestJp2kBadXmlFile(unittest.TestCase):
         self.assertIsNone(jp2k.box[3].xml)
 
 
-@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None and not OPENJP2_IS_V2_OFFICIAL,
+@unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+class TestBadButRecoverableXmlFile(unittest.TestCase):
+    """Test suite for XML box that is bad, but we can still recover the XML."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Setup a JP2 file with bad bytes preceding the XML.  We only need
+        to do this once per class rather than once per test.
+        """
+        jp2file = glymur.data.nemo()
+        with tempfile.NamedTemporaryFile(suffix='.jp2', delete=False) as tfile:
+            cls._bad_xml_file = tfile.name
+            with open(jp2file, 'rb') as ifile:
+                # Everything up until the UUID box.
+                write_buffer = ifile.read(77)
+                tfile.write(write_buffer)
+
+                # Write the xml box with bad xml
+                # Length = 64, id is 'xml '.
+                write_buffer = struct.pack('>I4s', int(64), b'xml ')
+                tfile.write(write_buffer)
+
+                # Write out 8 bad bytes.
+                write_buffer = b'\x00\x00\x07\x90xml '
+                tfile.write(write_buffer)
+
+                # Write out 48 good bytes constituting the XML payload.
+                write_buffer = b'<?xml version="1.0"?><test>this is a test</test>'
+                write_buffer = write_buffer.encode()
+                tfile.write(write_buffer)
+
+                # Get the rest of the input file.
+                write_buffer = ifile.read()
+                tfile.write(write_buffer)
+                tfile.flush()
+
+    @classmethod
+    def tearDownClass(cls):
+        os.unlink(cls._bad_xml_file)
+
+    @unittest.skipIf(sys.hexversion < 0x03020000,
+                     "Uses features introduced in 3.2.")
+    def test_bad_xml_box_warning(self):
+        """Should warn in case of bad XML"""
+        with self.assertWarns(UserWarning):
+            Jp2k(self._bad_xml_file)
+
+    def test_recover_from_bad_xml(self):
+        """Should be able to recover info from xml box with bad xml."""
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            jp2 = Jp2k(self._bad_xml_file)
+
+        self.assertEqual(jp2.box[3].box_id, 'xml ')
+        self.assertEqual(jp2.box[3].offset, 77)
+        self.assertEqual(jp2.box[3].length, 64)
+        self.assertEqual(ET.tostring(jp2.box[3].xml.getroot()),
+                         b'<test>this is a test</test>')
+
+
+@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None and
+                 not OPENJP2_IS_V2_OFFICIAL,
                  "Missing openjp2 library version 2.0+.")
 class TestJp2k_2_1(unittest.TestCase):
     """Test suite for version 2.0+ of openjpeg software"""
@@ -311,56 +372,6 @@ class TestJp2k_1_x(unittest.TestCase):
         j = Jp2k(self.jp2file)
         with self.assertRaises(IOError):
             j.read(rlevel=6)
-
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
-    def test_write_with_jp2_in_caps(self):
-        """should be able to write with JP2 suffix."""
-        j2k = Jp2k(self.j2kfile)
-        expdata = j2k.read()
-        with tempfile.NamedTemporaryFile(suffix='.JP2') as tfile:
-            ofile = Jp2k(tfile.name, 'wb')
-            ofile.write(expdata)
-            actdata = ofile.read()
-            np.testing.assert_array_equal(actdata, expdata)
-
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
-    def test_write_srgb_without_mct(self):
-        """should be able to write RGB without specifying mct"""
-        j2k = Jp2k(self.j2kfile)
-        expdata = j2k.read()
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-            ofile = Jp2k(tfile.name, 'wb')
-            ofile.write(expdata, mct=False)
-            actdata = ofile.read()
-            np.testing.assert_array_equal(actdata, expdata)
-
-            codestream = ofile.get_codestream()
-            self.assertEqual(codestream.segment[2].spcod[3], 0)  # no mct
-
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
-    def test_write_grayscale_with_mct(self):
-        """MCT usage makes no sense for grayscale images."""
-        j2k = Jp2k(self.j2kfile)
-        expdata = j2k.read()
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-            ofile = Jp2k(tfile.name, 'wb')
-            with self.assertRaises(IOError):
-                ofile.write(expdata[:, :, 0], mct=True)
-
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
-    def test_write_cprl(self):
-        """Must be able to write a CPRL progression order file"""
-        # Issue 17
-        j = Jp2k(self.jp2file)
-        expdata = j.read(rlevel=1)
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-            ofile = Jp2k(tfile.name, 'wb')
-            ofile.write(expdata, prog='CPRL')
-            actdata = ofile.read()
-            np.testing.assert_array_equal(actdata, expdata)
-
-            codestream = ofile.get_codestream()
-            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.CPRL)
 
     def test_jp2_boxes(self):
         """Verify the boxes of a JP2 file.  Basic jp2 test."""

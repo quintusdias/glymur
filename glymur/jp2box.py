@@ -1849,10 +1849,28 @@ class XMLBox(Jp2kBox):
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
-        text = read_buffer.decode('utf-8')
+        try:
+            text = read_buffer.decode('utf-8')
+        except UnicodeDecodeError as ude:
+            # Possibly bad string of bytes to begin with.
+            # Try to search for <?xml and go from there.
+            decl_start = read_buffer.find('<?xml')
+            if decl_start > -1:
+                text = read_buffer[decl_start:].decode('utf-8')
+            else:
+                raise
+
+            # Let the user know that the XML box was problematic.
+            msg = 'A UnicodeDecodeError was encountered parsing an XML box at '
+            msg += 'byte position {0} ({1}), but the XML was still recovered.'
+            msg = msg.format(offset, ude.reason)
+            warnings.warn(msg, UserWarning)
+
 
         # Strip out any trailing nulls, as they can foul up XML parsing.
         text = text.rstrip(chr(0))
+
+        # Scan for the start of the xml declaration.
 
         try:
             elt = ET.fromstring(text)
