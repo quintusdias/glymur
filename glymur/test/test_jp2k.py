@@ -147,7 +147,6 @@ class TestBadButRecoverableXmlFile(unittest.TestCase):
 
                 # Write out 48 good bytes constituting the XML payload.
                 write_buffer = b'<?xml version="1.0"?><test>this is a test</test>'
-                write_buffer = write_buffer.encode()
                 tfile.write(write_buffer)
 
                 # Get the rest of the input file.

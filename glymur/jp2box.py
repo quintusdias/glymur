@@ -1854,7 +1854,7 @@ class XMLBox(Jp2kBox):
         except UnicodeDecodeError as ude:
             # Possibly bad string of bytes to begin with.
             # Try to search for <?xml and go from there.
-            decl_start = read_buffer.find('<?xml')
+            decl_start = read_buffer.find(b'<?xml')
             if decl_start > -1:
                 text = read_buffer[decl_start:].decode('utf-8')
             else:
