@@ -320,113 +320,6 @@ class TestChannelDefinition(unittest.TestCase):
                                                association=association)
 
 
-@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-class TestXML(unittest.TestCase):
-    """Test suite for XML boxes."""
-
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
-        self.j2kfile = glymur.data.goodstuff()
-
-        raw_xml = b"""<?xml version="1.0"?>
-        <data>
-            <country name="Liechtenstein">
-                <rank>1</rank>
-                <year>2008</year>
-                <gdppc>141100</gdppc>
-                <neighbor name="Austria" direction="E"/>
-                <neighbor name="Switzerland" direction="W"/>
-            </country>
-            <country name="Singapore">
-                <rank>4</rank>
-                <year>2011</year>
-                <gdppc>59900</gdppc>
-                <neighbor name="Malaysia" direction="N"/>
-            </country>
-            <country name="Panama">
-                <rank>68</rank>
-                <year>2011</year>
-                <gdppc>13600</gdppc>
-                <neighbor name="Costa Rica" direction="W"/>
-                <neighbor name="Colombia" direction="E"/>
-            </country>
-        </data>"""
-        with tempfile.NamedTemporaryFile(suffix=".xml", delete=False) as tfile:
-            tfile.write(raw_xml)
-            tfile.flush()
-        self.xmlfile = tfile.name
-
-        j2k = Jp2k(self.j2kfile)
-        codestream = j2k.get_codestream()
-        height = codestream.segment[1].ysiz
-        width = codestream.segment[1].xsiz
-        num_components = len(codestream.segment[1].xrsiz)
-
-        self.jp2b = JPEG2000SignatureBox()
-        self.ftyp = FileTypeBox()
-        self.jp2h = JP2HeaderBox()
-        self.jp2c = ContiguousCodestreamBox()
-        self.ihdr = ImageHeaderBox(height=height, width=width,
-                                   num_components=num_components)
-        self.colr = ColourSpecificationBox(colorspace=glymur.core.SRGB)
-
-    def tearDown(self):
-        os.unlink(self.xmlfile)
-
-    def test_negative_file_and_xml(self):
-        """The XML should come from only one source."""
-        xml_object = ET.parse(self.xmlfile)
-        with self.assertRaises((IOError, OSError)):
-            glymur.jp2box.XMLBox(filename=self.xmlfile, xml=xml_object)
-
-    @unittest.skipIf(os.name == "nt",
-                     "Problems using NamedTemporaryFile on windows.")
-    def test_basic_xml(self):
-        """Should be able to write a basic XMLBox"""
-        j2k = Jp2k(self.j2kfile)
-
-        self.jp2h.box = [self.ihdr, self.colr]
-
-        the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
-        xmlb = glymur.jp2box.XMLBox(xml=the_xml)
-        self.assertEqual(ET.tostring(xmlb.xml),
-                         b'<data>0</data>')
-
-        boxes = [self.jp2b, self.ftyp, self.jp2h, xmlb, self.jp2c]
-
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
-            j2k.wrap(tfile.name, boxes=boxes)
-            jp2 = Jp2k(tfile.name)
-            self.assertEqual(jp2.box[3].box_id, 'xml ')
-            self.assertEqual(ET.tostring(jp2.box[3].xml.getroot()),
-                             b'<data>0</data>')
-
-    @unittest.skipIf(os.name == "nt",
-                     "Problems using NamedTemporaryFile on windows.")
-    def test_xml_from_file(self):
-        """Must be able to create an XML box from an XML file."""
-        j2k = Jp2k(self.j2kfile)
-
-        self.jp2h.box = [self.ihdr, self.colr]
-
-        xmlb = glymur.jp2box.XMLBox(filename=self.xmlfile)
-        boxes = [self.jp2b, self.ftyp, self.jp2h, xmlb, self.jp2c]
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
-            j2k.wrap(tfile.name, boxes=boxes)
-            jp2 = Jp2k(tfile.name)
-
-            output_boxes = [box.box_id for box in jp2.box]
-            self.assertEqual(output_boxes, ['jP  ', 'ftyp', 'jp2h', 'xml ',
-                                            'jp2c'])
-
-            elts = jp2.box[3].xml.findall('country')
-            self.assertEqual(len(elts), 3)
-
-            neighbor = elts[1].find('neighbor')
-            self.assertEqual(neighbor.attrib['name'], 'Malaysia')
-            self.assertEqual(neighbor.attrib['direction'], 'N')
-
-
 class TestColourSpecificationBox(unittest.TestCase):
     """Test suite for colr box instantiation."""
 
@@ -854,6 +747,265 @@ class TestJpxBoxes(unittest.TestCase):
         # This superbox just happens to be empty.
         self.assertEqual(jpx.box[5].box_id, 'jplh')
         self.assertEqual(len(jpx.box[5].box), 0)
+
+
+@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+class TestChannelDefinition(unittest.TestCase):
+    """Test suite for channel definition boxes."""
+
+    @classmethod
+    def setUpClass(cls):
+        """Need a one_plane plane image for greyscale testing."""
+        j2k = Jp2k(glymur.data.goodstuff())
+        data = j2k.read()
+        # Write the first component back out to file.
+        with tempfile.NamedTemporaryFile(suffix=".j2k", delete=False) as tfile:
+            grey_j2k = Jp2k(tfile.name, 'wb')
+            grey_j2k.write(data[:, :, 0])
+            cls.one_plane = tfile.name
+        # Write the first two components back out to file.
+        with tempfile.NamedTemporaryFile(suffix=".j2k", delete=False) as tfile:
+            grey_j2k = Jp2k(tfile.name, 'wb')
+            grey_j2k.write(data[:, :, 0:1])
+            cls.two_planes = tfile.name
+        # Write four components back out to file.
+        with tempfile.NamedTemporaryFile(suffix=".j2k", delete=False) as tfile:
+            rgba_jp2 = Jp2k(tfile.name, 'wb')
+            shape = (data.shape[0], data.shape[1], 1)
+            alpha = np.zeros((shape), dtype=data.dtype)
+            data4 = np.concatenate((data, alpha), axis=2)
+            rgba_jp2.write(data4)
+            cls.four_planes = tfile.name
+
+    @classmethod
+    def tearDownClass(cls):
+        os.unlink(cls.one_plane)
+        os.unlink(cls.two_planes)
+        os.unlink(cls.four_planes)
+
+    def setUp(self):
+        self.jp2file = glymur.data.nemo()
+        self.j2kfile = glymur.data.goodstuff()
+
+        j2k = Jp2k(self.j2kfile)
+        codestream = j2k.get_codestream()
+        height = codestream.segment[1].ysiz
+        width = codestream.segment[1].xsiz
+        num_components = len(codestream.segment[1].xrsiz)
+
+        self.jp2b = JPEG2000SignatureBox()
+        self.ftyp = FileTypeBox()
+        self.jp2h = JP2HeaderBox()
+        self.jp2c = ContiguousCodestreamBox()
+        self.ihdr = ImageHeaderBox(height=height, width=width,
+                                   num_components=num_components)
+        self.colr_rgb = ColourSpecificationBox(colorspace=glymur.core.SRGB)
+        self.colr_gr = ColourSpecificationBox(colorspace=glymur.core.GREYSCALE)
+
+    def tearDown(self):
+        pass
+
+    def test_cdef_no_inputs(self):
+        """channel_type and association are required inputs."""
+        with self.assertRaises(IOError):
+            glymur.jp2box.ChannelDefinitionBox()
+
+    def test_rgb_with_index(self):
+        """Just regular RGB."""
+        j2k = Jp2k(self.j2kfile)
+        channel_type = [COLOR, COLOR, COLOR]
+        association = [RED, GREEN, BLUE]
+        cdef = glymur.jp2box.ChannelDefinitionBox(index=[0, 1, 2],
+                                                  channel_type=channel_type,
+                                                  association=association)
+        boxes = [self.ihdr, self.colr_rgb, cdef]
+        self.jp2h.box = boxes
+        boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            j2k.wrap(tfile.name, boxes=boxes)
+
+            jp2 = Jp2k(tfile.name)
+            jp2h = jp2.box[2]
+            boxes = [box.box_id for box in jp2h.box]
+            self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
+            self.assertEqual(jp2h.box[2].index, (0, 1, 2))
+            self.assertEqual(jp2h.box[2].channel_type,
+                             (COLOR, COLOR, COLOR))
+            self.assertEqual(jp2h.box[2].association,
+                             (RED, GREEN, BLUE))
+
+    def test_rgb(self):
+        """Just regular RGB, but don't supply the optional index."""
+        j2k = Jp2k(self.j2kfile)
+        channel_type = [COLOR, COLOR, COLOR]
+        association = [RED, GREEN, BLUE]
+        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
+                                                  association=association)
+        boxes = [self.ihdr, self.colr_rgb, cdef]
+        self.jp2h.box = boxes
+        boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            j2k.wrap(tfile.name, boxes=boxes)
+
+            jp2 = Jp2k(tfile.name)
+            jp2h = jp2.box[2]
+            boxes = [box.box_id for box in jp2h.box]
+            self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
+            self.assertEqual(jp2h.box[2].index, (0, 1, 2))
+            self.assertEqual(jp2h.box[2].channel_type,
+                             (COLOR, COLOR, COLOR))
+            self.assertEqual(jp2h.box[2].association,
+                             (RED, GREEN, BLUE))
+
+    def test_rgba(self):
+        """Just regular RGBA."""
+        j2k = Jp2k(self.four_planes)
+        channel_type = (COLOR, COLOR, COLOR, OPACITY)
+        association = (RED, GREEN, BLUE, WHOLE_IMAGE)
+        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
+                                                  association=association)
+        boxes = [self.ihdr, self.colr_rgb, cdef]
+        self.jp2h.box = boxes
+        boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            j2k.wrap(tfile.name, boxes=boxes)
+
+            jp2 = Jp2k(tfile.name)
+            jp2h = jp2.box[2]
+            boxes = [box.box_id for box in jp2h.box]
+            self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
+            self.assertEqual(jp2h.box[2].index, (0, 1, 2, 3))
+            self.assertEqual(jp2h.box[2].channel_type, channel_type)
+            self.assertEqual(jp2h.box[2].association, association)
+
+    def test_bad_rgba(self):
+        """R, G, and B must be specified."""
+        j2k = Jp2k(self.four_planes)
+        channel_type = (COLOR, COLOR, OPACITY, OPACITY)
+        association = (RED, GREEN, BLUE, WHOLE_IMAGE)
+        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
+                                                  association=association)
+        boxes = [self.ihdr, self.colr_rgb, cdef]
+        self.jp2h.box = boxes
+        boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            with self.assertRaises(IOError):
+                j2k.wrap(tfile.name, boxes=boxes)
+
+    def test_grey(self):
+        """Just regular greyscale."""
+        j2k = Jp2k(self.one_plane)
+        channel_type = (COLOR,)
+        association = (GREY,)
+        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
+                                                  association=association)
+        boxes = [self.ihdr, self.colr_gr, cdef]
+        self.jp2h.box = boxes
+        boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            j2k.wrap(tfile.name, boxes=boxes)
+
+            jp2 = Jp2k(tfile.name)
+            jp2h = jp2.box[2]
+            boxes = [box.box_id for box in jp2h.box]
+            self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
+            self.assertEqual(jp2h.box[2].index, (0,))
+            self.assertEqual(jp2h.box[2].channel_type, channel_type)
+            self.assertEqual(jp2h.box[2].association, association)
+
+    def test_grey_alpha(self):
+        """Just regular greyscale plus alpha."""
+        j2k = Jp2k(self.two_planes)
+        channel_type = (COLOR, OPACITY)
+        association = (GREY, WHOLE_IMAGE)
+        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
+                                                  association=association)
+        boxes = [self.ihdr, self.colr_gr, cdef]
+        self.jp2h.box = boxes
+        boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            j2k.wrap(tfile.name, boxes=boxes)
+
+            jp2 = Jp2k(tfile.name)
+            jp2h = jp2.box[2]
+            boxes = [box.box_id for box in jp2h.box]
+            self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
+            self.assertEqual(jp2h.box[2].index, (0, 1))
+            self.assertEqual(jp2h.box[2].channel_type, channel_type)
+            self.assertEqual(jp2h.box[2].association, association)
+
+    def test_bad_grey_alpha(self):
+        """A greyscale image with alpha layer must specify a color channel"""
+        j2k = Jp2k(self.two_planes)
+
+        channel_type = (OPACITY, OPACITY)
+        association = (GREY, WHOLE_IMAGE)
+
+        # This cdef box
+        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
+                                                  association=association)
+        boxes = [self.ihdr, self.colr_gr, cdef]
+        self.jp2h.box = boxes
+        boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            with self.assertRaises((OSError, IOError)):
+                j2k.wrap(tfile.name, boxes=boxes)
+
+    def test_only_one_cdef_in_jp2h(self):
+        """There can only be one channel definition box in the jp2 header."""
+        j2k = Jp2k(self.j2kfile)
+
+        channel_type = (COLOR, COLOR, COLOR)
+        association = (RED, GREEN, BLUE)
+        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
+                                                  association=association)
+
+        boxes = [self.ihdr, cdef, self.colr_rgb, cdef]
+        self.jp2h.box = boxes
+
+        boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
+
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            with self.assertRaises(IOError):
+                j2k.wrap(tfile.name, boxes=boxes)
+
+    def test_not_in_jp2h(self):
+        """need cdef in jp2h"""
+        j2k = Jp2k(self.j2kfile)
+        boxes = [self.ihdr, self.colr_rgb]
+        self.jp2h.box = boxes
+
+        channel_type = (COLOR, COLOR, COLOR)
+        association = (RED, GREEN, BLUE)
+        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
+                                                  association=association)
+
+        boxes = [self.jp2b, self.ftyp, self.jp2h, cdef, self.jp2c]
+
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            with self.assertRaises(IOError):
+                j2k.wrap(tfile.name, boxes=boxes)
+
+    def test_bad_type(self):
+        """Channel types are limited to 0, 1, 2, 65535
+        Should reject if not all of index, channel_type, association the
+        same length.
+        """
+        channel_type = (COLOR, COLOR, 3)
+        association = (RED, GREEN, BLUE)
+        with self.assertRaises(IOError):
+            glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
+                                               association=association)
+
+    def test_wrong_lengths(self):
+        """Should reject if not all of index, channel_type, association the
+        same length.
+        """
+        channel_type = (COLOR, COLOR)
+        association = (RED, GREEN, BLUE)
+        with self.assertRaises(IOError):
+            glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
+                                               association=association)
 
 
 if __name__ == "__main__":
