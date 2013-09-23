@@ -117,7 +117,8 @@ class TestJp2kBadXmlFile(unittest.TestCase):
         self.assertIsNone(jp2k.box[3].xml)
 
 
-@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None and not OPENJP2_IS_V2_OFFICIAL,
+@unittest.skipIf(glymur.version.openjpeg_version_tuple[0] > 1 and
+                 OPENJP2_IS_V2_OFFICIAL,
                  "Missing openjp2 library version 2.0+.")
 class TestJp2k_2_1(unittest.TestCase):
     """Test suite for version 2.0+ of openjpeg software"""
@@ -201,7 +202,7 @@ class TestJp2k_2_0(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @unittest.skipIf(not OPENJP2_IS_V2_OFFICIAL,
+    @unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
                      "Behavior is specific to 2.0 official.")
     @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_extra_components_on_v2(self):
