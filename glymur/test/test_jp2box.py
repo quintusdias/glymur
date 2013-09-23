@@ -57,11 +57,7 @@ def load_tests(loader, tests, ignore):
     return tests
 
 
-@unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
-                 "Requires v2.0.0+ in order to run.")
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
-                 "Missing openjp2 library.")
 class TestChannelDefinition(unittest.TestCase):
     """Test suite for channel definition boxes."""
 
@@ -505,8 +501,6 @@ class TestColourSpecificationBox(unittest.TestCase):
                                                  approximation=approx)
 
 
-@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
-                 "Missing openjp2 library.")
 class TestAppend(unittest.TestCase):
     """Tests for append method."""
 
@@ -599,8 +593,6 @@ class TestAppend(unittest.TestCase):
                 jp2.append(uuidbox)
 
 
-@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
-                 "Missing openjp2 library.")
 class TestWrap(unittest.TestCase):
     """Tests for wrap method."""
 
