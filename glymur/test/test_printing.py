@@ -10,6 +10,7 @@
 # pylint: disable=R0904
 
 import os
+import re
 import struct
 import sys
 import tempfile
@@ -36,8 +37,8 @@ from .fixtures import OPJ_DATA_ROOT, opj_data_file
 
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-@unittest.skipIf(glymur.version.openjpeg_version_tuple[0] == 0,
-                 "Missing library.")
+@unittest.skipIf(re.match(r"""1\.[01234]""", glymur.version.openjpeg_version),
+                 "Need at least 1.5 in order to write jp2 files.")
 class TestPrintingNeedsLib(unittest.TestCase):
     """These tests require the library, mostly in order to just setup the test.
     """

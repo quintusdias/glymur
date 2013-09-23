@@ -57,7 +57,7 @@ def load_tests(loader, tests, ignore):
     return tests
 
 
-@unittest.skipIf(glymur.version.openjpeg_version_tuple[0] > 1 and
+@unittest.skipIf(glymur.version.openjpeg_version_tuple[0] < 2 or
                  OPENJP2_IS_V2_OFFICIAL,
                  "Not supported until 2.0+.")
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")

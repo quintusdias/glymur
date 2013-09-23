@@ -117,7 +117,7 @@ class TestJp2kBadXmlFile(unittest.TestCase):
         self.assertIsNone(jp2k.box[3].xml)
 
 
-@unittest.skipIf(glymur.version.openjpeg_version_tuple[0] > 1 and
+@unittest.skipIf(glymur.version.openjpeg_version_tuple[0] < 2 or
                  OPENJP2_IS_V2_OFFICIAL,
                  "Missing openjp2 library version 2.0+.")
 class TestJp2k_2_1(unittest.TestCase):
