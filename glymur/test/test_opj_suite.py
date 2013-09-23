@@ -6724,6 +6724,8 @@ class TestSuiteDump(unittest.TestCase):
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
 
+@unittest.skipIf(OPJ_DATA_ROOT is None,
+                 "OPJ_DATA_ROOT environment variable not set")
 @unittest.skipIf(glymur.version.openjpeg_version_tuple[0] == 1,
                  "Feature not supported in glymur until openjpeg 2.0")
 class TestSuite_bands(unittest.TestCase):
@@ -6853,6 +6855,8 @@ class TestSuite_bands(unittest.TestCase):
         self.assertTrue(True)
 
 
+@unittest.skipIf(OPJ_DATA_ROOT is None,
+                 "OPJ_DATA_ROOT environment variable not set")
 @unittest.skipIf(glymur.version.openjpeg_version_tuple[0] == 1,
                  "Tests not passing until 2.0")
 class TestSuite2point0(unittest.TestCase):
