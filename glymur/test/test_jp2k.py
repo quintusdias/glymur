@@ -56,8 +56,6 @@ def load_tests(loader, tests, ignore):
 
 
 @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
-@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
-                 "Missing openjp2 library.")
 class TestJp2kBadXmlFile(unittest.TestCase):
     """Test suite for bad XML box situations"""
 

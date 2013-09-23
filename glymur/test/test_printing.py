@@ -36,8 +36,8 @@ from .fixtures import OPJ_DATA_ROOT, opj_data_file
 
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
-                 "Missing openjp2 library.")
+@unittest.skipIf(glymur.version.openjpeg_version_tuple[0] == 0,
+                 "Missing library.")
 class TestPrintingNeedsLib(unittest.TestCase):
     """These tests require the library, mostly in order to just setup the test.
     """
