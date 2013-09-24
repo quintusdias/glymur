@@ -1,3 +1,6 @@
+Sep 24, 2013 - v0.5.3  Removed a duplicated channel definition test in
+    test_jp2box that could cause a segfault in 1.3 if not properly skipped.
+
 Sep 23, 2013 - v0.5.2  Fixed some teests that have been failing since 0.5.
     under various edge cases.
 
