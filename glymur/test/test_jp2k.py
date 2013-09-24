@@ -55,8 +55,8 @@ def load_tests(loader, tests, ignore):
     return tests
 
 
-@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None and
-                 not OPENJP2_IS_V2_OFFICIAL,
+@unittest.skipIf(glymur.version.openjpeg_version_tuple[0] < 2 or
+                 OPENJP2_IS_V2_OFFICIAL,
                  "Missing openjp2 library version 2.0+.")
 class TestJp2k_2_1(unittest.TestCase):
     """Test suite for version 2.0+ of openjpeg software"""

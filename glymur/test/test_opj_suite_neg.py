@@ -12,6 +12,7 @@ seem like logical negative tests to add.
 # pylint: disable=F0401
 
 import os
+import re
 import sys
 import tempfile
 
@@ -22,16 +23,15 @@ else:
 
 import numpy as np
 
-from .fixtures import read_image, NO_READ_BACKEND, NO_READ_BACKEND_MSG
-from .fixtures import OPJ_DATA_ROOT, opj_data_file
+from .fixtures import OPJ_DATA_ROOT, opj_data_file, read_image
+from .fixtures import NO_READ_BACKEND, NO_READ_BACKEND_MSG
 
 from glymur import Jp2k
 import glymur
 
 
-@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
-                 "Missing openjp2 library.")
-@unittest.skipIf(NO_READ_BACKEND, NO_READ_BACKEND_MSG)
+@unittest.skipIf(re.match(r"""1\.[01234]""", glymur.version.openjpeg_version),
+                 "Functionality not implemented for 1.3, 1.4")
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_OPJ_DATA_ROOT environment variable not set")
 class TestSuiteNegative(unittest.TestCase):
@@ -44,6 +44,7 @@ class TestSuiteNegative(unittest.TestCase):
     def tearDown(self):
         pass
 
+    @unittest.skipIf(NO_READ_BACKEND, NO_READ_BACKEND_MSG)
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_psnr_with_cratios(self):
         """Using psnr with cratios options is not allowed."""
