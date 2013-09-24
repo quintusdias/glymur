@@ -1,3 +1,6 @@
+Sep 23, 2013 - v0.5.2  Fixed some teests that have been failing since 0.5.
+    under various edge cases.
+
 Sep 19, 2013 - v0.5.1  Added more resiliency to XML box parsing.  Fixed tests
     that failed if OPJ_DATA_ROOT not set.
 
