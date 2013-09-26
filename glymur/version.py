@@ -13,7 +13,7 @@ from distutils.version import LooseVersion
 from .lib import openjpeg as opj
 from .lib import openjp2 as opj2
 
-version = "0.5.3"
+version = "0.5.4"
 _sv = LooseVersion(version)
 version_tuple = _sv.version
 
