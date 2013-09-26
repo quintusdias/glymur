@@ -146,7 +146,7 @@ class TestJp2k_2_0(unittest.TestCase):
     def test_extra_components_on_v2(self):
         """must error out in 1.x with extra components."""
         # Extra components seems to require 2.0+.  Verify that we error out.
-        with self.assertRaises(OSError):
+        with self.assertRaises((IOError, OSError)):
             with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
                 j = Jp2k(tfile.name, 'wb')
                 data = np.zeros((128, 128, 4), dtype=np.uint8)
