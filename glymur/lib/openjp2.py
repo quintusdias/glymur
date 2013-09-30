@@ -655,7 +655,6 @@ def decode_tile_data(codec, tidx, data, data_size, stream):
                                  datap,
                                  ctypes.c_uint32(data_size),
                                  stream)
-    return codec
 
 
 def create_decompress(codec_format):
@@ -690,6 +689,7 @@ def destroy_codec(codec):
         Decompressor handle to destroy.
     """
     OPENJP2.opj_destroy_codec.argtypes = [CODEC_TYPE]
+    OPENJP2.opj_destroy_codec.restype = ctypes.c_void_p
     OPENJP2.opj_destroy_codec(codec)
 
 
@@ -840,6 +840,7 @@ def image_destroy(image):
         Image resource to be disposed.
     """
     OPENJP2.opj_image_destroy.argtypes = [ctypes.POINTER(ImageType)]
+    OPENJP2.opj_image_destroy.restype = ctypes.c_void_p
 
     OPENJP2.opj_image_destroy(image)
 
@@ -1056,6 +1057,7 @@ def set_default_decoder_parameters():
     """
     ARGTYPES = [ctypes.POINTER(DecompressionParametersType)]
     OPENJP2.opj_set_default_decoder_parameters.argtypes = ARGTYPES
+    OPENJP2.opj_set_default_decoder_parameters.restype = ctypes.c_void_p
 
     dparams = DecompressionParametersType()
     OPENJP2.opj_set_default_decoder_parameters(ctypes.byref(dparams))
@@ -1094,6 +1096,7 @@ def set_default_encoder_parameters():
     """
     ARGTYPES = [ctypes.POINTER(CompressionParametersType)]
     OPENJP2.opj_set_default_encoder_parameters.argtypes = ARGTYPES
+    OPENJP2.opj_set_default_encoder_parameters.restype = ctypes.c_void_p
 
     cparams = CompressionParametersType()
     OPENJP2.opj_set_default_encoder_parameters(ctypes.byref(cparams))
@@ -1323,6 +1326,7 @@ def stream_destroy(stream):
         The file stream.
     """
     OPENJP2.opj_stream_destroy.argtypes = [STREAM_TYPE_P]
+    OPENJP2.opj_stream_destroy.restype = ctypes.c_void_p
     OPENJP2.opj_stream_destroy(stream)
 
 
@@ -1337,6 +1341,7 @@ def stream_destroy_v3(stream):
         The file stream.
     """
     OPENJP2.opj_stream_destroy_v3.argtypes = [STREAM_TYPE_P]
+    OPENJP2.opj_stream_destroy_v3.restype = ctypes.c_void_p
     OPENJP2.opj_stream_destroy_v3(stream)
 
 
