@@ -926,7 +926,7 @@ def read_header(stream, codec):
     """
     ARGTYPES = [STREAM_TYPE_P, CODEC_TYPE,
                 ctypes.POINTER(ctypes.POINTER(ImageType))]
-    OPENJP2.opj_read_header.argtypes 
+    OPENJP2.opj_read_header.argtypes = ARGTYPES
     OPENJP2.opj_read_header.restype = check_error 
 
     imagep = ctypes.POINTER(ImageType)()
