@@ -13,7 +13,7 @@ both read and write JPEG 2000 files, but you may wish to install version 2.0
 or the 2.0+ version from OpenJPEG's development trunk for better performance.
 If you do that, you should compile it as a shared library (named *openjp2*
 instead of *openjpeg*) from the developmental source that you can retrieve
-via subversion.  As of this time of writing, svn revision 2345 works.
+via subversion.  As of this time of writing, svn revision 2347 works.
 You should also download the test data for the purpose of configuring
 and running OpenJPEG's test suite, check their instructions for all this.
 You should set the **OPJ_DATA_ROOT** environment variable for the purpose
@@ -25,9 +25,10 @@ of running Glymur's test suite. ::
 Glymur uses ctypes to access the openjp2/openjpeg libraries,
 and because ctypes accesses libraries in a platform-dependent manner, it is 
 recommended that you create a configuration file to help Glymur properly find
-the openjpeg or openjp2 libraries (linux users don't need to bother if you are
-using OpenJPEG as provided by your package manager).  The configuration
-format is the same as used by Python's configparser module, i.e. ::
+the openjpeg or openjp2 libraries (linux users don't need to bother with this 
+if you are using OpenJPEG as provided by your package manager).  The 
+configuration format is the same as used by Python's configparser module, 
+i.e.  ::
 
     [library]
     openjp2: /opt/openjp2-svn/lib/libopenjp2.so
