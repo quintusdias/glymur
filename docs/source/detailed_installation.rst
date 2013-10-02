@@ -7,8 +7,8 @@ Most users won't need to read this!  You've been warned...
 Glymur Configuration
 ''''''''''''''''''''''
 
-The default glymur installation process relies upon OpenJPEG version
-1.X being properly installed on your system.  If you have version 1.5 you can
+The default glymur installation process relies upon OpenJPEG
+being properly installed on your system.  If you have version 1.5 you can
 both read and write JPEG 2000 files, but you may wish to install version 2.0 
 or the 2.0+ version from OpenJPEG's development trunk for better performance.
 If you do that, you should compile it as a shared library (named *openjp2*
@@ -35,7 +35,7 @@ i.e.  ::
 
 This assumes, of course, that you've installed OpenJPEG into
 /opt/openjp2-svn on a linux system.  The location of the configuration file
-is platform-dependent (of course).  If you use either linux or mac, the path
+can vary as well (of course).  If you use either linux or mac, the path
 to the configuration file would normally be ::
 
     $HOME/.config/glymur/glymurrc 
@@ -71,7 +71,8 @@ packages/RPMs/ports/whatever without going through pip.
 Mac OS X
 --------
 All the necessary packages are available to use glymur with Python 2.6, 2.7, 
-and 3.3 via MacPorts.  You should install the following set of ports:
+and 3.3 via MacPorts.  For python 3.3, you should install the following set of
+ports:
 
       * python33
       * py33-numpy

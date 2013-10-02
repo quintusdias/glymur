@@ -4,9 +4,8 @@ Glymur: a Python interface for JPEG 2000
 
 **Glymur** is an interface to the OpenJPEG library
 which allows one to read and write JPEG 2000 files from within Python.  
-Glymur supports both reading and writing of JPEG 2000 images.  Writing
-JPEG 2000 images is currently limited to images that can fit in memory,
-however.
+Glymur supports both reading and writing of JPEG 2000 images, but writing
+JPEG 2000 images is currently limited to images that can fit in memory
 
 Of particular focus is retrieval of metadata.  Reading Exif UUIDs is supported,
 as is reading XMP UUIDs as the XMP data packet is just XML.  There is
@@ -24,11 +23,10 @@ only supported with the 1.5 or better, however, and the trunk/development
 version is strongly recommended.  For more information about OpenJPEG,
 please consult http://www.openjpeg.org.
 
-If you use MacPorts on the mac or if you have a sufficiently recent
-version of Linux, your package manager should already provide you
-with a version of OpenJPEG 1.X with which glymur can already use
-for read-only purposes.  If your platform is windows, I suggest
-using the windows installers provided to you by the OpenJPEG
+If you use MacPorts or if you have a sufficiently recent version of
+Linux, your package manager should already provide you with a version of
+OpenJPEG 1.X which glymur can already use.  If your platform is windows,
+I suggest using the windows installers provided to you by the OpenJPEG
 folks at https://code.google.com/p/openjpeg/downloads/list .
 
 Glymur Installation
@@ -47,13 +45,5 @@ line, so you should adjust your **$PATH**
 to take advantage of it.  For example, if you install with pip's
 `--user` option on linux ::
 
-    $ export PYTHONPATH=$HOME/.local/lib/python3.3/site-packages
     $ export PATH=$HOME/.local/bin:$PATH
 
-You can run the tests from within python as follows::
-
-    >>> import glymur
-    >>> glymur.runtests()
-
-Many tests are currently skipped, but the The important thing is whether or
-not any tests fail.

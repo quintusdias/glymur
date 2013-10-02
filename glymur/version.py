@@ -6,6 +6,7 @@
 #
 # License:  MIT
 
+import pdb; pdb.set_trace()
 import sys
 import numpy as np
 from distutils.version import LooseVersion
