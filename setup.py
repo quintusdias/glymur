@@ -12,7 +12,8 @@ kwargs = {'name': 'Glymur',
           'package_data': {'glymur': ['data/*.jp2', 'data/*.j2k']},
           'scripts': ['bin/jp2dump'],
           'license': 'MIT',
-          'test_suite': 'glymur.test'}
+          'test_suite': 'glymur.test',
+          'version':  '0.5.4'}
 
 instllrqrs = ['numpy>=1.4.1']
 if sys.hexversion < 0x03030000:
@@ -37,8 +38,5 @@ clssfrs = ["Programming Language :: Python",
            "Intended Audience :: Information Technology",
            "Topic :: Software Development :: Libraries :: Python Modules"]
 kwargs['classifiers'] = clssfrs
-
-import glymur
-kwargs['version'] = glymur.version.version
 
 setup(**kwargs)
