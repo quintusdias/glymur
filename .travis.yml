@@ -14,6 +14,8 @@ before_install:
 install: "pip install -r travis-requirements.txt --use-mirrors"
 
 # command to run tests
+# 2.7 should skip no more than 342 tests
+# 3.3 should skip no more than 339 tests
 script: "python -m unittest discover"
 
 notifications:
