@@ -3,7 +3,7 @@ How do I...?
 ------------
 
 
-read the lowest resolution thumbnail?
+... read the lowest resolution thumbnail?
 =====================================
 Printing the Jp2k object should reveal the number of resolutions (look in the
 COD segment section), but you can take a shortcut by supplying -1 as the
@@ -14,7 +14,7 @@ resolution level. ::
     >>> j = glymur.Jp2k(file)
     >>> thumbnail = j.read(rlevel=-1)
 
-display metadata?
+... display metadata?
 =================
 There are two ways.  From the unix command line, the script *jp2dump* is
 available. ::
@@ -34,7 +34,7 @@ codestream box, only the main header is printed.  It is possible to print
 
     >>> print(j.get_codestream())
 
-add XML metadata?
+... add XML metadata?
 =================
 You can append any number of XML boxes to a JP2 file (not to a raw codestream).
 Consider the following XML file `data.xml` : ::
@@ -66,7 +66,7 @@ The **append** method can add an XML box as shown below::
     >>> jp2.append(xmlbox)
     >>> print(jp2)
 
-add metadata in a more general fashion?
+... add metadata in a more general fashion?
 =======================================
 An existing raw codestream (or JP2 file) can be wrapped (re-wrapped) in a 
 user-defined set of JP2 boxes.  To get just a minimal JP2 jacket on the 
@@ -157,18 +157,18 @@ to add metadata, you should keep in mind that **wrap** produces a new JP2 file,
 while **append** modifies an existing file and is currently limited to XML
 boxes.
 
-create an image with an alpha layer?
+... create an image with an alpha layer?
 ====================================
 
 OpenJPEG can create JP2 files with more than 3 components (requires
-the development version), but by default, any extra components are
+the development version of OpenJPEG), but by default, any extra components are
 not described as such.  In order to do so, we need to rewrap such
 an image in a set of boxes that includes a channel definition box.
 
 This example is based on SciPy example code found at 
 http://scipy-lectures.github.io/advanced/image_processing/#basic-manipulations . 
-Instead of a circular mask, however, we'll make it an ellipse since the source
-image isn't square.
+Instead of a circular mask we'll make it an ellipse since the source
+image isn't square. ::
 
     >>> import numpy as np
     >>> import glymur

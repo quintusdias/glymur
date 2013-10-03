@@ -1,4 +1,6 @@
 from setuptools import setup, find_packages
+import os
+import re
 import sys
 
 kwargs = {'name': 'Glymur',
@@ -38,7 +40,11 @@ clssfrs = ["Programming Language :: Python",
            "Topic :: Software Development :: Libraries :: Python Modules"]
 kwargs['classifiers'] = clssfrs
 
-import glymur
-kwargs['version'] = glymur.version.version
+# Get the version string.  Cannot do this by importing glymur!
+version_file = os.path.join('glymur', 'version.py')
+with open('glymur/version.py', 'rt') as fptr:
+    contents = fptr.read()
+    match = re.search('version\s*=\s*"(?P<version>\d*.\d*.\d*.*)"\n', contents)
+    kwargs['version'] = match.group('version')
 
 setup(**kwargs)

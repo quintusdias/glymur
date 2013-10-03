@@ -124,7 +124,7 @@ class TestConfig(unittest.TestCase):
 
     @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_write_without_library(self):
-        """Don't have openjp2 library?  Must error out.
+        """Don't have openjpeg libraries?  Must error out.
         """
         data = glymur.Jp2k(self.j2kfile).read()
         with patch('glymur.lib.openjp2.OPENJP2', new=None):
