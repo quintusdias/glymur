@@ -1,5 +1,6 @@
 language: python
 python:
+  - "2.6"
   - "2.7"
   - "3.3"
 
@@ -9,14 +10,15 @@ before_install:
   - sudo apt-get install -qq python3-numpy
   - wget http://openjpeg.googlecode.com/files/openjpeg-1.5.0-Linux-x86_64.tar.gz
   - sudo tar -xvf openjpeg-1.5.0-Linux-x86_64.tar.gz --strip-components=1 -C /
+  - if [ "${TRAVIS_PYTHON_VERSION::1}" == 3 ]; then export TEST_PKG=unittest2py3k; else export TEST_PKG=unittest2; fi
 
 # command to install dependencies
-install: "pip install -r travis-requirements.txt --use-mirrors"
+install:
+  - pip install $TEST_PKG
+  - pip install -r travis-requirements.txt --use-mirrors
 
 # command to run tests
-# 2.7 should skip no more than 342 tests
-# 3.3 should skip no more than 339 tests
-script: "python -m unittest discover"
+script: "unit2 discover"
 
 notifications:
   email: "john.g.evans.ne@gmail.com"
