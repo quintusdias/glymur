@@ -568,7 +568,7 @@ class CodestreamHeaderBox(Jp2kBox):
 
         Returns
         -------
-        AssociationBox instance
+        CodestreamHeaderBox instance
         """
         box = CodestreamHeaderBox(length=length, offset=offset)
 
@@ -627,7 +627,7 @@ class CompositingLayerHeaderBox(Jp2kBox):
 
         Returns
         -------
-        AssociationBox instance
+        CompositingLayerHeaderBox instance
         """
         box = CompositingLayerHeaderBox(length=length, offset=offset)
 
@@ -638,7 +638,7 @@ class CompositingLayerHeaderBox(Jp2kBox):
 
 
 class ComponentMappingBox(Jp2kBox):
-    """Container for channel identification information.
+    """Container for component mapping information.
 
     Attributes
     ----------
@@ -1637,7 +1637,7 @@ class CaptureResolutionBox(Jp2kBox):
 
     @staticmethod
     def parse(fptr, offset, length):
-        """Parse Resolution box.
+        """Parse CaptureResolutionBox.
 
         Parameters
         ----------
@@ -1694,7 +1694,7 @@ class DisplayResolutionBox(Jp2kBox):
 
     @staticmethod
     def parse(fptr, offset, length):
-        """Parse Resolution box.
+        """Parse display resolution box.
 
         Parameters
         ----------
@@ -2047,7 +2047,7 @@ class DataEntryURLBox(Jp2kBox):
 
     @staticmethod
     def parse(fptr, offset, length):
-        """Parse Data Entry URL box.
+        """Parse data entry URL box.
 
         Parameters
         ----------
