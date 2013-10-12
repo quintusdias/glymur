@@ -1,3 +1,4 @@
+# -*- coding:  utf-8 -*-
 """
 Test suite specifically targeting JP2 box layout.
 """
@@ -94,8 +95,6 @@ class TestXML(unittest.TestCase):
         with self.assertRaises((IOError, OSError)):
             glymur.jp2box.XMLBox(filename=self.xmlfile, xml=xml_object)
 
-    @unittest.skipIf(os.name == "nt",
-                     "Problems using NamedTemporaryFile on windows.")
     def test_basic_xml(self):
         """Should be able to write a basic XMLBox"""
         j2k = Jp2k(self.j2kfile)
@@ -116,8 +115,26 @@ class TestXML(unittest.TestCase):
             self.assertEqual(ET.tostring(jp2.box[3].xml.getroot()),
                              b'<data>0</data>')
 
-    @unittest.skipIf(os.name == "nt",
-                     "Problems using NamedTemporaryFile on windows.")
+    def test_utf8_xml(self):
+        """Should be able to write/read an XMLBox with utf-8 encoding."""
+        j2k = Jp2k(self.j2kfile)
+
+        self.jp2h.box = [self.ihdr, self.colr]
+
+        xml_header = u'<?xml version="1.0" encoding="utf-8"?>'
+        xml_string = u'<country>Россия</country>'
+        the_xml = ET.fromstring((xml_header + xml_string).encode('utf-8'))
+        xmlb = glymur.jp2box.XMLBox(xml=the_xml)
+        self.assertEqual(ET.tostring(xmlb.xml, encoding='utf-8').decode('utf-8'), xml_string)
+
+        boxes = [self.jp2b, self.ftyp, self.jp2h, xmlb, self.jp2c]
+
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            j2k.wrap(tfile.name, boxes=boxes)
+            jp2 = Jp2k(tfile.name)
+            self.assertEqual(ET.tostring(jp2.box[3].xml.getroot(), encoding='utf-8').decode('utf-8'),
+                             xml_string)
+
     def test_xml_from_file(self):
         """Must be able to create an XML box from an XML file."""
         j2k = Jp2k(self.j2kfile)
