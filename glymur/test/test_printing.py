@@ -732,10 +732,15 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(sys.hexversion < 0x02070000,
-                     "Differences in XML printing between 2.6 and 2.7")
+    @unittest.skipIf(sys.hexversion < 0x03000000,
+                     "Only trusting python3 for printing non-ascii chars")
     def test_xml_latin1(self):
         """Should be able to print an XMLBox with utf-8 encoding (latin1)."""
+        # Seems to be inconsistencies between different versions of python2.x
+        # as to what gets printed.  
+        #
+        # 2.7.5 (fedora 19) prints xml entities.
+        # 2.7.3 seems to want to print hex escapes.
         text = u"""<?xml version="1.0" encoding="utf-8"?>
         <flow>Strömung</flow>"""
         if sys.hexversion < 0x03000000:
@@ -756,10 +761,15 @@ class TestPrinting(unittest.TestCase):
             expected = '\n'.join(lines)
             self.assertEqual(actual, expected)
 
-    @unittest.skipIf(sys.hexversion < 0x02070000,
-                     "Differences in XML printing between 2.6 and 2.7")
+    @unittest.skipIf(sys.hexversion < 0x03000000,
+                     "Only trusting python3 for printing non-ascii chars")
     def test_xml_cyrrilic(self):
         """Should be able to print an XMLBox with utf-8 encoding (cyrrillic)."""
+        # Seems to be inconsistencies between different versions of python2.x
+        # as to what gets printed.  
+        #
+        # 2.7.5 (fedora 19) prints xml entities.
+        # 2.7.3 seems to want to print hex escapes.
         text = u"""<?xml version="1.0" encoding="utf-8"?>
         <country>Россия</country>"""
         if sys.hexversion < 0x03000000:
@@ -773,7 +783,7 @@ class TestPrinting(unittest.TestCase):
             actual = fake_out.getvalue().strip()
             if sys.hexversion < 0x03000000:
                 lines = ["XML Box (xml ) @ (-1, 0)",
-                         "    <country>\xd0\xa0\xd0\xbe\xd1\x81\xd1\x81\xd0\xb8\xd1\x8f</country>"]
+                         "    <country>&#1056;&#1086;&#1089;&#1089;&#1080;&#1103;</country>"]
             else:
                 lines = ["XML Box (xml ) @ (-1, 0)",
                          "    <country>Россия</country>"]
