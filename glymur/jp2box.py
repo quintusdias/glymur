@@ -1870,10 +1870,8 @@ class XMLBox(Jp2kBox):
         # Strip out any trailing nulls, as they can foul up XML parsing.
         text = text.rstrip(chr(0))
 
-        # Scan for the start of the xml declaration.
-
         try:
-            elt = ET.fromstring(text)
+            elt = ET.fromstring(text.encode('utf-8'))
             xml = ET.ElementTree(elt)
         except ParseError as parse_error:
             msg = 'A problem was encountered while parsing an XML box:'
