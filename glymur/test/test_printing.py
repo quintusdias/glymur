@@ -1,3 +1,4 @@
+# -*- coding:  utf-8 -*-
 """Test suite for printing.
 """
 # C0302:  don't care too much about having too many lines in a test module
@@ -15,6 +16,7 @@ import struct
 import sys
 import tempfile
 import warnings
+from xml.etree import cElementTree as ET
 
 if sys.hexversion < 0x02070000:
     import unittest2 as unittest
@@ -729,6 +731,46 @@ class TestPrinting(unittest.TestCase):
                  '    </ns0:IMAGE_CREATION>']
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
+
+    @unittest.skipIf(sys.hexversion < 0x02070000,
+                     "Differences in XML printing between 2.6 and 2.7")
+    def test_xml_latin1(self):
+        """Should be able to print an XMLBox with utf-8 encoding (latin1)."""
+        text = u"""<?xml version="1.0" encoding="utf-8"?>
+        <flow>Strömung</flow>"""
+        if sys.hexversion < 0x03000000:
+            xml = ET.parse(StringIO(text.encode('utf-8')))
+        else:
+            xml = ET.parse(StringIO(text))
+
+        xmlbox = glymur.jp2box.XMLBox(xml=xml)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(xmlbox)
+            actual = fake_out.getvalue().strip()
+            lines = ["XML Box (xml ) @ (-1, 0)",
+                     "    <flow>Strömung</flow>"]
+            expected = '\n'.join(lines)
+            self.assertEqual(actual, expected)
+
+    @unittest.skipIf(sys.hexversion < 0x02070000,
+                     "Differences in XML printing between 2.6 and 2.7")
+    def test_xml_cyrrilic(self):
+        """Should be able to print an XMLBox with utf-8 encoding (cyrrillic)."""
+        text = u"""<?xml version="1.0" encoding="utf-8"?>
+        <country>Россия</country>"""
+        if sys.hexversion < 0x03000000:
+            xml = ET.parse(StringIO(text.encode('utf-8')))
+        else:
+            xml = ET.parse(StringIO(text))
+
+        xmlbox = glymur.jp2box.XMLBox(xml=xml)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(xmlbox)
+            actual = fake_out.getvalue().strip()
+            lines = ["XML Box (xml ) @ (-1, 0)",
+                     "    <country>Россия</country>"]
+            expected = '\n'.join(lines)
+            self.assertEqual(actual, expected)
 
     @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")

@@ -148,54 +148,26 @@ class TestXML(unittest.TestCase):
             self.assertEqual(neighbor.attrib['name'], 'Malaysia')
             self.assertEqual(neighbor.attrib['direction'], 'N')
 
-
-@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-class TestUTF8XML(unittest.TestCase):
-    """Test suite for UTF-8 XML boxes."""
-
-    def setUp(self):
-        """Create a JP2 file with a UTF-8 XML box."""
-        self.j2kfile = glymur.data.goodstuff()
-
-        # 'Россия' is 'Russia' in Cyrillic, not that it matters.
-
-        xml = u"""<?xml version="1.0" encoding="utf-8"?>
-        <country>Россия</country>"""
-        with tempfile.NamedTemporaryFile(suffix=".xml", delete=False) as tfile:
-            tfile.write(xml.encode('utf-8'))
-            tfile.flush()
-        self.xmlfile = tfile.name
-
-        j2k = glymur.Jp2k(self.j2kfile)
-        with tempfile.NamedTemporaryFile(suffix=".jp2", delete=False) as tfile:
-            jp2 = j2k.wrap(tfile.name)
-            xmlbox = glymur.jp2box.XMLBox(filename=self.xmlfile)
-            jp2.append(xmlbox)
-            self.jp2_xml_file = tfile.name
-
-    def tearDown(self):
-        os.unlink(self.xmlfile)
-        os.unlink(self.jp2_xml_file)
-
     def test_utf8_xml(self):
         """Should be able to write/read an XMLBox with utf-8 encoding."""
-        jp2 = Jp2k(self.jp2_xml_file)
-        box_xml = jp2.box[-1].xml.getroot()
-        box_xml_str = ET.tostring(box_xml, encoding='utf-8').decode('utf-8')
-        self.assertEqual(box_xml_str,
-                         u'<country>Россия</country>')
+        # 'Россия' is 'Russia' in Cyrillic, not that it matters.
+        xml = u"""<?xml version="1.0" encoding="utf-8"?>
+        <country>Россия</country>"""
+        with tempfile.NamedTemporaryFile(suffix=".xml") as xmlfile:
+            xmlfile.write(xml.encode('utf-8'))
+            xmlfile.flush()
 
-    @unittest.skip("Does not print properly.")
-    def test_printing_utf8_xml(self):
-        """Should be able to print an XMLBox with utf-8 encoding."""
-        jp2 = Jp2k(self.jp2_xml_file)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(jp2.box[-1])
-            actual = fake_out.getvalue().strip()
-            lines = ["XML Box (xml ) @ (115305, 39)",
-                     "    u'<country>Россия</country>'"]
-            expected = '\n'.join(lines)
-            self.assertEqual(actual, expected)
+            j2k = glymur.Jp2k(self.j2kfile)
+            with tempfile.NamedTemporaryFile(suffix=".jp2") as jfile:
+                jp2 = j2k.wrap(jfile.name)
+                xmlbox = glymur.jp2box.XMLBox(filename=xmlfile.name)
+                jp2.append(xmlbox)
+
+                box_xml = jp2.box[-1].xml.getroot()
+                box_xml_str = ET.tostring(box_xml,
+                                          encoding='utf-8').decode('utf-8')
+                self.assertEqual(box_xml_str,
+                                 u'<country>Россия</country>')
 
 
 
