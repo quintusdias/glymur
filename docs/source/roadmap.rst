@@ -1,9 +1,3 @@
-------------
-Known Issues
-------------
-
-    * WinPython 3.3.2 and OpenJPEG 2.0 don't seem to want to play well together.  If you do not need write support, just use OpenJPEG 1.5 instead.  If you do need write support, try the development version of OpenJPEG.
-
 -------
 Roadmap
 -------

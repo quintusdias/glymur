@@ -2,8 +2,17 @@
 The tests here do not correspond directly to the OpenJPEG test suite, but
 seem like logical negative tests to add.
 """
-#pylint:  disable-all
+# E1101:  assertWarns introduced in python 3.2
+# pylint: disable=E1101
+
+# R0904:  Not too many methods in unittest.
+# pylint: disable=R0904
+
+# unittest2 is python2.6 only (pylint/python-2.7)
+# pylint: disable=F0401
+
 import os
+import re
 import sys
 import tempfile
 
@@ -12,48 +21,21 @@ if sys.hexversion < 0x02070000:
 else:
     import unittest
 
-import warnings
-
 import numpy as np
-import pkg_resources
 
-from glymur.lib import openjp2 as opj2
-
-msg = "Matplotlib with the PIL backend must be available in order to run the "
-msg += "tests in this suite."
-no_read_backend_msg = msg
-try:
-    from PIL import Image
-    from matplotlib.pyplot import imread
-    no_read_backend = False
-except:
-    no_read_backend = True
+from .fixtures import OPJ_DATA_ROOT, opj_data_file, read_image
+from .fixtures import NO_READ_BACKEND, NO_READ_BACKEND_MSG
 
 from glymur import Jp2k
 import glymur
 
-try:
-    data_root = os.environ['OPJ_DATA_ROOT']
-except KeyError:
-    data_root = None
-except:
-    raise
 
-
-def read_image(infile):
-    # PIL issues warnings which we do not care about, so suppress them.
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        data = imread(infile)
-    return data
-
-
-@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
-                 "Missing openjp2 library.")
-@unittest.skipIf(no_read_backend, no_read_backend_msg)
-@unittest.skipIf(data_root is None,
-                 "OPJ_DATA_ROOT environment variable not set")
+@unittest.skipIf(re.match(r"""1\.[01234]""", glymur.version.openjpeg_version),
+                 "Functionality not implemented for 1.3, 1.4")
+@unittest.skipIf(OPJ_DATA_ROOT is None,
+                 "OPJ_OPJ_DATA_ROOT environment variable not set")
 class TestSuiteNegative(unittest.TestCase):
+    """Test suite for certain negative tests from openjpeg suite."""
 
     def setUp(self):
         self.jp2file = glymur.data.nemo()
@@ -62,46 +44,52 @@ class TestSuiteNegative(unittest.TestCase):
     def tearDown(self):
         pass
 
+    @unittest.skipIf(NO_READ_BACKEND, NO_READ_BACKEND_MSG)
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-    def test_negative_psnr_with_cratios(self):
-        # Using psnr with cratios options is not allowed.
+    def test_psnr_with_cratios(self):
+        """Using psnr with cratios options is not allowed."""
         # Not an OpenJPEG test, but close.
-        infile = os.path.join(data_root, 'input/nonregression/Bretagne1.ppm')
+        infile = opj_data_file('input/nonregression/Bretagne1.ppm')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
             with self.assertRaises(IOError):
                 j.write(data, psnr=[30, 35, 40], cratios=[2, 3, 4])
 
-    def test_NR_MarkerIsNotCompliant_j2k_dump(self):
+    def test_nr_marker_not_compliant(self):
+        """non-compliant marker, should still be able to read"""
         relpath = 'input/nonregression/MarkerIsNotCompliant.j2k'
-        jfile = os.path.join(data_root, relpath)
+        jfile = opj_data_file(relpath)
         jp2k = Jp2k(jfile)
-        c = jp2k.get_codestream(header_only=False)
+        jp2k.get_codestream(header_only=False)
+        self.assertTrue(True)
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
-    def test_NR_illegalcolortransform_dump(self):
-        # EOC marker is bad
+    def test_nr_illegalclrtransform(self):
+        """EOC marker is bad"""
         relpath = 'input/nonregression/illegalcolortransform.j2k'
-        jfile = os.path.join(data_root, relpath)
+        jfile = opj_data_file(relpath)
         jp2k = Jp2k(jfile)
-        with self.assertWarns(UserWarning) as cw:
-            c = jp2k.get_codestream(header_only=False)
+        with self.assertWarns(UserWarning):
+            codestream = jp2k.get_codestream(header_only=False)
 
         # Verify that the last segment returned in the codestream is SOD,
         # not EOC.  Codestream parsing should stop when we try to jump to
         # the end of SOT.
-        self.assertEqual(c.segment[-1].marker_id, 'SOD')
+        self.assertEqual(codestream.segment[-1].marker_id, 'SOD')
 
-    def test_NR_Cannotreaddatawithnosizeknown_j2k(self):
+    def test_nr_cannotreadwnosizeknown(self):
+        """not sure exactly what is wrong with this file"""
         relpath = 'input/nonregression/Cannotreaddatawithnosizeknown.j2k'
-        jfile = os.path.join(data_root, relpath)
+        jfile = opj_data_file(relpath)
         jp2k = Jp2k(jfile)
-        c = jp2k.get_codestream(header_only=False)
+        jp2k.get_codestream(header_only=False)
+        self.assertTrue(True)
 
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_code_block_dimensions(self):
+        """don't allow extreme codeblock sizes"""
         # opj_compress doesn't allow the dimensions of a codeblock
         # to be too small or too big, so neither will we.
         data = np.zeros((256, 256), dtype=np.uint8)
@@ -109,55 +97,55 @@ class TestSuiteNegative(unittest.TestCase):
             j = Jp2k(tfile.name, 'wb')
 
             # opj_compress doesn't allow code block area to exceed 4096.
-            with self.assertRaises(IOError) as cr:
+            with self.assertRaises(IOError):
                 j.write(data, cbsize=(256, 256))
 
             # opj_compress doesn't allow either dimension to be less than 4.
-            with self.assertRaises(IOError) as cr:
+            with self.assertRaises(IOError):
                 j.write(data, cbsize=(2048, 2))
-            with self.assertRaises(IOError) as cr:
+            with self.assertRaises(IOError):
                 j.write(data, cbsize=(2, 2048))
 
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
     def test_exceeded_box(self):
+        """should warn if reading past end of a box"""
         # Verify that a warning is issued if we read past the end of a box
         # This file has a palette (pclr) box whose length is impossibly
         # short.
-        infile = os.path.join(data_root,
+        infile = os.path.join(OPJ_DATA_ROOT,
                               'input/nonregression/mem-b2ace68c-1381.jp2')
-        with self.assertWarns(UserWarning) as cw:
-            j = Jp2k(infile)
+        with self.assertWarns(UserWarning):
+            Jp2k(infile)
 
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-    def test_precinct_size_not_multiple_of_two(self):
-        # Seems like precinct sizes should be powers of two.
+    def test_precinct_size_not_p2(self):
+        """precinct sizes should be powers of two."""
         ifile = Jp2k(self.j2kfile)
         data = ifile.read(rlevel=2)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             ofile = Jp2k(tfile.name, 'wb')
-            with self.assertRaises(IOError) as ce:
+            with self.assertRaises(IOError):
                 ofile.write(data, psizes=[(13, 13)])
 
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-    def test_codeblock_size_not_multiple_of_two(self):
-        # Seems like code block sizes should be powers of two.
+    def test_cblk_size_not_power_of_two(self):
+        """code block sizes should be powers of two."""
         ifile = Jp2k(self.j2kfile)
         data = ifile.read(rlevel=2)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             ofile = Jp2k(tfile.name, 'wb')
-            with self.assertRaises(IOError) as ce:
+            with self.assertRaises(IOError):
                 ofile.write(data, cbsize=(13, 12))
 
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-    def test_codeblock_size_with_precinct_size(self):
-        # Seems like code block sizes should never exceed half that of
-        # precinct size.
+    def test_cblk_size_precinct_size(self):
+        """code block sizes should never exceed half that of precinct size."""
         ifile = Jp2k(self.j2kfile)
         data = ifile.read(rlevel=2)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             ofile = Jp2k(tfile.name, 'wb')
-            with self.assertRaises(IOError) as ce:
+            with self.assertRaises(IOError):
                 ofile.write(data,
                             cbsize=(64, 64),
                             psizes=[(64, 64)])

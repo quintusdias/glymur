@@ -1,6 +1,13 @@
-#pylint:  disable-all
+"""
+Test suite for openjpeg's callback functions.
+"""
+# R0904:  Seems like pylint is fooled in this situation
+# pylint: disable=R0904
+
+# 'mock' most certainly is in unittest (Python 3.3)
+# pylint: disable=E0611,F0401
+
 import os
-import pkg_resources
 import re
 import sys
 import tempfile
@@ -24,6 +31,7 @@ import glymur
 @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
 class TestCallbacks(unittest.TestCase):
+    """Test suite for callbacks."""
 
     def setUp(self):
         self.jp2file = glymur.data.nemo()
@@ -34,7 +42,7 @@ class TestCallbacks(unittest.TestCase):
 
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_info_callback_on_write(self):
-        # Verify the messages printed when writing an image in verbose mode.
+        """Verify messages printed when writing an image in verbose mode."""
         j = glymur.Jp2k(self.jp2file)
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -47,12 +55,14 @@ class TestCallbacks(unittest.TestCase):
         expected = '[INFO] tile number 1 / 1'
         self.assertEqual(actual, expected)
 
-    def test_info_warning_callbacks_on_read(self):
+    def test_info_callbacks_on_read(self):
+        """stdio output when info callback handler is enabled"""
+
         # Verify that we get the expected stdio output when our internal info
         # callback handler is enabled.
         j = glymur.Jp2k(self.j2kfile)
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            d = j.read(rlevel=1, verbose=True, area=(0, 0, 200, 150))
+            j.read(rlevel=1, verbose=True, area=(0, 0, 200, 150))
             actual = fake_out.getvalue().strip()
 
         lines = ['[INFO] Start to read j2k main header (0).',
@@ -80,15 +90,18 @@ class TestCallbacks15(unittest.TestCase):
         pass
 
     def test_info_callbacks_on_read(self):
-        # Verify that we get the expected stdio output when our internal info
-        # callback handler is enabled.
+        """Verify stdout when reading.
+
+        Verify that we get the expected stdio output when our internal info
+        callback handler is enabled.
+        """
         with patch('glymur.lib.openjp2.OPENJP2', new=None):
             # Force to use OPENJPEG instead of OPENJP2.
             j = glymur.Jp2k(self.j2kfile)
             with patch('sys.stdout', new=StringIO()) as fake_out:
-                d = j.read(rlevel=1, verbose=True)
+                j.read(rlevel=1, verbose=True)
                 actual = fake_out.getvalue().strip()
-    
+
             regex = re.compile(r"""\[INFO\]\stile\s1\sof\s1\s+
                                    \[INFO\]\s-\stiers-1\stook\s
                                            [0-9]+\.[0-9]+\ss\s+
@@ -97,6 +110,9 @@ class TestCallbacks15(unittest.TestCase):
                                    \[INFO\]\s-\stile\sdecoded\sin\s
                                            [0-9]+\.[0-9]+\ss""",
                                re.VERBOSE)
+
+            # assertRegex in Python 3.3 (python2.7/pylint issue)
+            # pylint: disable=E1101
             if sys.hexversion <= 0x03020000:
                 self.assertRegexpMatches(actual, regex)
             else:

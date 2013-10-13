@@ -1,35 +1,32 @@
-#pylint:  disable-all
+"""
+ICC profile tests.
+"""
+
+# unittest doesn't work well with R0904.
+# pylint: disable=R0904
+
+# unittest2 is python2.6 only (pylint/python-2.7)
+# pylint: disable=F0401
+
 import datetime
 import os
-import struct
 import sys
-import tempfile
 
 if sys.hexversion < 0x02070000:
     import unittest2 as unittest
 else:
     import unittest
 
-import warnings
-from xml.etree import cElementTree as ET
-
 import numpy as np
-import pkg_resources
 
 from glymur import Jp2k
-import glymur
-
-try:
-    data_root = os.environ['OPJ_DATA_ROOT']
-except KeyError:
-    data_root = None
-except:
-    raise
+from .fixtures import OPJ_DATA_ROOT, opj_data_file
 
 
-@unittest.skipIf(data_root is None,
+@unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 class TestICC(unittest.TestCase):
+    """ICC profile tests"""
 
     def setUp(self):
         pass
@@ -38,7 +35,8 @@ class TestICC(unittest.TestCase):
         pass
 
     def test_file5(self):
-        filename = os.path.join(data_root, 'input/conformance/file5.jp2')
+        """basic ICC profile"""
+        filename = opj_data_file('input/conformance/file5.jp2')
         j = Jp2k(filename)
         profile = j.box[3].box[1].icc_profile
         self.assertEqual(profile['Size'], 546)
@@ -70,10 +68,13 @@ class TestICC(unittest.TestCase):
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
     def test_invalid_profile_header(self):
-        jfile = os.path.join(data_root,
-                             'input/nonregression/orb-blue10-lin-jp2.jp2')
-        with self.assertWarns(UserWarning) as cw:
-            j = Jp2k(jfile)
+        """invalid ICC header data should cause UserWarning"""
+        jfile = opj_data_file('input/nonregression/orb-blue10-lin-jp2.jp2')
+
+        # assertWarns in Python 3.3 (python2.7/pylint issue)
+        # pylint: disable=E1101
+        with self.assertWarns(UserWarning):
+            Jp2k(jfile)
 
 if __name__ == "__main__":
     unittest.main()

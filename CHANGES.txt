@@ -1,3 +1,32 @@
+Oct 13, 2013 - v0.5.6  Fixed handling of non-ascii chars in XML boxes.  Fixed
+    some docstring errors in jp2box module.
+
+Oct 03, 2013 - v0.5.5  Fixed pip install error introduced in 0.5.0.  
+
+Sep 24, 2013 - v0.5.4  Fixed test error restricted to v2.0.
+
+Sep 24, 2013 - v0.5.3  Removed a duplicated channel definition test in
+    test_jp2box that could cause a segfault in 1.3 if not properly skipped.
+
+Sep 23, 2013 - v0.5.2  Fixed some tests that have been failing since 0.5.
+    under various edge cases.
+
+Sep 19, 2013 - v0.5.1  Added more resiliency to XML box parsing.  Fixed tests
+    that failed if OPJ_DATA_ROOT not set.
+
+Sep 16, 2013 - v0.5.0  Added write support for 1.5.x.  Added version module.
+
+Aug 21, 2013 - v0.4.1  Fixed segfault with openjpeg 1.x when rlevel=-1
+
+Aug 18, 2013 - v0.4.0  Added append method.
+
+Aug 15, 2013 - v0.3.2  Fixed test bug where missing Pillow package caused test
+    failures.
+
+Aug 14, 2013 - v0.3.1  Exposed mantissa, exponent, and guard_bits fields in QCC
+    and QCD segments.  Exposed layers and code_block_size in COD segment.
+    Exposed precinct_size in COC segment.
+
 Jul 31, 2013 - v0.3.0  Added support for official 2.0.0.
 
 Jul 27, 2013 - v0.2.8  Fixed inconsistency regarding configuration

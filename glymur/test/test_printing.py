@@ -1,10 +1,22 @@
-#pylint:  disable-all
+# -*- coding:  utf-8 -*-
+"""Test suite for printing.
+"""
+# C0302:  don't care too much about having too many lines in a test module
+# pylint: disable=C0302
+
+# E061:  unittest.mock introduced in 3.3 (python-2.7/pylint issue)
+# pylint: disable=E0611,F0401
+
+# R0904:  Not too many methods in unittest.
+# pylint: disable=R0904
+
 import os
-import pkg_resources
+import re
 import struct
 import sys
 import tempfile
 import warnings
+from xml.etree import cElementTree as ET
 
 if sys.hexversion < 0x02070000:
     import unittest2 as unittest
@@ -23,18 +35,12 @@ else:
 
 import glymur
 from glymur import Jp2k
-
-try:
-    data_root = os.environ['OPJ_DATA_ROOT']
-except KeyError:
-    data_root = None
-except:
-    raise
+from .fixtures import OPJ_DATA_ROOT, opj_data_file
 
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
-                 "Missing openjp2 library.")
+@unittest.skipIf(re.match(r"""1\.[01234]""", glymur.version.openjpeg_version),
+                 "Need at least 1.5 in order to write jp2 files.")
 class TestPrintingNeedsLib(unittest.TestCase):
     """These tests require the library, mostly in order to just setup the test.
     """
@@ -121,12 +127,13 @@ class TestPrintingNeedsLib(unittest.TestCase):
                  + '(0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), '
                  + '(0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), '
                  + '(0, 10)]']
-        self.expectedPlain = '\n'.join(lines)
+        self.expected_plain = '\n'.join(lines)
 
     def tearDown(self):
         pass
 
     def test_asoc_label_box(self):
+        """verify printing of asoc, label boxes"""
         # Construct a fake file with an asoc and a label box, as
         # OpenJPEG doesn't have such a file.
         data = glymur.Jp2k(self.jp2file).read(rlevel=1)
@@ -137,30 +144,30 @@ class TestPrintingNeedsLib(unittest.TestCase):
             with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile2:
 
                 # Offset of the codestream is where we start.
-                buffer = tfile.read(77)
-                tfile2.write(buffer)
+                wbuffer = tfile.read(77)
+                tfile2.write(wbuffer)
 
                 # read the rest of the file, it's the codestream.
                 codestream = tfile.read()
 
                 # Write the asoc superbox.
                 # Length = 36, id is 'asoc'.
-                buffer = struct.pack('>I4s', int(56), b'asoc')
-                tfile2.write(buffer)
+                wbuffer = struct.pack('>I4s', int(56), b'asoc')
+                tfile2.write(wbuffer)
 
                 # Write the contained label box
-                buffer = struct.pack('>I4s', int(13), b'lbl ')
-                tfile2.write(buffer)
+                wbuffer = struct.pack('>I4s', int(13), b'lbl ')
+                tfile2.write(wbuffer)
                 tfile2.write('label'.encode())
 
                 # Write the xml box
                 # Length = 36, id is 'xml '.
-                buffer = struct.pack('>I4s', int(35), b'xml ')
-                tfile2.write(buffer)
+                wbuffer = struct.pack('>I4s', int(35), b'xml ')
+                tfile2.write(wbuffer)
 
-                buffer = '<test>this is a test</test>'
-                buffer = buffer.encode()
-                tfile2.write(buffer)
+                wbuffer = '<test>this is a test</test>'
+                wbuffer = wbuffer.encode()
+                tfile2.write(wbuffer)
 
                 # Now append the codestream.
                 tfile2.write(codestream)
@@ -179,6 +186,7 @@ class TestPrintingNeedsLib(unittest.TestCase):
                 self.assertEqual(actual, expected)
 
     def test_jp2dump(self):
+        """basic jp2dump test"""
         with patch('sys.stdout', new=StringIO()) as fake_out:
             glymur.jp2dump(self._plain_nemo_file)
             actual = fake_out.getvalue().strip()
@@ -187,9 +195,10 @@ class TestPrintingNeedsLib(unittest.TestCase):
         lst = actual.split('\n')
         lst = lst[1:]
         actual = '\n'.join(lst)
-        self.assertEqual(actual, self.expectedPlain)
+        self.assertEqual(actual, self.expected_plain)
 
     def test_entire_file(self):
+        """verify output from printing entire file"""
         j = glymur.Jp2k(self._plain_nemo_file)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j)
@@ -200,10 +209,11 @@ class TestPrintingNeedsLib(unittest.TestCase):
         lst = lst[1:]
         actual = '\n'.join(lst)
 
-        self.assertEqual(actual, self.expectedPlain)
+        self.assertEqual(actual, self.expected_plain)
 
 
 class TestPrinting(unittest.TestCase):
+    """Test suite for printing where the libraries are not needed"""
 
     def setUp(self):
         # Save sys.stdout.
@@ -212,7 +222,8 @@ class TestPrinting(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_COC_segment(self):
+    def test_coc_segment(self):
+        """verify printing of COC segment"""
         j = glymur.Jp2k(self.jp2file)
         codestream = j.get_codestream(header_only=False)
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -239,7 +250,8 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    def test_COD_segment(self):
+    def test_cod_segment(self):
+        """verify printing of COD segment"""
         j = glymur.Jp2k(self.jp2file)
         codestream = j.get_codestream()
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -270,14 +282,13 @@ class TestPrinting(unittest.TestCase):
                  '            Segmentation symbols:  False']
 
         expected = '\n'.join(lines)
-        self.actual = actual
-        self.expected = expected
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(data_root is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_icc_profile(self):
-        filename = os.path.join(data_root, 'input/nonregression/text_GBR.jp2')
+        """verify printing of colr box with ICC profile"""
+        filename = opj_data_file('input/nonregression/text_GBR.jp2')
         with warnings.catch_warnings():
             # brand is 'jp2 ', but has any icc profile.
             warnings.simplefilter("ignore")
@@ -342,24 +353,26 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(data_root is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
-    def test_CRG(self):
-        filename = os.path.join(data_root, 'input/conformance/p0_03.j2k')
+    def test_crg(self):
+        """verify printing of CRG segment"""
+        filename = opj_data_file('input/conformance/p0_03.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream()
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(codestream.segment[-5])
             actual = fake_out.getvalue().strip()
-        lines = ['CRG marker segment at (87, 6)',
+        lines = ['CRG marker segment @ (87, 6)',
                  '    Vertical, Horizontal offset:  (0.50, 1.00)']
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(data_root is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
-    def test_RGN(self):
-        filename = os.path.join(data_root, 'input/conformance/p0_03.j2k')
+    def test_rgn(self):
+        """verify printing of RGN segment"""
+        filename = opj_data_file('input/conformance/p0_03.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream(header_only=False)
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -372,10 +385,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(data_root is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
-    def test_SOP(self):
-        filename = os.path.join(data_root, 'input/conformance/p0_03.j2k')
+    def test_sop(self):
+        """verify printing of SOP segment"""
+        filename = opj_data_file('input/conformance/p0_03.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream(header_only=False)
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -386,11 +400,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(data_root is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
-    def test_CME(self):
-        # Test printing a CME or comment marker segment.
-        filename = os.path.join(data_root, 'input/conformance/p0_02.j2k')
+    def test_cme(self):
+        """Test printing a CME or comment marker segment."""
+        filename = opj_data_file('input/conformance/p0_02.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream()
         # 2nd to last segment in the main header
@@ -402,7 +416,8 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    def test_EOC_segment(self):
+    def test_eoc_segment(self):
+        """verify printing of eoc segment"""
         j = glymur.Jp2k(self.jp2file)
         codestream = j.get_codestream(header_only=False)
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -413,10 +428,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(data_root is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
-    def test_PLT_segment(self):
-        filename = os.path.join(data_root, 'input/conformance/p0_07.j2k')
+    def test_plt_segment(self):
+        """verify printing of PLT segment"""
+        filename = opj_data_file('input/conformance/p0_07.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream(header_only=False)
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -431,10 +447,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(data_root is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
-    def test_POD_segment(self):
-        filename = os.path.join(data_root, 'input/conformance/p0_13.j2k')
+    def test_pod_segment(self):
+        """verify printing of POD segment"""
+        filename = opj_data_file('input/conformance/p0_13.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream()
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -460,10 +477,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(data_root is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
-    def test_PPM_segment(self):
-        filename = os.path.join(data_root, 'input/conformance/p1_03.j2k')
+    def test_ppm_segment(self):
+        """verify printing of PPM segment"""
+        filename = opj_data_file('input/conformance/p1_03.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream()
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -477,10 +495,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(data_root is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
-    def test_PPT_segment(self):
-        filename = os.path.join(data_root, 'input/conformance/p1_06.j2k')
+    def test_ppt_segment(self):
+        """verify printing of ppt segment"""
+        filename = opj_data_file('input/conformance/p1_06.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream(header_only=False)
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -494,7 +513,8 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    def test_QCC_segment(self):
+    def test_qcc_segment(self):
+        """verify printing of qcc segment"""
         j = glymur.Jp2k(self.jp2file)
         codestream = j.get_codestream(header_only=False)
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -509,7 +529,8 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    def test_QCD_segment_5x3_transform(self):
+    def test_qcd_segment_5x3_transform(self):
+        """verify printing of qcd segment"""
         j = glymur.Jp2k(self.jp2file)
         codestream = j.get_codestream()
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -523,7 +544,8 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    def test_SIZ_segment(self):
+    def test_siz_segment(self):
+        """verify printing of SIZ segment"""
         j = glymur.Jp2k(self.jp2file)
         codestream = j.get_codestream()
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -544,7 +566,8 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    def test_SOC_segment(self):
+    def test_soc_segment(self):
+        """verify printing of SOC segment"""
         j = glymur.Jp2k(self.jp2file)
         codestream = j.get_codestream()
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -555,7 +578,8 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    def test_SOD_segment(self):
+    def test_sod_segment(self):
+        """verify printing of SOD segment"""
         j = glymur.Jp2k(self.jp2file)
         codestream = j.get_codestream(header_only=False)
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -566,7 +590,8 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    def test_SOT_segment(self):
+    def test_sot_segment(self):
+        """verify printing of SOT segment"""
         j = glymur.Jp2k(self.jp2file)
         codestream = j.get_codestream(header_only=False)
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -580,13 +605,13 @@ class TestPrinting(unittest.TestCase):
                  '    Number of tile parts:  1']
 
         expected = '\n'.join(lines)
-        self.maxDiff = None
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(data_root is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
-    def test_TLM_segment(self):
-        filename = os.path.join(data_root, 'input/conformance/p0_15.j2k')
+    def test_tlm_segment(self):
+        """verify printing of TLM segment"""
+        filename = opj_data_file('input/conformance/p0_15.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream()
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -604,7 +629,7 @@ class TestPrinting(unittest.TestCase):
     @unittest.skipIf(sys.hexversion < 0x02070000,
                      "Differences in XML printing between 2.6 and 2.7")
     def test_xmp(self):
-        # Verify the printing of a UUID/XMP box.
+        """Verify the printing of a UUID/XMP box."""
         j = glymur.Jp2k(self.jp2file)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.box[4])
@@ -626,6 +651,7 @@ class TestPrinting(unittest.TestCase):
         self.assertEqual(actual, expected)
 
     def test_codestream(self):
+        """verify printing of entire codestream"""
         j = glymur.Jp2k(self.jp2file)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.get_codestream())
@@ -671,15 +697,15 @@ class TestPrinting(unittest.TestCase):
                '    CME marker segment @ (3209, 37)',
                '        "Created by OpenJPEG version 2.0.0"']
         expected = '\n'.join(lst)
-        self.maxDiff = None
         self.assertEqual(actual, expected)
 
     @unittest.skipIf(sys.hexversion < 0x02070000,
                      "Differences in XML printing between 2.6 and 2.7")
-    @unittest.skipIf(data_root is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_xml(self):
-        filename = os.path.join(data_root, 'input/conformance/file1.jp2')
+        """verify printing of XML box"""
+        filename = opj_data_file('input/conformance/file1.jp2')
         j = glymur.Jp2k(filename)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.box[2])
@@ -706,10 +732,70 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(data_root is None,
+    @unittest.skipIf(sys.hexversion < 0x03000000,
+                     "Only trusting python3 for printing non-ascii chars")
+    def test_xml_latin1(self):
+        """Should be able to print an XMLBox with utf-8 encoding (latin1)."""
+        # Seems to be inconsistencies between different versions of python2.x
+        # as to what gets printed.  
+        #
+        # 2.7.5 (fedora 19) prints xml entities.
+        # 2.7.3 seems to want to print hex escapes.
+        text = u"""<?xml version="1.0" encoding="utf-8"?>
+        <flow>Strömung</flow>"""
+        if sys.hexversion < 0x03000000:
+            xml = ET.parse(StringIO(text.encode('utf-8')))
+        else:
+            xml = ET.parse(StringIO(text))
+
+        xmlbox = glymur.jp2box.XMLBox(xml=xml)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(xmlbox)
+            actual = fake_out.getvalue().strip()
+            if sys.hexversion < 0x03000000:
+                lines = ["XML Box (xml ) @ (-1, 0)",
+                         "    <flow>Str\xc3\xb6mung</flow>"]
+            else:
+                lines = ["XML Box (xml ) @ (-1, 0)",
+                         "    <flow>Strömung</flow>"]
+            expected = '\n'.join(lines)
+            self.assertEqual(actual, expected)
+
+    @unittest.skipIf(sys.hexversion < 0x03000000,
+                     "Only trusting python3 for printing non-ascii chars")
+    def test_xml_cyrrilic(self):
+        """Should be able to print an XMLBox with utf-8 encoding (cyrrillic)."""
+        # Seems to be inconsistencies between different versions of python2.x
+        # as to what gets printed.  
+        #
+        # 2.7.5 (fedora 19) prints xml entities.
+        # 2.7.3 seems to want to print hex escapes.
+        text = u"""<?xml version="1.0" encoding="utf-8"?>
+        <country>Россия</country>"""
+        if sys.hexversion < 0x03000000:
+            xml = ET.parse(StringIO(text.encode('utf-8')))
+        else:
+            xml = ET.parse(StringIO(text))
+
+        xmlbox = glymur.jp2box.XMLBox(xml=xml)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(xmlbox)
+            actual = fake_out.getvalue().strip()
+            if sys.hexversion < 0x03000000:
+                lines = ["XML Box (xml ) @ (-1, 0)",
+                         "    <country>&#1056;&#1086;&#1089;&#1089;&#1080;&#1103;</country>"]
+            else:
+                lines = ["XML Box (xml ) @ (-1, 0)",
+                         "    <country>Россия</country>"]
+
+            expected = '\n'.join(lines)
+            self.assertEqual(actual, expected)
+
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_channel_definition(self):
-        filename = os.path.join(data_root, 'input/conformance/file2.jp2')
+        """verify printing of cdef box"""
+        filename = opj_data_file('input/conformance/file2.jp2')
         j = glymur.Jp2k(filename)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.box[2].box[2])
@@ -721,10 +807,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(data_root is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_component_mapping(self):
-        filename = os.path.join(data_root, 'input/conformance/file9.jp2')
+        """verify printing of cmap box"""
+        filename = opj_data_file('input/conformance/file9.jp2')
         j = glymur.Jp2k(filename)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.box[2].box[2])
@@ -736,10 +823,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(data_root is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
-    def test_palette(self):
-        filename = os.path.join(data_root, 'input/conformance/file9.jp2')
+    def test_palette7(self):
+        """verify printing of pclr box"""
+        filename = opj_data_file('input/conformance/file9.jp2')
         j = glymur.Jp2k(filename)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.box[2].box[1])
@@ -749,10 +837,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(data_root is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
-    def test_palette(self):
-        filename = os.path.join(data_root, 'input/conformance/file7.jp2')
+    def test_rreq(self):
+        """verify printing of reader requirements box"""
+        filename = opj_data_file('input/conformance/file7.jp2')
         j = glymur.Jp2k(filename)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.box[2])
@@ -772,25 +861,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(data_root is None,
-                     "OPJ_DATA_ROOT environment variable not set")
-    def test_CRG(self):
-        filename = os.path.join(data_root, 'input/conformance/p0_03.j2k')
-        j = glymur.Jp2k(filename)
-        codestream = j.get_codestream()
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(codestream.segment[6])
-            actual = fake_out.getvalue().strip()
-        lines = ['CRG marker segment @ (87, 6)',
-                 '    Vertical, Horizontal offset:  (0.50, 1.00)']
-        expected = '\n'.join(lines)
-        self.assertEqual(actual, expected)
-
-    @unittest.skipIf(data_root is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_differing_subsamples(self):
-        # Issue 86.
-        filename = os.path.join(data_root, 'input/conformance/p0_05.j2k')
+        """verify printing of SIZ with different subsampling... Issue 86."""
+        filename = opj_data_file('input/conformance/p0_05.j2k')
         j = glymur.Jp2k(filename)
         codestream = j.get_codestream()
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -809,11 +884,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(data_root is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_palette_box(self):
-        # Verify that palette (pclr) boxes are printed without error.
-        filename = os.path.join(data_root, 'input/conformance/file9.jp2')
+        """Verify that palette (pclr) boxes are printed without error."""
+        filename = opj_data_file('input/conformance/file9.jp2')
         j = glymur.Jp2k(filename)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.box[2].box[1])
@@ -825,54 +900,56 @@ class TestPrinting(unittest.TestCase):
 
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_less_common_boxes(self):
+        """verify uinf, ulst, url, res, resd, resc box printing"""
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             with open(self.jp2file, 'rb') as ifile:
                 # Everything up until the jp2c box.
-                buffer = ifile.read(77)
-                tfile.write(buffer)
+                wbuffer = ifile.read(77)
+                tfile.write(wbuffer)
 
                 # Write the UINF superbox
                 # Length = 50, id is uinf.
-                buffer = struct.pack('>I4s', int(50), b'uinf')
-                tfile.write(buffer)
+                wbuffer = struct.pack('>I4s', int(50), b'uinf')
+                tfile.write(wbuffer)
 
                 # Write the ULST box.
                 # Length is 26, 1 UUID, hard code that UUID as zeros.
-                buffer = struct.pack('>I4sHIIII', int(26), b'ulst', int(1),
-                                     int(0), int(0), int(0), int(0))
-                tfile.write(buffer)
+                wbuffer = struct.pack('>I4sHIIII', int(26), b'ulst', int(1),
+                                      int(0), int(0), int(0), int(0))
+                tfile.write(wbuffer)
 
                 # Write the URL box.
                 # Length is 16, version is one byte, flag is 3 bytes, url
                 # is the rest.
-                buffer = struct.pack('>I4sBBBB',
-                                     int(16), b'url ',
-                                     int(0), int(0), int(0), int(0))
-                tfile.write(buffer)
-                buffer = struct.pack('>ssss', b'a', b'b', b'c', b'd')
-                tfile.write(buffer)
+                wbuffer = struct.pack('>I4sBBBB',
+                                      int(16), b'url ',
+                                      int(0), int(0), int(0), int(0))
+                tfile.write(wbuffer)
+
+                wbuffer = struct.pack('>ssss', b'a', b'b', b'c', b'd')
+                tfile.write(wbuffer)
 
                 # Start the resolution superbox.
-                buffer = struct.pack('>I4s', int(44), b'res ')
-                tfile.write(buffer)
+                wbuffer = struct.pack('>I4s', int(44), b'res ')
+                tfile.write(wbuffer)
 
                 # Write the capture resolution box.
-                buffer = struct.pack('>I4sHHHHBB',
-                                     int(18), b'resc',
-                                     int(1), int(1), int(1), int(1),
-                                     int(0), int(1))
-                tfile.write(buffer)
+                wbuffer = struct.pack('>I4sHHHHBB',
+                                      int(18), b'resc',
+                                      int(1), int(1), int(1), int(1),
+                                      int(0), int(1))
+                tfile.write(wbuffer)
 
                 # Write the display resolution box.
-                buffer = struct.pack('>I4sHHHHBB',
-                                     int(18), b'resd',
-                                     int(1), int(1), int(1), int(1),
-                                     int(1), int(0))
-                tfile.write(buffer)
+                wbuffer = struct.pack('>I4sHHHHBB',
+                                      int(18), b'resd',
+                                      int(1), int(1), int(1), int(1),
+                                      int(1), int(0))
+                tfile.write(wbuffer)
 
                 # Get the rest of the input file.
-                buffer = ifile.read()
-                tfile.write(buffer)
+                wbuffer = ifile.read()
+                tfile.write(wbuffer)
                 tfile.flush()
 
             jp2k = glymur.Jp2k(tfile.name)
@@ -900,12 +977,13 @@ class TestPrinting(unittest.TestCase):
 
     @unittest.skipIf(sys.hexversion < 0x03000000,
                      "Ordered dicts not printing well in 2.7")
-    @unittest.skipIf(data_root is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
-    def test_jpx_approximation_with_icc_profile(self):
+    def test_jpx_approx_icc_profile(self):
+        """verify jpx with approx field equal to zero"""
         # ICC profiles may be used in JP2, but the approximation field should
         # be zero unless we have jpx.  This file does both.
-        filename = os.path.join(data_root, 'input/nonregression/text_GBR.jp2')
+        filename = opj_data_file('input/nonregression/text_GBR.jp2')
         with warnings.catch_warnings():
             # brand is 'jp2 ', but has any icc profile.
             warnings.simplefilter("ignore")
@@ -944,11 +1022,11 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(data_root is None,
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_uuid(self):
-        # UUID box
-        filename = os.path.join(data_root, 'input/nonregression/text_GBR.jp2')
+        """verify printing of UUID box"""
+        filename = opj_data_file('input/nonregression/text_GBR.jp2')
         with warnings.catch_warnings():
             # brand is 'jp2 ', but has any icc profile.
             warnings.simplefilter("ignore")
@@ -967,6 +1045,7 @@ class TestPrinting(unittest.TestCase):
     @unittest.skipIf(sys.hexversion < 0x03000000,
                      "Ordered dicts not printing well in 2.7")
     def test_exif_uuid(self):
+        """Verify printing of exif information"""
         j = glymur.Jp2k(self.jp2file)
 
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -1025,6 +1104,7 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
 
         self.assertEqual(actual, expected)
+
 
 if __name__ == "__main__":
     unittest.main()
