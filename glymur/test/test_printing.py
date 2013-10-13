@@ -747,8 +747,12 @@ class TestPrinting(unittest.TestCase):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(xmlbox)
             actual = fake_out.getvalue().strip()
-            lines = ["XML Box (xml ) @ (-1, 0)",
-                     "    <flow>Strömung</flow>"]
+            if sys.hexversion < 0x03000000:
+                lines = ["XML Box (xml ) @ (-1, 0)",
+                         "    <flow>Str\xc3\xb6mung</flow>"]
+            else:
+                lines = ["XML Box (xml ) @ (-1, 0)",
+                         "    <flow>Strömung</flow>"]
             expected = '\n'.join(lines)
             self.assertEqual(actual, expected)
 
@@ -767,8 +771,13 @@ class TestPrinting(unittest.TestCase):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(xmlbox)
             actual = fake_out.getvalue().strip()
-            lines = ["XML Box (xml ) @ (-1, 0)",
-                     "    <country>Россия</country>"]
+            if sys.hexversion < 0x03000000:
+                lines = ["XML Box (xml ) @ (-1, 0)",
+                         "    <country>\xd0\xa0\xd0\xbe\xd1\x81\xd1\x81\xd0\xb8\xd1\x8f</country>"]
+            else:
+                lines = ["XML Box (xml ) @ (-1, 0)",
+                         "    <country>Россия</country>"]
+
             expected = '\n'.join(lines)
             self.assertEqual(actual, expected)
 
