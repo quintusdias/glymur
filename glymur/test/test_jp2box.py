@@ -677,12 +677,23 @@ class TestJp2Boxes(unittest.TestCase):
         jp2k = glymur.jp2box.JPEG2000SignatureBox()
         self.assertEqual(jp2k.signature, (13, 10, 135, 10))
 
+        # Test the representation instantiation.
+        newbox = eval(repr(jp2k))
+        self.assertTrue(isinstance(newbox, glymur.jp2box.JPEG2000SignatureBox))
+
     def test_default_ftyp(self):
         """Should be able to instantiate a FileTypeBox"""
         ftyp = glymur.jp2box.FileTypeBox()
         self.assertEqual(ftyp.brand, 'jp2 ')
         self.assertEqual(ftyp.minor_version, 0)
         self.assertEqual(ftyp.compatibility_list, ['jp2 '])
+
+        # Test the representation instantiation.
+        newbox = eval(repr(ftyp))
+        self.assertTrue(isinstance(newbox, glymur.jp2box.FileTypeBox))
+        self.assertEqual(newbox.brand, 'jp2 ')
+        self.assertEqual(newbox.minor_version, 0)
+        self.assertEqual(newbox.compatibility_list, ['jp2 '])
 
     def test_default_ihdr(self):
         """Should be able to instantiate an image header box."""

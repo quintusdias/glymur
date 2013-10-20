@@ -801,6 +801,13 @@ class FileTypeBox(Jp2kBox):
         self.length = length
         self.offset = offset
 
+    def __repr__(self):
+        msg = "glymur.jp2box.FileTypeBox(brand='{0}', minor_version={1}, "
+        msg += "compatibility_list={2})"
+        msg = msg.format(self.brand, self.minor_version,
+                         self.compatibility_list)
+        return msg
+
     def __str__(self):
         lst = [Jp2kBox.__str__(self),
                '    Brand:  {0}',
@@ -1140,6 +1147,9 @@ class JPEG2000SignatureBox(Jp2kBox):
         self.signature = signature
         self.length = length
         self.offset = offset
+
+    def __repr__(self):
+        return 'glymur.jp2box.JPEG2000SignatureBox()'
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
