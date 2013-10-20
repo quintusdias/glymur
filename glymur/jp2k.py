@@ -514,14 +514,17 @@ class Jp2k(Jp2kBox):
         Parameters
         ----------
         box : Jp2Box
-            Instance of a JP2 box.  Currently only XML boxes are allowed.
+            Instance of a JP2 box.  Only UUID and XML boxes can currently be
+            appended.
         """
         if self._codec_format == opj2.CODEC_J2K:
             msg = "Only JP2 files can currently have boxes appended to them."
             raise IOError(msg)
 
-        if box.box_id != 'xml ':
-            raise IOError("Only XML boxes can currently be appended.")
+        if not ((box.box_id == 'xml ') or
+                (box.box_id == 'uuid' and box._type == 'XMP')):
+            msg = "Only XML boxes and XMP UUID boxes can currently be appended."
+            raise IOError(msg)
 
         # Check the last box.  If the length field is zero, then rewrite
         # the length field to reflect the true length of the box.

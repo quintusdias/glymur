@@ -429,14 +429,14 @@ class TestAppend(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
             shutil.copyfile(self.j2kfile, tfile.name)
 
-            jp2 = Jp2k(tfile.name)
+            j2k = Jp2k(tfile.name)
 
-            # Make a UUID box.
-            uuid_instance = uuid.UUID('00000000-0000-0000-0000-000000000000')
-            data = b'0123456789'
-            uuidbox = glymur.jp2box.UUIDBox(uuid_instance, data)
+            # Make an XML box.  XML boxes should always be appendable to jp2
+            # files.
+            the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
+            xmlbox = glymur.jp2box.XMLBox(xml=the_xml)
             with self.assertRaises(IOError):
-                jp2.append(uuidbox)
+                j2k.append(xmlbox)
 
     def test_length_field_is_zero(self):
         """L=0 (length field in box header) is handled.
@@ -473,14 +473,14 @@ class TestAppend(unittest.TestCase):
             self.assertEqual(ET.tostring(jp2.box[-1].xml.getroot()),
                              b'<data>0</data>')
 
-    def test_only_xml_allowed_to_append(self):
+    def test_append_allowable_boxes(self):
         """Only XML boxes are allowed to be appended."""
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             shutil.copyfile(self.jp2file, tfile.name)
 
             jp2 = Jp2k(tfile.name)
 
-            # Make a UUID box.
+            # Make a UUID box.  Only XMP UUID boxes can currently be appended.
             uuid_instance = uuid.UUID('00000000-0000-0000-0000-000000000000')
             data = b'0123456789'
             uuidbox = glymur.jp2box.UUIDBox(uuid_instance, data)

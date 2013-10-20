@@ -2122,6 +2122,7 @@ class UUIDBox(Jp2kBox):
                 text = raw_data.decode('utf-8')
                 elt = ET.fromstring(text)
             self.data = ET.ElementTree(elt)
+            self._type = 'XMP'
         elif the_uuid.bytes == b'JpgTiffExif->JP2':
             exif_obj = Exif(raw_data)
             ifds = OrderedDict()
@@ -2130,8 +2131,16 @@ class UUIDBox(Jp2kBox):
             ifds['GPSInfo'] = exif_obj.exif_gpsinfo
             ifds['Iop'] = exif_obj.exif_iop
             self.data = ifds
+            self._type = 'Exif'
         else:
             self.data = raw_data
+            self._type = 'unknown'
+
+        if length == 0:
+            # Need to compute the length.
+            # The length is 8 (L and T fields) + 16 (length of UUID identifier)
+            # + length of uuid data.
+            length = 24 + len(self.data)
 
         self.length = length
         self.offset = offset
@@ -2163,6 +2172,16 @@ class UUIDBox(Jp2kBox):
                          uuid_data)
 
         return msg
+
+    def write(self, fptr):
+        """Write a UUID box box to file.
+        """
+        if self._type != 'XMP':
+            msg = "Only XMP UUID boxes can currently be written."
+            raise NotImplementedError(msg)
+        read_buffer = struct.pack('>I4s', self.length, 'uuid')
+        fptr.write(read_buffer)
+        fptr.write(self.data)
 
     @staticmethod
     def parse(fptr, offset, length):
