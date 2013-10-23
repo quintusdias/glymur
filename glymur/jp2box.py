@@ -206,6 +206,17 @@ class ColourSpecificationBox(Jp2kBox):
         self.length = length
         self.offset = offset
 
+    def __repr__(self):
+        msg = "glymur.jp2box.ColourSpecificationBox("
+        msg += "method={0}, precedence={1}, approximation={2}, colorspace={3}, "
+        msg += "icc_profile={4})"
+        msg = msg.format(self.method,
+                         self.precedence,
+                         self.approximation,
+                         self.colorspace,
+                         self.icc_profile)
+        return msg
+
     def __str__(self):
         msg = Jp2kBox.__str__(self)
 
@@ -426,12 +437,12 @@ class ChannelDefinitionBox(Jp2kBox):
         offset of the box from the start of the file.
     longname : str
         more verbose description of the box.
-    index : int
+    index : list
         number of the channel.  Defaults to monotonically increasing sequence,
         i.e. [0, 1, 2, ...]
-    channel_type : int
+    channel_type : list
         type of the channel
-    association : int
+    association : list
         index of the associated color
     """
     def __init__(self, index=None, channel_type=None, association=None,
@@ -458,9 +469,9 @@ class ChannelDefinitionBox(Jp2kBox):
             msg += "    65535 - unspecified"
             raise IOError(msg)
 
-        self.index = index
-        self.channel_type = channel_type
-        self.association = association
+        self.index = tuple(index)
+        self.channel_type = tuple(channel_type)
+        self.association = tuple(association)
         self.__dict__.update(**kwargs)
 
     def __str__(self):
@@ -473,6 +484,12 @@ class ChannelDefinitionBox(Jp2kBox):
                 assn = str(self.association[j])
             msg += '\n    Channel {0} ({1}) ==> ({2})'
             msg = msg.format(self.index[j], color_type_string, assn)
+        return msg
+
+    def __repr__(self):
+        msg = "glymur.jp2box.ChannelDefinitionBox("
+        msg += "index={0}, channel_type={1}, association={2})"
+        msg = msg.format(self.index, self.channel_type, self.association)
         return msg
 
     def write(self, fptr):
@@ -920,6 +937,22 @@ class ImageHeaderBox(Jp2kBox):
         self.ip_provided = ip_provided
         self.length = length
         self.offset = offset
+
+    def __repr__(self):
+        msg = "glymur.jp2box.ImageHeaderBox("
+        msg += "{height}, {width}, num_components={num_components}, "
+        msg += "signed={signed}, bits_per_component={bits_per_component}, "
+        msg += "compression={compression}, "
+        msg += "colorspace_unknown={colorspace_unknown}, "
+        msg += "ip_provided={ip_provided})"
+        msg = msg.format(height=self.height, width=self.width,
+                         num_components=self.num_components,
+                         signed=self.signed,
+                         bits_per_component=self.bits_per_component,
+                         compression=self.compression,
+                         colorspace_unknown=self.colorspace_unknown,
+                         ip_provided=self.ip_provided)
+        return msg
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)

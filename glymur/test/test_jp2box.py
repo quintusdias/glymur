@@ -677,23 +677,12 @@ class TestJp2Boxes(unittest.TestCase):
         jp2k = glymur.jp2box.JPEG2000SignatureBox()
         self.assertEqual(jp2k.signature, (13, 10, 135, 10))
 
-        # Test the representation instantiation.
-        newbox = eval(repr(jp2k))
-        self.assertTrue(isinstance(newbox, glymur.jp2box.JPEG2000SignatureBox))
-
     def test_default_ftyp(self):
         """Should be able to instantiate a FileTypeBox"""
         ftyp = glymur.jp2box.FileTypeBox()
         self.assertEqual(ftyp.brand, 'jp2 ')
         self.assertEqual(ftyp.minor_version, 0)
         self.assertEqual(ftyp.compatibility_list, ['jp2 '])
-
-        # Test the representation instantiation.
-        newbox = eval(repr(ftyp))
-        self.assertTrue(isinstance(newbox, glymur.jp2box.FileTypeBox))
-        self.assertEqual(newbox.brand, 'jp2 ')
-        self.assertEqual(newbox.minor_version, 0)
-        self.assertEqual(newbox.compatibility_list, ['jp2 '])
 
     def test_default_ihdr(self):
         """Should be able to instantiate an image header box."""
@@ -718,6 +707,66 @@ class TestJp2Boxes(unittest.TestCase):
         box = ContiguousCodestreamBox()
         self.assertEqual(box.box_id, 'jp2c')
         self.assertIsNone(box.main_header)
+
+
+class TestRepr(unittest.TestCase):
+    """Tests for __repr__ methods."""
+    def test_default_jp2k(self):
+        """Should be able to eval a JPEG2000SignatureBox"""
+        jp2k = glymur.jp2box.JPEG2000SignatureBox()
+
+        # Test the representation instantiation.
+        newbox = eval(repr(jp2k))
+        self.assertTrue(isinstance(newbox, glymur.jp2box.JPEG2000SignatureBox))
+        self.assertEqual(newbox.signature, (13, 10, 135, 10))
+
+    def test_default_ftyp(self):
+        """Should be able to instantiate a FileTypeBox"""
+        ftyp = glymur.jp2box.FileTypeBox()
+
+        # Test the representation instantiation.
+        newbox = eval(repr(ftyp))
+        self.assertTrue(isinstance(newbox, glymur.jp2box.FileTypeBox))
+        self.assertEqual(newbox.brand, 'jp2 ')
+        self.assertEqual(newbox.minor_version, 0)
+        self.assertEqual(newbox.compatibility_list, ['jp2 '])
+
+    def test_colourspecification_box(self):
+        """Verify __repr__ method on colr box."""
+        # TODO:  add icc_profile
+        box = ColourSpecificationBox(colorspace=glymur.core.SRGB)
+
+        newbox = eval(repr(box))
+        self.assertEqual(newbox.method,  glymur.core.ENUMERATED_COLORSPACE)
+        self.assertEqual(newbox.precedence, 0)
+        self.assertEqual(newbox.approximation, 0)
+        self.assertEqual(newbox.colorspace, glymur.core.SRGB)
+        self.assertIsNone(newbox.icc_profile)
+
+    def test_channeldefinition_box(self):
+        """Verify __repr__ method on cdef box."""
+        channel_type = [COLOR, COLOR, COLOR]
+        association = [RED, GREEN, BLUE]
+        cdef = glymur.jp2box.ChannelDefinitionBox(index=[0, 1, 2],
+                                                  channel_type=channel_type,
+                                                  association=association)
+        newbox = eval(repr(cdef))
+        self.assertEqual(newbox.index, (0, 1, 2))
+        self.assertEqual(newbox.channel_type, (COLOR, COLOR, COLOR))
+        self.assertEqual(newbox.association, (RED, GREEN, BLUE))
+
+    def test_imageheader_box(self):
+        """Verify __repr__ method on ihdr box."""
+        ihdr = ImageHeaderBox(100, 200, num_components=3)
+        newbox = eval(repr(ihdr))
+        self.assertEqual(newbox.height, 100)
+        self.assertEqual(newbox.width, 200)
+        self.assertEqual(newbox.num_components, 3)
+        self.assertFalse(newbox.signed)
+        self.assertEqual(newbox.bits_per_component, 8)
+        self.assertEqual(newbox.compression, 7)
+        self.assertFalse(newbox.colorspace_unknown)
+        self.assertFalse(newbox.ip_provided)
 
 
 class TestJpxBoxes(unittest.TestCase):
