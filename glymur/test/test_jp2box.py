@@ -755,9 +755,20 @@ class TestRepr(unittest.TestCase):
         self.assertEqual(newbox.channel_type, (COLOR, COLOR, COLOR))
         self.assertEqual(newbox.association, (RED, GREEN, BLUE))
 
-    def test_imageheader_box(self):
+    def test_jp2header_box(self):
         """Verify __repr__ method on ihdr box."""
         ihdr = ImageHeaderBox(100, 200, num_components=3)
+        colr = ColourSpecificationBox(colorspace=glymur.core.SRGB)
+        jp2h = JP2HeaderBox(box=[ihdr, colr])
+        newbox = eval(repr(jp2h))
+        self.assertEqual(newbox.box_id, 'jp2h')
+        self.assertEqual(newbox.box[0].box_id, 'ihdr')
+        self.assertEqual(newbox.box[1].box_id, 'colr')
+
+    def test_imageheader_box(self):
+        """Verify __repr__ method on jhdr box."""
+        ihdr = ImageHeaderBox(100, 200, num_components=3)
+
         newbox = eval(repr(ihdr))
         self.assertEqual(newbox.height, 100)
         self.assertEqual(newbox.width, 200)
