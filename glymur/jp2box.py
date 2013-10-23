@@ -1826,6 +1826,10 @@ class LabelBox(Jp2kBox):
         msg += '\n    Label:  {0}'.format(self.label)
         return msg
 
+    def __repr__(self):
+        msg = 'glymur.jp2box.LabelBox("{0}")'.format(self.label)
+        return msg
+
     @staticmethod
     def parse(fptr, offset, length):
         """Parse Label box.
@@ -2108,6 +2112,11 @@ class DataEntryURLBox(Jp2kBox):
         self.url = url
         self.length = length
         self.offset = offset
+
+    def __repr__(self):
+        msg = "glymur.jp2box.DataEntryURLBox({0}, {1}, '{2}')"
+        msg = msg.format(self.version, self.flag, self.url)
+        return msg
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)

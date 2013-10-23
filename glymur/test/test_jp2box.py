@@ -820,6 +820,25 @@ class TestRepr(unittest.TestCase):
         self.assertEqual(newbox.box[1].vertical_resolution, 2.5)
         self.assertEqual(newbox.box[1].horizontal_resolution, 0.5)
 
+    def test_label_box(self):
+        """Verify __repr__ method on label box."""
+        lbl = glymur.jp2box.LabelBox("this is a test")
+        newbox = eval(repr(lbl))
+        self.assertEqual(newbox.box_id, 'lbl ')
+        self.assertEqual(newbox.label, "this is a test")
+
+    def test_data_entry_url_box(self):
+        """Verify __repr__ method on data entry url box."""
+        version = 0
+        flag = (0, 0, 0)
+        url = "http://readthedocs.glymur.org"
+        box = glymur.jp2box.DataEntryURLBox(version, flag, url)
+        newbox = eval(repr(box))
+        self.assertEqual(newbox.box_id, 'url ')
+        self.assertEqual(newbox.version, version)
+        self.assertEqual(newbox.flag, flag)
+        self.assertEqual(newbox.url, url)
+
 
 class TestJpxBoxes(unittest.TestCase):
     """Tests for JPX boxes."""
