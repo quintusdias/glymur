@@ -23,6 +23,7 @@ import struct
 import sys
 import tempfile
 import uuid
+from uuid import UUID
 import xml.etree.cElementTree as ET
 
 if sys.hexversion < 0x02070000:
@@ -838,6 +839,24 @@ class TestRepr(unittest.TestCase):
         self.assertEqual(newbox.version, version)
         self.assertEqual(newbox.flag, flag)
         self.assertEqual(newbox.url, url)
+
+    def test_uuidinfo_box(self):
+        """Verify __repr__ method on uinf box."""
+        uinf = glymur.jp2box.UUIDInfoBox()
+        newbox = eval(repr(uinf))
+        self.assertEqual(newbox.box_id, 'uinf')
+        self.assertEqual(len(newbox.box), 0)
+
+    def test_uuidlist_box(self):
+        """Verify __repr__ method on ulst box."""
+        uuid1 = uuid.UUID('00000000-0000-0000-0000-000000000001')
+        uuid2 = uuid.UUID('00000000-0000-0000-0000-000000000002')
+        uuids = [uuid1, uuid2]
+        ulst = glymur.jp2box.UUIDListBox(ulst=uuids)
+        newbox = eval(repr(ulst))
+        self.assertEqual(newbox.box_id, 'ulst')
+        self.assertEqual(newbox.ulst[0], uuid1)
+        self.assertEqual(newbox.ulst[1], uuid2)
 
 
 class TestJpxBoxes(unittest.TestCase):
