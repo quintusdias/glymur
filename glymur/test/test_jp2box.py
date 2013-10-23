@@ -40,7 +40,7 @@ from glymur.jp2box import JPEG2000SignatureBox
 from glymur.core import COLOR, OPACITY
 from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE
 
-from .fixtures import OPENJP2_IS_V2_OFFICIAL
+from .fixtures import OPENJP2_IS_V2_OFFICIAL, opj_data_file
 
 try:
     FORMAT_CORPUS_DATA_ROOT = os.environ['FORMAT_CORPUS_DATA_ROOT']
@@ -778,6 +778,47 @@ class TestRepr(unittest.TestCase):
         self.assertEqual(newbox.compression, 7)
         self.assertFalse(newbox.colorspace_unknown)
         self.assertFalse(newbox.ip_provided)
+
+    def test_codestreamheader_box(self):
+        """Verify __repr__ method on jpch box."""
+        jpch = glymur.jp2box.CodestreamHeaderBox()
+        newbox = eval(repr(jpch))
+        self.assertEqual(newbox.box_id, 'jpch')
+        self.assertEqual(len(newbox.box), 0)
+
+    def test_compositinglayerheader_box(self):
+        """Verify __repr__ method on jplh box."""
+        jplh = glymur.jp2box.CompositingLayerHeaderBox()
+        newbox = eval(repr(jplh))
+        self.assertEqual(newbox.box_id, 'jplh')
+        self.assertEqual(len(newbox.box), 0)
+
+    def test_componentmapping_box(self):
+        """Verify __repr__ method on cmap box."""
+        cmap = glymur.jp2box.ComponentMappingBox(component_index=(0, 0, 0),
+                                                 mapping_type=(1, 1, 1),
+                                                 palette_index=(0, 1, 2))
+        newbox = eval(repr(cmap))
+        self.assertEqual(newbox.box_id, 'cmap')
+        self.assertEqual(newbox.component_index, (0, 0, 0))
+        self.assertEqual(newbox.mapping_type, (1, 1, 1))
+        self.assertEqual(newbox.palette_index, (0, 1, 2))
+
+    def test_resolution_boxes(self):
+        """Verify __repr__ method on resolution boxes."""
+        resc = glymur.jp2box.CaptureResolutionBox(0.5, 2.5)
+        resd = glymur.jp2box.DisplayResolutionBox(2.5, 0.5)
+        res_super_box = glymur.jp2box.ResolutionBox(box=[resc, resd])
+
+        newbox = eval(repr(res_super_box))
+
+        self.assertEqual(newbox.box_id, 'res ')
+        self.assertEqual(newbox.box[0].box_id, 'resc')
+        self.assertEqual(newbox.box[0].vertical_resolution, 0.5)
+        self.assertEqual(newbox.box[0].horizontal_resolution, 2.5)
+        self.assertEqual(newbox.box[1].box_id, 'resd')
+        self.assertEqual(newbox.box[1].vertical_resolution, 2.5)
+        self.assertEqual(newbox.box[1].horizontal_resolution, 0.5)
 
 
 class TestJpxBoxes(unittest.TestCase):

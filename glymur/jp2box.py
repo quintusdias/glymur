@@ -554,11 +554,15 @@ class CodestreamHeaderBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, length=0, offset=-1):
+    def __init__(self, box=[], length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='jpch', longname='Codestream Header')
         self.length = length
         self.offset = offset
-        self.box = []
+        self.box = box
+
+    def __repr__(self):
+        msg = "glymur.jp2box.CodestreamHeaderBox(box={0})".format(self.box)
+        return msg
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -612,12 +616,17 @@ class CompositingLayerHeaderBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, length=0, offset=-1):
+    def __init__(self, box=[], length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='jplh',
                          longname='Compositing Layer Header')
         self.length = length
         self.offset = offset
         self.box = []
+
+    def __repr__(self):
+        msg = "glymur.jp2box.CompositingLayerHeaderBox(box={0})"
+        msg = msg.format(self.box)
+        return msg
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -667,11 +676,11 @@ class ComponentMappingBox(Jp2kBox):
         Offset of the box from the start of the file.
     longname : str
         Verbose description of the box.
-    component_index : int
+    component_index : tuple
         Index of component in codestream that is mapped to this channel.
-    mapping_type : int
+    mapping_type : tuple
         mapping type, either direct use (0) or palette (1)
-    palette_index : int
+    palette_index : tuple
         Index component from palette
     """
     def __init__(self, component_index, mapping_type, palette_index,
@@ -682,6 +691,14 @@ class ComponentMappingBox(Jp2kBox):
         self.palette_index = palette_index
         self.length = length
         self.offset = offset
+
+    def __repr__(self):
+        msg = "glymur.jp2box.ComponentMappingBox("
+        msg += "component_index={0}, mapping_type={1}, palette_index={2})"
+        msg = msg.format(self.component_index,
+                         self.mapping_type,
+                         self.palette_index)
+        return msg
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -1610,11 +1627,16 @@ class ResolutionBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, length=0, offset=-1):
+    def __init__(self, box=[], length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='res ', longname='Resolution')
         self.length = length
         self.offset = offset
-        self.box = []
+        self.box = box
+
+    def __repr__(self):
+        msg = "glymur.jp2box.ResolutionBox(box={0})"
+        msg = msg.format(self.box)
+        return msg
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -1676,6 +1698,11 @@ class CaptureResolutionBox(Jp2kBox):
         self.length = length
         self.offset = offset
 
+    def __repr__(self):
+        msg = "glymur.jp2box.CaptureResolutionBox({0}, {1})"
+        msg = msg.format(self.vertical_resolution, self.horizontal_resolution)
+        return msg
+
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         msg += '\n    VCR:  {0}'.format(self.vertical_resolution)
@@ -1732,6 +1759,11 @@ class DisplayResolutionBox(Jp2kBox):
         self.horizontal_resolution = horizontal_resolution
         self.length = length
         self.offset = offset
+
+    def __repr__(self):
+        msg = "glymur.jp2box.DisplayResolutionBox({0}, {1})"
+        msg = msg.format(self.vertical_resolution, self.horizontal_resolution)
+        return msg
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
