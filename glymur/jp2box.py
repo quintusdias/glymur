@@ -1061,11 +1061,15 @@ class AssociationBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, length=0, offset=-1):
+    def __init__(self, box=[], length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='asoc', longname='Association')
         self.length = length
         self.offset = offset
-        self.box = []
+        self.box = box
+
+    def __repr__(self):
+        msg = "glymur.jp2box.AssociationBox(box={0})".format(self.box)
+        return msg
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)

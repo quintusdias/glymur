@@ -780,6 +780,13 @@ class TestRepr(unittest.TestCase):
         self.assertFalse(newbox.colorspace_unknown)
         self.assertFalse(newbox.ip_provided)
 
+    def test_association_box(self):
+        """Verify __repr__ method on asoc box."""
+        asoc = glymur.jp2box.AssociationBox()
+        newbox = eval(repr(asoc))
+        self.assertEqual(newbox.box_id, 'asoc')
+        self.assertEqual(len(newbox.box), 0)
+
     def test_codestreamheader_box(self):
         """Verify __repr__ method on jpch box."""
         jpch = glymur.jp2box.CodestreamHeaderBox()
