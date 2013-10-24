@@ -2136,12 +2136,6 @@ class UUIDBox(Jp2kBox):
             self.data = raw_data
             self._type = 'unknown'
 
-        if length == 0:
-            # Need to compute the length.
-            # The length is 8 (L and T fields) + 16 (length of UUID identifier)
-            # + length of uuid data.
-            length = 24 + len(self.data)
-
         self.length = length
         self.offset = offset
 
@@ -2179,9 +2173,15 @@ class UUIDBox(Jp2kBox):
         if self._type != 'XMP':
             msg = "Only XMP UUID boxes can currently be written."
             raise NotImplementedError(msg)
-        read_buffer = struct.pack('>I4s', self.length, 'uuid')
+        serialized_buffer = b'<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>'
+        serialized_buffer += ET.tostring(self.data.getroot(), encoding='utf-8')
+        serialized_buffer += b'<?xpacket end="w"?>'
+        if self.length == 0:
+            self.length = 24 + len(serialized_buffer)
+        read_buffer = struct.pack('>I4s', self.length, b'uuid')
         fptr.write(read_buffer)
-        fptr.write(self.data)
+        fptr.write(self.uuid.bytes)
+        fptr.write(serialized_buffer)
 
     @staticmethod
     def parse(fptr, offset, length):

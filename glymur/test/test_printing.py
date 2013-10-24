@@ -35,7 +35,7 @@ else:
 
 import glymur
 from glymur import Jp2k
-from .fixtures import OPJ_DATA_ROOT, opj_data_file
+from .fixtures import OPJ_DATA_ROOT, opj_data_file, nemo_xmp_box
 
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
@@ -230,7 +230,7 @@ class TestPrinting(unittest.TestCase):
             print(codestream.segment[6])
             actual = fake_out.getvalue().strip()
 
-        lines = ['COC marker segment @ (3260, 9)',
+        lines = ['COC marker segment @ (3356, 9)',
                  '    Associated component:  1',
                  '    Coding style for this component:  '
                  + 'Entropy coder, PARTITION = 0',
@@ -258,7 +258,7 @@ class TestPrinting(unittest.TestCase):
             print(codestream.segment[2])
             actual = fake_out.getvalue().strip()
 
-        lines = ['COD marker segment @ (3186, 12)',
+        lines = ['COD marker segment @ (3282, 12)',
                  '    Coding style:',
                  '        Entropy coder, without partitions',
                  '        SOP marker segments:  False',
@@ -424,7 +424,7 @@ class TestPrinting(unittest.TestCase):
             print(codestream.segment[-1])
             actual = fake_out.getvalue().strip()
 
-        lines = ['EOC marker segment @ (1135421, 0)']
+        lines = ['EOC marker segment @ (1135517, 0)']
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
@@ -521,7 +521,7 @@ class TestPrinting(unittest.TestCase):
             print(codestream.segment[7])
             actual = fake_out.getvalue().strip()
 
-        lines = ['QCC marker segment @ (3271, 8)',
+        lines = ['QCC marker segment @ (3367, 8)',
                  '    Associated Component:  1',
                  '    Quantization style:  no quantization, 2 guard bits',
                  '    Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]']
@@ -537,7 +537,7 @@ class TestPrinting(unittest.TestCase):
             print(codestream.segment[3])
             actual = fake_out.getvalue().strip()
 
-        lines = ['QCD marker segment @ (3200, 7)',
+        lines = ['QCD marker segment @ (3296, 7)',
                  '    Quantization style:  no quantization, 2 guard bits',
                  '    Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]']
 
@@ -552,7 +552,7 @@ class TestPrinting(unittest.TestCase):
             print(codestream.segment[1])
             actual = fake_out.getvalue().strip()
 
-        lines = ['SIZ marker segment @ (3137, 47)',
+        lines = ['SIZ marker segment @ (3233, 47)',
                  '    Profile:  2',
                  '    Reference Grid Height, Width:  (1456 x 2592)',
                  '    Vertical, Horizontal Reference Grid Offset:  (0 x 0)',
@@ -574,7 +574,7 @@ class TestPrinting(unittest.TestCase):
             print(codestream.segment[0])
             actual = fake_out.getvalue().strip()
 
-        lines = ['SOC marker segment @ (3135, 0)']
+        lines = ['SOC marker segment @ (3231, 0)']
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
@@ -586,7 +586,7 @@ class TestPrinting(unittest.TestCase):
             print(codestream.segment[10])
             actual = fake_out.getvalue().strip()
 
-        lines = ['SOD marker segment @ (3302, 0)']
+        lines = ['SOD marker segment @ (3398, 0)']
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
@@ -598,7 +598,7 @@ class TestPrinting(unittest.TestCase):
             print(codestream.segment[5])
             actual = fake_out.getvalue().strip()
 
-        lines = ['SOT marker segment @ (3248, 10)',
+        lines = ['SOT marker segment @ (3344, 10)',
                  '    Tile part index:  0',
                  '    Tile part length:  1132173',
                  '    Tile part instance:  0',
@@ -632,22 +632,10 @@ class TestPrinting(unittest.TestCase):
         """Verify the printing of a UUID/XMP box."""
         j = glymur.Jp2k(self.jp2file)
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(j.box[4])
+            print(j.box[3])
             actual = fake_out.getvalue().strip()
 
-        lst = ['UUID Box (uuid) @ (715, 2412)',
-               '    UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)',
-               '    UUID Data:  ',
-               '    <ns0:xmpmeta xmlns:ns0="adobe:ns:meta/" '
-               + 'xmlns:ns2="http://ns.adobe.com/xap/1.0/" '
-               + 'xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" '
-               + 'ns0:xmptk="XMP Core 4.4.0-Exiv2">',
-               '      <rdf:RDF>',
-               '        <rdf:Description ns2:CreatorTool="glymur" '
-               + 'rdf:about="" />',
-               '      </rdf:RDF>',
-               '    </ns0:xmpmeta>']
-        expected = '\n'.join(lst)
+        expected = nemo_xmp_box
         self.assertEqual(actual, expected)
 
     def test_codestream(self):
@@ -657,8 +645,8 @@ class TestPrinting(unittest.TestCase):
             print(j.get_codestream())
             actual = fake_out.getvalue().strip()
         lst = ['Codestream:',
-               '    SOC marker segment @ (3135, 0)',
-               '    SIZ marker segment @ (3137, 47)',
+               '    SOC marker segment @ (3231, 0)',
+               '    SIZ marker segment @ (3233, 47)',
                '        Profile:  2',
                '        Reference Grid Height, Width:  (1456 x 2592)',
                '        Vertical, Horizontal Reference Grid Offset:  (0 x 0)',
@@ -668,7 +656,7 @@ class TestPrinting(unittest.TestCase):
                '        Signed:  (False, False, False)',
                '        Vertical, Horizontal Subsampling:  '
                + '((1, 1), (1, 1), (1, 1))',
-               '    COD marker segment @ (3186, 12)',
+               '    COD marker segment @ (3282, 12)',
                '        Coding style:',
                '            Entropy coder, without partitions',
                '            SOP marker segments:  False',
@@ -690,11 +678,11 @@ class TestPrinting(unittest.TestCase):
                '                Vertically stripe causal context:  False',
                '                Predictable termination:  False',
                '                Segmentation symbols:  False',
-               '    QCD marker segment @ (3200, 7)',
+               '    QCD marker segment @ (3296, 7)',
                '        Quantization style:  no quantization, '
                + '2 guard bits',
                '        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]',
-               '    CME marker segment @ (3209, 37)',
+               '    CME marker segment @ (3305, 37)',
                '        "Created by OpenJPEG version 2.0.0"']
         expected = '\n'.join(lst)
         self.assertEqual(actual, expected)
@@ -1046,59 +1034,42 @@ class TestPrinting(unittest.TestCase):
                      "Ordered dicts not printing well in 2.7")
     def test_exif_uuid(self):
         """Verify printing of exif information"""
-        j = glymur.Jp2k(self.jp2file)
+        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
 
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(j.box[3])
-            actual = fake_out.getvalue().strip()
+            with open(self.jp2file, 'rb') as ifptr:
+                tfile.write(ifptr.read())
 
-        lines = ["UUID Box (uuid) @ (77, 638)",
+            # Write L, T, UUID identifier.
+            tfile.write(struct.pack('>I4s', 76, b'uuid'))
+            tfile.write(b'JpgTiffExif->JP2')
+
+            tfile.write(b'Exif\x00\x00')
+            xbuffer = struct.pack('<BBHI', 73, 73, 42, 8)
+            tfile.write(xbuffer)
+
+            # We will write just three tags.
+            tfile.write(struct.pack('<H', 3))
+
+            # The "Make" tag is tag no. 271.
+            tfile.write(struct.pack('<HHII', 256, 4, 1, 256))
+            tfile.write(struct.pack('<HHII', 257, 4, 1, 512))
+            tfile.write(struct.pack('<HHI4s', 271, 2, 3, b'HTC\x00'))
+            tfile.flush()
+
+            j = glymur.Jp2k(tfile.name)
+
+            with patch('sys.stdout', new=StringIO()) as fake_out:
+                print(j.box[5])
+                actual = fake_out.getvalue().strip()
+
+        lines = ["UUID Box (uuid) @ (1135519, 76)",
                  "    UUID:  4a706754-6966-6645-7869-662d3e4a5032 (Exif)",
                  "    UUID Data:  ",
-                 "{'Image': {'Make': 'HTC',",
-                 "           'Model': 'HTC Glacier',",
-                 "           'XResolution': 72.0,",
-                 "           'YResolution': 72.0,",
-                 "           'ResolutionUnit': 2,",
-                 "           'YCbCrPositioning': 1,",
-                 "           'ExifTag': 138,",
-                 "           'GPSTag': 354},",
-                 " 'Photo': {'ISOSpeedRatings': 76,",
-                 "           'ExifVersion': (48, 50, 50, 48),",
-                 "           'DateTimeOriginal': '2013:02:09 14:47:53',",
-                 "           'DateTimeDigitized': '2013:02:09 14:47:53',",
-                 "           'ComponentsConfiguration': (1, 2, 3, 0),",
-                 "           'FocalLength': 3.53,",
-                 "           'FlashpixVersion': (48, 49, 48, 48),",
-                 "           'ColorSpace': 1,",
-                 "           'PixelXDimension': 2528,",
-                 "           'PixelYDimension': 1424,",
-                 "           'InteroperabilityTag': 324},",
-                 " 'GPSInfo': {'GPSVersionID': (2, 2, 0),",
-                 "             'GPSLatitudeRef': 'N',",
-                 "             'GPSLatitude': [42.0, 20.0, 33.61],",
-                 "             'GPSLongitudeRef': 'W',",
-                 "             'GPSLongitude': [71.0, 5.0, 17.32],",
-                 "             'GPSAltitudeRef': 0,",
-                 "             'GPSAltitude': 0.0,",
-                 "             'GPSTimeStamp': [19.0, 47.0, 53.0],",
-                 "             'GPSMapDatum': 'WGS-84',",
-                 "             'GPSProcessingMethod': (65,",
-                 "                                     83,",
-                 "                                     67,",
-                 "                                     73,",
-                 "                                     73,",
-                 "                                     0,",
-                 "                                     0,",
-                 "                                     0,",
-                 "                                     78,",
-                 "                                     69,",
-                 "                                     84,",
-                 "                                     87,",
-                 "                                     79,",
-                 "                                     82,",
-                 "                                     75),",
-                 "             'GPSDateStamp': '2013:02:09'},",
+                 "{'Image': {'ImageWidth': 256,",
+                 "           'ImageLength': 512,",
+                 "           'Make': 'HTC'},",
+                 " 'Photo': None,",
+                 " 'GPSInfo': None,",
                  " 'Iop': None}"]
 
         expected = '\n'.join(lines)

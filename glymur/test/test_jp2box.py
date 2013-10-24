@@ -419,7 +419,7 @@ class TestAppend(unittest.TestCase):
             # The sequence of box IDs should be the same as before, but with an
             # xml box at the end.
             box_ids = [box.box_id for box in jp2.box]
-            expected = ['jP  ', 'ftyp', 'jp2h', 'uuid', 'uuid', 'jp2c', 'xml ']
+            expected = ['jP  ', 'ftyp', 'jp2h', 'uuid', 'jp2c', 'xml ']
             self.assertEqual(box_ids, expected)
             self.assertEqual(ET.tostring(jp2.box[-1].xml.getroot()),
                              b'<data>0</data>')
@@ -468,7 +468,7 @@ class TestAppend(unittest.TestCase):
             # The sequence of box IDs should be the same as before, but with an
             # xml box at the end.
             box_ids = [box.box_id for box in jp2.box]
-            expected = ['jP  ', 'ftyp', 'jp2h', 'uuid', 'uuid', 'jp2c', 'xml ']
+            expected = ['jP  ', 'ftyp', 'jp2h', 'uuid', 'jp2c', 'xml ']
             self.assertEqual(box_ids, expected)
             self.assertEqual(ET.tostring(jp2.box[-1].xml.getroot()),
                              b'<data>0</data>')
