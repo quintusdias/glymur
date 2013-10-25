@@ -1,3 +1,7 @@
+Oct 24, 2013 - v0.6.0  Palette box palette changed to 2D numpy array.  Removed
+    nemo Exif and simple XMP UUIDs in favor of larger XMP UUID.  Refactored
+    Exif UUID code into _uuid_io sub package.
+
 Oct 13, 2013 - v0.5.6  Fixed handling of non-ascii chars in XML boxes.  Fixed
     some docstring errors in jp2box module.
 
