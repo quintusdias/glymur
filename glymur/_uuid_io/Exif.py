@@ -62,7 +62,7 @@ class UUIDExif(object):
                 interop = _ExifInteroperabilityIfd(self.endian,
                                                    read_buffer[6:],
                                                    offset)
-                iop = interop.processed_ifd
+                exif_iop = interop.processed_ifd
 
         if 'GPSTag' in exif_image.keys():
             offset = exif_image['GPSTag']

@@ -2089,7 +2089,7 @@ class UUIDBox(Jp2kBox):
             else:
                 self.data = _uuid_io.UUIDGeneric(raw_data)
                 self._type = 'unknown'
-        except Exception as err:
+        except Exception:
             # In case of any exception, create the generic UUID.
             self.data = _uuid_io.UUIDGeneric(raw_data)
             self._type = 'unknown'
@@ -2121,15 +2121,15 @@ class UUIDBox(Jp2kBox):
         if self._type != 'XMP':
             msg = "Only XMP UUID boxes can currently be written."
             raise NotImplementedError(msg)
-        serialized_buffer = b'<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>'
-        serialized_buffer += ET.tostring(self.data.getroot(), encoding='utf-8')
-        serialized_buffer += b'<?xpacket end="w"?>'
+        serialized = b'<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>'
+        serialized += ET.tostring(self.data.packet.getroot(), encoding='utf-8')
+        serialized += b'<?xpacket end="w"?>'
         if self.length == 0:
-            self.length = 24 + len(serialized_buffer)
+            self.length = 24 + len(serialized)
         read_buffer = struct.pack('>I4s', self.length, b'uuid')
         fptr.write(read_buffer)
         fptr.write(self.uuid.bytes)
-        fptr.write(serialized_buffer)
+        fptr.write(serialized)
 
     @staticmethod
     def parse(fptr, offset, length):
