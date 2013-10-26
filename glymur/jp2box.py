@@ -13,7 +13,6 @@ References
 
 # pylint: disable=C0302,R0903,R0913
 
-import copy
 import datetime
 import math
 import os
@@ -38,8 +37,9 @@ from .core import _COLORSPACE_MAP_DISPLAY
 from .core import _COLOR_TYPE_MAP_DISPLAY
 from .core import ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE
 from .core import ANY_ICC_PROFILE, VENDOR_COLOR_METHOD
+from .core import _pretty_print_xml
 
-from ._uuid_io import _Exif
+from . import _uuid_io
 
 _METHOD_DISPLAY = {
     ENUMERATED_COLORSPACE: 'enumerated colorspace',
@@ -2065,8 +2065,11 @@ class UUIDBox(Jp2kBox):
         ----------
         the_uuid : uuid.UUID
             Identifies the type of UUID box.
+        data : object
+            Specific to each type of UUID.  There are handlers for XMP, Exif,
+            and unknown UUIDs.
         raw_data : byte array
-            This is the "payload" of data for the specified UUID.
+            Sequence of uninterpreted bytes as read from the file.
         length : int
             length of the box in bytes.
         offset : int
@@ -2076,58 +2079,32 @@ class UUIDBox(Jp2kBox):
         self.uuid = the_uuid
 
         if the_uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
-            # XMP data.  Parse as XML.  Seems to be a difference between
-            # ElementTree in version 2.7 and 3.3.
-            if sys.hexversion < 0x03000000:
-                elt = ET.fromstring(raw_data)
-            else:
-                text = raw_data.decode('utf-8')
-                elt = ET.fromstring(text)
-            self.data = ET.ElementTree(elt)
+            self.data = _uuid_io.UUIDXMP(raw_data)
             self._type = 'XMP'
         elif the_uuid.bytes == b'JpgTiffExif->JP2':
-            exif_obj = _Exif(raw_data)
-            ifds = OrderedDict()
-            ifds['Image'] = exif_obj.exif_image
-            ifds['Photo'] = exif_obj.exif_photo
-            ifds['GPSInfo'] = exif_obj.exif_gpsinfo
-            ifds['Iop'] = exif_obj.exif_iop
-            self.data = ifds
+            self.data = _uuid_io.UUIDExif(raw_data)
             self._type = 'Exif'
         else:
-            self.data = raw_data
+            self.data = _uuid_io.UUIDGeneric(raw_data)
             self._type = 'unknown'
+        
+        self.raw_data = raw_data
 
         self.length = length
         self.offset = offset
 
     def __str__(self):
         msg = '{0}\n'
-        msg += '    UUID:  {1}{2}\n'
+        msg += '    UUID:  {1} ({2})\n'
         msg += '    UUID Data:  {3}'
-
-        if self.uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
-            uuid_type = ' (XMP)'
-            uuid_data = _pretty_print_xml(self.data)
-        elif self.uuid.bytes == b'JpgTiffExif->JP2':
-            uuid_type = ' (Exif)'
-            # 2.7 has trouble pretty-printing ordered dicts, so print them
-            # as regular dicts.  Not ideal, but at least it's good on 3.3+.
-            if sys.hexversion < 0x03000000:
-                data = dict(self.data)
-            else:
-                data = self.data
-            uuid_data = '\n' + pprint.pformat(data)
-        else:
-            uuid_type = ''
-            uuid_data = '{0} bytes'.format(len(self.data))
 
         msg = msg.format(Jp2kBox.__str__(self),
                          self.uuid,
-                         uuid_type,
-                         uuid_data)
+                         self._type,
+                         str(self.data))
 
         return msg
+
 
     def write(self, fptr):
         """Write a UUID box box to file.
@@ -2196,45 +2173,3 @@ _BOX_WITH_ID = {
     'url ': DataEntryURLBox,
     'uuid': UUIDBox,
     'xml ': XMLBox}
-
-
-def _indent(elem, level=0):
-    """Recipe for pretty printing XML.  Please see
-
-    http://effbot.org/zone/element-lib.htm#prettyprint
-    """
-    i = "\n" + level * "  "
-    if len(elem):
-        if not elem.text or not elem.text.strip():
-            elem.text = i + "  "
-        if not elem.tail or not elem.tail.strip():
-            elem.tail = i
-        for elem in elem:
-            _indent(elem, level + 1)
-        if not elem.tail or not elem.tail.strip():
-            elem.tail = i
-    else:
-        if level and (not elem.tail or not elem.tail.strip()):
-            elem.tail = i
-
-
-def _pretty_print_xml(xml, level=0):
-    """Pretty print XML data.
-    """
-    xml = copy.deepcopy(xml)
-    _indent(xml.getroot(), level=level)
-    xmltext = ET.tostring(xml.getroot(), encoding='utf-8').decode('utf-8')
-
-    # Indent it a bit.
-    lst = [('    ' + x) for x in xmltext.split('\n')]
-    try:
-        xml = '\n'.join(lst)
-        return '\n{0}'.format(xml)
-    except UnicodeEncodeError:
-        # This can happen on python 2.x if the character set contains certain
-        # non-ascii characters.  Just print out the corresponding xml char
-        # entities instead.
-        xml = u'\n'.join(lst)
-        text = u'\n{0}'.format(xml)
-        text = text.encode('ascii', 'xmlcharrefreplace')
-        return text

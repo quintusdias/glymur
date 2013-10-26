@@ -636,6 +636,7 @@ class TestPrinting(unittest.TestCase):
             actual = fake_out.getvalue().strip()
 
         expected = nemo_xmp_box
+        self.maxDiff = None
         self.assertEqual(actual, expected)
 
     def test_codestream(self):
@@ -1024,7 +1025,7 @@ class TestPrinting(unittest.TestCase):
             print(jp2.box[4])
             actual = fake_out.getvalue().strip()
         lines = ['UUID Box (uuid) @ (1544, 25)',
-                 '    UUID:  3a0d0218-0ae9-4115-b376-4bca41ce0e71',
+                 '    UUID:  3a0d0218-0ae9-4115-b376-4bca41ce0e71 (unknown)',
                  '    UUID Data:  1 bytes']
 
         expected = '\n'.join(lines)

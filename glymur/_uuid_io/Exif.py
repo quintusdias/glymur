@@ -1,7 +1,8 @@
 # -*- coding:  utf-8 -*-
 """
-Handlers for various UUID types.
+Handlers for Exif UUIDs.  Be nice if we would find a standard for this.
 """
+import pprint
 import struct
 import sys
 import warnings
@@ -12,7 +13,7 @@ if sys.hexversion < 0x02070000:
 else:
     from collections import OrderedDict
 
-class _Exif(object):
+class UUIDExif(object):
     """
     Attributes
     ----------
@@ -25,10 +26,10 @@ class _Exif(object):
     def __init__(self, read_buffer):
         """Interpret raw buffer consisting of Exif IFD.
         """
-        self.exif_image = None
-        self.exif_photo = None
-        self.exif_gpsinfo = None
-        self.exif_iop = None
+        exif_image = None
+        exif_photo = None
+        exif_gpsinfo = None
+        exif_iop = None
 
         self.read_buffer = read_buffer
 
@@ -45,24 +46,39 @@ class _Exif(object):
 
         # This is the 'Exif Image' portion.
         exif = _ExifImageIfd(self.endian, read_buffer[6:], offset)
-        self.exif_image = exif.processed_ifd
+        exif_image = exif.processed_ifd
 
-        if 'ExifTag' in self.exif_image.keys():
-            offset = self.exif_image['ExifTag']
-            photo = _ExifPhotoIfd(self.endian, read_buffer[6:], offset)
-            self.exif_photo = photo.processed_ifd
+        if 'ExifTag' in exif_image.keys():
+            offset = exif_image['ExifTag']
+            photo_ifd = _ExifPhotoIfd(self.endian, read_buffer[6:], offset)
+            exif_photo = photo_ifd.processed_ifd
 
-            if 'InteroperabilityTag' in self.exif_photo.keys():
-                offset = self.exif_photo['InteroperabilityTag']
+            if 'InteroperabilityTag' in exif_photo.keys():
+                offset = exif_photo['InteroperabilityTag']
                 interop = _ExifInteroperabilityIfd(self.endian,
                                                    read_buffer[6:],
                                                    offset)
-                self.iop = interop.processed_ifd
+                iop = interop.processed_ifd
 
-        if 'GPSTag' in self.exif_image.keys():
-            offset = self.exif_image['GPSTag']
+        if 'GPSTag' in exif_image.keys():
+            offset = exif_image['GPSTag']
             gps = _ExifGPSInfoIfd(self.endian, read_buffer[6:], offset)
-            self.exif_gpsinfo = gps.processed_ifd
+            exif_gpsinfo = gps.processed_ifd
+
+        self.ifds = OrderedDict()
+        self.ifds['Image'] = exif_image
+        self.ifds['Photo'] = exif_photo
+        self.ifds['GPSInfo'] = exif_gpsinfo
+        self.ifds['Iop'] = exif_iop
+
+    def __str__(self):
+        # 2.7 has trouble pretty-printing ordered dicts, so print them
+        # as regular dicts.  Not ideal, but at least it's good on 3.3+.
+        if sys.hexversion < 0x03000000:
+            data = dict(self.ifds)
+        else:
+            data = self.ifds
+        return '\n' + pprint.pformat(data)
 
 
 class _Ifd(object):

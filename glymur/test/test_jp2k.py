@@ -353,7 +353,7 @@ class TestJp2k(unittest.TestCase):
     def test_xmp_attribute(self):
         """Verify the XMP packet in the shipping example file can be read."""
         j = Jp2k(self.jp2file)
-        xmp = j.box[3].data
+        xmp = j.box[3].data.packet
         ns0 = '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}'
         ns2 = '{http://ns.adobe.com/xap/1.0/}'
         name = '{0}RDF/{0}Description/{1}CreatorTool'.format(ns0, ns2)
