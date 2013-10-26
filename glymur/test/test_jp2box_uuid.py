@@ -129,5 +129,30 @@ class TestUUIDExif(unittest.TestCase):
 
             self.assertEqual(j.box[-1].box_id, 'uuid')
 
+    def test_big_endian(self):
+        """Verify read of big-endian IFD."""
+        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
+
+            with open(self.jp2file, 'rb') as ifptr:
+                tfile.write(ifptr.read())
+
+            # Write L, T, UUID identifier.
+            tfile.write(struct.pack('>I4s', 52, b'uuid'))
+            tfile.write(b'JpgTiffExif->JP2')
+
+            tfile.write(b'Exif\x00\x00')
+            xbuffer = struct.pack('>BBHI', 77, 77, 42, 8)
+            tfile.write(xbuffer)
+
+            # We will write just a single tag.
+            tfile.write(struct.pack('>H', 1))
+
+            # The "Make" tag is tag no. 271.
+            tfile.write(struct.pack('>HHI4s', 271, 2, 3, b'HTC\x00'))
+            tfile.flush()
+
+            jp2 = glymur.Jp2k(tfile.name)
+            self.assertEqual(jp2.box[-1].data.ifds['Image']['Make'], "HTC")
+
 if __name__ == "__main__":
     unittest.main()

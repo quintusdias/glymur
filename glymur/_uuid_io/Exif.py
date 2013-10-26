@@ -34,8 +34,8 @@ class UUIDExif(object):
         self.read_buffer = read_buffer
 
         # Ignore the first six bytes.
-        # Next 8 should be (73, 73, 42, 8)
-        data = struct.unpack('<BBHI', read_buffer[6:14])
+        # Next 8 should be (73, 73, 42, 8) or (77, 77, 42, 8)
+        data = struct.unpack('<BB', read_buffer[6:8])
         if data[0] == 73 and data[1] == 73:
             # little endian
             self.endian = '<'
@@ -46,7 +46,7 @@ class UUIDExif(object):
             msg = "Bad byte order indication: {0}".format(read_buffer[6:8])
             raise RuntimeError(msg)
 
-        offset = data[3]
+        _, offset = struct.unpack(self.endian + 'HI', read_buffer[8:14])
 
         # This is the 'Exif Image' portion.
         exif = _ExifImageIfd(self.endian, read_buffer[6:], offset)
