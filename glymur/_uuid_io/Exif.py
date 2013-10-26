@@ -39,9 +39,13 @@ class UUIDExif(object):
         if data[0] == 73 and data[1] == 73:
             # little endian
             self.endian = '<'
-        else:
+        elif data[0] == 77 and data[1] == 77:
             # big endian
             self.endian = '>'
+        else:
+            msg = "Bad byte order indication: {0}".format(read_buffer[6:8])
+            raise RuntimeError(msg)
+
         offset = data[3]
 
         # This is the 'Exif Image' portion.

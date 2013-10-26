@@ -19,6 +19,7 @@ import os
 import pprint
 import struct
 import sys
+import traceback
 import uuid
 import warnings
 import xml.etree.cElementTree as ET
@@ -2078,15 +2079,23 @@ class UUIDBox(Jp2kBox):
         Jp2kBox.__init__(self, box_id='uuid', longname='UUID')
         self.uuid = the_uuid
 
-        if the_uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
-            self.data = _uuid_io.UUIDXMP(raw_data)
-            self._type = 'XMP'
-        elif the_uuid.bytes == b'JpgTiffExif->JP2':
-            self.data = _uuid_io.UUIDExif(raw_data)
-            self._type = 'Exif'
-        else:
+        try:
+            if the_uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
+                self.data = _uuid_io.UUIDXMP(raw_data)
+                self._type = 'XMP'
+            elif the_uuid.bytes == b'JpgTiffExif->JP2':
+                self.data = _uuid_io.UUIDExif(raw_data)
+                self._type = 'Exif'
+            else:
+                self.data = _uuid_io.UUIDGeneric(raw_data)
+                self._type = 'unknown'
+        except Exception as err:
+            # In case of any exception, create the generic UUID.
             self.data = _uuid_io.UUIDGeneric(raw_data)
             self._type = 'unknown'
+            msg = "Error encountered during UUID processing, "
+            msg += "the UUID will be treated as generic.\n\n{0}"
+            warnings.warn(msg.format(traceback.format_exc()))
         
         self.raw_data = raw_data
 
