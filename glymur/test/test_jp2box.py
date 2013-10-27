@@ -18,11 +18,13 @@ Test suite specifically targeting JP2 box layout.
 
 import doctest
 import os
+import re
 import shutil
 import struct
 import sys
 import tempfile
 import uuid
+from uuid import UUID
 import xml.etree.cElementTree as ET
 
 if sys.hexversion < 0x02070000:
@@ -40,7 +42,7 @@ from glymur.jp2box import JPEG2000SignatureBox
 from glymur.core import COLOR, OPACITY
 from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE
 
-from .fixtures import OPENJP2_IS_V2_OFFICIAL
+from .fixtures import OPENJP2_IS_V2_OFFICIAL, opj_data_file
 
 try:
     FORMAT_CORPUS_DATA_ROOT = os.environ['FORMAT_CORPUS_DATA_ROOT']
@@ -413,7 +415,7 @@ class TestAppend(unittest.TestCase):
 
             jp2 = Jp2k(tfile.name)
             the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
-            xmlbox = glymur.jp2box.XMLBox(xml=the_xml)
+            xmlbox = glymur.jp2box.XMLBox(xml=ET.ElementTree(the_xml))
             jp2.append(xmlbox)
 
             # The sequence of box IDs should be the same as before, but with an
@@ -707,6 +709,250 @@ class TestJp2Boxes(unittest.TestCase):
         box = ContiguousCodestreamBox()
         self.assertEqual(box.box_id, 'jp2c')
         self.assertIsNone(box.main_header)
+
+
+class TestRepr(unittest.TestCase):
+    """Tests for __repr__ methods."""
+    def test_default_jp2k(self):
+        """Should be able to eval a JPEG2000SignatureBox"""
+        jp2k = glymur.jp2box.JPEG2000SignatureBox()
+
+        # Test the representation instantiation.
+        newbox = eval(repr(jp2k))
+        self.assertTrue(isinstance(newbox, glymur.jp2box.JPEG2000SignatureBox))
+        self.assertEqual(newbox.signature, (13, 10, 135, 10))
+
+    def test_default_ftyp(self):
+        """Should be able to instantiate a FileTypeBox"""
+        ftyp = glymur.jp2box.FileTypeBox()
+
+        # Test the representation instantiation.
+        newbox = eval(repr(ftyp))
+        self.assertTrue(isinstance(newbox, glymur.jp2box.FileTypeBox))
+        self.assertEqual(newbox.brand, 'jp2 ')
+        self.assertEqual(newbox.minor_version, 0)
+        self.assertEqual(newbox.compatibility_list, ['jp2 '])
+
+    def test_colourspecification_box(self):
+        """Verify __repr__ method on colr box."""
+        # TODO:  add icc_profile
+        box = ColourSpecificationBox(colorspace=glymur.core.SRGB)
+
+        newbox = eval(repr(box))
+        self.assertEqual(newbox.method,  glymur.core.ENUMERATED_COLORSPACE)
+        self.assertEqual(newbox.precedence, 0)
+        self.assertEqual(newbox.approximation, 0)
+        self.assertEqual(newbox.colorspace, glymur.core.SRGB)
+        self.assertIsNone(newbox.icc_profile)
+
+    def test_channeldefinition_box(self):
+        """Verify __repr__ method on cdef box."""
+        channel_type = [COLOR, COLOR, COLOR]
+        association = [RED, GREEN, BLUE]
+        cdef = glymur.jp2box.ChannelDefinitionBox(index=[0, 1, 2],
+                                                  channel_type=channel_type,
+                                                  association=association)
+        newbox = eval(repr(cdef))
+        self.assertEqual(newbox.index, (0, 1, 2))
+        self.assertEqual(newbox.channel_type, (COLOR, COLOR, COLOR))
+        self.assertEqual(newbox.association, (RED, GREEN, BLUE))
+
+    def test_jp2header_box(self):
+        """Verify __repr__ method on ihdr box."""
+        ihdr = ImageHeaderBox(100, 200, num_components=3)
+        colr = ColourSpecificationBox(colorspace=glymur.core.SRGB)
+        jp2h = JP2HeaderBox(box=[ihdr, colr])
+        newbox = eval(repr(jp2h))
+        self.assertEqual(newbox.box_id, 'jp2h')
+        self.assertEqual(newbox.box[0].box_id, 'ihdr')
+        self.assertEqual(newbox.box[1].box_id, 'colr')
+
+    def test_imageheader_box(self):
+        """Verify __repr__ method on jhdr box."""
+        ihdr = ImageHeaderBox(100, 200, num_components=3)
+
+        newbox = eval(repr(ihdr))
+        self.assertEqual(newbox.height, 100)
+        self.assertEqual(newbox.width, 200)
+        self.assertEqual(newbox.num_components, 3)
+        self.assertFalse(newbox.signed)
+        self.assertEqual(newbox.bits_per_component, 8)
+        self.assertEqual(newbox.compression, 7)
+        self.assertFalse(newbox.colorspace_unknown)
+        self.assertFalse(newbox.ip_provided)
+
+    def test_association_box(self):
+        """Verify __repr__ method on asoc box."""
+        asoc = glymur.jp2box.AssociationBox()
+        newbox = eval(repr(asoc))
+        self.assertEqual(newbox.box_id, 'asoc')
+        self.assertEqual(len(newbox.box), 0)
+
+    def test_codestreamheader_box(self):
+        """Verify __repr__ method on jpch box."""
+        jpch = glymur.jp2box.CodestreamHeaderBox()
+        newbox = eval(repr(jpch))
+        self.assertEqual(newbox.box_id, 'jpch')
+        self.assertEqual(len(newbox.box), 0)
+
+    def test_compositinglayerheader_box(self):
+        """Verify __repr__ method on jplh box."""
+        jplh = glymur.jp2box.CompositingLayerHeaderBox()
+        newbox = eval(repr(jplh))
+        self.assertEqual(newbox.box_id, 'jplh')
+        self.assertEqual(len(newbox.box), 0)
+
+    def test_componentmapping_box(self):
+        """Verify __repr__ method on cmap box."""
+        cmap = glymur.jp2box.ComponentMappingBox(component_index=(0, 0, 0),
+                                                 mapping_type=(1, 1, 1),
+                                                 palette_index=(0, 1, 2))
+        newbox = eval(repr(cmap))
+        self.assertEqual(newbox.box_id, 'cmap')
+        self.assertEqual(newbox.component_index, (0, 0, 0))
+        self.assertEqual(newbox.mapping_type, (1, 1, 1))
+        self.assertEqual(newbox.palette_index, (0, 1, 2))
+
+    def test_resolution_boxes(self):
+        """Verify __repr__ method on resolution boxes."""
+        resc = glymur.jp2box.CaptureResolutionBox(0.5, 2.5)
+        resd = glymur.jp2box.DisplayResolutionBox(2.5, 0.5)
+        res_super_box = glymur.jp2box.ResolutionBox(box=[resc, resd])
+
+        newbox = eval(repr(res_super_box))
+
+        self.assertEqual(newbox.box_id, 'res ')
+        self.assertEqual(newbox.box[0].box_id, 'resc')
+        self.assertEqual(newbox.box[0].vertical_resolution, 0.5)
+        self.assertEqual(newbox.box[0].horizontal_resolution, 2.5)
+        self.assertEqual(newbox.box[1].box_id, 'resd')
+        self.assertEqual(newbox.box[1].vertical_resolution, 2.5)
+        self.assertEqual(newbox.box[1].horizontal_resolution, 0.5)
+
+    def test_label_box(self):
+        """Verify __repr__ method on label box."""
+        lbl = glymur.jp2box.LabelBox("this is a test")
+        newbox = eval(repr(lbl))
+        self.assertEqual(newbox.box_id, 'lbl ')
+        self.assertEqual(newbox.label, "this is a test")
+
+    def test_data_entry_url_box(self):
+        """Verify __repr__ method on data entry url box."""
+        version = 0
+        flag = (0, 0, 0)
+        url = "http://readthedocs.glymur.org"
+        box = glymur.jp2box.DataEntryURLBox(version, flag, url)
+        newbox = eval(repr(box))
+        self.assertEqual(newbox.box_id, 'url ')
+        self.assertEqual(newbox.version, version)
+        self.assertEqual(newbox.flag, flag)
+        self.assertEqual(newbox.url, url)
+
+    def test_uuidinfo_box(self):
+        """Verify __repr__ method on uinf box."""
+        uinf = glymur.jp2box.UUIDInfoBox()
+        newbox = eval(repr(uinf))
+        self.assertEqual(newbox.box_id, 'uinf')
+        self.assertEqual(len(newbox.box), 0)
+
+    def test_uuidlist_box(self):
+        """Verify __repr__ method on ulst box."""
+        uuid1 = uuid.UUID('00000000-0000-0000-0000-000000000001')
+        uuid2 = uuid.UUID('00000000-0000-0000-0000-000000000002')
+        uuids = [uuid1, uuid2]
+        ulst = glymur.jp2box.UUIDListBox(ulst=uuids)
+        newbox = eval(repr(ulst))
+        self.assertEqual(newbox.box_id, 'ulst')
+        self.assertEqual(newbox.ulst[0], uuid1)
+        self.assertEqual(newbox.ulst[1], uuid2)
+
+    def test_jp2k_box(self):
+        """Verify Superclass repr."""
+        box = glymur.jp2box.Jp2kBox(box_id='one', offset=2, length=3, 
+                                    longname='four')
+        newbox = eval(repr(box))
+        self.assertEqual(newbox.box_id, 'one')
+        self.assertEqual(newbox.offset, 2) 
+        self.assertEqual(newbox.length, 3)
+        self.assertEqual(newbox.longname, 'four')
+
+    def test_palette_box(self):
+        """Verify Palette box repr."""
+        palette = np.array([[255, 0, 1000], [0, 255, 0]], dtype=np.int32)
+        bps = (8, 8, 16)
+        signed = (True, False, True)
+        box = glymur.jp2box.PaletteBox(palette=palette, bits_per_component=bps,
+                                       signed=(True, False, True))
+        # The palette can't be reinstantiated thru eval/repr.
+        s = repr(box)
+        self.assertTrue(True)
+
+    @unittest.skipIf(sys.hexversion < 0x02070000, "Requires 2.7+")
+    def test_xml_box(self):
+        """Verify xml box repr."""
+        elt = ET.fromstring('<?xml version="1.0"?><data>0</data>')
+        tree = ET.ElementTree(elt)
+        box = glymur.jp2box.XMLBox(xml=tree)
+
+        regexp = "glymur.jp2box.XMLBox"
+        regexp += "\(xml=<(xml.etree.ElementTree.){0,1}ElementTree object "
+        regexp += "at 0x([a-f0-9]*)>\)"
+
+        if sys.hexversion < 0x03000000:
+            self.assertRegexpMatches(repr(box), regexp)
+        else:
+            self.assertRegex(repr(box), regexp)
+
+    def test_readerrequirements_box(self):
+        """Verify rreq repr method."""
+        box = glymur.jp2box.ReaderRequirementsBox(fuam=160, dcm=192,
+                                                  standard_flag=(5, 61, 43),
+                                                  standard_mask=(128, 96, 64),
+                                                  vendor_feature=[],
+                                                  vendor_mask=[])
+        newbox = eval(repr(box))
+        self.assertEqual(box.fuam, newbox.fuam)
+        self.assertEqual(box.dcm, newbox.dcm)
+        self.assertEqual(box.standard_flag, newbox.standard_flag)
+        self.assertEqual(box.standard_mask, newbox.standard_mask)
+        self.assertEqual(box.vendor_feature, newbox.vendor_feature)
+        self.assertEqual(box.vendor_mask, newbox.vendor_mask)
+
+    @unittest.skipIf(sys.hexversion < 0x02070000, "Requires 2.7+")
+    def test_uuid_box(self):
+        """Verify uuid repr method."""
+        uuid_instance = uuid.UUID('00000000-0000-0000-0000-000000000000')
+        data = b'0123456789'
+        box = glymur.jp2box.UUIDBox(the_uuid=uuid_instance, raw_data=data)
+
+        # Since the raw_data parameter is a sequence of bytes which could be
+        # quite long, don't bother trying to make it conform to eval(repr()).
+        regexp = "glymur.jp2box.UUIDBox\("
+        regexp += "the_uuid=UUID\('00000000-0000-0000-0000-000000000000'\),\s"
+        regexp += "raw_data=<byte\sarray\s10\selements>\)"
+
+        if sys.hexversion < 0x03000000:
+            self.assertRegexpMatches(repr(box), regexp)
+        else:
+            self.assertRegex(repr(box), regexp)
+
+    @unittest.skipIf(sys.hexversion < 0x02070000, "Requires 2.7+")
+    def test_contiguous_codestream_box(self):
+        """Verify contiguous codestream box repr method."""
+        jp2file = glymur.data.nemo()
+        jp2 = Jp2k(jp2file)
+        box = jp2.box[-1]
+
+        # Difficult to eval(repr()) this, so just match the general pattern.
+        regexp = "glymur.jp2box.ContiguousCodeStreamBox"
+        regexp += "\(main_header=<glymur.codestream.Codestream\sobject\s"
+        regexp += "at\s0x([a-f0-9]*)>\)"
+
+        if sys.hexversion < 0x03000000:
+            self.assertRegexpMatches(repr(box), regexp)
+        else:
+            self.assertRegex(repr(box), regexp)
+
 
 
 class TestJpxBoxes(unittest.TestCase):

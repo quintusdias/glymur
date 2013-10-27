@@ -67,6 +67,15 @@ class TestJp2k(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_repr(self):
+        """Verify that results of __repr__ are eval-able."""
+        j = Jp2k(self.j2kfile)
+        newjp2 = eval(repr(j))
+
+        self.assertEqual(newjp2.filename, self.j2kfile)
+        self.assertEqual(newjp2.mode, 'rb')
+        self.assertEqual(len(newjp2.box), 0)
+
     def test_rlevel_max(self):
         """Verify that rlevel=-1 gets us the lowest resolution image"""
         j = Jp2k(self.j2kfile)

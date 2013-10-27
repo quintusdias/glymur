@@ -72,6 +72,10 @@ class Jp2k(Jp2kBox):
         if mode == 'rb':
             self.parse()
 
+    def __repr__(self):
+        msg = "glymur.Jp2k('{0}')".format(self.filename)
+        return msg
+
     def __str__(self):
         metadata = ['File:  ' + os.path.basename(self.filename)]
         if len(self.box) > 0:
