@@ -887,15 +887,21 @@ class TestRepr(unittest.TestCase):
         s = repr(box)
         self.assertTrue(True)
 
+    @unittest.skipIf(sys.hexversion < 0x02070000, "Requires 2.7+")
     def test_xml_box(self):
         """Verify xml box repr."""
         elt = ET.fromstring('<?xml version="1.0"?><data>0</data>')
         tree = ET.ElementTree(elt)
         box = glymur.jp2box.XMLBox(xml=tree)
 
-        regexp = "glymur.jp2box.XMLBox\(xml=<ElementTree object "
+        regexp = "glymur.jp2box.XMLBox"
+        regexp += "\(xml=<(xml.etree.ElementTree.){0,1}ElementTree object "
         regexp += "at 0x([a-f0-9]*)>\)"
-        self.assertRegexpMatches(repr(box), regexp)
+
+        if sys.hexversion < 0x03000000:
+            self.assertRegexpMatches(repr(box), regexp)
+        else:
+            self.assertRegex(repr(box), regexp)
 
 class TestJpxBoxes(unittest.TestCase):
     """Tests for JPX boxes."""
