@@ -109,7 +109,7 @@ class TestJp2k(unittest.TestCase):
         jp2k = Jp2k(self.jp2file)
 
         # top-level boxes
-        self.assertEqual(len(jp2k.box), 6)
+        self.assertEqual(len(jp2k.box), 5)
 
         self.assertEqual(jp2k.box[0].box_id, 'jP  ')
         self.assertEqual(jp2k.box[0].offset, 0)
@@ -128,15 +128,11 @@ class TestJp2k(unittest.TestCase):
 
         self.assertEqual(jp2k.box[3].box_id, 'uuid')
         self.assertEqual(jp2k.box[3].offset, 77)
-        self.assertEqual(jp2k.box[3].length, 638)
+        self.assertEqual(jp2k.box[3].length, 3146)
 
-        self.assertEqual(jp2k.box[4].box_id, 'uuid')
-        self.assertEqual(jp2k.box[4].offset, 715)
-        self.assertEqual(jp2k.box[4].length, 2412)
-
-        self.assertEqual(jp2k.box[5].box_id, 'jp2c')
-        self.assertEqual(jp2k.box[5].offset, 3127)
-        self.assertEqual(jp2k.box[5].length, 1132296)
+        self.assertEqual(jp2k.box[4].box_id, 'jp2c')
+        self.assertEqual(jp2k.box[4].offset, 3223)
+        self.assertEqual(jp2k.box[4].length, 1132296)
 
         # jp2h super box
         self.assertEqual(len(jp2k.box[2].box), 2)
@@ -178,7 +174,7 @@ class TestJp2k(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             with open(self.jp2file, 'rb') as ifile:
                 # Everything up until the jp2c box.
-                write_buffer = ifile.read(3127)
+                write_buffer = ifile.read(3223)
                 tfile.write(write_buffer)
 
                 # The L field must be 1 in order to signal the presence of the
@@ -199,9 +195,9 @@ class TestJp2k(unittest.TestCase):
 
             jp2k = Jp2k(tfile.name)
 
-            self.assertEqual(jp2k.box[5].box_id, 'jp2c')
-            self.assertEqual(jp2k.box[5].offset, 3127)
-            self.assertEqual(jp2k.box[5].length, 1133427 + 8)
+            self.assertEqual(jp2k.box[4].box_id, 'jp2c')
+            self.assertEqual(jp2k.box[4].offset, 3223)
+            self.assertEqual(jp2k.box[4].length, 1133427 + 8)
 
     @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_length_field_is_zero(self):
@@ -366,45 +362,12 @@ class TestJp2k(unittest.TestCase):
     def test_xmp_attribute(self):
         """Verify the XMP packet in the shipping example file can be read."""
         j = Jp2k(self.jp2file)
-        xmp = j.box[4].data
+        xmp = j.box[3].data.packet
         ns0 = '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}'
-        ns1 = '{http://ns.adobe.com/xap/1.0/}'
-        name = '{0}RDF/{0}Description'.format(ns0)
+        ns2 = '{http://ns.adobe.com/xap/1.0/}'
+        name = '{0}RDF/{0}Description/{1}CreatorTool'.format(ns0, ns2)
         elt = xmp.find(name)
-        attr_value = elt.attrib['{0}CreatorTool'.format(ns1)]
-        self.assertEqual(attr_value, 'glymur')
-
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
-    def test_unrecognized_exif_tag(self):
-        """An unrecognized exif tag should be handled gracefully."""
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-            shutil.copyfile(self.jp2file, tfile.name)
-
-            # The Exif UUID starts at byte 77.  There are 8 bytes for the L and
-            # T fields, then 16 bytes for the UUID identifier, then 6 exif
-            # header bytes, then 8 bytes for the TIFF header, then 2 bytes
-            # the the Image IFD number of tags, where we finally find the first
-            # tag, "Make" (271).  We'll corrupt it by changing it into 171,
-            # which does not correspond to any known Exif Image tag.
-            with open(tfile.name, 'r+b') as fptr:
-                fptr.seek(117)
-                write_buffer = struct.pack('<H', int(171))
-                fptr.write(write_buffer)
-
-            # Verify that a warning is issued, but only on python3.
-            # On python2, just suppress the warning.
-            if sys.hexversion < 0x03030000:
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    j = Jp2k(tfile.name)
-            else:
-                with self.assertWarns(UserWarning):
-                    j = Jp2k(tfile.name)
-
-            exif = j.box[3].data
-            # Were the tag == 271, 'Make' would be in the keys instead.
-            self.assertTrue(171 in exif['Image'].keys())
-            self.assertFalse('Make' in exif['Image'].keys())
+        self.assertEqual(elt.text, 'Google')
 
 
 @unittest.skipIf(re.match(r"""1\.[01234]""", glymur.version.openjpeg_version),
@@ -742,19 +705,22 @@ class TestJp2k_2_1(unittest.TestCase):
         with open(self.jp2file, 'rb') as fptr:
             data = fptr.read()
             with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-                # Codestream starts at byte 3127. SIZ marker at 3137.
-                # COD marker at 3186.  Subsampling at 3180.
-                tfile.write(data[0:3179])
+                # Codestream starts at byte 3323. SIZ marker at 3233.
+                # COD marker at 3282.  Subsampling at 3276.
+                offset = 3223
+                tfile.write(data[0:offset+52])
 
                 # Make the DY bytes of the SIZ segment zero.  That means that
                 # a subsampling factor is zero, which is illegal.
                 tfile.write(b'\x00')
-                tfile.write(data[3180:3182])
+                tfile.write(data[offset+53:offset+55])
                 tfile.write(b'\x00')
-                tfile.write(data[3184:3186])
+                tfile.write(data[offset+57:offset+59])
+                #tfile.write(data[3184:3186])
                 tfile.write(b'\x00')
 
-                tfile.write(data[3186:])
+                tfile.write(data[offset+59:])
+                #tfile.write(data[3186:])
                 tfile.flush()
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
