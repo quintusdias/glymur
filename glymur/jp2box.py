@@ -1270,8 +1270,8 @@ class PaletteBox(Jp2kBox):
         offset of the box from the start of the file.
     longname : str
         more verbose description of the box.
-    palette : list
-        Colormap represented as list of 1D arrays, one per color component.
+    palette : ndarray
+        Colormap array.
     """
     def __init__(self, palette, bits_per_component, signed, length=0,
                  offset=-1):
@@ -1290,8 +1290,7 @@ class PaletteBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        msg += '\n    Size:  ({0} x {1})'.format(len(self.palette[0]),
-                                                 len(self.palette))
+        msg += '\n    Size:  ({0} x {1})'.format(*self.palette.shape)
         return msg
 
     @staticmethod
@@ -1321,67 +1320,28 @@ class PaletteBox(Jp2kBox):
         bps = [((x & 0x07f) + 1) for x in data]
         signed = [((x & 0x80) > 1) for x in data]
 
+        fmt = '>'
+        for bits in bps:
+            if bits <= 8:
+                fmt += 'B'
+            elif bits <= 16:
+                fmt += 'H'
+            elif bits <= 32:
+                fmt += 'I'
+
         # Each palette component is padded out to the next largest byte.
         # That means a list comprehension does this in one shot.
         row_nbytes = sum([int(math.ceil(x/8.0)) for x in bps])
 
-        # Form the format string so that we can intelligently unpack the
-        # colormap.  We have to do this because it is possible that the
-        # colormap columns could have different datatypes.
-        #
-        # This means that we store the palette as a list of 1D arrays,
-        # which reverses the usual indexing scheme.
         read_buffer = fptr.read(num_entries * row_nbytes)
-        palette = _buffer2palette(read_buffer, num_entries, num_columns, bps)
+        palette = np.zeros((num_entries, num_columns), dtype=np.int32)
+        for j in range(num_entries):
+            palette[j] = struct.unpack_from(fmt, read_buffer,
+                                            offset=j * row_nbytes)
 
         box = PaletteBox(palette, bps, signed, length=length, offset=offset)
         return box
 
-
-def _buffer2palette(read_buffer, num_rows, num_cols, bps):
-    """Construct the palette from the buffer read from file.
-
-    Parameters
-    ----------
-    read_buffer : iterable
-        Byte array of palette information read from file.
-    num_rows, num_cols : int
-        Size of palette.
-    bps : iterable
-        Bits per sample for each channel.
-
-    Returns
-    -------
-    palette : list of 1D arrays
-        Each 1D array corresponds to a channel.
-    """
-    row_nbytes = 0
-    palette = []
-    fmt = '>'
-    for j in range(num_cols):
-        if bps[j] <= 8:
-            row_nbytes += 1
-            fmt += 'B'
-            palette.append(np.zeros(num_rows, dtype=np.uint8))
-        elif bps[j] <= 16:
-            row_nbytes += 2
-            fmt += 'H'
-            palette.append(np.zeros(num_rows, dtype=np.uint16))
-        elif bps[j] <= 32:
-            row_nbytes += 4
-            fmt += 'I'
-            palette.append(np.zeros(num_rows, dtype=np.uint32))
-        else:
-            msg = 'Unsupported palette bitdepth (%d).'.format(bps[j])
-            raise IOError(msg)
-
-    for j in range(num_rows):
-        row_buffer = read_buffer[(row_nbytes * j):(row_nbytes * (j + 1))]
-        row = struct.unpack(fmt, row_buffer)
-        for k in range(num_cols):
-            palette[k][j] = row[k]
-
-    return palette
 
 # Map rreq codes to display text.
 _READER_REQUIREMENTS_DISPLAY = {

@@ -3797,19 +3797,16 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[0].ip_provided, False)
 
         # Palette box.
-        self.assertEqual(len(jp2.box[2].box[1].palette), 3)
-        self.assertEqual(len(jp2.box[2].box[1].palette[0]), 256)
-        self.assertEqual(len(jp2.box[2].box[1].palette[1]), 256)
-        self.assertEqual(len(jp2.box[2].box[1].palette[2]), 256)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[0][0], 0)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[1][0], 0)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[2][0], 0)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[0][128], 73)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[1][128], 92)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[2][128], 53)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[0][-1], 245)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[1][-1], 245)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[2][-1], 245)
+        self.assertEqual(jp2.box[2].box[1].palette.shape, (256, 3))
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[0, 0], 0)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[0, 1], 0)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[0, 2], 0)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[128, 0], 73)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[128, 1], 92)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[128, 2], 53)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[255, 0], 245)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[255, 1], 245)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[255, 2], 245)
 
         # Component mapping box
         self.assertEqual(jp2.box[2].box[2].component_index, (0, 0, 0))
@@ -5699,10 +5696,7 @@ class TestSuiteDump(unittest.TestCase):
 
         # Jp2 Header
         # Palette box.
-        self.assertEqual(len(jp2.box[3].box[2].palette), 3)
-        self.assertEqual(len(jp2.box[3].box[2].palette[0]), 256)
-        self.assertEqual(len(jp2.box[3].box[2].palette[1]), 256)
-        self.assertEqual(len(jp2.box[3].box[2].palette[2]), 256)
+        self.assertEqual(jp2.box[3].box[2].palette.shape, (256, 3))
 
         # Jp2 Header
         # Component mapping box
@@ -6127,11 +6121,7 @@ class TestSuiteDump(unittest.TestCase):
 
         # Jp2 Header
         # Palette box.
-        self.assertEqual(len(jp2.box[3].box[2].palette), 4)
-        self.assertEqual(len(jp2.box[3].box[2].palette[0]), 1)
-        self.assertEqual(len(jp2.box[3].box[2].palette[1]), 1)
-        self.assertEqual(len(jp2.box[3].box[2].palette[2]), 1)
-        self.assertEqual(len(jp2.box[3].box[2].palette[3]), 1)
+        self.assertEqual(jp2.box[3].box[2].palette.shape, (1, 4))
 
         # Jp2 Header
         # Component mapping box
@@ -6242,10 +6232,7 @@ class TestSuiteDump(unittest.TestCase):
         # Jp2 Header
         # Palette box.
         # 3 columns with 16 entries.
-        self.assertEqual(len(jp2.box[3].box[2].palette), 3)
-        self.assertEqual(len(jp2.box[3].box[2].palette[0]), 16)
-        self.assertEqual(len(jp2.box[3].box[2].palette[1]), 16)
-        self.assertEqual(len(jp2.box[3].box[2].palette[2]), 16)
+        self.assertEqual(jp2.box[3].box[2].palette.shape, (16, 3))
 
         # Jp2 Header
         # Component mapping box
