@@ -12,9 +12,11 @@
 
 import os
 import re
+import shutil
 import struct
 import sys
 import tempfile
+import uuid
 import warnings
 from xml.etree import cElementTree as ET
 
@@ -35,8 +37,37 @@ else:
 
 import glymur
 from glymur import Jp2k
-from .fixtures import OPJ_DATA_ROOT, opj_data_file, nemo_xmp_box
+from .fixtures import OPJ_DATA_ROOT, opj_data_file, SimpleRDF
 
+
+class TestUUIDXMP(unittest.TestCase):
+    """Tests for UUIDs of XMP type."""
+
+    def setUp(self):
+        self.jp2file = glymur.data.nemo()
+
+    def tearDown(self):
+        pass
+
+    def test_append(self):
+        """Should be able to append an XMP UUID box."""
+        the_uuid = uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
+        raw_data = SimpleRDF.encode('utf-8')
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            shutil.copyfile(self.jp2file, tfile.name)
+            jp2 = Jp2k(tfile.name)
+            ubox = glymur.jp2box.UUIDBox(the_uuid=the_uuid, raw_data=raw_data)
+            jp2.append(ubox)
+
+            # Should be two UUID boxes now.
+            expected_ids = ['jP  ', 'ftyp', 'jp2h', 'uuid', 'jp2c', 'uuid']
+            actual_ids = [b.box_id for b in jp2.box]
+            self.assertEqual(actual_ids, expected_ids)
+
+            # The data should be an XMP packet, which gets interpreted as
+            # an ElementTree.
+            self.assertTrue(isinstance(jp2.box[-1].data.packet,
+                                       ET.ElementTree))
 
 class TestUUIDExif(unittest.TestCase):
     """Tests for UUIDs of Exif type."""
