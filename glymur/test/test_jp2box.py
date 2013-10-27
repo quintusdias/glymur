@@ -903,6 +903,22 @@ class TestRepr(unittest.TestCase):
         else:
             self.assertRegex(repr(box), regexp)
 
+    def test_readerrequirements_box(self):
+        """Verify rreq repr method."""
+        box = glymur.jp2box.ReaderRequirementsBox(fuam=160, dcm=192,
+                                                  standard_flag=(5, 61, 43),
+                                                  standard_mask=(128, 96, 64),
+                                                  vendor_feature=[],
+                                                  vendor_mask=[])
+        newbox = eval(repr(box))
+        self.assertEqual(box.fuam, newbox.fuam)
+        self.assertEqual(box.dcm, newbox.dcm)
+        self.assertEqual(box.standard_flag, newbox.standard_flag)
+        self.assertEqual(box.standard_mask, newbox.standard_mask)
+        self.assertEqual(box.vendor_feature, newbox.vendor_feature)
+        self.assertEqual(box.vendor_mask, newbox.vendor_mask)
+
+
 class TestJpxBoxes(unittest.TestCase):
     """Tests for JPX boxes."""
 

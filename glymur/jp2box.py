@@ -1506,6 +1506,18 @@ class ReaderRequirementsBox(Jp2kBox):
         self.length = length
         self.offset = offset
 
+    def __repr__(self):
+        msg = "glymur.jp2box.ReaderRequirementsBox(fuam={fuam}, dcm={dcm}, "
+        msg += "standard_flag={standard_flag}, standard_mask={standard_mask}, "
+        msg += "vendor_feature={vendor_feature}, vendor_mask={vendor_mask})"
+        msg = msg.format(fuam=self.fuam,
+                         dcm=self.dcm,
+                         standard_flag=self.standard_flag,
+                         standard_mask=self.standard_mask,
+                         vendor_feature=self.vendor_feature,
+                         vendor_mask=self.vendor_mask)
+        return msg
+
     def __str__(self):
         msg = Jp2kBox.__str__(self)
 
