@@ -1209,7 +1209,7 @@ class JPEG2000SignatureBox(Jp2kBox):
         offset of the box from the start of the file.
     longname : str
         more verbose description of the box.
-    signature : byte
+    signature : tuple
         Four-byte tuple identifying the file as JPEG 2000.
     """
     def __init__(self, signature=(13, 10, 135, 10), length=0, offset=-1):
@@ -1807,7 +1807,7 @@ class LabelBox(Jp2kBox):
     longname : str
         more verbose description of the box.
     label : str
-        Label
+        Textual label.
     """
     def __init__(self, label, length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='lbl ', longname='Label')
@@ -2179,9 +2179,12 @@ class UUIDBox(Jp2kBox):
         more verbose description of the box.
     uuid : uuid.UUID
         16-byte UUID
-    data : bytes or dict or ElementTree.Element
-        Vendor-specific data.  Exif UUIDs are interpreted as dictionaries.
-        XMP UUIDs are interpreted as standard XML.
+    raw_data : byte array
+        Sequence of uninterpreted bytes as read from the file.
+    data : object
+        Specific to each type of UUID.  There are handlers for XMP, Exif, and
+        generic (unknown) UUIDs.  In the case of XMP and Exif UUIDs, this is
+        the interpreted version of raw_data.
 
     References
     ----------
@@ -2195,9 +2198,6 @@ class UUIDBox(Jp2kBox):
         ----------
         the_uuid : uuid.UUID
             Identifies the type of UUID box.
-        data : object
-            Specific to each type of UUID.  There are handlers for XMP, Exif,
-            and unknown UUIDs.
         raw_data : byte array
             Sequence of uninterpreted bytes as read from the file.
         length : int
