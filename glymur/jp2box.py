@@ -773,6 +773,10 @@ class ContiguousCodestreamBox(Jp2kBox):
         self.length = length
         self.offset = offset
 
+    def __repr__(self):
+        msg = "glymur.jp2box.ContiguousCodeStreamBox(main_header={0})"
+        return msg.format(repr(self.main_header))
+
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         msg += '\n    Main header:'
@@ -978,7 +982,6 @@ class ImageHeaderBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
         msg = "{0}"
         msg += '\n    Size:  [{1} {2} {3}]'
         msg += '\n    Bitdepth:  {4}'
@@ -2238,6 +2241,7 @@ class UUIDBox(Jp2kBox):
         """
         Jp2kBox.__init__(self, box_id='uuid', longname='UUID')
         self.uuid = the_uuid
+        self.raw_data = raw_data
 
         if the_uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
             # XMP data.  Parse as XML.  Seems to be a difference between
@@ -2261,6 +2265,12 @@ class UUIDBox(Jp2kBox):
 
         self.length = length
         self.offset = offset
+
+    def __repr__(self):
+        msg = "glymur.jp2box.UUIDBox(the_uuid={0}, "
+        msg += "raw_data=<byte array {1} elements>)"
+        return msg.format(repr(self.uuid), len(self.raw_data))
+
 
     def __str__(self):
         msg = '{0}\n'

@@ -918,6 +918,42 @@ class TestRepr(unittest.TestCase):
         self.assertEqual(box.vendor_feature, newbox.vendor_feature)
         self.assertEqual(box.vendor_mask, newbox.vendor_mask)
 
+    @unittest.skipIf(sys.hexversion < 0x02070000, "Requires 2.7+")
+    def test_uuid_box(self):
+        """Verify uuid repr method."""
+        uuid_instance = uuid.UUID('00000000-0000-0000-0000-000000000000')
+        data = b'0123456789'
+        box = glymur.jp2box.UUIDBox(the_uuid=uuid_instance, raw_data=data)
+
+        # Since the raw_data parameter is a sequence of bytes which could be
+        # quite long, don't bother trying to make it conform to eval(repr()).
+        regexp = "glymur.jp2box.UUIDBox\("
+        regexp += "the_uuid=UUID\('00000000-0000-0000-0000-000000000000'\),\s"
+        regexp += "raw_data=<byte\sarray\s10\selements>\)"
+
+        if sys.hexversion < 0x03000000:
+            self.assertRegexpMatches(repr(box), regexp)
+        else:
+            self.assertRegex(repr(box), regexp)
+
+    @unittest.skipIf(sys.hexversion < 0x02070000, "Requires 2.7+")
+    def test_contiguous_codestream_box(self):
+        """Verify contiguous codestream box repr method."""
+        jp2file = glymur.data.nemo()
+        jp2 = Jp2k(jp2file)
+        box = jp2.box[-1]
+
+        # Difficult to eval(repr()) this, so just match the general pattern.
+        regexp = "glymur.jp2box.ContiguousCodeStreamBox"
+        regexp += "\(main_header=<glymur.codestream.Codestream\sobject\s"
+        regexp += "at\s0x([a-f0-9]*)>\)"
+
+        if sys.hexversion < 0x03000000:
+            self.assertRegexpMatches(repr(box), regexp)
+        else:
+            self.assertRegex(repr(box), regexp)
+
+
 
 class TestJpxBoxes(unittest.TestCase):
     """Tests for JPX boxes."""
