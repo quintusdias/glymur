@@ -75,6 +75,12 @@ class Jp2kBox(object):
         self.offset = offset
         self.longname = longname
 
+    def __repr__(self):
+        msg = "glymur.jp2box.Jp2kBox(box_id='{0}', offset={1}, length={2}, "
+        msg += "longname='{3}')"
+        msg = msg.format(self.box_id, self.offset, self.length, self.longname)
+        return msg
+
     def __str__(self):
         msg = "{0} Box ({1})".format(self.longname, self.box_id)
         msg += " @ ({0}, {1})".format(self.offset, self.length)
@@ -1273,6 +1279,12 @@ class PaletteBox(Jp2kBox):
         self.length = length
         self.offset = offset
 
+    def __repr__(self):
+        msg = "glymur.jp2box.PaletteBox({0}, bits_per_component={1}, "
+        msg += "signed={2})"
+        msg = msg.format(self.palette, self.bits_per_component, self.signed)
+        return msg
+
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         msg += '\n    Size:  ({0} x {1})'.format(len(self.palette[0]),
@@ -1895,6 +1907,9 @@ class XMLBox(Jp2kBox):
         self.length = length
         self.offset = offset
 
+    def __repr__(self):
+        return "glymur.jp2box.XMLBox(xml={0})".format(self.xml)
+
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         xml = self.xml
@@ -1952,7 +1967,6 @@ class XMLBox(Jp2kBox):
             msg += 'byte position {0} ({1}), but the XML was still recovered.'
             msg = msg.format(offset, ude.reason)
             warnings.warn(msg, UserWarning)
-
 
         # Strip out any trailing nulls, as they can foul up XML parsing.
         text = text.rstrip(chr(0))

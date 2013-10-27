@@ -18,6 +18,7 @@ Test suite specifically targeting JP2 box layout.
 
 import doctest
 import os
+import re
 import shutil
 import struct
 import sys
@@ -414,7 +415,7 @@ class TestAppend(unittest.TestCase):
 
             jp2 = Jp2k(tfile.name)
             the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
-            xmlbox = glymur.jp2box.XMLBox(xml=the_xml)
+            xmlbox = glymur.jp2box.XMLBox(xml=ET.ElementTree(the_xml))
             jp2.append(xmlbox)
 
             # The sequence of box IDs should be the same as before, but with an
@@ -865,6 +866,36 @@ class TestRepr(unittest.TestCase):
         self.assertEqual(newbox.ulst[0], uuid1)
         self.assertEqual(newbox.ulst[1], uuid2)
 
+    def test_jp2k_box(self):
+        """Verify Superclass repr."""
+        box = glymur.jp2box.Jp2kBox(box_id='one', offset=2, length=3, 
+                                    longname='four')
+        newbox = eval(repr(box))
+        self.assertEqual(newbox.box_id, 'one')
+        self.assertEqual(newbox.offset, 2) 
+        self.assertEqual(newbox.length, 3)
+        self.assertEqual(newbox.longname, 'four')
+
+    def test_palette_box(self):
+        """Verify Palette box repr."""
+        palette = np.array([[255, 0, 1000], [0, 255, 0]], dtype=np.int32)
+        bps = (8, 8, 16)
+        signed = (True, False, True)
+        box = glymur.jp2box.PaletteBox(palette=palette, bits_per_component=bps,
+                                       signed=(True, False, True))
+        # The palette can't be reinstantiated thru eval/repr.
+        s = repr(box)
+        self.assertTrue(True)
+
+    def test_xml_box(self):
+        """Verify xml box repr."""
+        elt = ET.fromstring('<?xml version="1.0"?><data>0</data>')
+        tree = ET.ElementTree(elt)
+        box = glymur.jp2box.XMLBox(xml=tree)
+
+        regexp = "glymur.jp2box.XMLBox\(xml=<ElementTree object "
+        regexp += "at 0x([a-f0-9]*)>\)"
+        self.assertRegexpMatches(repr(box), regexp)
 
 class TestJpxBoxes(unittest.TestCase):
     """Tests for JPX boxes."""
