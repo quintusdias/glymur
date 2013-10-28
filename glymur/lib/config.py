@@ -50,20 +50,21 @@ def load_openjpeg(libopenjpeg_path):
         # Let ctypes try to find it.
         libopenjpeg_path = find_library('openjpeg')
 
-    # If we could not find it, then look in some likely locations.
+    # If we could not find it, then look in some likely locations on mac
+    # and win.
     if libopenjpeg_path is None:
         if platform.system() == 'Darwin':
-            path = '/opt/local/lib/libopenjpeg.dylib'
-            if os.path.exists(path):
-                libopenjpeg_path = path
+            if os.path.exists('/opt/local/lib/libopenjpeg.dylib'):
+                libopenjpeg_path = '/opt/local/lib/libopenjpeg.dylib'
         elif os.name == 'nt':
             path = os.path.join('C:\\', 'Program files', 'OpenJPEG 1.5',
                                 'bin', 'openjpeg.dll')
             if os.path.exists(path):
                 libopenjpeg_path = path
-        else:
-            # No sense trying further on Linux
-            return None
+
+    # If still no location, then no bother going further.
+    if libopenjpeg_path is None:
+        return None
 
     try:
         if os.name == "nt":
