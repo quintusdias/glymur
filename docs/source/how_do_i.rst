@@ -4,7 +4,7 @@ How do I...?
 
 
 ... read the lowest resolution thumbnail?
-=====================================
+=========================================
 Printing the Jp2k object should reveal the number of resolutions (look in the
 COD segment section), but you can take a shortcut by supplying -1 as the
 resolution level. ::
@@ -15,7 +15,7 @@ resolution level. ::
     >>> thumbnail = j.read(rlevel=-1)
 
 ... display metadata?
-=================
+=====================
 There are two ways.  From the unix command line, the script *jp2dump* is
 available. ::
 
@@ -35,7 +35,7 @@ codestream box, only the main header is printed.  It is possible to print
     >>> print(j.get_codestream())
 
 ... add XML metadata?
-=================
+=====================
 You can append any number of XML boxes to a JP2 file (not to a raw codestream).
 Consider the following XML file `data.xml` : ::
 
@@ -66,12 +66,12 @@ The **append** method can add an XML box as shown below::
     >>> jp2.append(xmlbox)
     >>> print(jp2)
 
-... add metadata in a more general fashion?
-=======================================
+... add even more metadata?
+===========================
 An existing raw codestream (or JP2 file) can be wrapped (re-wrapped) in a 
 user-defined set of JP2 boxes.  To get just a minimal JP2 jacket on the 
 codestream provided by `goodstuff.j2k` (a file consisting of a raw codestream),
-you can use the **wrap** method with no box argument: ::
+you can use the :py:meth:`wrap` method with no box argument: ::
 
     >>> import glymur
     >>> jfile = glymur.data.goodstuff()
@@ -108,8 +108,9 @@ JP2 header superbox.
 
 XML boxes are not in the minimal set of box requirements for the JP2 format, so
 in order to add an XML box into the mix before the codestream box, we'll need to 
-re-specify all of the boxes.  If you already have a JP2 jacket in place, you can just reuse that,
-though.  Take the following example content in an XML file `favorites.xml` : ::
+re-specify all of the boxes.  If you already have a JP2 jacket in place,
+you can just reuse that, though.  Take the following example content in
+an XML file `favorites.xml` : ::
 
     <?xml version="1.0"?>
     <favorite_things>
@@ -152,13 +153,13 @@ the following will work. ::
         . (truncated)
         .
 
-As to the question of which method you should use, **append** or **wrap**,
-to add metadata, you should keep in mind that **wrap** produces a new JP2 file,
-while **append** modifies an existing file and is currently limited to XML
-boxes.
+As to the question of which method you should use, :py:meth:`append` or
+:py:meth:`wrap`, to add metadata, you should keep in mind that :py:meth:`wrap`
+produces a new JP2 file, while :py:meth:`append` modifies an existing file and
+is currently limited to XML and UUID boxes.
 
 ... create an image with an alpha layer?
-====================================
+========================================
 
 OpenJPEG can create JP2 files with more than 3 components (requires
 the development version of OpenJPEG), but by default, any extra components are
@@ -219,32 +220,49 @@ Here's how the Preview application on the mac shows the RGBA image.
 .. image:: goodstuff_alpha.png
 
     
-work with XMP UUIDs?
-====================
+... work with XMP UUIDs?
+========================
 The example JP2 file shipped with glymur has an XMP UUID. ::
 
     >>> import glymur
     >>> j = glymur.Jp2k(glymur.data.nemo())
-    >>> print(j.box[4])
-    UUID Box (uuid) @ (715, 2412)
-        UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
-        UUID Data:  
-        <ns0:xmpmeta xmlns:ns0="adobe:ns:meta/" xmlns:ns2="http://ns.adobe.com/xap/1.0/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" ns0:xmptk="XMP Core 4.4.0-Exiv2">
+    >>> print(j.box[3]) # formatting added to the XML below
+    <ns0:xmpmeta xmlns:dc="http://purl.org/dc/elements/1.1/"
+                 xmlns:ns0="adobe:ns:meta/"
+                 xmlns:ns2="http://ns.adobe.com/xap/1.0/"
+                 xmlns:ns3="http://ns.adobe.com/tiff/1.0/"
+                 xmlns:ns4="http://ns.adobe.com/exif/1.0/"
+                 xmlns:ns5="http://ns.adobe.com/photoshop/1.0/"
+                 xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+                 ns0:xmptk="Exempi + XMP Core 5.1.2">
           <rdf:RDF>
-            <rdf:Description ns2:CreatorTool="glymur" rdf:about="" />
-          </rdf:RDF>
-        </ns0:xmpmeta>
+          .
+          .
+          .
+    </ns0:xmpmeta>
 
-Since the UUID data in this case is returned as an ElementTree instance, one can
-use ElementTree to access the data.  For example, to extract the 
-**CreatorTool** attribute value, the following would work::
+Since the UUID data in this case is returned as an ElementTree instance,
+one can use ElementTree from the standard library to access the data.
+For example, to extract the **CreatorTool** attribute value, the following
+would work::
 
-    >>> xmp = j.box[4].data
-    >>> ns0 = '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}'
-    >>> ns1 = '{http://ns.adobe.com/xap/1.0/}'
-    >>> name = '{0}RDF/{0}Description'.format(ns0)
+    >>> xmp = j.box[3].data.packet
+    >>> rdf = '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}'
+    >>> ns2 = '{http://ns.adobe.com/xap/1.0/}'
+    >>> name = '{0}RDF/{0}Description/{1}CreatorTool'.format(rdf, ns2)
     >>> elt = xmp.find(name)
     >>> elt
-    <Element '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}Description' at 0xb4baa93c>
-    >>> elt.attrib['{0}CreatorTool'.format(ns1)]
-    'glymur'
+    <Element '{http://ns.adobe.com/xap/1.0/#}CreatorTool' at 0xb50684a4>
+    >>> elt.text
+    'Google'
+
+Yes, that's painful.  A better solution is to install the Python XMP Toolkit
+(developer branch)::
+
+    >>> from libxmp import XMPMeta
+    >>> from libxmp.consts import XMP_NS_XMP as NS_XAP
+    >>> meta = XMPMeta()
+    >>> meta.parse_from_str(j.box[3].raw_data.decode('utf-8'))
+    >>> meta.get_property(NS_XAP, 'CreatorTool')
+    'Google'
+
