@@ -1,3 +1,6 @@
+Oct 29, 2013 - v0.5.8  Fixed unnecessary warnings when default locations for
+    openjpeg libraries on mac do not specify the actual library.
+
 Oct 28, 2013 - v0.5.7  Fixed bad import error message when libopenjpeg library
     not installed on mac.
 
