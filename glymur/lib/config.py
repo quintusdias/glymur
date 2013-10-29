@@ -45,6 +45,12 @@ def glymurrc_fname():
 
 def load_openjpeg(path):
     """Load the openjpeg library, falling back on defaults if necessary.
+
+    Parameters
+    ----------
+    path : str
+        Path to openjpeg 1.5 library as specified by configuration file.  Will
+        be None if no configuration file specified.
     """
     if path is None:
         # Let ctypes try to find it.
@@ -84,7 +90,9 @@ def load_openjp2(path):
 def load_library_handle(path):
     """Load the library, return the ctypes handle."""
 
-    if path is None:
+    if path is None or (path is not None and not os.path.exists(path)):
+        # Either could not find a library via ctypes or user-configuration-file,
+        # or we could not find it in any of the default locations.
         return None
 
     try:
@@ -93,10 +101,10 @@ def load_library_handle(path):
         else:
             opj_lib = ctypes.CDLL(path)
     except (TypeError, OSError):
-        msg = '"Library {0}" could not be loaded.  Operating in degraded mode.'
-        msg = msg.format(path)
-        warnings.warn(msg, UserWarning)
-        opj_lib = None
+       msg = '"Library {0}" could not be loaded.  Operating in degraded mode.'
+       msg = msg.format(path)
+       warnings.warn(msg, UserWarning)
+       opj_lib = None
 
     return opj_lib
 
