@@ -43,49 +43,45 @@ def glymurrc_fname():
     return None
 
 
-def load_openjpeg(libopenjpeg_path):
+def load_openjpeg(path):
     """Load the openjpeg library, falling back on defaults if necessary.
     """
-    if libopenjpeg_path is None:
+    if path is None:
         # Let ctypes try to find it.
-        libopenjpeg_path = find_library('openjpeg')
+        path = find_library('openjpeg')
 
     # If we could not find it, then look in some likely locations on mac
     # and win.
-    if libopenjpeg_path is None:
+    if path is None:
         if platform.system() == 'Darwin':
             # MacPorts
             path = '/opt/local/lib/libopenjpeg.dylib'
         elif os.name == 'nt':
             path = os.path.join('C:\\', 'Program files', 'OpenJPEG 1.5',
                                 'bin', 'openjpeg.dll')
-        if os.path.exists(path):
-            libopenjpeg_path = path
 
-    return load_library(libopenjpeg_path)
+    return load_library_handle(path)
 
 
-def load_openjp2(libopenjp2_path):
+def load_openjp2(path):
     """Load the openjp2 library, falling back on defaults if necessary.
     """
-    if libopenjp2_path is None:
+    if path is None:
         # No help from the config file, try to find it ourselves.
-        libopenjp2_path = find_library('openjp2')
+        path = find_library('openjp2')
 
-    if libopenjp2_path is None:
+    if path is None:
         if platform.system() == 'Darwin':
             # MacPorts
             path = '/opt/local/lib/libopenjp2.dylib'
         elif os.name == 'nt':
             path = os.path.join('C:\\', 'Program files', 'OpenJPEG 2.0',
                                 'bin', 'openjp2.dll')
-        if os.path.exists(path):
-            libopenjp2_path = path
 
-    return load_library(libopenjp2_path)
+    return load_library_handle(path)
 
 
-def load_library(path):
+def load_library_handle(path):
     """Load the library, return the ctypes handle."""
 
     if path is None:
