@@ -1,3 +1,6 @@
+Oct 29, 2013 - v0.5.10  Palette box now a 2D numpy array instead of a list of
+    1D arrays.
+
 Oct 29, 2013 - v0.5.9  Fixed bad library load on linux as a result of 0.5.8
 
 Oct 29, 2013 - v0.5.8  Fixed unnecessary warnings when default locations for
