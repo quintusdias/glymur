@@ -59,12 +59,17 @@ def load_openjpeg(path):
     # If we could not find it, then look in some likely locations on mac
     # and win.
     if path is None:
+        # Could not find a library via ctypes
         if platform.system() == 'Darwin':
             # MacPorts
             path = '/opt/local/lib/libopenjpeg.dylib'
         elif os.name == 'nt':
             path = os.path.join('C:\\', 'Program files', 'OpenJPEG 1.5',
                                 'bin', 'openjpeg.dll')
+
+        if path is not None and not os.path.exists(path):
+            # the mac/win default location does not exist.
+            return None
 
     return load_library_handle(path)
 
@@ -73,10 +78,11 @@ def load_openjp2(path):
     """Load the openjp2 library, falling back on defaults if necessary.
     """
     if path is None:
-        # No help from the config file, try to find it ourselves.
+        # No help from the config file, try to find it via ctypes.
         path = find_library('openjp2')
 
     if path is None:
+        # Could not find a library via ctypes
         if platform.system() == 'Darwin':
             # MacPorts
             path = '/opt/local/lib/libopenjp2.dylib'
@@ -84,15 +90,20 @@ def load_openjp2(path):
             path = os.path.join('C:\\', 'Program files', 'OpenJPEG 2.0',
                                 'bin', 'openjp2.dll')
 
+        if path is not None and not os.path.exists(path):
+            # the mac/win default location does not exist.
+            return None
+
     return load_library_handle(path)
 
 
 def load_library_handle(path):
     """Load the library, return the ctypes handle."""
 
-    if path is None or (path is not None and not os.path.exists(path)):
+    if path is None:
         # Either could not find a library via ctypes or user-configuration-file,
         # or we could not find it in any of the default locations.
+        # This is probably a very old linux.
         return None
 
     try:
