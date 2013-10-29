@@ -54,27 +54,55 @@ def load_openjpeg(libopenjpeg_path):
     # and win.
     if libopenjpeg_path is None:
         if platform.system() == 'Darwin':
-            if os.path.exists('/opt/local/lib/libopenjpeg.dylib'):
-                libopenjpeg_path = '/opt/local/lib/libopenjpeg.dylib'
+            # MacPorts
+            path = '/opt/local/lib/libopenjpeg.dylib'
         elif os.name == 'nt':
             path = os.path.join('C:\\', 'Program files', 'OpenJPEG 1.5',
                                 'bin', 'openjpeg.dll')
-            if os.path.exists(path):
-                libopenjpeg_path = path
+        if os.path.exists(path):
+            libopenjpeg_path = path
 
-    # If still no location, then no bother going further.
-    if libopenjpeg_path is None:
+    return load_library(libopenjpeg_path)
+
+
+def load_openjp2(libopenjp2_path):
+    """Load the openjp2 library, falling back on defaults if necessary.
+    """
+    if libopenjp2_path is None:
+        # No help from the config file, try to find it ourselves.
+        libopenjp2_path = find_library('openjp2')
+
+    if libopenjp2_path is None:
+        if platform.system() == 'Darwin':
+            # MacPorts
+            path = '/opt/local/lib/libopenjp2.dylib'
+        elif os.name == 'nt':
+            path = os.path.join('C:\\', 'Program files', 'OpenJPEG 2.0',
+                                'bin', 'openjp2.dll')
+        if os.path.exists(path):
+            libopenjp2_path = path
+
+    return load_library(libopenjp2_path)
+
+
+def load_library(path):
+    """Load the library, return the ctypes handle."""
+
+    if path is None:
         return None
 
     try:
         if os.name == "nt":
-            openjpeg_lib = ctypes.windll.LoadLibrary(libopenjpeg_path)
+            opj_lib = ctypes.windll.LoadLibrary(path)
         else:
-            openjpeg_lib = ctypes.CDLL(libopenjpeg_path)
-    except OSError:
-        openjpeg_lib = None
+            opj_lib = ctypes.CDLL(path)
+    except (TypeError, OSError):
+        msg = '"Library {0}" could not be loaded.  Operating in degraded mode.'
+        msg = msg.format(path)
+        warnings.warn(msg, UserWarning)
+        opj_lib = None
 
-    return openjpeg_lib
+    return opj_lib
 
 
 def read_config_file():
@@ -97,41 +125,6 @@ def read_config_file():
             pass
 
     return lib
-
-
-def load_openjp2(libopenjp2_path):
-    """Load the openjp2 library, falling back on defaults if necessary.
-    """
-    if libopenjp2_path is None:
-        # No help from the config file, try to find it ourselves.
-        libopenjp2_path = find_library('openjp2')
-
-    if libopenjp2_path is None:
-        if platform.system() == 'Darwin':
-            path = '/opt/local/lib/libopenjp2.dylib'
-            if os.path.exists(path):
-                libopenjp2_path = path
-        elif os.name == 'nt':
-            path = os.path.join('C:\\', 'Program files', 'OpenJPEG 2.0',
-                                'bin', 'openjp2.dll')
-            if os.path.exists(path):
-                libopenjp2_path = path
-
-    if libopenjp2_path is None:
-        return None
-
-    try:
-        if os.name == "nt":
-            openjp2_lib = ctypes.windll.LoadLibrary(libopenjp2_path)
-        else:
-            openjp2_lib = ctypes.CDLL(libopenjp2_path)
-    except (TypeError, OSError):
-        msg = '"Library {0}" could not be loaded.  Operating in degraded mode.'
-        msg = msg.format(libopenjp2_path)
-        warnings.warn(msg, UserWarning)
-        openjp2_lib = None
-
-    return openjp2_lib
 
 
 def glymur_config():
