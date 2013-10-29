@@ -1,3 +1,9 @@
+Oct 28, 2013 - v0.5.7  Fixed bad import error message when libopenjpeg library
+    not installed on mac.
+
+Oct 13, 2013 - v0.5.6  Fixed handling of non-ascii chars in XML boxes.  Fixed
+    some docstring errors in jp2box module.
+
 Oct 03, 2013 - v0.5.5  Fixed pip install error introduced in 0.5.0.  
 
 Sep 24, 2013 - v0.5.4  Fixed test error restricted to v2.0.
