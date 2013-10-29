@@ -7,13 +7,13 @@ Most users won't need to read this!  You've been warned...
 Glymur Configuration
 ''''''''''''''''''''''
 
-The default glymur installation process relies upon OpenJPEG version
-1.X being properly installed on your system.  If you have version 1.5 you can
+The default glymur installation process relies upon OpenJPEG
+being properly installed on your system.  If you have version 1.5 you can
 both read and write JPEG 2000 files, but you may wish to install version 2.0 
 or the 2.0+ version from OpenJPEG's development trunk for better performance.
 If you do that, you should compile it as a shared library (named *openjp2*
 instead of *openjpeg*) from the developmental source that you can retrieve
-via subversion.  As of this time of writing, svn revision 2345 works.
+via subversion.  As of this time of writing, svn revision 2347 works.
 You should also download the test data for the purpose of configuring
 and running OpenJPEG's test suite, check their instructions for all this.
 You should set the **OPJ_DATA_ROOT** environment variable for the purpose
@@ -25,16 +25,17 @@ of running Glymur's test suite. ::
 Glymur uses ctypes to access the openjp2/openjpeg libraries,
 and because ctypes accesses libraries in a platform-dependent manner, it is 
 recommended that you create a configuration file to help Glymur properly find
-the openjpeg or openjp2 libraries (linux users don't need to bother if you are
-using OpenJPEG as provided by your package manager).  The configuration
-format is the same as used by Python's configparser module, i.e. ::
+the openjpeg or openjp2 libraries (linux users don't need to bother with this 
+if you are using OpenJPEG as provided by your package manager).  The 
+configuration format is the same as used by Python's configparser module, 
+i.e.  ::
 
     [library]
     openjp2: /opt/openjp2-svn/lib/libopenjp2.so
 
 This assumes, of course, that you've installed OpenJPEG into
 /opt/openjp2-svn on a linux system.  The location of the configuration file
-is platform-dependent (of course).  If you use either linux or mac, the path
+can vary as well (of course).  If you use either linux or mac, the path
 to the configuration file would normally be ::
 
     $HOME/.config/glymur/glymurrc 
@@ -70,7 +71,8 @@ packages/RPMs/ports/whatever without going through pip.
 Mac OS X
 --------
 All the necessary packages are available to use glymur with Python 2.6, 2.7, 
-and 3.3 via MacPorts.  You should install the following set of ports:
+and 3.3 via MacPorts.  For python 3.3, you should install the following set of
+ports:
 
       * python33
       * py33-numpy

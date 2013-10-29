@@ -568,7 +568,7 @@ class CodestreamHeaderBox(Jp2kBox):
 
         Returns
         -------
-        AssociationBox instance
+        CodestreamHeaderBox instance
         """
         box = CodestreamHeaderBox(length=length, offset=offset)
 
@@ -627,7 +627,7 @@ class CompositingLayerHeaderBox(Jp2kBox):
 
         Returns
         -------
-        AssociationBox instance
+        CompositingLayerHeaderBox instance
         """
         box = CompositingLayerHeaderBox(length=length, offset=offset)
 
@@ -638,7 +638,7 @@ class CompositingLayerHeaderBox(Jp2kBox):
 
 
 class ComponentMappingBox(Jp2kBox):
-    """Container for channel identification information.
+    """Container for component mapping information.
 
     Attributes
     ----------
@@ -1637,7 +1637,7 @@ class CaptureResolutionBox(Jp2kBox):
 
     @staticmethod
     def parse(fptr, offset, length):
-        """Parse Resolution box.
+        """Parse CaptureResolutionBox.
 
         Parameters
         ----------
@@ -1694,7 +1694,7 @@ class DisplayResolutionBox(Jp2kBox):
 
     @staticmethod
     def parse(fptr, offset, length):
-        """Parse Resolution box.
+        """Parse display resolution box.
 
         Parameters
         ----------
@@ -1870,10 +1870,8 @@ class XMLBox(Jp2kBox):
         # Strip out any trailing nulls, as they can foul up XML parsing.
         text = text.rstrip(chr(0))
 
-        # Scan for the start of the xml declaration.
-
         try:
-            elt = ET.fromstring(text)
+            elt = ET.fromstring(text.encode('utf-8'))
             xml = ET.ElementTree(elt)
         except ParseError as parse_error:
             msg = 'A problem was encountered while parsing an XML box:'
@@ -2047,7 +2045,7 @@ class DataEntryURLBox(Jp2kBox):
 
     @staticmethod
     def parse(fptr, offset, length):
-        """Parse Data Entry URL box.
+        """Parse data entry URL box.
 
         Parameters
         ----------
@@ -2749,9 +2747,18 @@ def _pretty_print_xml(xml, level=0):
     """
     xml = copy.deepcopy(xml)
     _indent(xml.getroot(), level=level)
-    xmltext = ET.tostring(xml.getroot()).decode('utf-8')
+    xmltext = ET.tostring(xml.getroot(), encoding='utf-8').decode('utf-8')
 
     # Indent it a bit.
     lst = [('    ' + x) for x in xmltext.split('\n')]
-    xml = '\n'.join(lst)
-    return '\n{0}'.format(xml)
+    try:
+        xml = '\n'.join(lst)
+        return '\n{0}'.format(xml)
+    except UnicodeEncodeError:
+        # This can happen on python 2.x if the character set contains certain
+        # non-ascii characters.  Just print out the corresponding xml char
+        # entities instead.
+        xml = u'\n'.join(lst)
+        text = u'\n{0}'.format(xml)
+        text = text.encode('ascii', 'xmlcharrefreplace')
+        return text
