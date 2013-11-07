@@ -646,16 +646,50 @@ class Codestream(object):
         length, = struct.unpack('>H', read_buffer)
 
         xy_buffer = fptr.read(36)
+        data = struct.unpack('>HIIIIIIIIH', xy_buffer)
 
-        num_components, = struct.unpack('>H', xy_buffer[-2:])
+        rsiz = data[0]
+        xysiz = (data[1], data[2])
+        xyosiz = (data[3], data[4])
+        xytsiz = (data[5], data[6])
+        xytosiz = (data[7], data[8])
 
-        component_buffer = fptr.read(num_components * 3)
+        # Csiz is the number of components
+        Csiz = data[9]
 
-        segment = SIZsegment(xy_buffer, component_buffer, length, offset)
+        component_buffer = fptr.read(Csiz * 3)
+        data = struct.unpack('>' + 'B' * len(component_buffer),
+                             component_buffer)
+
+        bitdepth = tuple(((x & 0x7f) + 1) for x in data[0::3])
+        signed = tuple(((x & 0xb0) > 0) for x in data[0::3])
+        
+        xrsiz = data[1::3]
+        yrsiz = data[2::3]
+
+        for j, subsampling in enumerate(zip(xrsiz, yrsiz)):
+            if 0 in subsampling:
+                msg = "Invalid subsampling value for component {0}: "
+                msg += "dx={1}, dy={2}."
+                msg = msg.format(j, subsampling[0], subsampling[1])
+                warnings.warn(msg)
+
+        kwargs = {'rsiz': rsiz,
+                  'xysiz': xysiz,
+                  'xyosiz': xyosiz,
+                  'xytsiz': xytsiz,
+                  'xytosiz': xytosiz,
+                  'Csiz': Csiz,
+                  'bitdepth': bitdepth,
+                  'signed':  signed,
+                  'xyrsiz': (xrsiz, yrsiz),
+                  'length': length,
+                  'offset': offset}
+        segment = SIZsegment(**kwargs)
 
         # Need to keep track of the number of components from SIZ for
-        # other markers
-        self._csiz = len(segment.ssiz)
+        # other markers.
+        self._csiz = Csiz
 
         return segment
 
@@ -1441,8 +1475,8 @@ class SIZsegment(Segment):
         Width and height of reference tile with respect to the reference grid.
     xtosiz, ytosiz : int
         Horizontal and vertical offsets of tile from origin of reference grid.
-    ssiz : iterable bytes
-        Encoded precision (depth) in bits and sign of each component.
+    Csiz : int
+        Number of components in image.
     bitdepth : iterable bytes
         Precision (depth) in bits of each component.
     signed : iterable bool
@@ -1457,21 +1491,20 @@ class SIZsegment(Segment):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, xy_buffer, component_buffer, length, offset):
-        Segment.__init__(self, marker_id='SIZ')
+    def __init__(self, rsiz=-1, xysiz=None, xyosiz=-1, xytsiz=-1, xytosiz=-1,
+                 Csiz=-1, bitdepth=None, signed=None, xyrsiz=-1, length=-1,
+                 offset=-1):
+        Segment.__init__(self, marker_id='SIZ', length=length, offset=offset)
 
-        data = struct.unpack('>HIIIIIIIIH', xy_buffer)
-
-        self.rsiz = data[0]
-        self.xsiz = data[1]
-        self.ysiz = data[2]
-        self.xosiz = data[3]
-        self.yosiz = data[4]
-        self.xtsiz = data[5]
-        self.ytsiz = data[6]
-        self.xtosiz = data[7]
-        self.ytosiz = data[8]
-        # disregarding the last element in data
+        self.rsiz = rsiz
+        self.xsiz, self.ysiz = xysiz
+        self.xosiz, self.yosiz = xyosiz
+        self.xtsiz, self.ytsiz = xytsiz
+        self.xtosiz, self.ytosiz = xytosiz
+        self.Csiz = Csiz
+        self.bitdepth = bitdepth
+        self.signed = signed
+        self.xrsiz, self.yrsiz = xyrsiz
 
         num_tiles_x = (self.xsiz - self.xosiz) / (self.xtsiz - self.xtosiz)
         num_tiles_y = (self.ysiz - self.yosiz) / (self.ytsiz - self.ytosiz)
@@ -1480,26 +1513,23 @@ class SIZsegment(Segment):
             msg = "Invalid number of tiles ({0}).".format(numtiles)
             warnings.warn(msg)
 
-        data = struct.unpack('>' + 'B' * len(component_buffer),
-                             component_buffer)
 
-        self.ssiz = data[0::3]
-
-        for j, subsampling in enumerate(list(zip(data[1::3], data[2::3]))):
-            if 0 in subsampling:
-                msg = "Invalid subsampling value for component {0}: "
-                msg += "dx={1}, dy={2}."
-                msg = msg.format(j, subsampling[0], subsampling[1])
-                warnings.warn(msg)
-        self.xrsiz = data[1::3]
-        self.yrsiz = data[2::3]
-
-        self.bitdepth = tuple(((x & 0x7f) + 1) for x in self.ssiz)
-        self.signed = tuple(((x & 0xb0) > 0) for x in self.ssiz)
-
-        self.length = length
-        self.offset = offset
-
+    def __repr__(self):
+        msg = "glymur.codestream.SIZsegment(rsiz={rsiz}, xysiz={xysiz}, "
+        msg += "xyosiz={xyosiz}, xytsiz={xytsiz}, xytosiz={xytosiz}, "
+        msg += "Csiz={Csiz}, bitdepth={bitdepth}, signed={signed}, "
+        msg += "xyrsiz={xyrsiz})"
+        msg = msg.format(rsiz=self.rsiz,
+                         xysiz=(self.xsiz, self.ysiz),
+                         xyosiz=(self.xosiz, self.yosiz),
+                         xytsiz=(self.xtsiz, self.ytsiz),
+                         xytosiz=(self.xtosiz, self.ytosiz),
+                         Csiz=self.Csiz,
+                         bitdepth=self.bitdepth,
+                         signed=self.signed,
+                         xyrsiz=(self.xrsiz, self.yrsiz))
+        return msg
+                         
     def __str__(self):
         msg = Segment.__str__(self)
         msg += '\n    '
@@ -1549,6 +1579,9 @@ class SOCsegment(Segment):
         Segment.__init__(self, marker_id='SOC')
         self.__dict__.update(**kwargs)
 
+    def __repr__(self):
+        msg = "glymur.codestream.SOCsegment()"
+        return msg
 
 class SODsegment(Segment):
     """Container for Start of Data (SOD) segment information.
