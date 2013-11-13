@@ -1,3 +1,12 @@
+Oct 29, 2013 - Palette box now a 2D numpy array instead of a list of
+    1D arrays.  Super box constructors now take optional box list  argument.
+    Removed ssiz attribute from SIZsegment class.
+
+Oct 29, 2013 - v0.5.9  Fixed bad library load on linux as a result of 0.5.8
+
+Oct 29, 2013 - v0.5.8  Fixed unnecessary warnings when default locations for
+    openjpeg libraries on mac do not specify the actual library.
+
 Oct 28, 2013 - v0.5.7  Fixed bad import error message when libopenjpeg library
     not installed on mac.
 
