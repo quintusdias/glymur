@@ -116,5 +116,49 @@ class TestCodestream(unittest.TestCase):
         # codestream, so the last one is EOC.
         self.assertEqual(codestream.segment[-1].marker_id, 'EOC')
 
+
+class TestCodestreamRepr(unittest.TestCase):
+
+    def setUp(self):
+        self.jp2file = glymur.data.nemo()
+
+    def tearDown(self):
+        pass
+
+    def test_soc(self):
+        """Test SOC segment repr"""
+        segment = glymur.codestream.SOCsegment()
+        newseg = eval(repr(segment))
+        self.assertEqual(newseg.marker_id, 'SOC')
+
+    def test_siz(self):
+        """Test SIZ segment repr"""
+        kwargs = {'rsiz': 0,
+                  'xysiz': (2592, 1456),
+                  'xyosiz': (0, 0),
+                  'xytsiz': (2592, 1456),
+                  'xytosiz': (0, 0),
+                  'Csiz': 3,
+                  'bitdepth': (8, 8, 8),
+                  'signed':  (False, False, False),
+                  'xyrsiz': ((1, 1, 1), (1, 1, 1))}
+        segment = glymur.codestream.SIZsegment(**kwargs)
+        newseg = eval(repr(segment))
+        self.assertEqual(newseg.marker_id, 'SIZ')
+        self.assertEqual(newseg.xsiz, 2592)
+        self.assertEqual(newseg.ysiz, 1456)
+        self.assertEqual(newseg.xosiz, 0)
+        self.assertEqual(newseg.yosiz, 0)
+        self.assertEqual(newseg.xtsiz, 2592)
+        self.assertEqual(newseg.ytsiz, 1456)
+        self.assertEqual(newseg.xtosiz, 0)
+        self.assertEqual(newseg.ytosiz, 0)
+
+        self.assertEqual(newseg.xrsiz, (1, 1, 1))
+        self.assertEqual(newseg.yrsiz, (1, 1, 1))
+        self.assertEqual(newseg.bitdepth, (8, 8, 8))
+        self.assertEqual(newseg.signed, (False, False, False))
+
+
 if __name__ == "__main__":
     unittest.main()

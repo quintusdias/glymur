@@ -62,266 +62,6 @@ class TestSuite(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_ETS_C0P0_p0_01_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_01.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=0)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p0_01.pgx')
-        pgxdata = read_pgx(pgxfile)
-        np.testing.assert_array_equal(jpdata, pgxdata)
-
-    def test_ETS_C0P0_p0_02_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_02.j2k')
-        jp2k = Jp2k(jfile)
-        with warnings.catch_warnings():
-            # Invalid marker ID.
-            warnings.simplefilter("ignore")
-            jpdata = jp2k.read(rlevel=0)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p0_02.pgx')
-        pgxdata = read_pgx(pgxfile)
-        np.testing.assert_array_equal(jpdata, pgxdata)
-
-    @unittest.skip("Known failure in OPENJPEG test suite.")
-    def test_ETS_C0P0_p0_03_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_03.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=0)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p0_03r0.pgx')
-        pgxdata = read_pgx(pgxfile)
-        np.testing.assert_array_equal(jpdata, pgxdata)
-
-    def test_ETS_C0P0_p0_03_j2k_r1(self):
-        jfile = opj_data_file('input/conformance/p0_03.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=1)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p0_03r1.pgx')
-        pgxdata = read_pgx(pgxfile)
-        np.testing.assert_array_equal(jpdata, pgxdata)
-
-    @unittest.skip("Known failure in OPENJPEG test suite.")
-    def test_ETS_C0P0_p0_04_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_04.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=3)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p0_04.pgx')
-        pgxdata = read_pgx(pgxfile)
-
-        self.assertTrue(peak_tolerance(jpdata[:, :, 2], pgxdata) < 33)
-        self.assertTrue(mse(jpdata[:, :, 2], pgxdata) < 55.8)
-
-    @unittest.skip("Known failure in OPENJPEG test suite.")
-    def test_ETS_C0P0_p0_07_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_07.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read()
-
-        pgxfile = opj_data_file('baseline/conformance/c0p0_07.pgx')
-        pgxdata = read_pgx(pgxfile)
-
-        self.assertTrue(peak_tolerance(jpdata[:, :, 0], pgxdata) < 10)
-        self.assertTrue(mse(jpdata[:, :, 0], pgxdata) < 0.34)
-
-    @unittest.skip("8-bit pgx data vs 12-bit j2k data")
-    def test_ETS_C0P0_p0_08_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_08.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=5)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p0_08.pgx')
-        pgxdata = read_pgx(pgxfile)
-
-        self.assertTrue(peak_tolerance(jpdata[:, :, 0], pgxdata) < 7)
-        self.assertTrue(mse(jpdata[:, :, 0], pgxdata) < 6.72)
-
-    def test_ETS_C0P0_p0_09_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_09.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=2)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p0_09.pgx')
-        pgxdata = read_pgx(pgxfile)
-
-        self.assertTrue(peak_tolerance(jpdata, pgxdata) < 4)
-        self.assertTrue(mse(jpdata, pgxdata) < 1.47)
-
-    @unittest.skip("Known failure in OPENJPEG test suite.")
-    def test_ETS_C0P0_p0_10_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_10.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=0)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p0_10.pgx')
-        pgxdata = read_pgx(pgxfile)
-
-        self.assertTrue(peak_tolerance(jpdata[:, :, 0], pgxdata) < 10)
-        self.assertTrue(mse(jpdata[:, :, 0], pgxdata) < 2.84)
-
-    def test_ETS_C0P0_p0_11_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_11.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=0)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p0_11.pgx')
-        pgxdata = read_pgx(pgxfile)
-
-        np.testing.assert_array_equal(jpdata, pgxdata)
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_ETS_C0P0_p0_12_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_12.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=0)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p0_12.pgx')
-        pgxdata = read_pgx(pgxfile)
-
-        np.testing.assert_array_equal(jpdata, pgxdata)
-
-    @unittest.skip("Known failure in OPENJPEG test suite.")
-    def test_ETS_C0P0_p0_13_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_13.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=0)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p0_13.pgx')
-        pgxdata = read_pgx(pgxfile)
-
-        np.testing.assert_array_equal(jpdata[:, :, 0], pgxdata)
-
-    @unittest.skip("Known failure in OPENJPEG test suite.")
-    def test_ETS_C0P0_p0_14_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_14.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=2)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p0_14.pgx')
-        pgxdata = read_pgx(pgxfile)
-
-        np.testing.assert_array_equal(jpdata[:, :, 0], pgxdata)
-
-    @unittest.skip("Known failure in OPENJPEG test suite.")
-    def test_ETS_C0P0_p0_15_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_15.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=0)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p0_15r0.pgx')
-        pgxdata = read_pgx(pgxfile)
-
-        np.testing.assert_array_equal(jpdata, pgxdata)
-
-    def test_ETS_C0P0_p0_15_j2k_r1(self):
-        jfile = opj_data_file('input/conformance/p0_15.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=1)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p0_15r1.pgx')
-        pgxdata = read_pgx(pgxfile)
-
-        np.testing.assert_array_equal(jpdata, pgxdata)
-
-    def test_ETS_C0P0_p0_16_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_16.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=0)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p0_16.pgx')
-        pgxdata = read_pgx(pgxfile)
-
-        np.testing.assert_array_equal(jpdata, pgxdata)
-
-    def test_ETS_C0P1_p1_01_j2k(self):
-        jfile = opj_data_file('input/conformance/p1_01.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=0)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p1_01.pgx')
-        pgxdata = read_pgx(pgxfile)
-
-        np.testing.assert_array_equal(jpdata, pgxdata)
-
-    @unittest.skip("Known failure in OPENJPEG test suite operation.")
-    def test_ETS_C0P1_p1_02_j2k(self):
-        jfile = opj_data_file('input/conformance/p1_02.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=3)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p1_02.pgx')
-        pgxdata = read_pgx(pgxfile)
-
-        self.assertTrue(peak_tolerance(jpdata[:, :, 0], pgxdata) < 35)
-        self.assertTrue(mse(jpdata[:, :, 0], pgxdata) < 74)
-
-    @unittest.skip("Known failure in OPENJPEG test suite operation.")
-    def test_ETS_C0P1_p1_04_j2k(self):
-        jfile = opj_data_file('input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=0)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p1_04r0.pgx')
-        pgxdata = read_pgx(pgxfile)
-
-        print(peak_tolerance(jpdata, pgxdata))
-        self.assertTrue(peak_tolerance(jpdata, pgxdata) < 2)
-        self.assertTrue(mse(jpdata, pgxdata) < 0.55)
-
-    @unittest.skip("Known failure in OPENJPEG test suite, precision issue.")
-    def test_ETS_C0P1_p1_04_j2k_r3(self):
-        jfile = opj_data_file('input/conformance/p1_04.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=3)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p1_04r3.pgx')
-        pgxdata = read_pgx(pgxfile)
-
-        print(peak_tolerance(jpdata, pgxdata))
-        self.assertTrue(peak_tolerance(jpdata, pgxdata) < 2)
-        self.assertTrue(mse(jpdata, pgxdata) < 0.55)
-
-    @unittest.skip("Known failure in OPENJPEG test suite operation.")
-    def test_ETS_C0P1_p1_05_j2k(self):
-        jfile = opj_data_file('input/conformance/p1_05.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=4)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p1_05.pgx')
-        pgxdata = read_pgx(pgxfile)
-
-        print(peak_tolerance(jpdata[:, :, 0], pgxdata))
-        print(peak_tolerance(jpdata[:, :, 1], pgxdata))
-        self.assertTrue(peak_tolerance(jpdata[:, :, 0], pgxdata) < 128)
-        self.assertTrue(mse(jpdata[:, :, 0], pgxdata) < 16384)
-
-    @unittest.skip("Known failure in OPENJPEG test suite operation.")
-    def test_ETS_C0P1_p1_06_j2k(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=1)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p1_06.pgx')
-        pgxdata = read_pgx(pgxfile)
-
-        print(peak_tolerance(jpdata[:, :, 0], pgxdata))
-        print(peak_tolerance(jpdata[:, :, 1], pgxdata))
-        self.assertTrue(peak_tolerance(jpdata[:, :, 0], pgxdata) < 128)
-        self.assertTrue(mse(jpdata[:, :, 0], pgxdata) < 16384)
-
-    @unittest.skip("fprintf stderr output in r2345.")
-    def test_ETS_C0P1_p1_07_j2k(self):
-        jfile = opj_data_file('input/conformance/p1_07.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read_bands(rlevel=0)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p1_07.pgx')
-        pgxdata = read_pgx(pgxfile)
-
-        np.testing.assert_array_equal(jpdata[0], pgxdata)
-
     def test_ETS_C1P0_p0_01_j2k(self):
         jfile = opj_data_file('input/conformance/p0_01.j2k')
         jp2k = Jp2k(jfile)
@@ -332,10 +72,13 @@ class TestSuite(unittest.TestCase):
 
         np.testing.assert_array_equal(jpdata, pgxdata)
 
+    @unittest.skipIf(sys.hexversion < 0x03020000,
+                     "Uses features introduced in 3.2.")
     def test_ETS_C1P0_p0_02_j2k(self):
         jfile = opj_data_file('input/conformance/p0_02.j2k')
         jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=0)
+        with self.assertWarns(UserWarning):
+            jpdata = jp2k.read(rlevel=0)
 
         pgxfile = opj_data_file('baseline/conformance/c1p0_02_0.pgx')
         pgxdata = read_pgx(pgxfile)
@@ -3797,19 +3540,16 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[0].ip_provided, False)
 
         # Palette box.
-        self.assertEqual(len(jp2.box[2].box[1].palette), 3)
-        self.assertEqual(len(jp2.box[2].box[1].palette[0]), 256)
-        self.assertEqual(len(jp2.box[2].box[1].palette[1]), 256)
-        self.assertEqual(len(jp2.box[2].box[1].palette[2]), 256)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[0][0], 0)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[1][0], 0)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[2][0], 0)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[0][128], 73)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[1][128], 92)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[2][128], 53)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[0][-1], 245)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[1][-1], 245)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[2][-1], 245)
+        self.assertEqual(jp2.box[2].box[1].palette.shape, (256, 3))
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[0, 0], 0)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[0, 1], 0)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[0, 2], 0)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[128, 0], 73)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[128, 1], 92)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[128, 2], 53)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[255, 0], 245)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[255, 1], 245)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[255, 2], 245)
 
         # Component mapping box
         self.assertEqual(jp2.box[2].box[2].component_index, (0, 0, 0))
@@ -5699,10 +5439,7 @@ class TestSuiteDump(unittest.TestCase):
 
         # Jp2 Header
         # Palette box.
-        self.assertEqual(len(jp2.box[3].box[2].palette), 3)
-        self.assertEqual(len(jp2.box[3].box[2].palette[0]), 256)
-        self.assertEqual(len(jp2.box[3].box[2].palette[1]), 256)
-        self.assertEqual(len(jp2.box[3].box[2].palette[2]), 256)
+        self.assertEqual(jp2.box[3].box[2].palette.shape, (256, 3))
 
         # Jp2 Header
         # Component mapping box
@@ -6127,11 +5864,7 @@ class TestSuiteDump(unittest.TestCase):
 
         # Jp2 Header
         # Palette box.
-        self.assertEqual(len(jp2.box[3].box[2].palette), 4)
-        self.assertEqual(len(jp2.box[3].box[2].palette[0]), 1)
-        self.assertEqual(len(jp2.box[3].box[2].palette[1]), 1)
-        self.assertEqual(len(jp2.box[3].box[2].palette[2]), 1)
-        self.assertEqual(len(jp2.box[3].box[2].palette[3]), 1)
+        self.assertEqual(jp2.box[3].box[2].palette.shape, (1, 4))
 
         # Jp2 Header
         # Component mapping box
@@ -6242,10 +5975,7 @@ class TestSuiteDump(unittest.TestCase):
         # Jp2 Header
         # Palette box.
         # 3 columns with 16 entries.
-        self.assertEqual(len(jp2.box[3].box[2].palette), 3)
-        self.assertEqual(len(jp2.box[3].box[2].palette[0]), 16)
-        self.assertEqual(len(jp2.box[3].box[2].palette[1]), 16)
-        self.assertEqual(len(jp2.box[3].box[2].palette[2]), 16)
+        self.assertEqual(jp2.box[3].box[2].palette.shape, (16, 3))
 
         # Jp2 Header
         # Component mapping box
@@ -6740,40 +6470,6 @@ class TestSuite_bands(unittest.TestCase):
 
     def tearDown(self):
         pass
-
-    def test_ETS_C0P0_p0_05_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_05.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read_bands(rlevel=3)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p0_05.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[0], pgxdata) < 54)
-        self.assertTrue(mse(jpdata[0], pgxdata) < 68)
-
-    @unittest.skip("8-bit pgx data vs 12-bit j2k data")
-    def test_ETS_C0P0_p0_06_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_06.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read_bands(rlevel=3)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p0_06.pgx')
-        pgxdata = read_pgx(pgxfile)
-        tol = peak_tolerance(jpdata[0], pgxdata)
-        self.assertTrue(tol < 109)
-        m = mse(jpdata[0], pgxdata)
-        self.assertTrue(m < 743)
-
-    def test_ETS_C0P1_p1_03_j2k(self):
-        jfile = opj_data_file('input/conformance/p1_03.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read_bands(rlevel=3)
-
-        pgxfile = opj_data_file('baseline/conformance/c0p1_03.pgx')
-        pgxdata = read_pgx(pgxfile)
-
-        self.assertTrue(peak_tolerance(jpdata[0], pgxdata) < 28)
-        self.assertTrue(mse(jpdata[0], pgxdata) < 18.8)
 
     def test_ETS_C1P1_p1_03_j2k(self):
         jfile = opj_data_file('input/conformance/p1_03.j2k')

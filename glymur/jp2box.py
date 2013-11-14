@@ -75,6 +75,12 @@ class Jp2kBox(object):
         self.offset = offset
         self.longname = longname
 
+    def __repr__(self):
+        msg = "glymur.jp2box.Jp2kBox(box_id='{0}', offset={1}, length={2}, "
+        msg += "longname='{3}')"
+        msg = msg.format(self.box_id, self.offset, self.length, self.longname)
+        return msg
+
     def __str__(self):
         msg = "{0} Box ({1})".format(self.longname, self.box_id)
         msg += " @ ({0}, {1})".format(self.offset, self.length)
@@ -205,6 +211,17 @@ class ColourSpecificationBox(Jp2kBox):
         self.icc_profile = icc_profile
         self.length = length
         self.offset = offset
+
+    def __repr__(self):
+        msg = "glymur.jp2box.ColourSpecificationBox("
+        msg += "method={0}, precedence={1}, approximation={2}, colorspace={3}, "
+        msg += "icc_profile={4})"
+        msg = msg.format(self.method,
+                         self.precedence,
+                         self.approximation,
+                         self.colorspace,
+                         self.icc_profile)
+        return msg
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -426,12 +443,12 @@ class ChannelDefinitionBox(Jp2kBox):
         offset of the box from the start of the file.
     longname : str
         more verbose description of the box.
-    index : int
+    index : list
         number of the channel.  Defaults to monotonically increasing sequence,
         i.e. [0, 1, 2, ...]
-    channel_type : int
+    channel_type : list
         type of the channel
-    association : int
+    association : list
         index of the associated color
     """
     def __init__(self, index=None, channel_type=None, association=None,
@@ -458,9 +475,9 @@ class ChannelDefinitionBox(Jp2kBox):
             msg += "    65535 - unspecified"
             raise IOError(msg)
 
-        self.index = index
-        self.channel_type = channel_type
-        self.association = association
+        self.index = tuple(index)
+        self.channel_type = tuple(channel_type)
+        self.association = tuple(association)
         self.__dict__.update(**kwargs)
 
     def __str__(self):
@@ -473,6 +490,12 @@ class ChannelDefinitionBox(Jp2kBox):
                 assn = str(self.association[j])
             msg += '\n    Channel {0} ({1}) ==> ({2})'
             msg = msg.format(self.index[j], color_type_string, assn)
+        return msg
+
+    def __repr__(self):
+        msg = "glymur.jp2box.ChannelDefinitionBox("
+        msg += "index={0}, channel_type={1}, association={2})"
+        msg = msg.format(self.index, self.channel_type, self.association)
         return msg
 
     def write(self, fptr):
@@ -537,11 +560,15 @@ class CodestreamHeaderBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, length=0, offset=-1):
+    def __init__(self, box=[], length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='jpch', longname='Codestream Header')
         self.length = length
         self.offset = offset
-        self.box = []
+        self.box = box
+
+    def __repr__(self):
+        msg = "glymur.jp2box.CodestreamHeaderBox(box={0})".format(self.box)
+        return msg
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -595,12 +622,17 @@ class CompositingLayerHeaderBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, length=0, offset=-1):
+    def __init__(self, box=[], length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='jplh',
                          longname='Compositing Layer Header')
         self.length = length
         self.offset = offset
         self.box = []
+
+    def __repr__(self):
+        msg = "glymur.jp2box.CompositingLayerHeaderBox(box={0})"
+        msg = msg.format(self.box)
+        return msg
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -650,11 +682,11 @@ class ComponentMappingBox(Jp2kBox):
         Offset of the box from the start of the file.
     longname : str
         Verbose description of the box.
-    component_index : int
+    component_index : tuple
         Index of component in codestream that is mapped to this channel.
-    mapping_type : int
+    mapping_type : tuple
         mapping type, either direct use (0) or palette (1)
-    palette_index : int
+    palette_index : tuple
         Index component from palette
     """
     def __init__(self, component_index, mapping_type, palette_index,
@@ -665,6 +697,14 @@ class ComponentMappingBox(Jp2kBox):
         self.palette_index = palette_index
         self.length = length
         self.offset = offset
+
+    def __repr__(self):
+        msg = "glymur.jp2box.ComponentMappingBox("
+        msg += "component_index={0}, mapping_type={1}, palette_index={2})"
+        msg = msg.format(self.component_index,
+                         self.mapping_type,
+                         self.palette_index)
+        return msg
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -733,6 +773,10 @@ class ContiguousCodestreamBox(Jp2kBox):
         self.length = length
         self.offset = offset
 
+    def __repr__(self):
+        msg = "glymur.jp2box.ContiguousCodeStreamBox(main_header={0})"
+        return msg.format(repr(self.main_header))
+
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         msg += '\n    Main header:'
@@ -800,6 +844,13 @@ class FileTypeBox(Jp2kBox):
             self.compatibility_list = compatibility_list
         self.length = length
         self.offset = offset
+
+    def __repr__(self):
+        msg = "glymur.jp2box.FileTypeBox(brand='{0}', minor_version={1}, "
+        msg += "compatibility_list={2})"
+        msg = msg.format(self.brand, self.minor_version,
+                         self.compatibility_list)
+        return msg
 
     def __str__(self):
         lst = [Jp2kBox.__str__(self),
@@ -914,8 +965,23 @@ class ImageHeaderBox(Jp2kBox):
         self.length = length
         self.offset = offset
 
+    def __repr__(self):
+        msg = "glymur.jp2box.ImageHeaderBox("
+        msg += "{height}, {width}, num_components={num_components}, "
+        msg += "signed={signed}, bits_per_component={bits_per_component}, "
+        msg += "compression={compression}, "
+        msg += "colorspace_unknown={colorspace_unknown}, "
+        msg += "ip_provided={ip_provided})"
+        msg = msg.format(height=self.height, width=self.width,
+                         num_components=self.num_components,
+                         signed=self.signed,
+                         bits_per_component=self.bits_per_component,
+                         compression=self.compression,
+                         colorspace_unknown=self.colorspace_unknown,
+                         ip_provided=self.ip_provided)
+        return msg
+
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
         msg = "{0}"
         msg += '\n    Size:  [{1} {2} {3}]'
         msg += '\n    Bitdepth:  {4}'
@@ -1004,11 +1070,15 @@ class AssociationBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, length=0, offset=-1):
+    def __init__(self, box=[], length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='asoc', longname='Association')
         self.length = length
         self.offset = offset
-        self.box = []
+        self.box = box
+
+    def __repr__(self):
+        msg = "glymur.jp2box.AssociationBox(box={0})".format(self.box)
+        return msg
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -1062,11 +1132,15 @@ class JP2HeaderBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, length=0, offset=-1):
+    def __init__(self, box=[], length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='jp2h', longname='JP2 Header')
         self.length = length
         self.offset = offset
-        self.box = []
+        self.box = box
+
+    def __repr__(self):
+        msg = "glymur.jp2box.JP2HeaderBox(box={0})".format(self.box)
+        return msg
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -1141,6 +1215,9 @@ class JPEG2000SignatureBox(Jp2kBox):
         self.length = length
         self.offset = offset
 
+    def __repr__(self):
+        return 'glymur.jp2box.JPEG2000SignatureBox()'
+
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         msg += '\n    Signature:  {0:02x}{1:02x}{2:02x}{3:02x}'
@@ -1193,8 +1270,8 @@ class PaletteBox(Jp2kBox):
         offset of the box from the start of the file.
     longname : str
         more verbose description of the box.
-    palette : list
-        Colormap represented as list of 1D arrays, one per color component.
+    palette : ndarray
+        Colormap array.
     """
     def __init__(self, palette, bits_per_component, signed, length=0,
                  offset=-1):
@@ -1205,10 +1282,15 @@ class PaletteBox(Jp2kBox):
         self.length = length
         self.offset = offset
 
+    def __repr__(self):
+        msg = "glymur.jp2box.PaletteBox({0}, bits_per_component={1}, "
+        msg += "signed={2})"
+        msg = msg.format(self.palette, self.bits_per_component, self.signed)
+        return msg
+
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        msg += '\n    Size:  ({0} x {1})'.format(len(self.palette[0]),
-                                                 len(self.palette))
+        msg += '\n    Size:  ({0} x {1})'.format(*self.palette.shape)
         return msg
 
     @staticmethod
@@ -1238,67 +1320,28 @@ class PaletteBox(Jp2kBox):
         bps = [((x & 0x07f) + 1) for x in data]
         signed = [((x & 0x80) > 1) for x in data]
 
+        fmt = '>'
+        for bits in bps:
+            if bits <= 8:
+                fmt += 'B'
+            elif bits <= 16:
+                fmt += 'H'
+            elif bits <= 32:
+                fmt += 'I'
+
         # Each palette component is padded out to the next largest byte.
         # That means a list comprehension does this in one shot.
         row_nbytes = sum([int(math.ceil(x/8.0)) for x in bps])
 
-        # Form the format string so that we can intelligently unpack the
-        # colormap.  We have to do this because it is possible that the
-        # colormap columns could have different datatypes.
-        #
-        # This means that we store the palette as a list of 1D arrays,
-        # which reverses the usual indexing scheme.
         read_buffer = fptr.read(num_entries * row_nbytes)
-        palette = _buffer2palette(read_buffer, num_entries, num_columns, bps)
+        palette = np.zeros((num_entries, num_columns), dtype=np.int32)
+        for j in range(num_entries):
+            palette[j] = struct.unpack_from(fmt, read_buffer,
+                                            offset=j * row_nbytes)
 
         box = PaletteBox(palette, bps, signed, length=length, offset=offset)
         return box
 
-
-def _buffer2palette(read_buffer, num_rows, num_cols, bps):
-    """Construct the palette from the buffer read from file.
-
-    Parameters
-    ----------
-    read_buffer : iterable
-        Byte array of palette information read from file.
-    num_rows, num_cols : int
-        Size of palette.
-    bps : iterable
-        Bits per sample for each channel.
-
-    Returns
-    -------
-    palette : list of 1D arrays
-        Each 1D array corresponds to a channel.
-    """
-    row_nbytes = 0
-    palette = []
-    fmt = '>'
-    for j in range(num_cols):
-        if bps[j] <= 8:
-            row_nbytes += 1
-            fmt += 'B'
-            palette.append(np.zeros(num_rows, dtype=np.uint8))
-        elif bps[j] <= 16:
-            row_nbytes += 2
-            fmt += 'H'
-            palette.append(np.zeros(num_rows, dtype=np.uint16))
-        elif bps[j] <= 32:
-            row_nbytes += 4
-            fmt += 'I'
-            palette.append(np.zeros(num_rows, dtype=np.uint32))
-        else:
-            msg = 'Unsupported palette bitdepth (%d).'.format(bps[j])
-            raise IOError(msg)
-
-    for j in range(num_rows):
-        row_buffer = read_buffer[(row_nbytes * j):(row_nbytes * (j + 1))]
-        row = struct.unpack(fmt, row_buffer)
-        for k in range(num_cols):
-            palette[k][j] = row[k]
-
-    return palette
 
 # Map rreq codes to display text.
 _READER_REQUIREMENTS_DISPLAY = {
@@ -1425,6 +1468,18 @@ class ReaderRequirementsBox(Jp2kBox):
         self.vendor_mask = vendor_mask
         self.length = length
         self.offset = offset
+
+    def __repr__(self):
+        msg = "glymur.jp2box.ReaderRequirementsBox(fuam={fuam}, dcm={dcm}, "
+        msg += "standard_flag={standard_flag}, standard_mask={standard_mask}, "
+        msg += "vendor_feature={vendor_feature}, vendor_mask={vendor_mask})"
+        msg = msg.format(fuam=self.fuam,
+                         dcm=self.dcm,
+                         standard_flag=self.standard_flag,
+                         standard_mask=self.standard_mask,
+                         vendor_feature=self.vendor_feature,
+                         vendor_mask=self.vendor_mask)
+        return msg
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -1563,11 +1618,16 @@ class ResolutionBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, length=0, offset=-1):
+    def __init__(self, box=[], length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='res ', longname='Resolution')
         self.length = length
         self.offset = offset
-        self.box = []
+        self.box = box
+
+    def __repr__(self):
+        msg = "glymur.jp2box.ResolutionBox(box={0})"
+        msg = msg.format(self.box)
+        return msg
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -1629,6 +1689,11 @@ class CaptureResolutionBox(Jp2kBox):
         self.length = length
         self.offset = offset
 
+    def __repr__(self):
+        msg = "glymur.jp2box.CaptureResolutionBox({0}, {1})"
+        msg = msg.format(self.vertical_resolution, self.horizontal_resolution)
+        return msg
+
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         msg += '\n    VCR:  {0}'.format(self.vertical_resolution)
@@ -1685,6 +1750,11 @@ class DisplayResolutionBox(Jp2kBox):
         self.horizontal_resolution = horizontal_resolution
         self.length = length
         self.offset = offset
+
+    def __repr__(self):
+        msg = "glymur.jp2box.DisplayResolutionBox({0}, {1})"
+        msg = msg.format(self.vertical_resolution, self.horizontal_resolution)
+        return msg
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -1745,6 +1815,10 @@ class LabelBox(Jp2kBox):
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         msg += '\n    Label:  {0}'.format(self.label)
+        return msg
+
+    def __repr__(self):
+        msg = 'glymur.jp2box.LabelBox("{0}")'.format(self.label)
         return msg
 
     @staticmethod
@@ -1808,6 +1882,9 @@ class XMLBox(Jp2kBox):
         self.length = length
         self.offset = offset
 
+    def __repr__(self):
+        return "glymur.jp2box.XMLBox(xml={0})".format(self.xml)
+
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         xml = self.xml
@@ -1866,7 +1943,6 @@ class XMLBox(Jp2kBox):
             msg = msg.format(offset, ude.reason)
             warnings.warn(msg, UserWarning)
 
-
         # Strip out any trailing nulls, as they can foul up XML parsing.
         text = text.rstrip(chr(0))
 
@@ -1905,6 +1981,10 @@ class UUIDListBox(Jp2kBox):
         self.ulst = ulst
         self.length = length
         self.offset = offset
+
+    def __repr__(self):
+        msg = "glymur.jp2box.UUIDListBox({0})".format(self.ulst)
+        return msg
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -1957,11 +2037,15 @@ class UUIDInfoBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, length=0, offset=-1):
+    def __init__(self, box=[], length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='uinf', longname='UUIDInfo')
         self.length = length
         self.offset = offset
-        self.box = []
+        self.box = box
+
+    def __repr__(self):
+        msg = "glymur.jp2box.UUIDInfoBox(box={0})".format(self.box)
+        return msg
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -2029,6 +2113,11 @@ class DataEntryURLBox(Jp2kBox):
         self.url = url
         self.length = length
         self.offset = offset
+
+    def __repr__(self):
+        msg = "glymur.jp2box.DataEntryURLBox({0}, {1}, '{2}')"
+        msg = msg.format(self.version, self.flag, self.url)
+        return msg
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -2112,6 +2201,7 @@ class UUIDBox(Jp2kBox):
         """
         Jp2kBox.__init__(self, box_id='uuid', longname='UUID')
         self.uuid = the_uuid
+        self.raw_data = raw_data
 
         if the_uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
             # XMP data.  Parse as XML.  Seems to be a difference between
@@ -2135,6 +2225,12 @@ class UUIDBox(Jp2kBox):
 
         self.length = length
         self.offset = offset
+
+    def __repr__(self):
+        msg = "glymur.jp2box.UUIDBox(the_uuid={0}, "
+        msg += "raw_data=<byte array {1} elements>)"
+        return msg.format(repr(self.uuid), len(self.raw_data))
+
 
     def __str__(self):
         msg = '{0}\n'
