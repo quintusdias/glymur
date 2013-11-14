@@ -1,4 +1,22 @@
-Sep 23, 2013 - v0.5.2  Fixed some teests that have been failing since 0.5.
+Oct 29, 2013 - v0.5.9  Fixed bad library load on linux as a result of 0.5.8
+
+Oct 29, 2013 - v0.5.8  Fixed unnecessary warnings when default locations for
+    openjpeg libraries on mac do not specify the actual library.
+
+Oct 28, 2013 - v0.5.7  Fixed bad import error message when libopenjpeg library
+    not installed on mac.
+
+Oct 13, 2013 - v0.5.6  Fixed handling of non-ascii chars in XML boxes.  Fixed
+    some docstring errors in jp2box module.
+
+Oct 03, 2013 - v0.5.5  Fixed pip install error introduced in 0.5.0.  
+
+Sep 24, 2013 - v0.5.4  Fixed test error restricted to v2.0.
+
+Sep 24, 2013 - v0.5.3  Removed a duplicated channel definition test in
+    test_jp2box that could cause a segfault in 1.3 if not properly skipped.
+
+Sep 23, 2013 - v0.5.2  Fixed some tests that have been failing since 0.5.
     under various edge cases.
 
 Sep 19, 2013 - v0.5.1  Added more resiliency to XML box parsing.  Fixed tests

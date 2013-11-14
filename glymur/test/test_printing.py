@@ -1,3 +1,4 @@
+# -*- coding:  utf-8 -*-
 """Test suite for printing.
 """
 # C0302:  don't care too much about having too many lines in a test module
@@ -15,6 +16,7 @@ import struct
 import sys
 import tempfile
 import warnings
+from xml.etree import cElementTree as ET
 
 if sys.hexversion < 0x02070000:
     import unittest2 as unittest
@@ -729,6 +731,65 @@ class TestPrinting(unittest.TestCase):
                  '    </ns0:IMAGE_CREATION>']
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
+
+    @unittest.skipIf(sys.hexversion < 0x03000000,
+                     "Only trusting python3 for printing non-ascii chars")
+    def test_xml_latin1(self):
+        """Should be able to print an XMLBox with utf-8 encoding (latin1)."""
+        # Seems to be inconsistencies between different versions of python2.x
+        # as to what gets printed.  
+        #
+        # 2.7.5 (fedora 19) prints xml entities.
+        # 2.7.3 seems to want to print hex escapes.
+        text = u"""<?xml version="1.0" encoding="utf-8"?>
+        <flow>Strömung</flow>"""
+        if sys.hexversion < 0x03000000:
+            xml = ET.parse(StringIO(text.encode('utf-8')))
+        else:
+            xml = ET.parse(StringIO(text))
+
+        xmlbox = glymur.jp2box.XMLBox(xml=xml)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(xmlbox)
+            actual = fake_out.getvalue().strip()
+            if sys.hexversion < 0x03000000:
+                lines = ["XML Box (xml ) @ (-1, 0)",
+                         "    <flow>Str\xc3\xb6mung</flow>"]
+            else:
+                lines = ["XML Box (xml ) @ (-1, 0)",
+                         "    <flow>Strömung</flow>"]
+            expected = '\n'.join(lines)
+            self.assertEqual(actual, expected)
+
+    @unittest.skipIf(sys.hexversion < 0x03000000,
+                     "Only trusting python3 for printing non-ascii chars")
+    def test_xml_cyrrilic(self):
+        """Should be able to print an XMLBox with utf-8 encoding (cyrrillic)."""
+        # Seems to be inconsistencies between different versions of python2.x
+        # as to what gets printed.  
+        #
+        # 2.7.5 (fedora 19) prints xml entities.
+        # 2.7.3 seems to want to print hex escapes.
+        text = u"""<?xml version="1.0" encoding="utf-8"?>
+        <country>Россия</country>"""
+        if sys.hexversion < 0x03000000:
+            xml = ET.parse(StringIO(text.encode('utf-8')))
+        else:
+            xml = ET.parse(StringIO(text))
+
+        xmlbox = glymur.jp2box.XMLBox(xml=xml)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(xmlbox)
+            actual = fake_out.getvalue().strip()
+            if sys.hexversion < 0x03000000:
+                lines = ["XML Box (xml ) @ (-1, 0)",
+                         "    <country>&#1056;&#1086;&#1089;&#1089;&#1080;&#1103;</country>"]
+            else:
+                lines = ["XML Box (xml ) @ (-1, 0)",
+                         "    <country>Россия</country>"]
+
+            expected = '\n'.join(lines)
+            self.assertEqual(actual, expected)
 
     @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")

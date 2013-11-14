@@ -13,7 +13,9 @@ from distutils.version import LooseVersion
 from .lib import openjpeg as opj
 from .lib import openjp2 as opj2
 
-version = "0.5.2"
+# Do not change the format of this next line!  Doing so risks breaking
+# setup.py
+version = "0.5.9"
 _sv = LooseVersion(version)
 version_tuple = _sv.version
 
