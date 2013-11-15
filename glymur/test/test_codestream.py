@@ -117,6 +117,17 @@ class TestCodestream(unittest.TestCase):
         self.assertEqual(codestream.segment[-1].marker_id, 'EOC')
 
 
+    def test_siz_segment_ssiz(self):
+        """ssiz attribute to be removed in future release"""
+        j = Jp2k(self.jp2file)
+        codestream = j.get_codestream()
+
+        # The ssiz attribute was simply a tuple of raw bytes.
+        # The first 7 bits are interpreted as the bitdepth, the MSB determines
+        # whether or not it is signed.
+        self.assertEqual(codestream.segment[1].ssiz, (7, 7, 7))
+
+
 class TestCodestreamRepr(unittest.TestCase):
 
     def setUp(self):
