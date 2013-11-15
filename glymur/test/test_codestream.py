@@ -32,8 +32,6 @@ except:
     raise
 
 
-@unittest.skipIf(DATA_ROOT is None,
-                 "OPJ_DATA_ROOT environment variable not set")
 class TestCodestream(unittest.TestCase):
     """Test suite for unusual codestream cases."""
 
@@ -43,6 +41,8 @@ class TestCodestream(unittest.TestCase):
     def tearDown(self):
         pass
 
+    @unittest.skipIf(DATA_ROOT is None,
+                     "OPJ_DATA_ROOT environment variable not set")
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_reserved_marker_segment(self):
         """Reserved marker segments are ok."""
@@ -74,6 +74,8 @@ class TestCodestream(unittest.TestCase):
             self.assertEqual(codestream.segment[2].length, 3)
             self.assertEqual(codestream.segment[2].data, b'\x00')
 
+    @unittest.skipIf(DATA_ROOT is None,
+                     "OPJ_DATA_ROOT environment variable not set")
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
@@ -105,6 +107,8 @@ class TestCodestream(unittest.TestCase):
                 self.assertEqual(codestream.segment[2].length, 3)
                 self.assertEqual(codestream.segment[2].data, b'\x00')
 
+    @unittest.skipIf(DATA_ROOT is None,
+                     "OPJ_DATA_ROOT environment variable not set")
     def test_psot_is_zero(self):
         """Psot=0 in SOT is perfectly legal.  Issue #78."""
         filename = os.path.join(DATA_ROOT,
@@ -115,6 +119,31 @@ class TestCodestream(unittest.TestCase):
         # The codestream is valid, so we should be able to get the entire
         # codestream, so the last one is EOC.
         self.assertEqual(codestream.segment[-1].marker_id, 'EOC')
+
+
+    def test_siz_segment_ssiz_unsigned(self):
+        """ssiz attribute to be removed in future release"""
+        j = Jp2k(self.jp2file)
+        codestream = j.get_codestream()
+
+        # The ssiz attribute was simply a tuple of raw bytes.
+        # The first 7 bits are interpreted as the bitdepth, the MSB determines
+        # whether or not it is signed.
+        self.assertEqual(codestream.segment[1].ssiz, (7, 7, 7))
+
+
+    @unittest.skipIf(DATA_ROOT is None,
+                     "OPJ_DATA_ROOT environment variable not set")
+    def test_siz_segment_ssiz_signed(self):
+        """ssiz attribute to be removed in future release"""
+        filename = os.path.join(DATA_ROOT, 'input/conformance/p0_03.j2k')
+        j = Jp2k(filename)
+        codestream = j.get_codestream()
+
+        # The ssiz attribute was simply a tuple of raw bytes.
+        # The first 7 bits are interpreted as the bitdepth, the MSB determines
+        # whether or not it is signed.
+        self.assertEqual(codestream.segment[1].ssiz, (131,))
 
 
 class TestCodestreamRepr(unittest.TestCase):

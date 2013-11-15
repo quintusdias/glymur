@@ -662,7 +662,7 @@ class Codestream(object):
                              component_buffer)
 
         bitdepth = tuple(((x & 0x7f) + 1) for x in data[0::3])
-        signed = tuple(((x & 0xb0) > 0) for x in data[0::3])
+        signed = tuple(((x & 0x80) > 0) for x in data[0::3])
         
         xrsiz = data[1::3]
         yrsiz = data[2::3]
@@ -1505,6 +1505,15 @@ class SIZsegment(Segment):
         self.bitdepth = bitdepth
         self.signed = signed
         self.xrsiz, self.yrsiz = xyrsiz
+
+        # ssiz attribute to be removed in 1.0.0
+        lst = []
+        for bitdepth, signed in zip(self.bitdepth, self.signed):
+            if signed:
+                lst.append((bitdepth - 1) | 0x80)
+            else:
+                lst.append(bitdepth - 1)
+        self.ssiz = tuple(lst)
 
         num_tiles_x = (self.xsiz - self.xosiz) / (self.xtsiz - self.xtosiz)
         num_tiles_y = (self.ysiz - self.yosiz) / (self.ytsiz - self.ytosiz)
