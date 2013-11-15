@@ -1510,7 +1510,7 @@ class SIZsegment(Segment):
         lst = []
         for bitdepth, signed in zip(self.bitdepth, self.signed):
             if signed:
-                lst.append((bitdepth - 1) & 0x80)
+                lst.append((bitdepth - 1) | 0x80)
             else:
                 lst.append(bitdepth - 1)
         self.ssiz = tuple(lst)
