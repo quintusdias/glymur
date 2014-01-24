@@ -170,90 +170,96 @@ def read_pgx_header(pgx_file):
 
 nemo_xmp_box = """UUID Box (uuid) @ (77, 3146)
     UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
-    UUID Data:  
-    <ns0:xmpmeta xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:ns0="adobe:ns:meta/" xmlns:ns2="http://ns.adobe.com/xap/1.0/" xmlns:ns3="http://ns.adobe.com/tiff/1.0/" xmlns:ns4="http://ns.adobe.com/exif/1.0/" xmlns:ns5="http://ns.adobe.com/photoshop/1.0/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" ns0:xmptk="Exempi + XMP Core 5.1.2">
-      <rdf:RDF>
-        <rdf:Description rdf:about="">
-          <ns2:CreatorTool>Google</ns2:CreatorTool>
-          <ns2:CreateDate>2013-02-09T14:47:53</ns2:CreateDate>
-        </rdf:Description>
-        <rdf:Description rdf:about="">
-          <ns3:YCbCrPositioning>1</ns3:YCbCrPositioning>
-          <ns3:XResolution>72/1</ns3:XResolution>
-          <ns3:YResolution>72/1</ns3:YResolution>
-          <ns3:ResolutionUnit>2</ns3:ResolutionUnit>
-          <ns3:Make>HTC</ns3:Make>
-          <ns3:Model>HTC Glacier</ns3:Model>
-          <ns3:ImageWidth>2592</ns3:ImageWidth>
-          <ns3:ImageLength>1456</ns3:ImageLength>
-          <ns3:BitsPerSample>
-            <rdf:Seq>
-              <rdf:li>8</rdf:li>
-              <rdf:li>8</rdf:li>
-              <rdf:li>8</rdf:li>
-            </rdf:Seq>
-          </ns3:BitsPerSample>
-          <ns3:PhotometricInterpretation>2</ns3:PhotometricInterpretation>
-          <ns3:SamplesPerPixel>3</ns3:SamplesPerPixel>
-          <ns3:WhitePoint>
-            <rdf:Seq>
-              <rdf:li>1343036288/4294967295</rdf:li>
-              <rdf:li>1413044224/4294967295</rdf:li>
-            </rdf:Seq>
-          </ns3:WhitePoint>
-          <ns3:PrimaryChromaticities>
-            <rdf:Seq>
-              <rdf:li>2748779008/4294967295</rdf:li>
-              <rdf:li>1417339264/4294967295</rdf:li>
-              <rdf:li>1288490240/4294967295</rdf:li>
-              <rdf:li>2576980480/4294967295</rdf:li>
-              <rdf:li>644245120/4294967295</rdf:li>
-              <rdf:li>257698032/4294967295</rdf:li>
-            </rdf:Seq>
-          </ns3:PrimaryChromaticities>
-        </rdf:Description>
-        <rdf:Description rdf:about="">
-          <ns4:ColorSpace>1</ns4:ColorSpace>
-          <ns4:PixelXDimension>2528</ns4:PixelXDimension>
-          <ns4:PixelYDimension>1424</ns4:PixelYDimension>
-          <ns4:FocalLength>353/100</ns4:FocalLength>
-          <ns4:GPSAltitudeRef>0</ns4:GPSAltitudeRef>
-          <ns4:GPSAltitude>0/1</ns4:GPSAltitude>
-          <ns4:GPSMapDatum>WGS-84</ns4:GPSMapDatum>
-          <ns4:DateTimeOriginal>2013-02-09T14:47:53</ns4:DateTimeOriginal>
-          <ns4:ISOSpeedRatings>
-            <rdf:Seq>
-              <rdf:li>76</rdf:li>
-            </rdf:Seq>
-          </ns4:ISOSpeedRatings>
-          <ns4:ExifVersion>0220</ns4:ExifVersion>
-          <ns4:FlashpixVersion>0100</ns4:FlashpixVersion>
-          <ns4:ComponentsConfiguration>
-            <rdf:Seq>
-              <rdf:li>1</rdf:li>
-              <rdf:li>2</rdf:li>
-              <rdf:li>3</rdf:li>
-              <rdf:li>0</rdf:li>
-            </rdf:Seq>
-          </ns4:ComponentsConfiguration>
-          <ns4:GPSLatitude>42,20.56N</ns4:GPSLatitude>
-          <ns4:GPSLongitude>71,5.29W</ns4:GPSLongitude>
-          <ns4:GPSTimeStamp>2013-02-09T19:47:53Z</ns4:GPSTimeStamp>
-          <ns4:GPSProcessingMethod>NETWORK</ns4:GPSProcessingMethod>
-        </rdf:Description>
-        <rdf:Description rdf:about="">
-          <ns5:DateCreated>2013-02-09T14:47:53</ns5:DateCreated>
-        </rdf:Description>
-        <rdf:Description rdf:about="">
-          <dc:Creator>
-            <rdf:Seq>
-              <rdf:li>Glymur</rdf:li>
-              <rdf:li>Python XMP Toolkit</rdf:li>
-            </rdf:Seq>
-          </dc:Creator>
-        </rdf:Description>
-      </rdf:RDF>
-    </ns0:xmpmeta>"""
+    UUID Data:  <?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>
+<x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Exempi + XMP Core 4.4.0">
+ <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+  <rdf:Description rdf:about=""
+    xmlns:xmp="http://ns.adobe.com/xap/1.0/">
+   <xmp:CreatorTool>Google</xmp:CreatorTool>
+   <xmp:CreateDate>2013-02-09T14:47:53</xmp:CreateDate>
+  </rdf:Description>
+  <rdf:Description rdf:about=""
+    xmlns:tiff="http://ns.adobe.com/tiff/1.0/">
+   <tiff:YCbCrPositioning>1</tiff:YCbCrPositioning>
+   <tiff:XResolution>72/1</tiff:XResolution>
+   <tiff:YResolution>72/1</tiff:YResolution>
+   <tiff:ResolutionUnit>2</tiff:ResolutionUnit>
+   <tiff:Make>HTC</tiff:Make>
+   <tiff:Model>HTC Glacier</tiff:Model>
+   <tiff:ImageWidth>2592</tiff:ImageWidth>
+   <tiff:ImageLength>1456</tiff:ImageLength>
+   <tiff:BitsPerSample>
+    <rdf:Seq>
+     <rdf:li>8</rdf:li>
+     <rdf:li>8</rdf:li>
+     <rdf:li>8</rdf:li>
+    </rdf:Seq>
+   </tiff:BitsPerSample>
+   <tiff:PhotometricInterpretation>2</tiff:PhotometricInterpretation>
+   <tiff:SamplesPerPixel>3</tiff:SamplesPerPixel>
+   <tiff:WhitePoint>
+    <rdf:Seq>
+     <rdf:li>1343036288/4294967295</rdf:li>
+     <rdf:li>1413044224/4294967295</rdf:li>
+    </rdf:Seq>
+   </tiff:WhitePoint>
+   <tiff:PrimaryChromaticities>
+    <rdf:Seq>
+     <rdf:li>2748779008/4294967295</rdf:li>
+     <rdf:li>1417339264/4294967295</rdf:li>
+     <rdf:li>1288490240/4294967295</rdf:li>
+     <rdf:li>2576980480/4294967295</rdf:li>
+     <rdf:li>644245120/4294967295</rdf:li>
+     <rdf:li>257698032/4294967295</rdf:li>
+    </rdf:Seq>
+   </tiff:PrimaryChromaticities>
+  </rdf:Description>
+  <rdf:Description rdf:about=""
+    xmlns:exif="http://ns.adobe.com/exif/1.0/">
+   <exif:ColorSpace>1</exif:ColorSpace>
+   <exif:PixelXDimension>2528</exif:PixelXDimension>
+   <exif:PixelYDimension>1424</exif:PixelYDimension>
+   <exif:FocalLength>353/100</exif:FocalLength>
+   <exif:GPSAltitudeRef>0</exif:GPSAltitudeRef>
+   <exif:GPSAltitude>0/1</exif:GPSAltitude>
+   <exif:GPSMapDatum>WGS-84</exif:GPSMapDatum>
+   <exif:DateTimeOriginal>2013-02-09T14:47:53</exif:DateTimeOriginal>
+   <exif:ISOSpeedRatings>
+    <rdf:Seq>
+     <rdf:li>76</rdf:li>
+    </rdf:Seq>
+   </exif:ISOSpeedRatings>
+   <exif:ExifVersion>0220</exif:ExifVersion>
+   <exif:FlashpixVersion>0100</exif:FlashpixVersion>
+   <exif:ComponentsConfiguration>
+    <rdf:Seq>
+     <rdf:li>1</rdf:li>
+     <rdf:li>2</rdf:li>
+     <rdf:li>3</rdf:li>
+     <rdf:li>0</rdf:li>
+    </rdf:Seq>
+   </exif:ComponentsConfiguration>
+   <exif:GPSLatitude>42,20.56N</exif:GPSLatitude>
+   <exif:GPSLongitude>71,5.29W</exif:GPSLongitude>
+   <exif:GPSTimeStamp>2013-02-09T19:47:53Z</exif:GPSTimeStamp>
+   <exif:GPSProcessingMethod>NETWORK</exif:GPSProcessingMethod>
+  </rdf:Description>
+  <rdf:Description rdf:about=""
+    xmlns:photoshop="http://ns.adobe.com/photoshop/1.0/">
+   <photoshop:DateCreated>2013-02-09T14:47:53</photoshop:DateCreated>
+  </rdf:Description>
+  <rdf:Description rdf:about=""
+    xmlns:dc="http://purl.org/dc/elements/1.1/">
+   <dc:Creator>
+    <rdf:Seq>
+     <rdf:li>Glymur</rdf:li>
+     <rdf:li>Python XMP Toolkit</rdf:li>
+    </rdf:Seq>
+   </dc:Creator>
+  </rdf:Description>
+ </rdf:RDF>
+</x:xmpmeta>
+<?xpacket end="w"?>"""
 
 SimpleRDF = """<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
   <rdf:Description rdf:about='Test:XMPCoreCoverage/kSimpleRDF'

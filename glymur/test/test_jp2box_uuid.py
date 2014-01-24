@@ -184,7 +184,7 @@ class TestUUIDExif(unittest.TestCase):
             tfile.flush()
 
             jp2 = glymur.Jp2k(tfile.name)
-            self.assertEqual(jp2.box[-1].data.ifds['Image']['Make'], "HTC")
+            self.assertEqual(jp2.box[-1].data['Make'], "HTC")
 
 if __name__ == "__main__":
     unittest.main()

@@ -3,6 +3,7 @@
 Handlers for Exif UUIDs.  Be nice if we would find a standard for this.
 """
 import pprint
+import re
 import struct
 import sys
 import warnings
@@ -13,8 +14,39 @@ if sys.hexversion < 0x02070000:
 else:
     from collections import OrderedDict
 
+# The Python XMP Toolkit may be used for XMP UUIDs, but only if available and
+# if the version is at least 2.0.0.
+try:
+    import libxmp
+    if hasattr(libxmp, 'version') and re.match('[2-9].\d*.\d*', libxmp.version.VERSION):
+        from libxmp import XMPMeta
+        _HAS_PYTHON_XMP_TOOLKIT = True
+    else:
+        _HAS_PYTHON_XMP_TOOLKIT = False
+except ImportError:
+    _HAS_PYTHON_XMP_TOOLKIT = False
+
+def xmp(read_buffer):
+    """
+    If libxmp 2.0+ is installed, use it to describe the XMP data.
+    """
+    if not _HAS_PYTHON_XMP_TOOLKIT:
+        # If the python xmp toolkit is not available or is not advanced enough,
+        # then issue a warning and just make available the raw data.
+        msg = "An XMP UUID was detected, but the Python XMP Toolkit package "
+        msg += "is either not available or is too old (must be at least 2.0).  "
+        msg += "The UUID data field will consist only of the raw uninterpreted "
+        msg += "bytes."
+        warnings.warn(msg, UserWarning)
+        return read_buffer
+
+    xmp = XMPMeta()
+    xmp.parse_from_str(read_buffer.decode('utf-8'), xmpmeta_wrap=False)
+    return xmp
+
 def tiff_header(read_buffer):
     """
+    Interpret the UUID data as a TIFF header.
     """
     # Ignore the first six bytes.
     # Next 8 should be (73, 73, 42, 8) or (77, 77, 42, 8)

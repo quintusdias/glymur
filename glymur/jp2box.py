@@ -33,12 +33,6 @@ else:
 
 import numpy as np
 
-try:
-    from libxmp import XMPMeta
-    _HAS_PYTHON_XMP_TOOLKIT = True
-except ImportError:
-    _HAS_PYTHON_XMP_TOOLKIT = False
-
 from .codestream import Codestream
 from .core import _COLORSPACE_MAP_DISPLAY
 from .core import _COLOR_TYPE_MAP_DISPLAY
@@ -2228,10 +2222,7 @@ class UUIDBox(Jp2kBox):
         Private function for parsing UUID payloads if possible.
         """
         if self.uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
-            xmp = XMPMeta()
-            xmp.parse_from_str(self.raw_data.decode('utf-8'),
-                               xmpmeta_wrap=False)
-            self.data = xmp
+            self.data = _uuid_io.xmp(self.raw_data)
         elif self.uuid.bytes == b'JpgTiffExif->JP2':
             self.data = _uuid_io.tiff_header(self.raw_data)
         else:
@@ -2243,11 +2234,19 @@ class UUIDBox(Jp2kBox):
         return msg.format(repr(self.uuid), len(self.data))
 
     def __str__(self):
-        msg = '{0}\n'
-        msg += '    UUID:  {1}\n'
-        msg += '    UUID Data:  {2}'
-
-        msg = msg.format(Jp2kBox.__str__(self), self.uuid, str(self.data))
+        if self.uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
+            utype = "XMP"
+        elif self.uuid.bytes == b'JpgTiffExif->JP2':
+            utype = "EXIF"
+        else:
+            utype = "unknown"
+        msg = '{0}\n    UUID:  {1} ({2})\n'.format(Jp2kBox.__str__(self),
+                                                   self.uuid,
+                                                   utype)
+        if utype == 'unknown':
+            msg += '    UUID Data:  {0} bytes'.format(len(self.raw_data))
+        else:
+            msg += '    UUID Data:  {0}'.format(str(self.data))
 
         return msg
 
