@@ -1,5 +1,5 @@
 """
-Tests for libopenjp2 wrapping functions.  
+Tests for libopenjp2 wrapping functions.
 """
 # R0904:  Seems like pylint is fooled in this situation
 # W0142:  using kwargs is ok in this context
@@ -212,7 +212,7 @@ class TestOpenJP2(unittest.TestCase):
         """Runs test designated tte3 in OpenJPEG test suite."""
         with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
             xtx3_setup(tfile.name)
-        self.assertTrue(True)            
+        self.assertTrue(True)
 
     def test_rta3(self):
         """Runs test designated rta3 in OpenJPEG test suite."""
@@ -221,13 +221,13 @@ class TestOpenJP2(unittest.TestCase):
 
             codec_format = openjp2.CODEC_J2K
             self.j2k_random_tile_access(tfile.name, codec_format)
-        self.assertTrue(True)            
+        self.assertTrue(True)
 
     def test_tte4(self):
         """Runs test designated tte4 in OpenJPEG test suite."""
         with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
             xtx4_setup(tfile.name)
-        self.assertTrue(True)            
+        self.assertTrue(True)
 
     def test_rta4(self):
         """Runs test designated rta4 in OpenJPEG test suite."""
@@ -241,7 +241,7 @@ class TestOpenJP2(unittest.TestCase):
         """Runs test designated tte5 in OpenJPEG test suite."""
         with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
             xtx5_setup(tfile.name)
-        self.assertTrue(True)            
+        self.assertTrue(True)
 
     def test_rta5(self):
         """Runs test designated rta5 in OpenJPEG test suite."""
@@ -332,8 +332,8 @@ def tile_encoder(**kwargs):
 
 def tile_decoder(**kwargs):
     """Fixture called with various configurations by many tests.
-    
-    Reads a tile.  That's all it does. 
+
+    Reads a tile.  That's all it does.
     """
     stream = openjp2.stream_create_default_file_stream_v3(kwargs['filename'],
                                                           True)
@@ -355,7 +355,7 @@ def tile_decoder(**kwargs):
 
     openjp2.setup_decoder(codec, dparam)
     image = openjp2.read_header(stream, codec)
-    openjp2.set_decode_area(codec, image, 
+    openjp2.set_decode_area(codec, image,
                             kwargs['x0'], kwargs['y0'],
                             kwargs['x1'], kwargs['y1'])
 

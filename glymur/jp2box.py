@@ -19,7 +19,6 @@ import os
 import pprint
 import struct
 import sys
-import traceback
 import uuid
 import warnings
 import xml.etree.cElementTree as ET
@@ -563,11 +562,11 @@ class CodestreamHeaderBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, box=[], length=0, offset=-1):
+    def __init__(self, box=None, length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='jpch', longname='Codestream Header')
         self.length = length
         self.offset = offset
-        self.box = box
+        self.box = box if box is not None else []
 
     def __repr__(self):
         msg = "glymur.jp2box.CodestreamHeaderBox(box={0})".format(self.box)
@@ -625,12 +624,12 @@ class CompositingLayerHeaderBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, box=[], length=0, offset=-1):
+    def __init__(self, box=None, length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='jplh',
                          longname='Compositing Layer Header')
         self.length = length
         self.offset = offset
-        self.box = []
+        self.box = box if box is not None else []
 
     def __repr__(self):
         msg = "glymur.jp2box.CompositingLayerHeaderBox(box={0})"
@@ -1073,11 +1072,11 @@ class AssociationBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, box=[], length=0, offset=-1):
+    def __init__(self, box=None, length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='asoc', longname='Association')
         self.length = length
         self.offset = offset
-        self.box = box
+        self.box = box if box is not None else []
 
     def __repr__(self):
         msg = "glymur.jp2box.AssociationBox(box={0})".format(self.box)
@@ -1135,11 +1134,11 @@ class JP2HeaderBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, box=[], length=0, offset=-1):
+    def __init__(self, box=None, length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='jp2h', longname='JP2 Header')
         self.length = length
         self.offset = offset
-        self.box = box
+        self.box = box if box is not None else []
 
     def __repr__(self):
         msg = "glymur.jp2box.JP2HeaderBox(box={0})".format(self.box)
@@ -1621,11 +1620,11 @@ class ResolutionBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, box=[], length=0, offset=-1):
+    def __init__(self, box=None, length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='res ', longname='Resolution')
         self.length = length
         self.offset = offset
-        self.box = box
+        self.box = box if box is not None else []
 
     def __repr__(self):
         msg = "glymur.jp2box.ResolutionBox(box={0})"
@@ -2040,11 +2039,11 @@ class UUIDInfoBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, box=[], length=0, offset=-1):
+    def __init__(self, box=None, length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='uinf', longname='UUIDInfo')
         self.length = length
         self.offset = offset
-        self.box = box
+        self.box = box if box is not None else []
 
     def __repr__(self):
         msg = "glymur.jp2box.UUIDInfoBox(box={0})".format(self.box)
@@ -2214,8 +2213,8 @@ class UUIDBox(Jp2kBox):
 
         try:
             self._parse_raw_data()
-        except Exception as e:
-            warnings.warn(str(e))
+        except RuntimeError as error:
+            warnings.warn(str(error))
 
     def _parse_raw_data(self):
         """

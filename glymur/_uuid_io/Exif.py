@@ -18,7 +18,8 @@ else:
 # if the version is at least 2.0.0.
 try:
     import libxmp
-    if hasattr(libxmp, 'version') and re.match('[2-9].\d*.\d*', libxmp.version.VERSION):
+    if hasattr(libxmp, 'version') and re.match(r"""[2-9].\d*.\d*""",
+                                               libxmp.version.VERSION):
         from libxmp import XMPMeta
         _HAS_PYTHON_XMP_TOOLKIT = True
     else:
