@@ -1,6 +1,4 @@
 """
-Sub package for handling various UUIDs.
+Sub package for handling various types of UUIDs.
 """
-from .Exif import UUIDExif
-from .XMP import UUIDXMP
-from .generic import UUIDGeneric
+from .Exif import tiff_header

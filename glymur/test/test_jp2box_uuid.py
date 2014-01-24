@@ -35,6 +35,8 @@ if sys.hexversion <= 0x03030000:
 else:
     from unittest.mock import patch
 
+from libxmp import XMPMeta
+
 import glymur
 from glymur import Jp2k
 from .fixtures import OPJ_DATA_ROOT, opj_data_file, SimpleRDF
@@ -66,8 +68,7 @@ class TestUUIDXMP(unittest.TestCase):
 
             # The data should be an XMP packet, which gets interpreted as
             # an ElementTree.
-            self.assertTrue(isinstance(jp2.box[-1].data.packet,
-                                       ET.ElementTree))
+            self.assertTrue(isinstance(jp2.box[-1].data, XMPMeta))
 
 class TestUUIDExif(unittest.TestCase):
     """Tests for UUIDs of Exif type."""

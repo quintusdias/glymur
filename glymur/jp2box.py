@@ -33,6 +33,12 @@ else:
 
 import numpy as np
 
+try:
+    from libxmp import XMPMeta
+    _HAS_PYTHON_XMP_TOOLKIT = True
+except ImportError:
+    _HAS_PYTHON_XMP_TOOLKIT = False
+
 from .codestream import Codestream
 from .core import _COLORSPACE_MAP_DISPLAY
 from .core import _COLOR_TYPE_MAP_DISPLAY
@@ -2199,7 +2205,7 @@ class UUIDBox(Jp2kBox):
         the_uuid : uuid.UUID
             Identifies the type of UUID box.
         raw_data : byte array
-            Sequence of uninterpreted bytes as read from the file.
+            Sequence of uninterpreted bytes as read from the UUID box.
         length : int
             length of the box in bytes.
         offset : int
@@ -2208,64 +2214,53 @@ class UUIDBox(Jp2kBox):
         Jp2kBox.__init__(self, box_id='uuid', longname='UUID')
         self.uuid = the_uuid
         self.raw_data = raw_data
-
-        try:
-            if the_uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
-                self.data = _uuid_io.UUIDXMP(raw_data)
-                self._type = 'XMP'
-            elif the_uuid.bytes == b'JpgTiffExif->JP2':
-                self.data = _uuid_io.UUIDExif(raw_data)
-                self._type = 'Exif'
-            else:
-                self.data = _uuid_io.UUIDGeneric(raw_data)
-                self._type = 'unknown'
-        except Exception:
-            # In case of any exception, create the generic UUID.
-            self.data = _uuid_io.UUIDGeneric(raw_data)
-            self._type = 'unknown'
-            msg = "Error encountered during UUID processing, "
-            msg += "the UUID will be treated as generic.\n\n{0}"
-            warnings.warn(msg.format(traceback.format_exc()))
-        
-        self.raw_data = raw_data
-
         self.length = length
         self.offset = offset
+        self.data = None
+
+        try:
+            self._parse_raw_data()
+        except Exception as e:
+            warnings.warn(str(e))
+
+    def _parse_raw_data(self):
+        """
+        Private function for parsing UUID payloads if possible.
+        """
+        if self.uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
+            xmp = XMPMeta()
+            xmp.parse_from_str(self.raw_data.decode('utf-8'),
+                               xmpmeta_wrap=False)
+            self.data = xmp
+        elif self.uuid.bytes == b'JpgTiffExif->JP2':
+            self.data = _uuid_io.tiff_header(self.raw_data)
+        else:
+            self.data = self.raw_data
 
     def __repr__(self):
         msg = "glymur.jp2box.UUIDBox(the_uuid={0}, "
         msg += "raw_data=<byte array {1} elements>)"
-        return msg.format(repr(self.uuid), len(self.raw_data))
-
+        return msg.format(repr(self.uuid), len(self.data))
 
     def __str__(self):
         msg = '{0}\n'
-        msg += '    UUID:  {1} ({2})\n'
-        msg += '    UUID Data:  {3}'
+        msg += '    UUID:  {1}\n'
+        msg += '    UUID Data:  {2}'
 
-        msg = msg.format(Jp2kBox.__str__(self),
-                         self.uuid,
-                         self._type,
-                         str(self.data))
+        msg = msg.format(Jp2kBox.__str__(self), self.uuid, str(self.data))
 
         return msg
 
-
     def write(self, fptr):
-        """Write a UUID box box to file.
+        """Write a UUID box to file.
         """
-        if self._type != 'XMP':
+        if self.uuid != uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
             msg = "Only XMP UUID boxes can currently be written."
             raise NotImplementedError(msg)
-        serialized = b'<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>'
-        serialized += ET.tostring(self.data.packet.getroot(), encoding='utf-8')
-        serialized += b'<?xpacket end="w"?>'
-        if self.length == 0:
-            self.length = 24 + len(serialized)
-        read_buffer = struct.pack('>I4s', self.length, b'uuid')
-        fptr.write(read_buffer)
+        write_buffer = struct.pack('>I4s', self.length, b'uuid')
+        fptr.write(write_buffer)
         fptr.write(self.uuid.bytes)
-        fptr.write(serialized)
+        fptr.write(self.raw_data)
 
     @staticmethod
     def parse(fptr, offset, length):

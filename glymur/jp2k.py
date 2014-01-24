@@ -20,6 +20,7 @@ import ctypes
 import math
 import os
 import struct
+from uuid import UUID
 import warnings
 
 import numpy as np
@@ -526,7 +527,8 @@ class Jp2k(Jp2kBox):
             raise IOError(msg)
 
         if not ((box.box_id == 'xml ') or
-                (box.box_id == 'uuid' and box._type == 'XMP')):
+                (box.box_id == 'uuid' and
+                 box.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'))):
             msg = "Only XML boxes and XMP UUID boxes can currently be appended."
             raise IOError(msg)
 

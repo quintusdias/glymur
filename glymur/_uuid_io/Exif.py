@@ -13,76 +13,27 @@ if sys.hexversion < 0x02070000:
 else:
     from collections import OrderedDict
 
-class UUIDExif(object):
+def tiff_header(read_buffer):
     """
-    Attributes
-    ----------
-    read_buffer : bytes
-        Raw byte stream consisting of the UUID data.
-    endian : str
-        Either '<' for big-endian, or '>' for little-endian.
     """
+    # Ignore the first six bytes.
+    # Next 8 should be (73, 73, 42, 8) or (77, 77, 42, 8)
+    data = struct.unpack('<BB', read_buffer[6:8])
+    if data[0] == 73 and data[1] == 73:
+        # little endian
+        endian = '<'
+    elif data[0] == 77 and data[1] == 77:
+        # big endian
+        endian = '>'
+    else:
+        msg = "Bad byte order indication: {0}".format(read_buffer[6:8])
+        raise RuntimeError(msg)
 
-    def __init__(self, read_buffer):
-        """Interpret raw buffer consisting of Exif IFD.
-        """
-        exif_image = None
-        exif_photo = None
-        exif_gpsinfo = None
-        exif_iop = None
+    _, offset = struct.unpack(endian + 'HI', read_buffer[8:14])
 
-        self.read_buffer = read_buffer
-
-        # Ignore the first six bytes.
-        # Next 8 should be (73, 73, 42, 8) or (77, 77, 42, 8)
-        data = struct.unpack('<BB', read_buffer[6:8])
-        if data[0] == 73 and data[1] == 73:
-            # little endian
-            self.endian = '<'
-        elif data[0] == 77 and data[1] == 77:
-            # big endian
-            self.endian = '>'
-        else:
-            msg = "Bad byte order indication: {0}".format(read_buffer[6:8])
-            raise RuntimeError(msg)
-
-        _, offset = struct.unpack(self.endian + 'HI', read_buffer[8:14])
-
-        # This is the 'Exif Image' portion.
-        exif = _ExifImageIfd(self.endian, read_buffer[6:], offset)
-        exif_image = exif.processed_ifd
-
-        if 'ExifTag' in exif_image.keys():
-            offset = exif_image['ExifTag']
-            photo_ifd = _ExifPhotoIfd(self.endian, read_buffer[6:], offset)
-            exif_photo = photo_ifd.processed_ifd
-
-            if 'InteroperabilityTag' in exif_photo.keys():
-                offset = exif_photo['InteroperabilityTag']
-                interop = _ExifInteroperabilityIfd(self.endian,
-                                                   read_buffer[6:],
-                                                   offset)
-                exif_iop = interop.processed_ifd
-
-        if 'GPSTag' in exif_image.keys():
-            offset = exif_image['GPSTag']
-            gps = _ExifGPSInfoIfd(self.endian, read_buffer[6:], offset)
-            exif_gpsinfo = gps.processed_ifd
-
-        self.ifds = OrderedDict()
-        self.ifds['Image'] = exif_image
-        self.ifds['Photo'] = exif_photo
-        self.ifds['GPSInfo'] = exif_gpsinfo
-        self.ifds['Iop'] = exif_iop
-
-    def __str__(self):
-        # 2.7 has trouble pretty-printing ordered dicts, so print them
-        # as regular dicts.  Not ideal, but at least it's good on 3.3+.
-        if sys.hexversion < 0x03000000:
-            data = dict(self.ifds)
-        else:
-            data = self.ifds
-        return '\n' + pprint.pformat(data)
+    # This is the 'Exif Image' portion.
+    exif = _ExifImageIfd(endian, read_buffer[6:], offset)
+    return exif.processed_ifd
 
 
 class _Ifd(object):
