@@ -35,7 +35,9 @@ if sys.hexversion <= 0x03030000:
 else:
     from unittest.mock import patch
 
-from libxmp import XMPMeta
+from .fixtures import HAS_PYTHON_XMP_TOOLKIT, OPJ_DATA_ROOT
+if HAS_PYTHON_XMP_TOOLKIT:
+    from libxmp import XMPMeta
 
 import glymur
 from glymur import Jp2k
@@ -66,9 +68,13 @@ class TestUUIDXMP(unittest.TestCase):
             actual_ids = [b.box_id for b in jp2.box]
             self.assertEqual(actual_ids, expected_ids)
 
-            # The data should be an XMP packet, which gets interpreted as
-            # an ElementTree.
-            self.assertTrue(isinstance(jp2.box[-1].data, XMPMeta))
+            # The data should be an XMP packet
+            if HAS_PYTHON_XMP_TOOLKIT:
+                # when python xmp toolkit is available.
+                self.assertTrue(isinstance(jp2.box[-1].data, XMPMeta))
+            else:
+                # when python xmp toolkit is not available.
+                self.assertTrue(isinstance(jp2.box[-1].data, str))
 
 class TestUUIDExif(unittest.TestCase):
     """Tests for UUIDs of Exif type."""

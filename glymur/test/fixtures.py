@@ -11,6 +11,18 @@ import numpy as np
 import glymur
 
 
+# The Python XMP Toolkit may be used for XMP UUIDs, but only if available and
+# if the version is at least 2.0.0.
+try:
+    import libxmp
+    if hasattr(libxmp, 'version') and re.match('[2-9].\d*.\d*', libxmp.version.VERSION):
+        from libxmp import XMPMeta
+        HAS_PYTHON_XMP_TOOLKIT = True
+    else:
+        HAS_PYTHON_XMP_TOOLKIT = False
+except ImportError:
+    HAS_PYTHON_XMP_TOOLKIT = False
+
 # Need to know of the libopenjp2 version is the official 2.0.0 release and NOT
 # the 2.0+ development version.
 OPENJP2_IS_V2_OFFICIAL = False
