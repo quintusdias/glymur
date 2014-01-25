@@ -6,6 +6,7 @@ import pprint
 import struct
 import sys
 import warnings
+import xml.etree.cElementTree as ET
 
 if sys.hexversion < 0x02070000:
     # pylint: disable=F0401,E0611
@@ -13,8 +14,21 @@ if sys.hexversion < 0x02070000:
 else:
     from collections import OrderedDict
 
+def xml(raw_data):
+    """
+    XMP data to be parsed as XML.
+    """
+    if sys.hexversion < 0x03000000:
+        elt = ET.fromstring(raw_data)
+    else:
+        text = raw_data.decode('utf-8')
+        elt = ET.fromstring(text)
+
+    return ET.ElementTree(elt)
+
 def tiff_header(read_buffer):
     """
+    Interpret the uuid raw data as a tiff header.
     """
     # Ignore the first six bytes.
     # Next 8 should be (73, 73, 42, 8) or (77, 77, 42, 8)

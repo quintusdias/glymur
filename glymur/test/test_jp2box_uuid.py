@@ -18,7 +18,7 @@ import sys
 import tempfile
 import uuid
 import warnings
-from xml.etree import cElementTree as ET
+import xml.etree
 
 if sys.hexversion < 0x02070000:
     import unittest2 as unittest
@@ -68,7 +68,8 @@ class TestUUIDXMP(unittest.TestCase):
 
             # The data should be an XMP packet, which gets interpreted as
             # an ElementTree.
-            self.assertTrue(isinstance(jp2.box[-1].data, XMPMeta))
+            self.assertTrue(isinstance(jp2.box[-1].data,
+                            xml.etree.ElementTree.ElementTree))
 
 class TestUUIDExif(unittest.TestCase):
     """Tests for UUIDs of Exif type."""
@@ -184,7 +185,7 @@ class TestUUIDExif(unittest.TestCase):
             tfile.flush()
 
             jp2 = glymur.Jp2k(tfile.name)
-            self.assertEqual(jp2.box[-1].data.ifds['Image']['Make'], "HTC")
+            self.assertEqual(jp2.box[-1].data['Make'], "HTC")
 
 if __name__ == "__main__":
     unittest.main()

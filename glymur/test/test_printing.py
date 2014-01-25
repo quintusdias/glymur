@@ -1057,6 +1057,8 @@ class TestPrinting(unittest.TestCase):
             tfile.write(struct.pack('<HHI4s', 271, 2, 3, b'HTC\x00'))
             tfile.flush()
 
+            import shutil
+            shutil.copyfile(tfile.name, '/Users/jevans/a.jp2')
             j = glymur.Jp2k(tfile.name)
 
             with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -1064,14 +1066,8 @@ class TestPrinting(unittest.TestCase):
                 actual = fake_out.getvalue().strip()
 
         lines = ["UUID Box (uuid) @ (1135519, 76)",
-                 "    UUID:  4a706754-6966-6645-7869-662d3e4a5032 (Exif)",
-                 "    UUID Data:  ",
-                 "{'Image': {'ImageWidth': 256,",
-                 "           'ImageLength': 512,",
-                 "           'Make': 'HTC'},",
-                 " 'Photo': None,",
-                 " 'GPSInfo': None,",
-                 " 'Iop': None}"]
+                 "    UUID:  4a706754-6966-6645-7869-662d3e4a5032 (EXIF)",
+                 "    UUID Data:  OrderedDict([('ImageWidth', 256), ('ImageLength', 512), ('Make', 'HTC')])"]
 
         expected = '\n'.join(lines)
 

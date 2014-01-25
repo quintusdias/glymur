@@ -31,6 +31,7 @@ import numpy as np
 import pkg_resources
 
 import libxmp
+from libxmp import XMPMeta
 
 import glymur
 from glymur import Jp2k
@@ -364,7 +365,9 @@ class TestJp2k(unittest.TestCase):
     def test_xmp_attribute(self):
         """Verify the XMP packet in the shipping example file can be read."""
         j = Jp2k(self.jp2file)
-        xmp = j.box[3].data
+        xmp = XMPMeta()
+        xmp.parse_from_str(j.box[3].raw_data.decode('utf-8'),
+                           xmpmeta_wrap=False)
         creator_tool = xmp.get_property(libxmp.consts.XMP_NS_XMP, 'CreatorTool')
         self.assertEqual(creator_tool, 'Google') 
 
