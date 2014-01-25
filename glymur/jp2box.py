@@ -2249,9 +2249,6 @@ class UUIDBox(Jp2kBox):
     def write(self, fptr):
         """Write a UUID box to file.
         """
-        if self.uuid != uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
-            msg = "Only XMP UUID boxes can currently be written."
-            raise NotImplementedError(msg)
         write_buffer = struct.pack('>I4s', self.length, b'uuid')
         fptr.write(write_buffer)
         fptr.write(self.uuid.bytes)
