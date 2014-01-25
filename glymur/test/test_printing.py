@@ -636,7 +636,6 @@ class TestPrinting(unittest.TestCase):
             actual = fake_out.getvalue().strip()
 
         expected = nemo_xmp_box
-        self.maxDiff = None
         self.assertEqual(actual, expected)
 
     def test_codestream(self):
