@@ -3,6 +3,7 @@
 Handlers for Exif UUIDs.  Be nice if we would find a standard for this.
 """
 import pprint
+import re
 import struct
 import sys
 import warnings

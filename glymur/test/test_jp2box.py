@@ -894,9 +894,9 @@ class TestRepr(unittest.TestCase):
         tree = ET.ElementTree(elt)
         box = glymur.jp2box.XMLBox(xml=tree)
 
-        regexp = "glymur.jp2box.XMLBox"
-        regexp += "\(xml=<(xml.etree.ElementTree.){0,1}ElementTree object "
-        regexp += "at 0x([a-f0-9]*)>\)"
+        regexp = r"""glymur.jp2box.XMLBox"""
+        regexp += r"""\(xml=<(xml.etree.ElementTree.){0,1}ElementTree object """
+        regexp += """at 0x([a-f0-9]*)>\)"""
 
         if sys.hexversion < 0x03000000:
             self.assertRegexpMatches(repr(box), regexp)
@@ -927,9 +927,9 @@ class TestRepr(unittest.TestCase):
 
         # Since the raw_data parameter is a sequence of bytes which could be
         # quite long, don't bother trying to make it conform to eval(repr()).
-        regexp = "glymur.jp2box.UUIDBox\("
-        regexp += "the_uuid=UUID\('00000000-0000-0000-0000-000000000000'\),\s"
-        regexp += "raw_data=<byte\sarray\s10\selements>\)"
+        regexp = r"""glymur.jp2box.UUIDBox\("""
+        regexp += """the_uuid=UUID\('00000000-0000-0000-0000-000000000000'\),\s"""
+        regexp += """raw_data=<byte\sarray\s10\selements>\)"""
 
         if sys.hexversion < 0x03000000:
             self.assertRegexpMatches(repr(box), regexp)

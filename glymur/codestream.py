@@ -663,7 +663,7 @@ class Codestream(object):
 
         bitdepth = tuple(((x & 0x7f) + 1) for x in data[0::3])
         signed = tuple(((x & 0xb0) > 0) for x in data[0::3])
-        
+
         xrsiz = data[1::3]
         yrsiz = data[2::3]
 
@@ -1529,7 +1529,7 @@ class SIZsegment(Segment):
                          signed=self.signed,
                          xyrsiz=(self.xrsiz, self.yrsiz))
         return msg
-                         
+
     def __str__(self):
         msg = Segment.__str__(self)
         msg += '\n    '

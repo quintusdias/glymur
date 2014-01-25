@@ -30,13 +30,14 @@ import warnings
 import numpy as np
 import pkg_resources
 
-import libxmp
-from libxmp import XMPMeta
-
 import glymur
 from glymur import Jp2k
 
-from .fixtures import OPENJP2_IS_V2_OFFICIAL
+from .fixtures import HAS_PYTHON_XMP_TOOLKIT, OPENJP2_IS_V2_OFFICIAL
+if HAS_PYTHON_XMP_TOOLKIT:
+    import libxmp
+    from libxmp import XMPMeta
+
 from .fixtures import OPJ_DATA_ROOT, opj_data_file
 
 
@@ -362,6 +363,8 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(ET.tostring(jp2k.box[3].xml.getroot()),
                              b'<test>this is a test</test>')
 
+    @unittest.skipIf(not HAS_PYTHON_XMP_TOOLKIT, 
+                     "Requires Python XMP Toolkit >= 2.0")
     def test_xmp_attribute(self):
         """Verify the XMP packet in the shipping example file can be read."""
         j = Jp2k(self.jp2file)

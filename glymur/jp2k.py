@@ -484,17 +484,17 @@ class Jp2k(Jp2kBox):
             stack.callback(opj2.image_destroy, image)
 
             _populate_image_struct(cparams, image, img_array)
-    
+
             codec = opj2.create_compress(cparams.codec_fmt)
             stack.callback(opj2.destroy_codec, codec)
-    
+
             info_handler = _INFO_CALLBACK if verbose else None
             opj2.set_info_handler(codec, info_handler)
             opj2.set_warning_handler(codec, _WARNING_CALLBACK)
             opj2.set_error_handler(codec, _ERROR_CALLBACK)
-    
+
             opj2.setup_encoder(codec, cparams, image)
-    
+
             if _OPENJP2_IS_OFFICIAL_V2:
                 fptr = libc.fopen(self.filename, 'wb')
                 strm = opj2.stream_create_default_file_stream(fptr, False)
@@ -505,11 +505,11 @@ class Jp2k(Jp2kBox):
                 strm = opj2.stream_create_default_file_stream_v3(self.filename,
                                                                  False)
                 stack.callback(opj2.stream_destroy_v3, strm)
-    
+
             opj2.start_compress(codec, image, strm)
             opj2.encode(codec, strm)
             opj2.end_compress(codec, strm)
-    
+
         # Refresh the metadata.
         self.parse()
 

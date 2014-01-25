@@ -35,7 +35,9 @@ if sys.hexversion <= 0x03030000:
 else:
     from unittest.mock import patch
 
-from libxmp import XMPMeta
+from .fixtures import HAS_PYTHON_XMP_TOOLKIT, OPJ_DATA_ROOT
+if HAS_PYTHON_XMP_TOOLKIT:
+    from libxmp import XMPMeta
 
 import glymur
 from glymur import Jp2k
