@@ -283,3 +283,70 @@ SimpleRDF = """<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
 
   </rdf:Description>
 </rdf:RDF>"""
+
+text_gbr_27 = """Colour Specification Box (colr) @ (179, 1339)
+    Method:  any ICC profile
+    Precedence:  2
+    Approximation:  accurately represents correct colorspace definition
+    ICC Profile:
+        {'Color Space': 'RGB',
+         'Connection Space': 'XYZ',
+         'Creator': u'appl',
+         'Datetime': datetime.datetime(2009, 2, 25, 11, 26, 11),
+         'Device Attributes': 'reflective, glossy, positive media polarity, color media',
+         'Device Class': 'display device profile',
+         'Device Manufacturer': u'appl',
+         'Device Model': '',
+         'File Signature': u'acsp',
+         'Flags': 'not embedded, can be used independently',
+         'Illuminant': array([ 0.96420288,  1.        ,  0.8249054 ]),
+         'Platform': u'APPL',
+         'Preferred CMM Type': 1634758764,
+         'Rendering Intent': 'perceptual',
+         'Size': 1328,
+         'Version': '2.2.0'}"""
+
+text_gbr_33 = """Colour Specification Box (colr) @ (179, 1339)
+    Method:  any ICC profile
+    Precedence:  2
+    Approximation:  accurately represents correct colorspace definition
+    ICC Profile:
+        {'Size': 1328,
+         'Preferred CMM Type': 1634758764,
+         'Version': '2.2.0',
+         'Device Class': 'display device profile',
+         'Color Space': 'RGB',
+         'Connection Space': 'XYZ',
+         'Datetime': datetime.datetime(2009, 2, 25, 11, 26, 11),
+         'File Signature': 'acsp',
+         'Platform': 'APPL',
+         'Flags': 'not embedded, can be used independently',
+         'Device Manufacturer': 'appl',
+         'Device Model': '',
+         'Device Attributes': 'reflective, glossy, positive media polarity, color media',
+         'Rendering Intent': 'perceptual',
+         'Illuminant': array([ 0.96420288,  1.        ,  0.8249054 ]),
+         'Creator': 'appl'}"""
+
+text_gbr_34 = """Colour Specification Box (colr) @ (179, 1339)
+    Method:  any ICC profile
+    Precedence:  2
+    Approximation:  accurately represents correct colorspace definition
+    ICC Profile:
+        {'Size': 1328,
+         'Preferred CMM Type': 1634758764,
+         'Version': '2.2.0',
+         'Device Class': 'display device profile',
+         'Color Space': 'RGB',
+         'Connection Space': 'XYZ',
+         'Datetime': datetime.datetime(2009, 2, 25, 11, 26, 11),
+         'File Signature': 'acsp',
+         'Platform': 'APPL',
+         'Flags': 'not embedded, can be used independently',
+         'Device Manufacturer': 'appl',
+         'Device Model': '',
+         'Device Attributes': 'reflective, glossy, positive media polarity, color '
+                              'media',
+         'Rendering Intent': 'perceptual',
+         'Illuminant': array([ 0.96420288,  1.        ,  0.8249054 ]),
+         'Creator': 'appl'}"""
