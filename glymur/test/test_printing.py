@@ -1056,8 +1056,6 @@ class TestPrinting(unittest.TestCase):
             tfile.write(struct.pack('<HHI4s', 271, 2, 3, b'HTC\x00'))
             tfile.flush()
 
-            import shutil
-            shutil.copyfile(tfile.name, '/Users/jevans/a.jp2')
             j = glymur.Jp2k(tfile.name)
 
             with patch('sys.stdout', new=StringIO()) as fake_out:
