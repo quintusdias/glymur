@@ -36,6 +36,7 @@ else:
 import glymur
 from glymur import Jp2k
 from .fixtures import OPJ_DATA_ROOT, opj_data_file, nemo_xmp_box
+from .fixtures import text_gbr_27, text_gbr_33, text_gbr_34
 
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
@@ -281,75 +282,6 @@ class TestPrinting(unittest.TestCase):
                  '            Predictable termination:  False',
                  '            Segmentation symbols:  False']
 
-        expected = '\n'.join(lines)
-        self.assertEqual(actual, expected)
-
-    @unittest.skipIf(OPJ_DATA_ROOT is None,
-                     "OPJ_DATA_ROOT environment variable not set")
-    def test_icc_profile(self):
-        """verify printing of colr box with ICC profile"""
-        filename = opj_data_file('input/nonregression/text_GBR.jp2')
-        with warnings.catch_warnings():
-            # brand is 'jp2 ', but has any icc profile.
-            warnings.simplefilter("ignore")
-            jp2 = Jp2k(filename)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(jp2.box[3].box[1])
-            actual = fake_out.getvalue().strip()
-        lin27 = ["Colour Specification Box (colr) @ (179, 1339)",
-                 "    Method:  any ICC profile",
-                 "    Precedence:  2",
-                 "    Approximation:  accurately represents correct "
-                 + "colorspace definition",
-                 "    ICC Profile:",
-                 "        {'Color Space': 'RGB',",
-                 "         'Connection Space': 'XYZ',",
-                 "         'Creator': u'appl',",
-                 "         'Datetime': "
-                 + "datetime.datetime(2009, 2, 25, 11, 26, 11),",
-                 "         'Device Attributes': 'reflective, glossy, "
-                 + "positive media polarity, color media',",
-                 "         'Device Class': 'display device profile',",
-                 "         'Device Manufacturer': u'appl',",
-                 "         'Device Model': '',",
-                 "         'File Signature': u'acsp',",
-                 "         'Flags': "
-                 + "'not embedded, can be used independently',",
-                 "         'Illuminant': "
-                 + "array([ 0.96420288,  1.        ,  0.8249054 ]),",
-                 "         'Platform': u'APPL',",
-                 "         'Preferred CMM Type': 1634758764,",
-                 "         'Rendering Intent': 'perceptual',",
-                 "         'Size': 1328,",
-                 "         'Version': '2.2.0'}"]
-        lin33 = ["Colour Specification Box (colr) @ (179, 1339)",
-                 "    Method:  any ICC profile",
-                 "    Precedence:  2",
-                 "    Approximation:  accurately represents correct "
-                 + "colorspace definition",
-                 "    ICC Profile:",
-                 "        {'Size': 1328,",
-                 "         'Preferred CMM Type': 1634758764,",
-                 "         'Version': '2.2.0',",
-                 "         'Device Class': 'display device profile',",
-                 "         'Color Space': 'RGB',",
-                 "         'Connection Space': 'XYZ',",
-                 "         'Datetime': "
-                 + "datetime.datetime(2009, 2, 25, 11, 26, 11),",
-                 "         'File Signature': 'acsp',",
-                 "         'Platform': 'APPL',",
-                 "         'Flags': 'not embedded, can be used "
-                 + "independently',",
-                 "         'Device Manufacturer': 'appl',",
-                 "         'Device Model': '',",
-                 "         'Device Attributes': 'reflective, glossy, "
-                 + "positive media polarity, color media',",
-                 "         'Rendering Intent': 'perceptual',",
-                 "         'Illuminant': "
-                 + "array([ 0.96420288,  1.        ,  0.8249054 ]),",
-                 "         'Creator': 'appl'}"]
-
-        lines = lin27 if sys.hexversion < 0x03000000 else lin33
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
@@ -963,12 +895,10 @@ class TestPrinting(unittest.TestCase):
             expected = '\n'.join(lines)
             self.assertEqual(actual, expected)
 
-    @unittest.skipIf(sys.hexversion < 0x03000000,
-                     "Ordered dicts not printing well in 2.7")
     @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
-    def test_jpx_approx_icc_profile(self):
-        """verify jpx with approx field equal to zero"""
+    def test_icc_profile(self):
+        """verify icc profile printing with a jpx"""
         # ICC profiles may be used in JP2, but the approximation field should
         # be zero unless we have jpx.  This file does both.
         filename = opj_data_file('input/nonregression/text_GBR.jp2')
@@ -980,34 +910,13 @@ class TestPrinting(unittest.TestCase):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(jp2.box[3].box[1])
             actual = fake_out.getvalue().strip()
-        lines = ["Colour Specification Box (colr) @ (179, 1339)",
-                 "    Method:  any ICC profile",
-                 "    Precedence:  2",
-                 "    Approximation:  accurately represents "
-                 + "correct colorspace definition",
-                 "    ICC Profile:",
-                 "        {'Size': 1328,",
-                 "         'Preferred CMM Type': 1634758764,",
-                 "         'Version': '2.2.0',",
-                 "         'Device Class': 'display device profile',",
-                 "         'Color Space': 'RGB',",
-                 "         'Connection Space': 'XYZ',",
-                 "         'Datetime': "
-                 + "datetime.datetime(2009, 2, 25, 11, 26, 11),",
-                 "         'File Signature': 'acsp',",
-                 "         'Platform': 'APPL',",
-                 "         'Flags': 'not embedded, "
-                 + "can be used independently',",
-                 "         'Device Manufacturer': 'appl',",
-                 "         'Device Model': '',",
-                 "         'Device Attributes': 'reflective, glossy, "
-                 + "positive media polarity, color media',",
-                 "         'Rendering Intent': 'perceptual',",
-                 "         'Illuminant': array([ 0.96420288,  1.        ,"
-                 + "  0.8249054 ]),",
-                 "         'Creator': 'appl'}"]
+        if sys.hexversion < 0x03000000:
+            expected = text_gbr_27
+        elif sys.hexversion < 0x03040000:
+            expected = text_gbr_33
+        else:
+            expected = text_gbr_34
 
-        expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
     @unittest.skipIf(OPJ_DATA_ROOT is None,
