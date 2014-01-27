@@ -236,28 +236,21 @@ The example JP2 file shipped with glymur has an XMP UUID. ::
                  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
                  ns0:xmptk="Exempi + XMP Core 5.1.2">
           <rdf:RDF>
+            <rdf:Description rdf:about="">
+              <ns2:CreatorTool>Google</ns2:CreatorTool>
+              <ns2:CreateDate>2013-02-09T14:47:53</ns2:CreateDate>
+            </rdf:Description>
+
           .
           .
           .
     </ns0:xmpmeta>
 
 Since the UUID data in this case is returned as an ElementTree instance,
-one can use ElementTree from the standard library to access the data.
-For example, to extract the **CreatorTool** attribute value, the following
-would work::
-
-    >>> xmp = j.box[3].data.packet
-    >>> rdf = '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}'
-    >>> ns2 = '{http://ns.adobe.com/xap/1.0/}'
-    >>> name = '{0}RDF/{0}Description/{1}CreatorTool'.format(rdf, ns2)
-    >>> elt = xmp.find(name)
-    >>> elt
-    <Element '{http://ns.adobe.com/xap/1.0/#}CreatorTool' at 0xb50684a4>
-    >>> elt.text
-    'Google'
-
-Yes, that's painful.  A better solution is to install the Python XMP Toolkit
-(developer branch)::
+one might first turn to ElementTree from the standard library.  There's
+a better solution though, particularly if you need to create XMP, and that
+is to Use the Python XMP Toolkit instead (make sure you use version 2.0 and
+not 1.0.2).::
 
     >>> from libxmp import XMPMeta
     >>> from libxmp.consts import XMP_NS_XMP as NS_XAP
