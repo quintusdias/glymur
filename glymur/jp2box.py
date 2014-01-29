@@ -1465,13 +1465,24 @@ class ReaderRequirementsBox(Jp2kBox):
         # Decodes Completely Mask
         read_buffer = fptr.read(2 * mask_length)
 
+        fuam = dcm = standard_flag = standard_mask = []
+        vendor_feature = vendor_mask = []
+
         # The mask length tells us the format string to use when unpacking
         # from the buffer read from file.
-        mask_format = {1: 'B', 2: 'H', 4: 'I'}[mask_length]
-        fuam, dcm = struct.unpack('>' + mask_format * 2, read_buffer)
+        try:
+            mask_format = {1: 'B', 2: 'H', 4: 'I', 8: 'Q'}[mask_length]
+            fuam, dcm = struct.unpack('>' + mask_format * 2, read_buffer)
+            standard_flag, standard_mask = _parse_standard_flag(fptr,
+                                                                mask_length)
+            vendor_feature, vendor_mask = _parse_vendor_features(fptr,
+                                                                 mask_length)
 
-        standard_flag, standard_mask = _parse_standard_flag(fptr, mask_length)
-        vendor_feature, vendor_mask = _parse_vendor_features(fptr, mask_length)
+        except KeyError:
+            msg = 'The ReaderRequirements box (rreq) has a mask length of {0} '
+            msg += 'bytes, but only values of 1, 2, 4, or 8 are supported.  '
+            msg += 'The box contents will not be interpreted.'
+            warnings.warn(msg.format(mask_length), UserWarning)
 
         box = ReaderRequirementsBox(fuam, dcm, standard_flag, standard_mask,
                                     vendor_feature, vendor_mask,
