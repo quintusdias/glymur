@@ -243,8 +243,8 @@ The example JP2 file shipped with glymur has an XMP UUID. ::
 
 Since the UUID data in this case is returned as an ElementTree instance,
 one can use ElementTree from the standard library to access the data.
-For example, to extract the **CreatorTool** attribute value, the following
-would work::
+For example, to extract the **CreatorTool** attribute value, one could do the
+following
 
     >>> xmp = j.box[3].data.packet
     >>> rdf = '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}'
@@ -256,8 +256,8 @@ would work::
     >>> elt.text
     'Google'
 
-Yes, that's painful.  A better solution is to install the Python XMP Toolkit
-(developer branch)::
+But that would be painful.  A better solution is to install the Python XMP
+Toolkit::
 
     >>> from libxmp import XMPMeta
     >>> from libxmp.consts import XMP_NS_XMP as NS_XAP
@@ -265,4 +265,17 @@ Yes, that's painful.  A better solution is to install the Python XMP Toolkit
     >>> meta.parse_from_str(j.box[3].raw_data.decode('utf-8'))
     >>> meta.get_property(NS_XAP, 'CreatorTool')
     'Google'
+
+Where the Python XMP Toolkit can really shine, though, is when you are
+converting an image from another format such as TIFF or JPEG into JPEG 2000.
+For example::
+
+    >>> import requests
+    >>> r = requests.get('http://photojournal.jpl.nasa.gov/tiff/PIA17145.tif')
+    >>> with open('PIA17145.tif', 'wb') as fptr: fptr.write(r.content)
+    >>> from libxmp import XMPFiles
+    >>> xf = XMPFile()
+    >>> xf.open_file('PIA17145.tif')
+    >>> xmp = xf.get_xmp()
+
 
