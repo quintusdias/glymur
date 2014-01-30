@@ -919,7 +919,7 @@ class TestRepr(unittest.TestCase):
         self.assertEqual(box.vendor_mask, newbox.vendor_mask)
 
     @unittest.skipIf(sys.hexversion < 0x02070000, "Requires 2.7+")
-    def test_uuid_box(self):
+    def test_uuid_box_generic(self):
         """Verify uuid repr method."""
         uuid_instance = uuid.UUID('00000000-0000-0000-0000-000000000000')
         data = b'0123456789'
@@ -930,6 +930,24 @@ class TestRepr(unittest.TestCase):
         regexp = r"""glymur.jp2box.UUIDBox\("""
         regexp += """the_uuid=UUID\('00000000-0000-0000-0000-000000000000'\),\s"""
         regexp += """raw_data=<byte\sarray\s10\selements>\)"""
+
+        if sys.hexversion < 0x03000000:
+            self.assertRegexpMatches(repr(box), regexp)
+        else:
+            self.assertRegex(repr(box), regexp)
+
+    @unittest.skipIf(sys.hexversion < 0x02070000, "Requires 2.7+")
+    def test_uuid_box_xmp(self):
+        """Verify uuid repr method for XMP UUID box."""
+        jp2file = glymur.data.nemo()
+        j = Jp2k(jp2file)
+        box = j.box[3]
+
+        # Since the raw_data parameter is a sequence of bytes which could be
+        # quite long, don't bother trying to make it conform to eval(repr()).
+        regexp = r"""glymur.jp2box.UUIDBox\("""
+        regexp += """the_uuid=UUID\('be7acfcb-97a9-42e8-9c71-999491e3afac'\),\s"""
+        regexp += """raw_data=<byte\sarray\s3122\selements>\)"""
 
         if sys.hexversion < 0x03000000:
             self.assertRegexpMatches(repr(box), regexp)
