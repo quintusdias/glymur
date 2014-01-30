@@ -915,6 +915,53 @@ class FileTypeBox(Jp2kBox):
         return box
 
 
+class FreeBox(Jp2kBox):
+    """Container for JPX free box information.
+
+    Attributes
+    ----------
+    box_id : str
+        4-character identifier for the box.
+    length : int
+        length of the box in bytes.
+    offset : int
+        offset of the box from the start of the file.
+    longname : str
+        more verbose description of the box.
+    """
+    def __init__(self, length=0, offset=-1):
+        Jp2kBox.__init__(self, box_id='free', longname='Free')
+        self.length = length
+        self.offset = offset
+
+    def __repr__(self):
+        msg = "glymur.jp2box.FreeBox()"
+        return msg
+
+    def __str__(self):
+        msg = Jp2kBox.__str__(self)
+        return msg
+
+    @staticmethod
+    def parse(fptr, offset, length):
+        """Parse JPX free box.
+
+        Parameters
+        ----------
+        f : file
+            Open file object.
+        offset : int
+            Start position of box in bytes.
+        length : int
+            Length of the box in bytes.
+
+        Returns
+        -------
+        FreeBox instance
+        """
+        return FreeBox(length=length, offset=offset)
+
+
 class ImageHeaderBox(Jp2kBox):
     """Container for JPEG 2000 image header box information.
 
@@ -1520,13 +1567,24 @@ class ReaderRequirementsBox(Jp2kBox):
         # Decodes Completely Mask
         read_buffer = fptr.read(2 * mask_length)
 
+        fuam = dcm = standard_flag = standard_mask = []
+        vendor_feature = vendor_mask = []
+
         # The mask length tells us the format string to use when unpacking
         # from the buffer read from file.
-        mask_format = {1: 'B', 2: 'H', 4: 'I'}[mask_length]
-        fuam, dcm = struct.unpack('>' + mask_format * 2, read_buffer)
+        try:
+            mask_format = {1: 'B', 2: 'H', 4: 'I', 8: 'Q'}[mask_length]
+            fuam, dcm = struct.unpack('>' + mask_format * 2, read_buffer)
+            standard_flag, standard_mask = _parse_standard_flag(fptr,
+                                                                mask_length)
+            vendor_feature, vendor_mask = _parse_vendor_features(fptr,
+                                                                 mask_length)
 
-        standard_flag, standard_mask = _parse_standard_flag(fptr, mask_length)
-        vendor_feature, vendor_mask = _parse_vendor_features(fptr, mask_length)
+        except KeyError:
+            msg = 'The ReaderRequirements box (rreq) has a mask length of {0} '
+            msg += 'bytes, but only values of 1, 2, 4, or 8 are supported.  '
+            msg += 'The box contents will not be interpreted.'
+            warnings.warn(msg.format(mask_length), UserWarning)
 
         box = ReaderRequirementsBox(fuam, dcm, standard_flag, standard_mask,
                                     vendor_feature, vendor_mask,
@@ -2804,6 +2862,7 @@ _BOX_WITH_ID = {
     'jpch': CodestreamHeaderBox,
     'jplh': CompositingLayerHeaderBox,
     'jp2c': ContiguousCodestreamBox,
+    'free': FreeBox,
     'jp2h': JP2HeaderBox,
     'lbl ': LabelBox,
     'pclr': PaletteBox,

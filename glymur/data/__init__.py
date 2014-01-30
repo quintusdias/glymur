@@ -31,3 +31,16 @@ def goodstuff():
     """
     filename = pkg_resources.resource_filename(__name__, "goodstuff.j2k")
     return filename
+
+
+def jpxfile():
+    """Shortcut for specifying path to 12-v6.4.jpx.
+
+    Returns
+    -------
+    file : str
+        Platform-independent path to 12-v6.4.jpx
+    """
+    filename = pkg_resources.resource_filename(__name__, "12-v6.4.jpx")
+    return filename
+

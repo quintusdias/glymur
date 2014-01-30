@@ -9,3 +9,4 @@ Here's an incomplete list of what I'd like to focus on in the future.
     * investigate adding write support for UUID/XMP boxes (potentially a big project)
     * investigate JPIP (likely to be an even bigger project)
     
+Support for Python 2.6 will be dropped with the 0.6.0 release.
