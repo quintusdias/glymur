@@ -22,46 +22,6 @@ from glymur.jp2box import ReaderRequirementsBox
 
 @unittest.skipIf(sys.hexversion < 0x03000000, "Warning assert on 2.x.")
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-class TestReaderRequirements(unittest.TestCase):
-    """Test suite for XML boxes."""
-
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
-        pass
-
-    def tearDown(self):
-        pass
-
-    def test_mask_length_is_3(self):
-        """The standard says that the mask length should be 1, 2, 4, or 8."""
-        # Rewrite nemo to include this kind of rreq box.
-        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
-            with open(self.jp2file, 'rb') as nemof:
-                # Read the jP and ftyp boxes as-is.
-                write_buffer = nemof.read(32)
-                tfile.write(write_buffer)
-
-                # Fake a rreq box with ML = 3.
-                write_buffer = struct.pack('>I4sB', 74, b'rreq', 3)
-                tfile.write(write_buffer)
-
-                # pad the rest with zeros 
-                write_buffer = struct.pack('>65s', b'\x00' * 65)
-                tfile.write(write_buffer)
-
-                # Write the rest of nemo.
-                tfile.write(nemof.read())
-                tfile.flush()
-
-            with self.assertWarns(UserWarning):
-                j = Jp2k(tfile.name)
-            self.assertEqual(j.box[2].box_id, 'rreq')
-            self.assertEqual(type(j.box[2]),
-                             glymur.jp2box.ReaderRequirementsBox)
-
-
-@unittest.skipIf(sys.hexversion < 0x03000000, "Warning assert on 2.x.")
-@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
 class TestJPXOther(unittest.TestCase):
     """Test suite for other JPX boxes."""
 
@@ -72,6 +32,16 @@ class TestJPXOther(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_rreq_box_strange_mask_length(self):
+        """The standard says that the mask length should be 1, 2, 4, or 8."""
+        with warnings.catch_warnings():
+            # This file has a rreq mask length that we do not recognize.
+            warnings.simplefilter("ignore")
+            j = Jp2k(self.jpxfile)
+        self.assertEqual(j.box[2].box_id, 'rreq')
+        self.assertEqual(type(j.box[2]),
+                         glymur.jp2box.ReaderRequirementsBox)
+
     def test_free_box(self):
         """Verify that we can handle a free box."""
         with warnings.catch_warnings():
@@ -80,4 +50,24 @@ class TestJPXOther(unittest.TestCase):
             j = Jp2k(self.jpxfile)
         self.assertEqual(j.box[16].box[0].box_id, 'free')
         self.assertEqual(type(j.box[16].box[0]), glymur.jp2box.FreeBox)
+
+    def test_nlst(self):
+        """Verify that we can handle a free box."""
+        with warnings.catch_warnings():
+            # This file has a rreq mask length that we do not recognize.
+            warnings.simplefilter("ignore")
+            j = Jp2k(self.jpxfile)
+        self.assertEqual(j.box[16].box[1].box[0].box_id, 'nlst')
+        self.assertEqual(type(j.box[16].box[1].box[0]),
+                         glymur.jp2box.NumberListBox)
+        
+        # Two associations.
+        self.assertEqual(len(j.box[16].box[1].box[0].associations), 2)
+
+        # Codestream 0
+        self.assertEqual(j.box[16].box[1].box[0].associations[0], 1 << 24)
+
+        # Compositing Layer 0
+        self.assertEqual(j.box[16].box[1].box[0].associations[1], 2 << 24)
+
 
