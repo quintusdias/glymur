@@ -1903,6 +1903,72 @@ class LabelBox(Jp2kBox):
         return box
 
 
+class NumberListBox(Jp2kBox):
+    """Container for Number List box information.
+
+    Attributes
+    ----------
+    box_id : str
+        4-character identifier for the box.
+    length : int
+        length of the box in bytes.
+    offset : int
+        offset of the box from the start of the file.
+    longname : str
+        more verbose description of the box.
+    AN : list
+        Descriptors of an entity with which the data contained within the same
+        Association box is associated.
+    """
+    def __init__(self, associations, length=0, offset=-1):
+        Jp2kBox.__init__(self, box_id='nlst', longname='Number List')
+        self.associations = associations
+        self.length = length
+        self.offset = offset
+
+    def __str__(self):
+        msg = Jp2kBox.__str__(self)
+        for j, association in enumerate(self.associations):
+            if association == 0:
+                msg += '\n    Association[{0}]:  the rendered result'.format(j)
+            elif (association >> 24) == 1:
+                idx = association & 0x00FFFFFF
+                msg += '\n    Association[{0}]:  Codestream {0} '.format(idx)
+            elif (association >> 24) == 2:
+                idx = association & 0x00FFFFFF
+                msg += '\n    Association[{0}]:  Compositing Layer {0}'
+                msg = msg.format(idx)
+        return msg
+
+    def __repr__(self):
+        msg = 'glymur.jp2box.NumberListBox()'
+        return msg
+
+    @staticmethod
+    def parse(fptr, offset, length):
+        """Parse Label box.
+
+        Parameters
+        ----------
+        fptr : file
+            Open file object.
+        offset : int
+            Start position of box in bytes.
+        length : int
+            Length of the box in bytes.
+
+        Returns
+        -------
+        LabelBox instance
+        """
+        num_bytes = offset + length - fptr.tell()
+        raw_data = fptr.read(num_bytes)
+        num_associations = int(len(raw_data) / 4)
+        lst = struct.unpack('>' + 'I' * num_associations, raw_data)
+        box = NumberListBox(lst, length=length, offset=offset)
+        return box
+
+
 class XMLBox(Jp2kBox):
     """Container for XML box information.
 
@@ -2865,6 +2931,7 @@ _BOX_WITH_ID = {
     'free': FreeBox,
     'jp2h': JP2HeaderBox,
     'lbl ': LabelBox,
+    'nlst': NumberListBox,
     'pclr': PaletteBox,
     'res ': ResolutionBox,
     'resc': CaptureResolutionBox,
