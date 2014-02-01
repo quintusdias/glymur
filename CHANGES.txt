@@ -1,6 +1,6 @@
-Jan 29, 2014 - Added read support for JPX FreeBox, NumberListBox.  Palette box
-    now a 2D numpy array instead of a list of 1D arrays.  JP2 super box
-    constructors now take optional box list  argument.
+Feb 01, 2014 - Added read support for JPX FreeBox, NumberListBox, Data Reference
+    Box.  Palette box now a 2D numpy array instead of a list of 1D arrays.
+    JP2 super box constructors now take optional box list  argument.
 
 Jan 28, 2014 - v0.5.10  Fixed bad warning when reader requirements box mask
     length is unsupported.

@@ -8,7 +8,6 @@ import struct
 import sys
 import tempfile
 import warnings
-import xml.etree.cElementTree as ET
 
 if sys.hexversion < 0x02070000:
     import unittest2 as unittest
@@ -17,7 +16,6 @@ else:
 
 import glymur
 from glymur import Jp2k
-from glymur.jp2box import ReaderRequirementsBox
 
 
 @unittest.skipIf(sys.hexversion < 0x03000000, "Warning assert on 2.x.")
@@ -27,7 +25,6 @@ class TestJPXOther(unittest.TestCase):
 
     def setUp(self):
         self.jpxfile = glymur.data.jpxfile()
-        pass
 
     def tearDown(self):
         pass
@@ -51,6 +48,40 @@ class TestJPXOther(unittest.TestCase):
         self.assertEqual(j.box[16].box[0].box_id, 'free')
         self.assertEqual(type(j.box[16].box[0]), glymur.jp2box.FreeBox)
 
+    def test_dtbl(self):
+        """Verify that we can interpret Data Reference boxes."""
+        # Copy the existing JPX file, add a data reference box onto the end.
+        with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
+            with open(self.jpxfile, 'rb') as ifile:
+                tfile.write(ifile.read())
+            write_buffer = struct.pack('>I4s', 50, b'dtbl')
+            tfile.write(write_buffer)
+
+            # Just two boxes.
+            write_buffer = struct.pack('>H', 2)
+            tfile.write(write_buffer)
+
+            # First data entry url box.
+            write_buffer = struct.pack('>I4s', 20, b'url ')
+            tfile.write(write_buffer)
+            write_buffer = struct.pack('>BBBB8s', 0, 0, 0, 0, b'file:///')
+            tfile.write(write_buffer)
+
+            # Second data entry url box.
+            write_buffer = struct.pack('>I4s', 20, b'url ')
+            tfile.write(write_buffer)
+            write_buffer = struct.pack('>BBBB8s', 0, 0, 0, 0, b'file:///')
+            tfile.write(write_buffer)
+
+            tfile.flush()
+
+            with self.assertWarns(UserWarning):
+                jpx = Jp2k(tfile.name)
+
+            self.assertEqual(jpx.box[-1].box_id, 'dtbl')
+            self.assertEqual(len(jpx.box[-1].DR), 2)
+
+
     def test_nlst(self):
         """Verify that we can handle a free box."""
         with warnings.catch_warnings():
@@ -60,7 +91,7 @@ class TestJPXOther(unittest.TestCase):
         self.assertEqual(j.box[16].box[1].box[0].box_id, 'nlst')
         self.assertEqual(type(j.box[16].box[1].box[0]),
                          glymur.jp2box.NumberListBox)
-        
+
         # Two associations.
         self.assertEqual(len(j.box[16].box[1].box[0].associations), 2)
 
