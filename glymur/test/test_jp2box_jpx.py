@@ -82,6 +82,35 @@ class TestJPXOther(unittest.TestCase):
             self.assertEqual(len(jpx.box[-1].DR), 2)
 
 
+    def test_ftbl(self):
+        """Verify that we can interpret Fragment Table boxes."""
+        # Copy the existing JPX file, add a fragment table box onto the end.
+        with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
+            with open(self.jpxfile, 'rb') as ifile:
+                tfile.write(ifile.read())
+            write_buffer = struct.pack('>I4s', 32, b'ftbl')
+            tfile.write(write_buffer)
+
+            # Just one fragment list box
+            write_buffer = struct.pack('>I4s', 24, b'flst')
+            tfile.write(write_buffer)
+
+            # Simple offset, length, reference
+            write_buffer = struct.pack('>HQIH', 1, 4237, 170246, 3)
+            tfile.write(write_buffer)
+
+            tfile.flush()
+
+            with self.assertWarns(UserWarning):
+                jpx = Jp2k(tfile.name)
+
+            self.assertEqual(jpx.box[-1].box_id, 'ftbl')
+            self.assertEqual(jpx.box[-1].box[0].box_id, 'flst')
+            self.assertEqual(jpx.box[-1].box[0].fragment_offset, (4237,))
+            self.assertEqual(jpx.box[-1].box[0].fragment_length, (170246,))
+            self.assertEqual(jpx.box[-1].box[0].data_reference, (3,))
+
+
     def test_nlst(self):
         """Verify that we can handle a free box."""
         with warnings.catch_warnings():
