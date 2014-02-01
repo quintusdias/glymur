@@ -236,6 +236,11 @@ The example JP2 file shipped with glymur has an XMP UUID. ::
                  xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
                  ns0:xmptk="Exempi + XMP Core 5.1.2">
           <rdf:RDF>
+            <rdf:Description rdf:about="">
+              <ns2:CreatorTool>Google</ns2:CreatorTool>
+              <ns2:CreateDate>2013-02-09T14:47:53</ns2:CreateDate>
+            </rdf:Description>
+
           .
           .
           .
