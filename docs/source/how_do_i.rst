@@ -268,14 +268,31 @@ Toolkit::
 
 Where the Python XMP Toolkit can really shine, though, is when you are
 converting an image from another format such as TIFF or JPEG into JPEG 2000.
-For example::
+For example, if you were to be converting the TIFF image found at
+http://photojournal.jpl.nasa.gov/tiff/PIA17145.tif info JPEG 2000::
 
-    >>> import requests
-    >>> r = requests.get('http://photojournal.jpl.nasa.gov/tiff/PIA17145.tif')
-    >>> with open('PIA17145.tif', 'wb') as fptr: fptr.write(r.content)
+    >>> import skimage.io
+    >>> image = skimage.io.imread('PIA17145.tif')
+    >>> from glymur import Jp2k
+    >>> jp2 = Jp2k('PIA17145.jp2', 'wb')
+    >>> jp2.write(image)
+
+Next you can extract the XMP metadata.
+
     >>> from libxmp import XMPFiles
     >>> xf = XMPFile()
     >>> xf.open_file('PIA17145.tif')
     >>> xmp = xf.get_xmp()
+
+If you are familiar with TIFF, you can verify that there's no XMP tag in the
+TIFF file, but the Python XMP Toolkit takes advantage of the TIFF header
+structure to populate an XMP packet for you.  If you were working with a JPEG
+file with Exif metadata, that information would be included in the XMP packet 
+as well.  Now you can append the XMP packet in a UUIDBox::
+
+    >>> import uuid
+    >>> the_uuid = uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
+    >>> box = glymur.jp2box.UUIDBox(uuid, str(xmp).encode())
+    >>> jp2.append(box)
 
 
