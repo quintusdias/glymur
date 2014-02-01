@@ -811,6 +811,75 @@ class ContiguousCodestreamBox(Jp2kBox):
         return box
 
 
+class DataReferenceBox(Jp2kBox):
+    """Container for Data Reference box information.
+
+    Attributes
+    ----------
+    box_id : str
+        4-character identifier for the box.
+    length : int
+        length of the box in bytes.
+    offset : int
+        offset of the box from the start of the file.
+    longname : str
+        more verbose description of the box.
+    DR : list
+        Data Entry URL boxes.
+    """
+    def __init__(self, data_entry_url_boxes, length=0, offset=-1):
+        Jp2kBox.__init__(self, box_id='dtbl', longname='Data Reference')
+        self.DR = data_entry_url_boxes
+        self.length = length
+        self.offset = offset
+
+    def __str__(self):
+        msg = Jp2kBox.__str__(self)
+        for box in enumerate(self.DR):
+            msg += '\n    ' + str(box)
+        return msg
+
+    def __repr__(self):
+        msg = 'glymur.jp2box.DataReferenceBox()'
+        return msg
+
+    @staticmethod
+    def parse(fptr, offset, length):
+        """Parse Label box.
+
+        Parameters
+        ----------
+        fptr : file
+            Open file object.
+        offset : int
+            Start position of box in bytes.
+        length : int
+            Length of the box in bytes.
+
+        Returns
+        -------
+        DataReferenceBox instance
+        """
+        # Read the number of data references
+        read_buffer = fptr.read(2)
+        ndr, = struct.unpack('>H', read_buffer)
+
+        # Read each data entry url box.
+        data_entry_url_box_list = []
+        for _ in range(ndr):
+            start = fptr.tell()
+            read_buffer = fptr.read(8)
+            (box_length, box_id) = struct.unpack('>I4s', read_buffer)
+            if sys.hexversion >= 0x03000000:
+                box_id = box_id.decode('utf-8')
+
+            box = DataEntryURLBox.parse(fptr, start, box_length)
+            data_entry_url_box_list.append(box)
+
+        return DataReferenceBox(data_entry_url_box_list,
+                                length=length, offset=offset)
+
+
 class FileTypeBox(Jp2kBox):
     """Container for JPEG 2000 file type box information.
 
@@ -2922,6 +2991,7 @@ _BOX_WITH_ID = {
     'cdef': ChannelDefinitionBox,
     'cmap': ComponentMappingBox,
     'colr': ColourSpecificationBox,
+    'dtbl': DataReferenceBox,
     'ftyp': FileTypeBox,
     'ihdr': ImageHeaderBox,
     'jP  ': JPEG2000SignatureBox,
