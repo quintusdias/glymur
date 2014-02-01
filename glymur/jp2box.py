@@ -835,7 +835,7 @@ class DataReferenceBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        for box in enumerate(self.DR):
+        for box in self.DR:
             msg += '\n    ' + str(box)
         return msg
 
@@ -982,6 +982,134 @@ class FileTypeBox(Jp2kBox):
                           compatibility_list=compatibility_list,
                           length=length, offset=offset)
         return box
+
+
+class FragmentListBox(Jp2kBox):
+    """Container for JPX fragment list box information.
+
+    Attributes
+    ----------
+    box_id : str
+        4-character identifier for the box.
+    length : int
+        length of the box in bytes.
+    offset : int
+        offset of the box from the start of the file.
+    longname : str
+        more verbose description of the box.
+    """
+    def __init__(self, fragment_offset, fragment_length, data_reference,
+                 length=0, offset=-1):
+        Jp2kBox.__init__(self, box_id='flst', longname='Fragment List')
+        self.fragment_offset = fragment_offset
+        self.fragment_length = fragment_length
+        self.data_reference = data_reference
+        self.length = length
+        self.offset = offset
+
+    def __repr__(self):
+        msg = "glymur.jp2box.FragmentListBox()"
+        return msg
+
+    def __str__(self):
+        msg = Jp2kBox.__str__(self)
+        for j in range(len(self.fragment_offset)):
+            msg += "\n    Offset {0}:  {1}"
+            msg += "\n    Fragment Length {2}:  {3}"
+            msg += "\n    Data Reference {4}:  {5}"
+            msg = msg.format(j, self.fragment_offset[j],
+                             j, self.fragment_length[j],
+                             j, self.data_reference[j])
+
+        return msg
+
+    @staticmethod
+    def parse(fptr, offset, length):
+        """Parse JPX free box.
+
+        Parameters
+        ----------
+        f : file
+            Open file object.
+        offset : int
+            Start position of box in bytes.
+        length : int
+            Length of the box in bytes.
+
+        Returns
+        -------
+        FreeBox instance
+        """
+        read_buffer = fptr.read(2)
+        nf,  = struct.unpack('>H', read_buffer)
+
+        read_buffer = fptr.read(nf * 14)
+        lst = struct.unpack('>' + 'QIH' * nf, read_buffer)
+        frag_offset = lst[0::3]
+        frag_len = lst[1::3]
+        data_reference = lst[2::3]
+        return FragmentListBox(frag_offset, frag_len, data_reference,
+                length=length, offset=offset)
+
+
+class FragmentTableBox(Jp2kBox):
+    """Container for JPX fragment table box information.
+
+    Attributes
+    ----------
+    box_id : str
+        4-character identifier for the box.
+    length : int
+        length of the box in bytes.
+    offset : int
+        offset of the box from the start of the file.
+    longname : str
+        more verbose description of the box.
+    """
+    def __init__(self, length=0, offset=-1):
+        Jp2kBox.__init__(self, box_id='ftbl', longname='Fragment Table')
+        self.length = length
+        self.offset = offset
+
+    def __repr__(self):
+        msg = "glymur.jp2box.FragmentTableBox()"
+        return msg
+
+    def __str__(self):
+        msg = Jp2kBox.__str__(self)
+        for box in self.box:
+            boxstr = str(box)
+
+            # Add indentation.
+            strs = [('\n    ' + x) for x in boxstr.split('\n')]
+            msg += ''.join(strs)
+        return msg
+
+    @staticmethod
+    def parse(fptr, offset, length):
+        """Parse JPX fragment table superbox box.
+
+        Parameters
+        ----------
+        f : file
+            Open file object.
+        offset : int
+            Start position of box in bytes.
+        length : int
+            Length of the box in bytes.
+
+        Returns
+        -------
+        FreeBox instance
+        """
+        box = FragmentTableBox(length=length, offset=offset)
+
+        # The FragmentTable box is a superbox, so go ahead and parse its child
+        # boxes.
+        box.box = box.parse_superbox(fptr)
+
+        return box
+
 
 
 class FreeBox(Jp2kBox):
@@ -2999,6 +3127,8 @@ _BOX_WITH_ID = {
     'jplh': CompositingLayerHeaderBox,
     'jp2c': ContiguousCodestreamBox,
     'free': FreeBox,
+    'flst': FragmentListBox,
+    'ftbl': FragmentTableBox,
     'jp2h': JP2HeaderBox,
     'lbl ': LabelBox,
     'nlst': NumberListBox,
