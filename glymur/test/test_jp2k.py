@@ -382,7 +382,11 @@ class TestJp2k(unittest.TestCase):
             warnings.simplefilter("ignore")
             jpx = Jp2k(self.jpxfile)
         data = jpx.read()
-        self.assertEqual(data.shape, (1024, 1024, 3))
+        if re.match(r"""1\.[0123]""", glymur.version.openjpeg_version):
+            # openjpeg 1.3 doesn't apply the palette, so it's a 2D image here 
+            self.assertEqual(data.shape, (1024, 1024))
+        else:
+            self.assertEqual(data.shape, (1024, 1024, 3))
 
     @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_unrecognized_exif_tag(self):
