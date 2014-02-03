@@ -1027,16 +1027,20 @@ class Jp2k(Jp2kBox):
         Raises
         ------
         IOError
-            If the file is JPX with more than one codestream.
+            If the file is JPX with more than one codestream and no JP2
+            compatibility is advertised.
         """
         with open(self.filename, 'rb') as fptr:
             if self._codec_format == opj2.CODEC_J2K:
                 codestream = Codestream(fptr, self.length,
                                         header_only=header_only)
             else:
+                ftyp = self.box[1]
                 box = [x for x in self.box if x.box_id == 'jp2c']
-                if len(box) != 1:
-                    msg = "JP2 files must have a single codestream."
+                if len(box) > 1 and 'jp2 ' not in ftyp.compatibility_list:
+                    msg = "If more than one codestream exists, JP2 "
+                    msg += "compatibiltity must be advertised by the FileType "
+                    msg += "box."
                     raise RuntimeError(msg)
                 fptr.seek(box[0].offset)
                 read_buffer = fptr.read(8)
