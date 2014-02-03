@@ -63,6 +63,7 @@ class TestJp2k(unittest.TestCase):
     def setUp(self):
         self.jp2file = glymur.data.nemo()
         self.j2kfile = glymur.data.goodstuff()
+        self.jpxfile = glymur.data.jpxfile()
 
     def tearDown(self):
         pass
@@ -373,6 +374,15 @@ class TestJp2k(unittest.TestCase):
         elt = xmp.find(name)
         attr_value = elt.attrib['{0}CreatorTool'.format(ns1)]
         self.assertEqual(attr_value, 'glymur')
+
+    def test_jpx_mult_codestreams_jp2_brand(self):
+        """Read JPX codestream when jp2-compatible."""
+        # The file in question has multiple codestreams.
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            jpx = Jp2k(self.jpxfile)
+        data = jpx.read()
+        self.assertEqual(data.shape, (1024, 1024, 3))
 
     @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_unrecognized_exif_tag(self):
