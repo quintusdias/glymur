@@ -2477,7 +2477,7 @@ class DataEntryURLBox(Jp2kBox):
 
         numbytes = offset + length - fptr.tell()
         read_buffer = fptr.read(numbytes)
-        url = read_buffer.decode('utf-8')
+        url = read_buffer.decode('utf-8').rstrip(chr(0))
         box = DataEntryURLBox(version, flag, url, length=length, offset=offset)
         return box
 

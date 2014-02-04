@@ -54,7 +54,10 @@ class TestJPXOther(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
             with open(self.jpxfile, 'rb') as ifile:
                 tfile.write(ifile.read())
-            write_buffer = struct.pack('>I4s', 50, b'dtbl')
+            # 8 + 2 + 20 + 36
+            boxlen = 66
+
+            write_buffer = struct.pack('>I4s', boxlen, b'dtbl')
             tfile.write(write_buffer)
 
             # Just two boxes.
@@ -62,15 +65,20 @@ class TestJPXOther(unittest.TestCase):
             tfile.write(write_buffer)
 
             # First data entry url box.
-            write_buffer = struct.pack('>I4s', 20, b'url ')
+            # This one will have a URL with 3 null chars at the end.
+            # They should be stripped off.
+            write_buffer = struct.pack('>I4s', 36, b'url ')
             tfile.write(write_buffer)
-            write_buffer = struct.pack('>BBBB8s', 0, 0, 0, 0, b'file:///')
+            url1 = 'file:////usr/local/bin'
+            write_buffer = struct.pack('>BBBB24s', 0, 0, 0, 0,
+                                       (url1 + chr(0) * 3).encode())
             tfile.write(write_buffer)
 
-            # Second data entry url box.
+            # 2nd data entry url box.
             write_buffer = struct.pack('>I4s', 20, b'url ')
             tfile.write(write_buffer)
-            write_buffer = struct.pack('>BBBB8s', 0, 0, 0, 0, b'file:///')
+            url2 = 'file:///'
+            write_buffer = struct.pack('>BBBB8s', 0, 0, 0, 0, url2.encode())
             tfile.write(write_buffer)
 
             tfile.flush()
@@ -80,6 +88,8 @@ class TestJPXOther(unittest.TestCase):
 
             self.assertEqual(jpx.box[-1].box_id, 'dtbl')
             self.assertEqual(len(jpx.box[-1].DR), 2)
+            self.assertEqual(jpx.box[-1].DR[0].url, url1)
+            self.assertEqual(jpx.box[-1].DR[1].url, url2)
 
 
     def test_ftbl(self):
@@ -110,7 +120,6 @@ class TestJPXOther(unittest.TestCase):
             self.assertEqual(jpx.box[-1].box[0].fragment_length, (170246,))
             self.assertEqual(jpx.box[-1].box[0].data_reference, (3,))
 
-
     def test_nlst(self):
         """Verify that we can handle a free box."""
         with warnings.catch_warnings():
@@ -129,5 +138,3 @@ class TestJPXOther(unittest.TestCase):
 
         # Compositing Layer 0
         self.assertEqual(j.box[16].box[1].box[0].associations[1], 2 << 24)
-
-
