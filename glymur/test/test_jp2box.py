@@ -26,6 +26,7 @@ import tempfile
 import uuid
 from uuid import UUID
 import xml.etree.cElementTree as ET
+import warnings
 
 if sys.hexversion < 0x02070000:
     import unittest2 as unittest
@@ -496,6 +497,7 @@ class TestWrap(unittest.TestCase):
     def setUp(self):
         self.j2kfile = glymur.data.goodstuff()
         self.jp2file = glymur.data.nemo()
+        self.jpxfile = glymur.data.jpxfile()
 
     def tearDown(self):
         pass
@@ -556,6 +558,30 @@ class TestWrap(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             j2k.wrap(tfile.name)
             self.verify_wrapped_raw(tfile.name)
+
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+    def test_palette(self):
+        """basic test for rewrapping a jpx file"""
+        with warnings.catch_warnings():
+            # This file has a rreq mask length that we do not recognize.
+            warnings.simplefilter("ignore")
+            jpx = Jp2k(self.jpxfile)
+        idx = [0, 1, 3, 6]
+        boxes = [jpx.box[idx] for idx in [0, 1, 3, 6]]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            jp2 = jpx.wrap(tfile.name, boxes=boxes)
+
+        # Verify the outer boxes.
+        boxes = [box.box_id for box in jp2.box]
+        self.assertEqual(boxes, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
+
+        # Verify the inside boxes.
+        boxes = [box.box_id for box in jp2.box[2].box]
+        self.assertEqual(boxes, ['ihdr', 'colr', 'pclr', 'cmap'])
+
+        expected_offsets = [0, 12, 40, 887]
+        for j, offset in enumerate(expected_offsets):
+            self.assertEqual(jp2.box[j].offset, offset)
 
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_wrap_jp2(self):

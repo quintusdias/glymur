@@ -15,6 +15,7 @@ References
 
 import copy
 import datetime
+import io
 import math
 import os
 import pprint
@@ -23,6 +24,7 @@ import sys
 import uuid
 import warnings
 import xml.etree.cElementTree as ET
+
 if sys.hexversion < 0x02070000:
     # pylint: disable=F0401,E0611
     from ordereddict import OrderedDict
@@ -718,6 +720,20 @@ class ComponentMappingBox(Jp2kBox):
                 msg += '\n    Component %d ==> %d'
                 msg = msg.format(self.component_index[k], k)
         return msg
+
+    def write(self, fptr):
+        """Write a Component Mapping box to file.
+        """
+        length = 8 + 4 * len(self.component_index)
+        write_buffer = struct.pack('>I4s', length, self.box_id.encode())
+        fptr.write(write_buffer)
+
+        for j in range(len(self.component_index)):
+            write_buffer = struct.pack('>HBB', 
+                                       self.component_index[j],
+                                       self.mapping_type[j],
+                                       self.palette_index[j])
+            fptr.write(write_buffer)
 
     @staticmethod
     def parse(fptr, offset, length):
@@ -1527,15 +1543,58 @@ class PaletteBox(Jp2kBox):
         self.offset = offset
 
     def __repr__(self):
-        msg = "glymur.jp2box.PaletteBox({0}, bits_per_component={1}, "
-        msg += "signed={2})"
-        msg = msg.format(self.palette, self.bits_per_component, self.signed)
+        msg = "glymur.jp2box.PaletteBox(ndarray, bits_per_component={0}, "
+        msg += "signed={1})"
+        msg = msg.format(self.bits_per_component, self.signed)
         return msg
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         msg += '\n    Size:  ({0} x {1})'.format(*self.palette.shape)
         return msg
+
+    def write(self, fptr):
+        """Write a Palette box to file.
+        """
+        # Box length is usual header (8)
+        # + num entries NE (2) + num columns NC (1)
+        # + (bps/8, /signed) for each column (3) + bps * NC
+        # + 
+        bytes_per_row = sum(self.bits_per_component) / 8
+        bytes_per_palette = bytes_per_row * self.palette.shape[0]
+        box_length = 8 + 3 + self.palette.shape[1] + bytes_per_palette
+
+        # Write the usual header.
+        write_buffer = struct.pack('>I4s',
+                                   int(box_length), self.box_id.encode())
+        fptr.write(write_buffer)
+
+        write_buffer = struct.pack('>HB', self.palette.shape[0],
+                                   self.palette.shape[1])
+        fptr.write(write_buffer)
+
+        bps_signed = [x - 1 for x in self.bits_per_component]
+        for j, item in enumerate(bps_signed):
+            if self.signed[j]:
+                bps_signed[j] |= 0x80
+        write_buffer = struct.pack('>' + 'B' * self.palette.shape[1],
+                                   *bps_signed)
+        fptr.write(write_buffer)
+
+        if self.bits_per_component[0] <= 8:
+            dtype = np.uint8
+            code = 'B'
+        elif self.bits_per_component[0] <= 16:
+            dtype = np.uint16
+            code = 'H'
+        elif self.bits_per_component[0] <= 32:
+            dtype = np.uint32
+            code = 'I'
+
+        fmt = '>' + code * self.palette.shape[1]
+        for row in self.palette:
+            write_buffer = struct.pack(fmt, *row)
+            fptr.write(write_buffer)
 
     @staticmethod
     def parse(fptr, offset, length):
@@ -1561,7 +1620,7 @@ class PaletteBox(Jp2kBox):
         # Need to determine bps and signed or not
         read_buffer = fptr.read(num_columns)
         data = struct.unpack('>' + 'B' * num_columns, read_buffer)
-        bps = [((x & 0x07f) + 1) for x in data]
+        bps = [((x & 0x7f) + 1) for x in data]
         signed = [((x & 0x80) > 1) for x in data]
 
         fmt = '>'
