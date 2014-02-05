@@ -7,12 +7,8 @@ import os
 import struct
 import sys
 import tempfile
+import unittest
 import warnings
-
-if sys.hexversion < 0x02070000:
-    import unittest2 as unittest
-else:
-    import unittest
 
 import glymur
 from glymur import Jp2k

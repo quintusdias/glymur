@@ -95,18 +95,16 @@ documentation or use pip.
       * setuptools
       * matplotlib
       * pillow
-      * contextlib2 (python 2.6, 2.7 only)
-      * mock (python 2.6, 2.7 only)
-      * ordereddict (python 2.6 only)
+      * contextlib2 (2.7 only)
+      * mock (2.7 only)
 
-Glymur's been tested on the following linux platforms without any unexpected
+Glymur 0.6 been tested on the following linux platforms without any unexpected
 difficulties:
  
-      * OpenSUSE 12.3
-      * Fedora 17, 18, 19
+      * OpenSUSE 13.1
+      * Fedora 19
       * Raspian
       * Travis CI (currently Ubuntu 12.04?)
-      * CentOS 6.4
 
 Windows
 -------

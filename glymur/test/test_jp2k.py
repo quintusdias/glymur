@@ -17,13 +17,9 @@ import shutil
 import struct
 import sys
 import tempfile
+import unittest
 import uuid
 from xml.etree import cElementTree as ET
-
-if sys.hexversion < 0x02070000:
-    import unittest2 as unittest
-else:
-    import unittest
 
 import warnings
 
@@ -46,9 +42,6 @@ def load_tests(loader, tests, ignore):
     """Should run doc tests as well"""
     if os.name == "nt":
         # Can't do it on windows, temporary file issue.
-        return tests
-    if sys.hexversion < 0x02070000:
-        # Don't bother with doctests on 2.6 for the time being.
         return tests
     if glymur.lib.openjp2.OPENJP2 is not None:
         tests.addTests(doctest.DocTestSuite('glymur.jp2k'))

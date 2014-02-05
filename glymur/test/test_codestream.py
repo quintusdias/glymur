@@ -8,18 +8,11 @@ Test suite for codestream parsing.
 # tempfile.TemporaryDirectory, unittest.assertWarns introduced in 3.2
 # pylint: disable=E1101
 
-# unittest2 is python2.6 only (pylint/python-2.7)
-# pylint: disable=F0401
-
 import os
 import struct
 import sys
 import tempfile
-
-if sys.hexversion < 0x02070000:
-    import unittest2 as unittest
-else:
-    import unittest
+import unittest
 
 from glymur import Jp2k
 import glymur

@@ -5,9 +5,6 @@ Test suite specifically targeting JP2 box layout.
 # E1103:  return value from read may be list or np array
 # pylint: disable=E1103
 
-# F0401:  unittest2 is needed on python-2.6 (pylint on 2.7)
-# pylint: disable=F0401
-
 # R0902:  More than 7 instance attributes are just fine for testing.
 # pylint: disable=R0902
 
@@ -21,6 +18,7 @@ import os
 import struct
 import sys
 import tempfile
+import unittest
 import warnings
 import xml.etree.cElementTree as ET
 
@@ -33,11 +31,6 @@ if sys.hexversion <= 0x03030000:
     from mock import patch
 else:
     from unittest.mock import patch
-
-if sys.hexversion < 0x02070000:
-    import unittest2 as unittest
-else:
-    import unittest
 
 import glymur
 from glymur import Jp2k

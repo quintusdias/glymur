@@ -4,9 +4,6 @@ Test suite specifically targeting JP2 box layout.
 # E1103:  return value from read may be list or np array
 # pylint: disable=E1103
 
-# F0401:  unittest2 is needed on python-2.6 (pylint on 2.7)
-# pylint: disable=F0401
-
 # R0902:  More than 7 instance attributes are just fine for testing.
 # pylint: disable=R0902
 
@@ -26,12 +23,8 @@ import tempfile
 import uuid
 from uuid import UUID
 import xml.etree.cElementTree as ET
+import unittest
 import warnings
-
-if sys.hexversion < 0x02070000:
-    import unittest2 as unittest
-else:
-    import unittest
 
 import numpy as np
 
@@ -917,7 +910,6 @@ class TestRepr(unittest.TestCase):
         self.assertEqual(newbox.bits_per_component, (8, 8, 16))
         self.assertEqual(newbox.signed, (True, False, True))
 
-    @unittest.skipIf(sys.hexversion < 0x02070000, "Requires 2.7+")
     def test_xml_box(self):
         """Verify xml box repr."""
         elt = ET.fromstring('<?xml version="1.0"?><data>0</data>')
@@ -948,7 +940,6 @@ class TestRepr(unittest.TestCase):
         self.assertEqual(box.vendor_feature, newbox.vendor_feature)
         self.assertEqual(box.vendor_mask, newbox.vendor_mask)
 
-    @unittest.skipIf(sys.hexversion < 0x02070000, "Requires 2.7+")
     def test_uuid_box(self):
         """Verify uuid repr method."""
         uuid_instance = uuid.UUID('00000000-0000-0000-0000-000000000000')
@@ -966,7 +957,6 @@ class TestRepr(unittest.TestCase):
         else:
             self.assertRegex(repr(box), regexp)
 
-    @unittest.skipIf(sys.hexversion < 0x02070000, "Requires 2.7+")
     def test_contiguous_codestream_box(self):
         """Verify contiguous codestream box repr method."""
         jp2file = glymur.data.nemo()
