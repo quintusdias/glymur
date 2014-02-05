@@ -909,9 +909,13 @@ class TestRepr(unittest.TestCase):
         signed = (True, False, True)
         box = glymur.jp2box.PaletteBox(palette=palette, bits_per_component=bps,
                                        signed=(True, False, True))
-        # The palette can't be reinstantiated thru eval/repr.
-        s = repr(box)
-        self.assertTrue(True)
+
+        # Test will fail unless addition imports from numpy are done.
+        from numpy import array, int32
+        newbox = eval(repr(box))
+        np.testing.assert_array_equal(newbox.palette, palette)
+        self.assertEqual(newbox.bits_per_component, (8, 8, 16))
+        self.assertEqual(newbox.signed, (True, False, True))
 
     @unittest.skipIf(sys.hexversion < 0x02070000, "Requires 2.7+")
     def test_xml_box(self):
