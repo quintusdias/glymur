@@ -5,17 +5,10 @@ Tests for libopenjp2 wrapping functions.
 # W0142:  using kwargs is ok in this context
 # pylint: disable=R0904,W0142
 
-# unittest2 is python-2.6 only (pylint/python-2.7)
-# pylint: disable=F0401
-
 import os
 import sys
 import tempfile
-
-if sys.hexversion < 0x02070000:
-    import unittest2 as unittest
-else:
-    import unittest
+import unittest
 
 import numpy as np
 

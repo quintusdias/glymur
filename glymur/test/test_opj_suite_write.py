@@ -6,18 +6,11 @@ suite.
 # R0904:  Seems like pylint is fooled in this situation
 # pylint: disable=R0904,C0103
 
-# unittest2 is python2.6 only (pylint/python-2.7)
-# pylint: disable=F0401
-
 import os
 import re
 import sys
 import tempfile
-
-if sys.hexversion < 0x02070000:
-    import unittest2 as unittest
-else:
-    import unittest
+import unittest
 
 from .fixtures import read_image, NO_READ_BACKEND, NO_READ_BACKEND_MSG
 from .fixtures import OPJ_DATA_ROOT, opj_data_file

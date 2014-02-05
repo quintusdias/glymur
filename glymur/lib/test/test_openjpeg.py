@@ -1,19 +1,12 @@
 """
 Tests for OpenJPEG module.
 """
-# unittest2 is python2.6 only (pylint/python-2.7)
-# pylint: disable=F0401
-
 # pylint: disable=E1101,R0904
 
 import ctypes
 import re
 import sys
-
-if sys.hexversion < 0x02070000:
-    import unittest2 as unittest
-else:
-    import unittest
+import unittest
 
 import glymur
 

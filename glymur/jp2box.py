@@ -13,6 +13,7 @@ References
 
 # pylint: disable=C0302,R0903,R0913
 
+from collections import OrderedDict
 import copy
 import datetime
 import io
@@ -23,15 +24,8 @@ import struct
 import sys
 import uuid
 import warnings
+import xml
 import xml.etree.cElementTree as ET
-
-if sys.hexversion < 0x02070000:
-    # pylint: disable=F0401,E0611
-    from ordereddict import OrderedDict
-    from xml.etree.cElementTree import XMLParserError as ParseError
-else:
-    from xml.etree.cElementTree import ParseError
-    from collections import OrderedDict
 
 import numpy as np
 
@@ -2330,10 +2324,10 @@ class XMLBox(Jp2kBox):
         try:
             elt = ET.fromstring(text.encode('utf-8'))
             xml = ET.ElementTree(elt)
-        except ParseError as parse_error:
+        except ET.ParseError as err:
             msg = 'A problem was encountered while parsing an XML box:'
             msg += '\n\n\t"{0}"\n\nNo XML was retrieved.'
-            msg = msg.format(str(parse_error))
+            msg = msg.format(str(err))
             warnings.warn(msg, UserWarning)
             xml = None
 

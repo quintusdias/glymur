@@ -13,7 +13,8 @@ some very limited support for reading JPX metadata.  For instance,
 **asoc** and **labl** boxes are recognized, so GMLJP2 metadata can
 be retrieved from such JPX files.
 
-Glymur works on Python 2.6, 2.7, and 3.3.
+Glymur 0.6 works on Python versions 2.7, 3.3 and 3.4.  If you have 2.6, you should
+use the 0.5 series.
 
 OpenJPEG Installation
 =====================
