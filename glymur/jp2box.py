@@ -1543,9 +1543,10 @@ class PaletteBox(Jp2kBox):
         self.offset = offset
 
     def __repr__(self):
-        msg = "glymur.jp2box.PaletteBox(ndarray, bits_per_component={0}, "
-        msg += "signed={1})"
-        msg = msg.format(self.bits_per_component, self.signed)
+        msg = "glymur.jp2box.PaletteBox({0}, bits_per_component={1}, "
+        msg += "signed={2})"
+        msg = msg.format(repr(self.palette), self.bits_per_component,
+                         self.signed)
         return msg
 
     def __str__(self):
