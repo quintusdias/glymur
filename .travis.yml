@@ -1,6 +1,5 @@
 language: python
 python:
-  - "2.6"
   - "2.7"
   - "3.3"
 
@@ -17,8 +16,7 @@ install:
 
 # command to run tests
 script:
-  - if [[ $TRAVIS_PYTHON_VERSION == '2.7' ]]; then python -m unittest discover; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == '3.3' ]]; then python -m unittest discover; fi
+  - python -m unittest discover
 
 notifications:
   email: "john.g.evans.ne@gmail.com"
