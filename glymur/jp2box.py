@@ -88,6 +88,26 @@ class Jp2kBox(object):
         msg = "Not supported for {0} box.".format(self.longname)
         raise NotImplementedError(msg)
 
+    def _write_superbox(self, fptr):
+        """Write a superbox.
+
+        Parameters
+        ----------
+        fptr : file or file object
+            Superbox (box of boxes) to be written to this file.
+        """
+        # Write the contained boxes, then come back and write the length.
+        orig_pos = fptr.tell()
+        fptr.write(struct.pack('>I', 0))
+        fptr.write(self.box_id.encode())
+        for box in self.box:
+            box.write(fptr)
+
+        end_pos = fptr.tell()
+        fptr.seek(orig_pos)
+        fptr.write(struct.pack('>I', end_pos - orig_pos))
+        fptr.seek(end_pos)
+
     def parse_superbox(self, fptr):
         """Parse a superbox (box consisting of nothing but other boxes.
 
@@ -1372,17 +1392,7 @@ class AssociationBox(Jp2kBox):
     def write(self, fptr):
         """Write an association box to file.
         """
-        # Write the contained boxes, then come back and write the length.
-        orig_pos = fptr.tell()
-        fptr.write(struct.pack('>I', 0))
-        fptr.write('asoc'.encode())
-        for box in self.box:
-            box.write(fptr)
-
-        end_pos = fptr.tell()
-        fptr.seek(orig_pos)
-        fptr.write(struct.pack('>I', end_pos - orig_pos))
-        fptr.seek(end_pos)
+        self._write_superbox(fptr)
 
 
 class JP2HeaderBox(Jp2kBox):
@@ -1424,17 +1434,7 @@ class JP2HeaderBox(Jp2kBox):
     def write(self, fptr):
         """Write a JP2 Header box to file.
         """
-        # Write the contained boxes, then come back and write the length.
-        orig_pos = fptr.tell()
-        fptr.write(struct.pack('>I', 0))
-        fptr.write('jp2h'.encode())
-        for box in self.box:
-            box.write(fptr)
-
-        end_pos = fptr.tell()
-        fptr.seek(orig_pos)
-        fptr.write(struct.pack('>I', end_pos - orig_pos))
-        fptr.seek(end_pos)
+        self._write_superbox(fptr)
 
     @staticmethod
     def parse(fptr, offset, length):
