@@ -9,14 +9,100 @@ import sys
 import tempfile
 import unittest
 import warnings
+import xml.etree.cElementTree as ET
 
 import glymur
 from glymur import Jp2k
 
 
+@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+class TestJPXWrap(unittest.TestCase):
+    """Test suite for wrapping JPX files."""
+
+    def setUp(self):
+        self.jp2file = glymur.data.nemo()
+
+        raw_xml = b"""<?xml version="1.0"?>
+        <data>
+            <country name="Liechtenstein">
+                <rank>1</rank>
+                <year>2008</year>
+                <gdppc>141100</gdppc>
+                <neighbor name="Austria" direction="E"/>
+                <neighbor name="Switzerland" direction="W"/>
+            </country>
+        </data>"""
+        with tempfile.NamedTemporaryFile(suffix=".xml", delete=False) as tfile:
+            tfile.write(raw_xml)
+            tfile.flush()
+        self.xmlfile = tfile.name
+
+    def tearDown(self):
+        os.unlink(self.xmlfile)
+
+    def test_association_box(self):
+        """Wrap JP2 to JPX with asoc(nlst, xml)"""
+        jp2 = Jp2k(self.jp2file)
+        boxes = [jp2.box[idx] for idx in [0, 1, 2, 5]]
+
+        # The ftyp box must be modified to jpx with jp2 compatibility.
+        boxes[1].brand = 'jpx '
+        boxes[1].compatibility_list = ['jp2 ', 'jpx ']
+
+        numbers = (0, 1)
+        nlst = glymur.jp2box.NumberListBox(numbers)
+        the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
+        xmlb = glymur.jp2box.XMLBox(xml=the_xml)
+        asoc = glymur.jp2box.AssociationBox([nlst, xmlb])
+        boxes.append(asoc)
+
+        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+            jpx = jp2.wrap(tfile.name, boxes=boxes)
+
+            self.assertEqual(jpx.box[1].compatibility_list, ['jp2 ', 'jpx '])
+            self.assertEqual(jpx.box[-1].box_id, 'asoc')
+            self.assertEqual(jpx.box[-1].box[0].box_id, 'nlst')
+            self.assertEqual(jpx.box[-1].box[1].box_id, 'xml ')
+            self.assertEqual(jpx.box[-1].box[0].associations, numbers)
+            self.assertEqual(ET.tostring(jpx.box[-1].box[1].xml.getroot()),
+                             b'<data>0</data>')
+
+    def test_jp2_to_jpx_sans_jp2_compatibility(self):
+        """jp2 wrapped to jpx not including jp2 compatibility is wrong."""
+        jp2 = Jp2k(self.jp2file)
+        boxes = [jp2.box[idx] for idx in [0, 1, 2, 5]]
+        boxes[1].compatibility_list.append('jp2 ')
+        numbers = [0, 1]
+        nlst = glymur.jp2box.NumberListBox(numbers)
+        the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
+        xmlb = glymur.jp2box.XMLBox(xml=the_xml)
+        asoc = glymur.jp2box.AssociationBox([nlst, xmlb])
+        boxes.append(asoc)
+
+        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+            with self.assertRaises(RuntimeError):
+                jpx = jp2.wrap(tfile.name, boxes=boxes)
+
+    def test_jp2_to_jpx_sans_jpx_brand(self):
+        """Verify error when jp2 wrapped to jpx does not include jpx brand."""
+        jp2 = Jp2k(self.jp2file)
+        boxes = [jp2.box[idx] for idx in [0, 1, 2, 5]]
+        boxes[1].brand = 'jpx '
+        numbers = [0, 1]
+        nlst = glymur.jp2box.NumberListBox(numbers)
+        the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
+        xmlb = glymur.jp2box.XMLBox(xml=the_xml)
+        asoc = glymur.jp2box.AssociationBox([nlst, xmlb])
+        boxes.append(asoc)
+
+        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+            with self.assertRaises(RuntimeError):
+                jpx = jp2.wrap(tfile.name, boxes=boxes)
+
+
 @unittest.skipIf(sys.hexversion < 0x03000000, "Warning assert on 2.x.")
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-class TestJPXOther(unittest.TestCase):
+class TestJPX(unittest.TestCase):
     """Test suite for other JPX boxes."""
 
     def setUp(self):

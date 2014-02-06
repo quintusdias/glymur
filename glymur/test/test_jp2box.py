@@ -553,7 +553,7 @@ class TestWrap(unittest.TestCase):
             self.verify_wrapped_raw(tfile.name)
 
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-    def test_palette(self):
+    def test_jpx_to_jp2(self):
         """basic test for rewrapping a jpx file"""
         with warnings.catch_warnings():
             # This file has a rreq mask length that we do not recognize.
