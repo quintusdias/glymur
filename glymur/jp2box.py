@@ -1369,6 +1369,21 @@ class AssociationBox(Jp2kBox):
 
         return box
 
+    def write(self, fptr):
+        """Write an association box to file.
+        """
+        # Write the contained boxes, then come back and write the length.
+        orig_pos = fptr.tell()
+        fptr.write(struct.pack('>I', 0))
+        fptr.write('asoc'.encode())
+        for box in self.box:
+            box.write(fptr)
+
+        end_pos = fptr.tell()
+        fptr.seek(orig_pos)
+        fptr.write(struct.pack('>I', end_pos - orig_pos))
+        fptr.seek(end_pos)
+
 
 class JP2HeaderBox(Jp2kBox):
     """Container for JP2 header box information.
@@ -2180,15 +2195,19 @@ class NumberListBox(Jp2kBox):
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         for j, association in enumerate(self.associations):
+            msg += '\n    Association[{0}]:  '.format(j)
             if association == 0:
-                msg += '\n    Association[{0}]:  the rendered result'.format(j)
+                msg += 'the rendered result'
             elif (association >> 24) == 1:
                 idx = association & 0x00FFFFFF
-                msg += '\n    Association[{0}]:  Codestream {0} '.format(idx)
+                msg += 'Codestream {0}'
+                msg = msg.format(idx)
             elif (association >> 24) == 2:
                 idx = association & 0x00FFFFFF
-                msg += '\n    Association[{0}]:  Compositing Layer {0}'
-                msg = msg.format(idx)
+                msg += 'Compositing Layer {0}'
+                msg = msg.format(j, idx)
+            else:
+                msg += 'unrecognized'
         return msg
 
     def __repr__(self):
@@ -2218,6 +2237,16 @@ class NumberListBox(Jp2kBox):
         lst = struct.unpack('>' + 'I' * num_associations, raw_data)
         box = NumberListBox(lst, length=length, offset=offset)
         return box
+
+    def write(self, fptr):
+        """Write a NumberList box to file.
+        """
+        fptr.write(struct.pack('>I', len(self.associations) * 4 + 8))
+        fptr.write(self.box_id.encode())
+
+        fmt = '>' + 'I' * len(self.associations)
+        write_buffer = struct.pack(fmt, *self.associations)
+        fptr.write(write_buffer)
 
 
 class XMLBox(Jp2kBox):

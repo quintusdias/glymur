@@ -37,6 +37,10 @@ from .lib import openjp2 as opj2
 from . import version
 from .lib import c as libc
 
+JP2_IDS = ['colr', 'cdef', 'cmap', 'jp2c', 'ftyp', 'ihdr', 'jp2h', 'jP  ',
+           'pclr', 'res ', 'resc', 'resd', 'xml ', 'ulst', 'uinf', 'url ',
+           'uuid']
+JPX_IDS = ['asoc', 'nlst']
 
 class Jp2k(Jp2kBox):
     """JPEG 2000 file.
@@ -610,7 +614,7 @@ class Jp2k(Jp2kBox):
                         jp2c = [box for box in self.box
                                 if box.box_id == 'jp2c']
                         jp2c = jp2c[0]
-                        ofile.write(struct.pack('>I', jp2c.length + 8))
+                        ofile.write(struct.pack('>I', jp2c.length))
                         ofile.write('jp2c'.encode())
                         with open(self.filename, 'rb') as ifile:
                             # Seek 8 bytes past the L, T fields to get to the
@@ -1170,6 +1174,61 @@ def _validate_jp2_box_sequence(boxes):
                 msg = "All color channels must be defined in the "
                 msg += "channel definition box."
                 raise IOError(msg)
+    
+    # The compatibility list must contain at a minimum 'jp2 '.
+    if 'jp2 ' not in boxes[1].compatibility_list:
+        msg = "The ftyp box must contain 'jp2 ' in the compatibility list."
+        raise IOError(msg)
+
+    # JPX checks.
+    _asoc_check(boxes)
+    _jpx_brand(boxes, boxes[1].brand)
+    _jpx_compatibility(boxes, boxes[1].compatibility_list)
+
+def _jpx_brand(boxes, brand):
+    """
+    If there is a JPX box then the brand must be 'jpx '.
+    """
+    for box in boxes:
+        if box.box_id in JPX_IDS:
+            if brand != 'jpx ':
+                msg = "A JPX box requires that the file type box brand be "
+                msg += "'jpx '."
+                raise RuntimeError(msg)
+        if hasattr(box, 'box') != 0:
+            # Same set of checks on any child boxes.
+            _jpx_brand(box.box, brand)
+
+def _jpx_compatibility(boxes, compatibility_list):
+    """
+    If there is a JPX box then the compatibility list must also contain 'jpx '.
+    """
+    for box in boxes:
+        if box.box_id in JPX_IDS:
+            if 'jpx ' not in compatibility_list:
+                msg = "A JPX box requires that 'jpx ' be present in the "
+                msg += "ftype compatibility list."
+                raise RuntimeError(msg)
+        if hasattr(box, 'box') != 0:
+            # Same set of checks on any child boxes.
+            _jpx_compatibility(box.box, compatibility_list)
+
+
+def _asoc_check(boxes):
+    """
+    Association boxes can only contain number list boxes and xml boxes, as far
+    as we know.
+    """
+    for box in boxes:
+        if box.box_id == 'asoc':
+            if box.box[0].box_id != 'nlst' or box.box[1].box_id != 'xml ':
+                msg = "An Association box can only contain a NumberList box "
+                msg += "followed by an XML box."
+                raise RuntimeError(msg)
+        if hasattr(box, 'box') != 0:
+            # Same set of checks on any child boxes.
+            _asoc_check(box.box)
+
 
 
 def extract_image_cube(image):
