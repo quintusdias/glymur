@@ -69,8 +69,6 @@ class TestDataEntryURL(unittest.TestCase):
         boxes.append(deurl)
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             jp22 = jp2.wrap(tfile.name, boxes=boxes)
-            import shutil
-            shutil.copyfile(tfile.name, '/Users/jevans/a.jp2')
 
         actdata = [box.box_id for box in jp22.box]
         expdata = ['jP  ', 'ftyp', 'jp2h', 'jp2c', 'url ']
