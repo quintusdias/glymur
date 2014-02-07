@@ -1132,6 +1132,12 @@ def _validate_jp2_box_sequence(boxes):
         msg = "The codestream box must be preceeded by a jp2 header box."
         raise IOError(msg)
 
+    # 1st jp2 header box cannot be empty.
+    jp2h = boxes[jp2h_idx]
+    if len(jp2h.box) == 0:
+        msg = "The JP2 header superbox cannot be empty."
+        raise IOError(msg)
+
     # 1st jp2 header box must be ihdr
     jp2h = boxes[jp2h_idx]
     if jp2h.box[0].box_id != 'ihdr':
