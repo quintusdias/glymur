@@ -52,6 +52,34 @@ def load_tests(loader, tests, ignore):
     tests.addTests(doctest.DocTestSuite('glymur.jp2box'))
     return tests
 
+@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+class TestDataEntryURL(unittest.TestCase):
+    """Test suite for DataEntryURL boxes."""
+    def setUp(self):
+        self.jp2file = glymur.data.nemo()
+
+    def test_basic_url(self):
+        """Just your most basic URL box."""
+        # Wrap our j2k file in a JP2 box along with an interior url box.
+        jp2 = Jp2k(self.jp2file)
+
+        url = 'http://glymur.readthedocs.org'
+        deurl = glymur.jp2box.DataEntryURLBox(0, (0, 0, 0), url)
+        boxes = [box for box in jp2.box if box.box_id != 'uuid']
+        boxes.append(deurl)
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            jp22 = jp2.wrap(tfile.name, boxes=boxes)
+            import shutil
+            shutil.copyfile(tfile.name, '/Users/jevans/a.jp2')
+
+        actdata = [box.box_id for box in jp22.box]
+        expdata = ['jP  ', 'ftyp', 'jp2h', 'jp2c', 'url ']
+        self.assertEqual(actdata, expdata)
+        self.assertEqual(jp22.box[4].version, 0)
+        self.assertEqual(jp22.box[4].flag, (0, 0, 0))
+        self.assertEqual(jp22.box[4].url, url)
+
+
 @unittest.skipIf(glymur.version.openjpeg_version_tuple[0] < 2 or
                  OPENJP2_IS_V2_OFFICIAL,
                  "Not supported until 2.0+.")
