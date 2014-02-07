@@ -2518,6 +2518,18 @@ class DataEntryURLBox(Jp2kBox):
         self.length = length
         self.offset = offset
 
+    def write(self, fptr):
+        """Write a data entry url box to file.
+        """
+        length = 8 + 1 + 3 + len(self.url.encode())
+        write_buffer = struct.pack('>I4sBBBB',
+                                   length, self.box_id.encode(),
+                                   self.version,
+                                   self.flag[0], self.flag[1], self.flag[2])
+        fptr.write(write_buffer)
+        fptr.write(self.url.encode())
+
+
     def __repr__(self):
         msg = "glymur.jp2box.DataEntryURLBox({0}, {1}, '{2}')"
         msg = msg.format(self.version, self.flag, self.url)
