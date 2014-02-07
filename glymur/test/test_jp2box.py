@@ -510,6 +510,7 @@ class TestAppend(unittest.TestCase):
                 jp2.append(uuidbox)
 
 
+@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
 class TestWrap(unittest.TestCase):
     """Tests for wrap method."""
 
@@ -570,7 +571,6 @@ class TestWrap(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.SRGB)
         self.assertIsNone(jp2.box[2].box[1].icc_profile)
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_wrap(self):
         """basic test for rewrapping a j2c file, no specified boxes"""
         j2k = Jp2k(self.j2kfile)
@@ -578,7 +578,6 @@ class TestWrap(unittest.TestCase):
             j2k.wrap(tfile.name)
             self.verify_wrapped_raw(tfile.name)
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_jpx_to_jp2(self):
         """basic test for rewrapping a jpx file"""
         with warnings.catch_warnings():
@@ -602,7 +601,6 @@ class TestWrap(unittest.TestCase):
         for j, offset in enumerate(expected_offsets):
             self.assertEqual(jp2.box[j].offset, offset)
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_wrap_jp2(self):
         """basic test for rewrapping a jp2 file, no specified boxes"""
         j2k = Jp2k(self.jp2file)
@@ -611,7 +609,17 @@ class TestWrap(unittest.TestCase):
         boxes = [box.box_id for box in jp2.box]
         self.assertEqual(boxes, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+    def test_empty_jp2h(self):
+        """JP2H box list cannot be empty."""
+        jp2 = Jp2k(self.jp2file)
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            boxes = jp2.box
+            # Right here the jp2h superbox has two child boxes.  Empty out that
+            # list to trigger the error.
+            boxes[2].box = []
+            with self.assertRaises(IOError):
+                jp22 = jp2.wrap(tfile.name, boxes=boxes)
+
     def test_default_layout_with_boxes(self):
         """basic test for rewrapping a jp2 file, boxes specified"""
         j2k = Jp2k(self.j2kfile)
@@ -631,7 +639,6 @@ class TestWrap(unittest.TestCase):
             j2k.wrap(tfile.name, boxes=boxes)
             self.verify_wrapped_raw(tfile.name)
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_ihdr_not_first_in_jp2h(self):
         """The specification says that ihdr must be the first box in jp2h."""
         j2k = Jp2k(self.j2kfile)
@@ -651,7 +658,6 @@ class TestWrap(unittest.TestCase):
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_first_boxes_jp_and_ftyp(self):
         """first two boxes must be jP followed by ftyp"""
         j2k = Jp2k(self.j2kfile)
@@ -673,7 +679,6 @@ class TestWrap(unittest.TestCase):
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_jp2h_not_preceeding_jp2c(self):
         """jp2h must precede jp2c"""
         j2k = Jp2k(self.j2kfile)
@@ -695,7 +700,6 @@ class TestWrap(unittest.TestCase):
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_missing_codestream(self):
         """Need a codestream box in order to call wrap method."""
         j2k = Jp2k(self.j2kfile)
