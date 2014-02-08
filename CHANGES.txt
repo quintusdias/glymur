@@ -1,12 +1,12 @@
-Feb 03, 2014 - Removed support for Python 2.6.  Added write support for
+Feb 08, 2014 - Removed support for Python 2.6.  Added write support for
     JP2 DataEntryURL, Palette and Component Mapping boxes, JPX
-    Association and NumberList boxes.  Added read support for JPX
-    free, number list, data reference, fragment table, and fragment
-    list boxes.  Palette box now a 2D numpy array instead of a list
-    of 1D arrays.  JP2 super box constructors now take optional box
-    list  argument.  Fixed bug where JPX files with more than one
-    codestream but advertising jp2 compatibility were not being
-    read.
+    Association, NumberList and DataReference boxes.  Added read
+    support for JPX free, number list, data reference, fragment
+    table, and fragment list boxes.  Palette box now a 2D numpy
+    array instead of a list of 1D arrays.  JP2 super box constructors
+    now take optional box list  argument.  Fixed bug where JPX files
+    with more than one codestream but advertising jp2 compatibility
+    were not being read.
 
 Jan 28, 2014 - v0.5.10  Fixed bad warning when reader requirements box mask
     length is unsupported.

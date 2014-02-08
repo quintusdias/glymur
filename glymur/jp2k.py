@@ -16,6 +16,7 @@ if sys.hexversion >= 0x03030000:
 else:
     from contextlib2 import ExitStack
 
+from collections import Counter
 import ctypes
 import math
 import os
@@ -1190,6 +1191,57 @@ def _validate_jp2_box_sequence(boxes):
     _asoc_check(boxes)
     _jpx_brand(boxes, boxes[1].brand)
     _jpx_compatibility(boxes, boxes[1].compatibility_list)
+    _check_for_singletons(boxes)
+    _check_top_level(boxes)
+
+def _collect_box_count(boxes):
+    """Count the occurences of each box type."""
+    count = Counter([box.box_id for box in boxes])
+
+    # Add the counts in the superboxes.
+    for box in boxes:
+        if hasattr(box, 'box'):
+            count.update(_collect_box_count(box.box))
+
+    return count
+
+TOP_LEVEL_ONLY_BOXES = set(['dtbl'])
+
+def _check_superbox_for_top_levels(boxes):
+    """Several boxes can only occur at the top level."""
+    # We are only looking at the boxes contained in a superbox, so if any of
+    # the blacklisted boxes show up here, it's an error.
+    box_ids = set([box.box_id for box in boxes])
+    intersection = box_ids.intersection(TOP_LEVEL_ONLY_BOXES)
+    if len(intersection) > 0:
+        msg = "A '{0}' box cannot be nested in a superbox."
+        raise IOError(msg.format(list(intersection)[0]))
+
+    # Recursively check any contained superboxes.
+    for box in boxes:
+        if hasattr(box, 'box'):
+            _check_superbox_for_top_levels(box.box)
+
+def _check_top_level(boxes):
+    """Several boxes can only occur at the top level."""
+    # Add the counts in the superboxes.
+    for box in boxes:
+        if hasattr(box, 'box'):
+            _check_superbox_for_top_levels(box.box)
+
+    count = _collect_box_count(boxes)
+    # Which boxes occur more than once?
+    multiples = [box_id for box_id, bcount in count.items() if bcount > 1]
+    if 'dtbl' in multiples:
+        raise IOError('There can only be one dtbl box in a file.')
+
+def _check_for_singletons(boxes):
+    """Several boxes can only occur once."""
+    count = _collect_box_count(boxes)
+    # Which boxes occur more than once?
+    multiples = [box_id for box_id, bcount in count.items() if bcount > 1]
+    if 'dtbl' in multiples:
+        raise IOError('There can only be one dtbl box in a file.')
 
 def _jpx_brand(boxes, brand):
     """
