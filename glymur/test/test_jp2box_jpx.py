@@ -67,6 +67,41 @@ class TestJPXWrap(unittest.TestCase):
             self.assertEqual(ET.tostring(jpx.box[-1].box[1].xml.getroot()),
                              b'<data>0</data>')
 
+    def test_only_one_data_reference(self):
+        """Data reference boxes cannot be inside a superbox ."""
+        jp2 = Jp2k(self.jp2file)
+        boxes = [jp2.box[idx] for idx in [0, 1, 2, 5]]
+
+        flag = 0
+        version = (0, 0, 0)
+        url = 'file:////usr/local/bin'
+        deurl = glymur.jp2box.DataEntryURLBox(flag, version, url)
+        dref = glymur.jp2box.DataReferenceBox([deurl])
+        boxes.append(dref)
+        boxes.append(dref)
+
+        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+            with self.assertRaises(IOError):
+                jpx = jp2.wrap(tfile.name, boxes=boxes)
+
+    def test_data_reference_not_at_top_level(self):
+        """Data reference boxes cannot be inside a superbox ."""
+        jp2 = Jp2k(self.jp2file)
+        boxes = [jp2.box[idx] for idx in [0, 1, 2, 5]]
+
+        flag = 0
+        version = (0, 0, 0)
+        url = 'file:////usr/local/bin'
+        deurl = glymur.jp2box.DataEntryURLBox(flag, version, url)
+        dref = glymur.jp2box.DataReferenceBox([deurl])
+
+        # Put it inside the jp2 header box.
+        boxes[2].box.append(dref)
+
+        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+            with self.assertRaises(IOError):
+                jpx = jp2.wrap(tfile.name, boxes=boxes)
+
     def test_jp2_to_jpx_sans_jp2_compatibility(self):
         """jp2 wrapped to jpx not including jp2 compatibility is wrong."""
         jp2 = Jp2k(self.jp2file)
@@ -133,46 +168,30 @@ class TestJPX(unittest.TestCase):
     def test_dtbl(self):
         """Verify that we can interpret Data Reference boxes."""
         # Copy the existing JPX file, add a data reference box onto the end.
+        flag = 0
+        version = (0, 0, 0)
+        url1 = 'file:////usr/local/bin'
+        url2 = 'http://glymur.readthedocs.org' + chr(0) * 3
         with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
             with open(self.jpxfile, 'rb') as ifile:
                 tfile.write(ifile.read())
-            # 8 + 2 + 20 + 36
-            boxlen = 66
 
-            write_buffer = struct.pack('>I4s', boxlen, b'dtbl')
-            tfile.write(write_buffer)
-
-            # Just two boxes.
-            write_buffer = struct.pack('>H', 2)
-            tfile.write(write_buffer)
-
-            # First data entry url box.
-            # This one will have a URL with 3 null chars at the end.
-            # They should be stripped off.
-            write_buffer = struct.pack('>I4s', 36, b'url ')
-            tfile.write(write_buffer)
-            url1 = 'file:////usr/local/bin'
-            write_buffer = struct.pack('>BBBB24s', 0, 0, 0, 0,
-                                       (url1 + chr(0) * 3).encode())
-            tfile.write(write_buffer)
-
-            # 2nd data entry url box.
-            write_buffer = struct.pack('>I4s', 20, b'url ')
-            tfile.write(write_buffer)
-            url2 = 'file:///'
-            write_buffer = struct.pack('>BBBB8s', 0, 0, 0, 0, url2.encode())
-            tfile.write(write_buffer)
+                deurl1 = glymur.jp2box.DataEntryURLBox(flag, version, url1)
+                deurl2 = glymur.jp2box.DataEntryURLBox(flag, version, url2)
+                dref = glymur.jp2box.DataReferenceBox([deurl1, deurl2])
+                dref.write(tfile)
 
             tfile.flush()
 
-            with self.assertWarns(UserWarning):
+            with warnings.catch_warnings():
+                # This file has a rreq mask length that we do not recognize.
+                warnings.simplefilter("ignore")
                 jpx = Jp2k(tfile.name)
 
             self.assertEqual(jpx.box[-1].box_id, 'dtbl')
             self.assertEqual(len(jpx.box[-1].DR), 2)
             self.assertEqual(jpx.box[-1].DR[0].url, url1)
-            self.assertEqual(jpx.box[-1].DR[1].url, url2)
-
+            self.assertEqual(jpx.box[-1].DR[1].url, url2.rstrip('\0'))
 
     def test_ftbl(self):
         """Verify that we can interpret Fragment Table boxes."""

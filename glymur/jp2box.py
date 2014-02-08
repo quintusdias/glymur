@@ -863,6 +863,27 @@ class DataReferenceBox(Jp2kBox):
         self.length = length
         self.offset = offset
 
+    def write(self, fptr):
+        """Write a Data Reference box to file.
+        """
+
+        # Very similar to the say a superbox is written.
+        orig_pos = fptr.tell()
+        fptr.write(struct.pack('>I', 0))
+        fptr.write(self.box_id.encode())
+
+        # Write the number of data entry url boxes.
+        write_buffer = struct.pack('>H', len(self.DR))
+        fptr.write(write_buffer)
+
+        for box in self.DR:
+            box.write(fptr)
+
+        end_pos = fptr.tell()
+        fptr.seek(orig_pos)
+        fptr.write(struct.pack('>I', end_pos - orig_pos))
+        fptr.seek(end_pos)
+
     def __str__(self):
         msg = Jp2kBox.__str__(self)
         for box in self.DR:
