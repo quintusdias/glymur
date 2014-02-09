@@ -11,7 +11,6 @@
 # pylint: disable=R0904
 
 import os
-import re
 import struct
 import sys
 import tempfile
@@ -31,103 +30,75 @@ else:
 
 import glymur
 from glymur import Jp2k
+from . import fixtures
 from .fixtures import OPJ_DATA_ROOT, opj_data_file, nemo_xmp_box
 from .fixtures import text_gbr_27, text_gbr_33, text_gbr_34
 
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-@unittest.skipIf(re.match(r"""1\.[01234]""", glymur.version.openjpeg_version),
-                 "Need at least 1.5 in order to write jp2 files.")
-class TestPrintingNeedsLib(unittest.TestCase):
-    """These tests require the library, mostly in order to just setup the test.
-    """
-
-    @classmethod
-    def setUpClass(cls):
-        # Setup a plain JP2 file without the two UUID boxes.
-        jp2file = glymur.data.nemo()
-        with tempfile.NamedTemporaryFile(suffix='.jp2', delete=False) as tfile:
-            cls._plain_nemo_file = tfile.name
-            ijfile = Jp2k(jp2file)
-            data = ijfile.read(rlevel=1)
-            ojfile = Jp2k(cls._plain_nemo_file, 'wb')
-            ojfile.write(data)
-
-    @classmethod
-    def tearDownClass(cls):
-        os.unlink(cls._plain_nemo_file)
-
+class TestPrinting(unittest.TestCase):
+    """Tests for verifying how printing works."""
     def setUp(self):
         self.jp2file = glymur.data.nemo()
         self.j2kfile = glymur.data.goodstuff()
 
-        # Save the output of dumping nemo.jp2 for more than one test.
-        lines = ['JPEG 2000 Signature Box (jP  ) @ (0, 12)',
-                 '    Signature:  0d0a870a',
-                 'File Type Box (ftyp) @ (12, 20)',
-                 '    Brand:  jp2 ',
-                 "    Compatibility:  ['jp2 ']",
-                 'JP2 Header Box (jp2h) @ (32, 45)',
-                 '    Image Header Box (ihdr) @ (40, 22)',
-                 '        Size:  [728 1296 3]',
-                 '        Bitdepth:  8',
-                 '        Signed:  False',
-                 '        Compression:  wavelet',
-                 '        Colorspace Unknown:  False',
-                 '    Colour Specification Box (colr) @ (62, 15)',
-                 '        Method:  enumerated colorspace',
-                 '        Precedence:  0',
-                 '        Colorspace:  sRGB',
-                 'Contiguous Codestream Box (jp2c) @ (77, 1632355)',
-                 '    Main header:',
-                 '        SOC marker segment @ (85, 0)',
-                 '        SIZ marker segment @ (87, 47)',
-                 '            Profile:  2',
-                 '            Reference Grid Height, Width:  (728 x 1296)',
-                 '            Vertical, Horizontal Reference Grid Offset:  '
-                 + '(0 x 0)',
-                 '            Reference Tile Height, Width:  (728 x 1296)',
-                 '            Vertical, Horizontal Reference Tile Offset:  '
-                 + '(0 x 0)',
-                 '            Bitdepth:  (8, 8, 8)',
-                 '            Signed:  (False, False, False)',
-                 '            Vertical, Horizontal Subsampling:  '
-                 + '((1, 1), (1, 1), (1, 1))',
-                 '        COD marker segment @ (136, 12)',
-                 '            Coding style:',
-                 '                Entropy coder, without partitions',
-                 '                SOP marker segments:  False',
-                 '                EPH marker segments:  False',
-                 '            Coding style parameters:',
-                 '                Progression order:  LRCP',
-                 '                Number of layers:  1',
-                 '                Multiple component transformation usage:  '
-                 + 'reversible',
-                 '                Number of resolutions:  6',
-                 '                Code block height, width:  (64 x 64)',
-                 '                Wavelet transform:  5-3 reversible',
-                 '                Precinct size:  default, 2^15 x 2^15',
-                 '                Code block context:',
-                 '                    Selective arithmetic coding bypass:  '
-                 + 'False',
-                 '                    Reset context probabilities on '
-                 + 'coding pass boundaries:  False',
-                 '                    Termination on each coding pass:  False',
-                 '                    Vertically stripe causal context:  '
-                 + 'False',
-                 '                    Predictable termination:  False',
-                 '                    Segmentation symbols:  False',
-                 '        QCD marker segment @ (150, 19)',
-                 '            Quantization style:  no quantization, '
-                 + '2 guard bits',
-                 '            Step size:  [(0, 8), (0, 9), (0, 9), '
-                 + '(0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), '
-                 + '(0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), '
-                 + '(0, 10)]']
-        self.expected_plain = '\n'.join(lines)
+        # Reset printoptions for every test.
+        glymur.set_printoptions(short=False, xml=True, codestream=True)
 
     def tearDown(self):
         pass
+
+    def test_printopt_no_codestr_or_xml(self):
+        """Verify printed output when codestream=False and xml=False"""
+        glymur.set_printoptions(codestream=False, xml=False)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            glymur.jp2dump(self.jp2file)
+            actual = fake_out.getvalue().strip()
+
+        # Get rid of the filename line, as it is not set in stone.
+        lst = actual.split('\n')
+        lst = lst[1:]
+        actual = '\n'.join(lst)
+        self.assertEqual(actual, fixtures.nemo_dump_no_codestream_no_xml)
+
+    def test_printoptions_no_codestream(self):
+        """Verify printed output when codestream=False"""
+        glymur.set_printoptions(codestream=False)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            glymur.jp2dump(self.jp2file)
+            actual = fake_out.getvalue().strip()
+
+        # Get rid of the filename line, as it is not set in stone.
+        lst = actual.split('\n')
+        lst = lst[1:]
+        actual = '\n'.join(lst)
+        self.assertEqual(actual, fixtures.nemo_dump_no_codestream)
+
+    def test_printoptions_no_xml(self):
+        """Verify printed output when xml=False"""
+        glymur.set_printoptions(xml=False)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            glymur.jp2dump(self.jp2file)
+            actual = fake_out.getvalue().strip()
+
+        # Get rid of the filename line, as it is not set in stone.
+        lst = actual.split('\n')
+        lst = lst[1:]
+        actual = '\n'.join(lst)
+        self.assertEqual(actual, fixtures.nemo_dump_no_xml)
+
+    def test_printoptions_short(self):
+        """Verify printed output when short=True"""
+        glymur.set_printoptions(short=True)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            glymur.jp2dump(self.jp2file)
+            actual = fake_out.getvalue().strip()
+
+        # Get rid of the filename line, as it is not set in stone.
+        lst = actual.split('\n')
+        lst = lst[1:]
+        actual = '\n'.join(lst)
+        self.assertEqual(actual, fixtures.nemo_dump_short)
 
     def test_asoc_label_box(self):
         """verify printing of asoc, label boxes"""
@@ -185,18 +156,18 @@ class TestPrintingNeedsLib(unittest.TestCase):
     def test_jp2dump(self):
         """basic jp2dump test"""
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            glymur.jp2dump(self._plain_nemo_file)
+            glymur.jp2dump(self.jp2file)
             actual = fake_out.getvalue().strip()
 
         # Get rid of the filename line, as it is not set in stone.
         lst = actual.split('\n')
         lst = lst[1:]
         actual = '\n'.join(lst)
-        self.assertEqual(actual, self.expected_plain)
+        self.assertEqual(actual, fixtures.nemo_dump_full)
 
     def test_entire_file(self):
         """verify output from printing entire file"""
-        j = glymur.Jp2k(self._plain_nemo_file)
+        j = glymur.Jp2k(self.jp2file)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j)
             actual = fake_out.getvalue().strip()
@@ -206,18 +177,7 @@ class TestPrintingNeedsLib(unittest.TestCase):
         lst = lst[1:]
         actual = '\n'.join(lst)
 
-        self.assertEqual(actual, self.expected_plain)
-
-
-class TestPrinting(unittest.TestCase):
-    """Test suite for printing where the libraries are not needed"""
-
-    def setUp(self):
-        # Save sys.stdout.
-        self.jp2file = glymur.data.nemo()
-
-    def tearDown(self):
-        pass
+        self.assertEqual(actual, fixtures.nemo_dump_full)
 
     def test_coc_segment(self):
         """verify printing of COC segment"""
