@@ -262,7 +262,7 @@ following
     'Google'
 
 But that would be painful.  A better solution is to install the Python XMP
-Toolkit::
+Toolkit (make sure it is version 2.0)::
 
     >>> from libxmp import XMPMeta
     >>> from libxmp.consts import XMP_NS_XMP as NS_XAP
@@ -285,19 +285,77 @@ http://photojournal.jpl.nasa.gov/tiff/PIA17145.tif info JPEG 2000::
 Next you can extract the XMP metadata.
 
     >>> from libxmp import XMPFiles
-    >>> xf = XMPFile()
+    >>> xf = XMPFiles()
     >>> xf.open_file('PIA17145.tif')
     >>> xmp = xf.get_xmp()
+    >>> print(xmp)
+    <?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>
+    <x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Exempi + XMP Core 5.1.2">
+     <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+      <rdf:Description rdf:about=""
+        xmlns:tiff="http://ns.adobe.com/tiff/1.0/">
+       <tiff:ImageWidth>1016</tiff:ImageWidth>
+       <tiff:ImageLength>1016</tiff:ImageLength>
+       <tiff:BitsPerSample>
+        <rdf:Seq>
+         <rdf:li>8</rdf:li>
+        </rdf:Seq>
+       </tiff:BitsPerSample>
+       <tiff:Compression>1</tiff:Compression>
+       <tiff:PhotometricInterpretation>1</tiff:PhotometricInterpretation>
+       <tiff:SamplesPerPixel>1</tiff:SamplesPerPixel>
+       <tiff:PlanarConfiguration>1</tiff:PlanarConfiguration>
+       <tiff:ResolutionUnit>2</tiff:ResolutionUnit>
+      </rdf:Description>
+      <rdf:Description rdf:about=""
+        xmlns:dc="http://purl.org/dc/elements/1.1/">
+       <dc:description>
+        <rdf:Alt>
+         <rdf:li xml:lang="x-default">converted PNM file</rdf:li>
+        </rdf:Alt>
+       </dc:description>
+      </rdf:Description>
+     </rdf:RDF>
+    </x:xmpmeta>
+    <?xpacket end="w"?>
 
 If you are familiar with TIFF, you can verify that there's no XMP tag in the
 TIFF file, but the Python XMP Toolkit takes advantage of the TIFF header
 structure to populate an XMP packet for you.  If you were working with a JPEG
 file with Exif metadata, that information would be included in the XMP packet 
-as well.  Now you can append the XMP packet in a UUIDBox::
+as well.  Now you can append the XMP packet in a UUIDBox.  In order to do this,
+though, you have to know the UUID that signifies XMP data.::
 
     >>> import uuid
-    >>> the_uuid = uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
-    >>> box = glymur.jp2box.UUIDBox(uuid, str(xmp).encode())
+    >>> xmp_uuid = uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
+    >>> box = glymur.jp2box.UUIDBox(xmp_uuid, str(xmp).encode())
     >>> jp2.append(box)
-
-
+    >>> print(jp2.box[-1])
+    UUID Box (uuid) @ (592316, 1053)
+        UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
+        UUID Data:  
+        <ns0:xmpmeta xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:ns0="adobe:ns:meta/" xmlns:ns2="http://ns.adobe.com/tiff/1.0/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" ns0:xmptk="Exempi + XMP Core 5.1.2">
+          <rdf:RDF>
+            <rdf:Description rdf:about="">
+              <ns2:ImageWidth>1016</ns2:ImageWidth>
+              <ns2:ImageLength>1016</ns2:ImageLength>
+              <ns2:BitsPerSample>
+                <rdf:Seq>
+                  <rdf:li>8</rdf:li>
+                </rdf:Seq>
+              </ns2:BitsPerSample>
+              <ns2:Compression>1</ns2:Compression>
+              <ns2:PhotometricInterpretation>1</ns2:PhotometricInterpretation>
+              <ns2:SamplesPerPixel>1</ns2:SamplesPerPixel>
+              <ns2:PlanarConfiguration>1</ns2:PlanarConfiguration>
+              <ns2:ResolutionUnit>2</ns2:ResolutionUnit>
+            </rdf:Description>
+            <rdf:Description rdf:about="">
+              <dc:description>
+                <rdf:Alt>
+                  <rdf:li xml:lang="x-default">converted PNM file</rdf:li>
+                </rdf:Alt>
+              </dc:description>
+            </rdf:Description>
+          </rdf:RDF>
+        </ns0:xmpmeta>
