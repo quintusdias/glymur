@@ -1,10 +1,12 @@
-# This file is part of glymur, a Python interface for accessing JPEG 2000.
-#
-# http://glymur.readthedocs.org
-#
-# Copyright 2013 John Evans
-#
-# License:  MIT
+"""
+This file is part of glymur, a Python interface for accessing JPEG 2000.
+
+http://glymur.readthedocs.org
+
+Copyright 2013 John Evans
+
+License:  MIT
+"""
 
 import sys
 import numpy as np

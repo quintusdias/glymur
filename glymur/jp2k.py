@@ -21,6 +21,7 @@ import ctypes
 import math
 import os
 import struct
+from uuid import UUID
 import warnings
 
 import numpy as np
@@ -488,17 +489,17 @@ class Jp2k(Jp2kBox):
             stack.callback(opj2.image_destroy, image)
 
             _populate_image_struct(cparams, image, img_array)
-    
+
             codec = opj2.create_compress(cparams.codec_fmt)
             stack.callback(opj2.destroy_codec, codec)
-    
+
             info_handler = _INFO_CALLBACK if verbose else None
             opj2.set_info_handler(codec, info_handler)
             opj2.set_warning_handler(codec, _WARNING_CALLBACK)
             opj2.set_error_handler(codec, _ERROR_CALLBACK)
-    
+
             opj2.setup_encoder(codec, cparams, image)
-    
+
             if _OPENJP2_IS_OFFICIAL_V2:
                 fptr = libc.fopen(self.filename, 'wb')
                 strm = opj2.stream_create_default_file_stream(fptr, False)
@@ -509,11 +510,11 @@ class Jp2k(Jp2kBox):
                 strm = opj2.stream_create_default_file_stream_v3(self.filename,
                                                                  False)
                 stack.callback(opj2.stream_destroy_v3, strm)
-    
+
             opj2.start_compress(codec, image, strm)
             opj2.encode(codec, strm)
             opj2.end_compress(codec, strm)
-    
+
         # Refresh the metadata.
         self.parse()
 
@@ -523,14 +524,18 @@ class Jp2k(Jp2kBox):
         Parameters
         ----------
         box : Jp2Box
-            Instance of a JP2 box.  Currently only XML boxes are allowed.
+            Instance of a JP2 box.  Only UUID and XML boxes can currently be
+            appended.
         """
         if self._codec_format == opj2.CODEC_J2K:
             msg = "Only JP2 files can currently have boxes appended to them."
             raise IOError(msg)
 
-        if box.box_id != 'xml ':
-            raise IOError("Only XML boxes can currently be appended.")
+        if not ((box.box_id == 'xml ') or
+                (box.box_id == 'uuid' and
+                 box.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'))):
+            msg = "Only XML boxes and XMP UUID boxes can currently be appended."
+            raise IOError(msg)
 
         # Check the last box.  If the length field is zero, then rewrite
         # the length field to reflect the true length of the box.
@@ -1019,7 +1024,7 @@ class Jp2k(Jp2kBox):
         >>> jp2 = glymur.Jp2k(jfile)
         >>> codestream = jp2.get_codestream()
         >>> print(codestream.segment[1])
-        SIZ marker segment @ (3137, 47)
+        SIZ marker segment @ (3233, 47)
             Profile:  2
             Reference Grid Height, Width:  (1456 x 2592)
             Vertical, Horizontal Reference Grid Offset:  (0 x 0)

@@ -441,7 +441,7 @@ class TestAppend(unittest.TestCase):
             # The sequence of box IDs should be the same as before, but with an
             # xml box at the end.
             box_ids = [box.box_id for box in jp2.box]
-            expected = ['jP  ', 'ftyp', 'jp2h', 'uuid', 'uuid', 'jp2c', 'xml ']
+            expected = ['jP  ', 'ftyp', 'jp2h', 'uuid', 'jp2c', 'xml ']
             self.assertEqual(box_ids, expected)
             self.assertEqual(ET.tostring(jp2.box[-1].xml.getroot()),
                              b'<data>0</data>')
@@ -451,14 +451,14 @@ class TestAppend(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
             shutil.copyfile(self.j2kfile, tfile.name)
 
-            jp2 = Jp2k(tfile.name)
+            j2k = Jp2k(tfile.name)
 
-            # Make a UUID box.
-            uuid_instance = uuid.UUID('00000000-0000-0000-0000-000000000000')
-            data = b'0123456789'
-            uuidbox = glymur.jp2box.UUIDBox(uuid_instance, data)
+            # Make an XML box.  XML boxes should always be appendable to jp2
+            # files.
+            the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
+            xmlbox = glymur.jp2box.XMLBox(xml=the_xml)
             with self.assertRaises(IOError):
-                jp2.append(uuidbox)
+                j2k.append(xmlbox)
 
     def test_length_field_is_zero(self):
         """L=0 (length field in box header) is handled.
@@ -490,19 +490,19 @@ class TestAppend(unittest.TestCase):
             # The sequence of box IDs should be the same as before, but with an
             # xml box at the end.
             box_ids = [box.box_id for box in jp2.box]
-            expected = ['jP  ', 'ftyp', 'jp2h', 'uuid', 'uuid', 'jp2c', 'xml ']
+            expected = ['jP  ', 'ftyp', 'jp2h', 'uuid', 'jp2c', 'xml ']
             self.assertEqual(box_ids, expected)
             self.assertEqual(ET.tostring(jp2.box[-1].xml.getroot()),
                              b'<data>0</data>')
 
-    def test_only_xml_allowed_to_append(self):
+    def test_append_allowable_boxes(self):
         """Only XML boxes are allowed to be appended."""
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             shutil.copyfile(self.jp2file, tfile.name)
 
             jp2 = Jp2k(tfile.name)
 
-            # Make a UUID box.
+            # Make a UUID box.  Only XMP UUID boxes can currently be appended.
             uuid_instance = uuid.UUID('00000000-0000-0000-0000-000000000000')
             data = b'0123456789'
             uuidbox = glymur.jp2box.UUIDBox(uuid_instance, data)
@@ -946,9 +946,9 @@ class TestRepr(unittest.TestCase):
         tree = ET.ElementTree(elt)
         box = glymur.jp2box.XMLBox(xml=tree)
 
-        regexp = "glymur.jp2box.XMLBox"
-        regexp += "\(xml=<(xml.etree.ElementTree.){0,1}ElementTree object "
-        regexp += "at 0x([a-f0-9]*)>\)"
+        regexp = r"""glymur.jp2box.XMLBox"""
+        regexp += r"""\(xml=<(xml.etree.ElementTree.){0,1}ElementTree object """
+        regexp += """at 0x([a-f0-9]*)>\)"""
 
         if sys.hexversion < 0x03000000:
             self.assertRegexpMatches(repr(box), regexp)
@@ -970,7 +970,7 @@ class TestRepr(unittest.TestCase):
         self.assertEqual(box.vendor_feature, newbox.vendor_feature)
         self.assertEqual(box.vendor_mask, newbox.vendor_mask)
 
-    def test_uuid_box(self):
+    def test_uuid_box_generic(self):
         """Verify uuid repr method."""
         uuid_instance = uuid.UUID('00000000-0000-0000-0000-000000000000')
         data = b'0123456789'
@@ -978,9 +978,27 @@ class TestRepr(unittest.TestCase):
 
         # Since the raw_data parameter is a sequence of bytes which could be
         # quite long, don't bother trying to make it conform to eval(repr()).
-        regexp = "glymur.jp2box.UUIDBox\("
-        regexp += "the_uuid=UUID\('00000000-0000-0000-0000-000000000000'\),\s"
-        regexp += "raw_data=<byte\sarray\s10\selements>\)"
+        regexp = r"""glymur.jp2box.UUIDBox\("""
+        regexp += """the_uuid=UUID\('00000000-0000-0000-0000-000000000000'\),\s"""
+        regexp += """raw_data=<byte\sarray\s10\selements>\)"""
+
+        if sys.hexversion < 0x03000000:
+            self.assertRegexpMatches(repr(box), regexp)
+        else:
+            self.assertRegex(repr(box), regexp)
+
+    @unittest.skipIf(sys.hexversion < 0x02070000, "Requires 2.7+")
+    def test_uuid_box_xmp(self):
+        """Verify uuid repr method for XMP UUID box."""
+        jp2file = glymur.data.nemo()
+        j = Jp2k(jp2file)
+        box = j.box[3]
+
+        # Since the raw_data parameter is a sequence of bytes which could be
+        # quite long, don't bother trying to make it conform to eval(repr()).
+        regexp = r"""glymur.jp2box.UUIDBox\("""
+        regexp += """the_uuid=UUID\('be7acfcb-97a9-42e8-9c71-999491e3afac'\),\s"""
+        regexp += """raw_data=<byte\sarray\s3122\selements>\)"""
 
         if sys.hexversion < 0x03000000:
             self.assertRegexpMatches(repr(box), regexp)

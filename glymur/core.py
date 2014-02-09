@@ -1,5 +1,8 @@
 """Core definitions to be shared amongst the modules.
 """
+import copy
+import xml.etree.cElementTree as ET
+
 # Progression order
 LRCP = 0
 RLCP = 1
@@ -73,3 +76,45 @@ _CAPABILITIES_DISPLAY = {
     1: '0',
     2: '1',
     3: '3'}
+
+
+def _pretty_print_xml(xml, level=0):
+    """Pretty print XML data.
+    """
+    xml = copy.deepcopy(xml)
+    _indent(xml.getroot(), level=level)
+    xmltext = ET.tostring(xml.getroot(), encoding='utf-8').decode('utf-8')
+
+    # Indent it a bit.
+    lst = [('    ' + x) for x in xmltext.split('\n')]
+    try:
+        xml = '\n'.join(lst)
+        return '\n{0}'.format(xml)
+    except UnicodeEncodeError:
+        # This can happen on python 2.x if the character set contains certain
+        # non-ascii characters.  Just print out the corresponding xml char
+        # entities instead.
+        xml = u'\n'.join(lst)
+        text = u'\n{0}'.format(xml)
+        text = text.encode('ascii', 'xmlcharrefreplace')
+        return text
+
+
+def _indent(elem, level=0):
+    """Recipe for pretty printing XML.  Please see
+
+    http://effbot.org/zone/element-lib.htm#prettyprint
+    """
+    i = "\n" + level * "  "
+    if len(elem):
+        if not elem.text or not elem.text.strip():
+            elem.text = i + "  "
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+        for elem in elem:
+            _indent(elem, level + 1)
+        if not elem.tail or not elem.tail.strip():
+            elem.tail = i
+    else:
+        if level and (not elem.tail or not elem.tail.strip()):
+            elem.tail = i

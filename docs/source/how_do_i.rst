@@ -71,7 +71,7 @@ The **append** method can add an XML box as shown below::
 An existing raw codestream (or JP2 file) can be wrapped (re-wrapped) in a 
 user-defined set of JP2 boxes.  To get just a minimal JP2 jacket on the 
 codestream provided by `goodstuff.j2k` (a file consisting of a raw codestream),
-you can use the **wrap** method with no box argument: ::
+you can use the :py:meth:`wrap` method with no box argument: ::
 
     >>> import glymur
     >>> jfile = glymur.data.goodstuff()
@@ -108,8 +108,9 @@ JP2 header superbox.
 
 XML boxes are not in the minimal set of box requirements for the JP2 format, so
 in order to add an XML box into the mix before the codestream box, we'll need to 
-re-specify all of the boxes.  If you already have a JP2 jacket in place, you can just reuse that,
-though.  Take the following example content in an XML file `favorites.xml` : ::
+re-specify all of the boxes.  If you already have a JP2 jacket in place,
+you can just reuse that, though.  Take the following example content in
+an XML file `favorites.xml` : ::
 
     <?xml version="1.0"?>
     <favorite_things>
@@ -152,10 +153,10 @@ the following will work. ::
         . (truncated)
         .
 
-As to the question of which method you should use, **append** or **wrap**,
-to add metadata, you should keep in mind that **wrap** produces a new JP2 file,
-while **append** modifies an existing file and is currently limited to XML
-boxes.
+As to the question of which method you should use, :py:meth:`append` or
+:py:meth:`wrap`, to add metadata, you should keep in mind that :py:meth:`wrap`
+produces a new JP2 file, while :py:meth:`append` modifies an existing file and
+is currently limited to XML and UUID boxes.
 
 ... create an image with an alpha layer?
 ========================================
@@ -219,32 +220,142 @@ Here's how the Preview application on the mac shows the RGBA image.
 .. image:: goodstuff_alpha.png
 
     
-work with XMP UUIDs?
-====================
+... work with XMP UUIDs?
+========================
 The example JP2 file shipped with glymur has an XMP UUID. ::
 
     >>> import glymur
     >>> j = glymur.Jp2k(glymur.data.nemo())
-    >>> print(j.box[4])
-    UUID Box (uuid) @ (715, 2412)
-        UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
-        UUID Data:  
-        <ns0:xmpmeta xmlns:ns0="adobe:ns:meta/" xmlns:ns2="http://ns.adobe.com/xap/1.0/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" ns0:xmptk="XMP Core 4.4.0-Exiv2">
+    >>> print(j.box[3]) # formatting added to the XML below
+    <ns0:xmpmeta xmlns:dc="http://purl.org/dc/elements/1.1/"
+                 xmlns:ns0="adobe:ns:meta/"
+                 xmlns:ns2="http://ns.adobe.com/xap/1.0/"
+                 xmlns:ns3="http://ns.adobe.com/tiff/1.0/"
+                 xmlns:ns4="http://ns.adobe.com/exif/1.0/"
+                 xmlns:ns5="http://ns.adobe.com/photoshop/1.0/"
+                 xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+                 ns0:xmptk="Exempi + XMP Core 5.1.2">
           <rdf:RDF>
-            <rdf:Description ns2:CreatorTool="glymur" rdf:about="" />
-          </rdf:RDF>
-        </ns0:xmpmeta>
+            <rdf:Description rdf:about="">
+              <ns2:CreatorTool>Google</ns2:CreatorTool>
+              <ns2:CreateDate>2013-02-09T14:47:53</ns2:CreateDate>
+            </rdf:Description>
 
-Since the UUID data in this case is returned as an ElementTree instance, one can
-use ElementTree to access the data.  For example, to extract the 
-**CreatorTool** attribute value, the following would work::
+          .
+          .
+          .
+    </ns0:xmpmeta>
 
-    >>> xmp = j.box[4].data
-    >>> ns0 = '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}'
-    >>> ns1 = '{http://ns.adobe.com/xap/1.0/}'
-    >>> name = '{0}RDF/{0}Description'.format(ns0)
+Since the UUID data in this case is returned as an ElementTree instance,
+one can use ElementTree from the standard library to access the data.
+For example, to extract the **CreatorTool** attribute value, one could do the
+following
+
+    >>> xmp = j.box[3].data.packet
+    >>> rdf = '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}'
+    >>> ns2 = '{http://ns.adobe.com/xap/1.0/}'
+    >>> name = '{0}RDF/{0}Description/{1}CreatorTool'.format(rdf, ns2)
     >>> elt = xmp.find(name)
     >>> elt
-    <Element '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}Description' at 0xb4baa93c>
-    >>> elt.attrib['{0}CreatorTool'.format(ns1)]
-    'glymur'
+    <Element '{http://ns.adobe.com/xap/1.0/#}CreatorTool' at 0xb50684a4>
+    >>> elt.text
+    'Google'
+
+But that would be painful.  A better solution is to install the Python XMP
+Toolkit (make sure it is version 2.0)::
+
+    >>> from libxmp import XMPMeta
+    >>> from libxmp.consts import XMP_NS_XMP as NS_XAP
+    >>> meta = XMPMeta()
+    >>> meta.parse_from_str(j.box[3].raw_data.decode('utf-8'))
+    >>> meta.get_property(NS_XAP, 'CreatorTool')
+    'Google'
+
+Where the Python XMP Toolkit can really shine, though, is when you are
+converting an image from another format such as TIFF or JPEG into JPEG 2000.
+For example, if you were to be converting the TIFF image found at
+http://photojournal.jpl.nasa.gov/tiff/PIA17145.tif info JPEG 2000::
+
+    >>> import skimage.io
+    >>> image = skimage.io.imread('PIA17145.tif')
+    >>> from glymur import Jp2k
+    >>> jp2 = Jp2k('PIA17145.jp2', 'wb')
+    >>> jp2.write(image)
+
+Next you can extract the XMP metadata.
+
+    >>> from libxmp import XMPFiles
+    >>> xf = XMPFiles()
+    >>> xf.open_file('PIA17145.tif')
+    >>> xmp = xf.get_xmp()
+    >>> print(xmp)
+    <?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>
+    <x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Exempi + XMP Core 5.1.2">
+     <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+      <rdf:Description rdf:about=""
+        xmlns:tiff="http://ns.adobe.com/tiff/1.0/">
+       <tiff:ImageWidth>1016</tiff:ImageWidth>
+       <tiff:ImageLength>1016</tiff:ImageLength>
+       <tiff:BitsPerSample>
+        <rdf:Seq>
+         <rdf:li>8</rdf:li>
+        </rdf:Seq>
+       </tiff:BitsPerSample>
+       <tiff:Compression>1</tiff:Compression>
+       <tiff:PhotometricInterpretation>1</tiff:PhotometricInterpretation>
+       <tiff:SamplesPerPixel>1</tiff:SamplesPerPixel>
+       <tiff:PlanarConfiguration>1</tiff:PlanarConfiguration>
+       <tiff:ResolutionUnit>2</tiff:ResolutionUnit>
+      </rdf:Description>
+      <rdf:Description rdf:about=""
+        xmlns:dc="http://purl.org/dc/elements/1.1/">
+       <dc:description>
+        <rdf:Alt>
+         <rdf:li xml:lang="x-default">converted PNM file</rdf:li>
+        </rdf:Alt>
+       </dc:description>
+      </rdf:Description>
+     </rdf:RDF>
+    </x:xmpmeta>
+    <?xpacket end="w"?>
+
+If you are familiar with TIFF, you can verify that there's no XMP tag in the
+TIFF file, but the Python XMP Toolkit takes advantage of the TIFF header
+structure to populate an XMP packet for you.  If you were working with a JPEG
+file with Exif metadata, that information would be included in the XMP packet 
+as well.  Now you can append the XMP packet in a UUIDBox.  In order to do this,
+though, you have to know the UUID that signifies XMP data.::
+
+    >>> import uuid
+    >>> xmp_uuid = uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
+    >>> box = glymur.jp2box.UUIDBox(xmp_uuid, str(xmp).encode())
+    >>> jp2.append(box)
+    >>> print(jp2.box[-1])
+    UUID Box (uuid) @ (592316, 1053)
+        UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
+        UUID Data:  
+        <ns0:xmpmeta xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:ns0="adobe:ns:meta/" xmlns:ns2="http://ns.adobe.com/tiff/1.0/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" ns0:xmptk="Exempi + XMP Core 5.1.2">
+          <rdf:RDF>
+            <rdf:Description rdf:about="">
+              <ns2:ImageWidth>1016</ns2:ImageWidth>
+              <ns2:ImageLength>1016</ns2:ImageLength>
+              <ns2:BitsPerSample>
+                <rdf:Seq>
+                  <rdf:li>8</rdf:li>
+                </rdf:Seq>
+              </ns2:BitsPerSample>
+              <ns2:Compression>1</ns2:Compression>
+              <ns2:PhotometricInterpretation>1</ns2:PhotometricInterpretation>
+              <ns2:SamplesPerPixel>1</ns2:SamplesPerPixel>
+              <ns2:PlanarConfiguration>1</ns2:PlanarConfiguration>
+              <ns2:ResolutionUnit>2</ns2:ResolutionUnit>
+            </rdf:Description>
+            <rdf:Description rdf:about="">
+              <dc:description>
+                <rdf:Alt>
+                  <rdf:li xml:lang="x-default">converted PNM file</rdf:li>
+                </rdf:Alt>
+              </dc:description>
+            </rdf:Description>
+          </rdf:RDF>
+        </ns0:xmpmeta>

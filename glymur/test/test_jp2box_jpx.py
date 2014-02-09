@@ -43,7 +43,7 @@ class TestJPXWrap(unittest.TestCase):
     def test_association_box(self):
         """Wrap JP2 to JPX with asoc(nlst, xml)"""
         jp2 = Jp2k(self.jp2file)
-        boxes = [jp2.box[idx] for idx in [0, 1, 2, 5]]
+        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
 
         # The ftyp box must be modified to jpx with jp2 compatibility.
         boxes[1].brand = 'jpx '
@@ -70,7 +70,7 @@ class TestJPXWrap(unittest.TestCase):
     def test_only_one_data_reference(self):
         """Data reference boxes cannot be inside a superbox ."""
         jp2 = Jp2k(self.jp2file)
-        boxes = [jp2.box[idx] for idx in [0, 1, 2, 5]]
+        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
 
         flag = 0
         version = (0, 0, 0)
@@ -87,7 +87,7 @@ class TestJPXWrap(unittest.TestCase):
     def test_data_reference_not_at_top_level(self):
         """Data reference boxes cannot be inside a superbox ."""
         jp2 = Jp2k(self.jp2file)
-        boxes = [jp2.box[idx] for idx in [0, 1, 2, 5]]
+        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
 
         flag = 0
         version = (0, 0, 0)
@@ -105,7 +105,7 @@ class TestJPXWrap(unittest.TestCase):
     def test_jp2_to_jpx_sans_jp2_compatibility(self):
         """jp2 wrapped to jpx not including jp2 compatibility is wrong."""
         jp2 = Jp2k(self.jp2file)
-        boxes = [jp2.box[idx] for idx in [0, 1, 2, 5]]
+        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
         boxes[1].compatibility_list.append('jp2 ')
         numbers = [0, 1]
         nlst = glymur.jp2box.NumberListBox(numbers)
@@ -121,7 +121,7 @@ class TestJPXWrap(unittest.TestCase):
     def test_jp2_to_jpx_sans_jpx_brand(self):
         """Verify error when jp2 wrapped to jpx does not include jpx brand."""
         jp2 = Jp2k(self.jp2file)
-        boxes = [jp2.box[idx] for idx in [0, 1, 2, 5]]
+        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
         boxes[1].brand = 'jpx '
         numbers = [0, 1]
         nlst = glymur.jp2box.NumberListBox(numbers)
