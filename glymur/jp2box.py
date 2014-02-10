@@ -1861,6 +1861,14 @@ class ReaderRequirementsBox(Jp2kBox):
         if _printoptions['short'] == True:
             return msg
 
+        msg += '\n    Fully Understands Aspect Mask:  {0}'.format(self.fuam)
+        msg += '\n    Display Completely Mask:  {0}'.format(self.dcm)
+
+        msg += '\n    Standard Features and Masks:'
+        for j in range(len(self.standard_flag)):
+            sfl = self.standard_flag[j]
+            mask = self.standard_mask[j]
+            msg += '\n        Feature {0:03d}:  {1}'.format(sfl, mask)
 
         msg += '\n    Standard Features:'
         for j in range(len(self.standard_flag)):
