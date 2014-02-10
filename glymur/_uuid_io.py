@@ -1,6 +1,6 @@
 # -*- coding:  utf-8 -*-
 """
-Handlers for Exif UUIDs.  Be nice if we would find a standard for this.
+Part of glymur.
 """
 import pprint
 import re
