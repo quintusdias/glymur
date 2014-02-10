@@ -1198,6 +1198,22 @@ def _validate_jp2_box_sequence(boxes):
     _jpx_compatibility(boxes, boxes[1].compatibility_list)
     _check_for_singletons(boxes)
     _check_top_level(boxes)
+    _check_jp2h_child_boxes(boxes, 'top-level')
+
+JP2H_CHILDREN = set(['bpcc', 'cmap', 'ihdr', 'pclr'])
+def _check_jp2h_child_boxes(boxes, parent_box_name):
+    """Certain boxes can only reside in the JP2 header."""
+    box_ids = set([box.box_id for box in boxes])
+    intersection = box_ids.intersection(JP2H_CHILDREN)
+    if len(intersection) > 0 and parent_box_name != 'jp2h':
+        msg = "A '{0}' box can only be nested in a JP2 header box."
+        raise IOError(msg.format(list(intersection)[0]))
+
+    # Recursively check any contained superboxes.
+    for box in boxes:
+        if hasattr(box, 'box'):
+            _check_jp2h_child_boxes(box.box, box.box_id)
+
 
 def _collect_box_count(boxes):
     """Count the occurences of each box type."""

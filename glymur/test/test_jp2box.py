@@ -679,6 +679,33 @@ class TestWrap(unittest.TestCase):
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
+    def test_pclr_not_in_jp2h(self):
+        """A palette box must reside in a JP2 header box."""
+        palette = np.array([[255, 0, 255], [0, 255, 0]], dtype=np.int32)
+        bps = (8, 8, 8)
+        signed = (True, False, True)
+        pclr = glymur.jp2box.PaletteBox(palette=palette, bits_per_component=bps,
+                                        signed=(True, False, True))
+
+        j2k = Jp2k(self.j2kfile)
+        codestream = j2k.get_codestream()
+        height = codestream.segment[1].ysiz
+        width = codestream.segment[1].xsiz
+        num_components = len(codestream.segment[1].xrsiz)
+
+        jp2b = JPEG2000SignatureBox()
+        ftyp = FileTypeBox()
+        jp2h = JP2HeaderBox()
+        jp2c = ContiguousCodestreamBox()
+        colr = ColourSpecificationBox(colorspace=glymur.core.SRGB)
+        ihdr = ImageHeaderBox(height=height, width=width,
+                              num_components=num_components)
+        jp2h.box = [ihdr, colr]
+        boxes = [jp2b, ftyp, jp2h, jp2c, pclr]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            with self.assertRaises(IOError):
+                j2k.wrap(tfile.name, boxes=boxes)
+
     def test_jp2h_not_preceeding_jp2c(self):
         """jp2h must precede jp2c"""
         j2k = Jp2k(self.j2kfile)
