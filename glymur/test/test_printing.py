@@ -738,20 +738,7 @@ class TestPrinting(unittest.TestCase):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.box[2])
             actual = fake_out.getvalue().strip()
-        lines = ['Reader Requirements Box (rreq) @ (44, 24)',
-                 '    Standard Features:',
-                 '        Feature 005:  '
-                 + 'Unrestricted JPEG 2000 Part 1 codestream, '
-                 + 'ITU-T Rec. T.800 | ISO/IEC 15444-1',
-                 '        Feature 060:  e-sRGB enumerated colorspace',
-
-                 '        Feature 043:  '
-                 + '(Deprecated) '
-                 + 'compositing layer uses restricted ICC profile',
-
-                 '    Vendor Features:']
-        expected = '\n'.join(lines)
-        self.assertEqual(actual, expected)
+        self.assertEqual(actual, fixtures.file7_rreq)
 
     @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
