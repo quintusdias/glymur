@@ -2761,7 +2761,9 @@ class UUIDBox(Jp2kBox):
 
         if self.uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
             line = '\n    UUID Data:  {0}'
-            msg += line.format(_pretty_print_xml(self.data))
+            xmlstring = _pretty_print_xml(self.data)
+            xmlstring = xmlstring.rstrip()
+            msg += line.format(xmlstring)
         elif self.uuid.bytes == b'JpgTiffExif->JP2':
             msg += '\n    UUID Data:  {0}'.format(str(self.data))
         else:
