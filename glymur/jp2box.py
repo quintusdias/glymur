@@ -2829,7 +2829,7 @@ _BOX_WITH_ID = {
 
 _printoptions = {'short': False, 'xml': True, 'codestream': True}
 
-def set_printoptions(short=False, xml=True, codestream=True):
+def set_printoptions(**kwargs):
     """Set printing options.
 
     These options determine the way JPEG 2000 boxes are displayed.
@@ -2856,9 +2856,10 @@ def set_printoptions(short=False, xml=True, codestream=True):
     >>> import glymur
     >>> glymur.set_printoptions(short=False, xml=True, codestream=True)
     """
-    _printoptions['short'] = short
-    _printoptions['xml'] = xml
-    _printoptions['codestream'] = codestream
+    for key, value in kwargs.items():
+        if key not in ['short', 'xml', 'codestream']:
+            raise TypeError('"{0}" not a valid keyword parameter.'.format(key))
+        _printoptions[key] = value
 
 def get_printoptions():
     """Return the current print options.
