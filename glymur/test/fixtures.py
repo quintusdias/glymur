@@ -455,7 +455,6 @@ UUID Box (uuid) @ (77, 3146)
         </rdf:Description>
       </rdf:RDF>
     </ns0:xmpmeta>
-    
 Contiguous Codestream Box (jp2c) @ (3223, 1132296)
     Main header:
         SOC marker segment @ (3231, 0)
@@ -660,7 +659,6 @@ UUID Box (uuid) @ (77, 3146)
         </rdf:Description>
       </rdf:RDF>
     </ns0:xmpmeta>
-    
 Contiguous Codestream Box (jp2c) @ (3223, 1132296)"""
 
 nemo_dump_no_codestream_no_xml = r"""JPEG 2000 Signature Box (jP  ) @ (0, 12)
