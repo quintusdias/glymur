@@ -5,32 +5,30 @@ import sys
 import glymur
 
 description='Print JPEG2000 metadata.'
-epilog=r"""The default action is to print just the codestream headers.  Supplying
---nocodestream will prevent any codestream information from printing, while
---fullcodestream will print the entire codestream (and just the codestream).
-
-JP2 file:  default is to suppress codestream and XML.
-JPX file:  default is to suppress codestream and XML.
-JPC file:  default is to print codestream header.
-"""
 parser = argparse.ArgumentParser(description=description)
-parser.add_argument('-x', '--noxml', help='suppress xml',
+parser.add_argument('-x', '--noxml', help='Suppress XML.',
                     action='store_true')
-parser.add_argument('--short', help='only box id, offset, and length',
+parser.add_argument('-s', '--short', help='Only print box id, offset, and length.',
                     action='store_true')
-parser.add_argument('-c', '--nocodestream', help='suppress codestream',
-                    action='store_false')
-parser.add_argument('-f', '--fullcodestream', help='full codestream',
-                    action='store_true')
+chelp='Level of codestream information.  0 suppressed all details, 1 prints headers, 2 prints the full codestream'
+parser.add_argument('-c', '--codestream',
+                    help=chelp,
+                    nargs=1,
+                    type=int,
+                    default=0)
 parser.add_argument('filename')
 args = parser.parse_args()
-print(args)
 if args.noxml:
     glymur.set_printoptions(xml=False)
 if args.short:
     glymur.set_printoptions(short=True)
-if args.nocodestream:
+if args.codestream[0] == 0:
     glymur.set_printoptions(codestream=False)
+    print_full_codestream = False
+elif args.codestream[0] == 1:
+    print_full_codestream = False
+else:
+    print_full_codestream = True
 
 filename = args.filename
-glymur.jp2dump(args.filename, codestream=args.fullcodestream)
+glymur.jp2dump(args.filename, codestream=print_full_codestream)
