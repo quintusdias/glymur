@@ -11,8 +11,8 @@ resolution level. ::
 
     >>> import glymur
     >>> file = glymur.data.nemo()
-    >>> j = glymur.Jp2k(file)
-    >>> thumbnail = j.read(rlevel=-1)
+    >>> jp2 = glymur.Jp2k(file)
+    >>> thumbnail = jp2.read(rlevel=-1)
 
 ... display metadata?
 =====================
@@ -23,16 +23,183 @@ available. ::
 
 From within Python, it is as simple as printing the Jp2k object, i.e. ::
 
-    >>> from glymur import Jp2k
+    >>> import glymur
     >>> file = glymur.data.nemo()
-    >>> j = Jp2k(file)
-    >>> print(j)
+    >>> jp2 = glymur.Jp2k(file)
+    >>> print(jp2)
+    File:  nemo.jp2
+    JPEG 2000 Signature Box (jP  ) @ (0, 12)
+        Signature:  0d0a870a
+    File Type Box (ftyp) @ (12, 20)
+        Brand:  jp2 
+        Compatibility:  ['jp2 ']
+    JP2 Header Box (jp2h) @ (32, 45)
+        Image Header Box (ihdr) @ (40, 22)
+            Size:  [1456 2592 3]
+            Bitdepth:  8
+            Signed:  False
+            Compression:  wavelet
+            Colorspace Unknown:  False
+        Colour Specification Box (colr) @ (62, 15)
+            Method:  enumerated colorspace
+            Precedence:  0
+            Colorspace:  sRGB
+    UUID Box (uuid) @ (77, 3146)
+        UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
+        UUID Data:  
+        <ns0:xmpmeta xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:ns0="adobe:ns:meta/" xmlns:ns2="http://ns.adobe.com/xap/1.0/" xmlns:ns3="http://ns.adobe.com/tiff/1.0/" xmlns:ns4="http://ns.adobe.com/exif/1.0/" xmlns:ns5="http://ns.adobe.com/photoshop/1.0/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" ns0:xmptk="Exempi + XMP Core 5.1.2">
+          <rdf:RDF>
+            <rdf:Description rdf:about="">
+              <ns2:CreatorTool>Google</ns2:CreatorTool>
+              <ns2:CreateDate>2013-02-09T14:47:53</ns2:CreateDate>
+            </rdf:Description>
+            <rdf:Description rdf:about="">
+              <ns3:YCbCrPositioning>1</ns3:YCbCrPositioning>
+              <ns3:XResolution>72/1</ns3:XResolution>
+              <ns3:YResolution>72/1</ns3:YResolution>
+              <ns3:ResolutionUnit>2</ns3:ResolutionUnit>
+              <ns3:Make>HTC</ns3:Make>
+              <ns3:Model>HTC Glacier</ns3:Model>
+              <ns3:ImageWidth>2592</ns3:ImageWidth>
+              <ns3:ImageLength>1456</ns3:ImageLength>
+              <ns3:BitsPerSample>
+                <rdf:Seq>
+                  <rdf:li>8</rdf:li>
+                  <rdf:li>8</rdf:li>
+                  <rdf:li>8</rdf:li>
+                </rdf:Seq>
+              </ns3:BitsPerSample>
+              <ns3:PhotometricInterpretation>2</ns3:PhotometricInterpretation>
+              <ns3:SamplesPerPixel>3</ns3:SamplesPerPixel>
+              <ns3:WhitePoint>
+                <rdf:Seq>
+                  <rdf:li>1343036288/4294967295</rdf:li>
+                  <rdf:li>1413044224/4294967295</rdf:li>
+                </rdf:Seq>
+              </ns3:WhitePoint>
+              <ns3:PrimaryChromaticities>
+                <rdf:Seq>
+                  <rdf:li>2748779008/4294967295</rdf:li>
+                  <rdf:li>1417339264/4294967295</rdf:li>
+                  <rdf:li>1288490240/4294967295</rdf:li>
+                  <rdf:li>2576980480/4294967295</rdf:li>
+                  <rdf:li>644245120/4294967295</rdf:li>
+                  <rdf:li>257698032/4294967295</rdf:li>
+                </rdf:Seq>
+              </ns3:PrimaryChromaticities>
+            </rdf:Description>
+            <rdf:Description rdf:about="">
+              <ns4:ColorSpace>1</ns4:ColorSpace>
+              <ns4:PixelXDimension>2528</ns4:PixelXDimension>
+              <ns4:PixelYDimension>1424</ns4:PixelYDimension>
+              <ns4:FocalLength>353/100</ns4:FocalLength>
+              <ns4:GPSAltitudeRef>0</ns4:GPSAltitudeRef>
+              <ns4:GPSAltitude>0/1</ns4:GPSAltitude>
+              <ns4:GPSMapDatum>WGS-84</ns4:GPSMapDatum>
+              <ns4:DateTimeOriginal>2013-02-09T14:47:53</ns4:DateTimeOriginal>
+              <ns4:ISOSpeedRatings>
+                <rdf:Seq>
+                  <rdf:li>76</rdf:li>
+                </rdf:Seq>
+              </ns4:ISOSpeedRatings>
+              <ns4:ExifVersion>0220</ns4:ExifVersion>
+              <ns4:FlashpixVersion>0100</ns4:FlashpixVersion>
+              <ns4:ComponentsConfiguration>
+                <rdf:Seq>
+                  <rdf:li>1</rdf:li>
+                  <rdf:li>2</rdf:li>
+                  <rdf:li>3</rdf:li>
+                  <rdf:li>0</rdf:li>
+                </rdf:Seq>
+              </ns4:ComponentsConfiguration>
+              <ns4:GPSLatitude>42,20.56N</ns4:GPSLatitude>
+              <ns4:GPSLongitude>71,5.29W</ns4:GPSLongitude>
+              <ns4:GPSTimeStamp>2013-02-09T19:47:53Z</ns4:GPSTimeStamp>
+              <ns4:GPSProcessingMethod>NETWORK</ns4:GPSProcessingMethod>
+            </rdf:Description>
+            <rdf:Description rdf:about="">
+              <ns5:DateCreated>2013-02-09T14:47:53</ns5:DateCreated>
+            </rdf:Description>
+            <rdf:Description rdf:about="">
+              <dc:Creator>
+                <rdf:Seq>
+                  <rdf:li>Glymur</rdf:li>
+                  <rdf:li>Python XMP Toolkit</rdf:li>
+                </rdf:Seq>
+              </dc:Creator>
+            </rdf:Description>
+          </rdf:RDF>
+        </ns0:xmpmeta>
+        
+    Contiguous Codestream Box (jp2c) @ (3223, 1132296)
+        Main header:
+            SOC marker segment @ (3231, 0)
+            SIZ marker segment @ (3233, 47)
+                Profile:  2
+                Reference Grid Height, Width:  (1456 x 2592)
+                Vertical, Horizontal Reference Grid Offset:  (0 x 0)
+                Reference Tile Height, Width:  (1456 x 2592)
+                Vertical, Horizontal Reference Tile Offset:  (0 x 0)
+                Bitdepth:  (8, 8, 8)
+                Signed:  (False, False, False)
+                Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))
+            COD marker segment @ (3282, 12)
+                Coding style:
+                    Entropy coder, without partitions
+                    SOP marker segments:  False
+                    EPH marker segments:  False
+                Coding style parameters:
+                    Progression order:  LRCP
+                    Number of layers:  2
+                    Multiple component transformation usage:  reversible
+                    Number of resolutions:  2
+                    Code block height, width:  (64 x 64)
+                    Wavelet transform:  5-3 reversible
+                    Precinct size:  default, 2^15 x 2^15
+                    Code block context:
+                        Selective arithmetic coding bypass:  False
+                        Reset context probabilities on coding pass boundaries:  False
+                        Termination on each coding pass:  False
+                        Vertically stripe causal context:  False
+                        Predictable termination:  False
+                        Segmentation symbols:  False
+            QCD marker segment @ (3296, 7)
+                Quantization style:  no quantization, 2 guard bits
+                Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]
+            CME marker segment @ (3305, 37)
+                "Created by OpenJPEG version 2.0.0"
+     
+That's fairly overwhelming, and perhaps lost in the flood of information
+is the fact that the codestream metadata is limited to just what's in the
+main codestream header.  You can suppress the codestream and XML details by
+making use of the :py:meth:`set_printoptions` function::
 
-This prints the metadata found in the JP2 boxes, but in the case of the
-codestream box, only the main header is printed.  It is possible to print 
-**only** the codestream information as well, i.e. ::
+    >>> glymur.set_printoptions(codestream=False, xml=False)
+    >>> print(jp2)
+    File:  nemo.jp2
+    JPEG 2000 Signature Box (jP  ) @ (0, 12)
+        Signature:  0d0a870a
+    File Type Box (ftyp) @ (12, 20)
+        Brand:  jp2 
+        Compatibility:  ['jp2 ']
+    JP2 Header Box (jp2h) @ (32, 45)
+        Image Header Box (ihdr) @ (40, 22)
+            Size:  [1456 2592 3]
+            Bitdepth:  8
+            Signed:  False
+            Compression:  wavelet
+            Colorspace Unknown:  False
+        Colour Specification Box (colr) @ (62, 15)
+            Method:  enumerated colorspace
+            Precedence:  0
+            Colorspace:  sRGB
+    UUID Box (uuid) @ (77, 3146)
+        UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
+    Contiguous Codestream Box (jp2c) @ (3223, 1132296)
 
-    >>> print(j.get_codestream())
+It is possible to print all the gory codestream details as well, i.e. ::
+
+    >>> print(j.get_codestream())   # details not shown
 
 ... add XML metadata?
 =====================
@@ -55,7 +222,7 @@ Consider the following XML file `data.xml` : ::
         </locality>
     </info>
 
-The **append** method can add an XML box as shown below::
+The :py:meth:`append` method can add an XML box as shown below::
 
     >>> import shutil
     >>> import glymur
@@ -74,6 +241,7 @@ codestream provided by `goodstuff.j2k` (a file consisting of a raw codestream),
 you can use the :py:meth:`wrap` method with no box argument: ::
 
     >>> import glymur
+    >>> glymur.set_printoptions(codestream=False)
     >>> jfile = glymur.data.goodstuff()
     >>> j2k = glymur.Jp2k(jfile)
     >>> jp2 = j2k.wrap("newfile.jp2")
@@ -96,10 +264,6 @@ you can use the :py:meth:`wrap` method with no box argument: ::
             Precedence:  0
             Colorspace:  sRGB
     Contiguous Codestream Box (jp2c) @ (77, 115228)
-        Main header:
-        .
-        . (truncated)
-        .
 
 The raw codestream was wrapped in a JP2 jacket with four boxes in the outer
 layer (the signature, file type, JP2 header, and contiguous codestream), with
@@ -146,12 +310,7 @@ the following will work. ::
         <favorite_things>
           <category>Light Ale</category>
         </favorite_things>
-        
     Contiguous Codestream Box (jp2c) @ (153, 115236)
-        Main header:
-        .
-        . (truncated)
-        .
 
 As to the question of which method you should use, :py:meth:`append` or
 :py:meth:`wrap`, to add metadata, you should keep in mind that :py:meth:`wrap`
