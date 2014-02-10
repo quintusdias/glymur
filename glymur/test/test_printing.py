@@ -48,6 +48,26 @@ class TestPrinting(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_printoptions_bad_argument(self):
+        """Verify error when bad parameter to set_printoptions"""
+        with self.assertRaises(TypeError):
+            glymur.set_printoptions(hi='low')
+
+    def test_printopt_no_codestr_then_no_xml(self):
+        """Verify printed output when codestream=False and xml=False, #162"""
+        # The print options should be persistent across invocations.
+        glymur.set_printoptions(codestream=False)
+        glymur.set_printoptions(xml=False)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            glymur.jp2dump(self.jp2file)
+            actual = fake_out.getvalue().strip()
+
+        # Get rid of the filename line, as it is not set in stone.
+        lst = actual.split('\n')
+        lst = lst[1:]
+        actual = '\n'.join(lst)
+        self.assertEqual(actual, fixtures.nemo_dump_no_codestream_no_xml)
+
     def test_printopt_no_codestr_or_xml(self):
         """Verify printed output when codestream=False and xml=False"""
         glymur.set_printoptions(codestream=False, xml=False)
