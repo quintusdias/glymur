@@ -45,13 +45,6 @@ the path will be ::
 
     $XDG_CONFIG_HOME/glymur/glymurrc 
 
-On windows, the path to the configuration file can be determined
-by starting up Python and typing ::
-
-    import os
-    os.path.join(os.path.expanduser('~'), 'glymur', 'glymurrc')
-        
-
 You may also include a line for the version 1.x openjpeg library if you have it
 installed in a non-standard place, i.e. ::
 
@@ -70,9 +63,8 @@ packages/RPMs/ports/whatever without going through pip.
 
 Mac OS X
 --------
-All the necessary packages are available to use glymur with Python 2.6, 2.7, 
-and 3.3 via MacPorts.  For python 3.3, you should install the following set of
-ports:
+All the necessary packages are available to use glymur with MacPorts.
+For python 3.3, you should install the following set of ports:
 
       * python33
       * py33-numpy
@@ -108,12 +100,8 @@ difficulties:
 
 Windows
 -------
-32-bit WinPython 2.7.5 seemed to work with OpenJPEG 1.X, 2.0, and the
-development version, but still required contextlib2 and mock to be
-installed via pip.   WinPython 3.3.2, however, seems to have trouble
-with OpenJPEG 2.0, so I would suggest using the development version with
-that configuration.  I no longer have any access to a windows machine,
-so I cannot currently offer much guidance here.
+The 0.6.x series of Glymur is untested on windows and I make no promises here.
+I suggest that windows users check the 0.5.x series.
 
 
 '''''''
@@ -145,5 +133,5 @@ OpenJPEG counterparts are already failing, and others which do pass but
 still produce heaps of output on stderr.  Rather than let this swamp
 the signal (that most of those tests are actually passing), they've been
 filtered out for now.  There are also more skipped tests on Python 2.7
-than on Python 3.3.  The important part is whether or not any test
+than on Python3.  The important part is whether or not any test
 errors are reported at the end.
