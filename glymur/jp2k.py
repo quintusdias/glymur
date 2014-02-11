@@ -1115,6 +1115,18 @@ def _validate_jp2_box_sequence(boxes):
 
     This is non-exhaustive.
     """
+    _validate_signature_compatibility(boxes)
+    _validate_jp2h(boxes)
+    _validate_jp2c(boxes)
+    _validate_association(boxes)
+    _validate_jpx_brand(boxes, boxes[1].brand)
+    _validate_jpx_compatibility(boxes, boxes[1].compatibility_list)
+    _validate_singletons(boxes)
+    _validate_top_level(boxes)
+
+
+def _validate_signature_compatibility(boxes):
+    """Validate the file signature and compatibility status."""
     # Check for a bad sequence of boxes.
     # 1st two boxes must be 'jP  ' and 'ftyp'
     if boxes[0].box_id != 'jP  ' or boxes[1].box_id != 'ftyp':
@@ -1127,6 +1139,9 @@ def _validate_jp2_box_sequence(boxes):
         msg = "The ftyp box must contain 'jp2 ' in the compatibility list."
         raise IOError(msg)
 
+
+def _validate_jp2c(boxes):
+    """Validate the codestream box in relation to other boxes."""
     # jp2c must be preceeded by jp2h
     jp2h_lst = [idx for (idx, box) in enumerate(boxes)
                 if box.box_id == 'jp2h']
@@ -1143,16 +1158,14 @@ def _validate_jp2_box_sequence(boxes):
         msg = "The codestream box must be preceeded by a jp2 header box."
         raise IOError(msg)
 
-    _validate_jp2h(boxes[jp2h_idx])
-    _check_jp2h_child_boxes(boxes, 'top-level')
-    _asoc_check(boxes)
-    _jpx_brand(boxes, boxes[1].brand)
-    _jpx_compatibility(boxes, boxes[1].compatibility_list)
-    _check_for_singletons(boxes)
-    _check_top_level(boxes)
 
-def _validate_jp2h(jp2h):
+def _validate_jp2h(boxes):
     """Validate the JP2 Header box."""
+    _check_jp2h_child_boxes(boxes, 'top-level')
+
+    jp2h_lst = [box for box in boxes if box.box_id == 'jp2h']
+    jp2h = jp2h_lst[0]
+
     # 1st jp2 header box cannot be empty.
     if len(jp2h.box) == 0:
         msg = "The JP2 header superbox cannot be empty."
@@ -1196,7 +1209,7 @@ def _validate_channel_definition(jp2h, colr):
                 msg = "All color channels must be defined in the "
                 msg += "channel definition box."
                 raise IOError(msg)
-    
+
 
 JP2H_CHILDREN = set(['bpcc', 'cmap', 'ihdr', 'pclr'])
 def _check_jp2h_child_boxes(boxes, parent_box_name):
@@ -1241,7 +1254,7 @@ def _check_superbox_for_top_levels(boxes):
         if hasattr(box, 'box'):
             _check_superbox_for_top_levels(box.box)
 
-def _check_top_level(boxes):
+def _validate_top_level(boxes):
     """Several boxes can only occur at the top level."""
     # Add the counts in the superboxes.
     for box in boxes:
@@ -1254,7 +1267,7 @@ def _check_top_level(boxes):
     if 'dtbl' in multiples:
         raise IOError('There can only be one dtbl box in a file.')
 
-def _check_for_singletons(boxes):
+def _validate_singletons(boxes):
     """Several boxes can only occur once."""
     count = _collect_box_count(boxes)
     # Which boxes occur more than once?
@@ -1262,7 +1275,7 @@ def _check_for_singletons(boxes):
     if 'dtbl' in multiples:
         raise IOError('There can only be one dtbl box in a file.')
 
-def _jpx_brand(boxes, brand):
+def _validate_jpx_brand(boxes, brand):
     """
     If there is a JPX box then the brand must be 'jpx '.
     """
@@ -1274,9 +1287,9 @@ def _jpx_brand(boxes, brand):
                 raise RuntimeError(msg)
         if hasattr(box, 'box') != 0:
             # Same set of checks on any child boxes.
-            _jpx_brand(box.box, brand)
+            _validate_jpx_brand(box.box, brand)
 
-def _jpx_compatibility(boxes, compatibility_list):
+def _validate_jpx_compatibility(boxes, compatibility_list):
     """
     If there is a JPX box then the compatibility list must also contain 'jpx '.
     """
@@ -1288,10 +1301,10 @@ def _jpx_compatibility(boxes, compatibility_list):
                 raise RuntimeError(msg)
         if hasattr(box, 'box') != 0:
             # Same set of checks on any child boxes.
-            _jpx_compatibility(box.box, compatibility_list)
+            _validate_jpx_compatibility(box.box, compatibility_list)
 
 
-def _asoc_check(boxes):
+def _validate_association(boxes):
     """
     Association boxes can only contain number list boxes and xml boxes, as far
     as we know.
@@ -1304,7 +1317,7 @@ def _asoc_check(boxes):
                 raise RuntimeError(msg)
         if hasattr(box, 'box') != 0:
             # Same set of checks on any child boxes.
-            _asoc_check(box.box)
+            _validate_association(box.box)
 
 
 
