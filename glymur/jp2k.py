@@ -1122,6 +1122,11 @@ def _validate_jp2_box_sequence(boxes):
         msg += "must be the file type box."
         raise IOError(msg)
 
+    # The compatibility list must contain at a minimum 'jp2 '.
+    if 'jp2 ' not in boxes[1].compatibility_list:
+        msg = "The ftyp box must contain 'jp2 ' in the compatibility list."
+        raise IOError(msg)
+
     # jp2c must be preceeded by jp2h
     jp2h_lst = [idx for (idx, box) in enumerate(boxes)
                 if box.box_id == 'jp2h']
@@ -1138,14 +1143,22 @@ def _validate_jp2_box_sequence(boxes):
         msg = "The codestream box must be preceeded by a jp2 header box."
         raise IOError(msg)
 
+    _validate_jp2h(boxes[jp2h_idx])
+    _check_jp2h_child_boxes(boxes, 'top-level')
+    _asoc_check(boxes)
+    _jpx_brand(boxes, boxes[1].brand)
+    _jpx_compatibility(boxes, boxes[1].compatibility_list)
+    _check_for_singletons(boxes)
+    _check_top_level(boxes)
+
+def _validate_jp2h(jp2h):
+    """Validate the JP2 Header box."""
     # 1st jp2 header box cannot be empty.
-    jp2h = boxes[jp2h_idx]
     if len(jp2h.box) == 0:
         msg = "The JP2 header superbox cannot be empty."
         raise IOError(msg)
 
     # 1st jp2 header box must be ihdr
-    jp2h = boxes[jp2h_idx]
     if jp2h.box[0].box_id != 'ihdr':
         msg = "The first box in the jp2 header box must be the image "
         msg += "header box."
@@ -1159,15 +1172,12 @@ def _validate_jp2_box_sequence(boxes):
         raise IOError(msg)
     colr = jp2h.box[colr_lst[0]]
 
-    # Any cdef box must be in the jp2 header following the image header.
-    cdef_lst = [j for (j, box) in enumerate(boxes) if box.box_id == 'cdef']
-    if len(cdef_lst) != 0:
-        msg = "Any channel defintion box must be in the JP2 header "
-        msg += "following the image header."
-        raise IOError(msg)
+    _validate_channel_definition(jp2h, colr)
 
-    cdef_lst = [j for (j, box) in enumerate(jp2h.box)
-                if box.box_id == 'cdef']
+
+def _validate_channel_definition(jp2h, colr):
+    """Validate the channel definition box."""
+    cdef_lst = [j for (j, box) in enumerate(jp2h.box) if box.box_id == 'cdef']
     if len(cdef_lst) > 1:
         msg = "Only one channel definition box is allowed in the "
         msg += "JP2 header."
@@ -1187,18 +1197,6 @@ def _validate_jp2_box_sequence(boxes):
                 msg += "channel definition box."
                 raise IOError(msg)
     
-    # The compatibility list must contain at a minimum 'jp2 '.
-    if 'jp2 ' not in boxes[1].compatibility_list:
-        msg = "The ftyp box must contain 'jp2 ' in the compatibility list."
-        raise IOError(msg)
-
-    # JPX checks.
-    _asoc_check(boxes)
-    _jpx_brand(boxes, boxes[1].brand)
-    _jpx_compatibility(boxes, boxes[1].compatibility_list)
-    _check_for_singletons(boxes)
-    _check_top_level(boxes)
-    _check_jp2h_child_boxes(boxes, 'top-level')
 
 JP2H_CHILDREN = set(['bpcc', 'cmap', 'ihdr', 'pclr'])
 def _check_jp2h_child_boxes(boxes, parent_box_name):
