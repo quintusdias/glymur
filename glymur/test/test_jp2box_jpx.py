@@ -135,7 +135,6 @@ class TestJPXWrap(unittest.TestCase):
                 jpx = jp2.wrap(tfile.name, boxes=boxes)
 
 
-@unittest.skipIf(sys.hexversion < 0x03000000, "Warning assert on 2.x.")
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
 class TestJPX(unittest.TestCase):
     """Test suite for other JPX boxes."""
@@ -146,22 +145,18 @@ class TestJPX(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_rreq_box_strange_mask_length(self):
-        """The standard says that the mask length should be 1, 2, 4, or 8."""
-        with warnings.catch_warnings():
-            # This file has a rreq mask length that we do not recognize.
-            warnings.simplefilter("ignore")
-            j = Jp2k(self.jpxfile)
-        self.assertEqual(j.box[2].box_id, 'rreq')
-        self.assertEqual(type(j.box[2]),
+    def test_jpx_rreq_mask_length_3(self):
+        """There are some JPX files with rreq mask length of 3."""
+        jpx = Jp2k(self.jpxfile)
+        self.assertEqual(jpx.box[2].box_id, 'rreq')
+        self.assertEqual(type(jpx.box[2]),
                          glymur.jp2box.ReaderRequirementsBox)
+        self.assertEqual(jpx.box[2].standard_flag,
+                         (5, 42, 45, 2, 18, 19, 1, 8, 12, 31, 20))
 
     def test_free_box(self):
         """Verify that we can handle a free box."""
-        with warnings.catch_warnings():
-            # This file has a rreq mask length that we do not recognize.
-            warnings.simplefilter("ignore")
-            j = Jp2k(self.jpxfile)
+        j = Jp2k(self.jpxfile)
         self.assertEqual(j.box[16].box[0].box_id, 'free')
         self.assertEqual(type(j.box[16].box[0]), glymur.jp2box.FreeBox)
 
@@ -183,10 +178,7 @@ class TestJPX(unittest.TestCase):
 
             tfile.flush()
 
-            with warnings.catch_warnings():
-                # This file has a rreq mask length that we do not recognize.
-                warnings.simplefilter("ignore")
-                jpx = Jp2k(tfile.name)
+            jpx = Jp2k(tfile.name)
 
             self.assertEqual(jpx.box[-1].box_id, 'dtbl')
             self.assertEqual(len(jpx.box[-1].DR), 2)
@@ -212,8 +204,7 @@ class TestJPX(unittest.TestCase):
 
             tfile.flush()
 
-            with self.assertWarns(UserWarning):
-                jpx = Jp2k(tfile.name)
+            jpx = Jp2k(tfile.name)
 
             self.assertEqual(jpx.box[-1].box_id, 'ftbl')
             self.assertEqual(jpx.box[-1].box[0].box_id, 'flst')
@@ -223,10 +214,7 @@ class TestJPX(unittest.TestCase):
 
     def test_nlst(self):
         """Verify that we can handle a free box."""
-        with warnings.catch_warnings():
-            # This file has a rreq mask length that we do not recognize.
-            warnings.simplefilter("ignore")
-            j = Jp2k(self.jpxfile)
+        j = Jp2k(self.jpxfile)
         self.assertEqual(j.box[16].box[1].box[0].box_id, 'nlst')
         self.assertEqual(type(j.box[16].box[1].box[0]),
                          glymur.jp2box.NumberListBox)

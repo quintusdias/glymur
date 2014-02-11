@@ -379,9 +379,7 @@ class TestJp2k(unittest.TestCase):
     def test_jpx_mult_codestreams_jp2_brand(self):
         """Read JPX codestream when jp2-compatible."""
         # The file in question has multiple codestreams.
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            jpx = Jp2k(self.jpxfile)
+        jpx = Jp2k(self.jpxfile)
         data = jpx.read()
         if re.match(r"""1\.[0123]""", glymur.version.openjpeg_version):
             # openjpeg 1.3 doesn't apply the palette, so it's a 2D image here 
