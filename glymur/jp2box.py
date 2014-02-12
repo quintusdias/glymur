@@ -11,7 +11,7 @@ References
    Extensions
 """
 
-# pylint: disable=C0302,R0903,R0913
+# pylint: disable=C0302,R0903,R0913,W0142
 
 from collections import OrderedDict
 import datetime
@@ -1866,20 +1866,14 @@ class ReaderRequirementsBox(Jp2kBox):
         if _printoptions['short'] == True:
             return msg
 
-        msg += '\n    Fully Understands Aspect Mask:  {0}'.format(self.fuam)
-        msg += '\n    Display Completely Mask:  {0}'.format(self.dcm)
+        msg += '\n    Fully Understands Aspect Mask:  0x{0:x}'.format(self.fuam)
+        msg += '\n    Display Completely Mask:  0x{0:x}'.format(self.dcm)
 
         msg += '\n    Standard Features and Masks:'
         for j in range(len(self.standard_flag)):
-            sfl = self.standard_flag[j]
-            mask = self.standard_mask[j]
-            msg += '\n        Feature {0:03d}:  {1}'.format(sfl, mask)
-
-        msg += '\n    Standard Features:'
-        for j in range(len(self.standard_flag)):
-            sfl = self.standard_flag[j]
-            rrdisp = _READER_REQUIREMENTS_DISPLAY[self.standard_flag[j]]
-            msg += '\n        Feature {0:03d}:  {1}'.format(sfl, rrdisp)
+            args = (self.standard_flag[j], self.standard_mask[j],
+                    _READER_REQUIREMENTS_DISPLAY[self.standard_flag[j]])
+            msg += '\n        Feature {0:03d}:  0x{1:x} {2}'.format(*args)
 
         msg += '\n    Vendor Features:'
         for j in range(len(self.vendor_feature)):
