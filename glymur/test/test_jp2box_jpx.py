@@ -40,6 +40,33 @@ class TestJPXWrap(unittest.TestCase):
     def tearDown(self):
         os.unlink(self.xmlfile)
 
+    def test_jpxb_compatibility(self):
+        """Wrap JP2 to JPX, state jpxb compatibility"""
+        jp2 = Jp2k(self.jp2file)
+        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+
+        # The ftyp box must be modified to jpx with jp2 compatibility.
+        boxes[1].brand = 'jpx '
+        boxes[1].compatibility_list = ['jp2 ', 'jpxb']
+
+        numbers = (0, 1)
+        nlst = glymur.jp2box.NumberListBox(numbers)
+        the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
+        xmlb = glymur.jp2box.XMLBox(xml=the_xml)
+        asoc = glymur.jp2box.AssociationBox([nlst, xmlb])
+        boxes.append(asoc)
+
+        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+            jpx = jp2.wrap(tfile.name, boxes=boxes)
+
+            self.assertEqual(jpx.box[1].compatibility_list, ['jp2 ', 'jpxb'])
+            self.assertEqual(jpx.box[-1].box_id, 'asoc')
+            self.assertEqual(jpx.box[-1].box[0].box_id, 'nlst')
+            self.assertEqual(jpx.box[-1].box[1].box_id, 'xml ')
+            self.assertEqual(jpx.box[-1].box[0].associations, numbers)
+            self.assertEqual(ET.tostring(jpx.box[-1].box[1].xml.getroot()),
+                             b'<data>0</data>')
+
     def test_association_box(self):
         """Wrap JP2 to JPX with asoc(nlst, xml)"""
         jp2 = Jp2k(self.jp2file)
