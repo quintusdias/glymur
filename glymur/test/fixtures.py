@@ -692,5 +692,5 @@ file7_rreq = r"""Reader Requirements Box (rreq) @ (44, 24)
     Standard Features:
         Feature 005:  Unrestricted JPEG 2000 Part 1 codestream, ITU-T Rec. T.800 | ISO/IEC 15444-1
         Feature 060:  e-sRGB enumerated colorspace
-        Feature 043:  (Deprecated) compositing layer uses restricted ICC profile
+        Feature 043:  Deprecated - compositing layer uses restricted ICC profile
     Vendor Features:"""
