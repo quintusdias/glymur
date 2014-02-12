@@ -53,7 +53,7 @@ class TestPrinting(unittest.TestCase):
         with self.assertRaises(TypeError):
             glymur.set_printoptions(hi='low')
 
-    def test_printopt_no_codestr_then_no_xml(self):
+    def test_propts_no_codestream_then_no_xml(self):
         """Verify printed output when codestream=False and xml=False, #162"""
         # The print options should be persistent across invocations.
         glymur.set_printoptions(codestream=False)
@@ -629,7 +629,7 @@ class TestPrinting(unittest.TestCase):
     def test_xml_latin1(self):
         """Should be able to print an XMLBox with utf-8 encoding (latin1)."""
         # Seems to be inconsistencies between different versions of python2.x
-        # as to what gets printed.  
+        # as to what gets printed.
         #
         # 2.7.5 (fedora 19) prints xml entities.
         # 2.7.3 seems to want to print hex escapes.
@@ -658,7 +658,7 @@ class TestPrinting(unittest.TestCase):
     def test_xml_cyrrilic(self):
         """Should be able to print an XMLBox with utf-8 encoding (cyrrillic)."""
         # Seems to be inconsistencies between different versions of python2.x
-        # as to what gets printed.  
+        # as to what gets printed.
         #
         # 2.7.5 (fedora 19) prints xml entities.
         # 2.7.3 seems to want to print hex escapes.

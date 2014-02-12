@@ -683,14 +683,10 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)"""
 
 # Output of reader requirement printing for file7.jp2
 file7_rreq = r"""Reader Requirements Box (rreq) @ (44, 24)
-    Fully Understands Aspect Mask:  160
-    Display Completely Mask:  192
+    Fully Understands Aspect Mask:  0xa0
+    Display Completely Mask:  0xc0
     Standard Features and Masks:
-        Feature 005:  128
-        Feature 060:  96
-        Feature 043:  64
-    Standard Features:
-        Feature 005:  Unrestricted JPEG 2000 Part 1 codestream, ITU-T Rec. T.800 | ISO/IEC 15444-1
-        Feature 060:  e-sRGB enumerated colorspace
-        Feature 043:  Deprecated - compositing layer uses restricted ICC profile
+        Feature 005:  0x80 Unrestricted JPEG 2000 Part 1 codestream, ITU-T Rec. T.800 | ISO/IEC 15444-1
+        Feature 060:  0x60 e-sRGB enumerated colorspace
+        Feature 043:  0x40 Deprecated - compositing layer uses restricted ICC profile
     Vendor Features:"""
