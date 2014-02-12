@@ -1293,11 +1293,12 @@ def _validate_jpx_compatibility(boxes, compatibility_list):
     """
     If there is a JPX box then the compatibility list must also contain 'jpx '.
     """
+    jpx_cl = set(compatibility_list)
     for box in boxes:
         if box.box_id in JPX_IDS:
-            if 'jpx ' not in compatibility_list:
-                msg = "A JPX box requires that 'jpx ' be present in the "
-                msg += "ftype compatibility list."
+            if len(set(['jpx ', 'jpxb']).intersection(jpx_cl)) == 0:
+                msg = "A JPX box requires that either 'jpx ' or 'jpxb' be "
+                msg += "present in the ftype compatibility list."
                 raise RuntimeError(msg)
         if hasattr(box, 'box') != 0:
             # Same set of checks on any child boxes.
