@@ -1211,7 +1211,7 @@ def _validate_channel_definition(jp2h, colr):
                 raise IOError(msg)
 
 
-JP2H_CHILDREN = set(['bpcc', 'cmap', 'ihdr', 'pclr'])
+JP2H_CHILDREN = set(['bpcc', 'cdef', 'cmap', 'ihdr', 'pclr'])
 def _check_jp2h_child_boxes(boxes, parent_box_name):
     """Certain boxes can only reside in the JP2 header."""
     box_ids = set([box.box_id for box in boxes])

@@ -315,7 +315,7 @@ class TestChannelDefinition(unittest.TestCase):
         boxes = [self.jp2b, self.ftyp, self.jp2h, cdef, self.jp2c]
 
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises((IOError, OSError)):
                 j2k.wrap(tfile.name, boxes=boxes)
 
     def test_bad_type(self):
