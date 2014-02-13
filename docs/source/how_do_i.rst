@@ -5,8 +5,9 @@ How do I...?
 
 ... read the lowest resolution thumbnail?
 =========================================
-Printing the Jp2k object should reveal the number of resolutions (look in the
-COD segment section), but you can take a shortcut by supplying -1 as the
+Printing the Jp2k object should reveal the number of resolutions
+(look in the COD segment section of the codestream), but you can
+take a shortcut by supplying -1 as the
 resolution level. ::
 
     >>> import glymur
@@ -381,6 +382,8 @@ Here's how the Preview application on the mac shows the RGBA image.
     
 ... work with XMP UUIDs?
 ========================
+XMP is metadata on steroids.  
+
 The example JP2 file shipped with glymur has an XMP UUID. ::
 
     >>> import glymur
@@ -518,3 +521,69 @@ though, you have to know the UUID that signifies XMP data.::
             </rdf:Description>
           </rdf:RDF>
         </ns0:xmpmeta>
+
+You can also build up XMP metadata from scratch.  For instance, if we try to
+wrap `goodstuff.j2k` again::
+
+    >>> import glymur
+    >>> jfile = glymur.data.goodstuff()
+    >>> j2k = glymur.Jp2k(jfile)
+    >>> jp2 = j2k.wrap("goodstuff.jp2")
+
+Now build up the metadata piece-by-piece.  It would help to have the XMP 
+standard close at hand::
+
+    >>> from libxmp import XMPMeta
+    >>> from libxmp.consts import XMP_NS_TIFF as NS_TIFF
+    >>> from libxmp.consts import XMP_NS_DC as NS_DC
+    >>> xmp = XMPMeta()
+    >>> ihdr = jp2.box[2].box[0]
+    >>> xmp.set_property(NS_TIFF, "ImageWidth", str(ihdr.width))
+    >>> xmp.set_property(NS_TIFF, "ImageHeight", str(ihdr.height))
+    >>> xmp.set_property(NS_TIFF, "BitsPerSample", '3')
+    >>> xmp.set_property(NS_DC, "Title", u'Stürm und Drang')
+    >>> xmp.set_property(NS_DC, "Creator", 'Glymur')
+
+We can then append the XMP in a UUID box just as before::
+
+    >>> import uuid
+    >>> xmp_uuid = uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
+    >>> box = glymur.jp2box.UUIDBox(xmp_uuid, str(xmp).encode())
+    >>> jp2.append(box)
+    >>> glymur.set_printoptions(codestream=False)
+    >>> print(jp2)
+    File:  goodstuff.jp2
+    JPEG 2000 Signature Box (jP  ) @ (0, 12)
+        Signature:  0d0a870a
+    File Type Box (ftyp) @ (12, 20)
+        Brand:  jp2 
+        Compatibility:  ['jp2 ']
+    JP2 Header Box (jp2h) @ (32, 45)
+        Image Header Box (ihdr) @ (40, 22)
+            Size:  [800 480 3]
+            Bitdepth:  8
+            Signed:  False
+            Compression:  wavelet
+            Colorspace Unknown:  False
+        Colour Specification Box (colr) @ (62, 15)
+            Method:  enumerated colorspace
+            Precedence:  0
+            Colorspace:  sRGB
+    Contiguous Codestream Box (jp2c) @ (77, 115228)
+    UUID Box (uuid) @ (115305, 671)
+        UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
+        UUID Data:  
+        <ns0:xmpmeta xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:ns0="adobe:ns:meta/" xmlns:ns2="http://ns.adobe.com/tiff/1.0/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" ns0:xmptk="Exempi + XMP Core 5.1.2">
+          <rdf:RDF>
+            <rdf:Description rdf:about="">
+              <ns2:ImageWidth>480</ns2:ImageWidth>
+              <ns2:ImageHeight>800</ns2:ImageHeight>
+              <ns2:BitsPerSample>3</ns2:BitsPerSample>
+            </rdf:Description>
+            <rdf:Description rdf:about="">
+              <dc:Title>Stürm und Drang</dc:Title>
+              <dc:Creator>Glymur</dc:Creator>
+            </rdf:Description>
+          </rdf:RDF>
+        </ns0:xmpmeta>
+
