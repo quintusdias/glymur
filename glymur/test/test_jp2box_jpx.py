@@ -67,8 +67,8 @@ class TestJPXWrap(unittest.TestCase):
             self.assertEqual(ET.tostring(jpx.box[-1].box[1].xml.getroot()),
                              b'<data>0</data>')
 
-    def test_association_box(self):
-        """Wrap JP2 to JPX with asoc(nlst, xml)"""
+    def test_association_label_box(self):
+        """Wrap JP2 to JPX with asoc, label, and nlst boxes"""
         jp2 = Jp2k(self.jp2file)
         boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
 
@@ -76,11 +76,13 @@ class TestJPXWrap(unittest.TestCase):
         boxes[1].brand = 'jpx '
         boxes[1].compatibility_list = ['jp2 ', 'jpx ']
 
+        label = 'this is a test'
+        lblb = glymur.jp2box.LabelBox(label)
         numbers = (0, 1)
         nlst = glymur.jp2box.NumberListBox(numbers)
         the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
         xmlb = glymur.jp2box.XMLBox(xml=the_xml)
-        asoc = glymur.jp2box.AssociationBox([nlst, xmlb])
+        asoc = glymur.jp2box.AssociationBox([nlst, xmlb, lblb])
         boxes.append(asoc)
 
         with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
@@ -89,10 +91,12 @@ class TestJPXWrap(unittest.TestCase):
             self.assertEqual(jpx.box[1].compatibility_list, ['jp2 ', 'jpx '])
             self.assertEqual(jpx.box[-1].box_id, 'asoc')
             self.assertEqual(jpx.box[-1].box[0].box_id, 'nlst')
-            self.assertEqual(jpx.box[-1].box[1].box_id, 'xml ')
             self.assertEqual(jpx.box[-1].box[0].associations, numbers)
+            self.assertEqual(jpx.box[-1].box[1].box_id, 'xml ')
             self.assertEqual(ET.tostring(jpx.box[-1].box[1].xml.getroot()),
                              b'<data>0</data>')
+            self.assertEqual(jpx.box[-1].box[2].box_id, 'lbl ')
+            self.assertEqual(jpx.box[-1].box[2].label, label)
 
     def test_only_one_data_reference(self):
         """Data reference boxes cannot be inside a superbox ."""
@@ -106,6 +110,23 @@ class TestJPXWrap(unittest.TestCase):
         dref = glymur.jp2box.DataReferenceBox([deurl])
         boxes.append(dref)
         boxes.append(dref)
+
+        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+            with self.assertRaises(IOError):
+                jpx = jp2.wrap(tfile.name, boxes=boxes)
+
+    def test_lbl_at_top_level(self):
+        """Label boxes can only be inside a asoc box ."""
+        jp2 = Jp2k(self.jp2file)
+        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+
+        flag = 0
+        version = (0, 0, 0)
+        url = 'file:////usr/local/bin'
+        lblb = glymur.jp2box.LabelBox('hi there')
+
+        # Put it inside the jp2 header box.
+        boxes[2].box.append(lblb)
 
         with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
             with self.assertRaises(IOError):

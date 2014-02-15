@@ -1119,6 +1119,7 @@ def _validate_jp2_box_sequence(boxes):
     _validate_jp2h(boxes)
     _validate_jp2c(boxes)
     _validate_association(boxes)
+    _validate_label(boxes)
     _validate_jpx_brand(boxes, boxes[1].brand)
     _validate_jpx_compatibility(boxes, boxes[1].compatibility_list)
     _validate_singletons(boxes)
@@ -1304,6 +1305,21 @@ def _validate_jpx_compatibility(boxes, compatibility_list):
             # Same set of checks on any child boxes.
             _validate_jpx_compatibility(box.box, compatibility_list)
 
+def _validate_label(boxes):
+    """
+    Label boxes can only be inside association, codestream headers, or
+    compositing layer header boxes.
+    """
+    for box in boxes:
+        if box.box_id != 'asoc':
+            if hasattr(box, 'box'):
+                for boxi in box.box:
+                    if boxi.box_id == 'lbl ':
+                        msg = "A label box cannot be nested inside a {0} box."
+                        msg = msg.format(box.box_id)
+                        raise IOError(msg)
+                # Same set of checks on any child boxes.
+                _validate_label(box.box)
 
 def _validate_association(boxes):
     """
