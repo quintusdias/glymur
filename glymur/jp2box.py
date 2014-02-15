@@ -88,6 +88,18 @@ class Jp2kBox(object):
         msg = "Not supported for {0} box.".format(self.longname)
         raise NotImplementedError(msg)
 
+    def _str_superbox(self):
+        """__str__ method for all superboxes."""
+        msg = Jp2kBox.__str__(self)
+        for box in self.box:
+            boxstr = str(box)
+
+            # Add indentation.
+            strs = [('\n    ' + x) for x in boxstr.split('\n')]
+            msg += ''.join(strs)
+        return msg
+
+
     def _write_superbox(self, fptr):
         """Write a superbox.
 
@@ -592,16 +604,7 @@ class CodestreamHeaderBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
-            return msg
-
-        for box in self.box:
-            boxstr = str(box)
-
-            # Add indentation.
-            strs = [('\n    ' + x) for x in boxstr.split('\n')]
-            msg += ''.join(strs)
+        msg = self._str_superbox()
         return msg
 
     @staticmethod
@@ -659,16 +662,7 @@ class CompositingLayerHeaderBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
-            return msg
-
-        for box in self.box:
-            boxstr = str(box)
-
-            # Add indentation.
-            strs = [('\n    ' + x) for x in boxstr.split('\n')]
-            msg += ''.join(strs)
+        msg = self._str_superbox()
         return msg
 
     @staticmethod
@@ -831,10 +825,10 @@ class ContiguousCodestreamBox(Jp2kBox):
         msg += '\n    Main header:'
         for segment in self.main_header.segment:
             segstr = str(segment)
-
             # Add indentation.
             strs = [('\n        ' + x) for x in segstr.split('\n')]
             msg += ''.join(strs)
+ 
         return msg
 
     @staticmethod
@@ -1156,16 +1150,7 @@ class FragmentTableBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
-            return msg
-
-        for box in self.box:
-            boxstr = str(box)
-
-            # Add indentation.
-            strs = [('\n    ' + x) for x in boxstr.split('\n')]
-            msg += ''.join(strs)
+        msg = self._str_superbox()
         return msg
 
     @staticmethod
@@ -1415,16 +1400,7 @@ class AssociationBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
-            return msg
-
-        for box in self.box:
-            boxstr = str(box)
-
-            # Add indentation.
-            strs = [('\n    ' + x) for x in boxstr.split('\n')]
-            msg += ''.join(strs)
+        msg = self._str_superbox()
         return msg
 
     @staticmethod
@@ -1485,13 +1461,7 @@ class JP2HeaderBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
-        for box in self.box:
-            boxstr = str(box)
-
-            # Add indentation.
-            strs = [('\n    ' + x) for x in boxstr.split('\n')]
-            msg += ''.join(strs)
+        msg = self._str_superbox()
         return msg
 
     def write(self, fptr):
@@ -2086,13 +2056,7 @@ class ResolutionBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
-        for box in self.box:
-            boxstr = str(box)
-
-            # Add indentation.
-            strs = [('\n    ' + x) for x in boxstr.split('\n')]
-            msg += ''.join(strs)
+        msg = self._str_superbox()
         return msg
 
     @staticmethod
@@ -2612,14 +2576,7 @@ class UUIDInfoBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
-        for box in self.box:
-            box_str = str(box)
-
-            # Add indentation.
-            lst = [('\n    ' + x) for x in box_str.split('\n')]
-            msg += ''.join(lst)
-
+        msg = self._str_superbox()
         return msg
 
     @staticmethod
