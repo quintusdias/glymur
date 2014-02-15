@@ -2286,6 +2286,14 @@ class LabelBox(Jp2kBox):
         msg = 'glymur.jp2box.LabelBox("{0}")'.format(self.label)
         return msg
 
+    def write(self, fptr):
+        """Write a Label box to file.
+        """
+        length = 8 + len(self.label.encode())
+        fptr.write(struct.pack('>I', length))
+        fptr.write(self.box_id.encode())
+        fptr.write(self.label.encode())
+
     @staticmethod
     def parse(fptr, offset, length):
         """Parse Label box.
