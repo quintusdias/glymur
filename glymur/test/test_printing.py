@@ -39,6 +39,7 @@ from .fixtures import text_gbr_27, text_gbr_33, text_gbr_34
 class TestPrinting(unittest.TestCase):
     """Tests for verifying how printing works."""
     def setUp(self):
+        self.jpxfile = glymur.data.jpxfile()
         self.jp2file = glymur.data.nemo()
         self.j2kfile = glymur.data.goodstuff()
 
@@ -47,6 +48,31 @@ class TestPrinting(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+    @unittest.skipIf(sys.hexversion < 0x03000000, "Needs unittest in 3.x.")
+    def test_unknown_superbox(self):
+        """Verify that we can handle an unknown superbox."""
+        with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
+            with open(self.jpxfile, 'rb') as ifile:
+                tfile.write(ifile.read())
+            
+            # Add the header for an unknwon superbox.
+            write_buffer = struct.pack('>I4s', 20, 'grp '.encode())
+            tfile.write(write_buffer)
+            write_buffer = struct.pack('>I4sI', 12, 'free'.encode(), 0)
+            tfile.write(write_buffer)
+            tfile.flush()
+
+            with self.assertWarns(UserWarning):
+                jpx = Jp2k(tfile.name)
+            glymur.set_printoptions(short=True)
+            with patch('sys.stdout', new=StringIO()) as fake_out:
+                print(jpx.box[-1])
+                actual = fake_out.getvalue().strip()
+            lines = ['Unknown Box (grp ) @ (695609, 20)',
+                     '    Free Box (free) @ (695617, 12)']
+            expected = '\n'.join(lines)
+            self.assertEqual(actual, expected)
 
     def test_printoptions_bad_argument(self):
         """Verify error when bad parameter to set_printoptions"""
@@ -602,27 +628,7 @@ class TestPrinting(unittest.TestCase):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.box[2])
             actual = fake_out.getvalue().strip()
-
-        lines = ['XML Box (xml ) @ (36, 439)',
-                 '    <ns0:IMAGE_CREATION '
-                 + 'xmlns:ns0="http://www.jpeg.org/jpx/1.0/xml" '
-                 + 'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
-                 + 'xsi:schemaLocation="http://www.jpeg.org/jpx/1.0/xml '
-                 + 'http://www.jpeg.org/metadata/15444-2.xsd">',
-
-                 '      <ns0:GENERAL_CREATION_INFO>',
-                 '        <ns0:CREATION_TIME>'
-                 + '2001-11-01T13:45:00.000-06:00'
-                 + '</ns0:CREATION_TIME>',
-
-                 '        <ns0:IMAGE_SOURCE>'
-                 + 'Professional 120 Image'
-                 + '</ns0:IMAGE_SOURCE>',
-
-                 '      </ns0:GENERAL_CREATION_INFO>',
-                 '    </ns0:IMAGE_CREATION>']
-        expected = '\n'.join(lines)
-        self.assertEqual(actual, expected)
+        self.assertEqual(actual, fixtures.file1_xml)
 
     @unittest.skipIf(sys.hexversion < 0x03000000,
                      "Only trusting python3 for printing non-ascii chars")

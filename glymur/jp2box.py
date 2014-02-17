@@ -145,8 +145,8 @@ class Jp2kBox(object):
         except KeyError:
             msg = 'Unrecognized box ({0}) encountered.'.format(box_id)
             warnings.warn(msg)
-            box = Jp2kBox(box_id, offset=start, length=num_bytes,
-                          longname='Unknown box')
+            box = UnknownBox(box_id, offset=start, length=num_bytes,
+                             longname='Unknown')
 
             if fptr.tell() != start + 8:
                 # If the file pointer has advanced, then the KeyError
@@ -2737,6 +2737,37 @@ class DataEntryURLBox(Jp2kBox):
         url = read_buffer.decode('utf-8').rstrip(chr(0))
         box = DataEntryURLBox(version, flag, url, length=length, offset=offset)
         return box
+
+
+class UnknownBox(Jp2kBox):
+    """Container for unrecognized boxes.
+
+    Attributes
+    ----------
+    box_id : str
+        4-character identifier for the box.
+    length : int
+        length of the box in bytes.
+    offset : int
+        offset of the box from the start of the file.
+    longname : str
+        more verbose description of the box.
+    """
+    def __init__(self, box_id, length=0, offset=-1, longname=''):
+        Jp2kBox.__init__(self, box_id=box_id, longname=longname)
+        self.length = length
+        self.offset = offset
+
+    def __repr__(self):
+        msg = "glymur.jp2box.UnknownBox({0})".format(self.box_id)
+        return msg
+
+    def __str__(self):
+        if len(self.box) > 0:
+            msg = self._str_superbox()
+        else:
+            msg = Jp2kBox.__str__(self)
+        return msg
 
 
 class UUIDBox(Jp2kBox):
