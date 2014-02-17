@@ -4,6 +4,7 @@ Test suite specifically targeting JPX box layout.
 """
 
 import os
+import shutil
 import struct
 import sys
 import tempfile
@@ -201,6 +202,25 @@ class TestJPX(unittest.TestCase):
                          glymur.jp2box.ReaderRequirementsBox)
         self.assertEqual(jpx.box[2].standard_flag,
                          (5, 42, 45, 2, 18, 19, 1, 8, 12, 31, 20))
+
+    @unittest.skipIf(sys.hexversion < 0x03000000, "Needs unittest in 3.x.")
+    def test_unknown_superbox(self):
+        """Verify that we can handle an unknown superbox."""
+        with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
+            with open(self.jpxfile, 'rb') as ifile:
+                tfile.write(ifile.read())
+            
+            # Add the header for an unknwon superbox.
+            write_buffer = struct.pack('>I4s', 20, 'grp '.encode())
+            tfile.write(write_buffer)
+            write_buffer = struct.pack('>I4sI', 12, 'free'.encode(), 0)
+            tfile.write(write_buffer)
+            tfile.flush()
+
+            with self.assertWarns(UserWarning):
+                jpx = Jp2k(tfile.name)
+            self.assertEqual(jpx.box[-1].box_id, 'grp ')
+            self.assertEqual(jpx.box[-1].box[0].box_id, 'free')
 
     def test_free_box(self):
         """Verify that we can handle a free box."""
