@@ -63,6 +63,8 @@ class Jp2kBox(object):
         offset of the box from the start of the file.
     longname : str
         more verbose description of the box.
+    box : list
+        List of JPEG 2000 boxes.
     """
 
     def __init__(self, box_id='', offset=0, length=0, longname=''):
@@ -70,6 +72,7 @@ class Jp2kBox(object):
         self.length = length
         self.offset = offset
         self.longname = longname
+        self.box = []
 
     def __repr__(self):
         msg = "glymur.jp2box.Jp2kBox(box_id='{0}', offset={1}, length={2}, "
@@ -130,7 +133,7 @@ class Jp2kBox(object):
         box_id : str
             4-letter identifier for the current box.
         start, num_bytes: int
-            Byte offset and length of the current box. 
+            Byte offset and length of the current box.
 
         Returns
         -------
@@ -139,7 +142,7 @@ class Jp2kBox(object):
         """
         try:
             box = _BOX_WITH_ID[box_id].parse(fptr, start, num_bytes)
-        except KeyError as err:
+        except KeyError:
             msg = 'Unrecognized box ({0}) encountered.'.format(box_id)
             warnings.warn(msg)
             box = Jp2kBox(box_id, offset=start, length=num_bytes,
@@ -154,7 +157,7 @@ class Jp2kBox(object):
                 # Peek ahead to see.
                 pos = fptr.tell()
                 read_buffer = fptr.read(8)
-                sub_length, sub_id = struct.unpack('>I4s', read_buffer)
+                _, sub_id = struct.unpack('>I4s', read_buffer)
                 sub_id = sub_id.decode('utf-8')
 
                 # Regardless of whether or not we recognize the box, rewind back
@@ -869,7 +872,7 @@ class ContiguousCodestreamBox(Jp2kBox):
             # Add indentation.
             strs = [('\n        ' + x) for x in segstr.split('\n')]
             msg += ''.join(strs)
- 
+
         return msg
 
     @staticmethod
@@ -1725,8 +1728,7 @@ class PaletteBox(Jp2kBox):
             palette[j] = struct.unpack_from(fmt, read_buffer,
                                             offset=j * row_nbytes)
 
-        box = PaletteBox(palette, bps, signed, length=length, offset=offset)
-        return box
+        return PaletteBox(palette, bps, signed, length=length, offset=offset)
 
 
 # Map rreq codes to display text.
