@@ -41,6 +41,34 @@ class TestJPXWrap(unittest.TestCase):
     def tearDown(self):
         os.unlink(self.xmlfile)
 
+    def test_ftbl(self):
+        """Write a fragment table box."""
+        # Add a negative test where offset < 0
+        # Add a negative test where length < 0
+        # Add a negative test where ref > 0 but no data reference box.
+        # Add a negative test where more than one flst
+        # Add negative test where ftbl contained in a superbox.
+        jp2 = Jp2k(self.jp2file)
+        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+
+        # The ftyp box must be modified to jpx.
+        boxes[1].brand = 'jpx '
+        boxes[1].compatibility_list = ['jp2 ', 'jpxb']
+
+        offset = [89]
+        length = [1132288]
+        reference = [0]
+        flst = glymur.jp2box.FragmentListBox(offset, length, reference)
+        ftbl = glymur.jp2box.FragmentTableBox(box=[flst])
+        boxes.append(ftbl)
+
+        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+            jpx = jp2.wrap(tfile.name, boxes=boxes)
+
+            self.assertEqual(jpx.box[1].compatibility_list, ['jp2 ', 'jpxb'])
+            self.assertEqual(jpx.box[-1].box_id, 'ftbl')
+            self.assertEqual(jpx.box[-1].box[0].box_id, 'flst')
+
     def test_jpxb_compatibility(self):
         """Wrap JP2 to JPX, state jpxb compatibility"""
         jp2 = Jp2k(self.jp2file)
@@ -193,6 +221,51 @@ class TestJPX(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+    def test_flst_lens_not_the_same(self):
+        """A fragment list box items must be the same length."""
+        offset = [89]
+        length = [1132288]
+        reference = [0, 0]
+        flst = glymur.jp2box.FragmentListBox(offset, length, reference)
+        with self.assertRaises(IOError):
+            with tempfile.TemporaryFile() as tfile:
+               flst.write(tfile) 
+
+    def test_flst_offsets_not_positive(self):
+        """A fragment list box offsets must be positive."""
+        offset = [0]
+        length = [1132288]
+        reference = [0]
+        flst = glymur.jp2box.FragmentListBox(offset, length, reference)
+        with self.assertRaises(IOError):
+            with tempfile.TemporaryFile() as tfile:
+               flst.write(tfile) 
+
+    def test_flst_lengths_not_positive(self):
+        """A fragment list box lengths must be positive."""
+        offset = [89]
+        length = [0]
+        reference = [0]
+        flst = glymur.jp2box.FragmentListBox(offset, length, reference)
+        with self.assertRaises(IOError):
+            with tempfile.TemporaryFile() as tfile:
+               flst.write(tfile) 
+
+    def test_ftbl_boxes_empty(self):
+        """A fragment table box must have at least one child box."""
+        ftbl = glymur.jp2box.FragmentTableBox()
+        with self.assertRaises(IOError):
+            with tempfile.TemporaryFile() as tfile:
+                ftbl.write(tfile) 
+
+    def test_ftbl_child_not_flst(self):
+        """A fragment table box can only contain a fragment list."""
+        free = glymur.jp2box.FreeBox()
+        ftbl = glymur.jp2box.FragmentTableBox(box=[free])
+        with self.assertRaises(IOError):
+            with tempfile.TemporaryFile() as tfile:
+                ftbl.write(tfile) 
 
     def test_jpx_rreq_mask_length_3(self):
         """There are some JPX files with rreq mask length of 3."""

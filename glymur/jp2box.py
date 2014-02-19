@@ -148,7 +148,8 @@ class Jp2kBox(object):
             box = UnknownBox(box_id, offset=start, length=num_bytes,
                              longname='Unknown')
 
-            if fptr.tell() != start + 8:
+            cpos = fptr.tell()
+            if not ((cpos == start + 8) or (cpos == start + 16)):
                 # If the file pointer has advanced, then the KeyError
                 # ocurred during the parsing of the box.
                 pass
@@ -1122,6 +1123,18 @@ class FragmentListBox(Jp2kBox):
         self.length = length
         self.offset = offset
 
+    def _validate(self):
+        """Validate internal correctness."""
+        if (((len(self.fragment_offset) != len(self.fragment_length)) or
+             (len(self.fragment_length) != len(self.data_reference)))):
+            msg = "The lengths of the fragment offsets, fragment lengths, and "
+            msg += "data reference items must be the same."
+            raise IOError(msg)
+        if any([x <= 0 for x in self.fragment_offset]):
+            raise IOError("Fragment offsets must all be positive.")
+        if any([x <= 0 for x in self.fragment_length]):
+            raise IOError("Fragment lengths must all be positive.")
+
     def __repr__(self):
         msg = "glymur.jp2box.FragmentListBox()"
         return msg
@@ -1140,6 +1153,22 @@ class FragmentListBox(Jp2kBox):
                              j, self.data_reference[j])
 
         return msg
+
+    def write(self, fptr):
+        """Write a fragment list box to file.
+        """
+        self._validate()
+        num_items = len(self.fragment_offset)
+        length = 8 + 2 + num_items * 14
+        fptr.write(struct.pack('>I', length))
+        fptr.write(self.box_id.encode())
+        fptr.write(struct.pack('>H', num_items))
+        for j in range(num_items):
+            write_buffer = struct.pack('>QIH',
+                                       self.fragment_offset[j],
+                                       self.fragment_length[j],
+                                       self.data_reference[j])
+            fptr.write(write_buffer)
 
     @staticmethod
     def parse(fptr, offset, length):
@@ -1184,10 +1213,11 @@ class FragmentTableBox(Jp2kBox):
     longname : str
         more verbose description of the box.
     """
-    def __init__(self, length=0, offset=-1):
+    def __init__(self, box=None, length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='ftbl', longname='Fragment Table')
         self.length = length
         self.offset = offset
+        self.box = box if box is not None else []
 
     def __repr__(self):
         msg = "glymur.jp2box.FragmentTableBox()"
@@ -1212,7 +1242,7 @@ class FragmentTableBox(Jp2kBox):
 
         Returns
         -------
-        FreeBox instance
+        FragmentTableBox instance
         """
         box = FragmentTableBox(length=length, offset=offset)
 
@@ -1221,6 +1251,20 @@ class FragmentTableBox(Jp2kBox):
         box.box = box.parse_superbox(fptr)
 
         return box
+
+    def _validate(self):
+        """Self-validate the box before writing."""
+        box_ids = [box.box_id for box in self.box]
+        if len(box_ids) != 1 or box_ids[0] != 'flst':
+            msg = "Fragment table boxes must have a single fragment list "
+            msg += "box as a child box."
+            raise IOError(msg)
+
+    def write(self, fptr):
+        """Write a fragment table box to file.
+        """
+        self._validate()
+        self._write_superbox(fptr)
 
 
 
