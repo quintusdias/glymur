@@ -1046,9 +1046,22 @@ class FileTypeBox(Jp2kBox):
 
         return msg
 
+    def _validate(self):
+        """Validate the box before writing to file."""
+        if self.brand not in ['jp2 ', 'jpx ']:
+            msg = "The file type brand must be either 'jp2 ' or 'jpx '."
+            raise IOError(msg)
+        valid_cls = ['jp2 ', 'jpx ', 'jpxb']
+        for item in self.compatibility_list:
+            if item not in valid_cls:
+                msg = "The file type compatibility list item '{0}' is not "
+                msg += "valid:  valid entries are {1}"
+                raise IOError(msg.format(item, valid_cls))
+
     def write(self, fptr):
         """Write a File Type box to file.
         """
+        self._validate()
         length = 16 + 4*len(self.compatibility_list)
         fptr.write(struct.pack('>I', length))
         fptr.write('ftyp'.encode())
