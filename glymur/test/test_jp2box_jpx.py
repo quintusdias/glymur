@@ -127,6 +127,19 @@ class TestJPXWrap(unittest.TestCase):
             self.assertEqual(jpx.box[-1].box[2].box_id, 'lbl ')
             self.assertEqual(jpx.box[-1].box[2].label, label)
 
+    def test_empty_data_reference(self):
+        """Data reference boxes can be empty."""
+        jp2 = Jp2k(self.jp2file)
+        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+
+        dref = glymur.jp2box.DataReferenceBox()
+        boxes.append(dref)
+
+        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+            jpx = jp2.wrap(tfile.name, boxes=boxes)
+        self.assertEqual(jpx.box[-1].box_id, 'dtbl')
+        self.assertEqual(len(jpx.box[-1].box), 0)
+
     def test_only_one_data_reference(self):
         """Data reference boxes cannot be inside a superbox ."""
         jp2 = Jp2k(self.jp2file)

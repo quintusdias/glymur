@@ -915,9 +915,12 @@ class DataReferenceBox(Jp2kBox):
     DR : list
         Data Entry URL boxes.
     """
-    def __init__(self, data_entry_url_boxes, length=0, offset=-1):
+    def __init__(self, data_entry_url_boxes=None, length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='dtbl', longname='Data Reference')
-        self.DR = data_entry_url_boxes
+        if data_entry_url_boxes is None:
+            self.DR = []
+        else:
+            self.DR = data_entry_url_boxes
         self.length = length
         self.offset = offset
 
