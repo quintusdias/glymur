@@ -29,6 +29,7 @@ import numpy as np
 from .codestream import Codestream
 from .core import _COLORSPACE_MAP_DISPLAY
 from .core import _COLOR_TYPE_MAP_DISPLAY
+from .core import SRGB, GREYSCALE, YCC
 from .core import ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE
 from .core import ANY_ICC_PROFILE, VENDOR_COLOR_METHOD
 from .core import _pretty_print_xml
@@ -270,13 +271,6 @@ class ColourSpecificationBox(Jp2kBox):
                  approximation=0, colorspace=None, icc_profile=None,
                  length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='colr', longname='Colour Specification')
-
-        if colorspace is not None and icc_profile is not None:
-            raise IOError("colorspace and icc_profile cannot both be set.")
-        if method not in (1, 2, 3, 4):
-            raise IOError("Invalid method.")
-        if approximation not in (0, 1, 2, 3, 4):
-            raise IOError("Invalid approximation.")
         self.method = method
         self.precedence = precedence
         self.approximation = approximation
@@ -284,6 +278,33 @@ class ColourSpecificationBox(Jp2kBox):
         self.icc_profile = icc_profile
         self.length = length
         self.offset = offset
+        self._validate()
+
+    def _validate(self):
+        """Verify that the box obeys the specifications."""
+        if self.colorspace is not None and self.icc_profile is not None:
+            raise IOError("colorspace and icc_profile cannot both be set.")
+        if self.method not in (1, 2, 3, 4):
+            raise IOError("Invalid method.")
+        if self.approximation not in (0, 1, 2, 3, 4):
+            raise IOError("Invalid approximation.")
+
+    def _write_validate(self):
+        """In addition to constructor validation steps, run validation steps
+        for writing."""
+        if self.colorspace is None:
+            msg = "Writing Colour Specification boxes without enumerated "
+            msg += "colorspaces is not supported at this time."
+            raise IOError(msg)
+
+        if self.icc_profile is None:
+            if self.colorspace not in [SRGB, GREYSCALE, YCC]:
+                msg = "Colorspace should correspond to one of SRGB, GREYSCALE, "
+                msg += "or YCC."
+                raise IOError(msg)
+
+        self._validate()
+
 
     def __repr__(self):
         msg = "glymur.jp2box.ColourSpecificationBox("
@@ -327,10 +348,7 @@ class ColourSpecificationBox(Jp2kBox):
     def write(self, fptr):
         """Write an Colour Specification box to file.
         """
-        if self.colorspace is None:
-            msg = "Writing Colour Specification boxes without enumerated "
-            msg += "colorspaces is not supported at this time."
-            raise NotImplementedError(msg)
+        self._write_validate()
         length = 15 if self.icc_profile is None else 11 + len(self.icc_profile)
         fptr.write(struct.pack('>I', length))
         fptr.write('colr'.encode())
@@ -923,10 +941,20 @@ class DataReferenceBox(Jp2kBox):
             self.DR = data_entry_url_boxes
         self.length = length
         self.offset = offset
+        self._validate()
+
+    def _validate(self):
+        """Verify that the box obeys the specifications."""
+        for box in self.DR:
+            if box.box_id != 'url ':
+                msg = 'All child boxes of a data reference box must be data '
+                msg += 'entry URL boxes.'
+                raise IOError(msg)
 
     def write(self, fptr):
         """Write a Data Reference box to file.
         """
+        self._validate()
 
         # Very similar to the say a superbox is written.
         orig_pos = fptr.tell()

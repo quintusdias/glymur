@@ -140,6 +140,25 @@ class TestJPXWrap(unittest.TestCase):
         self.assertEqual(jpx.box[-1].box_id, 'dtbl')
         self.assertEqual(len(jpx.box[-1].box), 0)
 
+    def test_deurl_child_of_dtbl(self):
+        """Data reference boxes can only contain data entry url boxes."""
+        jp2 = Jp2k(self.jp2file)
+        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+
+        ftyp = glymur.jp2box.FileTypeBox()
+        with self.assertRaises(IOError):
+            dref = glymur.jp2box.DataReferenceBox([ftyp])
+
+        # Try to get around it by appending the ftyp box after creation.
+        dref = glymur.jp2box.DataReferenceBox()
+        dref.DR.append(ftyp)
+
+        boxes.append(dref)
+
+        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+            with self.assertRaises(IOError):
+                jpx = jp2.wrap(tfile.name, boxes=boxes)
+
     def test_only_one_data_reference(self):
         """Data reference boxes cannot be inside a superbox ."""
         jp2 = Jp2k(self.jp2file)

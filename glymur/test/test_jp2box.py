@@ -394,7 +394,7 @@ class TestColourSpecificationBox(unittest.TestCase):
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
         boxes[2].box = [self.ihdr, ColourSpecificationBox(colorspace=None)]
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
-            with self.assertRaises(NotImplementedError):
+            with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
@@ -439,6 +439,16 @@ class TestColourSpecificationBox(unittest.TestCase):
         with self.assertRaises(IOError):
             glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
                                                  approximation=approx)
+
+    def test_colr_with_bad_color(self):
+        """colr must have a valid color, strange as though that may sound."""
+        colorspace = -1
+        approx = 0
+        colr = glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
+                                                    approximation=approx)
+        with tempfile.TemporaryFile() as tfile:
+            with self.assertRaises(IOError):
+                colr.write(tfile)
 
 
 class TestAppend(unittest.TestCase):
