@@ -1110,6 +1110,10 @@ def _validate_nonzero_image_size(nrows, ncols, component_index):
         raise IOError(msg)
 
 
+JP2_IDS = ['colr', 'cdef', 'cmap', 'jp2c', 'ftyp', 'ihdr', 'jp2h', 'jP  ',
+           'pclr', 'res ', 'resc', 'resd', 'xml ', 'ulst', 'uinf', 'url ',
+           'uuid']
+
 def _validate_jp2_box_sequence(boxes):
     """Run through series of tests for JP2 box legality.
 
@@ -1118,13 +1122,24 @@ def _validate_jp2_box_sequence(boxes):
     _validate_signature_compatibility(boxes)
     _validate_jp2h(boxes)
     _validate_jp2c(boxes)
+    if boxes[1].brand == 'jpx ':
+        _validate_jpx_box_sequence(boxes)
+    else:
+        count = _collect_box_count(boxes)
+        for id in count.keys():
+            if id not in JP2_IDS:
+                msg = "The presence of a '{0}' box requires that the file type "
+                msg += "brand be set to 'jpx '."
+                raise IOError(msg.format(id))
+
+def _validate_jpx_box_sequence(boxes):
+    """Run through series of tests for JPX box legality."""
     _validate_association(boxes)
     _validate_label(boxes)
     _validate_jpx_brand(boxes, boxes[1].brand)
     _validate_jpx_compatibility(boxes, boxes[1].compatibility_list)
     _validate_singletons(boxes)
     _validate_top_level(boxes)
-
 
 def _validate_signature_compatibility(boxes):
     """Validate the file signature and compatibility status."""

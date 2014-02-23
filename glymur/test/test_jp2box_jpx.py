@@ -4,12 +4,10 @@ Test suite specifically targeting JPX box layout.
 """
 
 import os
-import shutil
 import struct
 import sys
 import tempfile
 import unittest
-import warnings
 import xml.etree.cElementTree as ET
 
 import glymur
@@ -40,6 +38,18 @@ class TestJPXWrap(unittest.TestCase):
 
     def tearDown(self):
         os.unlink(self.xmlfile)
+
+    def test_jp2_with_jpx_box(self):
+        """If the brand is jp2, then no jpx boxes are allowed."""
+        jp2 = Jp2k(self.jp2file)
+        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+        boxes = jp2.box
+
+        boxes.append(glymur.jp2box.AssociationBox())
+
+        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+            with self.assertRaises(IOError):
+                jp2.wrap(tfile.name, boxes=boxes)
 
     def test_ftbl(self):
         """Write a fragment table box."""
@@ -128,17 +138,18 @@ class TestJPXWrap(unittest.TestCase):
             self.assertEqual(jpx.box[-1].box[2].label, label)
 
     def test_empty_data_reference(self):
-        """Data reference boxes can be empty."""
+        """Empty data reference boxes can be created, but not written."""
         jp2 = Jp2k(self.jp2file)
         boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+
+        boxes[1].brand = 'jpx '
 
         dref = glymur.jp2box.DataReferenceBox()
         boxes.append(dref)
 
         with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
-            jpx = jp2.wrap(tfile.name, boxes=boxes)
-        self.assertEqual(jpx.box[-1].box_id, 'dtbl')
-        self.assertEqual(len(jpx.box[-1].box), 0)
+            with self.assertRaises(IOError):
+                jp2.wrap(tfile.name, boxes=boxes)
 
     def test_deurl_child_of_dtbl(self):
         """Data reference boxes can only contain data entry url boxes."""
@@ -157,12 +168,15 @@ class TestJPXWrap(unittest.TestCase):
 
         with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
             with self.assertRaises(IOError):
-                jpx = jp2.wrap(tfile.name, boxes=boxes)
+                jp2.wrap(tfile.name, boxes=boxes)
 
     def test_only_one_data_reference(self):
         """Data reference boxes cannot be inside a superbox ."""
         jp2 = Jp2k(self.jp2file)
         boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+
+        # Have to make the ftyp brand jpx.
+        boxes[1].brand = 'jpx '
 
         flag = 0
         version = (0, 0, 0)
@@ -174,16 +188,16 @@ class TestJPXWrap(unittest.TestCase):
 
         with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
             with self.assertRaises(IOError):
-                jpx = jp2.wrap(tfile.name, boxes=boxes)
+                jp2.wrap(tfile.name, boxes=boxes)
 
     def test_lbl_at_top_level(self):
         """Label boxes can only be inside a asoc box ."""
         jp2 = Jp2k(self.jp2file)
         boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
 
-        flag = 0
-        version = (0, 0, 0)
-        url = 'file:////usr/local/bin'
+        # Have to make the ftyp brand jpx.
+        boxes[1].brand = 'jpx '
+
         lblb = glymur.jp2box.LabelBox('hi there')
 
         # Put it inside the jp2 header box.
@@ -191,12 +205,15 @@ class TestJPXWrap(unittest.TestCase):
 
         with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
             with self.assertRaises(IOError):
-                jpx = jp2.wrap(tfile.name, boxes=boxes)
+                jp2.wrap(tfile.name, boxes=boxes)
 
-    def test_data_reference_not_at_top_level(self):
+    def test_data_reference_in_subbox(self):
         """Data reference boxes cannot be inside a superbox ."""
         jp2 = Jp2k(self.jp2file)
         boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+
+        # Have to make the ftyp brand jpx.
+        boxes[1].brand = 'jpx '
 
         flag = 0
         version = (0, 0, 0)
@@ -209,13 +226,17 @@ class TestJPXWrap(unittest.TestCase):
 
         with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
             with self.assertRaises(IOError):
-                jpx = jp2.wrap(tfile.name, boxes=boxes)
+                jp2.wrap(tfile.name, boxes=boxes)
 
     def test_jp2_to_jpx_sans_jp2_compatibility(self):
         """jp2 wrapped to jpx not including jp2 compatibility is wrong."""
         jp2 = Jp2k(self.jp2file)
         boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+
+        # Have to make the ftyp brand jpx.
+        boxes[1].brand = 'jpx '
         boxes[1].compatibility_list.append('jp2 ')
+
         numbers = [0, 1]
         nlst = glymur.jp2box.NumberListBox(numbers)
         the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
@@ -225,7 +246,7 @@ class TestJPXWrap(unittest.TestCase):
 
         with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
             with self.assertRaises(RuntimeError):
-                jpx = jp2.wrap(tfile.name, boxes=boxes)
+                jp2.wrap(tfile.name, boxes=boxes)
 
     def test_jp2_to_jpx_sans_jpx_brand(self):
         """Verify error when jp2 wrapped to jpx does not include jpx brand."""
@@ -241,7 +262,7 @@ class TestJPXWrap(unittest.TestCase):
 
         with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
             with self.assertRaises(RuntimeError):
-                jpx = jp2.wrap(tfile.name, boxes=boxes)
+                jp2.wrap(tfile.name, boxes=boxes)
 
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
@@ -262,7 +283,7 @@ class TestJPX(unittest.TestCase):
         flst = glymur.jp2box.FragmentListBox(offset, length, reference)
         with self.assertRaises(IOError):
             with tempfile.TemporaryFile() as tfile:
-               flst.write(tfile) 
+                flst.write(tfile)
 
     def test_flst_offsets_not_positive(self):
         """A fragment list box offsets must be positive."""
@@ -272,7 +293,7 @@ class TestJPX(unittest.TestCase):
         flst = glymur.jp2box.FragmentListBox(offset, length, reference)
         with self.assertRaises(IOError):
             with tempfile.TemporaryFile() as tfile:
-               flst.write(tfile) 
+                flst.write(tfile)
 
     def test_flst_lengths_not_positive(self):
         """A fragment list box lengths must be positive."""
@@ -282,14 +303,14 @@ class TestJPX(unittest.TestCase):
         flst = glymur.jp2box.FragmentListBox(offset, length, reference)
         with self.assertRaises(IOError):
             with tempfile.TemporaryFile() as tfile:
-               flst.write(tfile) 
+                flst.write(tfile)
 
     def test_ftbl_boxes_empty(self):
         """A fragment table box must have at least one child box."""
         ftbl = glymur.jp2box.FragmentTableBox()
         with self.assertRaises(IOError):
             with tempfile.TemporaryFile() as tfile:
-                ftbl.write(tfile) 
+                ftbl.write(tfile)
 
     def test_ftbl_child_not_flst(self):
         """A fragment table box can only contain a fragment list."""
@@ -297,7 +318,7 @@ class TestJPX(unittest.TestCase):
         ftbl = glymur.jp2box.FragmentTableBox(box=[free])
         with self.assertRaises(IOError):
             with tempfile.TemporaryFile() as tfile:
-                ftbl.write(tfile) 
+                ftbl.write(tfile)
 
     def test_jpx_rreq_mask_length_3(self):
         """There are some JPX files with rreq mask length of 3."""
@@ -314,7 +335,7 @@ class TestJPX(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
             with open(self.jpxfile, 'rb') as ifile:
                 tfile.write(ifile.read())
-            
+
             # Add the header for an unknwon superbox.
             write_buffer = struct.pack('>I4s', 20, 'grp '.encode())
             tfile.write(write_buffer)

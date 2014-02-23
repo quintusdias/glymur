@@ -124,7 +124,7 @@ class Jp2kBox(object):
         fptr.write(struct.pack('>I', end_pos - orig_pos))
         fptr.seek(end_pos)
 
-    def parse_this_box(self, fptr, box_id, start, num_bytes):
+    def _parse_this_box(self, fptr, box_id, start, num_bytes):
         """Parse the current box.
 
         Parameters
@@ -214,7 +214,7 @@ class Jp2kBox(object):
                 # The box_length value really is the length of the box!
                 num_bytes = box_length
 
-            box = self.parse_this_box(fptr, box_id, start, num_bytes)
+            box = self._parse_this_box(fptr, box_id, start, num_bytes)
 
             superbox.append(box)
 
@@ -560,7 +560,8 @@ class ChannelDefinitionBox(Jp2kBox):
     def _validate(self):
         """Verify that the box obeys the specifications."""
         # channel type and association must be specified.
-        if not (len(self.index) == len(self.channel_type) == len(self.association)):
+        if not ((len(self.index) == len(self.channel_type)) and
+                (len(self.channel_type) == len(self.association))):
             msg = "Length of channel definition box inputs must be the same."
             raise IOError(msg)
 
@@ -953,10 +954,18 @@ class DataReferenceBox(Jp2kBox):
                 msg += 'entry URL boxes.'
                 raise IOError(msg)
 
+    def _write_validate(self):
+        """Verify that the box obeys the specifications for writing.
+        """
+        if len(self.DR) == 0:
+            msg = "A data reference box cannot be empty when written to a file."
+            raise IOError(msg)
+        self._validate()
+
     def write(self, fptr):
         """Write a Data Reference box to file.
         """
-        self._validate()
+        self._write_validate()
 
         # Very similar to the say a superbox is written.
         orig_pos = fptr.tell()
