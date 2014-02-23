@@ -359,7 +359,7 @@ channel, but we aren't doing that). ::
 
     >>> from glymur.core import RED, GREEN, BLUE, WHOLE_IMAGE
     >>> asoc = [RED, GREEN, BLUE, WHOLE_IMAGE]
-    >>> cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=ctype, association=asoc)
+    >>> cdef = glymur.jp2box.ChannelDefinitionBox(ctype, asoc)
     >>> print(cdef)
     Channel Definition Box (cdef) @ (0, 0)
         Channel 0 (color) ==> (1)

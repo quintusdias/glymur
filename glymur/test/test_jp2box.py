@@ -139,7 +139,7 @@ class TestChannelDefinition(unittest.TestCase):
 
     def test_cdef_no_inputs(self):
         """channel_type and association are required inputs."""
-        with self.assertRaises(IOError):
+        with self.assertRaises(TypeError):
             glymur.jp2box.ChannelDefinitionBox()
 
     def test_rgb_with_index(self):
@@ -449,6 +449,36 @@ class TestColourSpecificationBox(unittest.TestCase):
         with tempfile.TemporaryFile() as tfile:
             with self.assertRaises(IOError):
                 colr.write(tfile)
+
+
+@unittest.skipIf(os.name == "nt",
+                 "Problems using NamedTemporaryFile on windows.")
+class TestPaletteBox(unittest.TestCase):
+    """Test suite for pclr box instantiation."""
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_mismatched_bitdepth_signed(self):
+        """bitdepth and signed arguments must have equal length"""
+        palette = np.array([[255, 0, 255], [0, 255, 0]], dtype=np.uint8)
+        bps = (8, 8, 8)
+        signed = (False, False)
+        with self.assertRaises(IOError):
+            pclr = glymur.jp2box.PaletteBox(palette, bits_per_component=bps,
+                                            signed=signed)
+
+    def test_mismatched_signed_palette(self):
+        """bitdepth and signed arguments must have equal length"""
+        palette = np.array([[255, 0, 255], [0, 255, 0]], dtype=np.uint8)
+        bps = (8, 8, 8, 8)
+        signed = (False, False, False, False)
+        with self.assertRaises(IOError):
+            pclr = glymur.jp2box.PaletteBox(palette, bits_per_component=bps,
+                                            signed=signed)
 
 
 class TestAppend(unittest.TestCase):

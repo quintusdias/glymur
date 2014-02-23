@@ -544,23 +544,28 @@ class ChannelDefinitionBox(Jp2kBox):
     association : list
         index of the associated color
     """
-    def __init__(self, index=None, channel_type=None, association=None,
-                 **kwargs):
+    def __init__(self, channel_type, association, index=None, **kwargs):
         Jp2kBox.__init__(self, box_id='cdef', longname='Channel Definition')
 
-        # channel type and association must be specified.
-        if channel_type is None or association is None:
-            raise IOError("channel_type and association must be specified.")
-
         if index is None:
-            index = list(range(len(channel_type)))
+            self.index = tuple(range(len(channel_type)))
+        else:
+            self.index = tuple(index)
 
-        if len(index) != len(channel_type) or len(index) != len(association):
+        self.channel_type = tuple(channel_type)
+        self.association = tuple(association)
+        self.__dict__.update(**kwargs)
+        self._validate()
+
+    def _validate(self):
+        """Verify that the box obeys the specifications."""
+        # channel type and association must be specified.
+        if not (len(self.index) == len(self.channel_type) == len(self.association)):
             msg = "Length of channel definition box inputs must be the same."
             raise IOError(msg)
 
         # channel types must be one of 0, 1, 2, 65535
-        if any(x not in [0, 1, 2, 65535] for x in channel_type):
+        if any(x not in [0, 1, 2, 65535] for x in self.channel_type):
             msg = "Channel types must be in the set of\n\n"
             msg += "    0     - colour image data for associated color\n"
             msg += "    1     - opacity\n"
@@ -568,10 +573,6 @@ class ChannelDefinitionBox(Jp2kBox):
             msg += "    65535 - unspecified"
             raise IOError(msg)
 
-        self.index = tuple(index)
-        self.channel_type = tuple(channel_type)
-        self.association = tuple(association)
-        self.__dict__.update(**kwargs)
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -597,6 +598,7 @@ class ChannelDefinitionBox(Jp2kBox):
     def write(self, fptr):
         """Write a channel definition box to file.
         """
+        self._validate()
         num_components = len(self.association)
         fptr.write(struct.pack('>I', 8 + 2 + num_components * 6))
         fptr.write('cdef'.encode('utf-8'))
@@ -634,9 +636,10 @@ class ChannelDefinitionBox(Jp2kBox):
         channel_type = data[1:num_components * 6:3]
         association = data[2:num_components * 6:3]
 
-        box = ChannelDefinitionBox(index=index, channel_type=channel_type,
-                                   association=association, length=length,
-                                   offset=offset)
+        box = ChannelDefinitionBox(index=tuple(index),
+                                   channel_type=tuple(channel_type),
+                                   association=tuple(association),
+                                   length=length, offset=offset)
         return box
 
 
@@ -794,7 +797,6 @@ class ComponentMappingBox(Jp2kBox):
         msg = Jp2kBox.__str__(self)
         if _printoptions['short'] == True:
             return msg
-
 
         for k in range(len(self.component_index)):
             if self.mapping_type[k] == 1:
@@ -1050,7 +1052,6 @@ class FileTypeBox(Jp2kBox):
         self.brand = brand
         self.minor_version = minor_version
         if compatibility_list is None:
-            # see W0102, pylint
             self.compatibility_list = ['jp2 ']
         else:
             self.compatibility_list = compatibility_list
@@ -1718,6 +1719,15 @@ class PaletteBox(Jp2kBox):
         self.signed = signed
         self.length = length
         self.offset = offset
+        self._validate()
+
+    def _validate(self):
+        """Verify that the box obeys the specifications."""
+        if ((len(self.bits_per_component) != len(self.signed)) or
+                (len(self.signed) != self.palette.shape[1])):
+            msg = "The length of the 'bits_per_component' and the 'signed' "
+            msg += "members must equal the number of columns of the palette."
+            raise IOError(msg)
 
     def __repr__(self):
         msg = "glymur.jp2box.PaletteBox({0}, bits_per_component={1}, "
@@ -1737,6 +1747,7 @@ class PaletteBox(Jp2kBox):
     def write(self, fptr):
         """Write a Palette box to file.
         """
+        self._validate()
         bytes_per_row = sum(self.bits_per_component) / 8
         bytes_per_palette = bytes_per_row * self.palette.shape[0]
         box_length = 8 + 3 + self.palette.shape[1] + bytes_per_palette

@@ -11,6 +11,7 @@ ChangeLog
       * added write support for JP2 UUID, dataEntryURL, palette, and component mapping boxes
       * added read/write support for JPX free, number list, and data reference boxes
       * Added read support for JPX fragment list and fragment table boxes
+      * incompatible change to channel definition box constructor, channel_type and association are no longer keyword arguments
       * incompatible change to palette box constructor, it now takes a 2D numpy array instead of a list of 1D arrays
 
 0.5.0 (September 16, 2013)
