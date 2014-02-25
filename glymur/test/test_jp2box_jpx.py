@@ -270,6 +270,7 @@ class TestJPX(unittest.TestCase):
     """Test suite for other JPX boxes."""
 
     def setUp(self):
+        self.jp2file = glymur.data.nemo()
         self.jpxfile = glymur.data.jpxfile()
 
     def tearDown(self):
@@ -353,6 +354,25 @@ class TestJPX(unittest.TestCase):
         j = Jp2k(self.jpxfile)
         self.assertEqual(j.box[16].box[0].box_id, 'free')
         self.assertEqual(type(j.box[16].box[0]), glymur.jp2box.FreeBox)
+
+    def test_data_reference_requires_dtbl(self):
+        """The existance of a data reference box requires a ftbl box as well."""
+        flag = 0
+        version = (0, 0, 0)
+        url1 = 'file:////usr/local/bin'
+        url2 = 'http://glymur.readthedocs.org'
+        jpx1 = glymur.Jp2k(self.jp2file)
+        boxes = jpx1.box
+        boxes[1].brand = 'jpx '
+
+        deurl1 = glymur.jp2box.DataEntryURLBox(flag, version, url1)
+        deurl2 = glymur.jp2box.DataEntryURLBox(flag, version, url2)
+        dref = glymur.jp2box.DataReferenceBox([deurl1, deurl2])
+        boxes.append(dref)
+
+        with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
+            with self.assertRaises(IOError):
+                jpx2 = jpx1.wrap(tfile.name, boxes=boxes)
 
     def test_dtbl(self):
         """Verify that we can interpret Data Reference boxes."""

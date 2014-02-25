@@ -1134,7 +1134,6 @@ def _validate_jp2_box_sequence(boxes):
 
 def _validate_jpx_box_sequence(boxes):
     """Run through series of tests for JPX box legality."""
-    _validate_association(boxes)
     _validate_label(boxes)
     _validate_jpx_brand(boxes, boxes[1].brand)
     _validate_jpx_compatibility(boxes, boxes[1].compatibility_list)
@@ -1283,6 +1282,12 @@ def _validate_top_level(boxes):
     if 'dtbl' in multiples:
         raise IOError('There can only be one dtbl box in a file.')
 
+    # If there is one data reference box, then there must also be one ftbl.
+    if 'dtbl' in count and 'ftbl' not in count:
+        msg = 'The presence of a data reference box requires the presence of '
+        msg += 'a fragment table box as well.'
+        raise IOError(msg)
+
 def _validate_singletons(boxes):
     """Several boxes can only occur once."""
     count = _collect_box_count(boxes)
@@ -1335,23 +1340,6 @@ def _validate_label(boxes):
                         raise IOError(msg)
                 # Same set of checks on any child boxes.
                 _validate_label(box.box)
-
-def _validate_association(boxes):
-    """
-    Association boxes can only contain number list boxes and xml boxes, as far
-    as we know.
-    """
-    for box in boxes:
-        if box.box_id == 'asoc':
-            if box.box[0].box_id != 'nlst' or box.box[1].box_id != 'xml ':
-                msg = "An Association box can only contain a NumberList box "
-                msg += "followed by an XML box."
-                raise RuntimeError(msg)
-        if hasattr(box, 'box') != 0:
-            # Same set of checks on any child boxes.
-            _validate_association(box.box)
-
-
 
 def extract_image_cube(image):
     """Extract 3D image from openjpeg data structure.
