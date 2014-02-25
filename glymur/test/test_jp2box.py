@@ -77,6 +77,28 @@ class TestDataEntryURL(unittest.TestCase):
         self.assertEqual(jp22.box[4].flag, (0, 0, 0))
         self.assertEqual(jp22.box[4].url, url)
 
+    def test_null_termination(self):
+        """I.9.3.2 specifies that the location field must be null terminated."""
+        jp2 = Jp2k(self.jp2file)
+
+        url = 'http://glymur.readthedocs.org'
+        deurl = glymur.jp2box.DataEntryURLBox(0, (0, 0, 0), url)
+        boxes = [box for box in jp2.box if box.box_id != 'uuid']
+        boxes.append(deurl)
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            jp22 = jp2.wrap(tfile.name, boxes=boxes)
+
+            self.assertEqual(jp22.box[-1].length, 42)
+    
+            # Go to the last box.  Seek past the L, T, version, and flag fields.
+            with open(tfile.name, 'rb') as fptr:
+                fptr.seek(jp22.box[-1].offset + 4 + 4 + 1 + 3)
+    
+                nbytes = jp22.box[-1].offset + jp22.box[-1].length - fptr.tell()
+                read_buffer = fptr.read(nbytes)
+                read_url = read_buffer.decode('utf-8')
+                self.assertEqual(url + chr(0), read_url)
+
 
 @unittest.skipIf(glymur.version.openjpeg_version_tuple[0] < 2 or
                  OPENJP2_IS_V2_OFFICIAL,
