@@ -690,3 +690,11 @@ file7_rreq = r"""Reader Requirements Box (rreq) @ (44, 24)
         Feature 060:  0x60 e-sRGB enumerated colorspace
         Feature 043:  0x40 Deprecated - compositing layer uses restricted ICC profile
     Vendor Features:"""
+
+file1_xml = r"""XML Box (xml ) @ (36, 439)
+    <ns0:IMAGE_CREATION xmlns:ns0="http://www.jpeg.org/jpx/1.0/xml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.jpeg.org/jpx/1.0/xml http://www.jpeg.org/metadata/15444-2.xsd">
+      <ns0:GENERAL_CREATION_INFO>
+        <ns0:CREATION_TIME>2001-11-01T13:45:00.000-06:00</ns0:CREATION_TIME>
+        <ns0:IMAGE_SOURCE>Professional 120 Image</ns0:IMAGE_SOURCE>
+      </ns0:GENERAL_CREATION_INFO>
+    </ns0:IMAGE_CREATION>"""

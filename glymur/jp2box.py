@@ -29,6 +29,7 @@ import numpy as np
 from .codestream import Codestream
 from .core import _COLORSPACE_MAP_DISPLAY
 from .core import _COLOR_TYPE_MAP_DISPLAY
+from .core import SRGB, GREYSCALE, YCC
 from .core import ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE
 from .core import ANY_ICC_PROFILE, VENDOR_COLOR_METHOD
 from .core import _pretty_print_xml
@@ -63,6 +64,8 @@ class Jp2kBox(object):
         offset of the box from the start of the file.
     longname : str
         more verbose description of the box.
+    box : list
+        List of JPEG 2000 boxes.
     """
 
     def __init__(self, box_id='', offset=0, length=0, longname=''):
@@ -70,6 +73,7 @@ class Jp2kBox(object):
         self.length = length
         self.offset = offset
         self.longname = longname
+        self.box = []
 
     def __repr__(self):
         msg = "glymur.jp2box.Jp2kBox(box_id='{0}', offset={1}, length={2}, "
@@ -87,6 +91,18 @@ class Jp2kBox(object):
         """
         msg = "Not supported for {0} box.".format(self.longname)
         raise NotImplementedError(msg)
+
+    def _str_superbox(self):
+        """__str__ method for all superboxes."""
+        msg = Jp2kBox.__str__(self)
+        for box in self.box:
+            boxstr = str(box)
+
+            # Add indentation.
+            strs = [('\n    ' + x) for x in boxstr.split('\n')]
+            msg += ''.join(strs)
+        return msg
+
 
     def _write_superbox(self, fptr):
         """Write a superbox.
@@ -107,6 +123,54 @@ class Jp2kBox(object):
         fptr.seek(orig_pos)
         fptr.write(struct.pack('>I', end_pos - orig_pos))
         fptr.seek(end_pos)
+
+    def _parse_this_box(self, fptr, box_id, start, num_bytes):
+        """Parse the current box.
+
+        Parameters
+        ----------
+        fptr : file
+            Open file object.
+        box_id : str
+            4-letter identifier for the current box.
+        start, num_bytes: int
+            Byte offset and length of the current box.
+
+        Returns
+        -------
+        box : Jp2kBox
+            object corresponding to the current box
+        """
+        try:
+            box = _BOX_WITH_ID[box_id].parse(fptr, start, num_bytes)
+        except KeyError:
+            msg = 'Unrecognized box ({0}) encountered.'.format(box_id)
+            warnings.warn(msg)
+            box = UnknownBox(box_id, offset=start, length=num_bytes,
+                             longname='Unknown')
+
+            cpos = fptr.tell()
+            if not ((cpos == start + 8) or (cpos == start + 16)):
+                # If the file pointer has advanced, then the KeyError
+                # ocurred during the parsing of the box.
+                pass
+            else:
+                # Could it be a superbox with recognizable child boxes?
+                # Peek ahead to see.
+                pos = fptr.tell()
+                read_buffer = fptr.read(8)
+                _, sub_id = struct.unpack('>I4s', read_buffer)
+                sub_id = sub_id.decode('utf-8')
+
+                # Regardless of whether or not we recognize the box, rewind back
+                # to properly advance to the next box.
+                fptr.seek(pos)
+
+                # Now process any child boxes if we actually did recognize it.
+                if sub_id in _BOX_WITH_ID.keys():
+                    box.box = box.parse_superbox(fptr)
+
+        return box
 
     def parse_superbox(self, fptr):
         """Parse a superbox (box consisting of nothing but other boxes.
@@ -147,16 +211,10 @@ class Jp2kBox(object):
                 num_bytes, = struct.unpack('>Q', read_buffer)
 
             else:
+                # The box_length value really is the length of the box!
                 num_bytes = box_length
 
-            # Call the proper parser for the given box with ID "T".
-            try:
-                box = _BOX_WITH_ID[box_id].parse(fptr, start, num_bytes)
-            except KeyError:
-                msg = 'Unrecognized box ({0}) encountered.'.format(box_id)
-                warnings.warn(msg)
-                box = Jp2kBox(box_id, offset=start, length=num_bytes,
-                              longname='Unknown box')
+            box = self._parse_this_box(fptr, box_id, start, num_bytes)
 
             superbox.append(box)
 
@@ -213,13 +271,6 @@ class ColourSpecificationBox(Jp2kBox):
                  approximation=0, colorspace=None, icc_profile=None,
                  length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='colr', longname='Colour Specification')
-
-        if colorspace is not None and icc_profile is not None:
-            raise IOError("colorspace and icc_profile cannot both be set.")
-        if method not in (1, 2, 3, 4):
-            raise IOError("Invalid method.")
-        if approximation not in (0, 1, 2, 3, 4):
-            raise IOError("Invalid approximation.")
         self.method = method
         self.precedence = precedence
         self.approximation = approximation
@@ -227,6 +278,33 @@ class ColourSpecificationBox(Jp2kBox):
         self.icc_profile = icc_profile
         self.length = length
         self.offset = offset
+        self._validate()
+
+    def _validate(self):
+        """Verify that the box obeys the specifications."""
+        if self.colorspace is not None and self.icc_profile is not None:
+            raise IOError("colorspace and icc_profile cannot both be set.")
+        if self.method not in (1, 2, 3, 4):
+            raise IOError("Invalid method.")
+        if self.approximation not in (0, 1, 2, 3, 4):
+            raise IOError("Invalid approximation.")
+
+    def _write_validate(self):
+        """In addition to constructor validation steps, run validation steps
+        for writing."""
+        if self.colorspace is None:
+            msg = "Writing Colour Specification boxes without enumerated "
+            msg += "colorspaces is not supported at this time."
+            raise IOError(msg)
+
+        if self.icc_profile is None:
+            if self.colorspace not in [SRGB, GREYSCALE, YCC]:
+                msg = "Colorspace should correspond to one of SRGB, GREYSCALE, "
+                msg += "or YCC."
+                raise IOError(msg)
+
+        self._validate()
+
 
     def __repr__(self):
         msg = "glymur.jp2box.ColourSpecificationBox("
@@ -270,10 +348,7 @@ class ColourSpecificationBox(Jp2kBox):
     def write(self, fptr):
         """Write an Colour Specification box to file.
         """
-        if self.colorspace is None:
-            msg = "Writing Colour Specification boxes without enumerated "
-            msg += "colorspaces is not supported at this time."
-            raise NotImplementedError(msg)
+        self._write_validate()
         length = 15 if self.icc_profile is None else 11 + len(self.icc_profile)
         fptr.write(struct.pack('>I', length))
         fptr.write('colr'.encode())
@@ -469,23 +544,29 @@ class ChannelDefinitionBox(Jp2kBox):
     association : list
         index of the associated color
     """
-    def __init__(self, index=None, channel_type=None, association=None,
-                 **kwargs):
+    def __init__(self, channel_type, association, index=None, **kwargs):
         Jp2kBox.__init__(self, box_id='cdef', longname='Channel Definition')
 
-        # channel type and association must be specified.
-        if channel_type is None or association is None:
-            raise IOError("channel_type and association must be specified.")
-
         if index is None:
-            index = list(range(len(channel_type)))
+            self.index = tuple(range(len(channel_type)))
+        else:
+            self.index = tuple(index)
 
-        if len(index) != len(channel_type) or len(index) != len(association):
+        self.channel_type = tuple(channel_type)
+        self.association = tuple(association)
+        self.__dict__.update(**kwargs)
+        self._validate()
+
+    def _validate(self):
+        """Verify that the box obeys the specifications."""
+        # channel type and association must be specified.
+        if not ((len(self.index) == len(self.channel_type)) and
+                (len(self.channel_type) == len(self.association))):
             msg = "Length of channel definition box inputs must be the same."
             raise IOError(msg)
 
         # channel types must be one of 0, 1, 2, 65535
-        if any(x not in [0, 1, 2, 65535] for x in channel_type):
+        if any(x not in [0, 1, 2, 65535] for x in self.channel_type):
             msg = "Channel types must be in the set of\n\n"
             msg += "    0     - colour image data for associated color\n"
             msg += "    1     - opacity\n"
@@ -493,10 +574,6 @@ class ChannelDefinitionBox(Jp2kBox):
             msg += "    65535 - unspecified"
             raise IOError(msg)
 
-        self.index = tuple(index)
-        self.channel_type = tuple(channel_type)
-        self.association = tuple(association)
-        self.__dict__.update(**kwargs)
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -522,6 +599,7 @@ class ChannelDefinitionBox(Jp2kBox):
     def write(self, fptr):
         """Write a channel definition box to file.
         """
+        self._validate()
         num_components = len(self.association)
         fptr.write(struct.pack('>I', 8 + 2 + num_components * 6))
         fptr.write('cdef'.encode('utf-8'))
@@ -559,9 +637,10 @@ class ChannelDefinitionBox(Jp2kBox):
         channel_type = data[1:num_components * 6:3]
         association = data[2:num_components * 6:3]
 
-        box = ChannelDefinitionBox(index=index, channel_type=channel_type,
-                                   association=association, length=length,
-                                   offset=offset)
+        box = ChannelDefinitionBox(index=tuple(index),
+                                   channel_type=tuple(channel_type),
+                                   association=tuple(association),
+                                   length=length, offset=offset)
         return box
 
 
@@ -592,16 +671,7 @@ class CodestreamHeaderBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
-            return msg
-
-        for box in self.box:
-            boxstr = str(box)
-
-            # Add indentation.
-            strs = [('\n    ' + x) for x in boxstr.split('\n')]
-            msg += ''.join(strs)
+        msg = self._str_superbox()
         return msg
 
     @staticmethod
@@ -659,16 +729,7 @@ class CompositingLayerHeaderBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
-            return msg
-
-        for box in self.box:
-            boxstr = str(box)
-
-            # Add indentation.
-            strs = [('\n    ' + x) for x in boxstr.split('\n')]
-            msg += ''.join(strs)
+        msg = self._str_superbox()
         return msg
 
     @staticmethod
@@ -737,7 +798,6 @@ class ComponentMappingBox(Jp2kBox):
         msg = Jp2kBox.__str__(self)
         if _printoptions['short'] == True:
             return msg
-
 
         for k in range(len(self.component_index)):
             if self.mapping_type[k] == 1:
@@ -831,10 +891,10 @@ class ContiguousCodestreamBox(Jp2kBox):
         msg += '\n    Main header:'
         for segment in self.main_header.segment:
             segstr = str(segment)
-
             # Add indentation.
             strs = [('\n        ' + x) for x in segstr.split('\n')]
             msg += ''.join(strs)
+
         return msg
 
     @staticmethod
@@ -876,15 +936,36 @@ class DataReferenceBox(Jp2kBox):
     DR : list
         Data Entry URL boxes.
     """
-    def __init__(self, data_entry_url_boxes, length=0, offset=-1):
+    def __init__(self, data_entry_url_boxes=None, length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='dtbl', longname='Data Reference')
-        self.DR = data_entry_url_boxes
+        if data_entry_url_boxes is None:
+            self.DR = []
+        else:
+            self.DR = data_entry_url_boxes
         self.length = length
         self.offset = offset
+        self._validate()
+
+    def _validate(self):
+        """Verify that the box obeys the specifications."""
+        for box in self.DR:
+            if box.box_id != 'url ':
+                msg = 'All child boxes of a data reference box must be data '
+                msg += 'entry URL boxes.'
+                raise IOError(msg)
+
+    def _write_validate(self):
+        """Verify that the box obeys the specifications for writing.
+        """
+        if len(self.DR) == 0:
+            msg = "A data reference box cannot be empty when written to a file."
+            raise IOError(msg)
+        self._validate()
 
     def write(self, fptr):
         """Write a Data Reference box to file.
         """
+        self._write_validate()
 
         # Very similar to the say a superbox is written.
         orig_pos = fptr.tell()
@@ -980,7 +1061,6 @@ class FileTypeBox(Jp2kBox):
         self.brand = brand
         self.minor_version = minor_version
         if compatibility_list is None:
-            # see W0102, pylint
             self.compatibility_list = ['jp2 ']
         else:
             self.compatibility_list = compatibility_list
@@ -1007,9 +1087,22 @@ class FileTypeBox(Jp2kBox):
 
         return msg
 
+    def _validate(self):
+        """Validate the box before writing to file."""
+        if self.brand not in ['jp2 ', 'jpx ']:
+            msg = "The file type brand must be either 'jp2 ' or 'jpx '."
+            raise IOError(msg)
+        valid_cls = ['jp2 ', 'jpx ', 'jpxb']
+        for item in self.compatibility_list:
+            if item not in valid_cls:
+                msg = "The file type compatibility list item '{0}' is not "
+                msg += "valid:  valid entries are {1}"
+                raise IOError(msg.format(item, valid_cls))
+
     def write(self, fptr):
         """Write a File Type box to file.
         """
+        self._validate()
         length = 16 + 4*len(self.compatibility_list)
         fptr.write(struct.pack('>I', length))
         fptr.write('ftyp'.encode())
@@ -1084,6 +1177,18 @@ class FragmentListBox(Jp2kBox):
         self.length = length
         self.offset = offset
 
+    def _validate(self):
+        """Validate internal correctness."""
+        if (((len(self.fragment_offset) != len(self.fragment_length)) or
+             (len(self.fragment_length) != len(self.data_reference)))):
+            msg = "The lengths of the fragment offsets, fragment lengths, and "
+            msg += "data reference items must be the same."
+            raise IOError(msg)
+        if any([x <= 0 for x in self.fragment_offset]):
+            raise IOError("Fragment offsets must all be positive.")
+        if any([x <= 0 for x in self.fragment_length]):
+            raise IOError("Fragment lengths must all be positive.")
+
     def __repr__(self):
         msg = "glymur.jp2box.FragmentListBox()"
         return msg
@@ -1102,6 +1207,22 @@ class FragmentListBox(Jp2kBox):
                              j, self.data_reference[j])
 
         return msg
+
+    def write(self, fptr):
+        """Write a fragment list box to file.
+        """
+        self._validate()
+        num_items = len(self.fragment_offset)
+        length = 8 + 2 + num_items * 14
+        fptr.write(struct.pack('>I', length))
+        fptr.write(self.box_id.encode())
+        fptr.write(struct.pack('>H', num_items))
+        for j in range(num_items):
+            write_buffer = struct.pack('>QIH',
+                                       self.fragment_offset[j],
+                                       self.fragment_length[j],
+                                       self.data_reference[j])
+            fptr.write(write_buffer)
 
     @staticmethod
     def parse(fptr, offset, length):
@@ -1146,26 +1267,18 @@ class FragmentTableBox(Jp2kBox):
     longname : str
         more verbose description of the box.
     """
-    def __init__(self, length=0, offset=-1):
+    def __init__(self, box=None, length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='ftbl', longname='Fragment Table')
         self.length = length
         self.offset = offset
+        self.box = box if box is not None else []
 
     def __repr__(self):
         msg = "glymur.jp2box.FragmentTableBox()"
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
-            return msg
-
-        for box in self.box:
-            boxstr = str(box)
-
-            # Add indentation.
-            strs = [('\n    ' + x) for x in boxstr.split('\n')]
-            msg += ''.join(strs)
+        msg = self._str_superbox()
         return msg
 
     @staticmethod
@@ -1183,7 +1296,7 @@ class FragmentTableBox(Jp2kBox):
 
         Returns
         -------
-        FreeBox instance
+        FragmentTableBox instance
         """
         box = FragmentTableBox(length=length, offset=offset)
 
@@ -1192,6 +1305,20 @@ class FragmentTableBox(Jp2kBox):
         box.box = box.parse_superbox(fptr)
 
         return box
+
+    def _validate(self):
+        """Self-validate the box before writing."""
+        box_ids = [box.box_id for box in self.box]
+        if len(box_ids) != 1 or box_ids[0] != 'flst':
+            msg = "Fragment table boxes must have a single fragment list "
+            msg += "box as a child box."
+            raise IOError(msg)
+
+    def write(self, fptr):
+        """Write a fragment table box to file.
+        """
+        self._validate()
+        self._write_superbox(fptr)
 
 
 
@@ -1415,16 +1542,7 @@ class AssociationBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
-            return msg
-
-        for box in self.box:
-            boxstr = str(box)
-
-            # Add indentation.
-            strs = [('\n    ' + x) for x in boxstr.split('\n')]
-            msg += ''.join(strs)
+        msg = self._str_superbox()
         return msg
 
     @staticmethod
@@ -1485,13 +1603,7 @@ class JP2HeaderBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
-        for box in self.box:
-            boxstr = str(box)
-
-            # Add indentation.
-            strs = [('\n    ' + x) for x in boxstr.split('\n')]
-            msg += ''.join(strs)
+        msg = self._str_superbox()
         return msg
 
     def write(self, fptr):
@@ -1616,6 +1728,15 @@ class PaletteBox(Jp2kBox):
         self.signed = signed
         self.length = length
         self.offset = offset
+        self._validate()
+
+    def _validate(self):
+        """Verify that the box obeys the specifications."""
+        if ((len(self.bits_per_component) != len(self.signed)) or
+                (len(self.signed) != self.palette.shape[1])):
+            msg = "The length of the 'bits_per_component' and the 'signed' "
+            msg += "members must equal the number of columns of the palette."
+            raise IOError(msg)
 
     def __repr__(self):
         msg = "glymur.jp2box.PaletteBox({0}, bits_per_component={1}, "
@@ -1635,6 +1756,7 @@ class PaletteBox(Jp2kBox):
     def write(self, fptr):
         """Write a Palette box to file.
         """
+        self._validate()
         bytes_per_row = sum(self.bits_per_component) / 8
         bytes_per_palette = bytes_per_row * self.palette.shape[0]
         box_length = 8 + 3 + self.palette.shape[1] + bytes_per_palette
@@ -1714,8 +1836,7 @@ class PaletteBox(Jp2kBox):
             palette[j] = struct.unpack_from(fmt, read_buffer,
                                             offset=j * row_nbytes)
 
-        box = PaletteBox(palette, bps, signed, length=length, offset=offset)
-        return box
+        return PaletteBox(palette, bps, signed, length=length, offset=offset)
 
 
 # Map rreq codes to display text.
@@ -2086,13 +2207,7 @@ class ResolutionBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
-        for box in self.box:
-            boxstr = str(box)
-
-            # Add indentation.
-            strs = [('\n    ' + x) for x in boxstr.split('\n')]
-            msg += ''.join(strs)
+        msg = self._str_superbox()
         return msg
 
     @staticmethod
@@ -2612,14 +2727,7 @@ class UUIDInfoBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
-        for box in self.box:
-            box_str = str(box)
-
-            # Add indentation.
-            lst = [('\n    ' + x) for x in box_str.split('\n')]
-            msg += ''.join(lst)
-
+        msg = self._str_superbox()
         return msg
 
     @staticmethod
@@ -2680,13 +2788,18 @@ class DataEntryURLBox(Jp2kBox):
     def write(self, fptr):
         """Write a data entry url box to file.
         """
-        length = 8 + 1 + 3 + len(self.url.encode())
+        # Make sure it is written out as null-terminated.
+        url = self.url
+        if self.url[-1] != chr(0):
+            url = url + chr(0)
+
+        length = 8 + 1 + 3 + len(url.encode())
         write_buffer = struct.pack('>I4sBBBB',
                                    length, self.box_id.encode(),
                                    self.version,
                                    self.flag[0], self.flag[1], self.flag[2])
         fptr.write(write_buffer)
-        fptr.write(self.url.encode())
+        fptr.write(url.encode())
 
 
     def __repr__(self):
@@ -2737,6 +2850,37 @@ class DataEntryURLBox(Jp2kBox):
         url = read_buffer.decode('utf-8').rstrip(chr(0))
         box = DataEntryURLBox(version, flag, url, length=length, offset=offset)
         return box
+
+
+class UnknownBox(Jp2kBox):
+    """Container for unrecognized boxes.
+
+    Attributes
+    ----------
+    box_id : str
+        4-character identifier for the box.
+    length : int
+        length of the box in bytes.
+    offset : int
+        offset of the box from the start of the file.
+    longname : str
+        more verbose description of the box.
+    """
+    def __init__(self, box_id, length=0, offset=-1, longname=''):
+        Jp2kBox.__init__(self, box_id=box_id, longname=longname)
+        self.length = length
+        self.offset = offset
+
+    def __repr__(self):
+        msg = "glymur.jp2box.UnknownBox({0})".format(self.box_id)
+        return msg
+
+    def __str__(self):
+        if len(self.box) > 0:
+            msg = self._str_superbox()
+        else:
+            msg = Jp2kBox.__str__(self)
+        return msg
 
 
 class UUIDBox(Jp2kBox):

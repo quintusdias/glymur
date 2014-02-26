@@ -77,6 +77,28 @@ class TestDataEntryURL(unittest.TestCase):
         self.assertEqual(jp22.box[4].flag, (0, 0, 0))
         self.assertEqual(jp22.box[4].url, url)
 
+    def test_null_termination(self):
+        """I.9.3.2 specifies that the location field must be null terminated."""
+        jp2 = Jp2k(self.jp2file)
+
+        url = 'http://glymur.readthedocs.org'
+        deurl = glymur.jp2box.DataEntryURLBox(0, (0, 0, 0), url)
+        boxes = [box for box in jp2.box if box.box_id != 'uuid']
+        boxes.append(deurl)
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            jp22 = jp2.wrap(tfile.name, boxes=boxes)
+
+            self.assertEqual(jp22.box[-1].length, 42)
+    
+            # Go to the last box.  Seek past the L, T, version, and flag fields.
+            with open(tfile.name, 'rb') as fptr:
+                fptr.seek(jp22.box[-1].offset + 4 + 4 + 1 + 3)
+    
+                nbytes = jp22.box[-1].offset + jp22.box[-1].length - fptr.tell()
+                read_buffer = fptr.read(nbytes)
+                read_url = read_buffer.decode('utf-8')
+                self.assertEqual(url + chr(0), read_url)
+
 
 @unittest.skipIf(glymur.version.openjpeg_version_tuple[0] < 2 or
                  OPENJP2_IS_V2_OFFICIAL,
@@ -139,7 +161,7 @@ class TestChannelDefinition(unittest.TestCase):
 
     def test_cdef_no_inputs(self):
         """channel_type and association are required inputs."""
-        with self.assertRaises(IOError):
+        with self.assertRaises(TypeError):
             glymur.jp2box.ChannelDefinitionBox()
 
     def test_rgb_with_index(self):
@@ -340,6 +362,29 @@ class TestChannelDefinition(unittest.TestCase):
                                                association=association)
 
 
+class TestFileTypeBox(unittest.TestCase):
+    """Test suite for ftyp box issues."""
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_brand_unknown(self):
+        """A ftyp box brand must be 'jp2 ' or 'jpx '."""
+        ftyp = glymur.jp2box.FileTypeBox(brand='jp3')
+        with self.assertRaises(IOError):
+            with tempfile.TemporaryFile() as tfile:
+                ftyp.write(tfile) 
+
+    def test_cl_entry_unknown(self):
+        """A ftyp box cl list can only contain 'jp2 ', 'jpx ', or 'jpxb'."""
+        ftyp = glymur.jp2box.FileTypeBox(compatibility_list=['jp3'])
+        with self.assertRaises(IOError):
+            with tempfile.TemporaryFile() as tfile:
+                ftyp.write(tfile) 
+
 class TestColourSpecificationBox(unittest.TestCase):
     """Test suite for colr box instantiation."""
 
@@ -371,7 +416,7 @@ class TestColourSpecificationBox(unittest.TestCase):
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
         boxes[2].box = [self.ihdr, ColourSpecificationBox(colorspace=None)]
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
-            with self.assertRaises(NotImplementedError):
+            with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
@@ -416,6 +461,46 @@ class TestColourSpecificationBox(unittest.TestCase):
         with self.assertRaises(IOError):
             glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
                                                  approximation=approx)
+
+    def test_colr_with_bad_color(self):
+        """colr must have a valid color, strange as though that may sound."""
+        colorspace = -1
+        approx = 0
+        colr = glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
+                                                    approximation=approx)
+        with tempfile.TemporaryFile() as tfile:
+            with self.assertRaises(IOError):
+                colr.write(tfile)
+
+
+@unittest.skipIf(os.name == "nt",
+                 "Problems using NamedTemporaryFile on windows.")
+class TestPaletteBox(unittest.TestCase):
+    """Test suite for pclr box instantiation."""
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_mismatched_bitdepth_signed(self):
+        """bitdepth and signed arguments must have equal length"""
+        palette = np.array([[255, 0, 255], [0, 255, 0]], dtype=np.uint8)
+        bps = (8, 8, 8)
+        signed = (False, False)
+        with self.assertRaises(IOError):
+            pclr = glymur.jp2box.PaletteBox(palette, bits_per_component=bps,
+                                            signed=signed)
+
+    def test_mismatched_signed_palette(self):
+        """bitdepth and signed arguments must have equal length"""
+        palette = np.array([[255, 0, 255], [0, 255, 0]], dtype=np.uint8)
+        bps = (8, 8, 8, 8)
+        signed = (False, False, False, False)
+        with self.assertRaises(IOError):
+            pclr = glymur.jp2box.PaletteBox(palette, bits_per_component=bps,
+                                            signed=signed)
 
 
 class TestAppend(unittest.TestCase):

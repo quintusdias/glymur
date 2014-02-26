@@ -146,7 +146,7 @@ class _Ifd(object):
                 tag_name = tagnum2name[tag]
             except KeyError:
                 # Ok, we don't recognize this tag.  Just use the numeric id.
-                msg = 'Unrecognized Exif tag "{0}".'.format(tag)
+                msg = 'Unrecognized Exif tag: {0}'.format(tag)
                 warnings.warn(msg, UserWarning)
                 tag_name = tag
             self.processed_ifd[tag_name] = value
