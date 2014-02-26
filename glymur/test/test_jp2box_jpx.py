@@ -12,7 +12,8 @@ import xml.etree.cElementTree as ET
 
 import glymur
 from glymur import Jp2k
-
+from glymur.jp2box import DataEntryURLBox, FileTypeBox, JPEG2000SignatureBox
+from glymur.jp2box import DataReferenceBox, FragmentListBox, FragmentTableBox
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
 class TestJPXWrap(unittest.TestCase):
@@ -20,6 +21,7 @@ class TestJPXWrap(unittest.TestCase):
 
     def setUp(self):
         self.jp2file = glymur.data.nemo()
+        self.j2kfile = glymur.data.goodstuff()
 
         raw_xml = b"""<?xml version="1.0"?>
         <data>
@@ -38,6 +40,60 @@ class TestJPXWrap(unittest.TestCase):
 
     def tearDown(self):
         os.unlink(self.xmlfile)
+
+    def test_jpx_ftbl_no_codestream(self):
+        """Can have a jpx with no codestream."""
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile1:
+            with open(self.jp2file, 'rb') as fptr:
+                tfile1.write(fptr.read())
+            tfile1.flush()
+            jp2_1 = Jp2k(tfile1.name)
+
+            jp2c = [box for box in jp2_1.box if box.box_id == 'jp2c'][0]
+
+            # coff and clen will be the offset and length input arguments
+            # to the fragment list box.  dr_idx is the data reference index.
+            coff = []
+            clen = []
+            dr_idx = []
+
+            coff.append(jp2c.offset + 8)
+            clen.append(jp2c.length - (coff[0] - jp2c.offset))
+            dr_idx.append(1)
+
+            # Make the url box for this codestream.
+            url1 = DataEntryURLBox(0, [0, 0, 0], 'file://' + tfile1.name)
+
+            with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile2:
+
+                j2k = Jp2k(self.j2kfile)
+                jp2_2 = j2k.wrap(tfile2.name)
+
+                jp2c = [box for box in jp2_2.box if box.box_id == 'jp2c'][0]
+                coff.append(jp2c.offset + 8)
+                clen.append(jp2c.length - (coff[0] - jp2c.offset))
+                dr_idx.append(2)
+
+                # Make the url box for this codestream.
+                url2 = DataEntryURLBox(0, [0, 0, 0], 'file://' + tfile2.name)
+
+                boxes = [JPEG2000SignatureBox(),
+                         FileTypeBox(brand='jpx ',
+                                     compatibility_list=['jpx ',
+                                                         'jp2 ', 'jpxb']),
+                         jp2_1.box[2]]
+                with tempfile.NamedTemporaryFile(suffix='.jpx') as tjpx:
+                    for box in boxes:
+                        box.write(tjpx)
+
+                    flst = FragmentListBox(coff, clen, dr_idx)
+                    ftbl = FragmentTableBox([flst])
+                    ftbl.write(tjpx)
+
+                    boxes = [url1, url2]
+                    dtbl = DataReferenceBox(data_entry_url_boxes=boxes)
+                    dtbl.write(tjpx)
+                    tjpx.flush()
 
     def test_jp2_with_jpx_box(self):
         """If the brand is jp2, then no jpx boxes are allowed."""
@@ -372,7 +428,7 @@ class TestJPX(unittest.TestCase):
 
         with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
             with self.assertRaises(IOError):
-                jpx2 = jpx1.wrap(tfile.name, boxes=boxes)
+                jpx1.wrap(tfile.name, boxes=boxes)
 
     def test_dtbl(self):
         """Verify that we can interpret Data Reference boxes."""
