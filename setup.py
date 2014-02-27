@@ -16,7 +16,7 @@ kwargs = {'name': 'Glymur',
           'license': 'MIT',
           'test_suite': 'glymur.test'}
 
-instllrqrs = ['numpy>=1.4.1']
+instllrqrs = ['lxml>=3.3', 'numpy>=1.4.1']
 if sys.hexversion < 0x03030000:
     instllrqrs.append('contextlib2>=0.4')
     instllrqrs.append('mock>=1.0.1')
