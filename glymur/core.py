@@ -1,7 +1,7 @@
 """Core definitions to be shared amongst the modules.
 """
 import copy
-import xml.etree.cElementTree as ET
+import lxml.etree as ET
 
 # Progression order
 LRCP = 0
@@ -81,9 +81,9 @@ _CAPABILITIES_DISPLAY = {
 def _pretty_print_xml(xml, level=0):
     """Pretty print XML data.
     """
-    xml = copy.deepcopy(xml)
-    _indent(xml.getroot(), level=level)
-    xmltext = ET.tostring(xml.getroot(), encoding='utf-8').decode('utf-8')
+    #xml = copy.deepcopy(xml)
+    #_indent(xml.getroot(), level=level)
+    xmltext = ET.tostring(xml, encoding='utf-8').decode('utf-8')
 
     # Indent it a bit.
     lst = [('    ' + x) for x in xmltext.split('\n')]

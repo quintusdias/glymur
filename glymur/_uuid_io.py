@@ -7,7 +7,8 @@ import re
 import struct
 import sys
 import warnings
-import xml.etree.cElementTree as ET
+
+import lxml.etree as ET
 
 if sys.hexversion < 0x02070000:
     # pylint: disable=F0401,E0611

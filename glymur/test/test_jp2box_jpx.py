@@ -8,7 +8,7 @@ import struct
 import sys
 import tempfile
 import unittest
-import xml.etree.cElementTree as ET
+import lxml.etree as ET
 
 import glymur
 from glymur import Jp2k

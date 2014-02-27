@@ -22,8 +22,8 @@ import struct
 import sys
 import uuid
 import warnings
-import xml.etree.cElementTree as ET
 
+import lxml.etree as ET
 import numpy as np
 
 from .codestream import Codestream
@@ -2565,7 +2565,10 @@ class XMLBox(Jp2kBox):
 
         xml = self.xml
         if self.xml is not None:
-            msg += _pretty_print_xml(self.xml)
+            bstr = ET.tostring(self.xml,
+                               encoding='utf-8',
+                               pretty_print=True).decode('utf-8')
+            msg += '\n    {0}'.format(bstr)
         else:
             msg += '\n    {0}'.format(xml)
         return msg
@@ -2971,8 +2974,10 @@ class UUIDBox(Jp2kBox):
             return msg
 
         if self.uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
-            line = '\n    UUID Data:  {0}'
-            xmlstring = _pretty_print_xml(self.data)
+            line = '\n    UUID Data:\n{0}'
+            xmlstring = ET.tostring(self.data,
+                                    encoding='utf-8',
+                                    pretty_print=True).decode('utf-8')
             xmlstring = xmlstring.rstrip()
             msg += line.format(xmlstring)
         elif self.uuid.bytes == b'JpgTiffExif->JP2':

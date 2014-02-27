@@ -18,7 +18,6 @@ import sys
 import tempfile
 import uuid
 import warnings
-import xml.etree
 
 if sys.hexversion < 0x02070000:
     import unittest2 as unittest
@@ -34,6 +33,8 @@ if sys.hexversion <= 0x03030000:
     from mock import patch
 else:
     from unittest.mock import patch
+
+import lxml.etree
 
 from .fixtures import HAS_PYTHON_XMP_TOOLKIT, OPJ_DATA_ROOT
 if HAS_PYTHON_XMP_TOOLKIT:
@@ -71,7 +72,7 @@ class TestUUIDXMP(unittest.TestCase):
             # The data should be an XMP packet, which gets interpreted as
             # an ElementTree.
             self.assertTrue(isinstance(jp2.box[-1].data,
-                            xml.etree.ElementTree.ElementTree))
+                                       lxml.etree._ElementTree))
 
 class TestUUIDExif(unittest.TestCase):
     """Tests for UUIDs of Exif type."""

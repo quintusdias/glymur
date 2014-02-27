@@ -15,7 +15,6 @@ import struct
 import sys
 import tempfile
 import warnings
-from xml.etree import cElementTree as ET
 import unittest
 
 if sys.hexversion < 0x03000000:
@@ -28,10 +27,12 @@ if sys.hexversion <= 0x03030000:
 else:
     from unittest.mock import patch
 
+import lxml.etree as ET
+
 import glymur
 from glymur import Jp2k
 from . import fixtures
-from .fixtures import OPJ_DATA_ROOT, opj_data_file, nemo_xmp_box
+from .fixtures import OPJ_DATA_ROOT, opj_data_file
 from .fixtures import text_gbr_27, text_gbr_33, text_gbr_34
 
 
@@ -118,6 +119,7 @@ class TestPrinting(unittest.TestCase):
         lst = actual.split('\n')
         lst = lst[1:]
         actual = '\n'.join(lst)
+        self.maxDiff = None
         self.assertEqual(actual, fixtures.nemo_dump_no_codestream)
 
     def test_printoptions_no_xml(self):
@@ -209,6 +211,7 @@ class TestPrinting(unittest.TestCase):
         lst = actual.split('\n')
         lst = lst[1:]
         actual = '\n'.join(lst)
+        self.maxDiff = None
         self.assertEqual(actual, fixtures.nemo_dump_full)
 
     def test_entire_file(self):
@@ -567,7 +570,7 @@ class TestPrinting(unittest.TestCase):
             print(j.box[3])
             actual = fake_out.getvalue().strip()
 
-        expected = nemo_xmp_box
+        expected = fixtures.nemo_xmp_box
         self.assertEqual(actual, expected)
 
     def test_codestream(self):
@@ -639,8 +642,7 @@ class TestPrinting(unittest.TestCase):
         #
         # 2.7.5 (fedora 19) prints xml entities.
         # 2.7.3 seems to want to print hex escapes.
-        text = u"""<?xml version="1.0" encoding="utf-8"?>
-        <flow>Strömung</flow>"""
+        text = u"""<flow>Strömung</flow>"""
         if sys.hexversion < 0x03000000:
             xml = ET.parse(StringIO(text.encode('utf-8')))
         else:
@@ -668,8 +670,7 @@ class TestPrinting(unittest.TestCase):
         #
         # 2.7.5 (fedora 19) prints xml entities.
         # 2.7.3 seems to want to print hex escapes.
-        text = u"""<?xml version="1.0" encoding="utf-8"?>
-        <country>Россия</country>"""
+        text = u"""<country>Россия</country>"""
         if sys.hexversion < 0x03000000:
             xml = ET.parse(StringIO(text.encode('utf-8')))
         else:
