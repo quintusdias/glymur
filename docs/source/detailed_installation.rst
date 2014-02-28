@@ -68,8 +68,8 @@ For python 3.3, you should install the following set of ports:
 
       * python33
       * py33-numpy
+      * py33-lxml
       * py33-distribute
-      * py33-matplotlib (optional, for running certain tests)
       * py33-Pillow (optional, for running certain tests)
 
 MacPorts supplies both OpenJPEG 1.5.0 and OpenJPEG 2.0.0.
@@ -85,6 +85,7 @@ packages may also need to be installed.  Consult your package manager
 documentation or use pip.
 
       * setuptools
+      * python-lxml
       * matplotlib
       * pillow
       * contextlib2 (2.7 only)
