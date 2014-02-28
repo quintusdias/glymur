@@ -32,7 +32,6 @@ from .core import _COLOR_TYPE_MAP_DISPLAY
 from .core import SRGB, GREYSCALE, YCC
 from .core import ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE
 from .core import ANY_ICC_PROFILE, VENDOR_COLOR_METHOD
-from .core import _pretty_print_xml
 
 from . import _uuid_io
 
