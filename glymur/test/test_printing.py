@@ -631,6 +631,7 @@ class TestPrinting(unittest.TestCase):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.box[2])
             actual = fake_out.getvalue().strip()
+        self.maxDiff = None
         self.assertEqual(actual, fixtures.file1_xml)
 
     @unittest.skipIf(sys.hexversion < 0x03000000,

@@ -4,6 +4,7 @@ Test fixtures common to more than one test point.
 import os
 import re
 import sys
+import textwrap
 import warnings
 
 import numpy as np
@@ -181,10 +182,7 @@ def read_pgx_header(pgx_file):
     header = header.rstrip()
     return header, pos
 
-nemo_xmp_box = """UUID Box (uuid) @ (77, 3146)
-    UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
-    UUID Data:
-<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>
+nemo_xmp = """<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>
 <ns0:xmpmeta xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:ns0="adobe:ns:meta/" xmlns:ns2="http://ns.adobe.com/xap/1.0/" xmlns:ns3="http://ns.adobe.com/tiff/1.0/" xmlns:ns4="http://ns.adobe.com/exif/1.0/" xmlns:ns5="http://ns.adobe.com/photoshop/1.0/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" ns0:xmptk="Exempi + XMP Core 5.1.2">
  <rdf:RDF>
   <rdf:Description rdf:about="">
@@ -269,6 +267,10 @@ nemo_xmp_box = """UUID Box (uuid) @ (77, 3146)
  </rdf:RDF>
 </ns0:xmpmeta>
 <?xpacket end="w"?>"""
+nemo_xmp_box = """UUID Box (uuid) @ (77, 3146)
+    UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
+    UUID Data:
+{0}""".format(textwrap.indent(nemo_xmp, '    '))
 
 SimpleRDF = """<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
   <rdf:Description rdf:about='Test:XMPCoreCoverage/kSimpleRDF'
@@ -355,7 +357,7 @@ text_gbr_34 = """Colour Specification Box (colr) @ (179, 1339)
 
 
 # Metadata dump of nemo.
-nemo_dump_full = r'''JPEG 2000 Signature Box (jP  ) @ (0, 12)
+dump = r'''JPEG 2000 Signature Box (jP  ) @ (0, 12)
     Signature:  0d0a870a
 File Type Box (ftyp) @ (12, 20)
     Brand:  jp2 
@@ -374,91 +376,7 @@ JP2 Header Box (jp2h) @ (32, 45)
 UUID Box (uuid) @ (77, 3146)
     UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
     UUID Data:
-<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>
-<ns0:xmpmeta xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:ns0="adobe:ns:meta/" xmlns:ns2="http://ns.adobe.com/xap/1.0/" xmlns:ns3="http://ns.adobe.com/tiff/1.0/" xmlns:ns4="http://ns.adobe.com/exif/1.0/" xmlns:ns5="http://ns.adobe.com/photoshop/1.0/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" ns0:xmptk="Exempi + XMP Core 5.1.2">
- <rdf:RDF>
-  <rdf:Description rdf:about="">
-   <ns2:CreatorTool>Google</ns2:CreatorTool>
-   <ns2:CreateDate>2013-02-09T14:47:53</ns2:CreateDate>
-  </rdf:Description>
-  <rdf:Description rdf:about="">
-   <ns3:YCbCrPositioning>1</ns3:YCbCrPositioning>
-   <ns3:XResolution>72/1</ns3:XResolution>
-   <ns3:YResolution>72/1</ns3:YResolution>
-   <ns3:ResolutionUnit>2</ns3:ResolutionUnit>
-   <ns3:Make>HTC</ns3:Make>
-   <ns3:Model>HTC Glacier</ns3:Model>
-   <ns3:ImageWidth>2592</ns3:ImageWidth>
-   <ns3:ImageLength>1456</ns3:ImageLength>
-   <ns3:BitsPerSample>
-    <rdf:Seq>
-     <rdf:li>8</rdf:li>
-     <rdf:li>8</rdf:li>
-     <rdf:li>8</rdf:li>
-    </rdf:Seq>
-   </ns3:BitsPerSample>
-   <ns3:PhotometricInterpretation>2</ns3:PhotometricInterpretation>
-   <ns3:SamplesPerPixel>3</ns3:SamplesPerPixel>
-   <ns3:WhitePoint>
-    <rdf:Seq>
-     <rdf:li>1343036288/4294967295</rdf:li>
-     <rdf:li>1413044224/4294967295</rdf:li>
-    </rdf:Seq>
-   </ns3:WhitePoint>
-   <ns3:PrimaryChromaticities>
-    <rdf:Seq>
-     <rdf:li>2748779008/4294967295</rdf:li>
-     <rdf:li>1417339264/4294967295</rdf:li>
-     <rdf:li>1288490240/4294967295</rdf:li>
-     <rdf:li>2576980480/4294967295</rdf:li>
-     <rdf:li>644245120/4294967295</rdf:li>
-     <rdf:li>257698032/4294967295</rdf:li>
-    </rdf:Seq>
-   </ns3:PrimaryChromaticities>
-  </rdf:Description>
-  <rdf:Description rdf:about="">
-   <ns4:ColorSpace>1</ns4:ColorSpace>
-   <ns4:PixelXDimension>2528</ns4:PixelXDimension>
-   <ns4:PixelYDimension>1424</ns4:PixelYDimension>
-   <ns4:FocalLength>353/100</ns4:FocalLength>
-   <ns4:GPSAltitudeRef>0</ns4:GPSAltitudeRef>
-   <ns4:GPSAltitude>0/1</ns4:GPSAltitude>
-   <ns4:GPSMapDatum>WGS-84</ns4:GPSMapDatum>
-   <ns4:DateTimeOriginal>2013-02-09T14:47:53</ns4:DateTimeOriginal>
-   <ns4:ISOSpeedRatings>
-    <rdf:Seq>
-     <rdf:li>76</rdf:li>
-    </rdf:Seq>
-   </ns4:ISOSpeedRatings>
-   <ns4:ExifVersion>0220</ns4:ExifVersion>
-   <ns4:FlashpixVersion>0100</ns4:FlashpixVersion>
-   <ns4:ComponentsConfiguration>
-    <rdf:Seq>
-     <rdf:li>1</rdf:li>
-     <rdf:li>2</rdf:li>
-     <rdf:li>3</rdf:li>
-     <rdf:li>0</rdf:li>
-    </rdf:Seq>
-   </ns4:ComponentsConfiguration>
-   <ns4:GPSLatitude>42,20.56N</ns4:GPSLatitude>
-   <ns4:GPSLongitude>71,5.29W</ns4:GPSLongitude>
-   <ns4:GPSTimeStamp>2013-02-09T19:47:53Z</ns4:GPSTimeStamp>
-   <ns4:GPSProcessingMethod>NETWORK</ns4:GPSProcessingMethod>
-  </rdf:Description>
-  <rdf:Description rdf:about="">
-   <ns5:DateCreated>2013-02-09T14:47:53</ns5:DateCreated>
-  </rdf:Description>
-  <rdf:Description rdf:about="">
-   <dc:Creator>
-    <rdf:Seq>
-     <rdf:li>Glymur</rdf:li>
-     <rdf:li>Python XMP Toolkit</rdf:li>
-    </rdf:Seq>
-   </dc:Creator>
-  </rdf:Description>
- </rdf:RDF>
-</ns0:xmpmeta>
-<?xpacket end="w"?>
+{0}
 Contiguous Codestream Box (jp2c) @ (3223, 1132296)
     Main header:
         SOC marker segment @ (3231, 0)
@@ -496,6 +414,7 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)
             Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]
         CME marker segment @ (3305, 37)
             "Created by OpenJPEG version 2.0.0"'''
+nemo_dump_full = dump.format(textwrap.indent(nemo_xmp, '    '))
 
 nemo_dump_short = r"""JPEG 2000 Signature Box (jP  ) @ (0, 12)
 File Type Box (ftyp) @ (12, 20)
@@ -561,7 +480,7 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)
         CME marker segment @ (3305, 37)
             "Created by OpenJPEG version 2.0.0"'''
 
-nemo_dump_no_codestream = r"""JPEG 2000 Signature Box (jP  ) @ (0, 12)
+dump = r"""JPEG 2000 Signature Box (jP  ) @ (0, 12)
     Signature:  0d0a870a
 File Type Box (ftyp) @ (12, 20)
     Brand:  jp2 
@@ -580,92 +499,9 @@ JP2 Header Box (jp2h) @ (32, 45)
 UUID Box (uuid) @ (77, 3146)
     UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
     UUID Data:
-<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>
-<ns0:xmpmeta xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:ns0="adobe:ns:meta/" xmlns:ns2="http://ns.adobe.com/xap/1.0/" xmlns:ns3="http://ns.adobe.com/tiff/1.0/" xmlns:ns4="http://ns.adobe.com/exif/1.0/" xmlns:ns5="http://ns.adobe.com/photoshop/1.0/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" ns0:xmptk="Exempi + XMP Core 5.1.2">
- <rdf:RDF>
-  <rdf:Description rdf:about="">
-   <ns2:CreatorTool>Google</ns2:CreatorTool>
-   <ns2:CreateDate>2013-02-09T14:47:53</ns2:CreateDate>
-  </rdf:Description>
-  <rdf:Description rdf:about="">
-   <ns3:YCbCrPositioning>1</ns3:YCbCrPositioning>
-   <ns3:XResolution>72/1</ns3:XResolution>
-   <ns3:YResolution>72/1</ns3:YResolution>
-   <ns3:ResolutionUnit>2</ns3:ResolutionUnit>
-   <ns3:Make>HTC</ns3:Make>
-   <ns3:Model>HTC Glacier</ns3:Model>
-   <ns3:ImageWidth>2592</ns3:ImageWidth>
-   <ns3:ImageLength>1456</ns3:ImageLength>
-   <ns3:BitsPerSample>
-    <rdf:Seq>
-     <rdf:li>8</rdf:li>
-     <rdf:li>8</rdf:li>
-     <rdf:li>8</rdf:li>
-    </rdf:Seq>
-   </ns3:BitsPerSample>
-   <ns3:PhotometricInterpretation>2</ns3:PhotometricInterpretation>
-   <ns3:SamplesPerPixel>3</ns3:SamplesPerPixel>
-   <ns3:WhitePoint>
-    <rdf:Seq>
-     <rdf:li>1343036288/4294967295</rdf:li>
-     <rdf:li>1413044224/4294967295</rdf:li>
-    </rdf:Seq>
-   </ns3:WhitePoint>
-   <ns3:PrimaryChromaticities>
-    <rdf:Seq>
-     <rdf:li>2748779008/4294967295</rdf:li>
-     <rdf:li>1417339264/4294967295</rdf:li>
-     <rdf:li>1288490240/4294967295</rdf:li>
-     <rdf:li>2576980480/4294967295</rdf:li>
-     <rdf:li>644245120/4294967295</rdf:li>
-     <rdf:li>257698032/4294967295</rdf:li>
-    </rdf:Seq>
-   </ns3:PrimaryChromaticities>
-  </rdf:Description>
-  <rdf:Description rdf:about="">
-   <ns4:ColorSpace>1</ns4:ColorSpace>
-   <ns4:PixelXDimension>2528</ns4:PixelXDimension>
-   <ns4:PixelYDimension>1424</ns4:PixelYDimension>
-   <ns4:FocalLength>353/100</ns4:FocalLength>
-   <ns4:GPSAltitudeRef>0</ns4:GPSAltitudeRef>
-   <ns4:GPSAltitude>0/1</ns4:GPSAltitude>
-   <ns4:GPSMapDatum>WGS-84</ns4:GPSMapDatum>
-   <ns4:DateTimeOriginal>2013-02-09T14:47:53</ns4:DateTimeOriginal>
-   <ns4:ISOSpeedRatings>
-    <rdf:Seq>
-     <rdf:li>76</rdf:li>
-    </rdf:Seq>
-   </ns4:ISOSpeedRatings>
-   <ns4:ExifVersion>0220</ns4:ExifVersion>
-   <ns4:FlashpixVersion>0100</ns4:FlashpixVersion>
-   <ns4:ComponentsConfiguration>
-    <rdf:Seq>
-     <rdf:li>1</rdf:li>
-     <rdf:li>2</rdf:li>
-     <rdf:li>3</rdf:li>
-     <rdf:li>0</rdf:li>
-    </rdf:Seq>
-   </ns4:ComponentsConfiguration>
-   <ns4:GPSLatitude>42,20.56N</ns4:GPSLatitude>
-   <ns4:GPSLongitude>71,5.29W</ns4:GPSLongitude>
-   <ns4:GPSTimeStamp>2013-02-09T19:47:53Z</ns4:GPSTimeStamp>
-   <ns4:GPSProcessingMethod>NETWORK</ns4:GPSProcessingMethod>
-  </rdf:Description>
-  <rdf:Description rdf:about="">
-   <ns5:DateCreated>2013-02-09T14:47:53</ns5:DateCreated>
-  </rdf:Description>
-  <rdf:Description rdf:about="">
-   <dc:Creator>
-    <rdf:Seq>
-     <rdf:li>Glymur</rdf:li>
-     <rdf:li>Python XMP Toolkit</rdf:li>
-    </rdf:Seq>
-   </dc:Creator>
-  </rdf:Description>
- </rdf:RDF>
-</ns0:xmpmeta>
-<?xpacket end="w"?>
+{0}
 Contiguous Codestream Box (jp2c) @ (3223, 1132296)"""
+nemo_dump_no_codestream = dump.format(textwrap.indent(nemo_xmp, '    '))
 
 nemo_dump_no_codestream_no_xml = r"""JPEG 2000 Signature Box (jP  ) @ (0, 12)
     Signature:  0d0a870a
@@ -699,8 +535,8 @@ file7_rreq = r"""Reader Requirements Box (rreq) @ (44, 24)
 
 file1_xml = """XML Box (xml ) @ (36, 439)
     <IMAGE_CREATION xmlns="http://www.jpeg.org/jpx/1.0/xml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.jpeg.org/jpx/1.0/xml http://www.jpeg.org/metadata/15444-2.xsd">
-\t<GENERAL_CREATION_INFO>
-\t\t<CREATION_TIME>2001-11-01T13:45:00.000-06:00</CREATION_TIME>
-\t\t<IMAGE_SOURCE>Professional 120 Image</IMAGE_SOURCE>
-\t</GENERAL_CREATION_INFO>
-</IMAGE_CREATION>"""
+    \t<GENERAL_CREATION_INFO>
+    \t\t<CREATION_TIME>2001-11-01T13:45:00.000-06:00</CREATION_TIME>
+    \t\t<IMAGE_SOURCE>Professional 120 Image</IMAGE_SOURCE>
+    \t</GENERAL_CREATION_INFO>
+    </IMAGE_CREATION>"""
