@@ -272,6 +272,11 @@ nemo_xmp_box = """UUID Box (uuid) @ (77, 3146)
     UUID Data:
 {0}""".format(textwrap.indent(nemo_xmp, '    '))
 
+nemo_xmp_box = """UUID Box (uuid) @ (77, 3146)
+    UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
+    UUID Data:
+{0}""".format(textwrap.indent(nemo_xmp, '    '))
+
 SimpleRDF = """<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
   <rdf:Description rdf:about='Test:XMPCoreCoverage/kSimpleRDF'
                    xmlns:ns1='ns:test1/' xmlns:ns2='ns:test2/'>

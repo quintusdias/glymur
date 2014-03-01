@@ -131,7 +131,6 @@ From within Python, it is as simple as printing the Jp2k object, i.e. ::
             </rdf:Description>
           </rdf:RDF>
         </ns0:xmpmeta>
-        
     Contiguous Codestream Box (jp2c) @ (3223, 1132296)
         Main header:
             SOC marker segment @ (3231, 0)
@@ -228,7 +227,6 @@ The :py:meth:`append` method can add an XML box as shown below::
     >>> import shutil
     >>> import glymur
     >>> shutil.copyfile(glymur.data.nemo(), 'myfile.jp2')
-    >>> from xml.etree import cElementTree as ET
     >>> jp2 = glymur.Jp2k('myfile.jp2')
     >>> xmlbox = glymur.jp2box.XMLBox(filename='data.xml')
     >>> jp2.append(xmlbox)
@@ -408,12 +406,12 @@ The example JP2 file shipped with glymur has an XMP UUID. ::
           .
     </ns0:xmpmeta>
 
-Since the UUID data in this case is returned as an ElementTree instance,
-one can use ElementTree from the standard library to access the data.
-For example, to extract the **CreatorTool** attribute value, one could do the
+Since the UUID data in this case is returned as an lxml ElementTree
+instance, one can use lxml to access the data.  For example, to
+extract the **CreatorTool** attribute value, one could do the
 following
 
-    >>> xmp = j.box[3].data.packet
+    >>> xmp = j.box[3].data
     >>> rdf = '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}'
     >>> ns2 = '{http://ns.adobe.com/xap/1.0/}'
     >>> name = '{0}RDF/{0}Description/{1}CreatorTool'.format(rdf, ns2)

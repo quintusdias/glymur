@@ -5,6 +5,7 @@ ChangeLog
 0.6.0 (pending)
 ===============
 
+      * Added lxml requirement.
       * added set_printoptions, get_printoptions function
       * dropped support for Python 2.6, added support for Python 3.4
       * dropped windows support
