@@ -22,10 +22,10 @@ import sys
 import tempfile
 import uuid
 from uuid import UUID
-import xml.etree.cElementTree as ET
 import unittest
 import warnings
 
+import lxml.etree as ET
 import numpy as np
 
 import glymur
@@ -1056,7 +1056,7 @@ class TestRepr(unittest.TestCase):
         box = glymur.jp2box.XMLBox(xml=tree)
 
         regexp = r"""glymur.jp2box.XMLBox"""
-        regexp += r"""\(xml=<(xml.etree.ElementTree.){0,1}ElementTree object """
+        regexp += r"""\(xml=<lxml.etree._ElementTree object """
         regexp += """at 0x([a-f0-9]*)>\)"""
 
         if sys.hexversion < 0x03000000:

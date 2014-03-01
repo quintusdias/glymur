@@ -20,10 +20,11 @@ import os
 import pprint
 import struct
 import sys
+import textwrap
 import uuid
 import warnings
-import xml.etree.cElementTree as ET
 
+import lxml.etree as ET
 import numpy as np
 
 from .codestream import Codestream
@@ -32,7 +33,6 @@ from .core import _COLOR_TYPE_MAP_DISPLAY
 from .core import SRGB, GREYSCALE, YCC
 from .core import ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE
 from .core import ANY_ICC_PROFILE, VENDOR_COLOR_METHOD
-from .core import _pretty_print_xml
 
 from . import _uuid_io
 
@@ -97,10 +97,8 @@ class Jp2kBox(object):
         msg = Jp2kBox.__str__(self)
         for box in self.box:
             boxstr = str(box)
-
-            # Add indentation.
-            strs = [('\n    ' + x) for x in boxstr.split('\n')]
-            msg += ''.join(strs)
+            # Indent the child boxes to make the association clear.
+            msg += '\n' + textwrap.indent(boxstr, '    ')
         return msg
 
 
@@ -890,10 +888,7 @@ class ContiguousCodestreamBox(Jp2kBox):
 
         msg += '\n    Main header:'
         for segment in self.main_header.segment:
-            segstr = str(segment)
-            # Add indentation.
-            strs = [('\n        ' + x) for x in segstr.split('\n')]
-            msg += ''.join(strs)
+            msg += '\n' + textwrap.indent(str(segment), '        ')
 
         return msg
 
@@ -2563,11 +2558,14 @@ class XMLBox(Jp2kBox):
         if _printoptions['xml'] == False:
             return msg
 
-        xml = self.xml
+        msg += '\n'
         if self.xml is not None:
-            msg += _pretty_print_xml(self.xml)
+            xmlstring = ET.tostring(self.xml,
+                                    encoding='utf-8',
+                                    pretty_print=True).decode('utf-8')
         else:
-            msg += '\n    {0}'.format(xml)
+            xmlstring = 'None'
+        msg += textwrap.indent(xmlstring, '    ')
         return msg
 
     def write(self, fptr):
@@ -2971,9 +2969,12 @@ class UUIDBox(Jp2kBox):
             return msg
 
         if self.uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
-            line = '\n    UUID Data:  {0}'
-            xmlstring = _pretty_print_xml(self.data)
-            xmlstring = xmlstring.rstrip()
+            line = '\n    UUID Data:\n{0}'
+            xmlstring = ET.tostring(self.data,
+                                    encoding='utf-8',
+                                    pretty_print=True).decode('utf-8')
+            # indent it a bit
+            xmlstring = textwrap.indent(xmlstring.rstrip(), '    ')
             msg += line.format(xmlstring)
         elif self.uuid.bytes == b'JpgTiffExif->JP2':
             msg += '\n    UUID Data:  {0}'.format(str(self.data))
