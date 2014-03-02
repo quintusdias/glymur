@@ -994,7 +994,7 @@ class DataReferenceBox(Jp2kBox):
 
     @staticmethod
     def parse(fptr, offset, length):
-        """Parse Label box.
+        """Parse data reference box.
 
         Parameters
         ----------
@@ -1124,19 +1124,17 @@ class FileTypeBox(Jp2kBox):
         -------
         FileTypeBox instance
         """
-        # Read the brand, minor version.
-        read_buffer = fptr.read(8)
-        (brand, minor_version) = struct.unpack('>4sI', read_buffer)
+        read_buffer = fptr.read(length - 8)
+        # Extract the brand, minor version.
+        (brand, minor_version) = struct.unpack_from('>4sI', read_buffer, 0)
         if sys.hexversion >= 0x030000:
             brand = brand.decode('utf-8')
 
-        # Read the compatibility list.  Each entry has 4 bytes.
-        current_pos = fptr.tell()
-        num_bytes = (offset + length - current_pos) / 4
-        read_buffer = fptr.read(int(num_bytes) * 4)
+        # Extract the compatibility list.  Each entry has 4 bytes.
+        num_entries = int((length - 16)/ 4)
         compatibility_list = []
-        for j in range(int(num_bytes)):
-            entry, = struct.unpack('>4s', read_buffer[4*j:4*(j+1)])
+        for j in range(int(num_entries)):
+            entry, = struct.unpack_from('>4s', read_buffer, 8 + j * 4)
             if sys.hexversion >= 0x03000000:
                 entry = entry.decode('utf-8')
             compatibility_list.append(entry)
