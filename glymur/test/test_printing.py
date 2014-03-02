@@ -132,7 +132,9 @@ class TestPrinting(unittest.TestCase):
         lst = actual.split('\n')
         lst = lst[1:]
         actual = '\n'.join(lst)
-        self.assertEqual(actual, fixtures.nemo_dump_no_xml)
+        expected = fixtures.nemo_dump_no_xml
+        self.maxDiff = None
+        self.assertEqual(actual, expected)
 
     def test_printoptions_short(self):
         """Verify printed output when short=True"""
