@@ -45,6 +45,32 @@ except:
     raise
 
 
+def _indent(textstr):
+    """
+    Indent a string.
+
+    Textwrap's indent method only exists for 3.3 or above.  In 2.7 we have
+    to fake it.
+
+    Parameters
+    ----------
+    textstring : str
+        String to be indented.
+    indent_level : str
+        Number of spaces of indentation to add.
+    
+    Returns
+    -------
+    indented_string : str
+        Possibly multi-line string indented a certain bit.
+    """
+    if sys.hexversion >= 0x03030000:
+        return textwrap.indent(textstr, '    ')
+    else:
+        lst = [('    ' + x) for x in textstr.split('\n')]
+        return '\n'.join(lst)
+
+
 def opj_data_file(relative_file_name):
     """Compact way of forming a full filename from OpenJPEG's test suite."""
     jfile = os.path.join(OPJ_DATA_ROOT, relative_file_name)
@@ -270,12 +296,12 @@ nemo_xmp = """<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>
 nemo_xmp_box = """UUID Box (uuid) @ (77, 3146)
     UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
     UUID Data:
-{0}""".format(textwrap.indent(nemo_xmp, '    '))
+{0}""".format(_indent(nemo_xmp))
 
 nemo_xmp_box = """UUID Box (uuid) @ (77, 3146)
     UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
     UUID Data:
-{0}""".format(textwrap.indent(nemo_xmp, '    '))
+{0}""".format(_indent(nemo_xmp))
 
 SimpleRDF = """<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
   <rdf:Description rdf:about='Test:XMPCoreCoverage/kSimpleRDF'
@@ -419,7 +445,7 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)
             Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]
         CME marker segment @ (3305, 37)
             "Created by OpenJPEG version 2.0.0"'''
-nemo_dump_full = dump.format(textwrap.indent(nemo_xmp, '    '))
+nemo_dump_full = dump.format(_indent(nemo_xmp))
 
 nemo_dump_short = r"""JPEG 2000 Signature Box (jP  ) @ (0, 12)
 File Type Box (ftyp) @ (12, 20)
@@ -506,7 +532,7 @@ UUID Box (uuid) @ (77, 3146)
     UUID Data:
 {0}
 Contiguous Codestream Box (jp2c) @ (3223, 1132296)"""
-nemo_dump_no_codestream = dump.format(textwrap.indent(nemo_xmp, '    '))
+nemo_dump_no_codestream = dump.format(_indent(nemo_xmp))
 
 nemo_dump_no_codestream_no_xml = r"""JPEG 2000 Signature Box (jP  ) @ (0, 12)
     Signature:  0d0a870a

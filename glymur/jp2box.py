@@ -98,8 +98,34 @@ class Jp2kBox(object):
         for box in self.box:
             boxstr = str(box)
             # Indent the child boxes to make the association clear.
-            msg += '\n' + textwrap.indent(boxstr, '    ')
+            msg += '\n' + self._indent(boxstr)
         return msg
+
+
+    def _indent(self, textstr, indent_level=4):
+        """
+        Indent a string.
+
+        Textwrap's indent method only exists for 3.3 or above.  In 2.7 we have
+        to fake it.
+
+        Parameters
+        ----------
+        textstring : str
+            String to be indented.
+        indent_level : str
+            Number of spaces of indentation to add.
+        
+        Returns
+        -------
+        indented_string : str
+            Possibly multi-line string indented a certain bit.
+        """
+        if sys.hexversion >= 0x03030000:
+            return textwrap.indent(textstr, ' ' * indent_level)
+        else:
+            lst = [(' ' * indent_level + x) for x in textstr.split('\n')]
+            return '\n'.join(lst)
 
 
     def _write_superbox(self, fptr):
@@ -888,7 +914,7 @@ class ContiguousCodestreamBox(Jp2kBox):
 
         msg += '\n    Main header:'
         for segment in self.main_header.segment:
-            msg += '\n' + textwrap.indent(str(segment), '        ')
+            msg += '\n' + self._indent(str(segment), indent_level=8)
 
         return msg
 
@@ -2563,7 +2589,7 @@ class XMLBox(Jp2kBox):
                                     pretty_print=True).decode('utf-8')
         else:
             xmlstring = 'None'
-        msg += textwrap.indent(xmlstring, '    ')
+        msg += self._indent(xmlstring)
         return msg
 
     def write(self, fptr):
@@ -2972,7 +2998,7 @@ class UUIDBox(Jp2kBox):
                                     encoding='utf-8',
                                     pretty_print=True).decode('utf-8')
             # indent it a bit
-            xmlstring = textwrap.indent(xmlstring.rstrip(), '    ')
+            xmlstring = self._indent(xmlstring.rstrip())
             msg += line.format(xmlstring)
         elif self.uuid.bytes == b'JpgTiffExif->JP2':
             msg += '\n    UUID Data:  {0}'.format(str(self.data))
