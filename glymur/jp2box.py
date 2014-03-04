@@ -401,28 +401,30 @@ class ColourSpecificationBox(Jp2kBox):
         -------
         ColourSpecificationBox instance
         """
+        num_bytes = offset + length - fptr.tell()
+        read_buffer = fptr.read(num_bytes)
         # Read the brand, minor version.
-        read_buffer = fptr.read(3)
-        (method, precedence, approximation) = struct.unpack('>BBB',
-                                                            read_buffer)
+        (method, precedence, approximation) = struct.unpack_from('>BBB',
+                                                                 read_buffer,
+                                                                 0)
 
         if method == 1:
             # enumerated colour space
-            read_buffer = fptr.read(4)
-            colorspace, = struct.unpack('>I', read_buffer)
+            colorspace, = struct.unpack_from('>I', read_buffer, 3)
             icc_profile = None
 
         else:
             # ICC profile
             colorspace = None
-            numbytes = offset + length - fptr.tell()
-            if numbytes < 128:
+            if num_bytes < 131:
+                # If the number of bytes is less than 128 + 3, then there
+                # cannot possibly be enough for an ICC profile.
                 msg = "ICC profile header is corrupt, length is "
                 msg += "only {0} instead of 128."
-                warnings.warn(msg.format(numbytes), UserWarning)
+                warnings.warn(msg.format(num_bytes - 3), UserWarning)
                 icc_profile = None
             else:
-                profile = _ICCProfile(fptr.read(numbytes))
+                profile = _ICCProfile(read_buffer[3:])
                 icc_profile = profile.header
 
         box = ColourSpecificationBox(method=method,
@@ -1245,7 +1247,7 @@ class FragmentListBox(Jp2kBox):
 
     @staticmethod
     def parse(fptr, offset, length):
-        """Parse JPX free box.
+        """Parse JPX fragment list box.
 
         Parameters
         ----------
@@ -1260,11 +1262,13 @@ class FragmentListBox(Jp2kBox):
         -------
         FragmentListBox instance
         """
-        read_buffer = fptr.read(2)
-        num_fragments, = struct.unpack('>H', read_buffer)
+        num_bytes = offset + length - fptr.tell()
+        read_buffer = fptr.read(num_bytes)
+        num_fragments, = struct.unpack_from('>H', read_buffer, offset=0)
 
-        read_buffer = fptr.read(num_fragments * 14)
-        lst = struct.unpack('>' + 'QIH' * num_fragments, read_buffer)
+        lst = struct.unpack_from('>' + 'QIH' * num_fragments,
+                                 read_buffer,
+                                 offset=2)
         frag_offset = lst[0::3]
         frag_len = lst[1::3]
         data_reference = lst[2::3]
@@ -1826,13 +1830,12 @@ class PaletteBox(Jp2kBox):
         -------
         PaletteBox instance
         """
-        # Get the size of the palette.
-        read_buffer = fptr.read(3)
-        (num_entries, num_columns) = struct.unpack('>HB', read_buffer)
+        num_bytes = offset + length - fptr.tell()
+        read_buffer = fptr.read(num_bytes)
+        (nrows, ncols) = struct.unpack_from('>HB', read_buffer, offset=0)
 
         # Need to determine bps and signed or not
-        read_buffer = fptr.read(num_columns)
-        data = struct.unpack('>' + 'B' * num_columns, read_buffer)
+        data = struct.unpack_from('>' + 'B' * ncols, read_buffer, offset=3)
         bps = [((x & 0x7f) + 1) for x in data]
         signed = [((x & 0x80) > 1) for x in data]
 
@@ -1849,11 +1852,10 @@ class PaletteBox(Jp2kBox):
         # That means a list comprehension does this in one shot.
         row_nbytes = sum([int(math.ceil(x/8.0)) for x in bps])
 
-        read_buffer = fptr.read(num_entries * row_nbytes)
-        palette = np.zeros((num_entries, num_columns), dtype=np.int32)
-        for j in range(num_entries):
+        palette = np.zeros((nrows, ncols), dtype=np.int32)
+        for j in range(nrows):
             palette[j] = struct.unpack_from(fmt, read_buffer,
-                                            offset=j * row_nbytes)
+                                            offset=j * row_nbytes + 3 + ncols)
 
         return PaletteBox(palette, bps, signed, length=length, offset=offset)
 
