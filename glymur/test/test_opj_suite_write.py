@@ -38,6 +38,16 @@ class TestSuiteWrite(unittest.TestCase):
     def tearDown(self):
         pass
 
+    @unittest.skip("Cannot read input image using PILLOW???")
+    def test_NR_ENC_X_4_2K_24_185_CBR_WB_000_tif_15_encode(self):
+        relfile = 'input/nonregression/X_4_2K_24_185_CBR_WB_000.tif'
+        import pdb; pdb.set_trace()
+        infile = opj_data_file(relfile)
+        data = read_image(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j.write(data, 'cinema2K', 24)
+
     def test_NR_ENC_Bretagne1_ppm_1_encode(self):
         """NR-ENC-Bretagne1.ppm-1-encode"""
         infile = opj_data_file('input/nonregression/Bretagne1.ppm')

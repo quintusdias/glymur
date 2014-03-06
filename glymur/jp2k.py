@@ -219,6 +219,63 @@ class Jp2k(Jp2kBox):
         cparams.tcp_numlayers = 1
         cparams.cp_disto_alloc = 1
 
+        if 'cinema2K' in kwargs:
+            cparams.cp_rsiz = kwargs['cinema2K']
+            # No tiling
+            cparams.tile_size_on = opj2.FALSE
+            cparams.cp_tdx = 1
+            cparams.cp_tdy = 1
+
+            # One tile part for each component.
+            cparams.tp_cflag = ord('C')
+            cparams.tp_on = 1
+
+            # tile and image shall be as (0,0)
+            cparams.cp_tx0 = 0
+            cparams.cp_ty0 = 0
+            cparams.image_offset_x0 = 0
+            cparams.image_offset_y0 = 0
+
+            # Codeblock size = 32 * 32
+            cparams.cblockw_init = 32
+            cparams.cblockh_init = 32
+
+            # code block style, no mode switch enabled.
+            cparams.mode = 0
+
+            # no ROI
+            cparams.roi_compno = -1
+
+            # no subsampling
+            cparams.subsampling_dx = 1
+            cparams.subsampling_dy = 1
+
+            # 9-7 transform
+            cparams.irreversible = 1
+
+            # number of layers
+            if cparams.tcp_layers > 1:
+                # TODO:  warning or error
+                cparams.tcp_numlayers = 1
+
+            if cparams.numresolution > 6:
+                # TODO:  warning or error
+                cparams.numresolution = 6
+
+            # precincts
+            cparams.csty |= 0x01
+            cparams.res_spec = cparams.numresolution - 1
+            for j in range(cparams.res_spec):
+                cparams.prcw_init[i] = 256
+                cparams.prch_init[i] = 256
+
+            # Progression order shall be CPRL
+            cparams.prog_order = PROGRESSION_ORDER['CPRL']
+
+            # progression order changes not allowed for 2K
+            cparams.numpocs = 0
+            return cparams
+
         if 'cbsize' in kwargs:
             cparams.cblockw_init = kwargs['cbsize'][1]
             cparams.cblockh_init = kwargs['cbsize'][0]
@@ -340,6 +397,8 @@ class Jp2k(Jp2kBox):
             Image data to be written to file.
         cbsize : tuple, optional
             Code block size (DY, DX).
+        cinema2K : int, optional
+            either 24 or 48
         colorspace : str, optional
             Either 'rgb' or 'gray'.
         cratios : iterable
@@ -473,7 +532,7 @@ class Jp2k(Jp2kBox):
 
     def _write_openjp2(self, img_array, verbose=False, **kwargs):
         """
-        Write JPEG 2000 file using OpenJPEG 1.5 interface.
+        Write JPEG 2000 file using OpenJPEG 2.0 interface.
         """
         cparams, colorspace = self._process_write_inputs(img_array, **kwargs)
 
