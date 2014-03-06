@@ -12,6 +12,13 @@ import sys
 import tempfile
 import unittest
 
+try:
+    import skimage.io
+    skimage.io.use_plugin('freeimage', 'imread')
+    _HAS_SKIMAGE_FREEIMAGE_SUPPORT = True
+except ImportError:
+    _HAS_SKIMAGE_FREEIMAGE_SUPPORT = False
+
 from .fixtures import read_image, NO_READ_BACKEND, NO_READ_BACKEND_MSG
 from .fixtures import OPJ_DATA_ROOT, opj_data_file
 
@@ -38,15 +45,74 @@ class TestSuiteWrite(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @unittest.skip("Cannot read input image using PILLOW???")
+    @unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+                     "Cannot read input image without scikit-image/freeimage")
     def test_NR_ENC_X_4_2K_24_185_CBR_WB_000_tif_15_encode(self):
         relfile = 'input/nonregression/X_4_2K_24_185_CBR_WB_000.tif'
-        import pdb; pdb.set_trace()
         infile = opj_data_file(relfile)
-        data = read_image(infile)
+        data = skimage.io.imread(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
-            j.write(data, 'cinema2K', 24)
+            j.write(data, cinema2K=24)
+
+            codestream = j.get_codestream()
+
+            # SIZ: Image and tile size
+            # Profile:  "3" means cinema2K
+            self.assertEqual(codestream.segment[1].rsiz, 3)
+            # Reference grid size
+            self.assertEqual((codestream.segment[1].xsiz,
+                              codestream.segment[1].ysiz),
+                             (1998, 1080))
+            # Reference grid offset
+            self.assertEqual((codestream.segment[1].xosiz,
+                              codestream.segment[1].yosiz), (0, 0))
+            # Tile size
+            self.assertEqual((codestream.segment[1].xtsiz,
+                              codestream.segment[1].ytsiz),
+                             (1998, 1080))
+            # Tile offset
+            self.assertEqual((codestream.segment[1].xtosiz,
+                              codestream.segment[1].ytosiz),
+                             (0, 0))
+            # bitdepth
+            self.assertEqual(codestream.segment[1].bitdepth, (12, 12, 12))
+            # signed
+            self.assertEqual(codestream.segment[1].signed,
+                             (False, False, False))
+            # subsampling
+            self.assertEqual(list(zip(codestream.segment[1].xrsiz,
+                                      codestream.segment[1].yrsiz)),
+                             [(1, 1)] * 3)
+
+            # COD: Coding style default
+            self.assertFalse(codestream.segment[2].scod & 2)  # no sop
+            self.assertFalse(codestream.segment[2].scod & 4)  # no eph
+            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.CRLP)
+            self.assertEqual(codestream.segment[2].layers, 3)  # layers = 3
+            self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
+            self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+            self.assertEqual(tuple(codestream.segment[2].code_block_size),
+                             (64, 64))  # cblksz
+            # Selective arithmetic coding bypass
+            self.assertFalse(codestream.segment[2].spcod[7] & 0x01)
+            # Reset context probabilities
+            self.assertFalse(codestream.segment[2].spcod[7] & 0x02)
+            # Termination on each coding pass
+            self.assertFalse(codestream.segment[2].spcod[7] & 0x04)
+            # Vertically causal context
+            self.assertFalse(codestream.segment[2].spcod[7] & 0x08)
+            # Predictable termination
+            self.assertFalse(codestream.segment[2].spcod[7] & 0x0010)
+            # Segmentation symbols
+            self.assertFalse(codestream.segment[2].spcod[7] & 0x0020)
+            self.assertEqual(codestream.segment[2].spcod[8],
+                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
+            self.assertEqual(len(codestream.segment[2].spcod), 9)
+
+
+
+
 
     def test_NR_ENC_Bretagne1_ppm_1_encode(self):
         """NR-ENC-Bretagne1.ppm-1-encode"""

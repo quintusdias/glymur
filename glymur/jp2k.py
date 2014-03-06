@@ -28,7 +28,7 @@ import numpy as np
 
 from .codestream import Codestream
 from .core import SRGB, GREYSCALE
-from .core import PROGRESSION_ORDER
+from .core import PROGRESSION_ORDER, RSIZ, CINEMA_MODE
 from .core import ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE
 from .jp2box import Jp2kBox
 from .jp2box import JPEG2000SignatureBox, FileTypeBox, JP2HeaderBox
@@ -38,6 +38,8 @@ from .lib import openjpeg as opj
 from .lib import openjp2 as opj2
 from . import version
 from .lib import c as libc
+
+CINEMA_24_CS = 1302083
 
 JP2_IDS = ['colr', 'cdef', 'cmap', 'jp2c', 'ftyp', 'ihdr', 'jp2h', 'jP  ',
            'pclr', 'res ', 'resc', 'resd', 'xml ', 'ulst', 'uinf', 'url ',
@@ -220,14 +222,17 @@ class Jp2k(Jp2kBox):
         cparams.cp_disto_alloc = 1
 
         if 'cinema2K' in kwargs:
-            cparams.cp_rsiz = kwargs['cinema2K']
+            # TODO:  error if either 24 or 48
+            cparams.cp_cinema = kwargs['cinema2K']
+
+            cparams.cp_rsiz = RSIZ['CINEMA2K']
             # No tiling
             cparams.tile_size_on = opj2.FALSE
             cparams.cp_tdx = 1
             cparams.cp_tdy = 1
 
             # One tile part for each component.
-            cparams.tp_cflag = ord('C')
+            cparams.tp_flag = ord('C')
             cparams.tp_on = 1
 
             # tile and image shall be as (0,0)
@@ -254,7 +259,7 @@ class Jp2k(Jp2kBox):
             cparams.irreversible = 1
 
             # number of layers
-            if cparams.tcp_layers > 1:
+            if cparams.tcp_numlayers > 1:
                 # TODO:  warning or error
                 cparams.tcp_numlayers = 1
 
@@ -266,8 +271,8 @@ class Jp2k(Jp2kBox):
             cparams.csty |= 0x01
             cparams.res_spec = cparams.numresolution - 1
             for j in range(cparams.res_spec):
-                cparams.prcw_init[i] = 256
-                cparams.prch_init[i] = 256
+                cparams.prcw_init[j] = 256
+                cparams.prch_init[j] = 256
 
             # Progression order shall be CPRL
             cparams.prog_order = PROGRESSION_ORDER['CPRL']
@@ -530,6 +535,29 @@ class Jp2k(Jp2kBox):
         self.parse()
 
 
+    def _set_cinema_rate(self, cparams, image):
+        max_rate = 0
+        temp_rate = 0
+        cparams.cp_disto_alloc = 1
+
+        if cparams.cp_cinema in [CINEMA_MODE['cinema2k_24'],
+                                 CINEMA_MODE['cinema2k_48']]:
+            num_pixels = image.contents.comps[0].w * image.contents.comps[0].h
+            rate_numerator = num_pixels * image.contents.comps[0].prec
+            max_rate = rate_numerator / (CINEMA_24_CS * 8 * num_pixels)
+            if cparams.tcp_rates[0] == 0:
+                cparams.tcp_rates[0] = max_rate
+            else:
+                temp_rate = rate_numerator / (cparams.tcp_rates[0] * 8 * num_pixels)
+                if temp_rate > CINEMA_24_CS:
+                    # TODO warning, reset
+                    cparams.tcp_rates[0] = max_rate
+                else:
+                    # TODO warning
+                    pass
+
+            cparams.max_comp_size = COMP_24_CS
+
     def _write_openjp2(self, img_array, verbose=False, **kwargs):
         """
         Write JPEG 2000 file using OpenJPEG 2.0 interface.
@@ -548,6 +576,9 @@ class Jp2k(Jp2kBox):
             stack.callback(opj2.image_destroy, image)
 
             _populate_image_struct(cparams, image, img_array)
+
+            if 'cinema2K' in kwargs:
+                self._set_cinema_rate(cparams, image)
 
             codec = opj2.create_compress(cparams.codec_fmt)
             stack.callback(opj2.destroy_codec, codec)
