@@ -155,6 +155,73 @@ class Jp2k(Jp2kBox):
                     msg += "profile if the file type box brand is 'jp2 '."
                     warnings.warn(msg)
 
+    def _set_cinema_params(self, cparams, fps):
+        """Populate compression parameters structure for cinema2K.
+
+        Parameters
+        ----------
+        fps : int
+            Frames per second, should be either 24 or 48.
+        """
+        if fps not in [24, 48]:
+            raise IOError('Cinema2K frame rate must be either 24 or 48.')
+        cparams.cp_cinema = fps
+
+        cparams.cp_rsiz = RSIZ['CINEMA2K']
+        # No tiling
+        cparams.tile_size_on = opj2.FALSE
+        cparams.cp_tdx = 1
+        cparams.cp_tdy = 1
+
+        # One tile part for each component.
+        cparams.tp_flag = ord('C')
+        cparams.tp_on = 1
+
+        # tile and image shall be as (0,0)
+        cparams.cp_tx0 = 0
+        cparams.cp_ty0 = 0
+        cparams.image_offset_x0 = 0
+        cparams.image_offset_y0 = 0
+
+        # Codeblock size = 32 * 32
+        cparams.cblockw_init = 32
+        cparams.cblockh_init = 32
+
+        # code block style, no mode switch enabled.
+        cparams.mode = 0
+
+        # no ROI
+        cparams.roi_compno = -1
+
+        # no subsampling
+        cparams.subsampling_dx = 1
+        cparams.subsampling_dy = 1
+
+        # 9-7 transform
+        cparams.irreversible = 1
+
+        # number of layers
+        if cparams.tcp_numlayers > 1:
+            # TODO:  warning or error
+            cparams.tcp_numlayers = 1
+
+        if cparams.numresolution > 6:
+            # TODO:  warning or error
+            cparams.numresolution = 6
+
+        # precincts
+        cparams.csty |= 0x01
+        cparams.res_spec = cparams.numresolution - 1
+        for j in range(cparams.res_spec):
+            cparams.prcw_init[j] = 256
+            cparams.prch_init[j] = 256
+
+        # Progression order shall be CPRL
+        cparams.prog_order = PROGRESSION_ORDER['CPRL']
+
+        # progression order changes not allowed for 2K
+        cparams.numpocs = 0
+
     def _populate_cparams(self, **kwargs):
         """Populate compression parameters structure from input arguments.
 
@@ -221,64 +288,8 @@ class Jp2k(Jp2kBox):
         cparams.tcp_numlayers = 1
         cparams.cp_disto_alloc = 1
 
-        if 'cinema2K' in kwargs:
-            # TODO:  error if either 24 or 48
-            cparams.cp_cinema = kwargs['cinema2K']
-
-            cparams.cp_rsiz = RSIZ['CINEMA2K']
-            # No tiling
-            cparams.tile_size_on = opj2.FALSE
-            cparams.cp_tdx = 1
-            cparams.cp_tdy = 1
-
-            # One tile part for each component.
-            cparams.tp_flag = ord('C')
-            cparams.tp_on = 1
-
-            # tile and image shall be as (0,0)
-            cparams.cp_tx0 = 0
-            cparams.cp_ty0 = 0
-            cparams.image_offset_x0 = 0
-            cparams.image_offset_y0 = 0
-
-            # Codeblock size = 32 * 32
-            cparams.cblockw_init = 32
-            cparams.cblockh_init = 32
-
-            # code block style, no mode switch enabled.
-            cparams.mode = 0
-
-            # no ROI
-            cparams.roi_compno = -1
-
-            # no subsampling
-            cparams.subsampling_dx = 1
-            cparams.subsampling_dy = 1
-
-            # 9-7 transform
-            cparams.irreversible = 1
-
-            # number of layers
-            if cparams.tcp_numlayers > 1:
-                # TODO:  warning or error
-                cparams.tcp_numlayers = 1
-
-            if cparams.numresolution > 6:
-                # TODO:  warning or error
-                cparams.numresolution = 6
-
-            # precincts
-            cparams.csty |= 0x01
-            cparams.res_spec = cparams.numresolution - 1
-            for j in range(cparams.res_spec):
-                cparams.prcw_init[j] = 256
-                cparams.prch_init[j] = 256
-
-            # Progression order shall be CPRL
-            cparams.prog_order = PROGRESSION_ORDER['CPRL']
-
-            # progression order changes not allowed for 2K
-            cparams.numpocs = 0
+        if 'cinema2k' in kwargs:
+            self._set_cinema_params(cparams, kwargs['cinema2k'])
             return cparams
 
         if 'cbsize' in kwargs:
@@ -402,8 +413,8 @@ class Jp2k(Jp2kBox):
             Image data to be written to file.
         cbsize : tuple, optional
             Code block size (DY, DX).
-        cinema2K : int, optional
-            either 24 or 48
+        cinema2k : int, optional
+            frames per second, either 24 or 48
         colorspace : str, optional
             Either 'rgb' or 'gray'.
         cratios : iterable
@@ -577,7 +588,7 @@ class Jp2k(Jp2kBox):
 
             _populate_image_struct(cparams, image, img_array)
 
-            if 'cinema2K' in kwargs:
+            if 'cinema2k' in kwargs:
                 self._set_cinema_rate(cparams, image)
 
             codec = opj2.create_compress(cparams.codec_fmt)

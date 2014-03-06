@@ -133,7 +133,6 @@ class TestPrinting(unittest.TestCase):
         lst = lst[1:]
         actual = '\n'.join(lst)
         expected = fixtures.nemo_dump_no_xml
-        self.maxDiff = None
         self.assertEqual(actual, expected)
 
     def test_printoptions_short(self):
@@ -745,7 +744,9 @@ class TestPrinting(unittest.TestCase):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.box[2])
             actual = fake_out.getvalue().strip()
-        self.assertEqual(actual, fixtures.file7_rreq)
+        self.maxDiff = None
+        expected = fixtures.file7_rreq
+        self.assertEqual(actual, expected)
 
     @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")

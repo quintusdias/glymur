@@ -16,7 +16,7 @@ try:
     import skimage.io
     skimage.io.use_plugin('freeimage', 'imread')
     _HAS_SKIMAGE_FREEIMAGE_SUPPORT = True
-except ImportError:
+except ((ImportError, RuntimeError)):
     _HAS_SKIMAGE_FREEIMAGE_SUPPORT = False
 
 from .fixtures import read_image, NO_READ_BACKEND, NO_READ_BACKEND_MSG
@@ -24,7 +24,6 @@ from .fixtures import OPJ_DATA_ROOT, opj_data_file
 
 from glymur import Jp2k
 import glymur
-
 
 @unittest.skipIf(os.name == "nt", "no write support on windows, period")
 @unittest.skipIf(re.match(r"""1\.[01234]\.\d""",
@@ -53,7 +52,7 @@ class TestSuiteWrite(unittest.TestCase):
         data = skimage.io.imread(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
-            j.write(data, cinema2K=24)
+            j.write(data, cinema2k=24)
 
             codestream = j.get_codestream()
 
@@ -111,7 +110,16 @@ class TestSuiteWrite(unittest.TestCase):
             self.assertEqual(len(codestream.segment[2].spcod), 9)
 
 
-
+    @unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+                     "Cannot read input image without scikit-image/freeimage")
+    def test_cinema2k_bad_frame_rate(self):
+        relfile = 'input/nonregression/X_4_2K_24_185_CBR_WB_000.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(IOError):
+                j.write(data, cinema2k=36)
 
 
     def test_NR_ENC_Bretagne1_ppm_1_encode(self):

@@ -22,7 +22,7 @@ try:
         HAS_PYTHON_XMP_TOOLKIT = True
     else:
         HAS_PYTHON_XMP_TOOLKIT = False
-except ImportError:
+except:
     HAS_PYTHON_XMP_TOOLKIT = False
 
 # Need to know of the libopenjp2 version is the official 2.0.0 release and NOT
