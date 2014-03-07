@@ -566,15 +566,15 @@ class Jp2k(Jp2kBox):
         temp_rate = 0
         cparams.cp_disto_alloc = 1
 
+        num_pixels = image.contents.comps[0].w * image.contents.comps[0].h
+        num_samples = num_pixels * image.contents.numcomps
+        rate_numerator = num_samples * image.contents.comps[0].prec
+        rate_denominator = 8 * image.contents.comps[0].dx
+        rate_denominator *= image.contents.comps[0].dy
+
         if cparams.cp_cinema in [CINEMA_MODE['cinema2k_24'],
                                  CINEMA_MODE['cinema4k_24']]:
-            num_pixels = image.contents.comps[0].w * image.contents.comps[0].h
-            num_samples = num_pixels * image.contents.numcomps
-            rate_numerator = num_samples * image.contents.comps[0].prec
-            rate_denominator = CINEMA_24_CS * 8
-            rate_denominator *= image.contents.comps[0].dx
-            rate_denominator *= image.contents.comps[0].dy
-            max_rate = rate_numerator / rate_denominator
+            max_rate = rate_numerator / (rate_denominator * CINEMA_24_CS)
             if cparams.tcp_rates[0] == 0:
                 cparams.tcp_rates[0] = max_rate
             else:
@@ -589,13 +589,7 @@ class Jp2k(Jp2kBox):
             cparams.max_comp_size = COMP_24_CS
 
         else:
-            num_pixels = image.contents.comps[0].w * image.contents.comps[0].h
-            num_samples = num_pixels * image.contents.numcomps
-            rate_numerator = num_samples * image.contents.comps[0].prec
-            rate_denominator = CINEMA_48_CS * 8
-            rate_denominator *= image.contents.comps[0].dx
-            rate_denominator *= image.contents.comps[0].dy
-            max_rate = rate_numerator / rate_denominator
+            max_rate = rate_numerator / (rate_denominator * CINEMA_48_CS)
             if cparams.tcp_rates[0] == 0:
                 cparams.tcp_rates[0] = max_rate
             else:
