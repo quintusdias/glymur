@@ -11,12 +11,10 @@
 # pylint: disable=R0904
 
 import os
-import re
 import struct
 import sys
 import tempfile
 import warnings
-from xml.etree import cElementTree as ET
 import unittest
 
 if sys.hexversion < 0x03000000:
@@ -29,104 +27,126 @@ if sys.hexversion <= 0x03030000:
 else:
     from unittest.mock import patch
 
+import lxml.etree as ET
+
 import glymur
 from glymur import Jp2k
+from . import fixtures
 from .fixtures import OPJ_DATA_ROOT, opj_data_file
+from .fixtures import text_gbr_27, text_gbr_33, text_gbr_34
 
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-@unittest.skipIf(re.match(r"""1\.[01234]""", glymur.version.openjpeg_version),
-                 "Need at least 1.5 in order to write jp2 files.")
-class TestPrintingNeedsLib(unittest.TestCase):
-    """These tests require the library, mostly in order to just setup the test.
-    """
-
-    @classmethod
-    def setUpClass(cls):
-        # Setup a plain JP2 file without the two UUID boxes.
-        jp2file = glymur.data.nemo()
-        with tempfile.NamedTemporaryFile(suffix='.jp2', delete=False) as tfile:
-            cls._plain_nemo_file = tfile.name
-            ijfile = Jp2k(jp2file)
-            data = ijfile.read(rlevel=1)
-            ojfile = Jp2k(cls._plain_nemo_file, 'wb')
-            ojfile.write(data)
-
-    @classmethod
-    def tearDownClass(cls):
-        os.unlink(cls._plain_nemo_file)
-
+class TestPrinting(unittest.TestCase):
+    """Tests for verifying how printing works."""
     def setUp(self):
+        self.jpxfile = glymur.data.jpxfile()
         self.jp2file = glymur.data.nemo()
         self.j2kfile = glymur.data.goodstuff()
 
-        # Save the output of dumping nemo.jp2 for more than one test.
-        lines = ['JPEG 2000 Signature Box (jP  ) @ (0, 12)',
-                 '    Signature:  0d0a870a',
-                 'File Type Box (ftyp) @ (12, 20)',
-                 '    Brand:  jp2 ',
-                 "    Compatibility:  ['jp2 ']",
-                 'JP2 Header Box (jp2h) @ (32, 45)',
-                 '    Image Header Box (ihdr) @ (40, 22)',
-                 '        Size:  [728 1296 3]',
-                 '        Bitdepth:  8',
-                 '        Signed:  False',
-                 '        Compression:  wavelet',
-                 '        Colorspace Unknown:  False',
-                 '    Colour Specification Box (colr) @ (62, 15)',
-                 '        Method:  enumerated colorspace',
-                 '        Precedence:  0',
-                 '        Colorspace:  sRGB',
-                 'Contiguous Codestream Box (jp2c) @ (77, 1632355)',
-                 '    Main header:',
-                 '        SOC marker segment @ (85, 0)',
-                 '        SIZ marker segment @ (87, 47)',
-                 '            Profile:  2',
-                 '            Reference Grid Height, Width:  (728 x 1296)',
-                 '            Vertical, Horizontal Reference Grid Offset:  '
-                 + '(0 x 0)',
-                 '            Reference Tile Height, Width:  (728 x 1296)',
-                 '            Vertical, Horizontal Reference Tile Offset:  '
-                 + '(0 x 0)',
-                 '            Bitdepth:  (8, 8, 8)',
-                 '            Signed:  (False, False, False)',
-                 '            Vertical, Horizontal Subsampling:  '
-                 + '((1, 1), (1, 1), (1, 1))',
-                 '        COD marker segment @ (136, 12)',
-                 '            Coding style:',
-                 '                Entropy coder, without partitions',
-                 '                SOP marker segments:  False',
-                 '                EPH marker segments:  False',
-                 '            Coding style parameters:',
-                 '                Progression order:  LRCP',
-                 '                Number of layers:  1',
-                 '                Multiple component transformation usage:  '
-                 + 'reversible',
-                 '                Number of resolutions:  6',
-                 '                Code block height, width:  (64 x 64)',
-                 '                Wavelet transform:  5-3 reversible',
-                 '                Precinct size:  default, 2^15 x 2^15',
-                 '                Code block context:',
-                 '                    Selective arithmetic coding bypass:  '
-                 + 'False',
-                 '                    Reset context probabilities on '
-                 + 'coding pass boundaries:  False',
-                 '                    Termination on each coding pass:  False',
-                 '                    Vertically stripe causal context:  '
-                 + 'False',
-                 '                    Predictable termination:  False',
-                 '                    Segmentation symbols:  False',
-                 '        QCD marker segment @ (150, 19)',
-                 '            Quantization style:  no quantization, '
-                 + '2 guard bits',
-                 '            Step size:  [(0, 8), (0, 9), (0, 9), '
-                 + '(0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), '
-                 + '(0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), '
-                 + '(0, 10)]']
-        self.expected_plain = '\n'.join(lines)
+        # Reset printoptions for every test.
+        glymur.set_printoptions(short=False, xml=True, codestream=True)
 
     def tearDown(self):
         pass
+
+    @unittest.skipIf(sys.hexversion < 0x03000000, "Needs unittest in 3.x.")
+    def test_unknown_superbox(self):
+        """Verify that we can handle an unknown superbox."""
+        with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
+            with open(self.jpxfile, 'rb') as ifile:
+                tfile.write(ifile.read())
+            
+            # Add the header for an unknwon superbox.
+            write_buffer = struct.pack('>I4s', 20, 'grp '.encode())
+            tfile.write(write_buffer)
+            write_buffer = struct.pack('>I4sI', 12, 'free'.encode(), 0)
+            tfile.write(write_buffer)
+            tfile.flush()
+
+            with self.assertWarns(UserWarning):
+                jpx = Jp2k(tfile.name)
+            glymur.set_printoptions(short=True)
+            with patch('sys.stdout', new=StringIO()) as fake_out:
+                print(jpx.box[-1])
+                actual = fake_out.getvalue().strip()
+            lines = ['Unknown Box (grp ) @ (695609, 20)',
+                     '    Free Box (free) @ (695617, 12)']
+            expected = '\n'.join(lines)
+            self.assertEqual(actual, expected)
+
+    def test_printoptions_bad_argument(self):
+        """Verify error when bad parameter to set_printoptions"""
+        with self.assertRaises(TypeError):
+            glymur.set_printoptions(hi='low')
+
+    def test_propts_no_codestream_then_no_xml(self):
+        """Verify printed output when codestream=False and xml=False, #162"""
+        # The print options should be persistent across invocations.
+        glymur.set_printoptions(codestream=False)
+        glymur.set_printoptions(xml=False)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            glymur.jp2dump(self.jp2file)
+            actual = fake_out.getvalue().strip()
+
+        # Get rid of the filename line, as it is not set in stone.
+        lst = actual.split('\n')
+        lst = lst[1:]
+        actual = '\n'.join(lst)
+        self.assertEqual(actual, fixtures.nemo_dump_no_codestream_no_xml)
+
+    def test_printopt_no_codestr_or_xml(self):
+        """Verify printed output when codestream=False and xml=False"""
+        glymur.set_printoptions(codestream=False, xml=False)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            glymur.jp2dump(self.jp2file)
+            actual = fake_out.getvalue().strip()
+
+        # Get rid of the filename line, as it is not set in stone.
+        lst = actual.split('\n')
+        lst = lst[1:]
+        actual = '\n'.join(lst)
+        self.assertEqual(actual, fixtures.nemo_dump_no_codestream_no_xml)
+
+    def test_printoptions_no_codestream(self):
+        """Verify printed output when codestream=False"""
+        glymur.set_printoptions(codestream=False)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            glymur.jp2dump(self.jp2file)
+            actual = fake_out.getvalue().strip()
+
+        # Get rid of the filename line, as it is not set in stone.
+        lst = actual.split('\n')
+        lst = lst[1:]
+        actual = '\n'.join(lst)
+        self.assertEqual(actual, fixtures.nemo_dump_no_codestream)
+
+    def test_printoptions_no_xml(self):
+        """Verify printed output when xml=False"""
+        glymur.set_printoptions(xml=False)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            glymur.jp2dump(self.jp2file)
+            actual = fake_out.getvalue().strip()
+
+        # Get rid of the filename line, as it is not set in stone.
+        lst = actual.split('\n')
+        lst = lst[1:]
+        actual = '\n'.join(lst)
+        expected = fixtures.nemo_dump_no_xml
+        self.assertEqual(actual, expected)
+
+    def test_printoptions_short(self):
+        """Verify printed output when short=True"""
+        glymur.set_printoptions(short=True)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            glymur.jp2dump(self.jp2file)
+            actual = fake_out.getvalue().strip()
+
+        # Get rid of the filename line, as it is not set in stone.
+        lst = actual.split('\n')
+        lst = lst[1:]
+        actual = '\n'.join(lst)
+        self.assertEqual(actual, fixtures.nemo_dump_short)
 
     def test_asoc_label_box(self):
         """verify printing of asoc, label boxes"""
@@ -184,18 +204,18 @@ class TestPrintingNeedsLib(unittest.TestCase):
     def test_jp2dump(self):
         """basic jp2dump test"""
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            glymur.jp2dump(self._plain_nemo_file)
+            glymur.jp2dump(self.jp2file)
             actual = fake_out.getvalue().strip()
 
         # Get rid of the filename line, as it is not set in stone.
         lst = actual.split('\n')
         lst = lst[1:]
         actual = '\n'.join(lst)
-        self.assertEqual(actual, self.expected_plain)
+        self.assertEqual(actual, fixtures.nemo_dump_full)
 
     def test_entire_file(self):
         """verify output from printing entire file"""
-        j = glymur.Jp2k(self._plain_nemo_file)
+        j = glymur.Jp2k(self.jp2file)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j)
             actual = fake_out.getvalue().strip()
@@ -205,18 +225,7 @@ class TestPrintingNeedsLib(unittest.TestCase):
         lst = lst[1:]
         actual = '\n'.join(lst)
 
-        self.assertEqual(actual, self.expected_plain)
-
-
-class TestPrinting(unittest.TestCase):
-    """Test suite for printing where the libraries are not needed"""
-
-    def setUp(self):
-        # Save sys.stdout.
-        self.jp2file = glymur.data.nemo()
-
-    def tearDown(self):
-        pass
+        self.assertEqual(actual, fixtures.nemo_dump_full)
 
     def test_coc_segment(self):
         """verify printing of COC segment"""
@@ -226,7 +235,7 @@ class TestPrinting(unittest.TestCase):
             print(codestream.segment[6])
             actual = fake_out.getvalue().strip()
 
-        lines = ['COC marker segment @ (3260, 9)',
+        lines = ['COC marker segment @ (3356, 9)',
                  '    Associated component:  1',
                  '    Coding style for this component:  '
                  + 'Entropy coder, PARTITION = 0',
@@ -254,7 +263,7 @@ class TestPrinting(unittest.TestCase):
             print(codestream.segment[2])
             actual = fake_out.getvalue().strip()
 
-        lines = ['COD marker segment @ (3186, 12)',
+        lines = ['COD marker segment @ (3282, 12)',
                  '    Coding style:',
                  '        Entropy coder, without partitions',
                  '        SOP marker segments:  False',
@@ -277,75 +286,6 @@ class TestPrinting(unittest.TestCase):
                  '            Predictable termination:  False',
                  '            Segmentation symbols:  False']
 
-        expected = '\n'.join(lines)
-        self.assertEqual(actual, expected)
-
-    @unittest.skipIf(OPJ_DATA_ROOT is None,
-                     "OPJ_DATA_ROOT environment variable not set")
-    def test_icc_profile(self):
-        """verify printing of colr box with ICC profile"""
-        filename = opj_data_file('input/nonregression/text_GBR.jp2')
-        with warnings.catch_warnings():
-            # brand is 'jp2 ', but has any icc profile.
-            warnings.simplefilter("ignore")
-            jp2 = Jp2k(filename)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(jp2.box[3].box[1])
-            actual = fake_out.getvalue().strip()
-        lin27 = ["Colour Specification Box (colr) @ (179, 1339)",
-                 "    Method:  any ICC profile",
-                 "    Precedence:  2",
-                 "    Approximation:  accurately represents correct "
-                 + "colorspace definition",
-                 "    ICC Profile:",
-                 "        {'Color Space': 'RGB',",
-                 "         'Connection Space': 'XYZ',",
-                 "         'Creator': u'appl',",
-                 "         'Datetime': "
-                 + "datetime.datetime(2009, 2, 25, 11, 26, 11),",
-                 "         'Device Attributes': 'reflective, glossy, "
-                 + "positive media polarity, color media',",
-                 "         'Device Class': 'display device profile',",
-                 "         'Device Manufacturer': u'appl',",
-                 "         'Device Model': '',",
-                 "         'File Signature': u'acsp',",
-                 "         'Flags': "
-                 + "'not embedded, can be used independently',",
-                 "         'Illuminant': "
-                 + "array([ 0.96420288,  1.        ,  0.8249054 ]),",
-                 "         'Platform': u'APPL',",
-                 "         'Preferred CMM Type': 1634758764,",
-                 "         'Rendering Intent': 'perceptual',",
-                 "         'Size': 1328,",
-                 "         'Version': '2.2.0'}"]
-        lin33 = ["Colour Specification Box (colr) @ (179, 1339)",
-                 "    Method:  any ICC profile",
-                 "    Precedence:  2",
-                 "    Approximation:  accurately represents correct "
-                 + "colorspace definition",
-                 "    ICC Profile:",
-                 "        {'Size': 1328,",
-                 "         'Preferred CMM Type': 1634758764,",
-                 "         'Version': '2.2.0',",
-                 "         'Device Class': 'display device profile',",
-                 "         'Color Space': 'RGB',",
-                 "         'Connection Space': 'XYZ',",
-                 "         'Datetime': "
-                 + "datetime.datetime(2009, 2, 25, 11, 26, 11),",
-                 "         'File Signature': 'acsp',",
-                 "         'Platform': 'APPL',",
-                 "         'Flags': 'not embedded, can be used "
-                 + "independently',",
-                 "         'Device Manufacturer': 'appl',",
-                 "         'Device Model': '',",
-                 "         'Device Attributes': 'reflective, glossy, "
-                 + "positive media polarity, color media',",
-                 "         'Rendering Intent': 'perceptual',",
-                 "         'Illuminant': "
-                 + "array([ 0.96420288,  1.        ,  0.8249054 ]),",
-                 "         'Creator': 'appl'}"]
-
-        lines = lin27 if sys.hexversion < 0x03000000 else lin33
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
@@ -420,7 +360,7 @@ class TestPrinting(unittest.TestCase):
             print(codestream.segment[-1])
             actual = fake_out.getvalue().strip()
 
-        lines = ['EOC marker segment @ (1135421, 0)']
+        lines = ['EOC marker segment @ (1135517, 0)']
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
@@ -517,7 +457,7 @@ class TestPrinting(unittest.TestCase):
             print(codestream.segment[7])
             actual = fake_out.getvalue().strip()
 
-        lines = ['QCC marker segment @ (3271, 8)',
+        lines = ['QCC marker segment @ (3367, 8)',
                  '    Associated Component:  1',
                  '    Quantization style:  no quantization, 2 guard bits',
                  '    Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]']
@@ -533,7 +473,7 @@ class TestPrinting(unittest.TestCase):
             print(codestream.segment[3])
             actual = fake_out.getvalue().strip()
 
-        lines = ['QCD marker segment @ (3200, 7)',
+        lines = ['QCD marker segment @ (3296, 7)',
                  '    Quantization style:  no quantization, 2 guard bits',
                  '    Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]']
 
@@ -548,7 +488,7 @@ class TestPrinting(unittest.TestCase):
             print(codestream.segment[1])
             actual = fake_out.getvalue().strip()
 
-        lines = ['SIZ marker segment @ (3137, 47)',
+        lines = ['SIZ marker segment @ (3233, 47)',
                  '    Profile:  2',
                  '    Reference Grid Height, Width:  (1456 x 2592)',
                  '    Vertical, Horizontal Reference Grid Offset:  (0 x 0)',
@@ -570,7 +510,7 @@ class TestPrinting(unittest.TestCase):
             print(codestream.segment[0])
             actual = fake_out.getvalue().strip()
 
-        lines = ['SOC marker segment @ (3135, 0)']
+        lines = ['SOC marker segment @ (3231, 0)']
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
@@ -582,7 +522,7 @@ class TestPrinting(unittest.TestCase):
             print(codestream.segment[10])
             actual = fake_out.getvalue().strip()
 
-        lines = ['SOD marker segment @ (3302, 0)']
+        lines = ['SOD marker segment @ (3398, 0)']
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
@@ -594,7 +534,7 @@ class TestPrinting(unittest.TestCase):
             print(codestream.segment[5])
             actual = fake_out.getvalue().strip()
 
-        lines = ['SOT marker segment @ (3248, 10)',
+        lines = ['SOT marker segment @ (3344, 10)',
                  '    Tile part index:  0',
                  '    Tile part length:  1132173',
                  '    Tile part instance:  0',
@@ -626,22 +566,10 @@ class TestPrinting(unittest.TestCase):
         """Verify the printing of a UUID/XMP box."""
         j = glymur.Jp2k(self.jp2file)
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(j.box[4])
+            print(j.box[3])
             actual = fake_out.getvalue().strip()
 
-        lst = ['UUID Box (uuid) @ (715, 2412)',
-               '    UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)',
-               '    UUID Data:  ',
-               '    <ns0:xmpmeta xmlns:ns0="adobe:ns:meta/" '
-               + 'xmlns:ns2="http://ns.adobe.com/xap/1.0/" '
-               + 'xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" '
-               + 'ns0:xmptk="XMP Core 4.4.0-Exiv2">',
-               '      <rdf:RDF>',
-               '        <rdf:Description ns2:CreatorTool="glymur" '
-               + 'rdf:about="" />',
-               '      </rdf:RDF>',
-               '    </ns0:xmpmeta>']
-        expected = '\n'.join(lst)
+        expected = fixtures.nemo_xmp_box
         self.assertEqual(actual, expected)
 
     def test_codestream(self):
@@ -651,8 +579,8 @@ class TestPrinting(unittest.TestCase):
             print(j.get_codestream())
             actual = fake_out.getvalue().strip()
         lst = ['Codestream:',
-               '    SOC marker segment @ (3135, 0)',
-               '    SIZ marker segment @ (3137, 47)',
+               '    SOC marker segment @ (3231, 0)',
+               '    SIZ marker segment @ (3233, 47)',
                '        Profile:  2',
                '        Reference Grid Height, Width:  (1456 x 2592)',
                '        Vertical, Horizontal Reference Grid Offset:  (0 x 0)',
@@ -662,7 +590,7 @@ class TestPrinting(unittest.TestCase):
                '        Signed:  (False, False, False)',
                '        Vertical, Horizontal Subsampling:  '
                + '((1, 1), (1, 1), (1, 1))',
-               '    COD marker segment @ (3186, 12)',
+               '    COD marker segment @ (3282, 12)',
                '        Coding style:',
                '            Entropy coder, without partitions',
                '            SOP marker segments:  False',
@@ -684,11 +612,11 @@ class TestPrinting(unittest.TestCase):
                '                Vertically stripe causal context:  False',
                '                Predictable termination:  False',
                '                Segmentation symbols:  False',
-               '    QCD marker segment @ (3200, 7)',
+               '    QCD marker segment @ (3296, 7)',
                '        Quantization style:  no quantization, '
                + '2 guard bits',
                '        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]',
-               '    CME marker segment @ (3209, 37)',
+               '    CME marker segment @ (3305, 37)',
                '        "Created by OpenJPEG version 2.0.0"']
         expected = '\n'.join(lst)
         self.assertEqual(actual, expected)
@@ -702,39 +630,18 @@ class TestPrinting(unittest.TestCase):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.box[2])
             actual = fake_out.getvalue().strip()
-
-        lines = ['XML Box (xml ) @ (36, 439)',
-                 '    <ns0:IMAGE_CREATION '
-                 + 'xmlns:ns0="http://www.jpeg.org/jpx/1.0/xml" '
-                 + 'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '
-                 + 'xsi:schemaLocation="http://www.jpeg.org/jpx/1.0/xml '
-                 + 'http://www.jpeg.org/metadata/15444-2.xsd">',
-
-                 '      <ns0:GENERAL_CREATION_INFO>',
-                 '        <ns0:CREATION_TIME>'
-                 + '2001-11-01T13:45:00.000-06:00'
-                 + '</ns0:CREATION_TIME>',
-
-                 '        <ns0:IMAGE_SOURCE>'
-                 + 'Professional 120 Image'
-                 + '</ns0:IMAGE_SOURCE>',
-
-                 '      </ns0:GENERAL_CREATION_INFO>',
-                 '    </ns0:IMAGE_CREATION>']
-        expected = '\n'.join(lines)
-        self.assertEqual(actual, expected)
+        self.assertEqual(actual, fixtures.file1_xml)
 
     @unittest.skipIf(sys.hexversion < 0x03000000,
                      "Only trusting python3 for printing non-ascii chars")
     def test_xml_latin1(self):
         """Should be able to print an XMLBox with utf-8 encoding (latin1)."""
         # Seems to be inconsistencies between different versions of python2.x
-        # as to what gets printed.  
+        # as to what gets printed.
         #
         # 2.7.5 (fedora 19) prints xml entities.
         # 2.7.3 seems to want to print hex escapes.
-        text = u"""<?xml version="1.0" encoding="utf-8"?>
-        <flow>Strömung</flow>"""
+        text = u"""<flow>Strömung</flow>"""
         if sys.hexversion < 0x03000000:
             xml = ET.parse(StringIO(text.encode('utf-8')))
         else:
@@ -758,12 +665,11 @@ class TestPrinting(unittest.TestCase):
     def test_xml_cyrrilic(self):
         """Should be able to print an XMLBox with utf-8 encoding (cyrrillic)."""
         # Seems to be inconsistencies between different versions of python2.x
-        # as to what gets printed.  
+        # as to what gets printed.
         #
         # 2.7.5 (fedora 19) prints xml entities.
         # 2.7.3 seems to want to print hex escapes.
-        text = u"""<?xml version="1.0" encoding="utf-8"?>
-        <country>Россия</country>"""
+        text = u"""<country>Россия</country>"""
         if sys.hexversion < 0x03000000:
             xml = ET.parse(StringIO(text.encode('utf-8')))
         else:
@@ -838,19 +744,8 @@ class TestPrinting(unittest.TestCase):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.box[2])
             actual = fake_out.getvalue().strip()
-        lines = ['Reader Requirements Box (rreq) @ (44, 24)',
-                 '    Standard Features:',
-                 '        Feature 005:  '
-                 + 'Unrestricted JPEG 2000 Part 1 codestream, '
-                 + 'ITU-T Rec. T.800 | ISO/IEC 15444-1',
-                 '        Feature 060:  e-sRGB enumerated colorspace',
-
-                 '        Feature 043:  '
-                 + '(Deprecated) '
-                 + 'compositing layer uses restricted ICC profile',
-
-                 '    Vendor Features:']
-        expected = '\n'.join(lines)
+        self.maxDiff = None
+        expected = fixtures.file7_rreq
         self.assertEqual(actual, expected)
 
     @unittest.skipIf(OPJ_DATA_ROOT is None,
@@ -967,12 +862,10 @@ class TestPrinting(unittest.TestCase):
             expected = '\n'.join(lines)
             self.assertEqual(actual, expected)
 
-    @unittest.skipIf(sys.hexversion < 0x03000000,
-                     "Ordered dicts not printing well in 2.7")
     @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
-    def test_jpx_approx_icc_profile(self):
-        """verify jpx with approx field equal to zero"""
+    def test_icc_profile(self):
+        """verify icc profile printing with a jpx"""
         # ICC profiles may be used in JP2, but the approximation field should
         # be zero unless we have jpx.  This file does both.
         filename = opj_data_file('input/nonregression/text_GBR.jp2')
@@ -984,34 +877,13 @@ class TestPrinting(unittest.TestCase):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(jp2.box[3].box[1])
             actual = fake_out.getvalue().strip()
-        lines = ["Colour Specification Box (colr) @ (179, 1339)",
-                 "    Method:  any ICC profile",
-                 "    Precedence:  2",
-                 "    Approximation:  accurately represents "
-                 + "correct colorspace definition",
-                 "    ICC Profile:",
-                 "        {'Size': 1328,",
-                 "         'Preferred CMM Type': 1634758764,",
-                 "         'Version': '2.2.0',",
-                 "         'Device Class': 'display device profile',",
-                 "         'Color Space': 'RGB',",
-                 "         'Connection Space': 'XYZ',",
-                 "         'Datetime': "
-                 + "datetime.datetime(2009, 2, 25, 11, 26, 11),",
-                 "         'File Signature': 'acsp',",
-                 "         'Platform': 'APPL',",
-                 "         'Flags': 'not embedded, "
-                 + "can be used independently',",
-                 "         'Device Manufacturer': 'appl',",
-                 "         'Device Model': '',",
-                 "         'Device Attributes': 'reflective, glossy, "
-                 + "positive media polarity, color media',",
-                 "         'Rendering Intent': 'perceptual',",
-                 "         'Illuminant': array([ 0.96420288,  1.        ,"
-                 + "  0.8249054 ]),",
-                 "         'Creator': 'appl'}"]
+        if sys.hexversion < 0x03000000:
+            expected = text_gbr_27
+        elif sys.hexversion < 0x03040000:
+            expected = text_gbr_33
+        else:
+            expected = text_gbr_34
 
-        expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
     @unittest.skipIf(OPJ_DATA_ROOT is None,
@@ -1028,7 +900,7 @@ class TestPrinting(unittest.TestCase):
             print(jp2.box[4])
             actual = fake_out.getvalue().strip()
         lines = ['UUID Box (uuid) @ (1544, 25)',
-                 '    UUID:  3a0d0218-0ae9-4115-b376-4bca41ce0e71',
+                 '    UUID:  3a0d0218-0ae9-4115-b376-4bca41ce0e71 (unknown)',
                  '    UUID Data:  1 bytes']
 
         expected = '\n'.join(lines)
@@ -1038,60 +910,37 @@ class TestPrinting(unittest.TestCase):
                      "Ordered dicts not printing well in 2.7")
     def test_exif_uuid(self):
         """Verify printing of exif information"""
-        j = glymur.Jp2k(self.jp2file)
+        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
 
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(j.box[3])
-            actual = fake_out.getvalue().strip()
+            with open(self.jp2file, 'rb') as ifptr:
+                tfile.write(ifptr.read())
 
-        lines = ["UUID Box (uuid) @ (77, 638)",
-                 "    UUID:  4a706754-6966-6645-7869-662d3e4a5032 (Exif)",
-                 "    UUID Data:  ",
-                 "{'Image': {'Make': 'HTC',",
-                 "           'Model': 'HTC Glacier',",
-                 "           'XResolution': 72.0,",
-                 "           'YResolution': 72.0,",
-                 "           'ResolutionUnit': 2,",
-                 "           'YCbCrPositioning': 1,",
-                 "           'ExifTag': 138,",
-                 "           'GPSTag': 354},",
-                 " 'Photo': {'ISOSpeedRatings': 76,",
-                 "           'ExifVersion': (48, 50, 50, 48),",
-                 "           'DateTimeOriginal': '2013:02:09 14:47:53',",
-                 "           'DateTimeDigitized': '2013:02:09 14:47:53',",
-                 "           'ComponentsConfiguration': (1, 2, 3, 0),",
-                 "           'FocalLength': 3.53,",
-                 "           'FlashpixVersion': (48, 49, 48, 48),",
-                 "           'ColorSpace': 1,",
-                 "           'PixelXDimension': 2528,",
-                 "           'PixelYDimension': 1424,",
-                 "           'InteroperabilityTag': 324},",
-                 " 'GPSInfo': {'GPSVersionID': (2, 2, 0),",
-                 "             'GPSLatitudeRef': 'N',",
-                 "             'GPSLatitude': [42.0, 20.0, 33.61],",
-                 "             'GPSLongitudeRef': 'W',",
-                 "             'GPSLongitude': [71.0, 5.0, 17.32],",
-                 "             'GPSAltitudeRef': 0,",
-                 "             'GPSAltitude': 0.0,",
-                 "             'GPSTimeStamp': [19.0, 47.0, 53.0],",
-                 "             'GPSMapDatum': 'WGS-84',",
-                 "             'GPSProcessingMethod': (65,",
-                 "                                     83,",
-                 "                                     67,",
-                 "                                     73,",
-                 "                                     73,",
-                 "                                     0,",
-                 "                                     0,",
-                 "                                     0,",
-                 "                                     78,",
-                 "                                     69,",
-                 "                                     84,",
-                 "                                     87,",
-                 "                                     79,",
-                 "                                     82,",
-                 "                                     75),",
-                 "             'GPSDateStamp': '2013:02:09'},",
-                 " 'Iop': None}"]
+            # Write L, T, UUID identifier.
+            tfile.write(struct.pack('>I4s', 76, b'uuid'))
+            tfile.write(b'JpgTiffExif->JP2')
+
+            tfile.write(b'Exif\x00\x00')
+            xbuffer = struct.pack('<BBHI', 73, 73, 42, 8)
+            tfile.write(xbuffer)
+
+            # We will write just three tags.
+            tfile.write(struct.pack('<H', 3))
+
+            # The "Make" tag is tag no. 271.
+            tfile.write(struct.pack('<HHII', 256, 4, 1, 256))
+            tfile.write(struct.pack('<HHII', 257, 4, 1, 512))
+            tfile.write(struct.pack('<HHI4s', 271, 2, 3, b'HTC\x00'))
+            tfile.flush()
+
+            j = glymur.Jp2k(tfile.name)
+
+            with patch('sys.stdout', new=StringIO()) as fake_out:
+                print(j.box[5])
+                actual = fake_out.getvalue().strip()
+
+        lines = ["UUID Box (uuid) @ (1135519, 76)",
+                 "    UUID:  4a706754-6966-6645-7869-662d3e4a5032 (EXIF)",
+                 "    UUID Data:  OrderedDict([('ImageWidth', 256), ('ImageLength', 512), ('Make', 'HTC')])"]
 
         expected = '\n'.join(lines)
 

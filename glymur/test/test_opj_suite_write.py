@@ -12,12 +12,18 @@ import sys
 import tempfile
 import unittest
 
+try:
+    import skimage.io
+    skimage.io.use_plugin('freeimage', 'imread')
+    _HAS_SKIMAGE_FREEIMAGE_SUPPORT = True
+except ((ImportError, RuntimeError)):
+    _HAS_SKIMAGE_FREEIMAGE_SUPPORT = False
+
 from .fixtures import read_image, NO_READ_BACKEND, NO_READ_BACKEND_MSG
 from .fixtures import OPJ_DATA_ROOT, opj_data_file
 
 from glymur import Jp2k
 import glymur
-
 
 @unittest.skipIf(os.name == "nt", "no write support on windows, period")
 @unittest.skipIf(re.match(r"""1\.[01234]\.\d""",
@@ -37,6 +43,200 @@ class TestSuiteWrite(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+    def check_cinema4k_codestream(self, codestream, image_size):
+        """Common out for cinema2k tests."""
+        # SIZ: Image and tile size
+        # Profile:  "3" means cinema2K
+        self.assertEqual(codestream.segment[1].rsiz, 4)
+        # Reference grid size
+        self.assertEqual((codestream.segment[1].xsiz,
+                          codestream.segment[1].ysiz),
+                         image_size)
+        # Reference grid offset
+        self.assertEqual((codestream.segment[1].xosiz,
+                          codestream.segment[1].yosiz), (0, 0))
+        # Tile size
+        self.assertEqual((codestream.segment[1].xtsiz,
+                          codestream.segment[1].ytsiz),
+                         image_size)
+        # Tile offset
+        self.assertEqual((codestream.segment[1].xtosiz,
+                          codestream.segment[1].ytosiz),
+                         (0, 0))
+        # bitdepth
+        self.assertEqual(codestream.segment[1].bitdepth, (12, 12, 12))
+        # signed
+        self.assertEqual(codestream.segment[1].signed,
+                         (False, False, False))
+        # subsampling
+        self.assertEqual(list(zip(codestream.segment[1].xrsiz,
+                                  codestream.segment[1].yrsiz)),
+                         [(1, 1)] * 3)
+
+        # COD: Coding style default
+        self.assertFalse(codestream.segment[2].scod & 2)  # no sop
+        self.assertFalse(codestream.segment[2].scod & 4)  # no eph
+        self.assertEqual(codestream.segment[2].spcod[0], glymur.core.CPRL)
+        self.assertEqual(codestream.segment[2].layers, 1)
+        self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
+        self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+        self.assertEqual(tuple(codestream.segment[2].code_block_size),
+                         (32, 32))  # cblksz
+
+
+
+    def check_cinema2k_codestream(self, codestream, image_size):
+        """Common out for cinema2k tests."""
+        # SIZ: Image and tile size
+        # Profile:  "3" means cinema2K
+        self.assertEqual(codestream.segment[1].rsiz, 3)
+        # Reference grid size
+        self.assertEqual((codestream.segment[1].xsiz,
+                          codestream.segment[1].ysiz),
+                         image_size)
+        # Reference grid offset
+        self.assertEqual((codestream.segment[1].xosiz,
+                          codestream.segment[1].yosiz), (0, 0))
+        # Tile size
+        self.assertEqual((codestream.segment[1].xtsiz,
+                          codestream.segment[1].ytsiz),
+                         image_size)
+        # Tile offset
+        self.assertEqual((codestream.segment[1].xtosiz,
+                          codestream.segment[1].ytosiz),
+                         (0, 0))
+        # bitdepth
+        self.assertEqual(codestream.segment[1].bitdepth, (12, 12, 12))
+        # signed
+        self.assertEqual(codestream.segment[1].signed,
+                         (False, False, False))
+        # subsampling
+        self.assertEqual(list(zip(codestream.segment[1].xrsiz,
+                                  codestream.segment[1].yrsiz)),
+                         [(1, 1)] * 3)
+
+        # COD: Coding style default
+        self.assertFalse(codestream.segment[2].scod & 2)  # no sop
+        self.assertFalse(codestream.segment[2].scod & 4)  # no eph
+        self.assertEqual(codestream.segment[2].spcod[0], glymur.core.CPRL)
+        self.assertEqual(codestream.segment[2].layers, 1)
+        self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
+        self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+        self.assertEqual(tuple(codestream.segment[2].code_block_size),
+                         (32, 32))  # cblksz
+
+
+
+    @unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+                     "Cannot read input image without scikit-image/freeimage")
+    def test_NR_ENC_ElephantDream_4K_tif_21_encode(self):
+        relfile = 'input/nonregression/ElephantDream_4K.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j.write(data, cinema4k=True)
+
+            codestream = j.get_codestream()
+            self.check_cinema4k_codestream(codestream, (4096, 2160))
+
+
+    @unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+                     "Cannot read input image without scikit-image/freeimage")
+    def test_NR_ENC_X_5_2K_24_235_CBR_STEM24_000_tif_19_encode(self):
+        relfile = 'input/nonregression/X_5_2K_24_235_CBR_STEM24_000.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j.write(data, cinema2k=48)
+
+            codestream = j.get_codestream()
+            self.check_cinema2k_codestream(codestream, (2048, 857))
+
+
+    @unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+                     "Cannot read input image without scikit-image/freeimage")
+    def test_NR_ENC_X_6_2K_24_FULL_CBR_CIRCLE_000_tif_20_encode(self):
+        relfile = 'input/nonregression/X_6_2K_24_FULL_CBR_CIRCLE_000.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j.write(data, cinema2k=48)
+
+            codestream = j.get_codestream()
+            self.check_cinema2k_codestream(codestream, (2048, 1080))
+
+
+    @unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+                     "Cannot read input image without scikit-image/freeimage")
+    def test_NR_ENC_X_6_2K_24_FULL_CBR_CIRCLE_000_tif_17_encode(self):
+        relfile = 'input/nonregression/X_6_2K_24_FULL_CBR_CIRCLE_000.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j.write(data, cinema2k=24)
+
+            codestream = j.get_codestream()
+            self.check_cinema2k_codestream(codestream, (2048, 1080))
+
+
+    @unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+                     "Cannot read input image without scikit-image/freeimage")
+    def test_NR_ENC_X_5_2K_24_235_CBR_STEM24_000_tif_16_encode(self):
+        relfile = 'input/nonregression/X_5_2K_24_235_CBR_STEM24_000.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j.write(data, cinema2k=24)
+
+            codestream = j.get_codestream()
+            self.check_cinema2k_codestream(codestream, (2048, 857))
+
+
+    @unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+                     "Cannot read input image without scikit-image/freeimage")
+    def test_NR_ENC_X_4_2K_24_185_CBR_WB_000_tif_18_encode(self):
+        relfile = 'input/nonregression/X_4_2K_24_185_CBR_WB_000.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j.write(data, cinema2k=48)
+
+            codestream = j.get_codestream()
+            self.check_cinema2k_codestream(codestream, (1998, 1080))
+
+
+    @unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+                     "Cannot read input image without scikit-image/freeimage")
+    def test_NR_ENC_X_4_2K_24_185_CBR_WB_000_tif_15_encode(self):
+        relfile = 'input/nonregression/X_4_2K_24_185_CBR_WB_000.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j.write(data, cinema2k=24)
+
+            codestream = j.get_codestream()
+            self.check_cinema2k_codestream(codestream, (1998, 1080))
+
+
+    @unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+                     "Cannot read input image without scikit-image/freeimage")
+    def test_cinema2k_bad_frame_rate(self):
+        relfile = 'input/nonregression/X_4_2K_24_185_CBR_WB_000.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(IOError):
+                j.write(data, cinema2k=36)
+
 
     def test_NR_ENC_Bretagne1_ppm_1_encode(self):
         """NR-ENC-Bretagne1.ppm-1-encode"""

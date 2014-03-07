@@ -11,29 +11,30 @@ References
    Extensions
 """
 
-# pylint: disable=C0302,R0903,R0913
+# pylint: disable=C0302,R0903,R0913,W0142
 
 from collections import OrderedDict
-import copy
 import datetime
-import io
 import math
 import os
 import pprint
 import struct
 import sys
+import textwrap
 import uuid
 import warnings
-import xml
-import xml.etree.cElementTree as ET
 
+import lxml.etree as ET
 import numpy as np
 
 from .codestream import Codestream
 from .core import _COLORSPACE_MAP_DISPLAY
 from .core import _COLOR_TYPE_MAP_DISPLAY
+from .core import SRGB, GREYSCALE, YCC
 from .core import ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE
 from .core import ANY_ICC_PROFILE, VENDOR_COLOR_METHOD
+
+from . import _uuid_io
 
 _METHOD_DISPLAY = {
     ENUMERATED_COLORSPACE: 'enumerated colorspace',
@@ -63,6 +64,8 @@ class Jp2kBox(object):
         offset of the box from the start of the file.
     longname : str
         more verbose description of the box.
+    box : list
+        List of JPEG 2000 boxes.
     """
 
     def __init__(self, box_id='', offset=0, length=0, longname=''):
@@ -70,6 +73,7 @@ class Jp2kBox(object):
         self.length = length
         self.offset = offset
         self.longname = longname
+        self.box = []
 
     def __repr__(self):
         msg = "glymur.jp2box.Jp2kBox(box_id='{0}', offset={1}, length={2}, "
@@ -87,6 +91,110 @@ class Jp2kBox(object):
         """
         msg = "Not supported for {0} box.".format(self.longname)
         raise NotImplementedError(msg)
+
+    def _str_superbox(self):
+        """__str__ method for all superboxes."""
+        msg = Jp2kBox.__str__(self)
+        for box in self.box:
+            boxstr = str(box)
+            # Indent the child boxes to make the association clear.
+            msg += '\n' + self._indent(boxstr)
+        return msg
+
+
+    def _indent(self, textstr, indent_level=4):
+        """
+        Indent a string.
+
+        Textwrap's indent method only exists for 3.3 or above.  In 2.7 we have
+        to fake it.
+
+        Parameters
+        ----------
+        textstring : str
+            String to be indented.
+        indent_level : str
+            Number of spaces of indentation to add.
+        
+        Returns
+        -------
+        indented_string : str
+            Possibly multi-line string indented a certain bit.
+        """
+        if sys.hexversion >= 0x03030000:
+            return textwrap.indent(textstr, ' ' * indent_level)
+        else:
+            lst = [(' ' * indent_level + x) for x in textstr.split('\n')]
+            return '\n'.join(lst)
+
+
+    def _write_superbox(self, fptr):
+        """Write a superbox.
+
+        Parameters
+        ----------
+        fptr : file or file object
+            Superbox (box of boxes) to be written to this file.
+        """
+        # Write the contained boxes, then come back and write the length.
+        orig_pos = fptr.tell()
+        fptr.write(struct.pack('>I', 0))
+        fptr.write(self.box_id.encode())
+        for box in self.box:
+            box.write(fptr)
+
+        end_pos = fptr.tell()
+        fptr.seek(orig_pos)
+        fptr.write(struct.pack('>I', end_pos - orig_pos))
+        fptr.seek(end_pos)
+
+    def _parse_this_box(self, fptr, box_id, start, num_bytes):
+        """Parse the current box.
+
+        Parameters
+        ----------
+        fptr : file
+            Open file object.
+        box_id : str
+            4-letter identifier for the current box.
+        start, num_bytes: int
+            Byte offset and length of the current box.
+
+        Returns
+        -------
+        box : Jp2kBox
+            object corresponding to the current box
+        """
+        try:
+            box = _BOX_WITH_ID[box_id].parse(fptr, start, num_bytes)
+        except KeyError:
+            msg = 'Unrecognized box ({0}) encountered.'.format(box_id)
+            warnings.warn(msg)
+            box = UnknownBox(box_id, offset=start, length=num_bytes,
+                             longname='Unknown')
+
+            cpos = fptr.tell()
+            if not ((cpos == start + 8) or (cpos == start + 16)):
+                # If the file pointer has advanced, then the KeyError
+                # ocurred during the parsing of the box.
+                pass
+            else:
+                # Could it be a superbox with recognizable child boxes?
+                # Peek ahead to see.
+                pos = fptr.tell()
+                read_buffer = fptr.read(8)
+                _, sub_id = struct.unpack('>I4s', read_buffer)
+                sub_id = sub_id.decode('utf-8')
+
+                # Regardless of whether or not we recognize the box, rewind back
+                # to properly advance to the next box.
+                fptr.seek(pos)
+
+                # Now process any child boxes if we actually did recognize it.
+                if sub_id in _BOX_WITH_ID.keys():
+                    box.box = box.parse_superbox(fptr)
+
+        return box
 
     def parse_superbox(self, fptr):
         """Parse a superbox (box consisting of nothing but other boxes.
@@ -127,16 +235,10 @@ class Jp2kBox(object):
                 num_bytes, = struct.unpack('>Q', read_buffer)
 
             else:
+                # The box_length value really is the length of the box!
                 num_bytes = box_length
 
-            # Call the proper parser for the given box with ID "T".
-            try:
-                box = _BOX_WITH_ID[box_id].parse(fptr, start, num_bytes)
-            except KeyError:
-                msg = 'Unrecognized box ({0}) encountered.'.format(box_id)
-                warnings.warn(msg)
-                box = Jp2kBox(box_id, offset=start, length=num_bytes,
-                              longname='Unknown box')
+            box = self._parse_this_box(fptr, box_id, start, num_bytes)
 
             superbox.append(box)
 
@@ -193,13 +295,6 @@ class ColourSpecificationBox(Jp2kBox):
                  approximation=0, colorspace=None, icc_profile=None,
                  length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='colr', longname='Colour Specification')
-
-        if colorspace is not None and icc_profile is not None:
-            raise IOError("colorspace and icc_profile cannot both be set.")
-        if method not in (1, 2, 3, 4):
-            raise IOError("Invalid method.")
-        if approximation not in (0, 1, 2, 3, 4):
-            raise IOError("Invalid approximation.")
         self.method = method
         self.precedence = precedence
         self.approximation = approximation
@@ -207,6 +302,33 @@ class ColourSpecificationBox(Jp2kBox):
         self.icc_profile = icc_profile
         self.length = length
         self.offset = offset
+        self._validate()
+
+    def _validate(self):
+        """Verify that the box obeys the specifications."""
+        if self.colorspace is not None and self.icc_profile is not None:
+            raise IOError("colorspace and icc_profile cannot both be set.")
+        if self.method not in (1, 2, 3, 4):
+            raise IOError("Invalid method.")
+        if self.approximation not in (0, 1, 2, 3, 4):
+            raise IOError("Invalid approximation.")
+
+    def _write_validate(self):
+        """In addition to constructor validation steps, run validation steps
+        for writing."""
+        if self.colorspace is None:
+            msg = "Writing Colour Specification boxes without enumerated "
+            msg += "colorspaces is not supported at this time."
+            raise IOError(msg)
+
+        if self.icc_profile is None:
+            if self.colorspace not in [SRGB, GREYSCALE, YCC]:
+                msg = "Colorspace should correspond to one of SRGB, GREYSCALE, "
+                msg += "or YCC."
+                raise IOError(msg)
+
+        self._validate()
+
 
     def __repr__(self):
         msg = "glymur.jp2box.ColourSpecificationBox("
@@ -221,6 +343,8 @@ class ColourSpecificationBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
+        if _printoptions['short'] == True:
+            return msg
 
         msg += '\n    Method:  {0}'.format(_METHOD_DISPLAY[self.method])
         msg += '\n    Precedence:  {0}'.format(self.precedence)
@@ -248,10 +372,7 @@ class ColourSpecificationBox(Jp2kBox):
     def write(self, fptr):
         """Write an Colour Specification box to file.
         """
-        if self.colorspace is None:
-            msg = "Writing Colour Specification boxes without enumerated "
-            msg += "colorspaces is not supported at this time."
-            raise NotImplementedError(msg)
+        self._write_validate()
         length = 15 if self.icc_profile is None else 11 + len(self.icc_profile)
         fptr.write(struct.pack('>I', length))
         fptr.write('colr'.encode())
@@ -447,23 +568,29 @@ class ChannelDefinitionBox(Jp2kBox):
     association : list
         index of the associated color
     """
-    def __init__(self, index=None, channel_type=None, association=None,
-                 **kwargs):
+    def __init__(self, channel_type, association, index=None, **kwargs):
         Jp2kBox.__init__(self, box_id='cdef', longname='Channel Definition')
 
-        # channel type and association must be specified.
-        if channel_type is None or association is None:
-            raise IOError("channel_type and association must be specified.")
-
         if index is None:
-            index = list(range(len(channel_type)))
+            self.index = tuple(range(len(channel_type)))
+        else:
+            self.index = tuple(index)
 
-        if len(index) != len(channel_type) or len(index) != len(association):
+        self.channel_type = tuple(channel_type)
+        self.association = tuple(association)
+        self.__dict__.update(**kwargs)
+        self._validate()
+
+    def _validate(self):
+        """Verify that the box obeys the specifications."""
+        # channel type and association must be specified.
+        if not ((len(self.index) == len(self.channel_type)) and
+                (len(self.channel_type) == len(self.association))):
             msg = "Length of channel definition box inputs must be the same."
             raise IOError(msg)
 
         # channel types must be one of 0, 1, 2, 65535
-        if any(x not in [0, 1, 2, 65535] for x in channel_type):
+        if any(x not in [0, 1, 2, 65535] for x in self.channel_type):
             msg = "Channel types must be in the set of\n\n"
             msg += "    0     - colour image data for associated color\n"
             msg += "    1     - opacity\n"
@@ -471,13 +598,12 @@ class ChannelDefinitionBox(Jp2kBox):
             msg += "    65535 - unspecified"
             raise IOError(msg)
 
-        self.index = tuple(index)
-        self.channel_type = tuple(channel_type)
-        self.association = tuple(association)
-        self.__dict__.update(**kwargs)
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
+        if _printoptions['short'] == True:
+            return msg
+
         for j in range(len(self.association)):
             color_type_string = _COLOR_TYPE_MAP_DISPLAY[self.channel_type[j]]
             if self.association[j] == 0:
@@ -497,6 +623,7 @@ class ChannelDefinitionBox(Jp2kBox):
     def write(self, fptr):
         """Write a channel definition box to file.
         """
+        self._validate()
         num_components = len(self.association)
         fptr.write(struct.pack('>I', 8 + 2 + num_components * 6))
         fptr.write('cdef'.encode('utf-8'))
@@ -534,9 +661,10 @@ class ChannelDefinitionBox(Jp2kBox):
         channel_type = data[1:num_components * 6:3]
         association = data[2:num_components * 6:3]
 
-        box = ChannelDefinitionBox(index=index, channel_type=channel_type,
-                                   association=association, length=length,
-                                   offset=offset)
+        box = ChannelDefinitionBox(index=tuple(index),
+                                   channel_type=tuple(channel_type),
+                                   association=tuple(association),
+                                   length=length, offset=offset)
         return box
 
 
@@ -556,24 +684,18 @@ class CodestreamHeaderBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, box=[], length=0, offset=-1):
+    def __init__(self, box=None, length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='jpch', longname='Codestream Header')
         self.length = length
         self.offset = offset
-        self.box = box
+        self.box = box if box is not None else []
 
     def __repr__(self):
         msg = "glymur.jp2box.CodestreamHeaderBox(box={0})".format(self.box)
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
-        for box in self.box:
-            boxstr = str(box)
-
-            # Add indentation.
-            strs = [('\n    ' + x) for x in boxstr.split('\n')]
-            msg += ''.join(strs)
+        msg = self._str_superbox()
         return msg
 
     @staticmethod
@@ -618,12 +740,12 @@ class CompositingLayerHeaderBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, box=[], length=0, offset=-1):
+    def __init__(self, box=None, length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='jplh',
                          longname='Compositing Layer Header')
         self.length = length
         self.offset = offset
-        self.box = []
+        self.box = box if box is not None else []
 
     def __repr__(self):
         msg = "glymur.jp2box.CompositingLayerHeaderBox(box={0})"
@@ -631,13 +753,7 @@ class CompositingLayerHeaderBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
-        for box in self.box:
-            boxstr = str(box)
-
-            # Add indentation.
-            strs = [('\n    ' + x) for x in boxstr.split('\n')]
-            msg += ''.join(strs)
+        msg = self._str_superbox()
         return msg
 
     @staticmethod
@@ -704,6 +820,8 @@ class ComponentMappingBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
+        if _printoptions['short'] == True:
+            return msg
 
         for k in range(len(self.component_index)):
             if self.mapping_type[k] == 1:
@@ -723,7 +841,7 @@ class ComponentMappingBox(Jp2kBox):
         fptr.write(write_buffer)
 
         for j in range(len(self.component_index)):
-            write_buffer = struct.pack('>HBB', 
+            write_buffer = struct.pack('>HBB',
                                        self.component_index[j],
                                        self.mapping_type[j],
                                        self.palette_index[j])
@@ -789,13 +907,15 @@ class ContiguousCodestreamBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
+        if _printoptions['short'] == True:
+            return msg
+        if _printoptions['codestream'] == False:
+            return msg
+
         msg += '\n    Main header:'
         for segment in self.main_header.segment:
-            segstr = str(segment)
+            msg += '\n' + self._indent(str(segment), indent_level=8)
 
-            # Add indentation.
-            strs = [('\n        ' + x) for x in segstr.split('\n')]
-            msg += ''.join(strs)
         return msg
 
     @staticmethod
@@ -837,14 +957,59 @@ class DataReferenceBox(Jp2kBox):
     DR : list
         Data Entry URL boxes.
     """
-    def __init__(self, data_entry_url_boxes, length=0, offset=-1):
+    def __init__(self, data_entry_url_boxes=None, length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='dtbl', longname='Data Reference')
-        self.DR = data_entry_url_boxes
+        if data_entry_url_boxes is None:
+            self.DR = []
+        else:
+            self.DR = data_entry_url_boxes
         self.length = length
         self.offset = offset
+        self._validate()
+
+    def _validate(self):
+        """Verify that the box obeys the specifications."""
+        for box in self.DR:
+            if box.box_id != 'url ':
+                msg = 'All child boxes of a data reference box must be data '
+                msg += 'entry URL boxes.'
+                raise IOError(msg)
+
+    def _write_validate(self):
+        """Verify that the box obeys the specifications for writing.
+        """
+        if len(self.DR) == 0:
+            msg = "A data reference box cannot be empty when written to a file."
+            raise IOError(msg)
+        self._validate()
+
+    def write(self, fptr):
+        """Write a Data Reference box to file.
+        """
+        self._write_validate()
+
+        # Very similar to the say a superbox is written.
+        orig_pos = fptr.tell()
+        fptr.write(struct.pack('>I', 0))
+        fptr.write(self.box_id.encode())
+
+        # Write the number of data entry url boxes.
+        write_buffer = struct.pack('>H', len(self.DR))
+        fptr.write(write_buffer)
+
+        for box in self.DR:
+            box.write(fptr)
+
+        end_pos = fptr.tell()
+        fptr.seek(orig_pos)
+        fptr.write(struct.pack('>I', end_pos - orig_pos))
+        fptr.seek(end_pos)
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
+        if _printoptions['short'] == True:
+            return msg
+
         for box in self.DR:
             msg += '\n    ' + str(box)
         return msg
@@ -917,7 +1082,6 @@ class FileTypeBox(Jp2kBox):
         self.brand = brand
         self.minor_version = minor_version
         if compatibility_list is None:
-            # see W0102, pylint
             self.compatibility_list = ['jp2 ']
         else:
             self.compatibility_list = compatibility_list
@@ -932,7 +1096,11 @@ class FileTypeBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        lst = [Jp2kBox.__str__(self),
+        msg = Jp2kBox.__str__(self)
+        if _printoptions['short'] == True:
+            return msg
+
+        lst = [msg,
                '    Brand:  {0}',
                '    Compatibility:  {1}']
         msg = '\n'.join(lst)
@@ -940,9 +1108,22 @@ class FileTypeBox(Jp2kBox):
 
         return msg
 
+    def _validate(self):
+        """Validate the box before writing to file."""
+        if self.brand not in ['jp2 ', 'jpx ']:
+            msg = "The file type brand must be either 'jp2 ' or 'jpx '."
+            raise IOError(msg)
+        valid_cls = ['jp2 ', 'jpx ', 'jpxb']
+        for item in self.compatibility_list:
+            if item not in valid_cls:
+                msg = "The file type compatibility list item '{0}' is not "
+                msg += "valid:  valid entries are {1}"
+                raise IOError(msg.format(item, valid_cls))
+
     def write(self, fptr):
         """Write a File Type box to file.
         """
+        self._validate()
         length = 16 + 4*len(self.compatibility_list)
         fptr.write(struct.pack('>I', length))
         fptr.write('ftyp'.encode())
@@ -1017,12 +1198,27 @@ class FragmentListBox(Jp2kBox):
         self.length = length
         self.offset = offset
 
+    def _validate(self):
+        """Validate internal correctness."""
+        if (((len(self.fragment_offset) != len(self.fragment_length)) or
+             (len(self.fragment_length) != len(self.data_reference)))):
+            msg = "The lengths of the fragment offsets, fragment lengths, and "
+            msg += "data reference items must be the same."
+            raise IOError(msg)
+        if any([x <= 0 for x in self.fragment_offset]):
+            raise IOError("Fragment offsets must all be positive.")
+        if any([x <= 0 for x in self.fragment_length]):
+            raise IOError("Fragment lengths must all be positive.")
+
     def __repr__(self):
         msg = "glymur.jp2box.FragmentListBox()"
         return msg
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
+        if _printoptions['short'] == True:
+            return msg
+
         for j in range(len(self.fragment_offset)):
             msg += "\n    Offset {0}:  {1}"
             msg += "\n    Fragment Length {2}:  {3}"
@@ -1032,6 +1228,22 @@ class FragmentListBox(Jp2kBox):
                              j, self.data_reference[j])
 
         return msg
+
+    def write(self, fptr):
+        """Write a fragment list box to file.
+        """
+        self._validate()
+        num_items = len(self.fragment_offset)
+        length = 8 + 2 + num_items * 14
+        fptr.write(struct.pack('>I', length))
+        fptr.write(self.box_id.encode())
+        fptr.write(struct.pack('>H', num_items))
+        for j in range(num_items):
+            write_buffer = struct.pack('>QIH',
+                                       self.fragment_offset[j],
+                                       self.fragment_length[j],
+                                       self.data_reference[j])
+            fptr.write(write_buffer)
 
     @staticmethod
     def parse(fptr, offset, length):
@@ -1048,13 +1260,13 @@ class FragmentListBox(Jp2kBox):
 
         Returns
         -------
-        FreeBox instance
+        FragmentListBox instance
         """
         read_buffer = fptr.read(2)
-        nf,  = struct.unpack('>H', read_buffer)
+        num_fragments, = struct.unpack('>H', read_buffer)
 
-        read_buffer = fptr.read(nf * 14)
-        lst = struct.unpack('>' + 'QIH' * nf, read_buffer)
+        read_buffer = fptr.read(num_fragments * 14)
+        lst = struct.unpack('>' + 'QIH' * num_fragments, read_buffer)
         frag_offset = lst[0::3]
         frag_len = lst[1::3]
         data_reference = lst[2::3]
@@ -1076,23 +1288,18 @@ class FragmentTableBox(Jp2kBox):
     longname : str
         more verbose description of the box.
     """
-    def __init__(self, length=0, offset=-1):
+    def __init__(self, box=None, length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='ftbl', longname='Fragment Table')
         self.length = length
         self.offset = offset
+        self.box = box if box is not None else []
 
     def __repr__(self):
         msg = "glymur.jp2box.FragmentTableBox()"
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
-        for box in self.box:
-            boxstr = str(box)
-
-            # Add indentation.
-            strs = [('\n    ' + x) for x in boxstr.split('\n')]
-            msg += ''.join(strs)
+        msg = self._str_superbox()
         return msg
 
     @staticmethod
@@ -1110,7 +1317,7 @@ class FragmentTableBox(Jp2kBox):
 
         Returns
         -------
-        FreeBox instance
+        FragmentTableBox instance
         """
         box = FragmentTableBox(length=length, offset=offset)
 
@@ -1119,6 +1326,20 @@ class FragmentTableBox(Jp2kBox):
         box.box = box.parse_superbox(fptr)
 
         return box
+
+    def _validate(self):
+        """Self-validate the box before writing."""
+        box_ids = [box.box_id for box in self.box]
+        if len(box_ids) != 1 or box_ids[0] != 'flst':
+            msg = "Fragment table boxes must have a single fragment list "
+            msg += "box as a child box."
+            raise IOError(msg)
+
+    def write(self, fptr):
+        """Write a fragment table box to file.
+        """
+        self._validate()
+        self._write_superbox(fptr)
 
 
 
@@ -1147,6 +1368,9 @@ class FreeBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
+        if _printoptions['short'] == True:
+            return msg
+
         return msg
 
     @staticmethod
@@ -1236,6 +1460,10 @@ class ImageHeaderBox(Jp2kBox):
         return msg
 
     def __str__(self):
+        msg = Jp2kBox.__str__(self)
+        if _printoptions['short'] == True:
+            return msg
+
         msg = "{0}"
         msg += '\n    Size:  [{1} {2} {3}]'
         msg += '\n    Bitdepth:  {4}'
@@ -1324,24 +1552,18 @@ class AssociationBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, box=[], length=0, offset=-1):
+    def __init__(self, box=None, length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='asoc', longname='Association')
         self.length = length
         self.offset = offset
-        self.box = box
+        self.box = box if box is not None else []
 
     def __repr__(self):
         msg = "glymur.jp2box.AssociationBox(box={0})".format(self.box)
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
-        for box in self.box:
-            boxstr = str(box)
-
-            # Add indentation.
-            strs = [('\n    ' + x) for x in boxstr.split('\n')]
-            msg += ''.join(strs)
+        msg = self._str_superbox()
         return msg
 
     @staticmethod
@@ -1372,17 +1594,7 @@ class AssociationBox(Jp2kBox):
     def write(self, fptr):
         """Write an association box to file.
         """
-        # Write the contained boxes, then come back and write the length.
-        orig_pos = fptr.tell()
-        fptr.write(struct.pack('>I', 0))
-        fptr.write('asoc'.encode())
-        for box in self.box:
-            box.write(fptr)
-
-        end_pos = fptr.tell()
-        fptr.seek(orig_pos)
-        fptr.write(struct.pack('>I', end_pos - orig_pos))
-        fptr.seek(end_pos)
+        self._write_superbox(fptr)
 
 
 class JP2HeaderBox(Jp2kBox):
@@ -1401,40 +1613,24 @@ class JP2HeaderBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, box=[], length=0, offset=-1):
+    def __init__(self, box=None, length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='jp2h', longname='JP2 Header')
         self.length = length
         self.offset = offset
-        self.box = box
+        self.box = box if box is not None else []
 
     def __repr__(self):
         msg = "glymur.jp2box.JP2HeaderBox(box={0})".format(self.box)
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
-        for box in self.box:
-            boxstr = str(box)
-
-            # Add indentation.
-            strs = [('\n    ' + x) for x in boxstr.split('\n')]
-            msg += ''.join(strs)
+        msg = self._str_superbox()
         return msg
 
     def write(self, fptr):
         """Write a JP2 Header box to file.
         """
-        # Write the contained boxes, then come back and write the length.
-        orig_pos = fptr.tell()
-        fptr.write(struct.pack('>I', 0))
-        fptr.write('jp2h'.encode())
-        for box in self.box:
-            box.write(fptr)
-
-        end_pos = fptr.tell()
-        fptr.seek(orig_pos)
-        fptr.write(struct.pack('>I', end_pos - orig_pos))
-        fptr.seek(end_pos)
+        self._write_superbox(fptr)
 
     @staticmethod
     def parse(fptr, offset, length):
@@ -1475,7 +1671,7 @@ class JPEG2000SignatureBox(Jp2kBox):
         offset of the box from the start of the file.
     longname : str
         more verbose description of the box.
-    signature : byte
+    signature : tuple
         Four-byte tuple identifying the file as JPEG 2000.
     """
     def __init__(self, signature=(13, 10, 135, 10), length=0, offset=-1):
@@ -1489,6 +1685,9 @@ class JPEG2000SignatureBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
+        if _printoptions['short'] == True:
+            return msg
+
         msg += '\n    Signature:  {0:02x}{1:02x}{2:02x}{3:02x}'
         msg = msg.format(self.signature[0], self.signature[1],
                          self.signature[2], self.signature[3])
@@ -1550,6 +1749,15 @@ class PaletteBox(Jp2kBox):
         self.signed = signed
         self.length = length
         self.offset = offset
+        self._validate()
+
+    def _validate(self):
+        """Verify that the box obeys the specifications."""
+        if ((len(self.bits_per_component) != len(self.signed)) or
+                (len(self.signed) != self.palette.shape[1])):
+            msg = "The length of the 'bits_per_component' and the 'signed' "
+            msg += "members must equal the number of columns of the palette."
+            raise IOError(msg)
 
     def __repr__(self):
         msg = "glymur.jp2box.PaletteBox({0}, bits_per_component={1}, "
@@ -1560,16 +1768,16 @@ class PaletteBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
+        if _printoptions['short'] == True:
+            return msg
+
         msg += '\n    Size:  ({0} x {1})'.format(*self.palette.shape)
         return msg
 
     def write(self, fptr):
         """Write a Palette box to file.
         """
-        # Box length is usual header (8)
-        # + num entries NE (2) + num columns NC (1)
-        # + (bps/8, /signed) for each column (3) + bps * NC
-        # + 
+        self._validate()
         bytes_per_row = sum(self.bits_per_component) / 8
         bytes_per_palette = bytes_per_row * self.palette.shape[0]
         box_length = 8 + 3 + self.palette.shape[1] + bytes_per_palette
@@ -1584,7 +1792,7 @@ class PaletteBox(Jp2kBox):
         fptr.write(write_buffer)
 
         bps_signed = [x - 1 for x in self.bits_per_component]
-        for j, item in enumerate(bps_signed):
+        for j, _ in enumerate(bps_signed):
             if self.signed[j]:
                 bps_signed[j] |= 0x80
         write_buffer = struct.pack('>' + 'B' * self.palette.shape[1],
@@ -1592,13 +1800,10 @@ class PaletteBox(Jp2kBox):
         fptr.write(write_buffer)
 
         if self.bits_per_component[0] <= 8:
-            dtype = np.uint8
             code = 'B'
         elif self.bits_per_component[0] <= 16:
-            dtype = np.uint16
             code = 'H'
         elif self.bits_per_component[0] <= 32:
-            dtype = np.uint32
             code = 'I'
 
         fmt = '>' + code * self.palette.shape[1]
@@ -1652,26 +1857,27 @@ class PaletteBox(Jp2kBox):
             palette[j] = struct.unpack_from(fmt, read_buffer,
                                             offset=j * row_nbytes)
 
-        box = PaletteBox(palette, bps, signed, length=length, offset=offset)
-        return box
+        return PaletteBox(palette, bps, signed, length=length, offset=offset)
 
 
 # Map rreq codes to display text.
 _READER_REQUIREMENTS_DISPLAY = {
     0:  'File not completely understood',
-    1:  'Deprecated',
+    1:  'Deprecated - contains no extensions',
     2:  'Contains multiple composition layers',
-    3:  'Deprecated',
+    3:  'Deprecated - codestream is compressed using JPEG 2000 and requires '
+        + 'at least a Profile 0 decoder as defind in ITU-T Rec. T.800 '
+        + '| ISO/IEC 15444-1, A.10 Table A.45',
     4:  'JPEG 2000 Part 1 Profile 1 codestream',
     5:  'Unrestricted JPEG 2000 Part 1 codestream, ITU-T Rec. T.800 '
         + '| ISO/IEC 15444-1',
     6:  'Unrestricted JPEG 2000 Part 2 codestream',
     7:  'JPEG codestream as defined in ISO/IEC 10918-1',
-    8:  'Deprecated',
+    8:  'Deprecated - does not contain opacity',
     9:  'Non-premultiplied opacity channel',
     10:  'Premultiplied opacity channel',
     11:  'Chroma-key based opacity',
-    12:  'Deprecated',
+    12:  'Deprecated - codestream is contiguous',
     13:  'Fragmented codestream where all fragments are in file and in order',
     14:  'Fragmented codestream where all fragments are in file '
          + 'but are out of order',
@@ -1681,21 +1887,24 @@ _READER_REQUIREMENTS_DISPLAY = {
          + 'only through a URL specified network connection',
     17:  'Compositing required to produce rendered result from multiple '
          + 'compositing layers',
-    18:  'Deprecated',
-    19:  'Deprecated',
-    20:  'Deprecated',
+    18:  'Deprecated - support for compositing is not required',
+    19:  'Deprecated - contains multiple, discrete layers that should not '
+         + 'be combined through either animation or compositing',
+    20:  'Deprecated - compositing layers each contain only a single '
+         + 'codestream',
     21:  'At least one compositing layer consists of multiple codestreams',
-    22:  'Deprecated',
+    22:  'Deprecated - all compositing layers are in the same colourspace',
     23:  'Colourspace transformations are required to combine compositing '
          + 'layers; not all compositing layers are in the same colourspace',
-    24:  'Deprecated',
-    25:  'Deprecated',
+    24:  'Deprecated - rendered result created without using animation',
+    25:  'Deprecated - animated, but first layer covers entire area and is '
+         + 'opaque',
     26:  'First animation layer does not cover entire rendered result',
-    27:  'Deprecated',
+    27:  'Deprecated - animated, and no layer is reused',
     28:  'Reuse of animation layers',
-    29:  'Deprecated',
+    29:  'Deprecated - animated, but layers are reused',
     30:  'Some animated frames are non-persistent',
-    31:  'Deprecated',
+    31:  'Deprecated - rendered result created without using scaling',
     32:  'Rendered result involves scaling within a layer',
     33:  'Rendered result involves scaling between layers',
     34:  'ROI metadata',
@@ -1706,11 +1915,11 @@ _READER_REQUIREMENTS_DISPLAY = {
     39:  'JPX digital signatures',
     40:  'JPX checksums',
     41:  'Desires Graphics Arts Reproduction specified',
-    42:  'Deprecated',
-    43:  '(Deprecated) compositing layer uses restricted ICC profile',
+    42:  'Deprecated - compositing layer uses palettized colour',
+    43:  'Deprecated - compositing layer uses restricted ICC profile',
     44:  'Compositing layer uses Any ICC profile',
-    45:  'Deprecated',
-    46:  'Deprecated',
+    45:  'Deprecated - compositing layer uses sRGB enumerated colourspace',
+    46:  'Deprecated - compositing layer uses sRGB-grey enumerated colourspace',
     47:  'BiLevel 1 enumerated colourspace',
     48:  'BiLevel 2 enumerated colourspace',
     49:  'YCbCr 1 enumerated colourspace',
@@ -1727,14 +1936,14 @@ _READER_REQUIREMENTS_DISPLAY = {
     60:  'e-sRGB enumerated colorspace',
     61:  'ROMM_RGB enumerated colorspace',
     62:  'Non-square samples',
-    63:  'Deprecated',
-    64:  'Deprecated',
-    65:  'Deprecated',
-    66:  'Deprecated',
+    63:  'Deprecated - compositing layers have labels',
+    64:  'Deprecated - codestreams have labels',
+    65:  'Deprecated - compositing layers have different colour spaces',
+    66:  'Deprecated - compositing layers have different metadata',
     67:  'GIS metadata XML box',
     68:  'JPSEC extensions in codestream as specified by ISO/IEC 15444-8',
     69:  'JP3D extensions in codestream as specified by ISO/IEC 15444-10',
-    70:  'Deprecated',
+    70:  'Deprecated - compositing layer uses sYCC enumerated colour space',
     71:  'e-sYCC enumerated colourspace',
     72:  'JPEG 2000 Part 2 codestream as restricted by baseline conformance '
          + 'requirements in M.9.2.3',
@@ -1775,10 +1984,10 @@ class ReaderRequirementsBox(Jp2kBox):
         Jp2kBox.__init__(self, box_id='rreq', longname='Reader Requirements')
         self.fuam = fuam
         self.dcm = dcm
-        self.standard_flag = standard_flag
-        self.standard_mask = standard_mask
-        self.vendor_feature = vendor_feature
-        self.vendor_mask = vendor_mask
+        self.standard_flag = tuple(standard_flag)
+        self.standard_mask = tuple(standard_mask)
+        self.vendor_feature = tuple(vendor_feature)
+        self.vendor_mask = tuple(vendor_mask)
         self.length = length
         self.offset = offset
 
@@ -1796,12 +2005,17 @@ class ReaderRequirementsBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
+        if _printoptions['short'] == True:
+            return msg
 
-        msg += '\n    Standard Features:'
+        msg += '\n    Fully Understands Aspect Mask:  0x{0:x}'.format(self.fuam)
+        msg += '\n    Display Completely Mask:  0x{0:x}'.format(self.dcm)
+
+        msg += '\n    Standard Features and Masks:'
         for j in range(len(self.standard_flag)):
-            sfl = self.standard_flag[j]
-            rrdisp = _READER_REQUIREMENTS_DISPLAY[self.standard_flag[j]]
-            msg += '\n        Feature {0:03d}:  {1}'.format(sfl, rrdisp)
+            args = (self.standard_flag[j], self.standard_mask[j],
+                    _READER_REQUIREMENTS_DISPLAY[self.standard_flag[j]])
+            msg += '\n        Feature {0:03d}:  0x{1:x} {2}'.format(*args)
 
         msg += '\n    Vendor Features:'
         for j in range(len(self.vendor_feature)):
@@ -1829,6 +2043,9 @@ class ReaderRequirementsBox(Jp2kBox):
         read_buffer = fptr.read(1)
         mask_length, = struct.unpack('>B', read_buffer)
 
+        if mask_length == 3:
+            return _parse_rreq3(fptr, length, offset)
+
         # Fully Understands Aspect Mask
         # Decodes Completely Mask
         read_buffer = fptr.read(2 * mask_length)
@@ -1838,6 +2055,7 @@ class ReaderRequirementsBox(Jp2kBox):
 
         # The mask length tells us the format string to use when unpacking
         # from the buffer read from file.
+
         try:
             mask_format = {1: 'B', 2: 'H', 4: 'I', 8: 'Q'}[mask_length]
             fuam, dcm = struct.unpack('>' + mask_format * 2, read_buffer)
@@ -1856,6 +2074,62 @@ class ReaderRequirementsBox(Jp2kBox):
                                     vendor_feature, vendor_mask,
                                     length=length, offset=offset)
         return box
+
+
+def _parse_rreq3(fptr, length, offset):
+    """Parse a reader requirements box.  Special case when mask length is 3."""
+    # Fully Understands Aspect Mask
+    # Decodes Completely Mask
+    read_buffer = fptr.read(2 * 3)
+
+    fuam = dcm = standard_flag = standard_mask = []
+    vendor_feature = vendor_mask = []
+
+    # The mask length tells us the format string to use when unpacking
+    # from the buffer read from file.
+    lst = struct.unpack('>BBBBBB', read_buffer)
+    fuam = lst[0] << 16 | lst[1] << 8 | lst[2]
+    dcm = lst[3] << 16 | lst[4] << 8 | lst[5]
+
+    read_buffer = fptr.read(2)
+    num_standard_features, = struct.unpack('>H', read_buffer)
+
+    fmt = '>' + 'HBBB' * num_standard_features
+    read_buffer = fptr.read(num_standard_features * 5)
+    lst = struct.unpack(fmt, read_buffer)
+
+    standard_flag = lst[0::4]
+    standard_mask = []
+    for j in range(num_standard_features):
+        items = lst[slice(j * 4 + 1, j * 4 + 4)]
+        mask = items[0] << 16 | items[1] << 8 | items[2]
+        standard_mask.append(mask)
+
+    read_buffer = fptr.read(2)
+    num_vendor_features, = struct.unpack('>H', read_buffer)
+
+    fmt = '>' + 'HBBB' * num_vendor_features
+    read_buffer = fptr.read(num_vendor_features * 5)
+    lst = struct.unpack(fmt, read_buffer)
+
+    # Each vendor feature consists of a 16-byte UUID plus a mask whose
+    # length is specified by, you guessed it, "mask_length".
+    entry_length = 16 + 3
+    read_buffer = fptr.read(num_vendor_features * entry_length)
+    vendor_feature = []
+    vendor_mask = []
+    for j in range(num_vendor_features):
+        ubuffer = read_buffer[j * entry_length:(j + 1) * entry_length]
+        vendor_feature.append(uuid.UUID(bytes=ubuffer[0:16]))
+
+        lst = struct.unpack('>BBB', ubuffer[16:])
+        vmask = lst[0] << 16 | lst[1] << 8 | lst[2]
+        vendor_mask.append(vmask)
+
+    box = ReaderRequirementsBox(fuam, dcm, standard_flag, standard_mask,
+                                vendor_feature, vendor_mask,
+                                length=length, offset=offset)
+    return box
 
 
 def _parse_standard_flag(fptr, mask_length):
@@ -1942,11 +2216,11 @@ class ResolutionBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, box=[], length=0, offset=-1):
+    def __init__(self, box=None, length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='res ', longname='Resolution')
         self.length = length
         self.offset = offset
-        self.box = box
+        self.box = box if box is not None else []
 
     def __repr__(self):
         msg = "glymur.jp2box.ResolutionBox(box={0})"
@@ -1954,13 +2228,7 @@ class ResolutionBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
-        for box in self.box:
-            boxstr = str(box)
-
-            # Add indentation.
-            strs = [('\n    ' + x) for x in boxstr.split('\n')]
-            msg += ''.join(strs)
+        msg = self._str_superbox()
         return msg
 
     @staticmethod
@@ -2020,6 +2288,9 @@ class CaptureResolutionBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
+        if _printoptions['short'] == True:
+            return msg
+
         msg += '\n    VCR:  {0}'.format(self.vertical_resolution)
         msg += '\n    HCR:  {0}'.format(self.horizontal_resolution)
         return msg
@@ -2082,6 +2353,9 @@ class DisplayResolutionBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
+        if _printoptions['short'] == True:
+            return msg
+
         msg += '\n    VDR:  {0}'.format(self.vertical_resolution)
         msg += '\n    HDR:  {0}'.format(self.horizontal_resolution)
         return msg
@@ -2128,7 +2402,7 @@ class LabelBox(Jp2kBox):
     longname : str
         more verbose description of the box.
     label : str
-        Label
+        Textual label.
     """
     def __init__(self, label, length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='lbl ', longname='Label')
@@ -2138,12 +2412,23 @@ class LabelBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
+        if _printoptions['short'] == True:
+            return msg
+
         msg += '\n    Label:  {0}'.format(self.label)
         return msg
 
     def __repr__(self):
         msg = 'glymur.jp2box.LabelBox("{0}")'.format(self.label)
         return msg
+
+    def write(self, fptr):
+        """Write a Label box to file.
+        """
+        length = 8 + len(self.label.encode())
+        fptr.write(struct.pack('>I', length))
+        fptr.write(self.box_id.encode())
+        fptr.write(self.label.encode())
 
     @staticmethod
     def parse(fptr, offset, length):
@@ -2194,6 +2479,9 @@ class NumberListBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
+        if _printoptions['short'] == True:
+            return msg
+
         for j, association in enumerate(self.associations):
             msg += '\n    Association[{0}]:  '.format(j)
             if association == 0:
@@ -2291,11 +2579,19 @@ class XMLBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        xml = self.xml
+        if _printoptions['short'] == True:
+            return msg
+        if _printoptions['xml'] == False:
+            return msg
+
+        msg += '\n'
         if self.xml is not None:
-            msg += _pretty_print_xml(self.xml)
+            xmlstring = ET.tostring(self.xml,
+                                    encoding='utf-8',
+                                    pretty_print=True).decode('utf-8')
         else:
-            msg += '\n    {0}'.format(xml)
+            xmlstring = 'None'
+        msg += self._indent(xmlstring)
         return msg
 
     def write(self, fptr):
@@ -2392,9 +2688,12 @@ class UUIDListBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
+        if _printoptions['short'] == True:
+            return msg
+
         for j, uuid_item in enumerate(self.ulst):
             msg += '\n    UUID[{0}]:  {1}'.format(j, uuid_item)
-        return(msg)
+        return msg
 
     @staticmethod
     def parse(fptr, offset, length):
@@ -2422,7 +2721,7 @@ class UUIDListBox(Jp2kBox):
             ulst.append(uuid.UUID(bytes=read_buffer))
 
         box = UUIDListBox(ulst, length=length, offset=offset)
-        return(box)
+        return box
 
 
 class UUIDInfoBox(Jp2kBox):
@@ -2441,27 +2740,19 @@ class UUIDInfoBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
-    def __init__(self, box=[], length=0, offset=-1):
+    def __init__(self, box=None, length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='uinf', longname='UUIDInfo')
         self.length = length
         self.offset = offset
-        self.box = box
+        self.box = box if box is not None else []
 
     def __repr__(self):
         msg = "glymur.jp2box.UUIDInfoBox(box={0})".format(self.box)
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
-
-        for box in self.box:
-            box_str = str(box)
-
-            # Add indentation.
-            lst = [('\n    ' + x) for x in box_str.split('\n')]
-            msg += ''.join(lst)
-
-        return(msg)
+        msg = self._str_superbox()
+        return msg
 
     @staticmethod
     def parse(fptr, offset, length):
@@ -2518,6 +2809,23 @@ class DataEntryURLBox(Jp2kBox):
         self.length = length
         self.offset = offset
 
+    def write(self, fptr):
+        """Write a data entry url box to file.
+        """
+        # Make sure it is written out as null-terminated.
+        url = self.url
+        if self.url[-1] != chr(0):
+            url = url + chr(0)
+
+        length = 8 + 1 + 3 + len(url.encode())
+        write_buffer = struct.pack('>I4sBBBB',
+                                   length, self.box_id.encode(),
+                                   self.version,
+                                   self.flag[0], self.flag[1], self.flag[2])
+        fptr.write(write_buffer)
+        fptr.write(url.encode())
+
+
     def __repr__(self):
         msg = "glymur.jp2box.DataEntryURLBox({0}, {1}, '{2}')"
         msg = msg.format(self.version, self.flag, self.url)
@@ -2525,6 +2833,9 @@ class DataEntryURLBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
+        if _printoptions['short'] == True:
+            return msg
+
         msg += '\n    '
 
         lines = ['Version:  {0}',
@@ -2565,6 +2876,37 @@ class DataEntryURLBox(Jp2kBox):
         return box
 
 
+class UnknownBox(Jp2kBox):
+    """Container for unrecognized boxes.
+
+    Attributes
+    ----------
+    box_id : str
+        4-character identifier for the box.
+    length : int
+        length of the box in bytes.
+    offset : int
+        offset of the box from the start of the file.
+    longname : str
+        more verbose description of the box.
+    """
+    def __init__(self, box_id, length=0, offset=-1, longname=''):
+        Jp2kBox.__init__(self, box_id=box_id, longname=longname)
+        self.length = length
+        self.offset = offset
+
+    def __repr__(self):
+        msg = "glymur.jp2box.UnknownBox({0})".format(self.box_id)
+        return msg
+
+    def __str__(self):
+        if len(self.box) > 0:
+            msg = self._str_superbox()
+        else:
+            msg = Jp2kBox.__str__(self)
+        return msg
+
+
 class UUIDBox(Jp2kBox):
     """Container for UUID box information.
 
@@ -2580,9 +2922,12 @@ class UUIDBox(Jp2kBox):
         more verbose description of the box.
     uuid : uuid.UUID
         16-byte UUID
-    data : bytes or dict or ElementTree.Element
-        Vendor-specific data.  Exif UUIDs are interpreted as dictionaries.
-        XMP UUIDs are interpreted as standard XML.
+    raw_data : byte array
+        Sequence of uninterpreted bytes as read from the file.
+    data : object
+        Specific to each type of UUID.  There are handlers for XMP, Exif, and
+        generic (unknown) UUIDs.  In the case of XMP and Exif UUIDs, this is
+        the interpreted version of raw_data.
 
     References
     ----------
@@ -2597,7 +2942,7 @@ class UUIDBox(Jp2kBox):
         the_uuid : uuid.UUID
             Identifies the type of UUID box.
         raw_data : byte array
-            This is the "payload" of data for the specified UUID.
+            Sequence of uninterpreted bytes as read from the UUID box.
         length : int
             length of the box in bytes.
         offset : int
@@ -2606,63 +2951,72 @@ class UUIDBox(Jp2kBox):
         Jp2kBox.__init__(self, box_id='uuid', longname='UUID')
         self.uuid = the_uuid
         self.raw_data = raw_data
-
-        if the_uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
-            # XMP data.  Parse as XML.  Seems to be a difference between
-            # ElementTree in version 2.7 and 3.3.
-            if sys.hexversion < 0x03000000:
-                elt = ET.fromstring(raw_data)
-            else:
-                text = raw_data.decode('utf-8')
-                elt = ET.fromstring(text)
-            self.data = ET.ElementTree(elt)
-        elif the_uuid.bytes == b'JpgTiffExif->JP2':
-            exif_obj = Exif(raw_data)
-            ifds = OrderedDict()
-            ifds['Image'] = exif_obj.exif_image
-            ifds['Photo'] = exif_obj.exif_photo
-            ifds['GPSInfo'] = exif_obj.exif_gpsinfo
-            ifds['Iop'] = exif_obj.exif_iop
-            self.data = ifds
-        else:
-            self.data = raw_data
-
         self.length = length
         self.offset = offset
+        self.data = None
+
+        try:
+            self._parse_raw_data()
+        except RuntimeError as error:
+            warnings.warn(str(error))
+
+    def _parse_raw_data(self):
+        """
+        Private function for parsing UUID payloads if possible.
+        """
+        if self.uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
+            self.data = _uuid_io.xml(self.raw_data)
+        elif self.uuid.bytes == b'JpgTiffExif->JP2':
+            self.data = _uuid_io.tiff_header(self.raw_data)
+        else:
+            self.data = self.raw_data
 
     def __repr__(self):
         msg = "glymur.jp2box.UUIDBox(the_uuid={0}, "
         msg += "raw_data=<byte array {1} elements>)"
         return msg.format(repr(self.uuid), len(self.raw_data))
 
-
     def __str__(self):
-        msg = '{0}\n'
-        msg += '    UUID:  {1}{2}\n'
-        msg += '    UUID Data:  {3}'
+        msg = Jp2kBox.__str__(self)
+        if _printoptions['short'] == True:
+            return msg
+
+        msg = '{0}\n    UUID:  {1}'.format(msg, self.uuid)
+        if self.uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
+            msg += ' (XMP)'
+        elif self.uuid.bytes == b'JpgTiffExif->JP2':
+            msg += ' (EXIF)'
+        else:
+            msg += ' (unknown)'
+
+        if (((_printoptions['xml'] == False) and
+             (self.uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')))):
+            # If it's an XMP UUID, don't print the XML contents.
+            return msg
 
         if self.uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
-            uuid_type = ' (XMP)'
-            uuid_data = _pretty_print_xml(self.data)
+            line = '\n    UUID Data:\n{0}'
+            xmlstring = ET.tostring(self.data,
+                                    encoding='utf-8',
+                                    pretty_print=True).decode('utf-8')
+            # indent it a bit
+            xmlstring = self._indent(xmlstring.rstrip())
+            msg += line.format(xmlstring)
         elif self.uuid.bytes == b'JpgTiffExif->JP2':
-            uuid_type = ' (Exif)'
-            # 2.7 has trouble pretty-printing ordered dicts, so print them
-            # as regular dicts.  Not ideal, but at least it's good on 3.3+.
-            if sys.hexversion < 0x03000000:
-                data = dict(self.data)
-            else:
-                data = self.data
-            uuid_data = '\n' + pprint.pformat(data)
+            msg += '\n    UUID Data:  {0}'.format(str(self.data))
         else:
-            uuid_type = ''
-            uuid_data = '{0} bytes'.format(len(self.data))
-
-        msg = msg.format(Jp2kBox.__str__(self),
-                         self.uuid,
-                         uuid_type,
-                         uuid_data)
+            line = '\n    UUID Data:  {0} bytes'
+            msg += line.format(len(self.raw_data))
 
         return msg
+
+    def write(self, fptr):
+        """Write a UUID box to file.
+        """
+        write_buffer = struct.pack('>I4s', self.length, b'uuid')
+        fptr.write(write_buffer)
+        fptr.write(self.uuid.bytes)
+        fptr.write(self.raw_data)
 
     @staticmethod
     def parse(fptr, offset, length):
@@ -2689,511 +3043,6 @@ class UUIDBox(Jp2kBox):
         read_buffer = fptr.read(numbytes)
         box = UUIDBox(the_uuid, read_buffer, length=length, offset=offset)
         return box
-
-
-class Exif(object):
-    """
-    Attributes
-    ----------
-    read_buffer : bytes
-        Raw byte stream consisting of the UUID data.
-    endian : str
-        Either '<' for big-endian, or '>' for little-endian.
-    """
-
-    def __init__(self, read_buffer):
-        """Interpret raw buffer consisting of Exif IFD.
-        """
-        self.exif_image = None
-        self.exif_photo = None
-        self.exif_gpsinfo = None
-        self.exif_iop = None
-
-        self.read_buffer = read_buffer
-
-        # Ignore the first six bytes.
-        # Next 8 should be (73, 73, 42, 8)
-        data = struct.unpack('<BBHI', read_buffer[6:14])
-        if data[0] == 73 and data[1] == 73:
-            # little endian
-            self.endian = '<'
-        else:
-            # big endian
-            self.endian = '>'
-        offset = data[3]
-
-        # This is the 'Exif Image' portion.
-        exif = _ExifImageIfd(self.endian, read_buffer[6:], offset)
-        self.exif_image = exif.processed_ifd
-
-        if 'ExifTag' in self.exif_image.keys():
-            offset = self.exif_image['ExifTag']
-            photo = _ExifPhotoIfd(self.endian, read_buffer[6:], offset)
-            self.exif_photo = photo.processed_ifd
-
-            if 'InteroperabilityTag' in self.exif_photo.keys():
-                offset = self.exif_photo['InteroperabilityTag']
-                interop = _ExifInteroperabilityIfd(self.endian,
-                                                   read_buffer[6:],
-                                                   offset)
-                self.iop = interop.processed_ifd
-
-        if 'GPSTag' in self.exif_image.keys():
-            offset = self.exif_image['GPSTag']
-            gps = _ExifGPSInfoIfd(self.endian, read_buffer[6:], offset)
-            self.exif_gpsinfo = gps.processed_ifd
-
-
-class _Ifd(object):
-    """
-    Attributes
-    ----------
-    read_buffer : bytes
-        Raw byte stream consisting of the UUID data.
-    datatype2fmt : dictionary
-        Class attribute, maps the TIFF enumerated datatype to the python
-        datatype and data width.
-    endian : str
-        Either '<' for big-endian, or '>' for little-endian.
-    num_tags : int
-        Number of tags in the IFD.
-    raw_ifd : dictionary
-        Maps tag number to "mildly-interpreted" tag value.
-    processed_ifd : dictionary
-        Maps tag name to "mildly-interpreted" tag value.
-    """
-    datatype2fmt = {1: ('B', 1),
-                    2: ('B', 1),
-                    3: ('H', 2),
-                    4: ('I', 4),
-                    5: ('II', 8),
-                    7: ('B', 1),
-                    9: ('i', 4),
-                    10: ('ii', 8)}
-
-    def __init__(self, endian, read_buffer, offset):
-        self.endian = endian
-        self.read_buffer = read_buffer
-        self.processed_ifd = OrderedDict()
-
-        self.num_tags, = struct.unpack(endian + 'H',
-                                       read_buffer[offset:offset + 2])
-
-        fmt = self.endian + 'HHII' * self.num_tags
-        ifd_buffer = read_buffer[offset + 2:offset + 2 + self.num_tags * 12]
-        data = struct.unpack(fmt, ifd_buffer)
-        self.raw_ifd = OrderedDict()
-        for j, tag in enumerate(data[0::4]):
-            # The offset to the tag offset/payload is the offset to the IFD
-            # plus 2 bytes for the number of tags plus 12 bytes for each
-            # tag entry plus 8 bytes to the offset/payload itself.
-            toffp = read_buffer[offset + 10 + j * 12:offset + 10 + j * 12 + 4]
-            tag_data = self.parse_tag(data[j * 4 + 1],
-                                      data[j * 4 + 2],
-                                      toffp)
-            self.raw_ifd[tag] = tag_data
-
-    def parse_tag(self, dtype, count, offset_buf):
-        """Interpret an Exif image tag data payload.
-        """
-        fmt = self.datatype2fmt[dtype][0] * count
-        payload_size = self.datatype2fmt[dtype][1] * count
-
-        if payload_size <= 4:
-            # Interpret the payload from the 4 bytes in the tag entry.
-            target_buffer = offset_buf[:payload_size]
-        else:
-            # Interpret the payload at the offset specified by the 4 bytes in
-            # the tag entry.
-            offset, = struct.unpack(self.endian + 'I', offset_buf)
-            target_buffer = self.read_buffer[offset:offset + payload_size]
-
-        if dtype == 2:
-            # ASCII
-            if sys.hexversion < 0x03000000:
-                payload = target_buffer.rstrip('\x00')
-            else:
-                payload = target_buffer.decode('utf-8').rstrip('\x00')
-
-        else:
-            payload = struct.unpack(self.endian + fmt, target_buffer)
-            if dtype == 5 or dtype == 10:
-                # Rational or Signed Rational.  Construct the list of values.
-                rational_payload = []
-                for j in range(count):
-                    value = float(payload[j * 2]) / float(payload[j * 2 + 1])
-                    rational_payload.append(value)
-                payload = rational_payload
-            if count == 1:
-                # If just a single value, then return a scalar instead of a
-                # tuple.
-                payload = payload[0]
-
-        return payload
-
-    def post_process(self, tagnum2name):
-        """Map the tag name instead of tag number to the tag value.
-        """
-        for tag, value in self.raw_ifd.items():
-            try:
-                tag_name = tagnum2name[tag]
-            except KeyError:
-                # Ok, we don't recognize this tag.  Just use the numeric id.
-                msg = 'Unrecognized Exif tag "{0}".'.format(tag)
-                warnings.warn(msg, UserWarning)
-                tag_name = tag
-            self.processed_ifd[tag_name] = value
-
-
-class _ExifImageIfd(_Ifd):
-    """
-    Attributes
-    ----------
-    tagnum2name : dict
-        Maps Exif image tag numbers to the tag names.
-    ifd : dict
-        Maps tag names to tag values.
-    """
-    tagnum2name = {11: 'ProcessingSoftware',
-                   254: 'NewSubfileType',
-                   255: 'SubfileType',
-                   256: 'ImageWidth',
-                   257: 'ImageLength',
-                   258: 'BitsPerSample',
-                   259: 'Compression',
-                   262: 'PhotometricInterpretation',
-                   263: 'Threshholding',
-                   264: 'CellWidth',
-                   265: 'CellLength',
-                   266: 'FillOrder',
-                   269: 'DocumentName',
-                   270: 'ImageDescription',
-                   271: 'Make',
-                   272: 'Model',
-                   273: 'StripOffsets',
-                   274: 'Orientation',
-                   277: 'SamplesPerPixel',
-                   278: 'RowsPerStrip',
-                   279: 'StripByteCounts',
-                   282: 'XResolution',
-                   283: 'YResolution',
-                   284: 'PlanarConfiguration',
-                   290: 'GrayResponseUnit',
-                   291: 'GrayResponseCurve',
-                   292: 'T4Options',
-                   293: 'T6Options',
-                   296: 'ResolutionUnit',
-                   301: 'TransferFunction',
-                   305: 'Software',
-                   306: 'DateTime',
-                   315: 'Artist',
-                   316: 'HostComputer',
-                   317: 'Predictor',
-                   318: 'WhitePoint',
-                   319: 'PrimaryChromaticities',
-                   320: 'ColorMap',
-                   321: 'HalftoneHints',
-                   322: 'TileWidth',
-                   323: 'TileLength',
-                   324: 'TileOffsets',
-                   325: 'TileByteCounts',
-                   330: 'SubIFDs',
-                   332: 'InkSet',
-                   333: 'InkNames',
-                   334: 'NumberOfInks',
-                   336: 'DotRange',
-                   337: 'TargetPrinter',
-                   338: 'ExtraSamples',
-                   339: 'SampleFormat',
-                   340: 'SMinSampleValue',
-                   341: 'SMaxSampleValue',
-                   342: 'TransferRange',
-                   343: 'ClipPath',
-                   344: 'XClipPathUnits',
-                   345: 'YClipPathUnits',
-                   346: 'Indexed',
-                   347: 'JPEGTables',
-                   351: 'OPIProxy',
-                   512: 'JPEGProc',
-                   513: 'JPEGInterchangeFormat',
-                   514: 'JPEGInterchangeFormatLength',
-                   515: 'JPEGRestartInterval',
-                   517: 'JPEGLosslessPredictors',
-                   518: 'JPEGPointTransforms',
-                   519: 'JPEGQTables',
-                   520: 'JPEGDCTables',
-                   521: 'JPEGACTables',
-                   529: 'YCbCrCoefficients',
-                   530: 'YCbCrSubSampling',
-                   531: 'YCbCrPositioning',
-                   532: 'ReferenceBlackWhite',
-                   700: 'XMLPacket',
-                   18246: 'Rating',
-                   18249: 'RatingPercent',
-                   32781: 'ImageID',
-                   33421: 'CFARepeatPatternDim',
-                   33422: 'CFAPattern',
-                   33423: 'BatteryLevel',
-                   33432: 'Copyright',
-                   33434: 'ExposureTime',
-                   33437: 'FNumber',
-                   33723: 'IPTCNAA',
-                   34377: 'ImageResources',
-                   34665: 'ExifTag',
-                   34675: 'InterColorProfile',
-                   34850: 'ExposureProgram',
-                   34852: 'SpectralSensitivity',
-                   34853: 'GPSTag',
-                   34855: 'ISOSpeedRatings',
-                   34856: 'OECF',
-                   34857: 'Interlace',
-                   34858: 'TimeZoneOffset',
-                   34859: 'SelfTimerMode',
-                   36867: 'DateTimeOriginal',
-                   37122: 'CompressedBitsPerPixel',
-                   37377: 'ShutterSpeedValue',
-                   37378: 'ApertureValue',
-                   37379: 'BrightnessValue',
-                   37380: 'ExposureBiasValue',
-                   37381: 'MaxApertureValue',
-                   37382: 'SubjectDistance',
-                   37383: 'MeteringMode',
-                   37384: 'LightSource',
-                   37385: 'Flash',
-                   37386: 'FocalLength',
-                   37387: 'FlashEnergy',
-                   37388: 'SpatialFrequencyResponse',
-                   37389: 'Noise',
-                   37390: 'FocalPlaneXResolution',
-                   37391: 'FocalPlaneYResolution',
-                   37392: 'FocalPlaneResolutionUnit',
-                   37393: 'ImageNumber',
-                   37394: 'SecurityClassification',
-                   37395: 'ImageHistory',
-                   37396: 'SubjectLocation',
-                   37397: 'ExposureIndex',
-                   37398: 'TIFFEPStandardID',
-                   37399: 'SensingMethod',
-                   40091: 'XPTitle',
-                   40092: 'XPComment',
-                   40093: 'XPAuthor',
-                   40094: 'XPKeywords',
-                   40095: 'XPSubject',
-                   50341: 'PrintImageMatching',
-                   50706: 'DNGVersion',
-                   50707: 'DNGBackwardVersion',
-                   50708: 'UniqueCameraModel',
-                   50709: 'LocalizedCameraModel',
-                   50710: 'CFAPlaneColor',
-                   50711: 'CFALayout',
-                   50712: 'LinearizationTable',
-                   50713: 'BlackLevelRepeatDim',
-                   50714: 'BlackLevel',
-                   50715: 'BlackLevelDeltaH',
-                   50716: 'BlackLevelDeltaV',
-                   50717: 'WhiteLevel',
-                   50718: 'DefaultScale',
-                   50719: 'DefaultCropOrigin',
-                   50720: 'DefaultCropSize',
-                   50721: 'ColorMatrix1',
-                   50722: 'ColorMatrix2',
-                   50723: 'CameraCalibration1',
-                   50724: 'CameraCalibration2',
-                   50725: 'ReductionMatrix1',
-                   50726: 'ReductionMatrix2',
-                   50727: 'AnalogBalance',
-                   50728: 'AsShotNeutral',
-                   50729: 'AsShotWhiteXY',
-                   50730: 'BaselineExposure',
-                   50731: 'BaselineNoise',
-                   50732: 'BaselineSharpness',
-                   50733: 'BayerGreenSplit',
-                   50734: 'LinearResponseLimit',
-                   50735: 'CameraSerialNumber',
-                   50736: 'LensInfo',
-                   50737: 'ChromaBlurRadius',
-                   50738: 'AntiAliasStrength',
-                   50739: 'ShadowScale',
-                   50740: 'DNGPrivateData',
-                   50741: 'MakerNoteSafety',
-                   50778: 'CalibrationIlluminant1',
-                   50779: 'CalibrationIlluminant2',
-                   50780: 'BestQualityScale',
-                   50781: 'RawDataUniqueID',
-                   50827: 'OriginalRawFileName',
-                   50828: 'OriginalRawFileData',
-                   50829: 'ActiveArea',
-                   50830: 'MaskedAreas',
-                   50831: 'AsShotICCProfile',
-                   50832: 'AsShotPreProfileMatrix',
-                   50833: 'CurrentICCProfile',
-                   50834: 'CurrentPreProfileMatrix',
-                   50879: 'ColorimetricReference',
-                   50931: 'CameraCalibrationSignature',
-                   50932: 'ProfileCalibrationSignature',
-                   50934: 'AsShotProfileName',
-                   50935: 'NoiseReductionApplied',
-                   50936: 'ProfileName',
-                   50937: 'ProfileHueSatMapDims',
-                   50938: 'ProfileHueSatMapData1',
-                   50939: 'ProfileHueSatMapData2',
-                   50940: 'ProfileToneCurve',
-                   50941: 'ProfileEmbedPolicy',
-                   50942: 'ProfileCopyright',
-                   50964: 'ForwardMatrix1',
-                   50965: 'ForwardMatrix2',
-                   50966: 'PreviewApplicationName',
-                   50967: 'PreviewApplicationVersion',
-                   50968: 'PreviewSettingsName',
-                   50969: 'PreviewSettingsDigest',
-                   50970: 'PreviewColorSpace',
-                   50971: 'PreviewDateTime',
-                   50972: 'RawImageDigest',
-                   50973: 'OriginalRawFileDigest',
-                   50974: 'SubTileBlockSize',
-                   50975: 'RowInterleaveFactor',
-                   50981: 'ProfileLookTableDims',
-                   50982: 'ProfileLookTableData',
-                   51008: 'OpcodeList1',
-                   51009: 'OpcodeList2',
-                   51022: 'OpcodeList3',
-                   51041: 'NoiseProfile'}
-
-    def __init__(self, endian, read_buffer, offset):
-        _Ifd.__init__(self, endian, read_buffer, offset)
-        self.post_process(self.tagnum2name)
-
-
-class _ExifPhotoIfd(_Ifd):
-    """Represents tags found in the Exif sub ifd.
-    """
-    tagnum2name = {33434: 'ExposureTime',
-                   33437: 'FNumber',
-                   34850: 'ExposureProgram',
-                   34852: 'SpectralSensitivity',
-                   34855: 'ISOSpeedRatings',
-                   34856: 'OECF',
-                   34864: 'SensitivityType',
-                   34865: 'StandardOutputSensitivity',
-                   34866: 'RecommendedExposureIndex',
-                   34867: 'ISOSpeed',
-                   34868: 'ISOSpeedLatitudeyyy',
-                   34869: 'ISOSpeedLatitudezzz',
-                   36864: 'ExifVersion',
-                   36867: 'DateTimeOriginal',
-                   36868: 'DateTimeDigitized',
-                   37121: 'ComponentsConfiguration',
-                   37122: 'CompressedBitsPerPixel',
-                   37377: 'ShutterSpeedValue',
-                   37378: 'ApertureValue',
-                   37379: 'BrightnessValue',
-                   37380: 'ExposureBiasValue',
-                   37381: 'MaxApertureValue',
-                   37382: 'SubjectDistance',
-                   37383: 'MeteringMode',
-                   37384: 'LightSource',
-                   37385: 'Flash',
-                   37386: 'FocalLength',
-                   37396: 'SubjectArea',
-                   37500: 'MakerNote',
-                   37510: 'UserComment',
-                   37520: 'SubSecTime',
-                   37521: 'SubSecTimeOriginal',
-                   37522: 'SubSecTimeDigitized',
-                   40960: 'FlashpixVersion',
-                   40961: 'ColorSpace',
-                   40962: 'PixelXDimension',
-                   40963: 'PixelYDimension',
-                   40964: 'RelatedSoundFile',
-                   40965: 'InteroperabilityTag',
-                   41483: 'FlashEnergy',
-                   41484: 'SpatialFrequencyResponse',
-                   41486: 'FocalPlaneXResolution',
-                   41487: 'FocalPlaneYResolution',
-                   41488: 'FocalPlaneResolutionUnit',
-                   41492: 'SubjectLocation',
-                   41493: 'ExposureIndex',
-                   41495: 'SensingMethod',
-                   41728: 'FileSource',
-                   41729: 'SceneType',
-                   41730: 'CFAPattern',
-                   41985: 'CustomRendered',
-                   41986: 'ExposureMode',
-                   41987: 'WhiteBalance',
-                   41988: 'DigitalZoomRatio',
-                   41989: 'FocalLengthIn35mmFilm',
-                   41990: 'SceneCaptureType',
-                   41991: 'GainControl',
-                   41992: 'Contrast',
-                   41993: 'Saturation',
-                   41994: 'Sharpness',
-                   41995: 'DeviceSettingDescription',
-                   41996: 'SubjectDistanceRange',
-                   42016: 'ImageUniqueID',
-                   42032: 'CameraOwnerName',
-                   42033: 'BodySerialNumber',
-                   42034: 'LensSpecification',
-                   42035: 'LensMake',
-                   42036: 'LensModel',
-                   42037: 'LensSerialNumber'}
-
-    def __init__(self, endian, read_buffer, offset):
-        _Ifd.__init__(self, endian, read_buffer, offset)
-        self.post_process(self.tagnum2name)
-
-
-class _ExifGPSInfoIfd(_Ifd):
-    """Represents information found in the GPSInfo sub IFD.
-    """
-    tagnum2name = {0: 'GPSVersionID',
-                   1: 'GPSLatitudeRef',
-                   2: 'GPSLatitude',
-                   3: 'GPSLongitudeRef',
-                   4: 'GPSLongitude',
-                   5: 'GPSAltitudeRef',
-                   6: 'GPSAltitude',
-                   7: 'GPSTimeStamp',
-                   8: 'GPSSatellites',
-                   9: 'GPSStatus',
-                   10: 'GPSMeasureMode',
-                   11: 'GPSDOP',
-                   12: 'GPSSpeedRef',
-                   13: 'GPSSpeed',
-                   14: 'GPSTrackRef',
-                   15: 'GPSTrack',
-                   16: 'GPSImgDirectionRef',
-                   17: 'GPSImgDirection',
-                   18: 'GPSMapDatum',
-                   19: 'GPSDestLatitudeRef',
-                   20: 'GPSDestLatitude',
-                   21: 'GPSDestLongitudeRef',
-                   22: 'GPSDestLongitude',
-                   23: 'GPSDestBearingRef',
-                   24: 'GPSDestBearing',
-                   25: 'GPSDestDistanceRef',
-                   26: 'GPSDestDistance',
-                   27: 'GPSProcessingMethod',
-                   28: 'GPSAreaInformation',
-                   29: 'GPSDateStamp',
-                   30: 'GPSDifferential'}
-
-    def __init__(self, endian, read_buffer, offset):
-        _Ifd.__init__(self, endian, read_buffer, offset)
-        self.post_process(self.tagnum2name)
-
-
-class _ExifInteroperabilityIfd(_Ifd):
-    """Represents tags found in the Interoperability sub IFD.
-    """
-    tagnum2name = {1: 'InteroperabilityIndex',
-                   2: 'InteroperabilityVersion',
-                   4096: 'RelatedImageFileFormat',
-                   4097: 'RelatedImageWidth',
-                   4098: 'RelatedImageLength'}
-
-    def __init__(self, endian, read_buffer, offset):
-        _Ifd.__init__(self, endian, read_buffer, offset)
-        self.post_process(self.tagnum2name)
 
 
 # Map each box ID to the corresponding class.
@@ -3226,44 +3075,58 @@ _BOX_WITH_ID = {
     'uuid': UUIDBox,
     'xml ': XMLBox}
 
+_printoptions = {'short': False, 'xml': True, 'codestream': True}
 
-def _indent(elem, level=0):
-    """Recipe for pretty printing XML.  Please see
+def set_printoptions(**kwargs):
+    """Set printing options.
 
-    http://effbot.org/zone/element-lib.htm#prettyprint
+    These options determine the way JPEG 2000 boxes are displayed.
+
+    Parameters
+    ----------
+    short : bool, optional
+        When True, only the box ID, offset, and length are displayed.  Useful
+        for displaying only the basic structure or skeleton of a JPEG 2000 file.
+    xml : bool, optional
+        When False, printing of the XML contents of any XML boxes or UUID XMP
+        boxes is suppressed.
+    codestream : bool, optional
+        When False, printing of the codestream contents is suppressed.
+
+    See also
+    --------
+    get_printoptions
+
+    Examples
+    --------
+    To put back the default options, you can use:
+
+    >>> import glymur
+    >>> glymur.set_printoptions(short=False, xml=True, codestream=True)
     """
-    i = "\n" + level * "  "
-    if len(elem):
-        if not elem.text or not elem.text.strip():
-            elem.text = i + "  "
-        if not elem.tail or not elem.tail.strip():
-            elem.tail = i
-        for elem in elem:
-            _indent(elem, level + 1)
-        if not elem.tail or not elem.tail.strip():
-            elem.tail = i
-    else:
-        if level and (not elem.tail or not elem.tail.strip()):
-            elem.tail = i
+    for key, value in kwargs.items():
+        if key not in ['short', 'xml', 'codestream']:
+            raise TypeError('"{0}" not a valid keyword parameter.'.format(key))
+        _printoptions[key] = value
 
+def get_printoptions():
+    """Return the current print options.
 
-def _pretty_print_xml(xml, level=0):
-    """Pretty print XML data.
+    Returns
+    -------
+    print_opts : dict
+        Dictionary of current print options with keys
+
+          - short : bool
+          - xml : bool
+          - codestream : bool
+
+        For a full description of these options, see `set_printoptions`.
+
+    See also
+    --------
+    set_printoptions
     """
-    xml = copy.deepcopy(xml)
-    _indent(xml.getroot(), level=level)
-    xmltext = ET.tostring(xml.getroot(), encoding='utf-8').decode('utf-8')
+    return _printoptions
 
-    # Indent it a bit.
-    lst = [('    ' + x) for x in xmltext.split('\n')]
-    try:
-        xml = '\n'.join(lst)
-        return '\n{0}'.format(xml)
-    except UnicodeEncodeError:
-        # This can happen on python 2.x if the character set contains certain
-        # non-ascii characters.  Just print out the corresponding xml char
-        # entities instead.
-        xml = u'\n'.join(lst)
-        text = u'\n{0}'.format(xml)
-        text = text.encode('ascii', 'xmlcharrefreplace')
-        return text
+

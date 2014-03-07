@@ -20,7 +20,6 @@ import sys
 import tempfile
 import unittest
 import warnings
-import xml.etree.cElementTree as ET
 
 if sys.hexversion < 0x03000000:
     from StringIO import StringIO
@@ -31,6 +30,8 @@ if sys.hexversion <= 0x03030000:
     from mock import patch
 else:
     from unittest.mock import patch
+
+import lxml.etree as ET
 
 import glymur
 from glymur import Jp2k

@@ -16,7 +16,7 @@ kwargs = {'name': 'Glymur',
           'license': 'MIT',
           'test_suite': 'glymur.test'}
 
-instllrqrs = ['numpy>=1.4.1']
+instllrqrs = ['numpy>=1.4.1', 'lxml>=2.3.2']
 if sys.hexversion < 0x03030000:
     instllrqrs.append('contextlib2>=0.4')
     instllrqrs.append('mock>=1.0.1')
@@ -38,7 +38,7 @@ kwargs['classifiers'] = clssfrs
 
 # Get the version string.  Cannot do this by importing glymur!
 version_file = os.path.join('glymur', 'version.py')
-with open('glymur/version.py', 'rt') as fptr:
+with open(version_file, 'rt') as fptr:
     contents = fptr.read()
     match = re.search('version\s*=\s*"(?P<version>\d*.\d*.\d*.*)"\n', contents)
     kwargs['version'] = match.group('version')

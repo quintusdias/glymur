@@ -16,17 +16,19 @@ if sys.hexversion >= 0x03030000:
 else:
     from contextlib2 import ExitStack
 
+from collections import Counter
 import ctypes
 import math
 import os
 import struct
+from uuid import UUID
 import warnings
 
 import numpy as np
 
 from .codestream import Codestream
 from .core import SRGB, GREYSCALE
-from .core import PROGRESSION_ORDER
+from .core import PROGRESSION_ORDER, RSIZ, CINEMA_MODE
 from .core import ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE
 from .jp2box import Jp2kBox
 from .jp2box import JPEG2000SignatureBox, FileTypeBox, JP2HeaderBox
@@ -36,6 +38,16 @@ from .lib import openjpeg as opj
 from .lib import openjp2 as opj2
 from . import version
 from .lib import c as libc
+
+# Codestream lengths for 24fps, 48fps
+CINEMA_24_CS = 1302083
+CINEMA_48_CS = 651041
+
+# Maximum size per color components for 2K and 4K at 24 fps
+COMP_24_CS = 1041666
+
+# Maximum size per color components for 2K at 48 fps
+COMP_48_CS = 520833
 
 JP2_IDS = ['colr', 'cdef', 'cmap', 'jp2c', 'ftyp', 'ihdr', 'jp2h', 'jP  ',
            'pclr', 'res ', 'resc', 'resd', 'xml ', 'ulst', 'uinf', 'url ',
@@ -151,6 +163,111 @@ class Jp2k(Jp2kBox):
                     msg += "profile if the file type box brand is 'jp2 '."
                     warnings.warn(msg)
 
+    def _set_cinema_params(self, cparams, cinema_mode, fps):
+        """Populate compression parameters structure for cinema2K.
+
+        Parameters
+        ----------
+        params : ctypes struct
+            Corresponds to compression parameters structure used by the
+            library.
+        cinema_mode : str
+            Either 'cinema2k' or 'cinema4k'
+        fps : int
+            Frames per second, should be either 24 or 48.
+        """
+        if cinema_mode == 'cinema2k':
+            if fps == 24:
+                cparams.cp_cinema = CINEMA_MODE['cinema2k_24']
+            elif fps == 48:
+                cparams.cp_cinema = CINEMA_MODE['cinema2k_48']
+            else:
+                raise IOError('Cinema2K frame rate must be either 24 or 48.')
+            cparams.cp_rsiz = RSIZ['CINEMA2K']
+        else:
+            cparams.cp_cinema = CINEMA_MODE['cinema4k_24']
+            cparams.cp_rsiz = RSIZ['CINEMA4K']
+
+
+        # No tiling
+        cparams.tile_size_on = opj2.FALSE
+        cparams.cp_tdx = 1
+        cparams.cp_tdy = 1
+
+        # One tile part for each component.
+        cparams.tp_flag = ord('C')
+        cparams.tp_on = 1
+
+        # tile and image shall be as (0,0)
+        cparams.cp_tx0 = 0
+        cparams.cp_ty0 = 0
+        cparams.image_offset_x0 = 0
+        cparams.image_offset_y0 = 0
+
+        # Codeblock size = 32 * 32
+        cparams.cblockw_init = 32
+        cparams.cblockh_init = 32
+
+        # code block style, no mode switch enabled.
+        cparams.mode = 0
+
+        # no ROI
+        cparams.roi_compno = -1
+
+        # no subsampling
+        cparams.subsampling_dx = 1
+        cparams.subsampling_dy = 1
+
+        # 9-7 transform
+        cparams.irreversible = 1
+
+        # number of layers
+        if cparams.tcp_numlayers > 1:
+            # TODO:  warning or error
+            cparams.tcp_numlayers = 1
+
+        if cinema_mode == 'cinema2k':
+            if cparams.numresolution > 6:
+                # TODO:  warning or error
+                cparams.numresolution = 6
+        else:
+            if cparams.numresolution < 2:
+                # TODO:  warning or error
+                cparams.numresolution = 1
+            elif cparams.numresolution > 7:
+                cparams.numresolution = 7
+
+
+        # precincts
+        cparams.csty |= 0x01
+        cparams.res_spec = cparams.numresolution - 1
+        for j in range(cparams.res_spec):
+            cparams.prcw_init[j] = 256
+            cparams.prch_init[j] = 256
+
+        # Progression order shall be CPRL
+        cparams.prog_order = PROGRESSION_ORDER['CPRL']
+
+        # progression order changes not allowed for 2K
+        if cinema_mode == 'cinema2k':
+            cparams.numpocs = 0
+        else:
+            cparams.poc[0].tile = 1
+            cparams.poc[0].resno0 = 0
+            cparams.poc[0].compno0 = 0
+            cparams.poc[0].layno1 = 1
+            cparams.poc[0].resno1 = cparams.numresolution - 1
+            cparams.poc[0].compno1 = 3
+            cparams.poc[0].prg1 = PROGRESSION_ORDER['CPRL']
+            cparams.poc[1].tile = 1
+            cparams.poc[1].resno0 = 0
+            cparams.poc[1].compno0 = 0
+            cparams.poc[1].layno1 = 1
+            cparams.poc[1].resno1 = cparams.numresolution
+            cparams.poc[1].compno1 = 3
+            cparams.poc[1].prg1 = PROGRESSION_ORDER['CPRL']
+            cparams.numpocs = 2
+
     def _populate_cparams(self, **kwargs):
         """Populate compression parameters structure from input arguments.
 
@@ -216,6 +333,14 @@ class Jp2k(Jp2kBox):
         cparams.tcp_rates[0] = 0
         cparams.tcp_numlayers = 1
         cparams.cp_disto_alloc = 1
+
+        if 'cinema2k' in kwargs:
+            self._set_cinema_params(cparams, 'cinema2k', kwargs['cinema2k'])
+            return cparams
+
+        if 'cinema4k' in kwargs:
+            self._set_cinema_params(cparams, 'cinema4k', kwargs['cinema4k'])
+            return cparams
 
         if 'cbsize' in kwargs:
             cparams.cblockw_init = kwargs['cbsize'][1]
@@ -338,6 +463,8 @@ class Jp2k(Jp2kBox):
             Image data to be written to file.
         cbsize : tuple, optional
             Code block size (DY, DX).
+        cinema2k : int, optional
+            frames per second, either 24 or 48
         colorspace : str, optional
             Either 'rgb' or 'gray'.
         cratios : iterable
@@ -469,9 +596,51 @@ class Jp2k(Jp2kBox):
         self.parse()
 
 
+    def _set_cinema_rate(self, cparams, image):
+        max_rate = 0
+        temp_rate = 0
+        cparams.cp_disto_alloc = 1
+
+        num_pixels = image.contents.comps[0].w * image.contents.comps[0].h
+        num_samples = num_pixels * image.contents.numcomps
+        rate_numerator = num_samples * image.contents.comps[0].prec
+        rate_denominator = 8 * image.contents.comps[0].dx
+        rate_denominator *= image.contents.comps[0].dy
+
+        if cparams.cp_cinema in [CINEMA_MODE['cinema2k_24'],
+                                 CINEMA_MODE['cinema4k_24']]:
+            max_rate = rate_numerator / (rate_denominator * CINEMA_24_CS)
+            if cparams.tcp_rates[0] == 0:
+                cparams.tcp_rates[0] = max_rate
+            else:
+                temp_rate = rate_numerator / (cparams.tcp_rates[0] * 8 * num_pixels)
+                if temp_rate > CINEMA_24_CS:
+                    # TODO warning, reset
+                    cparams.tcp_rates[0] = max_rate
+                else:
+                    # TODO warning
+                    pass
+
+            cparams.max_comp_size = COMP_24_CS
+
+        else:
+            max_rate = rate_numerator / (rate_denominator * CINEMA_48_CS)
+            if cparams.tcp_rates[0] == 0:
+                cparams.tcp_rates[0] = max_rate
+            else:
+                temp_rate = rate_numerator / (cparams.tcp_rates[0] * 8 * num_pixels)
+                if temp_rate > CINEMA_48_CS:
+                    # TODO warning, reset
+                    cparams.tcp_rates[0] = max_rate
+                else:
+                    # TODO warning
+                    pass
+
+            cparams.max_comp_size = COMP_48_CS
+
     def _write_openjp2(self, img_array, verbose=False, **kwargs):
         """
-        Write JPEG 2000 file using OpenJPEG 1.5 interface.
+        Write JPEG 2000 file using OpenJPEG 2.0 interface.
         """
         cparams, colorspace = self._process_write_inputs(img_array, **kwargs)
 
@@ -487,17 +656,22 @@ class Jp2k(Jp2kBox):
             stack.callback(opj2.image_destroy, image)
 
             _populate_image_struct(cparams, image, img_array)
-    
+
+            if 'cinema2k' in kwargs:
+                self._set_cinema_rate(cparams, image)
+            if 'cinema4k' in kwargs:
+                self._set_cinema_rate(cparams, image)
+
             codec = opj2.create_compress(cparams.codec_fmt)
             stack.callback(opj2.destroy_codec, codec)
-    
+
             info_handler = _INFO_CALLBACK if verbose else None
             opj2.set_info_handler(codec, info_handler)
             opj2.set_warning_handler(codec, _WARNING_CALLBACK)
             opj2.set_error_handler(codec, _ERROR_CALLBACK)
-    
+
             opj2.setup_encoder(codec, cparams, image)
-    
+
             if _OPENJP2_IS_OFFICIAL_V2:
                 fptr = libc.fopen(self.filename, 'wb')
                 strm = opj2.stream_create_default_file_stream(fptr, False)
@@ -508,11 +682,11 @@ class Jp2k(Jp2kBox):
                 strm = opj2.stream_create_default_file_stream_v3(self.filename,
                                                                  False)
                 stack.callback(opj2.stream_destroy_v3, strm)
-    
+
             opj2.start_compress(codec, image, strm)
             opj2.encode(codec, strm)
             opj2.end_compress(codec, strm)
-    
+
         # Refresh the metadata.
         self.parse()
 
@@ -522,14 +696,18 @@ class Jp2k(Jp2kBox):
         Parameters
         ----------
         box : Jp2Box
-            Instance of a JP2 box.  Currently only XML boxes are allowed.
+            Instance of a JP2 box.  Only UUID and XML boxes can currently be
+            appended.
         """
         if self._codec_format == opj2.CODEC_J2K:
             msg = "Only JP2 files can currently have boxes appended to them."
             raise IOError(msg)
 
-        if box.box_id != 'xml ':
-            raise IOError("Only XML boxes can currently be appended.")
+        if not ((box.box_id == 'xml ') or
+                (box.box_id == 'uuid' and
+                 box.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'))):
+            msg = "Only XML boxes and XMP UUID boxes can currently be appended."
+            raise IOError(msg)
 
         # Check the last box.  If the length field is zero, then rewrite
         # the length field to reflect the true length of the box.
@@ -1018,7 +1196,7 @@ class Jp2k(Jp2kBox):
         >>> jp2 = glymur.Jp2k(jfile)
         >>> codestream = jp2.get_codestream()
         >>> print(codestream.segment[1])
-        SIZ marker segment @ (3137, 47)
+        SIZ marker segment @ (3233, 47)
             Profile:  2
             Reference Grid Height, Width:  (1456 x 2592)
             Vertical, Horizontal Reference Grid Offset:  (0 x 0)
@@ -1104,11 +1282,38 @@ def _validate_nonzero_image_size(nrows, ncols, component_index):
         raise IOError(msg)
 
 
+JP2_IDS = ['colr', 'cdef', 'cmap', 'jp2c', 'ftyp', 'ihdr', 'jp2h', 'jP  ',
+           'pclr', 'res ', 'resc', 'resd', 'xml ', 'ulst', 'uinf', 'url ',
+           'uuid']
+
 def _validate_jp2_box_sequence(boxes):
     """Run through series of tests for JP2 box legality.
 
     This is non-exhaustive.
     """
+    _validate_signature_compatibility(boxes)
+    _validate_jp2h(boxes)
+    _validate_jp2c(boxes)
+    if boxes[1].brand == 'jpx ':
+        _validate_jpx_box_sequence(boxes)
+    else:
+        count = _collect_box_count(boxes)
+        for id in count.keys():
+            if id not in JP2_IDS:
+                msg = "The presence of a '{0}' box requires that the file type "
+                msg += "brand be set to 'jpx '."
+                raise IOError(msg.format(id))
+
+def _validate_jpx_box_sequence(boxes):
+    """Run through series of tests for JPX box legality."""
+    _validate_label(boxes)
+    _validate_jpx_brand(boxes, boxes[1].brand)
+    _validate_jpx_compatibility(boxes, boxes[1].compatibility_list)
+    _validate_singletons(boxes)
+    _validate_top_level(boxes)
+
+def _validate_signature_compatibility(boxes):
+    """Validate the file signature and compatibility status."""
     # Check for a bad sequence of boxes.
     # 1st two boxes must be 'jP  ' and 'ftyp'
     if boxes[0].box_id != 'jP  ' or boxes[1].box_id != 'ftyp':
@@ -1116,6 +1321,14 @@ def _validate_jp2_box_sequence(boxes):
         msg += "must be the file type box."
         raise IOError(msg)
 
+    # The compatibility list must contain at a minimum 'jp2 '.
+    if 'jp2 ' not in boxes[1].compatibility_list:
+        msg = "The ftyp box must contain 'jp2 ' in the compatibility list."
+        raise IOError(msg)
+
+
+def _validate_jp2c(boxes):
+    """Validate the codestream box in relation to other boxes."""
     # jp2c must be preceeded by jp2h
     jp2h_lst = [idx for (idx, box) in enumerate(boxes)
                 if box.box_id == 'jp2h']
@@ -1132,8 +1345,20 @@ def _validate_jp2_box_sequence(boxes):
         msg = "The codestream box must be preceeded by a jp2 header box."
         raise IOError(msg)
 
+
+def _validate_jp2h(boxes):
+    """Validate the JP2 Header box."""
+    _check_jp2h_child_boxes(boxes, 'top-level')
+
+    jp2h_lst = [box for box in boxes if box.box_id == 'jp2h']
+    jp2h = jp2h_lst[0]
+
+    # 1st jp2 header box cannot be empty.
+    if len(jp2h.box) == 0:
+        msg = "The JP2 header superbox cannot be empty."
+        raise IOError(msg)
+
     # 1st jp2 header box must be ihdr
-    jp2h = boxes[jp2h_idx]
     if jp2h.box[0].box_id != 'ihdr':
         msg = "The first box in the jp2 header box must be the image "
         msg += "header box."
@@ -1147,15 +1372,12 @@ def _validate_jp2_box_sequence(boxes):
         raise IOError(msg)
     colr = jp2h.box[colr_lst[0]]
 
-    # Any cdef box must be in the jp2 header following the image header.
-    cdef_lst = [j for (j, box) in enumerate(boxes) if box.box_id == 'cdef']
-    if len(cdef_lst) != 0:
-        msg = "Any channel defintion box must be in the JP2 header "
-        msg += "following the image header."
-        raise IOError(msg)
+    _validate_channel_definition(jp2h, colr)
 
-    cdef_lst = [j for (j, box) in enumerate(jp2h.box)
-                if box.box_id == 'cdef']
+
+def _validate_channel_definition(jp2h, colr):
+    """Validate the channel definition box."""
+    cdef_lst = [j for (j, box) in enumerate(jp2h.box) if box.box_id == 'cdef']
     if len(cdef_lst) > 1:
         msg = "Only one channel definition box is allowed in the "
         msg += "JP2 header."
@@ -1174,18 +1396,79 @@ def _validate_jp2_box_sequence(boxes):
                 msg = "All color channels must be defined in the "
                 msg += "channel definition box."
                 raise IOError(msg)
-    
-    # The compatibility list must contain at a minimum 'jp2 '.
-    if 'jp2 ' not in boxes[1].compatibility_list:
-        msg = "The ftyp box must contain 'jp2 ' in the compatibility list."
+
+
+JP2H_CHILDREN = set(['bpcc', 'cdef', 'cmap', 'ihdr', 'pclr'])
+def _check_jp2h_child_boxes(boxes, parent_box_name):
+    """Certain boxes can only reside in the JP2 header."""
+    box_ids = set([box.box_id for box in boxes])
+    intersection = box_ids.intersection(JP2H_CHILDREN)
+    if len(intersection) > 0 and parent_box_name != 'jp2h':
+        msg = "A '{0}' box can only be nested in a JP2 header box."
+        raise IOError(msg.format(list(intersection)[0]))
+
+    # Recursively check any contained superboxes.
+    for box in boxes:
+        if hasattr(box, 'box'):
+            _check_jp2h_child_boxes(box.box, box.box_id)
+
+
+def _collect_box_count(boxes):
+    """Count the occurences of each box type."""
+    count = Counter([box.box_id for box in boxes])
+
+    # Add the counts in the superboxes.
+    for box in boxes:
+        if hasattr(box, 'box'):
+            count.update(_collect_box_count(box.box))
+
+    return count
+
+TOP_LEVEL_ONLY_BOXES = set(['dtbl'])
+
+def _check_superbox_for_top_levels(boxes):
+    """Several boxes can only occur at the top level."""
+    # We are only looking at the boxes contained in a superbox, so if any of
+    # the blacklisted boxes show up here, it's an error.
+    box_ids = set([box.box_id for box in boxes])
+    intersection = box_ids.intersection(TOP_LEVEL_ONLY_BOXES)
+    if len(intersection) > 0:
+        msg = "A '{0}' box cannot be nested in a superbox."
+        raise IOError(msg.format(list(intersection)[0]))
+
+    # Recursively check any contained superboxes.
+    for box in boxes:
+        if hasattr(box, 'box'):
+            _check_superbox_for_top_levels(box.box)
+
+def _validate_top_level(boxes):
+    """Several boxes can only occur at the top level."""
+    # Add the counts in the superboxes.
+    for box in boxes:
+        if hasattr(box, 'box'):
+            _check_superbox_for_top_levels(box.box)
+
+    count = _collect_box_count(boxes)
+    # Which boxes occur more than once?
+    multiples = [box_id for box_id, bcount in count.items() if bcount > 1]
+    if 'dtbl' in multiples:
+        raise IOError('There can only be one dtbl box in a file.')
+
+    # If there is one data reference box, then there must also be one ftbl.
+    if 'dtbl' in count and 'ftbl' not in count:
+        msg = 'The presence of a data reference box requires the presence of '
+        msg += 'a fragment table box as well.'
         raise IOError(msg)
 
-    # JPX checks.
-    _asoc_check(boxes)
-    _jpx_brand(boxes, boxes[1].brand)
-    _jpx_compatibility(boxes, boxes[1].compatibility_list)
+def _validate_singletons(boxes):
+    """Several boxes can only occur once."""
+    count = _collect_box_count(boxes)
+    # Which boxes occur more than once?
+    multiples = [box_id for box_id, bcount in count.items() if bcount > 1]
+    if 'dtbl' in multiples:
+        raise IOError('There can only be one dtbl box in a file.')
 
-def _jpx_brand(boxes, brand):
+def _validate_jpx_brand(boxes, brand):
     """
     If there is a JPX box then the brand must be 'jpx '.
     """
@@ -1197,39 +1480,38 @@ def _jpx_brand(boxes, brand):
                 raise RuntimeError(msg)
         if hasattr(box, 'box') != 0:
             # Same set of checks on any child boxes.
-            _jpx_brand(box.box, brand)
+            _validate_jpx_brand(box.box, brand)
 
-def _jpx_compatibility(boxes, compatibility_list):
+def _validate_jpx_compatibility(boxes, compatibility_list):
     """
     If there is a JPX box then the compatibility list must also contain 'jpx '.
     """
+    jpx_cl = set(compatibility_list)
     for box in boxes:
         if box.box_id in JPX_IDS:
-            if 'jpx ' not in compatibility_list:
-                msg = "A JPX box requires that 'jpx ' be present in the "
-                msg += "ftype compatibility list."
+            if len(set(['jpx ', 'jpxb']).intersection(jpx_cl)) == 0:
+                msg = "A JPX box requires that either 'jpx ' or 'jpxb' be "
+                msg += "present in the ftype compatibility list."
                 raise RuntimeError(msg)
         if hasattr(box, 'box') != 0:
             # Same set of checks on any child boxes.
-            _jpx_compatibility(box.box, compatibility_list)
+            _validate_jpx_compatibility(box.box, compatibility_list)
 
-
-def _asoc_check(boxes):
+def _validate_label(boxes):
     """
-    Association boxes can only contain number list boxes and xml boxes, as far
-    as we know.
+    Label boxes can only be inside association, codestream headers, or
+    compositing layer header boxes.
     """
     for box in boxes:
-        if box.box_id == 'asoc':
-            if box.box[0].box_id != 'nlst' or box.box[1].box_id != 'xml ':
-                msg = "An Association box can only contain a NumberList box "
-                msg += "followed by an XML box."
-                raise RuntimeError(msg)
-        if hasattr(box, 'box') != 0:
-            # Same set of checks on any child boxes.
-            _asoc_check(box.box)
-
-
+        if box.box_id != 'asoc':
+            if hasattr(box, 'box'):
+                for boxi in box.box:
+                    if boxi.box_id == 'lbl ':
+                        msg = "A label box cannot be nested inside a {0} box."
+                        msg = msg.format(box.box_id)
+                        raise IOError(msg)
+                # Same set of checks on any child boxes.
+                _validate_label(box.box)
 
 def extract_image_cube(image):
     """Extract 3D image from openjpeg data structure.
@@ -1397,6 +1679,10 @@ def _populate_image_struct(cparams, image, imgdata):
 
     # Stage the image data to the openjpeg data structure.
     for k in range(0, num_comps):
+        if cparams.cp_cinema:
+            image.contents.comps[k].prec = 12
+            image.contents.comps[k].bpp = 12
+
         layer = np.ascontiguousarray(imgdata[:, :, k], dtype=np.int32)
         dest = image.contents.comps[k].data
         src = layer.ctypes.data

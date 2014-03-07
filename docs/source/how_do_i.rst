@@ -5,14 +5,15 @@ How do I...?
 
 ... read the lowest resolution thumbnail?
 =========================================
-Printing the Jp2k object should reveal the number of resolutions (look in the
-COD segment section), but you can take a shortcut by supplying -1 as the
+Printing the Jp2k object should reveal the number of resolutions
+(look in the COD segment section of the codestream), but you can
+take a shortcut by supplying -1 as the
 resolution level. ::
 
     >>> import glymur
     >>> file = glymur.data.nemo()
-    >>> j = glymur.Jp2k(file)
-    >>> thumbnail = j.read(rlevel=-1)
+    >>> jp2 = glymur.Jp2k(file)
+    >>> thumbnail = jp2.read(rlevel=-1)
 
 ... display metadata?
 =====================
@@ -23,16 +24,182 @@ available. ::
 
 From within Python, it is as simple as printing the Jp2k object, i.e. ::
 
-    >>> from glymur import Jp2k
+    >>> import glymur
     >>> file = glymur.data.nemo()
-    >>> j = Jp2k(file)
-    >>> print(j)
+    >>> jp2 = glymur.Jp2k(file)
+    >>> print(jp2)
+    File:  nemo.jp2
+    JPEG 2000 Signature Box (jP  ) @ (0, 12)
+        Signature:  0d0a870a
+    File Type Box (ftyp) @ (12, 20)
+        Brand:  jp2 
+        Compatibility:  ['jp2 ']
+    JP2 Header Box (jp2h) @ (32, 45)
+        Image Header Box (ihdr) @ (40, 22)
+            Size:  [1456 2592 3]
+            Bitdepth:  8
+            Signed:  False
+            Compression:  wavelet
+            Colorspace Unknown:  False
+        Colour Specification Box (colr) @ (62, 15)
+            Method:  enumerated colorspace
+            Precedence:  0
+            Colorspace:  sRGB
+    UUID Box (uuid) @ (77, 3146)
+        UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
+        UUID Data:  
+        <ns0:xmpmeta xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:ns0="adobe:ns:meta/" xmlns:ns2="http://ns.adobe.com/xap/1.0/" xmlns:ns3="http://ns.adobe.com/tiff/1.0/" xmlns:ns4="http://ns.adobe.com/exif/1.0/" xmlns:ns5="http://ns.adobe.com/photoshop/1.0/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" ns0:xmptk="Exempi + XMP Core 5.1.2">
+          <rdf:RDF>
+            <rdf:Description rdf:about="">
+              <ns2:CreatorTool>Google</ns2:CreatorTool>
+              <ns2:CreateDate>2013-02-09T14:47:53</ns2:CreateDate>
+            </rdf:Description>
+            <rdf:Description rdf:about="">
+              <ns3:YCbCrPositioning>1</ns3:YCbCrPositioning>
+              <ns3:XResolution>72/1</ns3:XResolution>
+              <ns3:YResolution>72/1</ns3:YResolution>
+              <ns3:ResolutionUnit>2</ns3:ResolutionUnit>
+              <ns3:Make>HTC</ns3:Make>
+              <ns3:Model>HTC Glacier</ns3:Model>
+              <ns3:ImageWidth>2592</ns3:ImageWidth>
+              <ns3:ImageLength>1456</ns3:ImageLength>
+              <ns3:BitsPerSample>
+                <rdf:Seq>
+                  <rdf:li>8</rdf:li>
+                  <rdf:li>8</rdf:li>
+                  <rdf:li>8</rdf:li>
+                </rdf:Seq>
+              </ns3:BitsPerSample>
+              <ns3:PhotometricInterpretation>2</ns3:PhotometricInterpretation>
+              <ns3:SamplesPerPixel>3</ns3:SamplesPerPixel>
+              <ns3:WhitePoint>
+                <rdf:Seq>
+                  <rdf:li>1343036288/4294967295</rdf:li>
+                  <rdf:li>1413044224/4294967295</rdf:li>
+                </rdf:Seq>
+              </ns3:WhitePoint>
+              <ns3:PrimaryChromaticities>
+                <rdf:Seq>
+                  <rdf:li>2748779008/4294967295</rdf:li>
+                  <rdf:li>1417339264/4294967295</rdf:li>
+                  <rdf:li>1288490240/4294967295</rdf:li>
+                  <rdf:li>2576980480/4294967295</rdf:li>
+                  <rdf:li>644245120/4294967295</rdf:li>
+                  <rdf:li>257698032/4294967295</rdf:li>
+                </rdf:Seq>
+              </ns3:PrimaryChromaticities>
+            </rdf:Description>
+            <rdf:Description rdf:about="">
+              <ns4:ColorSpace>1</ns4:ColorSpace>
+              <ns4:PixelXDimension>2528</ns4:PixelXDimension>
+              <ns4:PixelYDimension>1424</ns4:PixelYDimension>
+              <ns4:FocalLength>353/100</ns4:FocalLength>
+              <ns4:GPSAltitudeRef>0</ns4:GPSAltitudeRef>
+              <ns4:GPSAltitude>0/1</ns4:GPSAltitude>
+              <ns4:GPSMapDatum>WGS-84</ns4:GPSMapDatum>
+              <ns4:DateTimeOriginal>2013-02-09T14:47:53</ns4:DateTimeOriginal>
+              <ns4:ISOSpeedRatings>
+                <rdf:Seq>
+                  <rdf:li>76</rdf:li>
+                </rdf:Seq>
+              </ns4:ISOSpeedRatings>
+              <ns4:ExifVersion>0220</ns4:ExifVersion>
+              <ns4:FlashpixVersion>0100</ns4:FlashpixVersion>
+              <ns4:ComponentsConfiguration>
+                <rdf:Seq>
+                  <rdf:li>1</rdf:li>
+                  <rdf:li>2</rdf:li>
+                  <rdf:li>3</rdf:li>
+                  <rdf:li>0</rdf:li>
+                </rdf:Seq>
+              </ns4:ComponentsConfiguration>
+              <ns4:GPSLatitude>42,20.56N</ns4:GPSLatitude>
+              <ns4:GPSLongitude>71,5.29W</ns4:GPSLongitude>
+              <ns4:GPSTimeStamp>2013-02-09T19:47:53Z</ns4:GPSTimeStamp>
+              <ns4:GPSProcessingMethod>NETWORK</ns4:GPSProcessingMethod>
+            </rdf:Description>
+            <rdf:Description rdf:about="">
+              <ns5:DateCreated>2013-02-09T14:47:53</ns5:DateCreated>
+            </rdf:Description>
+            <rdf:Description rdf:about="">
+              <dc:Creator>
+                <rdf:Seq>
+                  <rdf:li>Glymur</rdf:li>
+                  <rdf:li>Python XMP Toolkit</rdf:li>
+                </rdf:Seq>
+              </dc:Creator>
+            </rdf:Description>
+          </rdf:RDF>
+        </ns0:xmpmeta>
+    Contiguous Codestream Box (jp2c) @ (3223, 1132296)
+        Main header:
+            SOC marker segment @ (3231, 0)
+            SIZ marker segment @ (3233, 47)
+                Profile:  2
+                Reference Grid Height, Width:  (1456 x 2592)
+                Vertical, Horizontal Reference Grid Offset:  (0 x 0)
+                Reference Tile Height, Width:  (1456 x 2592)
+                Vertical, Horizontal Reference Tile Offset:  (0 x 0)
+                Bitdepth:  (8, 8, 8)
+                Signed:  (False, False, False)
+                Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))
+            COD marker segment @ (3282, 12)
+                Coding style:
+                    Entropy coder, without partitions
+                    SOP marker segments:  False
+                    EPH marker segments:  False
+                Coding style parameters:
+                    Progression order:  LRCP
+                    Number of layers:  2
+                    Multiple component transformation usage:  reversible
+                    Number of resolutions:  2
+                    Code block height, width:  (64 x 64)
+                    Wavelet transform:  5-3 reversible
+                    Precinct size:  default, 2^15 x 2^15
+                    Code block context:
+                        Selective arithmetic coding bypass:  False
+                        Reset context probabilities on coding pass boundaries:  False
+                        Termination on each coding pass:  False
+                        Vertically stripe causal context:  False
+                        Predictable termination:  False
+                        Segmentation symbols:  False
+            QCD marker segment @ (3296, 7)
+                Quantization style:  no quantization, 2 guard bits
+                Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]
+            CME marker segment @ (3305, 37)
+                "Created by OpenJPEG version 2.0.0"
+     
+That's fairly overwhelming, and perhaps lost in the flood of information
+is the fact that the codestream metadata is limited to just what's in the
+main codestream header.  You can suppress the codestream and XML details by
+making use of the :py:meth:`set_printoptions` function::
 
-This prints the metadata found in the JP2 boxes, but in the case of the
-codestream box, only the main header is printed.  It is possible to print 
-**only** the codestream information as well, i.e. ::
+    >>> glymur.set_printoptions(codestream=False, xml=False)
+    >>> print(jp2)
+    File:  nemo.jp2
+    JPEG 2000 Signature Box (jP  ) @ (0, 12)
+        Signature:  0d0a870a
+    File Type Box (ftyp) @ (12, 20)
+        Brand:  jp2 
+        Compatibility:  ['jp2 ']
+    JP2 Header Box (jp2h) @ (32, 45)
+        Image Header Box (ihdr) @ (40, 22)
+            Size:  [1456 2592 3]
+            Bitdepth:  8
+            Signed:  False
+            Compression:  wavelet
+            Colorspace Unknown:  False
+        Colour Specification Box (colr) @ (62, 15)
+            Method:  enumerated colorspace
+            Precedence:  0
+            Colorspace:  sRGB
+    UUID Box (uuid) @ (77, 3146)
+        UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
+    Contiguous Codestream Box (jp2c) @ (3223, 1132296)
 
-    >>> print(j.get_codestream())
+It is possible to print all the gory codestream details as well, i.e. ::
+
+    >>> print(j.get_codestream())   # details not shown
 
 ... add XML metadata?
 =====================
@@ -55,12 +222,11 @@ Consider the following XML file `data.xml` : ::
         </locality>
     </info>
 
-The **append** method can add an XML box as shown below::
+The :py:meth:`append` method can add an XML box as shown below::
 
     >>> import shutil
     >>> import glymur
     >>> shutil.copyfile(glymur.data.nemo(), 'myfile.jp2')
-    >>> from xml.etree import cElementTree as ET
     >>> jp2 = glymur.Jp2k('myfile.jp2')
     >>> xmlbox = glymur.jp2box.XMLBox(filename='data.xml')
     >>> jp2.append(xmlbox)
@@ -71,9 +237,10 @@ The **append** method can add an XML box as shown below::
 An existing raw codestream (or JP2 file) can be wrapped (re-wrapped) in a 
 user-defined set of JP2 boxes.  To get just a minimal JP2 jacket on the 
 codestream provided by `goodstuff.j2k` (a file consisting of a raw codestream),
-you can use the **wrap** method with no box argument: ::
+you can use the :py:meth:`wrap` method with no box argument: ::
 
     >>> import glymur
+    >>> glymur.set_printoptions(codestream=False)
     >>> jfile = glymur.data.goodstuff()
     >>> j2k = glymur.Jp2k(jfile)
     >>> jp2 = j2k.wrap("newfile.jp2")
@@ -96,10 +263,6 @@ you can use the **wrap** method with no box argument: ::
             Precedence:  0
             Colorspace:  sRGB
     Contiguous Codestream Box (jp2c) @ (77, 115228)
-        Main header:
-        .
-        . (truncated)
-        .
 
 The raw codestream was wrapped in a JP2 jacket with four boxes in the outer
 layer (the signature, file type, JP2 header, and contiguous codestream), with
@@ -108,8 +271,9 @@ JP2 header superbox.
 
 XML boxes are not in the minimal set of box requirements for the JP2 format, so
 in order to add an XML box into the mix before the codestream box, we'll need to 
-re-specify all of the boxes.  If you already have a JP2 jacket in place, you can just reuse that,
-though.  Take the following example content in an XML file `favorites.xml` : ::
+re-specify all of the boxes.  If you already have a JP2 jacket in place,
+you can just reuse that, though.  Take the following example content in
+an XML file `favorites.xml` : ::
 
     <?xml version="1.0"?>
     <favorite_things>
@@ -145,17 +309,12 @@ the following will work. ::
         <favorite_things>
           <category>Light Ale</category>
         </favorite_things>
-        
     Contiguous Codestream Box (jp2c) @ (153, 115236)
-        Main header:
-        .
-        . (truncated)
-        .
 
-As to the question of which method you should use, **append** or **wrap**,
-to add metadata, you should keep in mind that **wrap** produces a new JP2 file,
-while **append** modifies an existing file and is currently limited to XML
-boxes.
+As to the question of which method you should use, :py:meth:`append` or
+:py:meth:`wrap`, to add metadata, you should keep in mind that :py:meth:`wrap`
+produces a new JP2 file, while :py:meth:`append` modifies an existing file and
+is currently limited to XML and UUID boxes.
 
 ... create an image with an alpha layer?
 ========================================
@@ -198,7 +357,7 @@ channel, but we aren't doing that). ::
 
     >>> from glymur.core import RED, GREEN, BLUE, WHOLE_IMAGE
     >>> asoc = [RED, GREEN, BLUE, WHOLE_IMAGE]
-    >>> cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=ctype, association=asoc)
+    >>> cdef = glymur.jp2box.ChannelDefinitionBox(ctype, asoc)
     >>> print(cdef)
     Channel Definition Box (cdef) @ (0, 0)
         Channel 0 (color) ==> (1)
@@ -219,32 +378,210 @@ Here's how the Preview application on the mac shows the RGBA image.
 .. image:: goodstuff_alpha.png
 
     
-work with XMP UUIDs?
-====================
+... work with XMP UUIDs?
+========================
+XMP is metadata on steroids.  
+
 The example JP2 file shipped with glymur has an XMP UUID. ::
 
     >>> import glymur
     >>> j = glymur.Jp2k(glymur.data.nemo())
-    >>> print(j.box[4])
-    UUID Box (uuid) @ (715, 2412)
+    >>> print(j.box[3]) # formatting added to the XML below
+    <ns0:xmpmeta xmlns:dc="http://purl.org/dc/elements/1.1/"
+                 xmlns:ns0="adobe:ns:meta/"
+                 xmlns:ns2="http://ns.adobe.com/xap/1.0/"
+                 xmlns:ns3="http://ns.adobe.com/tiff/1.0/"
+                 xmlns:ns4="http://ns.adobe.com/exif/1.0/"
+                 xmlns:ns5="http://ns.adobe.com/photoshop/1.0/"
+                 xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+                 ns0:xmptk="Exempi + XMP Core 5.1.2">
+          <rdf:RDF>
+            <rdf:Description rdf:about="">
+              <ns2:CreatorTool>Google</ns2:CreatorTool>
+              <ns2:CreateDate>2013-02-09T14:47:53</ns2:CreateDate>
+            </rdf:Description>
+
+          .
+          .
+          .
+    </ns0:xmpmeta>
+
+Since the UUID data in this case is returned as an lxml ElementTree
+instance, one can use lxml to access the data.  For example, to
+extract the **CreatorTool** attribute value, one could do the
+following
+
+    >>> xmp = j.box[3].data
+    >>> rdf = '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}'
+    >>> ns2 = '{http://ns.adobe.com/xap/1.0/}'
+    >>> name = '{0}RDF/{0}Description/{1}CreatorTool'.format(rdf, ns2)
+    >>> elt = xmp.find(name)
+    >>> elt
+    <Element '{http://ns.adobe.com/xap/1.0/#}CreatorTool' at 0xb50684a4>
+    >>> elt.text
+    'Google'
+
+But that would be painful.  A better solution is to install the Python XMP
+Toolkit (make sure it is version 2.0)::
+
+    >>> from libxmp import XMPMeta
+    >>> from libxmp.consts import XMP_NS_XMP as NS_XAP
+    >>> meta = XMPMeta()
+    >>> meta.parse_from_str(j.box[3].raw_data.decode('utf-8'))
+    >>> meta.get_property(NS_XAP, 'CreatorTool')
+    'Google'
+
+Where the Python XMP Toolkit can really shine, though, is when you are
+converting an image from another format such as TIFF or JPEG into JPEG 2000.
+For example, if you were to be converting the TIFF image found at
+http://photojournal.jpl.nasa.gov/tiff/PIA17145.tif info JPEG 2000::
+
+    >>> import skimage.io
+    >>> image = skimage.io.imread('PIA17145.tif')
+    >>> from glymur import Jp2k
+    >>> jp2 = Jp2k('PIA17145.jp2', 'wb')
+    >>> jp2.write(image)
+
+Next you can extract the XMP metadata.
+
+    >>> from libxmp import XMPFiles
+    >>> xf = XMPFiles()
+    >>> xf.open_file('PIA17145.tif')
+    >>> xmp = xf.get_xmp()
+    >>> print(xmp)
+    <?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>
+    <x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Exempi + XMP Core 5.1.2">
+     <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+      <rdf:Description rdf:about=""
+        xmlns:tiff="http://ns.adobe.com/tiff/1.0/">
+       <tiff:ImageWidth>1016</tiff:ImageWidth>
+       <tiff:ImageLength>1016</tiff:ImageLength>
+       <tiff:BitsPerSample>
+        <rdf:Seq>
+         <rdf:li>8</rdf:li>
+        </rdf:Seq>
+       </tiff:BitsPerSample>
+       <tiff:Compression>1</tiff:Compression>
+       <tiff:PhotometricInterpretation>1</tiff:PhotometricInterpretation>
+       <tiff:SamplesPerPixel>1</tiff:SamplesPerPixel>
+       <tiff:PlanarConfiguration>1</tiff:PlanarConfiguration>
+       <tiff:ResolutionUnit>2</tiff:ResolutionUnit>
+      </rdf:Description>
+      <rdf:Description rdf:about=""
+        xmlns:dc="http://purl.org/dc/elements/1.1/">
+       <dc:description>
+        <rdf:Alt>
+         <rdf:li xml:lang="x-default">converted PNM file</rdf:li>
+        </rdf:Alt>
+       </dc:description>
+      </rdf:Description>
+     </rdf:RDF>
+    </x:xmpmeta>
+    <?xpacket end="w"?>
+
+If you are familiar with TIFF, you can verify that there's no XMP tag in the
+TIFF file, but the Python XMP Toolkit takes advantage of the TIFF header
+structure to populate an XMP packet for you.  If you were working with a JPEG
+file with Exif metadata, that information would be included in the XMP packet 
+as well.  Now you can append the XMP packet in a UUIDBox.  In order to do this,
+though, you have to know the UUID that signifies XMP data.::
+
+    >>> import uuid
+    >>> xmp_uuid = uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
+    >>> box = glymur.jp2box.UUIDBox(xmp_uuid, str(xmp).encode())
+    >>> jp2.append(box)
+    >>> print(jp2.box[-1])
+    UUID Box (uuid) @ (592316, 1053)
         UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
         UUID Data:  
-        <ns0:xmpmeta xmlns:ns0="adobe:ns:meta/" xmlns:ns2="http://ns.adobe.com/xap/1.0/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" ns0:xmptk="XMP Core 4.4.0-Exiv2">
+        <ns0:xmpmeta xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:ns0="adobe:ns:meta/" xmlns:ns2="http://ns.adobe.com/tiff/1.0/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" ns0:xmptk="Exempi + XMP Core 5.1.2">
           <rdf:RDF>
-            <rdf:Description ns2:CreatorTool="glymur" rdf:about="" />
+            <rdf:Description rdf:about="">
+              <ns2:ImageWidth>1016</ns2:ImageWidth>
+              <ns2:ImageLength>1016</ns2:ImageLength>
+              <ns2:BitsPerSample>
+                <rdf:Seq>
+                  <rdf:li>8</rdf:li>
+                </rdf:Seq>
+              </ns2:BitsPerSample>
+              <ns2:Compression>1</ns2:Compression>
+              <ns2:PhotometricInterpretation>1</ns2:PhotometricInterpretation>
+              <ns2:SamplesPerPixel>1</ns2:SamplesPerPixel>
+              <ns2:PlanarConfiguration>1</ns2:PlanarConfiguration>
+              <ns2:ResolutionUnit>2</ns2:ResolutionUnit>
+            </rdf:Description>
+            <rdf:Description rdf:about="">
+              <dc:description>
+                <rdf:Alt>
+                  <rdf:li xml:lang="x-default">converted PNM file</rdf:li>
+                </rdf:Alt>
+              </dc:description>
+            </rdf:Description>
           </rdf:RDF>
         </ns0:xmpmeta>
 
-Since the UUID data in this case is returned as an ElementTree instance, one can
-use ElementTree to access the data.  For example, to extract the 
-**CreatorTool** attribute value, the following would work::
+You can also build up XMP metadata from scratch.  For instance, if we try to
+wrap `goodstuff.j2k` again::
 
-    >>> xmp = j.box[4].data
-    >>> ns0 = '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}'
-    >>> ns1 = '{http://ns.adobe.com/xap/1.0/}'
-    >>> name = '{0}RDF/{0}Description'.format(ns0)
-    >>> elt = xmp.find(name)
-    >>> elt
-    <Element '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}Description' at 0xb4baa93c>
-    >>> elt.attrib['{0}CreatorTool'.format(ns1)]
-    'glymur'
+    >>> import glymur
+    >>> jfile = glymur.data.goodstuff()
+    >>> j2k = glymur.Jp2k(jfile)
+    >>> jp2 = j2k.wrap("goodstuff.jp2")
+
+Now build up the metadata piece-by-piece.  It would help to have the XMP 
+standard close at hand::
+
+    >>> from libxmp import XMPMeta
+    >>> from libxmp.consts import XMP_NS_TIFF as NS_TIFF
+    >>> from libxmp.consts import XMP_NS_DC as NS_DC
+    >>> xmp = XMPMeta()
+    >>> ihdr = jp2.box[2].box[0]
+    >>> xmp.set_property(NS_TIFF, "ImageWidth", str(ihdr.width))
+    >>> xmp.set_property(NS_TIFF, "ImageHeight", str(ihdr.height))
+    >>> xmp.set_property(NS_TIFF, "BitsPerSample", '3')
+    >>> xmp.set_property(NS_DC, "Title", u'Stürm und Drang')
+    >>> xmp.set_property(NS_DC, "Creator", 'Glymur')
+
+We can then append the XMP in a UUID box just as before::
+
+    >>> import uuid
+    >>> xmp_uuid = uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
+    >>> box = glymur.jp2box.UUIDBox(xmp_uuid, str(xmp).encode())
+    >>> jp2.append(box)
+    >>> glymur.set_printoptions(codestream=False)
+    >>> print(jp2)
+    File:  goodstuff.jp2
+    JPEG 2000 Signature Box (jP  ) @ (0, 12)
+        Signature:  0d0a870a
+    File Type Box (ftyp) @ (12, 20)
+        Brand:  jp2 
+        Compatibility:  ['jp2 ']
+    JP2 Header Box (jp2h) @ (32, 45)
+        Image Header Box (ihdr) @ (40, 22)
+            Size:  [800 480 3]
+            Bitdepth:  8
+            Signed:  False
+            Compression:  wavelet
+            Colorspace Unknown:  False
+        Colour Specification Box (colr) @ (62, 15)
+            Method:  enumerated colorspace
+            Precedence:  0
+            Colorspace:  sRGB
+    Contiguous Codestream Box (jp2c) @ (77, 115228)
+    UUID Box (uuid) @ (115305, 671)
+        UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
+        UUID Data:  
+        <ns0:xmpmeta xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:ns0="adobe:ns:meta/" xmlns:ns2="http://ns.adobe.com/tiff/1.0/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" ns0:xmptk="Exempi + XMP Core 5.1.2">
+          <rdf:RDF>
+            <rdf:Description rdf:about="">
+              <ns2:ImageWidth>480</ns2:ImageWidth>
+              <ns2:ImageHeight>800</ns2:ImageHeight>
+              <ns2:BitsPerSample>3</ns2:BitsPerSample>
+            </rdf:Description>
+            <rdf:Description rdf:about="">
+              <dc:Title>Stürm und Drang</dc:Title>
+              <dc:Creator>Glymur</dc:Creator>
+            </rdf:Description>
+          </rdf:RDF>
+        </ns0:xmpmeta>
+

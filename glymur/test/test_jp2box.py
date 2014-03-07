@@ -22,10 +22,10 @@ import sys
 import tempfile
 import uuid
 from uuid import UUID
-import xml.etree.cElementTree as ET
 import unittest
 import warnings
 
+import lxml.etree as ET
 import numpy as np
 
 import glymur
@@ -51,6 +51,54 @@ def load_tests(loader, tests, ignore):
         return tests
     tests.addTests(doctest.DocTestSuite('glymur.jp2box'))
     return tests
+
+@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+class TestDataEntryURL(unittest.TestCase):
+    """Test suite for DataEntryURL boxes."""
+    def setUp(self):
+        self.jp2file = glymur.data.nemo()
+
+    def test_basic_url(self):
+        """Just your most basic URL box."""
+        # Wrap our j2k file in a JP2 box along with an interior url box.
+        jp2 = Jp2k(self.jp2file)
+
+        url = 'http://glymur.readthedocs.org'
+        deurl = glymur.jp2box.DataEntryURLBox(0, (0, 0, 0), url)
+        boxes = [box for box in jp2.box if box.box_id != 'uuid']
+        boxes.append(deurl)
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            jp22 = jp2.wrap(tfile.name, boxes=boxes)
+
+        actdata = [box.box_id for box in jp22.box]
+        expdata = ['jP  ', 'ftyp', 'jp2h', 'jp2c', 'url ']
+        self.assertEqual(actdata, expdata)
+        self.assertEqual(jp22.box[4].version, 0)
+        self.assertEqual(jp22.box[4].flag, (0, 0, 0))
+        self.assertEqual(jp22.box[4].url, url)
+
+    def test_null_termination(self):
+        """I.9.3.2 specifies that the location field must be null terminated."""
+        jp2 = Jp2k(self.jp2file)
+
+        url = 'http://glymur.readthedocs.org'
+        deurl = glymur.jp2box.DataEntryURLBox(0, (0, 0, 0), url)
+        boxes = [box for box in jp2.box if box.box_id != 'uuid']
+        boxes.append(deurl)
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            jp22 = jp2.wrap(tfile.name, boxes=boxes)
+
+            self.assertEqual(jp22.box[-1].length, 42)
+    
+            # Go to the last box.  Seek past the L, T, version, and flag fields.
+            with open(tfile.name, 'rb') as fptr:
+                fptr.seek(jp22.box[-1].offset + 4 + 4 + 1 + 3)
+    
+                nbytes = jp22.box[-1].offset + jp22.box[-1].length - fptr.tell()
+                read_buffer = fptr.read(nbytes)
+                read_url = read_buffer.decode('utf-8')
+                self.assertEqual(url + chr(0), read_url)
+
 
 @unittest.skipIf(glymur.version.openjpeg_version_tuple[0] < 2 or
                  OPENJP2_IS_V2_OFFICIAL,
@@ -113,7 +161,7 @@ class TestChannelDefinition(unittest.TestCase):
 
     def test_cdef_no_inputs(self):
         """channel_type and association are required inputs."""
-        with self.assertRaises(IOError):
+        with self.assertRaises(TypeError):
             glymur.jp2box.ChannelDefinitionBox()
 
     def test_rgb_with_index(self):
@@ -289,7 +337,7 @@ class TestChannelDefinition(unittest.TestCase):
         boxes = [self.jp2b, self.ftyp, self.jp2h, cdef, self.jp2c]
 
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises((IOError, OSError)):
                 j2k.wrap(tfile.name, boxes=boxes)
 
     def test_bad_type(self):
@@ -313,6 +361,29 @@ class TestChannelDefinition(unittest.TestCase):
             glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
                                                association=association)
 
+
+class TestFileTypeBox(unittest.TestCase):
+    """Test suite for ftyp box issues."""
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_brand_unknown(self):
+        """A ftyp box brand must be 'jp2 ' or 'jpx '."""
+        ftyp = glymur.jp2box.FileTypeBox(brand='jp3')
+        with self.assertRaises(IOError):
+            with tempfile.TemporaryFile() as tfile:
+                ftyp.write(tfile) 
+
+    def test_cl_entry_unknown(self):
+        """A ftyp box cl list can only contain 'jp2 ', 'jpx ', or 'jpxb'."""
+        ftyp = glymur.jp2box.FileTypeBox(compatibility_list=['jp3'])
+        with self.assertRaises(IOError):
+            with tempfile.TemporaryFile() as tfile:
+                ftyp.write(tfile) 
 
 class TestColourSpecificationBox(unittest.TestCase):
     """Test suite for colr box instantiation."""
@@ -345,7 +416,7 @@ class TestColourSpecificationBox(unittest.TestCase):
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
         boxes[2].box = [self.ihdr, ColourSpecificationBox(colorspace=None)]
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
-            with self.assertRaises(NotImplementedError):
+            with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
@@ -391,6 +462,46 @@ class TestColourSpecificationBox(unittest.TestCase):
             glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
                                                  approximation=approx)
 
+    def test_colr_with_bad_color(self):
+        """colr must have a valid color, strange as though that may sound."""
+        colorspace = -1
+        approx = 0
+        colr = glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
+                                                    approximation=approx)
+        with tempfile.TemporaryFile() as tfile:
+            with self.assertRaises(IOError):
+                colr.write(tfile)
+
+
+@unittest.skipIf(os.name == "nt",
+                 "Problems using NamedTemporaryFile on windows.")
+class TestPaletteBox(unittest.TestCase):
+    """Test suite for pclr box instantiation."""
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_mismatched_bitdepth_signed(self):
+        """bitdepth and signed arguments must have equal length"""
+        palette = np.array([[255, 0, 255], [0, 255, 0]], dtype=np.uint8)
+        bps = (8, 8, 8)
+        signed = (False, False)
+        with self.assertRaises(IOError):
+            pclr = glymur.jp2box.PaletteBox(palette, bits_per_component=bps,
+                                            signed=signed)
+
+    def test_mismatched_signed_palette(self):
+        """bitdepth and signed arguments must have equal length"""
+        palette = np.array([[255, 0, 255], [0, 255, 0]], dtype=np.uint8)
+        bps = (8, 8, 8, 8)
+        signed = (False, False, False, False)
+        with self.assertRaises(IOError):
+            pclr = glymur.jp2box.PaletteBox(palette, bits_per_component=bps,
+                                            signed=signed)
+
 
 class TestAppend(unittest.TestCase):
     """Tests for append method."""
@@ -415,7 +526,7 @@ class TestAppend(unittest.TestCase):
             # The sequence of box IDs should be the same as before, but with an
             # xml box at the end.
             box_ids = [box.box_id for box in jp2.box]
-            expected = ['jP  ', 'ftyp', 'jp2h', 'uuid', 'uuid', 'jp2c', 'xml ']
+            expected = ['jP  ', 'ftyp', 'jp2h', 'uuid', 'jp2c', 'xml ']
             self.assertEqual(box_ids, expected)
             self.assertEqual(ET.tostring(jp2.box[-1].xml.getroot()),
                              b'<data>0</data>')
@@ -425,14 +536,14 @@ class TestAppend(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
             shutil.copyfile(self.j2kfile, tfile.name)
 
-            jp2 = Jp2k(tfile.name)
+            j2k = Jp2k(tfile.name)
 
-            # Make a UUID box.
-            uuid_instance = uuid.UUID('00000000-0000-0000-0000-000000000000')
-            data = b'0123456789'
-            uuidbox = glymur.jp2box.UUIDBox(uuid_instance, data)
+            # Make an XML box.  XML boxes should always be appendable to jp2
+            # files.
+            the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
+            xmlbox = glymur.jp2box.XMLBox(xml=the_xml)
             with self.assertRaises(IOError):
-                jp2.append(uuidbox)
+                j2k.append(xmlbox)
 
     def test_length_field_is_zero(self):
         """L=0 (length field in box header) is handled.
@@ -464,19 +575,19 @@ class TestAppend(unittest.TestCase):
             # The sequence of box IDs should be the same as before, but with an
             # xml box at the end.
             box_ids = [box.box_id for box in jp2.box]
-            expected = ['jP  ', 'ftyp', 'jp2h', 'uuid', 'uuid', 'jp2c', 'xml ']
+            expected = ['jP  ', 'ftyp', 'jp2h', 'uuid', 'jp2c', 'xml ']
             self.assertEqual(box_ids, expected)
             self.assertEqual(ET.tostring(jp2.box[-1].xml.getroot()),
                              b'<data>0</data>')
 
-    def test_only_xml_allowed_to_append(self):
+    def test_append_allowable_boxes(self):
         """Only XML boxes are allowed to be appended."""
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             shutil.copyfile(self.jp2file, tfile.name)
 
             jp2 = Jp2k(tfile.name)
 
-            # Make a UUID box.
+            # Make a UUID box.  Only XMP UUID boxes can currently be appended.
             uuid_instance = uuid.UUID('00000000-0000-0000-0000-000000000000')
             data = b'0123456789'
             uuidbox = glymur.jp2box.UUIDBox(uuid_instance, data)
@@ -484,6 +595,7 @@ class TestAppend(unittest.TestCase):
                 jp2.append(uuidbox)
 
 
+@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
 class TestWrap(unittest.TestCase):
     """Tests for wrap method."""
 
@@ -544,7 +656,6 @@ class TestWrap(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.SRGB)
         self.assertIsNone(jp2.box[2].box[1].icc_profile)
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_wrap(self):
         """basic test for rewrapping a j2c file, no specified boxes"""
         j2k = Jp2k(self.j2kfile)
@@ -552,13 +663,9 @@ class TestWrap(unittest.TestCase):
             j2k.wrap(tfile.name)
             self.verify_wrapped_raw(tfile.name)
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_jpx_to_jp2(self):
         """basic test for rewrapping a jpx file"""
-        with warnings.catch_warnings():
-            # This file has a rreq mask length that we do not recognize.
-            warnings.simplefilter("ignore")
-            jpx = Jp2k(self.jpxfile)
+        jpx = Jp2k(self.jpxfile)
         idx = [0, 1, 3, 6]
         boxes = [jpx.box[idx] for idx in [0, 1, 3, 6]]
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
@@ -576,7 +683,6 @@ class TestWrap(unittest.TestCase):
         for j, offset in enumerate(expected_offsets):
             self.assertEqual(jp2.box[j].offset, offset)
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_wrap_jp2(self):
         """basic test for rewrapping a jp2 file, no specified boxes"""
         j2k = Jp2k(self.jp2file)
@@ -585,7 +691,17 @@ class TestWrap(unittest.TestCase):
         boxes = [box.box_id for box in jp2.box]
         self.assertEqual(boxes, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+    def test_empty_jp2h(self):
+        """JP2H box list cannot be empty."""
+        jp2 = Jp2k(self.jp2file)
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            boxes = jp2.box
+            # Right here the jp2h superbox has two child boxes.  Empty out that
+            # list to trigger the error.
+            boxes[2].box = []
+            with self.assertRaises(IOError):
+                jp22 = jp2.wrap(tfile.name, boxes=boxes)
+
     def test_default_layout_with_boxes(self):
         """basic test for rewrapping a jp2 file, boxes specified"""
         j2k = Jp2k(self.j2kfile)
@@ -605,7 +721,6 @@ class TestWrap(unittest.TestCase):
             j2k.wrap(tfile.name, boxes=boxes)
             self.verify_wrapped_raw(tfile.name)
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_ihdr_not_first_in_jp2h(self):
         """The specification says that ihdr must be the first box in jp2h."""
         j2k = Jp2k(self.j2kfile)
@@ -625,7 +740,6 @@ class TestWrap(unittest.TestCase):
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_first_boxes_jp_and_ftyp(self):
         """first two boxes must be jP followed by ftyp"""
         j2k = Jp2k(self.j2kfile)
@@ -647,7 +761,33 @@ class TestWrap(unittest.TestCase):
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+    def test_pclr_not_in_jp2h(self):
+        """A palette box must reside in a JP2 header box."""
+        palette = np.array([[255, 0, 255], [0, 255, 0]], dtype=np.int32)
+        bps = (8, 8, 8)
+        signed = (True, False, True)
+        pclr = glymur.jp2box.PaletteBox(palette=palette, bits_per_component=bps,
+                                        signed=(True, False, True))
+
+        j2k = Jp2k(self.j2kfile)
+        codestream = j2k.get_codestream()
+        height = codestream.segment[1].ysiz
+        width = codestream.segment[1].xsiz
+        num_components = len(codestream.segment[1].xrsiz)
+
+        jp2b = JPEG2000SignatureBox()
+        ftyp = FileTypeBox()
+        jp2h = JP2HeaderBox()
+        jp2c = ContiguousCodestreamBox()
+        colr = ColourSpecificationBox(colorspace=glymur.core.SRGB)
+        ihdr = ImageHeaderBox(height=height, width=width,
+                              num_components=num_components)
+        jp2h.box = [ihdr, colr]
+        boxes = [jp2b, ftyp, jp2h, jp2c, pclr]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            with self.assertRaises(IOError):
+                j2k.wrap(tfile.name, boxes=boxes)
+
     def test_jp2h_not_preceeding_jp2c(self):
         """jp2h must precede jp2c"""
         j2k = Jp2k(self.j2kfile)
@@ -669,7 +809,6 @@ class TestWrap(unittest.TestCase):
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_missing_codestream(self):
         """Need a codestream box in order to call wrap method."""
         j2k = Jp2k(self.j2kfile)
@@ -916,9 +1055,9 @@ class TestRepr(unittest.TestCase):
         tree = ET.ElementTree(elt)
         box = glymur.jp2box.XMLBox(xml=tree)
 
-        regexp = "glymur.jp2box.XMLBox"
-        regexp += "\(xml=<(xml.etree.ElementTree.){0,1}ElementTree object "
-        regexp += "at 0x([a-f0-9]*)>\)"
+        regexp = r"""glymur.jp2box.XMLBox"""
+        regexp += r"""\(xml=<lxml.etree._ElementTree object """
+        regexp += """at 0x([a-f0-9]*)>\)"""
 
         if sys.hexversion < 0x03000000:
             self.assertRegexpMatches(repr(box), regexp)
@@ -940,7 +1079,7 @@ class TestRepr(unittest.TestCase):
         self.assertEqual(box.vendor_feature, newbox.vendor_feature)
         self.assertEqual(box.vendor_mask, newbox.vendor_mask)
 
-    def test_uuid_box(self):
+    def test_uuid_box_generic(self):
         """Verify uuid repr method."""
         uuid_instance = uuid.UUID('00000000-0000-0000-0000-000000000000')
         data = b'0123456789'
@@ -948,9 +1087,27 @@ class TestRepr(unittest.TestCase):
 
         # Since the raw_data parameter is a sequence of bytes which could be
         # quite long, don't bother trying to make it conform to eval(repr()).
-        regexp = "glymur.jp2box.UUIDBox\("
-        regexp += "the_uuid=UUID\('00000000-0000-0000-0000-000000000000'\),\s"
-        regexp += "raw_data=<byte\sarray\s10\selements>\)"
+        regexp = r"""glymur.jp2box.UUIDBox\("""
+        regexp += """the_uuid=UUID\('00000000-0000-0000-0000-000000000000'\),\s"""
+        regexp += """raw_data=<byte\sarray\s10\selements>\)"""
+
+        if sys.hexversion < 0x03000000:
+            self.assertRegexpMatches(repr(box), regexp)
+        else:
+            self.assertRegex(repr(box), regexp)
+
+    @unittest.skipIf(sys.hexversion < 0x02070000, "Requires 2.7+")
+    def test_uuid_box_xmp(self):
+        """Verify uuid repr method for XMP UUID box."""
+        jp2file = glymur.data.nemo()
+        j = Jp2k(jp2file)
+        box = j.box[3]
+
+        # Since the raw_data parameter is a sequence of bytes which could be
+        # quite long, don't bother trying to make it conform to eval(repr()).
+        regexp = r"""glymur.jp2box.UUIDBox\("""
+        regexp += """the_uuid=UUID\('be7acfcb-97a9-42e8-9c71-999491e3afac'\),\s"""
+        regexp += """raw_data=<byte\sarray\s3122\selements>\)"""
 
         if sys.hexversion < 0x03000000:
             self.assertRegexpMatches(repr(box), regexp)

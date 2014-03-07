@@ -8,6 +8,7 @@ __version__ = version.version
 
 from .jp2k import Jp2k
 from .jp2dump import jp2dump
+from .jp2box import get_printoptions, set_printoptions
 
 from . import data
 

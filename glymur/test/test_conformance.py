@@ -11,6 +11,7 @@ import os
 from os.path import join
 import re
 import sys
+import tempfile
 import unittest
 
 import glymur
@@ -27,30 +28,47 @@ except KeyError:
     OPJ_DATA_ROOT = None
 
 
+@unittest.skipIf(sys.hexversion < 0x03020000,
+                 "Requires features introduced in 3.2 (assertWarns)")
+class TestSuiteConformance(unittest.TestCase):
+    """Test suite for conformance."""
+
+    def setUp(self):
+        self.j2kfile = glymur.data.goodstuff()
+
+    def tearDown(self):
+        pass
+
+    @unittest.skipIf(re.match(r"""1\.[0123]""",
+                              glymur.version.openjpeg_version) is not None,
+                     "Needs 1.3+ to catch this.")
+    def test_truncated_eoc(self):
+        """Has one byte shaved off of EOC marker."""
+        with open(self.j2kfile, 'rb') as ifile:
+            data = ifile.read()
+            with tempfile.NamedTemporaryFile(suffix='.j2k') as ofile:
+                ofile.write(data[:-1])
+                ofile.flush()
+
+                j2k = Jp2k(ofile.name)
+                with self.assertWarns(UserWarning):
+                    codestream = j2k.get_codestream(header_only=False)
+
+                # The last segment is truncated, so there should not be an EOC
+                # marker.
+                self.assertNotEqual(codestream.segment[-1].marker_id, 'EOC')
+
+                # The codestream is not as long as claimed.
+                with self.assertRaises(OSError):
+                    j2k.read(rlevel=-1)
+
+
 @unittest.skipIf(FORMAT_CORPUS_DATA_ROOT is None,
                  "FORMAT_CORPUS_DATA_ROOT environment variable not set")
 @unittest.skipIf(sys.hexversion < 0x03020000,
                  "Requires features introduced in 3.2 (assertWarns)")
 class TestSuiteFormatCorpus(unittest.TestCase):
     """Test suite for files in format corpus repository."""
-
-    @unittest.skipIf(re.match(r"""1\.[0123]""",
-                              glymur.version.openjpeg_version) is not None,
-                     "Needs 1.3+ to catch this.")
-    def test_balloon_trunc1(self):
-        """Has one byte shaved off of EOC marker."""
-        jfile = os.path.join(FORMAT_CORPUS_DATA_ROOT,
-                             'jp2k-test/byteCorruption/balloon_trunc1.jp2')
-        j2k = Jp2k(jfile)
-        with self.assertWarns(UserWarning):
-            codestream = j2k.get_codestream(header_only=False)
-
-        # The last segment is truncated, so there should not be an EOC marker.
-        self.assertNotEqual(codestream.segment[-1].marker_id, 'EOC')
-
-        # The codestream is not as long as claimed.
-        with self.assertRaises(OSError):
-            j2k.read(rlevel=-1)
 
     @unittest.skipIf(re.match(r"""1\.[01234]""",
                               glymur.version.openjpeg_version) is not None,
