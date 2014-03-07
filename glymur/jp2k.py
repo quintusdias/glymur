@@ -39,7 +39,15 @@ from .lib import openjp2 as opj2
 from . import version
 from .lib import c as libc
 
+# Codestream lengths for 24fps, 48fps
 CINEMA_24_CS = 1302083
+CINEMA_48_CS = 651041
+
+# Maximum size per color components for 2K and 4K at 24 fps
+COMP_24_CS = 1041666
+
+# Maximum size per color components for 2K at 48 fps
+COMP_48_CS = 520833
 
 JP2_IDS = ['colr', 'cdef', 'cmap', 'jp2c', 'ftyp', 'ihdr', 'jp2h', 'jP  ',
            'pclr', 'res ', 'resc', 'resd', 'xml ', 'ulst', 'uinf', 'url ',
@@ -292,6 +300,10 @@ class Jp2k(Jp2kBox):
         cparams.cp_disto_alloc = 1
 
         if 'cinema2k' in kwargs:
+            self._set_cinema_params(cparams, kwargs['cinema2k'])
+            return cparams
+
+        if 'cinema4k' in kwargs:
             self._set_cinema_params(cparams, kwargs['cinema2k'])
             return cparams
 
@@ -555,7 +567,7 @@ class Jp2k(Jp2kBox):
         cparams.cp_disto_alloc = 1
 
         if cparams.cp_cinema in [CINEMA_MODE['cinema2k_24'],
-                                 CINEMA_MODE['cinema2k_48']]:
+                                 CINEMA_MODE['cinema4k_24']]:
             num_pixels = image.contents.comps[0].w * image.contents.comps[0].h
             num_samples = num_pixels * image.contents.numcomps
             rate_numerator = num_samples * image.contents.comps[0].prec
@@ -574,7 +586,28 @@ class Jp2k(Jp2kBox):
                     # TODO warning
                     pass
 
-            cparams.max_comp_size = CINEMA_24_CS
+            cparams.max_comp_size = COMP_24_CS
+
+        else:
+            num_pixels = image.contents.comps[0].w * image.contents.comps[0].h
+            num_samples = num_pixels * image.contents.numcomps
+            rate_numerator = num_samples * image.contents.comps[0].prec
+            rate_denominator = CINEMA_48_CS * 8
+            rate_denominator *= image.contents.comps[0].dx
+            rate_denominator *= image.contents.comps[0].dy
+            max_rate = rate_numerator / rate_denominator
+            if cparams.tcp_rates[0] == 0:
+                cparams.tcp_rates[0] = max_rate
+            else:
+                temp_rate = rate_numerator / (cparams.tcp_rates[0] * 8 * num_pixels)
+                if temp_rate > CINEMA_48_CS:
+                    # TODO warning, reset
+                    cparams.tcp_rates[0] = max_rate
+                else:
+                    # TODO warning
+                    pass
+
+            cparams.max_comp_size = COMP_48_CS
 
     def _write_openjp2(self, img_array, verbose=False, **kwargs):
         """
@@ -596,6 +629,8 @@ class Jp2k(Jp2kBox):
             _populate_image_struct(cparams, image, img_array)
 
             if 'cinema2k' in kwargs:
+                self._set_cinema_rate(cparams, image)
+            if 'cinema4k' in kwargs:
                 self._set_cinema_rate(cparams, image)
 
             codec = opj2.create_compress(cparams.codec_fmt)

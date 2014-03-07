@@ -46,6 +46,108 @@ class TestSuiteWrite(unittest.TestCase):
 
     @unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
                      "Cannot read input image without scikit-image/freeimage")
+    def test_NR_ENC_X_5_2K_24_235_CBR_STEM24_000_tif_19_encode(self):
+        relfile = 'input/nonregression/X_5_2K_24_235_CBR_STEM24_000.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j.write(data, cinema2k=48)
+
+            codestream = j.get_codestream()
+
+            # SIZ: Image and tile size
+            # Profile:  "3" means cinema2K
+            self.assertEqual(codestream.segment[1].rsiz, 3)
+            # Reference grid size
+            self.assertEqual((codestream.segment[1].xsiz,
+                              codestream.segment[1].ysiz),
+                             (2048, 857))
+            # Reference grid offset
+            self.assertEqual((codestream.segment[1].xosiz,
+                              codestream.segment[1].yosiz), (0, 0))
+            # Tile size
+            self.assertEqual((codestream.segment[1].xtsiz,
+                              codestream.segment[1].ytsiz),
+                             (2048, 857))
+            # Tile offset
+            self.assertEqual((codestream.segment[1].xtosiz,
+                              codestream.segment[1].ytosiz),
+                             (0, 0))
+            # bitdepth
+            self.assertEqual(codestream.segment[1].bitdepth, (12, 12, 12))
+            # signed
+            self.assertEqual(codestream.segment[1].signed,
+                             (False, False, False))
+            # subsampling
+            self.assertEqual(list(zip(codestream.segment[1].xrsiz,
+                                      codestream.segment[1].yrsiz)),
+                             [(1, 1)] * 3)
+
+            # COD: Coding style default
+            self.assertFalse(codestream.segment[2].scod & 2)  # no sop
+            self.assertFalse(codestream.segment[2].scod & 4)  # no eph
+            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.CPRL)
+            self.assertEqual(codestream.segment[2].layers, 1)
+            self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
+            self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+            self.assertEqual(tuple(codestream.segment[2].code_block_size),
+                             (32, 32))  # cblksz
+
+
+    @unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+                     "Cannot read input image without scikit-image/freeimage")
+    def test_NR_ENC_X_6_2K_24_FULL_CBR_CIRCLE_000_tif_20_encode(self):
+        relfile = 'input/nonregression/X_6_2K_24_FULL_CBR_CIRCLE_000.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j.write(data, cinema2k=48)
+
+            codestream = j.get_codestream()
+
+            # SIZ: Image and tile size
+            # Profile:  "3" means cinema2K
+            self.assertEqual(codestream.segment[1].rsiz, 3)
+            # Reference grid size
+            self.assertEqual((codestream.segment[1].xsiz,
+                              codestream.segment[1].ysiz),
+                             (2048, 1080))
+            # Reference grid offset
+            self.assertEqual((codestream.segment[1].xosiz,
+                              codestream.segment[1].yosiz), (0, 0))
+            # Tile size
+            self.assertEqual((codestream.segment[1].xtsiz,
+                              codestream.segment[1].ytsiz),
+                             (2048, 1080))
+            # Tile offset
+            self.assertEqual((codestream.segment[1].xtosiz,
+                              codestream.segment[1].ytosiz),
+                             (0, 0))
+            # bitdepth
+            self.assertEqual(codestream.segment[1].bitdepth, (12, 12, 12))
+            # signed
+            self.assertEqual(codestream.segment[1].signed,
+                             (False, False, False))
+            # subsampling
+            self.assertEqual(list(zip(codestream.segment[1].xrsiz,
+                                      codestream.segment[1].yrsiz)),
+                             [(1, 1)] * 3)
+
+            # COD: Coding style default
+            self.assertFalse(codestream.segment[2].scod & 2)  # no sop
+            self.assertFalse(codestream.segment[2].scod & 4)  # no eph
+            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.CPRL)
+            self.assertEqual(codestream.segment[2].layers, 1)
+            self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
+            self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+            self.assertEqual(tuple(codestream.segment[2].code_block_size),
+                             (32, 32))  # cblksz
+
+
+    @unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+                     "Cannot read input image without scikit-image/freeimage")
     def test_NR_ENC_X_6_2K_24_FULL_CBR_CIRCLE_000_tif_17_encode(self):
         relfile = 'input/nonregression/X_6_2K_24_FULL_CBR_CIRCLE_000.tif'
         infile = opj_data_file(relfile)
@@ -121,6 +223,57 @@ class TestSuiteWrite(unittest.TestCase):
             self.assertEqual((codestream.segment[1].xtsiz,
                               codestream.segment[1].ytsiz),
                              (2048, 857))
+            # Tile offset
+            self.assertEqual((codestream.segment[1].xtosiz,
+                              codestream.segment[1].ytosiz),
+                             (0, 0))
+            # bitdepth
+            self.assertEqual(codestream.segment[1].bitdepth, (12, 12, 12))
+            # signed
+            self.assertEqual(codestream.segment[1].signed,
+                             (False, False, False))
+            # subsampling
+            self.assertEqual(list(zip(codestream.segment[1].xrsiz,
+                                      codestream.segment[1].yrsiz)),
+                             [(1, 1)] * 3)
+
+            # COD: Coding style default
+            self.assertFalse(codestream.segment[2].scod & 2)  # no sop
+            self.assertFalse(codestream.segment[2].scod & 4)  # no eph
+            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.CPRL)
+            self.assertEqual(codestream.segment[2].layers, 1)
+            self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
+            self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+            self.assertEqual(tuple(codestream.segment[2].code_block_size),
+                             (32, 32))  # cblksz
+
+
+    @unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+                     "Cannot read input image without scikit-image/freeimage")
+    def test_NR_ENC_X_4_2K_24_185_CBR_WB_000_tif_18_encode(self):
+        relfile = 'input/nonregression/X_4_2K_24_185_CBR_WB_000.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j.write(data, cinema2k=48)
+
+            codestream = j.get_codestream()
+
+            # SIZ: Image and tile size
+            # Profile:  "3" means cinema2K
+            self.assertEqual(codestream.segment[1].rsiz, 3)
+            # Reference grid size
+            self.assertEqual((codestream.segment[1].xsiz,
+                              codestream.segment[1].ysiz),
+                             (1998, 1080))
+            # Reference grid offset
+            self.assertEqual((codestream.segment[1].xosiz,
+                              codestream.segment[1].yosiz), (0, 0))
+            # Tile size
+            self.assertEqual((codestream.segment[1].xtsiz,
+                              codestream.segment[1].ytsiz),
+                             (1998, 1080))
             # Tile offset
             self.assertEqual((codestream.segment[1].xtosiz,
                               codestream.segment[1].ytosiz),
