@@ -163,9 +163,12 @@ class Jp2k(Jp2kBox):
         fps : int
             Frames per second, should be either 24 or 48.
         """
-        if fps not in [24, 48]:
+        if fps == 24:
+            cparams.cp_cinema = CINEMA_MODE['cinema2k_24']
+        elif fps == 48:
+            cparams.cp_cinema = CINEMA_MODE['cinema2k_48']
+        else:
             raise IOError('Cinema2K frame rate must be either 24 or 48.')
-        cparams.cp_cinema = fps
 
         cparams.cp_rsiz = RSIZ['CINEMA2K']
         # No tiling
@@ -205,7 +208,7 @@ class Jp2k(Jp2kBox):
             # TODO:  warning or error
             cparams.tcp_numlayers = 1
 
-        if cparams.numresolution > 6:
+        if cparams.numresolution > 6: #TODO only for cinema2k
             # TODO:  warning or error
             cparams.numresolution = 6
 
@@ -219,7 +222,7 @@ class Jp2k(Jp2kBox):
         # Progression order shall be CPRL
         cparams.prog_order = PROGRESSION_ORDER['CPRL']
 
-        # progression order changes not allowed for 2K
+        # progression order changes not allowed for 2K # TODO not for 4K:
         cparams.numpocs = 0
 
     def _populate_cparams(self, **kwargs):
@@ -554,8 +557,12 @@ class Jp2k(Jp2kBox):
         if cparams.cp_cinema in [CINEMA_MODE['cinema2k_24'],
                                  CINEMA_MODE['cinema2k_48']]:
             num_pixels = image.contents.comps[0].w * image.contents.comps[0].h
-            rate_numerator = num_pixels * image.contents.comps[0].prec
-            max_rate = rate_numerator / (CINEMA_24_CS * 8 * num_pixels)
+            num_samples = num_pixels * image.contents.numcomps
+            rate_numerator = num_samples * image.contents.comps[0].prec
+            rate_denominator = CINEMA_24_CS * 8
+            rate_denominator *= image.contents.comps[0].dx
+            rate_denominator *= image.contents.comps[0].dy
+            max_rate = rate_numerator / rate_denominator
             if cparams.tcp_rates[0] == 0:
                 cparams.tcp_rates[0] = max_rate
             else:
@@ -567,7 +574,7 @@ class Jp2k(Jp2kBox):
                     # TODO warning
                     pass
 
-            cparams.max_comp_size = COMP_24_CS
+            cparams.max_comp_size = CINEMA_24_CS
 
     def _write_openjp2(self, img_array, verbose=False, **kwargs):
         """
@@ -1608,6 +1615,10 @@ def _populate_image_struct(cparams, image, imgdata):
 
     # Stage the image data to the openjpeg data structure.
     for k in range(0, num_comps):
+        if cparams.cp_cinema:
+            image.contents.comps[k].prec = 12
+            image.contents.comps[k].bpp = 12
+
         layer = np.ascontiguousarray(imgdata[:, :, k], dtype=np.int32)
         dest = image.contents.comps[k].data
         src = layer.ctypes.data
