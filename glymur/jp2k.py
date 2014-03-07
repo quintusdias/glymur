@@ -163,22 +163,32 @@ class Jp2k(Jp2kBox):
                     msg += "profile if the file type box brand is 'jp2 '."
                     warnings.warn(msg)
 
-    def _set_cinema_params(self, cparams, fps):
+    def _set_cinema_params(self, cparams, cinema_mode, fps):
         """Populate compression parameters structure for cinema2K.
 
         Parameters
         ----------
+        params : ctypes struct
+            Corresponds to compression parameters structure used by the
+            library.
+        cinema_mode : str
+            Either 'cinema2k' or 'cinema4k'
         fps : int
             Frames per second, should be either 24 or 48.
         """
-        if fps == 24:
-            cparams.cp_cinema = CINEMA_MODE['cinema2k_24']
-        elif fps == 48:
-            cparams.cp_cinema = CINEMA_MODE['cinema2k_48']
+        if cinema_mode == 'cinema2k':
+            if fps == 24:
+                cparams.cp_cinema = CINEMA_MODE['cinema2k_24']
+            elif fps == 48:
+                cparams.cp_cinema = CINEMA_MODE['cinema2k_48']
+            else:
+                raise IOError('Cinema2K frame rate must be either 24 or 48.')
+            cparams.cp_rsiz = RSIZ['CINEMA2K']
         else:
-            raise IOError('Cinema2K frame rate must be either 24 or 48.')
+            cparams.cp_cinema = CINEMA_MODE['cinema4k_24']
+            cparams.cp_rsiz = RSIZ['CINEMA4K']
 
-        cparams.cp_rsiz = RSIZ['CINEMA2K']
+
         # No tiling
         cparams.tile_size_on = opj2.FALSE
         cparams.cp_tdx = 1
@@ -216,9 +226,17 @@ class Jp2k(Jp2kBox):
             # TODO:  warning or error
             cparams.tcp_numlayers = 1
 
-        if cparams.numresolution > 6: #TODO only for cinema2k
-            # TODO:  warning or error
-            cparams.numresolution = 6
+        if cinema_mode == 'cinema2k':
+            if cparams.numresolution > 6:
+                # TODO:  warning or error
+                cparams.numresolution = 6
+        else:
+            if cparams.numresolution < 2:
+                # TODO:  warning or error
+                cparams.numresolution = 1
+            elif cparams.numresolution > 7:
+                cparams.numresolution = 7
+
 
         # precincts
         cparams.csty |= 0x01
@@ -230,8 +248,25 @@ class Jp2k(Jp2kBox):
         # Progression order shall be CPRL
         cparams.prog_order = PROGRESSION_ORDER['CPRL']
 
-        # progression order changes not allowed for 2K # TODO not for 4K:
-        cparams.numpocs = 0
+        # progression order changes not allowed for 2K
+        if cinema_mode == 'cinema2k':
+            cparams.numpocs = 0
+        else:
+            cparams.poc[0].tile = 1
+            cparams.poc[0].resno0 = 0
+            cparams.poc[0].compno0 = 0
+            cparams.poc[0].layno1 = 1
+            cparams.poc[0].resno1 = cparams.numresolution - 1
+            cparams.poc[0].compno1 = 3
+            cparams.poc[0].prg1 = PROGRESSION_ORDER['CPRL']
+            cparams.poc[1].tile = 1
+            cparams.poc[1].resno0 = 0
+            cparams.poc[1].compno0 = 0
+            cparams.poc[1].layno1 = 1
+            cparams.poc[1].resno1 = cparams.numresolution
+            cparams.poc[1].compno1 = 3
+            cparams.poc[1].prg1 = PROGRESSION_ORDER['CPRL']
+            cparams.numpocs = 2
 
     def _populate_cparams(self, **kwargs):
         """Populate compression parameters structure from input arguments.
@@ -300,11 +335,11 @@ class Jp2k(Jp2kBox):
         cparams.cp_disto_alloc = 1
 
         if 'cinema2k' in kwargs:
-            self._set_cinema_params(cparams, kwargs['cinema2k'])
+            self._set_cinema_params(cparams, 'cinema2k', kwargs['cinema2k'])
             return cparams
 
         if 'cinema4k' in kwargs:
-            self._set_cinema_params(cparams, kwargs['cinema2k'])
+            self._set_cinema_params(cparams, 'cinema4k', kwargs['cinema4k'])
             return cparams
 
         if 'cbsize' in kwargs:

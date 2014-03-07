@@ -44,6 +44,48 @@ class TestSuiteWrite(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def check_cinema4k_codestream(self, codestream, image_size):
+        """Common out for cinema2k tests."""
+        # SIZ: Image and tile size
+        # Profile:  "3" means cinema2K
+        self.assertEqual(codestream.segment[1].rsiz, 4)
+        # Reference grid size
+        self.assertEqual((codestream.segment[1].xsiz,
+                          codestream.segment[1].ysiz),
+                         image_size)
+        # Reference grid offset
+        self.assertEqual((codestream.segment[1].xosiz,
+                          codestream.segment[1].yosiz), (0, 0))
+        # Tile size
+        self.assertEqual((codestream.segment[1].xtsiz,
+                          codestream.segment[1].ytsiz),
+                         image_size)
+        # Tile offset
+        self.assertEqual((codestream.segment[1].xtosiz,
+                          codestream.segment[1].ytosiz),
+                         (0, 0))
+        # bitdepth
+        self.assertEqual(codestream.segment[1].bitdepth, (12, 12, 12))
+        # signed
+        self.assertEqual(codestream.segment[1].signed,
+                         (False, False, False))
+        # subsampling
+        self.assertEqual(list(zip(codestream.segment[1].xrsiz,
+                                  codestream.segment[1].yrsiz)),
+                         [(1, 1)] * 3)
+
+        # COD: Coding style default
+        self.assertFalse(codestream.segment[2].scod & 2)  # no sop
+        self.assertFalse(codestream.segment[2].scod & 4)  # no eph
+        self.assertEqual(codestream.segment[2].spcod[0], glymur.core.CPRL)
+        self.assertEqual(codestream.segment[2].layers, 1)
+        self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
+        self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+        self.assertEqual(tuple(codestream.segment[2].code_block_size),
+                         (32, 32))  # cblksz
+
+
+
     def check_cinema2k_codestream(self, codestream, image_size):
         """Common out for cinema2k tests."""
         # SIZ: Image and tile size
@@ -84,6 +126,20 @@ class TestSuiteWrite(unittest.TestCase):
         self.assertEqual(tuple(codestream.segment[2].code_block_size),
                          (32, 32))  # cblksz
 
+
+
+    @unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+                     "Cannot read input image without scikit-image/freeimage")
+    def test_NR_ENC_ElephantDream_4K_tif_21_encode(self):
+        relfile = 'input/nonregression/ElephantDream_4K.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j.write(data, cinema4k=True)
+
+            codestream = j.get_codestream()
+            self.check_cinema4k_codestream(codestream, (4096, 2160))
 
 
     @unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
