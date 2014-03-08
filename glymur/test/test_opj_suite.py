@@ -3297,7 +3297,7 @@ class TestSuiteDump(unittest.TestCase):
 
     def test_NR_file5_dump(self):
         # Three 8-bit components in the ROMM-RGB colourspace, encapsulated in a
-        # JP2 compatible JPX file. The components have been transformed using
+        # JPX file. The components have been transformed using
         # the RCT. The colourspace is specified using both a Restricted ICC
         # profile and using the JPX-defined enumerated code for the ROMM-RGB
         # colourspace.
@@ -3305,49 +3305,38 @@ class TestSuiteDump(unittest.TestCase):
         jp2 = Jp2k(jfile)
 
         ids = [box.box_id for box in jp2.box]
-        self.assertEqual(ids, ['jP  ', 'ftyp', 'rreq', 'jp2h', 'jp2c'])
+        self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
 
-        ids = [box.box_id for box in jp2.box[3].box]
-        self.assertEqual(ids, ['ihdr', 'colr', 'colr'])
+        ids = [box.box_id for box in jp2.box[2].box]
+        self.assertEqual(ids, ['ihdr', 'colr'])
 
         # Signature box.  Check for corruption.
         self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
 
         # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jpx ')
+        self.assertEqual(jp2.box[1].brand, 'jp2 ')
         self.assertEqual(jp2.box[1].minor_version, 0)
         self.assertEqual(jp2.box[1].compatibility_list[1], 'jp2 ')
-        self.assertEqual(jp2.box[1].compatibility_list[2], 'jpx ')
-        self.assertEqual(jp2.box[1].compatibility_list[3], 'jpxb')
 
         # Jp2 Header
         # Image header
-        self.assertEqual(jp2.box[3].box[0].height, 512)
-        self.assertEqual(jp2.box[3].box[0].width, 768)
-        self.assertEqual(jp2.box[3].box[0].num_components, 3)
-        self.assertEqual(jp2.box[3].box[0].signed, False)
-        self.assertEqual(jp2.box[3].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[3].box[0].colorspace_unknown, False)
-        self.assertEqual(jp2.box[3].box[0].ip_provided, False)
+        self.assertEqual(jp2.box[2].box[0].height, 512)
+        self.assertEqual(jp2.box[2].box[0].width, 768)
+        self.assertEqual(jp2.box[2].box[0].num_components, 3)
+        self.assertEqual(jp2.box[2].box[0].signed, False)
+        self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
+        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
+        self.assertEqual(jp2.box[2].box[0].ip_provided, False)
 
         # Jp2 Header
         # Colour specification
-        self.assertEqual(jp2.box[3].box[1].method,
+        self.assertEqual(jp2.box[2].box[1].method,
                          glymur.core.RESTRICTED_ICC_PROFILE)  # enumerated
-        self.assertEqual(jp2.box[3].box[1].precedence, 0)
-        self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(jp2.box[3].box[1].icc_profile['Size'], 546)
-        self.assertIsNone(jp2.box[3].box[1].colorspace)
+        self.assertEqual(jp2.box[2].box[1].precedence, 0)
+        self.assertEqual(jp2.box[2].box[1].approximation, 1)  # JPX exact
+        self.assertEqual(jp2.box[2].box[1].icc_profile['Size'], 546)
+        self.assertIsNone(jp2.box[2].box[1].colorspace)
 
-        # Jp2 Header
-        # Colour specification
-        self.assertEqual(jp2.box[3].box[2].method,
-                         glymur.core.ENUMERATED_COLORSPACE)
-        self.assertEqual(jp2.box[3].box[2].precedence, 1)
-        self.assertEqual(jp2.box[3].box[2].approximation, 1)  # JPX exact
-        self.assertIsNone(jp2.box[3].box[2].icc_profile)
-        self.assertEqual(jp2.box[3].box[2].colorspace,
-                         glymur.core.ROMM_RGB)
 
     def test_NR_file6_dump(self):
         jfile = opj_data_file('input/conformance/file6.jp2')
@@ -3398,54 +3387,43 @@ class TestSuiteDump(unittest.TestCase):
         jp2 = Jp2k(jfile)
 
         ids = [box.box_id for box in jp2.box]
-        self.assertEqual(ids, ['jP  ', 'ftyp', 'rreq', 'jp2h', 'jp2c'])
+        self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
 
-        ids = [box.box_id for box in jp2.box[3].box]
-        self.assertEqual(ids, ['ihdr', 'colr', 'colr'])
+        ids = [box.box_id for box in jp2.box[2].box]
+        self.assertEqual(ids, ['ihdr', 'colr'])
 
         # Signature box.  Check for corruption.
         self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
 
         # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jpx ')
+        self.assertEqual(jp2.box[1].brand, 'jp2 ')
         self.assertEqual(jp2.box[1].compatibility_list[1], 'jp2 ')
-        self.assertEqual(jp2.box[1].compatibility_list[2], 'jpx ')
-        self.assertEqual(jp2.box[1].compatibility_list[3], 'jpxb')
         self.assertEqual(jp2.box[1].minor_version, 0)
 
         # Reader requirements talk.
         # e-SRGB enumerated colourspace
-        self.assertTrue(60 in jp2.box[2].standard_flag)
+        #self.assertTrue(60 in jp2.box[2].standard_flag)
 
         # Jp2 Header
         # Image header
-        self.assertEqual(jp2.box[3].box[0].height, 640)
-        self.assertEqual(jp2.box[3].box[0].width, 480)
-        self.assertEqual(jp2.box[3].box[0].num_components, 3)
-        self.assertEqual(jp2.box[3].box[0].bits_per_component, 16)
-        self.assertEqual(jp2.box[3].box[0].signed, False)
-        self.assertEqual(jp2.box[3].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[3].box[0].colorspace_unknown, False)
-        self.assertEqual(jp2.box[3].box[0].ip_provided, False)
+        self.assertEqual(jp2.box[2].box[0].height, 640)
+        self.assertEqual(jp2.box[2].box[0].width, 480)
+        self.assertEqual(jp2.box[2].box[0].num_components, 3)
+        self.assertEqual(jp2.box[2].box[0].bits_per_component, 16)
+        self.assertEqual(jp2.box[2].box[0].signed, False)
+        self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
+        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
+        self.assertEqual(jp2.box[2].box[0].ip_provided, False)
 
         # Jp2 Header
         # Colour specification
-        self.assertEqual(jp2.box[3].box[1].method,
+        self.assertEqual(jp2.box[2].box[1].method,
                          glymur.core.RESTRICTED_ICC_PROFILE)
-        self.assertEqual(jp2.box[3].box[1].precedence, 0)
-        self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(jp2.box[3].box[1].icc_profile['Size'], 13332)
-        self.assertIsNone(jp2.box[3].box[1].colorspace)
+        self.assertEqual(jp2.box[2].box[1].precedence, 0)
+        self.assertEqual(jp2.box[2].box[1].approximation, 1)  # JPX exact
+        self.assertEqual(jp2.box[2].box[1].icc_profile['Size'], 13332)
+        self.assertIsNone(jp2.box[2].box[1].colorspace)
 
-        # Jp2 Header
-        # Colour specification
-        self.assertEqual(jp2.box[3].box[2].method,
-                         glymur.core.ENUMERATED_COLORSPACE)
-        self.assertEqual(jp2.box[3].box[2].precedence, 1)
-        self.assertEqual(jp2.box[3].box[2].approximation, 1)  # JPX exact
-        self.assertIsNone(jp2.box[3].box[2].icc_profile)
-        self.assertEqual(jp2.box[3].box[2].colorspace,
-                         glymur.core.E_SRGB)
 
     def test_NR_file8_dump(self):
         # One 8-bit component in a gamma 1.8 space. The colourspace is

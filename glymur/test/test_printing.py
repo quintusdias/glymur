@@ -735,6 +735,7 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
+    @unittest.skip("file7 no longer has a rreq")
     @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_rreq(self):
