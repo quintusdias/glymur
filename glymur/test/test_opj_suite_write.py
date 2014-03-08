@@ -35,14 +35,34 @@ import glymur
 class TestSuiteWrite(unittest.TestCase):
     """Tests for writing with openjp2 backend.
 
-    These tests roughly correspond with those tests with similar names in the
-    OpenJPEG test suite.
+    These tests either roughly correspond with those tests with similar names
+    in the OpenJPEG test suite or are closely associated.
     """
     def setUp(self):
         pass
 
     def tearDown(self):
         pass
+
+    def test_cinema2K_with_others(self):
+        """Can't specify cinema2k with any other options."""
+        relfile = 'input/nonregression/X_5_2K_24_235_CBR_STEM24_000.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(IOError):
+                j.write(data, cinema2k=48, cratios=[200, 100, 50])
+
+    def test_cinema4K_with_others(self):
+        """Can't specify cinema4k with any other options."""
+        relfile = 'input/nonregression/ElephantDream_4K.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(IOError):
+                j.write(data, cinema4k=True, cratios=[200, 100, 50])
 
     def check_cinema4k_codestream(self, codestream, image_size):
         """Common out for cinema2k tests."""
@@ -1051,6 +1071,7 @@ class TestSuiteWrite(unittest.TestCase):
             self.assertEqual(codestream.segment[2].spcod[8],
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(len(codestream.segment[2].spcod), 9)
+
 
 if __name__ == "__main__":
     unittest.main()

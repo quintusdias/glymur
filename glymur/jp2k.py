@@ -422,6 +422,10 @@ class Jp2k(Jp2kBox):
             Either CLRSPC_SRGB or CLRSPC_GRAY
         """
 
+        if ('cinema2k' in kwargs or 'cinema4k' in kwargs)  and len(set(kwargs)) > 1:
+            msg = "Cannot specify cinema2k/cinema4k along with other options."
+            raise IOError(msg)
+
         if 'cratios' in kwargs and 'psnr' in kwargs:
             msg = "Cannot specify cratios and psnr together."
             raise IOError(msg)
