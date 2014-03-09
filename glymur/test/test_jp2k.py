@@ -94,6 +94,23 @@ class TestJp2k(unittest.TestCase):
         with self.assertRaises(IOError):
             Jp2k(filename)
 
+    def test_no_cxform(self):
+        """Indices for jpxfile if no color transform"""
+        j = Jp2k(self.jpxfile)
+        rgb = j.read()
+        idx = j.read(no_cxform=True)
+        self.assertEqual(rgb.shape, (1024, 1024, 3))
+        self.assertEqual(idx.shape, (1024, 1024))
+
+        # Should be able to manually reconstruct the RGB image from the palette
+        # and indices.
+        palette = j.box[3].box[2].palette
+        rgb_from_idx = np.zeros(rgb.shape, dtype=np.uint8)
+        for r in np.arange(1024):
+            for c in np.arange(1024):
+                rgb_from_idx[r, c] = palette[idx[r, c]]
+        np.testing.assert_array_equal(rgb, rgb_from_idx)
+
     def test_file_not_present(self):
         """Should error out if reading from a file that does not exist"""
         # Verify that we error out appropriately if not given an existing file
