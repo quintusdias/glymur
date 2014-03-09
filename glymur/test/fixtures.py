@@ -554,15 +554,21 @@ UUID Box (uuid) @ (77, 3146)
     UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
 Contiguous Codestream Box (jp2c) @ (3223, 1132296)"""
 
-# Output of reader requirement printing for file7.jp2
-file7_rreq = r"""Reader Requirements Box (rreq) @ (44, 24)
-    Fully Understands Aspect Mask:  0xa0
-    Display Completely Mask:  0xc0
+# Output of reader requirements printing for text_GBR.jp2
+text_GBR_rreq = r"""Reader Requirements Box (rreq) @ (40, 109)
+    Fully Understands Aspect Mask:  0xffff
+    Display Completely Mask:  0xf8f0
     Standard Features and Masks:
-        Feature 005:  0x80 Unrestricted JPEG 2000 Part 1 codestream, ITU-T Rec. T.800 | ISO/IEC 15444-1
-        Feature 060:  0x60 e-sRGB enumerated colorspace
-        Feature 043:  0x40 Deprecated - compositing layer uses restricted ICC profile
-    Vendor Features:"""
+        Feature 001:  0x8000 Deprecated - contains no extensions
+        Feature 005:  0x4080 Unrestricted JPEG 2000 Part 1 codestream, ITU-T Rec. T.800 | ISO/IEC 15444-1
+        Feature 012:  0x2040 Deprecated - codestream is contiguous
+        Feature 018:  0x1020 Deprecated - support for compositing is not required
+        Feature 044:  0x810 Compositing layer uses Any ICC profile
+    Vendor Features:
+        UUID 3a0d0218-0ae9-4115-b376-4bca41ce0e71
+        UUID 47c92ccc-d1a1-4581-b904-38bb5467713b
+        UUID bc45a774-dd50-4ec6-a9f6-f3a137f47e90
+        UUID d7c8c5ef-951f-43b2-8757-042500f538e8"""
 
 file1_xml = """XML Box (xml ) @ (36, 439)
     <IMAGE_CREATION xmlns="http://www.jpeg.org/jpx/1.0/xml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.jpeg.org/jpx/1.0/xml http://www.jpeg.org/metadata/15444-2.xsd">
