@@ -166,6 +166,11 @@ class Jp2k(Jp2kBox):
         fps : int
             Frames per second, should be either 24 or 48.
         """
+        if version.openjpeg_version_tuple[0] == 1:
+            msg = "Writing Cinema2K or Cinema4K files is not supported with "
+            msg += 'openjpeg library versions less than 2.0.1.'
+            raise IOError(msg)
+
         if cinema_mode == 'cinema2k':
             if fps == 24:
                 cparams.cp_cinema = CINEMA_MODE['cinema2k_24']
@@ -331,8 +336,8 @@ class Jp2k(Jp2kBox):
         colorspace : int
             Either CLRSPC_SRGB or CLRSPC_GRAY
         """
-
-        if ('cinema2k' in kwargs or 'cinema4k' in kwargs)  and len(set(kwargs)) > 1:
+        if (('cinema2k' in kwargs or 'cinema4k' in kwargs)  and
+                (len(set(kwargs)) > 1)):
             msg = "Cannot specify cinema2k/cinema4k along with other options."
             raise IOError(msg)
 
