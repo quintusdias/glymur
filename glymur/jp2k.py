@@ -39,16 +39,6 @@ from .lib import openjp2 as opj2
 from . import version
 from .lib import c as libc
 
-# Codestream lengths for 24fps, 48fps
-CINEMA_24_CS = 1302083
-CINEMA_48_CS = 651041
-
-# Maximum size per color components for 2K and 4K at 24 fps
-COMP_24_CS = 1041666
-
-# Maximum size per color components for 2K at 48 fps
-COMP_48_CS = 520833
-
 JP2_IDS = ['colr', 'cdef', 'cmap', 'jp2c', 'ftyp', 'ihdr', 'jp2h', 'jP  ',
            'pclr', 'res ', 'resc', 'resd', 'xml ', 'ulst', 'uinf', 'url ',
            'uuid']
@@ -176,6 +166,11 @@ class Jp2k(Jp2kBox):
         fps : int
             Frames per second, should be either 24 or 48.
         """
+        if version.openjpeg_version_tuple[0] == 1:
+            msg = "Writing Cinema2K or Cinema4K files is not supported with "
+            msg += 'openjpeg library versions less than 2.0.1.'
+            raise IOError(msg)
+
         if cinema_mode == 'cinema2k':
             if fps == 24:
                 cparams.cp_cinema = CINEMA_MODE['cinema2k_24']
@@ -183,90 +178,10 @@ class Jp2k(Jp2kBox):
                 cparams.cp_cinema = CINEMA_MODE['cinema2k_48']
             else:
                 raise IOError('Cinema2K frame rate must be either 24 or 48.')
-            cparams.cp_rsiz = RSIZ['CINEMA2K']
         else:
             cparams.cp_cinema = CINEMA_MODE['cinema4k_24']
-            cparams.cp_rsiz = RSIZ['CINEMA4K']
 
-
-        # No tiling
-        cparams.tile_size_on = opj2.FALSE
-        cparams.cp_tdx = 1
-        cparams.cp_tdy = 1
-
-        # One tile part for each component.
-        cparams.tp_flag = ord('C')
-        cparams.tp_on = 1
-
-        # tile and image shall be as (0,0)
-        cparams.cp_tx0 = 0
-        cparams.cp_ty0 = 0
-        cparams.image_offset_x0 = 0
-        cparams.image_offset_y0 = 0
-
-        # Codeblock size = 32 * 32
-        cparams.cblockw_init = 32
-        cparams.cblockh_init = 32
-
-        # code block style, no mode switch enabled.
-        cparams.mode = 0
-
-        # no ROI
-        cparams.roi_compno = -1
-
-        # no subsampling
-        cparams.subsampling_dx = 1
-        cparams.subsampling_dy = 1
-
-        # 9-7 transform
-        cparams.irreversible = 1
-
-        # number of layers
-        if cparams.tcp_numlayers > 1:
-            # TODO:  warning or error
-            cparams.tcp_numlayers = 1
-
-        if cinema_mode == 'cinema2k':
-            if cparams.numresolution > 6:
-                # TODO:  warning or error
-                cparams.numresolution = 6
-        else:
-            if cparams.numresolution < 2:
-                # TODO:  warning or error
-                cparams.numresolution = 1
-            elif cparams.numresolution > 7:
-                cparams.numresolution = 7
-
-
-        # precincts
-        cparams.csty |= 0x01
-        cparams.res_spec = cparams.numresolution - 1
-        for j in range(cparams.res_spec):
-            cparams.prcw_init[j] = 256
-            cparams.prch_init[j] = 256
-
-        # Progression order shall be CPRL
-        cparams.prog_order = PROGRESSION_ORDER['CPRL']
-
-        # progression order changes not allowed for 2K
-        if cinema_mode == 'cinema2k':
-            cparams.numpocs = 0
-        else:
-            cparams.poc[0].tile = 1
-            cparams.poc[0].resno0 = 0
-            cparams.poc[0].compno0 = 0
-            cparams.poc[0].layno1 = 1
-            cparams.poc[0].resno1 = cparams.numresolution - 1
-            cparams.poc[0].compno1 = 3
-            cparams.poc[0].prg1 = PROGRESSION_ORDER['CPRL']
-            cparams.poc[1].tile = 1
-            cparams.poc[1].resno0 = 0
-            cparams.poc[1].compno0 = 0
-            cparams.poc[1].layno1 = 1
-            cparams.poc[1].resno1 = cparams.numresolution
-            cparams.poc[1].compno1 = 3
-            cparams.poc[1].prg1 = PROGRESSION_ORDER['CPRL']
-            cparams.numpocs = 2
+        return
 
     def _populate_cparams(self, **kwargs):
         """Populate compression parameters structure from input arguments.
@@ -421,6 +336,10 @@ class Jp2k(Jp2kBox):
         colorspace : int
             Either CLRSPC_SRGB or CLRSPC_GRAY
         """
+        if (('cinema2k' in kwargs or 'cinema4k' in kwargs)  and
+                (len(set(kwargs)) > 1)):
+            msg = "Cannot specify cinema2k/cinema4k along with other options."
+            raise IOError(msg)
 
         if 'cratios' in kwargs and 'psnr' in kwargs:
             msg = "Cannot specify cratios and psnr together."
@@ -465,6 +384,8 @@ class Jp2k(Jp2kBox):
             Code block size (DY, DX).
         cinema2k : int, optional
             frames per second, either 24 or 48
+        cinema4k : bool, optional
+            Set to True to specify Cinema4K mode, defaults to false.
         colorspace : str, optional
             Either 'rgb' or 'gray'.
         cratios : iterable
@@ -596,48 +517,6 @@ class Jp2k(Jp2kBox):
         self.parse()
 
 
-    def _set_cinema_rate(self, cparams, image):
-        max_rate = 0
-        temp_rate = 0
-        cparams.cp_disto_alloc = 1
-
-        num_pixels = image.contents.comps[0].w * image.contents.comps[0].h
-        num_samples = num_pixels * image.contents.numcomps
-        rate_numerator = num_samples * image.contents.comps[0].prec
-        rate_denominator = 8 * image.contents.comps[0].dx
-        rate_denominator *= image.contents.comps[0].dy
-
-        if cparams.cp_cinema in [CINEMA_MODE['cinema2k_24'],
-                                 CINEMA_MODE['cinema4k_24']]:
-            max_rate = rate_numerator / (rate_denominator * CINEMA_24_CS)
-            if cparams.tcp_rates[0] == 0:
-                cparams.tcp_rates[0] = max_rate
-            else:
-                temp_rate = rate_numerator / (cparams.tcp_rates[0] * 8 * num_pixels)
-                if temp_rate > CINEMA_24_CS:
-                    # TODO warning, reset
-                    cparams.tcp_rates[0] = max_rate
-                else:
-                    # TODO warning
-                    pass
-
-            cparams.max_comp_size = COMP_24_CS
-
-        else:
-            max_rate = rate_numerator / (rate_denominator * CINEMA_48_CS)
-            if cparams.tcp_rates[0] == 0:
-                cparams.tcp_rates[0] = max_rate
-            else:
-                temp_rate = rate_numerator / (cparams.tcp_rates[0] * 8 * num_pixels)
-                if temp_rate > CINEMA_48_CS:
-                    # TODO warning, reset
-                    cparams.tcp_rates[0] = max_rate
-                else:
-                    # TODO warning
-                    pass
-
-            cparams.max_comp_size = COMP_48_CS
-
     def _write_openjp2(self, img_array, verbose=False, **kwargs):
         """
         Write JPEG 2000 file using OpenJPEG 2.0 interface.
@@ -656,11 +535,6 @@ class Jp2k(Jp2kBox):
             stack.callback(opj2.image_destroy, image)
 
             _populate_image_struct(cparams, image, img_array)
-
-            if 'cinema2k' in kwargs:
-                self._set_cinema_rate(cparams, image)
-            if 'cinema4k' in kwargs:
-                self._set_cinema_rate(cparams, image)
 
             codec = opj2.create_compress(cparams.codec_fmt)
             stack.callback(opj2.destroy_codec, codec)

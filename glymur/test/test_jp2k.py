@@ -35,6 +35,7 @@ if HAS_PYTHON_XMP_TOOLKIT:
     from libxmp import XMPMeta
 
 from .fixtures import OPJ_DATA_ROOT, opj_data_file
+from . import fixtures
 
 
 # Doc tests should be run as well.
@@ -376,6 +377,10 @@ class TestJp2k(unittest.TestCase):
         creator_tool = xmp.get_property(libxmp.consts.XMP_NS_XMP, 'CreatorTool')
         self.assertEqual(creator_tool, 'Google') 
 
+    @unittest.skipIf(fixtures.OPENJP2_IS_V2_OFFICIAL,
+                     "Feature not supported in 2.0.0 official")
+    @unittest.skipIf(glymur.version.openjpeg_version_tuple[0] == 1,
+                     "Feature not supported in 1.5")
     def test_jpx_mult_codestreams_jp2_brand(self):
         """Read JPX codestream when jp2-compatible."""
         # The file in question has multiple codestreams.
