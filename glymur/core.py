@@ -10,6 +10,26 @@ RPCL = 2
 PCRL = 3
 CPRL = 4
 
+STD = 0
+CINEMA2K = 3
+CINEMA4K = 4
+
+RSIZ = {
+    'STD': STD,
+    'CINEMA2K': CINEMA2K,
+    'CINEMA4K': CINEMA4K}
+
+OFF = 0
+CINEMA2K_24 = 1
+CINEMA2K_48 = 2
+CINEMA4K_24 = 3
+
+CINEMA_MODE = {
+    'off': OFF,
+    'cinema2k_24': CINEMA2K_24,
+    'cinema2k_48': CINEMA2K_48,
+    'cinema4k_24': CINEMA4K_24, }
+
 PROGRESSION_ORDER = {
     'LRCP': LRCP,
     'RLCP': RLCP,

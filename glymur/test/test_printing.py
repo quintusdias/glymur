@@ -133,7 +133,6 @@ class TestPrinting(unittest.TestCase):
         lst = lst[1:]
         actual = '\n'.join(lst)
         expected = fixtures.nemo_dump_no_xml
-        self.maxDiff = None
         self.assertEqual(actual, expected)
 
     def test_printoptions_short(self):
@@ -736,6 +735,7 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
+    @unittest.skip("file7 no longer has a rreq")
     @unittest.skipIf(OPJ_DATA_ROOT is None,
                      "OPJ_DATA_ROOT environment variable not set")
     def test_rreq(self):

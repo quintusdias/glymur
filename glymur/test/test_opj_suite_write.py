@@ -12,11 +12,240 @@ import sys
 import tempfile
 import unittest
 
+try:
+    import skimage.io
+    skimage.io.use_plugin('freeimage', 'imread')
+    _HAS_SKIMAGE_FREEIMAGE_SUPPORT = True
+except ((ImportError, RuntimeError)):
+    _HAS_SKIMAGE_FREEIMAGE_SUPPORT = False
+
 from .fixtures import read_image, NO_READ_BACKEND, NO_READ_BACKEND_MSG
 from .fixtures import OPJ_DATA_ROOT, opj_data_file
+from . import fixtures
 
 from glymur import Jp2k
 import glymur
+
+@unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+                 "Cannot read input image without scikit-image/freeimage")
+@unittest.skipIf(os.name == "nt", "no write support on windows, period")
+@unittest.skipIf(fixtures.OPENJP2_IS_V2_OFFICIAL,
+                 "Feature not supported in 2.0.0 official")
+@unittest.skipIf(glymur.version.openjpeg_version_tuple[0] == 1,
+                 "Feature not supported in 1.5")
+@unittest.skipIf(OPJ_DATA_ROOT is None,
+                 "OPJ_DATA_ROOT environment variable not set")
+class TestSuiteWriteCinema(unittest.TestCase):
+    """Tests for writing with openjp2 backend.
+
+    These tests either roughly correspond with those tests with similar names
+    in the OpenJPEG test suite or are closely associated.
+    """
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_cinema2K_with_others(self):
+        """Can't specify cinema2k with any other options."""
+        relfile = 'input/nonregression/X_5_2K_24_235_CBR_STEM24_000.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(IOError):
+                j.write(data, cinema2k=48, cratios=[200, 100, 50])
+
+    def test_cinema4K_with_others(self):
+        """Can't specify cinema4k with any other options."""
+        relfile = 'input/nonregression/ElephantDream_4K.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(IOError):
+                j.write(data, cinema4k=True, cratios=[200, 100, 50])
+
+    def check_cinema4k_codestream(self, codestream, image_size):
+        """Common out for cinema2k tests."""
+        # SIZ: Image and tile size
+        # Profile:  "3" means cinema2K
+        self.assertEqual(codestream.segment[1].rsiz, 4)
+        # Reference grid size
+        self.assertEqual((codestream.segment[1].xsiz,
+                          codestream.segment[1].ysiz),
+                         image_size)
+        # Reference grid offset
+        self.assertEqual((codestream.segment[1].xosiz,
+                          codestream.segment[1].yosiz), (0, 0))
+        # Tile size
+        self.assertEqual((codestream.segment[1].xtsiz,
+                          codestream.segment[1].ytsiz),
+                         image_size)
+        # Tile offset
+        self.assertEqual((codestream.segment[1].xtosiz,
+                          codestream.segment[1].ytosiz),
+                         (0, 0))
+        # bitdepth
+        self.assertEqual(codestream.segment[1].bitdepth, (12, 12, 12))
+        # signed
+        self.assertEqual(codestream.segment[1].signed,
+                         (False, False, False))
+        # subsampling
+        self.assertEqual(list(zip(codestream.segment[1].xrsiz,
+                                  codestream.segment[1].yrsiz)),
+                         [(1, 1)] * 3)
+
+        # COD: Coding style default
+        self.assertFalse(codestream.segment[2].scod & 2)  # no sop
+        self.assertFalse(codestream.segment[2].scod & 4)  # no eph
+        self.assertEqual(codestream.segment[2].spcod[0], glymur.core.CPRL)
+        self.assertEqual(codestream.segment[2].layers, 1)
+        self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
+        self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+        self.assertEqual(tuple(codestream.segment[2].code_block_size),
+                         (32, 32))  # cblksz
+
+
+
+    def check_cinema2k_codestream(self, codestream, image_size):
+        """Common out for cinema2k tests."""
+        # SIZ: Image and tile size
+        # Profile:  "3" means cinema2K
+        self.assertEqual(codestream.segment[1].rsiz, 3)
+        # Reference grid size
+        self.assertEqual((codestream.segment[1].xsiz,
+                          codestream.segment[1].ysiz),
+                         image_size)
+        # Reference grid offset
+        self.assertEqual((codestream.segment[1].xosiz,
+                          codestream.segment[1].yosiz), (0, 0))
+        # Tile size
+        self.assertEqual((codestream.segment[1].xtsiz,
+                          codestream.segment[1].ytsiz),
+                         image_size)
+        # Tile offset
+        self.assertEqual((codestream.segment[1].xtosiz,
+                          codestream.segment[1].ytosiz),
+                         (0, 0))
+        # bitdepth
+        self.assertEqual(codestream.segment[1].bitdepth, (12, 12, 12))
+        # signed
+        self.assertEqual(codestream.segment[1].signed,
+                         (False, False, False))
+        # subsampling
+        self.assertEqual(list(zip(codestream.segment[1].xrsiz,
+                                  codestream.segment[1].yrsiz)),
+                         [(1, 1)] * 3)
+
+        # COD: Coding style default
+        self.assertFalse(codestream.segment[2].scod & 2)  # no sop
+        self.assertFalse(codestream.segment[2].scod & 4)  # no eph
+        self.assertEqual(codestream.segment[2].spcod[0], glymur.core.CPRL)
+        self.assertEqual(codestream.segment[2].layers, 1)
+        self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
+        self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+        self.assertEqual(tuple(codestream.segment[2].code_block_size),
+                         (32, 32))  # cblksz
+
+
+
+    def test_NR_ENC_ElephantDream_4K_tif_21_encode(self):
+        relfile = 'input/nonregression/ElephantDream_4K.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j.write(data, cinema4k=True)
+
+            codestream = j.get_codestream()
+            self.check_cinema4k_codestream(codestream, (4096, 2160))
+
+
+    def test_NR_ENC_X_5_2K_24_235_CBR_STEM24_000_tif_19_encode(self):
+        relfile = 'input/nonregression/X_5_2K_24_235_CBR_STEM24_000.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j.write(data, cinema2k=48)
+
+            codestream = j.get_codestream()
+            self.check_cinema2k_codestream(codestream, (2048, 857))
+
+
+    def test_NR_ENC_X_6_2K_24_FULL_CBR_CIRCLE_000_tif_20_encode(self):
+        relfile = 'input/nonregression/X_6_2K_24_FULL_CBR_CIRCLE_000.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j.write(data, cinema2k=48)
+
+            codestream = j.get_codestream()
+            self.check_cinema2k_codestream(codestream, (2048, 1080))
+
+
+    def test_NR_ENC_X_6_2K_24_FULL_CBR_CIRCLE_000_tif_17_encode(self):
+        relfile = 'input/nonregression/X_6_2K_24_FULL_CBR_CIRCLE_000.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j.write(data, cinema2k=24)
+
+            codestream = j.get_codestream()
+            self.check_cinema2k_codestream(codestream, (2048, 1080))
+
+
+    def test_NR_ENC_X_5_2K_24_235_CBR_STEM24_000_tif_16_encode(self):
+        relfile = 'input/nonregression/X_5_2K_24_235_CBR_STEM24_000.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j.write(data, cinema2k=24)
+
+            codestream = j.get_codestream()
+            self.check_cinema2k_codestream(codestream, (2048, 857))
+
+
+    def test_NR_ENC_X_4_2K_24_185_CBR_WB_000_tif_18_encode(self):
+        relfile = 'input/nonregression/X_4_2K_24_185_CBR_WB_000.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j.write(data, cinema2k=48)
+
+            codestream = j.get_codestream()
+            self.check_cinema2k_codestream(codestream, (1998, 1080))
+
+
+@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+@unittest.skipIf(re.match(r"""2\.0""", glymur.version.openjpeg_version),
+                 "Functionality implemented for 2.1")
+@unittest.skipIf(OPJ_DATA_ROOT is None,
+                 "OPJ_OPJ_DATA_ROOT environment variable not set")
+class TestSuiteNegative2pointzero(unittest.TestCase):
+    """Feature set not supported for versions less than 2.0"""
+
+    def setUp(self):
+        self.jp2file = glymur.data.nemo()
+        self.j2kfile = glymur.data.goodstuff()
+
+    def tearDown(self):
+        pass
+
+    def test_cinema_mode(self):
+        relfile = 'input/nonregression/X_4_2K_24_185_CBR_WB_000.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(IOError):
+                j.write(data, cinema2k=48)
 
 
 @unittest.skipIf(os.name == "nt", "no write support on windows, period")
@@ -29,8 +258,8 @@ import glymur
 class TestSuiteWrite(unittest.TestCase):
     """Tests for writing with openjp2 backend.
 
-    These tests roughly correspond with those tests with similar names in the
-    OpenJPEG test suite.
+    These tests either roughly correspond with those tests with similar names
+    in the OpenJPEG test suite or are closely associated.
     """
     def setUp(self):
         pass
@@ -851,6 +1080,7 @@ class TestSuiteWrite(unittest.TestCase):
             self.assertEqual(codestream.segment[2].spcod[8],
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(len(codestream.segment[2].spcod), 9)
+
 
 if __name__ == "__main__":
     unittest.main()

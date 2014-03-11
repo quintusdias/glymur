@@ -13,7 +13,7 @@ both read and write JPEG 2000 files, but you may wish to install version 2.0
 or the 2.0+ version from OpenJPEG's development trunk for better performance.
 If you do that, you should compile it as a shared library (named *openjp2*
 instead of *openjpeg*) from the developmental source that you can retrieve
-via subversion.  As of this time of writing, svn revision r2354 works.
+via subversion.  As of this time of writing, svn revision r2651 works.
 You should also download the test data for the purpose of configuring
 and running OpenJPEG's test suite, check their instructions for all this.
 You should set the **OPJ_DATA_ROOT** environment variable for the purpose
