@@ -28,7 +28,7 @@ import numpy as np
 
 from .codestream import Codestream
 from .core import SRGB, GREYSCALE
-from .core import PROGRESSION_ORDER
+from .core import PROGRESSION_ORDER, RSIZ, CINEMA_MODE
 from .core import ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE
 from .jp2box import Jp2kBox
 from .jp2box import JPEG2000SignatureBox, FileTypeBox, JP2HeaderBox
@@ -153,6 +153,36 @@ class Jp2k(Jp2kBox):
                     msg += "profile if the file type box brand is 'jp2 '."
                     warnings.warn(msg)
 
+    def _set_cinema_params(self, cparams, cinema_mode, fps):
+        """Populate compression parameters structure for cinema2K.
+
+        Parameters
+        ----------
+        params : ctypes struct
+            Corresponds to compression parameters structure used by the
+            library.
+        cinema_mode : str
+            Either 'cinema2k' or 'cinema4k'
+        fps : int
+            Frames per second, should be either 24 or 48.
+        """
+        if version.openjpeg_version_tuple[0] == 1:
+            msg = "Writing Cinema2K or Cinema4K files is not supported with "
+            msg += 'openjpeg library versions less than 2.0.1.'
+            raise IOError(msg)
+
+        if cinema_mode == 'cinema2k':
+            if fps == 24:
+                cparams.cp_cinema = CINEMA_MODE['cinema2k_24']
+            elif fps == 48:
+                cparams.cp_cinema = CINEMA_MODE['cinema2k_48']
+            else:
+                raise IOError('Cinema2K frame rate must be either 24 or 48.')
+        else:
+            cparams.cp_cinema = CINEMA_MODE['cinema4k_24']
+
+        return
+
     def _populate_cparams(self, **kwargs):
         """Populate compression parameters structure from input arguments.
 
@@ -218,6 +248,14 @@ class Jp2k(Jp2kBox):
         cparams.tcp_rates[0] = 0
         cparams.tcp_numlayers = 1
         cparams.cp_disto_alloc = 1
+
+        if 'cinema2k' in kwargs:
+            self._set_cinema_params(cparams, 'cinema2k', kwargs['cinema2k'])
+            return cparams
+
+        if 'cinema4k' in kwargs:
+            self._set_cinema_params(cparams, 'cinema4k', kwargs['cinema4k'])
+            return cparams
 
         if 'cbsize' in kwargs:
             cparams.cblockw_init = kwargs['cbsize'][1]
@@ -298,6 +336,10 @@ class Jp2k(Jp2kBox):
         colorspace : int
             Either CLRSPC_SRGB or CLRSPC_GRAY
         """
+        if (('cinema2k' in kwargs or 'cinema4k' in kwargs)  and
+                (len(set(kwargs)) > 1)):
+            msg = "Cannot specify cinema2k/cinema4k along with other options."
+            raise IOError(msg)
 
         if 'cratios' in kwargs and 'psnr' in kwargs:
             msg = "Cannot specify cratios and psnr together."
@@ -340,6 +382,10 @@ class Jp2k(Jp2kBox):
             Image data to be written to file.
         cbsize : tuple, optional
             Code block size (DY, DX).
+        cinema2k : int, optional
+            frames per second, either 24 or 48
+        cinema4k : bool, optional
+            Set to True to specify Cinema4K mode, defaults to false.
         colorspace : str, optional
             Either 'rgb' or 'gray'.
         cratios : iterable
@@ -473,7 +519,7 @@ class Jp2k(Jp2kBox):
 
     def _write_openjp2(self, img_array, verbose=False, **kwargs):
         """
-        Write JPEG 2000 file using OpenJPEG 1.5 interface.
+        Write JPEG 2000 file using OpenJPEG 2.0 interface.
         """
         cparams, colorspace = self._process_write_inputs(img_array, **kwargs)
 
@@ -1523,6 +1569,10 @@ def _populate_image_struct(cparams, image, imgdata):
 
     # Stage the image data to the openjpeg data structure.
     for k in range(0, num_comps):
+        if cparams.cp_cinema:
+            image.contents.comps[k].prec = 12
+            image.contents.comps[k].bpp = 12
+
         layer = np.ascontiguousarray(imgdata[:, :, k], dtype=np.int32)
         dest = image.contents.comps[k].data
         src = layer.ctypes.data

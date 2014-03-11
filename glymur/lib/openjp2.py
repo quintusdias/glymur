@@ -35,6 +35,7 @@ CLRSPC_UNSPECIFIED = 0
 CLRSPC_SRGB = 1
 CLRSPC_GRAY = 2
 CLRSPC_YCC = 3
+CLRSPC_EYCC = 4
 COLOR_SPACE_TYPE = ctypes.c_int
 
 # supported codec
@@ -390,7 +391,11 @@ class ImageCompType(ctypes.Structure):
         ("factor",              ctypes.c_uint32),
 
         # image component data
-        ("data",                ctypes.POINTER(ctypes.c_int32))]
+        ("data",                ctypes.POINTER(ctypes.c_int32)),
+
+        # alpha channel 
+        # TODO: exclude for 2.0, 1.5
+        ("alpha",               ctypes.POINTER(ctypes.c_uint16))]
 
 
 class ImageType(ctypes.Structure):

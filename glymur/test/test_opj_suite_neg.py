@@ -27,6 +27,31 @@ import glymur
                  "Functionality not implemented for 1.3, 1.4")
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_OPJ_DATA_ROOT environment variable not set")
+class TestSuiteNegative2pointzero(unittest.TestCase):
+    """Feature set not supported for versions less than 2.0"""
+
+    def setUp(self):
+        self.jp2file = glymur.data.nemo()
+        self.j2kfile = glymur.data.goodstuff()
+
+    def tearDown(self):
+        pass
+
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+    def test_cinema_mode(self):
+        """Cinema mode not supported for less than 2.0.1."""
+        infile = opj_data_file('input/nonregression/Bretagne1.ppm')
+        data = read_image(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(IOError):
+                j.write(data, psnr=[30, 35, 40], cratios=[2, 3, 4])
+
+
+@unittest.skipIf(re.match(r"""1\.[01234]""", glymur.version.openjpeg_version),
+                 "Functionality not implemented for 1.3, 1.4")
+@unittest.skipIf(OPJ_DATA_ROOT is None,
+                 "OPJ_OPJ_DATA_ROOT environment variable not set")
 class TestSuiteNegative(unittest.TestCase):
     """Test suite for certain negative tests from openjpeg suite."""
 
