@@ -62,6 +62,26 @@ class TestSuiteConformance(unittest.TestCase):
                 with self.assertRaises(OSError):
                     j2k.read(rlevel=-1)
 
+    def test_truncated_5000(self):
+        """File is missing last 5000 bytes."""
+        with open(self.j2kfile, 'rb') as ifile:
+            data = ifile.read()
+            with tempfile.NamedTemporaryFile(suffix='.j2k') as ofile:
+                ofile.write(data[:-5000])
+                ofile.flush()
+
+                j2k = Jp2k(ofile.name)
+                with self.assertWarns(UserWarning):
+                    codestream = j2k.get_codestream(header_only=False)
+
+                # The last segment is truncated, so there should not be an EOC
+                # marker.
+                self.assertNotEqual(codestream.segment[-1].marker_id, 'EOC')
+        
+                # The codestream is not as long as claimed.
+                with self.assertRaises(OSError):
+                    j2k.read(rlevel=-1)
+
 
 @unittest.skipIf(FORMAT_CORPUS_DATA_ROOT is None,
                  "FORMAT_CORPUS_DATA_ROOT environment variable not set")
@@ -69,24 +89,6 @@ class TestSuiteConformance(unittest.TestCase):
                  "Requires features introduced in 3.2 (assertWarns)")
 class TestSuiteFormatCorpus(unittest.TestCase):
     """Test suite for files in format corpus repository."""
-
-    @unittest.skipIf(re.match(r"""1\.[01234]""",
-                              glymur.version.openjpeg_version) is not None,
-                     "Needs 1.4+ to catch this.")
-    def test_balloon_trunc2(self):
-        """Shortened by 5000 bytes."""
-        jfile = os.path.join(FORMAT_CORPUS_DATA_ROOT,
-                             'jp2k-test/byteCorruption/balloon_trunc2.jp2')
-        j2k = Jp2k(jfile)
-        with self.assertWarns(UserWarning):
-            codestream = j2k.get_codestream(header_only=False)
-
-        # The last segment is truncated, so there should not be an EOC marker.
-        self.assertNotEqual(codestream.segment[-1].marker_id, 'EOC')
-
-        # The codestream is not as long as claimed.
-        with self.assertRaises(OSError):
-            j2k.read(rlevel=-1)
 
     def test_balloon_trunc3(self):
         """Most of last tile is missing."""
