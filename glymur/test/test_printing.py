@@ -920,6 +920,17 @@ class TestPrinting(unittest.TestCase):
             actual = fake_out.getvalue().strip()
         self.assertEqual(actual, fixtures.issue_182_cmap)
 
+    def test_issue183(self):
+        filename = opj_data_file('input/nonregression/orb-blue10-lin-jp2.jp2')
+
+        with warnings.catch_warnings():
+            # Ignore warning about bad pclr box.
+            warnings.simplefilter("ignore")
+            jp2 = Jp2k(filename)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(jp2.box[2].box[1])
+            actual = fake_out.getvalue().strip()
+        self.assertEqual(actual, fixtures.issue_183_colr)
 
     @unittest.skipIf(sys.hexversion < 0x03000000,
                      "Ordered dicts not printing well in 2.7")
