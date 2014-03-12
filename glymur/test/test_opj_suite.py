@@ -6307,11 +6307,16 @@ class TestSuiteDump(unittest.TestCase):
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
     def test_NR_text_GBR_dump(self):
+        # brand is 'jp2 ', but has any icc profile.
+        # Verify the warning on python3, but ignore it otherwise.
         jfile = opj_data_file('input/nonregression/text_GBR.jp2')
-        with warnings.catch_warnings():
-            # brand is 'jp2 ', but has any icc profile.
-            warnings.simplefilter("ignore")
-            jp2 = Jp2k(jfile)
+        if sys.hexversion > 0x03030000:
+            with self.assertWarns(UserWarning):
+                jp2 = Jp2k(jfile)
+        else:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                jp2 = Jp2k(jfile)
 
         ids = [box.box_id for box in jp2.box]
         lst = ['jP  ', 'ftyp', 'rreq', 'jp2h',
