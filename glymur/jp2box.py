@@ -359,13 +359,16 @@ class ColourSpecificationBox(Jp2kBox):
         else:
             # 2.7 has trouble pretty-printing ordered dicts so we just have
             # to print as a regular dict in this case.
-            if sys.hexversion < 0x03000000:
-                icc_profile = dict(self.icc_profile)
+            if self.icc_profile is None:
+                msg += '\n    ICC Profile:  None'
             else:
-                icc_profile = self.icc_profile
-            dispvalue = pprint.pformat(icc_profile)
-            lines = [' ' * 8 + y for y in dispvalue.split('\n')]
-            msg += '\n    ICC Profile:\n{0}'.format('\n'.join(lines))
+                if sys.hexversion < 0x03000000:
+                    icc_profile = dict(self.icc_profile)
+                else:
+                    icc_profile = self.icc_profile
+                dispvalue = pprint.pformat(icc_profile)
+                lines = [' ' * 8 + y for y in dispvalue.split('\n')]
+                msg += '\n    ICC Profile:\n{0}'.format('\n'.join(lines))
 
         return msg
 
