@@ -577,3 +577,8 @@ file1_xml = """XML Box (xml ) @ (36, 439)
     \t\t<IMAGE_SOURCE>Professional 120 Image</IMAGE_SOURCE>
     \t</GENERAL_CREATION_INFO>
     </IMAGE_CREATION>"""
+
+issue_182_cmap = """Component Mapping Box (cmap) @ (130, 24)
+    Component 0 ==> palette column 0
+    Component 1 ==> palette column 0
+    Component 2 ==> 2"""
