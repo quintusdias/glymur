@@ -23,8 +23,6 @@ from glymur import Jp2k
 import glymur
 
 
-@unittest.skipIf(re.match(r"""1\.[01234]""", glymur.version.openjpeg_version),
-                 "Functionality not implemented for 1.3, 1.4")
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_OPJ_DATA_ROOT environment variable not set")
 class TestSuiteNegative2pointzero(unittest.TestCase):
@@ -48,8 +46,6 @@ class TestSuiteNegative2pointzero(unittest.TestCase):
                 j.write(data, psnr=[30, 35, 40], cratios=[2, 3, 4])
 
 
-@unittest.skipIf(re.match(r"""1\.[01234]""", glymur.version.openjpeg_version),
-                 "Functionality not implemented for 1.3, 1.4")
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_OPJ_DATA_ROOT environment variable not set")
 class TestSuiteNegative(unittest.TestCase):
