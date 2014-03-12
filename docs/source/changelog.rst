@@ -9,6 +9,7 @@ ChangeLog
       * Added lxml requirement.
       * added set_printoptions, get_printoptions function
       * dropped support for Python 2.6, added support for Python 3.4
+      * dropped support for OpenJPEG versions 1.3 and 1.4
       * dropped windows support (it might work, it might not, I don't much care)
       * added write support for JP2 UUID, dataEntryURL, palette, and component mapping boxes
       * added read/write support for JPX free, number list, and data reference boxes
