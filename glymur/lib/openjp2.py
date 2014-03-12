@@ -395,7 +395,7 @@ class ImageCompType(ctypes.Structure):
 
         # alpha channel 
         # TODO: exclude for 2.0, 1.5
-        ("alpha",               ctypes.POINTER(ctypes.c_uint16))]
+        ("alpha",               ctypes.c_uint16)]
 
 
 class ImageType(ctypes.Structure):
