@@ -829,7 +829,7 @@ class ComponentMappingBox(Jp2kBox):
                 msg = msg.format(self.component_index[k],
                                  self.palette_index[k])
             else:
-                msg += '\n    Component %d ==> %d'
+                msg += '\n    Component {0} ==> {1}'
                 msg = msg.format(self.component_index[k], k)
         return msg
 
