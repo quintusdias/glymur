@@ -14,17 +14,7 @@ XMP UUIDs.  There is some very limited support for reading JPX metadata.
 Glymur 0.6 works on Python versions 2.7, 3.3 and 3.4.  If you have Python 2.6,
 you should use the 0.5 series of Glymur.
 
-OpenJPEG Installation
-=====================
-Glymur will read JPEG 2000 images with versions 1.3, 1.4, 1.5, 2.0,
-and the trunk/development version of OpenJPEG.  Writing images is
-only supported with the 1.5 or better, however, and the trunk/development
-version of OpenJPEG is strongly recommended.  For more information about
-OpenJPEG, please consult http://www.openjpeg.org.
-
-If you use MacPorts or if you have a sufficiently recent version of
-Linux, your package manager should already provide you with a version of
-OpenJPEG 1.X which glymur can already use.  
+For more information about OpenJPEG, please consult http://www.openjpeg.org.
 
 Glymur Installation
 ===================
