@@ -359,13 +359,16 @@ class ColourSpecificationBox(Jp2kBox):
         else:
             # 2.7 has trouble pretty-printing ordered dicts so we just have
             # to print as a regular dict in this case.
-            if sys.hexversion < 0x03000000:
-                icc_profile = dict(self.icc_profile)
+            if self.icc_profile is None:
+                msg += '\n    ICC Profile:  None'
             else:
-                icc_profile = self.icc_profile
-            dispvalue = pprint.pformat(icc_profile)
-            lines = [' ' * 8 + y for y in dispvalue.split('\n')]
-            msg += '\n    ICC Profile:\n{0}'.format('\n'.join(lines))
+                if sys.hexversion < 0x03000000:
+                    icc_profile = dict(self.icc_profile)
+                else:
+                    icc_profile = self.icc_profile
+                dispvalue = pprint.pformat(icc_profile)
+                lines = [' ' * 8 + y for y in dispvalue.split('\n')]
+                msg += '\n    ICC Profile:\n{0}'.format('\n'.join(lines))
 
         return msg
 
@@ -2628,19 +2631,22 @@ class XMLBox(Jp2kBox):
         read_buffer = fptr.read(num_bytes)
         try:
             text = read_buffer.decode('utf-8')
-        except UnicodeDecodeError as ude:
+        except UnicodeDecodeError as err:
             # Possibly bad string of bytes to begin with.
             # Try to search for <?xml and go from there.
             decl_start = read_buffer.find(b'<?xml')
-            if decl_start > -1:
-                text = read_buffer[decl_start:].decode('utf-8')
-            else:
-                raise
+            if decl_start <= -1:
+                msg = 'A problem was encountered while parsing an XML box:'
+                msg += '\n\n\t"{0}"\n\nNo XML was retrieved.'
+                warnings.warn(msg.format(str(err)))
+                return XMLBox(xml=None, length=length, offset=offset)
+
+            text = read_buffer[decl_start:].decode('utf-8')
 
             # Let the user know that the XML box was problematic.
             msg = 'A UnicodeDecodeError was encountered parsing an XML box at '
             msg += 'byte position {0} ({1}), but the XML was still recovered.'
-            msg = msg.format(offset, ude.reason)
+            msg = msg.format(offset, err.reason)
             warnings.warn(msg, UserWarning)
 
         # Strip out any trailing nulls, as they can foul up XML parsing.

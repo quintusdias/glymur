@@ -673,6 +673,18 @@ class Codestream(object):
                 msg = msg.format(j, subsampling[0], subsampling[1])
                 warnings.warn(msg)
 
+        try:
+            num_tiles_x = (xysiz[0] - xyosiz[0]) / (xytsiz[0] - xytosiz[0])
+            num_tiles_y = (xysiz[1] - xyosiz[1]) / (xytsiz[1] - xytosiz[1])
+        except ZeroDivisionError as err:
+            warnings.warn("Invalid tile dimensions.")
+        else:
+            numtiles = math.ceil(num_tiles_x) * math.ceil(num_tiles_y)
+            if numtiles > 65535:
+                msg = "Invalid number of tiles ({0}).".format(numtiles)
+                warnings.warn(msg)
+
+
         kwargs = {'rsiz': rsiz,
                   'xysiz': xysiz,
                   'xyosiz': xyosiz,
@@ -1513,14 +1525,6 @@ class SIZsegment(Segment):
             else:
                 lst.append(bitdepth - 1)
         self.ssiz = tuple(lst)
-
-        num_tiles_x = (self.xsiz - self.xosiz) / (self.xtsiz - self.xtosiz)
-        num_tiles_y = (self.ysiz - self.yosiz) / (self.ytsiz - self.ytosiz)
-        numtiles = math.ceil(num_tiles_x) * math.ceil(num_tiles_y)
-        if numtiles > 65535:
-            msg = "Invalid number of tiles ({0}).".format(numtiles)
-            warnings.warn(msg)
-
 
     def __repr__(self):
         msg = "glymur.codestream.SIZsegment(rsiz={rsiz}, xysiz={xysiz}, "
