@@ -645,6 +645,18 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_invalid_progression_order(self):
+        """Should still be able to print even if prog order is invalid."""
+        jfile = opj_data_file('input/nonregression/2977.pdf.asan.67.2198.jp2')
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            jp2 = Jp2k(jfile)
+        codestream = jp2.get_codestream()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(codestream.segment[2])
+            actual = fake_out.getvalue().strip()
+        self.assertEqual(actual, fixtures.issue_186_progression_order)
+
     def test_crg(self):
         """verify printing of CRG segment"""
         filename = opj_data_file('input/conformance/p0_03.j2k')
