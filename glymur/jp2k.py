@@ -695,6 +695,8 @@ class Jp2k(Jp2kBox):
             (first_row, first_col, last_row, last_col)
         tile : int, optional
             Number of tile to decode.
+        no_cxform : bool
+            Whether or not to apply intended color transforms.
         verbose : bool, optional
             Print informational messages produced by the OpenJPEG library.
 
