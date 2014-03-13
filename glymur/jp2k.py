@@ -749,7 +749,7 @@ class Jp2k(Jp2kBox):
             msg += "the read_bands method instead."
             raise RuntimeError(msg)
 
-    def _read_openjpeg(self, rlevel=0, verbose=False):
+    def _read_openjpeg(self, rlevel=0, no_cxform=False, verbose=False):
         """Read a JPEG 2000 image using libopenjpeg.
 
         Parameters
@@ -757,6 +757,8 @@ class Jp2k(Jp2kBox):
         rlevel : int, optional
             Factor by which to rlevel output resolution.  Use -1 to get the
             lowest resolution thumbnail.
+        no_cxform : bool
+            Whether or not to apply intended color transforms.
         verbose : bool, optional
             Print informational messages produced by the OpenJPEG library.
 
@@ -788,8 +790,14 @@ class Jp2k(Jp2kBox):
         with ExitStack() as stack:
             try:
                 # Set decoding parameters.
+                # TODO:  look to refactor, use _populate_dparam
                 dparameters = opj.DecompressionParametersType()
                 opj.set_default_decoder_parameters(ctypes.byref(dparameters))
+
+                if no_cxform is True:
+                    # Return raw codestream components.
+                    dparameters.flags |= 1
+
                 dparameters.cp_reduce = rlevel
                 dparameters.decod_format = self._codec_format
 
@@ -834,7 +842,7 @@ class Jp2k(Jp2kBox):
         return data
 
     def _read_openjp2(self, rlevel=0, layer=0, area=None, tile=None,
-                      verbose=False):
+                      verbose=False, no_cxform=False):
         """Read a JPEG 2000 image using libopenjp2.
 
         Parameters
@@ -864,7 +872,7 @@ class Jp2k(Jp2kBox):
         """
         self._subsampling_sanity_check()
 
-        dparam = self._populate_dparam(layer, rlevel, area, tile)
+        dparam = self._populate_dparam(layer, rlevel, area, tile, no_cxform)
 
         with ExitStack() as stack:
             if hasattr(opj2.OPENJP2,
@@ -908,20 +916,22 @@ class Jp2k(Jp2kBox):
 
         return img_array
 
-    def _populate_dparam(self, layer, rlevel, area, tile):
+    def _populate_dparam(self, layer, rlevel, area, tile, no_cxform):
         """Populate decompression structure with appropriate input parameters.
 
         Parameters
         ----------
-        layer : int, optional
+        layer : int
             Number of quality layer to decode.
-        rlevel : int, optional
+        rlevel : int
             Factor by which to rlevel output resolution.
-        area : tuple, optional
+        area : tuple
             Specifies decoding image area,
             (first_row, first_col, last_row, last_col)
-        tile : int, optional
+        tile : int
             Number of tile to decode.
+        no_cxform : bool
+            Whether or not to apply intended color transforms.
 
         Returns
         -------
@@ -959,10 +969,14 @@ class Jp2k(Jp2kBox):
             dparam.tile_index = tile
             dparam.nb_tile_to_decode = 1
 
+        if no_cxform is True:
+            # Return raw codestream components.
+            dparam.flags |= 1
+
         return dparam
 
     def read_bands(self, rlevel=0, layer=0, area=None, tile=None,
-                   verbose=False):
+                   verbose=False, no_cxform=False):
         """Read a JPEG 2000 image.
 
         The only time you should use this method is when the image has
@@ -980,6 +994,8 @@ class Jp2k(Jp2kBox):
             (first_row, first_col, last_row, last_col)
         tile : int, optional
             Number of tile to decode.
+        no_cxform : bool
+            Whether or not to apply intended color transforms.
         verbose : bool, optional
             Print informational messages produced by the OpenJPEG library.
 
@@ -1009,7 +1025,7 @@ class Jp2k(Jp2kBox):
                                        "of OpenJP2 installed before using "
                                        "this functionality.")
 
-        dparam = self._populate_dparam(layer, rlevel, area, tile)
+        dparam = self._populate_dparam(layer, rlevel, area, tile, no_cxform)
 
         with ExitStack() as stack:
             if hasattr(opj2.OPENJP2,
