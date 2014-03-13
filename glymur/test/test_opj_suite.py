@@ -381,11 +381,7 @@ class TestSuite(unittest.TestCase):
         jfile = opj_data_file('input/conformance/file9.jp2')
         jp2k = Jp2k(jfile)
         jpdata = jp2k.read()
-        if re.match(r"""1\.3""", glymur.version.openjpeg_version):
-            # Version 1.3 reads the indexed image as indices, not as RGB.
-            self.assertEqual(jpdata.shape, (512, 768))
-        else:
-            self.assertEqual(jpdata.shape, (512, 768, 3))
+        self.assertEqual(jpdata.shape, (512, 768, 3))
 
     def test_NR_DEC_Bretagne2_j2k_1_decode(self):
         jfile = opj_data_file('input/nonregression/Bretagne2.j2k')
@@ -6307,11 +6303,16 @@ class TestSuiteDump(unittest.TestCase):
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
     def test_NR_text_GBR_dump(self):
+        # brand is 'jp2 ', but has any icc profile.
+        # Verify the warning on python3, but ignore it otherwise.
         jfile = opj_data_file('input/nonregression/text_GBR.jp2')
-        with warnings.catch_warnings():
-            # brand is 'jp2 ', but has any icc profile.
-            warnings.simplefilter("ignore")
-            jp2 = Jp2k(jfile)
+        if sys.hexversion > 0x03030000:
+            with self.assertWarns(UserWarning):
+                jp2 = Jp2k(jfile)
+        else:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                jp2 = Jp2k(jfile)
 
         ids = [box.box_id for box in jp2.box]
         lst = ['jP  ', 'ftyp', 'rreq', 'jp2h',

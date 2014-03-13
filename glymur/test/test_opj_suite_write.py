@@ -249,9 +249,6 @@ class TestSuiteNegative2pointzero(unittest.TestCase):
 
 
 @unittest.skipIf(os.name == "nt", "no write support on windows, period")
-@unittest.skipIf(re.match(r"""1\.[01234]\.\d""",
-                          glymur.version.openjpeg_version) is not None,
-                 "Writing only supported with openjpeg version 1.5+.")
 @unittest.skipIf(NO_READ_BACKEND, NO_READ_BACKEND_MSG)
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")

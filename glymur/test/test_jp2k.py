@@ -403,15 +403,9 @@ class TestJp2k(unittest.TestCase):
         # The file in question has multiple codestreams.
         jpx = Jp2k(self.jpxfile)
         data = jpx.read()
-        if re.match(r"""1\.[0123]""", glymur.version.openjpeg_version):
-            # openjpeg 1.3 doesn't apply the palette, so it's a 2D image here 
-            self.assertEqual(data.shape, (1024, 1024))
-        else:
-            self.assertEqual(data.shape, (1024, 1024, 3))
+        self.assertEqual(data.shape, (1024, 1024, 3))
 
 
-@unittest.skipIf(re.match(r"""1\.[01234]""", glymur.version.openjpeg_version),
-                 "Requires at least version 1.5")
 class TestJp2k_write(unittest.TestCase):
     """Write tests, can be run by versions 1.5+"""
 
