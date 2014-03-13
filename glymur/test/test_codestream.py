@@ -29,8 +29,39 @@ class TestCodestream(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @unittest.skipIf(OPJ_DATA_ROOT is None,
-                     "OPJ_DATA_ROOT environment variable not set")
+    def test_siz_segment_ssiz_unsigned(self):
+        """ssiz attribute to be removed in future release"""
+        j = Jp2k(self.jp2file)
+        codestream = j.get_codestream()
+
+        # The ssiz attribute was simply a tuple of raw bytes.
+        # The first 7 bits are interpreted as the bitdepth, the MSB determines
+        # whether or not it is signed.
+        self.assertEqual(codestream.segment[1].ssiz, (7, 7, 7))
+
+
+@unittest.skipIf(OPJ_DATA_ROOT is None,
+                 "OPJ_DATA_ROOT environment variable not set")
+class TestCodestreamOpjData(unittest.TestCase):
+    """Test suite for unusual codestream cases.  Uses OPJ_DATA_ROOT"""
+
+    def setUp(self):
+        self.jp2file = glymur.data.nemo()
+
+    def tearDown(self):
+        pass
+
+    def test_invalid_progression_order(self):
+        """Should still be able to parse even if prog order is invalid."""
+        jfile = opj_data_file('input/nonregression/2977.pdf.asan.67.2198.jp2')
+        if sys.hexversion < 0x03000000:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                Jp2k(jfile)
+        else:
+            with self.assertWarns(UserWarning):
+                Jp2k(jfile)
+
     def test_tile_height_is_zero(self):
         """Zero tile height should not cause an exception."""
         filename = opj_data_file('input/nonregression/2539.pdf.SIGFPE.706.1712.jp2')
@@ -43,8 +74,6 @@ class TestCodestream(unittest.TestCase):
                 Jp2k(filename)
 
 
-    @unittest.skipIf(OPJ_DATA_ROOT is None,
-                     "OPJ_DATA_ROOT environment variable not set")
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_reserved_marker_segment(self):
         """Reserved marker segments are ok."""
@@ -76,8 +105,6 @@ class TestCodestream(unittest.TestCase):
             self.assertEqual(codestream.segment[2].length, 3)
             self.assertEqual(codestream.segment[2].data, b'\x00')
 
-    @unittest.skipIf(OPJ_DATA_ROOT is None,
-                     "OPJ_DATA_ROOT environment variable not set")
     @unittest.skipIf(sys.hexversion < 0x03020000,
                      "Uses features introduced in 3.2.")
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
@@ -109,8 +136,6 @@ class TestCodestream(unittest.TestCase):
                 self.assertEqual(codestream.segment[2].length, 3)
                 self.assertEqual(codestream.segment[2].data, b'\x00')
 
-    @unittest.skipIf(OPJ_DATA_ROOT is None,
-                     "OPJ_DATA_ROOT environment variable not set")
     def test_psot_is_zero(self):
         """Psot=0 in SOT is perfectly legal.  Issue #78."""
         filename = os.path.join(OPJ_DATA_ROOT,
@@ -123,19 +148,6 @@ class TestCodestream(unittest.TestCase):
         self.assertEqual(codestream.segment[-1].marker_id, 'EOC')
 
 
-    def test_siz_segment_ssiz_unsigned(self):
-        """ssiz attribute to be removed in future release"""
-        j = Jp2k(self.jp2file)
-        codestream = j.get_codestream()
-
-        # The ssiz attribute was simply a tuple of raw bytes.
-        # The first 7 bits are interpreted as the bitdepth, the MSB determines
-        # whether or not it is signed.
-        self.assertEqual(codestream.segment[1].ssiz, (7, 7, 7))
-
-
-    @unittest.skipIf(OPJ_DATA_ROOT is None,
-                     "OPJ_DATA_ROOT environment variable not set")
     def test_siz_segment_ssiz_signed(self):
         """ssiz attribute to be removed in future release"""
         filename = os.path.join(OPJ_DATA_ROOT, 'input/conformance/p0_03.j2k')

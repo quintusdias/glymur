@@ -587,3 +587,26 @@ issue_183_colr = """Colour Specification Box (colr) @ (62, 12)
     Method:  restricted ICC profile
     Precedence:  0
     ICC Profile:  None"""
+        
+
+# Progression order is invalid.
+issue_186_progression_order = """COD marker segment @ (174, 12)
+    Coding style:
+        Entropy coder, without partitions
+        SOP marker segments:  False
+        EPH marker segments:  False
+    Coding style parameters:
+        Progression order:  33 (invalid)
+        Number of layers:  1
+        Multiple component transformation usage:  reversible
+        Number of resolutions:  6
+        Code block height, width:  (32 x 32)
+        Wavelet transform:  9-7 irreversible
+        Precinct size:  default, 2^15 x 2^15
+        Code block context:
+            Selective arithmetic coding bypass:  False
+            Reset context probabilities on coding pass boundaries:  False
+            Termination on each coding pass:  False
+            Vertically stripe causal context:  False
+            Predictable termination:  False
+            Segmentation symbols:  False"""

@@ -94,6 +94,8 @@ class TestXML(unittest.TestCase):
     def tearDown(self):
         os.unlink(self.xmlfile)
 
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
+                     "OPJ_DATA_ROOT environment variable not set")
     def test_invalid_utf8(self):
         """Bad byte sequence that cannot be parsed."""
         filename = opj_data_file(os.path.join('input',
