@@ -17,6 +17,7 @@ codestreams.
 # the base Segment class.
 # pylint: disable=R0903
 
+import collections
 import math
 import struct
 import sys
@@ -30,12 +31,26 @@ from .core import WAVELET_XFORM_5X3_REVERSIBLE
 from .core import _CAPABILITIES_DISPLAY
 from .lib import openjp2 as opj2
 
-_PROGRESSION_ORDER_DISPLAY = {
-    LRCP: 'LRCP',
-    RLCP: 'RLCP',
-    RPCL: 'RPCL',
-    PCRL: 'PCRL',
-    CPRL: 'CPRL'}
+class _keydefaultdict(collections.defaultdict):
+    """Unlisted keys help form their own error message.
+
+    Normally defaultdict uses a factory function with no input arguments, but
+    that's not quite the behavior we want.
+    """
+    def __missing__(self, key):
+        if self.default_factory is None:
+            raise KeyError(key)
+        else:
+            ret = self[key] = self.default_factory(key)
+            return ret
+
+_factory = lambda x:  '{0} (invalid)'.format(x)
+_PROGRESSION_ORDER_DISPLAY = _keydefaultdict(_factory,
+        { LRCP: 'LRCP',
+          RLCP: 'RLCP',
+          RPCL: 'RPCL',
+          PCRL: 'PCRL',
+          CPRL: 'CPRL'})
 
 _WAVELET_TRANSFORM_DISPLAY = {
     WAVELET_XFORM_9X7_IRREVERSIBLE: '9-7 irreversible',
@@ -371,6 +386,9 @@ class Codestream(object):
         numbytes = offset + 2 + length - fptr.tell()
         spcod = fptr.read(numbytes)
         spcod = np.frombuffer(spcod, dtype=np.uint8)
+        if spcod[0] not in [LRCP, RLCP, RPCL, PCRL, CPRL]:
+            msg = "Invalid progression order in COD segment: {0}."
+            warnings.warn(msg.format(spcod[0]))
 
         sop = (scod & 2) > 0
         eph = (scod & 4) > 0
