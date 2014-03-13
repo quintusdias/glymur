@@ -40,7 +40,7 @@ class TestCodestream(unittest.TestCase):
                 Jp2k(filename)
         else:
             with self.assertWarns(UserWarning):
-                Jp2k(jfile)
+                Jp2k(filename)
 
 
     @unittest.skipIf(OPJ_DATA_ROOT is None,
