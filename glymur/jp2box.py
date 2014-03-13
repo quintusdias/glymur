@@ -220,7 +220,13 @@ class Jp2kBox(object):
                 break
 
             read_buffer = fptr.read(8)
-            (box_length, box_id) = struct.unpack('>I4s', read_buffer)
+            try:
+                (box_length, box_id) = struct.unpack('>I4s', read_buffer)
+            except Exception as err:
+                msg = "Extra bytes at end of file ignored."
+                warnings.warn(msg)
+                return superbox
+
             if sys.hexversion >= 0x03000000:
                 box_id = box_id.decode('utf-8')
 
