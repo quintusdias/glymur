@@ -95,7 +95,27 @@ class TestJp2k(unittest.TestCase):
         with self.assertRaises(IOError):
             Jp2k(filename)
 
-    def test_no_cxform_pclr(self):
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
+                     "OPJ_DATA_ROOT environment variable not set")
+    def test_no_cxform_pclr_jp2(self):
+        """Indices for pclr jpxfile if no color transform"""
+        filename = opj_data_file('input/conformance/file9.jp2')
+        j = Jp2k(filename)
+        rgb = j.read()
+        idx = j.read(no_cxform=True)
+        self.assertEqual(rgb.shape, (512, 768, 3))
+        self.assertEqual(idx.shape, (512, 768))
+
+        # Should be able to manually reconstruct the RGB image from the palette
+        # and indices.
+        palette = j.box[2].box[1].palette
+        rgb_from_idx = np.zeros(rgb.shape, dtype=np.uint8)
+        for r in np.arange(rgb.shape[0]):
+            for c in np.arange(rgb.shape[1]):
+                rgb_from_idx[r, c] = palette[idx[r, c]]
+        np.testing.assert_array_equal(rgb, rgb_from_idx)
+
+    def test_no_cxform_pclr_jpx(self):
         """Indices for pclr jpxfile if no color transform"""
         j = Jp2k(self.jpxfile)
         rgb = j.read()
