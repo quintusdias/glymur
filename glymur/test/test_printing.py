@@ -965,6 +965,19 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
             actual = fake_out.getvalue().strip()
         self.assertEqual(actual, fixtures.issue_183_colr)
 
+    def test_bom(self):
+        """Byte order markers are illegal in UTF-8.  Issue 185"""
+        filename = opj_data_file(os.path.join('input',
+                                              'nonregression',
+                                              'issue171.jp2'))
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            jp2 = Jp2k(filename)
+            with patch('sys.stdout', new=StringIO()) as fake_out:
+                # No need to verify, it's enough that we don't error out.
+                print(jp2)
+
+        self.assertTrue(True)
 
 if __name__ == "__main__":
     unittest.main()

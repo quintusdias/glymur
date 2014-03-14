@@ -109,21 +109,6 @@ class TestJp2k(unittest.TestCase):
                 rgb_from_idx[r, c] = palette[idx[r, c]]
         np.testing.assert_array_equal(rgb, rgb_from_idx)
 
-    def test_no_cxform_cmap(self):
-        """Bands as physically ordered, not as physically intended"""
-        # This file has the components physically reversed.  The cmap box
-        # tells the decoder how to order them, but this flag prevents that.
-        filename = opj_data_file('input/conformance/file2.jp2')
-        j = Jp2k(filename)
-        ycbcr = j.read()
-        crcby = j.read(no_cxform=True)
-
-        expected = np.zeros(ycbcr.shape, ycbcr.dtype)
-        for k in range(crcby.shape[2]):
-            expected[:,:,crcby.shape[2] - k - 1] = crcby[:,:,k]
-
-        np.testing.assert_array_equal(ycbcr, expected)
-
     def test_file_not_present(self):
         """Should error out if reading from a file that does not exist"""
         # Verify that we error out appropriately if not given an existing file
@@ -812,6 +797,21 @@ class TestJp2kOpjDataRoot(unittest.TestCase):
         j = Jp2k(filename)
         with self.assertRaises(RuntimeError):
             j.read()
+
+    def test_no_cxform_cmap(self):
+        """Bands as physically ordered, not as physically intended"""
+        # This file has the components physically reversed.  The cmap box
+        # tells the decoder how to order them, but this flag prevents that.
+        filename = opj_data_file('input/conformance/file2.jp2')
+        j = Jp2k(filename)
+        ycbcr = j.read()
+        crcby = j.read(no_cxform=True)
+
+        expected = np.zeros(ycbcr.shape, ycbcr.dtype)
+        for k in range(crcby.shape[2]):
+            expected[:,:,crcby.shape[2] - k - 1] = crcby[:,:,k]
+
+        np.testing.assert_array_equal(ycbcr, expected)
 
 
 
