@@ -287,6 +287,8 @@ class TestBadButRecoverableXmlFile(unittest.TestCase):
                          b'<test>this is a test</test>')
 
 
+@unittest.skipIf(OPJ_DATA_ROOT is None,
+                 "OPJ_DATA_ROOT environment variable not set")
 class TestXML_OpjDataRoot(unittest.TestCase):
     """Test suite for XML boxes, requires OPJ_DATA_ROOT."""
 
