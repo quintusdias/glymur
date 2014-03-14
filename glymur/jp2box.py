@@ -2656,10 +2656,20 @@ class XMLBox(Jp2kBox):
             warnings.warn(msg, UserWarning)
 
         # Strip out any trailing nulls, as they can foul up XML parsing.
+        # Remove any byte order markers.
         text = text.rstrip(chr(0))
+        if u'\ufeff' in text:
+            msg = 'An illegal BOM (byte order marker) was detected and '
+            msg += 'removed from the XML contents in the box starting at byte '
+            msg += 'offset {0}'.format(offset)
+            warnings.warn(msg)
+            text = text.replace(u'\ufeff', '')
+        # Remove any encoding declaration.
+        if text.startswith('<?xml version="1.0" encoding="UTF-8"?>'):
+            text = text[38:]
 
         try:
-            elt = ET.fromstring(text.encode('utf-8'))
+            elt = ET.fromstring(text)
             xml = ET.ElementTree(elt)
         except ET.ParseError as err:
             msg = 'A problem was encountered while parsing an XML box:'
