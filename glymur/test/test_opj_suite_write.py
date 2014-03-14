@@ -223,6 +223,8 @@ class TestSuiteWriteCinema(unittest.TestCase):
             self.check_cinema2k_codestream(codestream, (1998, 1080))
 
 
+@unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+                 "Cannot read input image without scikit-image/freeimage")
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
 @unittest.skipIf(re.match(r"""2\.0""", glymur.version.openjpeg_version),
                  "Functionality implemented for 2.1")
