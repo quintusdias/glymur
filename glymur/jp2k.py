@@ -20,6 +20,7 @@ from collections import Counter
 import ctypes
 import math
 import os
+import re
 import struct
 from uuid import UUID
 import warnings
@@ -166,7 +167,7 @@ class Jp2k(Jp2kBox):
         fps : int
             Frames per second, should be either 24 or 48.
         """
-        if version.openjpeg_version_tuple[0] == 1:
+        if re.match("(1.5|2.0)", version.openjpeg_version) is not None:
             msg = "Writing Cinema2K or Cinema4K files is not supported with "
             msg += 'openjpeg library versions less than 2.0.1.'
             raise IOError(msg)
