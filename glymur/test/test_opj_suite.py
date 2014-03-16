@@ -461,7 +461,9 @@ class TestSuite(unittest.TestCase):
     def test_NR_DEC_illegalcolortransform_j2k_14_decode(self):
         # Stream too short, expected SOT.
         jfile = opj_data_file('input/nonregression/illegalcolortransform.j2k')
-        Jp2k(jfile).read()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            Jp2k(jfile).read()
         self.assertTrue(True)
 
     def test_NR_DEC_j2k32_j2k_15_decode(self):

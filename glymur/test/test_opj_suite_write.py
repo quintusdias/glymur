@@ -222,7 +222,6 @@ class TestSuiteWriteCinema(unittest.TestCase):
             codestream = j.get_codestream()
             self.check_cinema2k_codestream(codestream, (1998, 1080))
 
-
 @unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
                  "Cannot read input image without scikit-image/freeimage")
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
