@@ -223,8 +223,10 @@ class TestSuiteWriteCinema(unittest.TestCase):
             self.check_cinema2k_codestream(codestream, (1998, 1080))
 
 
+@unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+                 "Cannot read input image without scikit-image/freeimage")
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-@unittest.skipIf(re.match(r"""2\.0""", glymur.version.openjpeg_version),
+@unittest.skipIf(not re.match("(1.5|2.0)", glymur.version.openjpeg_version),
                  "Functionality implemented for 2.1")
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_OPJ_DATA_ROOT environment variable not set")
@@ -249,9 +251,6 @@ class TestSuiteNegative2pointzero(unittest.TestCase):
 
 
 @unittest.skipIf(os.name == "nt", "no write support on windows, period")
-@unittest.skipIf(re.match(r"""1\.[01234]\.\d""",
-                          glymur.version.openjpeg_version) is not None,
-                 "Writing only supported with openjpeg version 1.5+.")
 @unittest.skipIf(NO_READ_BACKEND, NO_READ_BACKEND_MSG)
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")

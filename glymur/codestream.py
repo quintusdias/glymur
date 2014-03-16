@@ -17,6 +17,7 @@ codestreams.
 # the base Segment class.
 # pylint: disable=R0903
 
+import collections
 import math
 import struct
 import sys
@@ -30,12 +31,26 @@ from .core import WAVELET_XFORM_5X3_REVERSIBLE
 from .core import _CAPABILITIES_DISPLAY
 from .lib import openjp2 as opj2
 
-_PROGRESSION_ORDER_DISPLAY = {
-    LRCP: 'LRCP',
-    RLCP: 'RLCP',
-    RPCL: 'RPCL',
-    PCRL: 'PCRL',
-    CPRL: 'CPRL'}
+class _keydefaultdict(collections.defaultdict):
+    """Unlisted keys help form their own error message.
+
+    Normally defaultdict uses a factory function with no input arguments, but
+    that's not quite the behavior we want.
+    """
+    def __missing__(self, key):
+        if self.default_factory is None:
+            raise KeyError(key)
+        else:
+            ret = self[key] = self.default_factory(key)
+            return ret
+
+_factory = lambda x:  '{0} (invalid)'.format(x)
+_PROGRESSION_ORDER_DISPLAY = _keydefaultdict(_factory,
+        { LRCP: 'LRCP',
+          RLCP: 'RLCP',
+          RPCL: 'RPCL',
+          PCRL: 'PCRL',
+          CPRL: 'CPRL'})
 
 _WAVELET_TRANSFORM_DISPLAY = {
     WAVELET_XFORM_9X7_IRREVERSIBLE: '9-7 irreversible',
@@ -371,6 +386,9 @@ class Codestream(object):
         numbytes = offset + 2 + length - fptr.tell()
         spcod = fptr.read(numbytes)
         spcod = np.frombuffer(spcod, dtype=np.uint8)
+        if spcod[0] not in [LRCP, RLCP, RPCL, PCRL, CPRL]:
+            msg = "Invalid progression order in COD segment: {0}."
+            warnings.warn(msg.format(spcod[0]))
 
         sop = (scod & 2) > 0
         eph = (scod & 4) > 0
@@ -672,6 +690,18 @@ class Codestream(object):
                 msg += "dx={1}, dy={2}."
                 msg = msg.format(j, subsampling[0], subsampling[1])
                 warnings.warn(msg)
+
+        try:
+            num_tiles_x = (xysiz[0] - xyosiz[0]) / (xytsiz[0] - xytosiz[0])
+            num_tiles_y = (xysiz[1] - xyosiz[1]) / (xytsiz[1] - xytosiz[1])
+        except ZeroDivisionError as err:
+            warnings.warn("Invalid tile dimensions.")
+        else:
+            numtiles = math.ceil(num_tiles_x) * math.ceil(num_tiles_y)
+            if numtiles > 65535:
+                msg = "Invalid number of tiles ({0}).".format(numtiles)
+                warnings.warn(msg)
+
 
         kwargs = {'rsiz': rsiz,
                   'xysiz': xysiz,
@@ -1513,14 +1543,6 @@ class SIZsegment(Segment):
             else:
                 lst.append(bitdepth - 1)
         self.ssiz = tuple(lst)
-
-        num_tiles_x = (self.xsiz - self.xosiz) / (self.xtsiz - self.xtosiz)
-        num_tiles_y = (self.ysiz - self.yosiz) / (self.ytsiz - self.ytosiz)
-        numtiles = math.ceil(num_tiles_x) * math.ceil(num_tiles_y)
-        if numtiles > 65535:
-            msg = "Invalid number of tiles ({0}).".format(numtiles)
-            warnings.warn(msg)
-
 
     def __repr__(self):
         msg = "glymur.codestream.SIZsegment(rsiz={rsiz}, xysiz={xysiz}, "

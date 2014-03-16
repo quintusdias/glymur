@@ -37,7 +37,6 @@ if HAS_PYTHON_XMP_TOOLKIT:
 from .fixtures import OPJ_DATA_ROOT, opj_data_file
 from . import fixtures
 
-
 # Doc tests should be run as well.
 def load_tests(loader, tests, ignore):
     # W0613:  "loader" and "ignore" are necessary for the protocol
@@ -54,9 +53,7 @@ def load_tests(loader, tests, ignore):
 
 
 class TestJp2k(unittest.TestCase):
-    """Test suite for openjpeg software starting at 1.3"""
-
-    # These tests should be run by just about all configuration.
+    """These tests should be run by just about all configuration."""
 
     def setUp(self):
         self.jp2file = glymur.data.nemo()
@@ -94,6 +91,23 @@ class TestJp2k(unittest.TestCase):
         filename = pkg_resources.resource_filename(glymur.__name__, "jp2k.py")
         with self.assertRaises(IOError):
             Jp2k(filename)
+
+    def test_no_cxform_pclr_jpx(self):
+        """Indices for pclr jpxfile if no color transform"""
+        j = Jp2k(self.jpxfile)
+        rgb = j.read()
+        idx = j.read(no_cxform=True)
+        self.assertEqual(rgb.shape, (1024, 1024, 3))
+        self.assertEqual(idx.shape, (1024, 1024))
+
+        # Should be able to manually reconstruct the RGB image from the palette
+        # and indices.
+        palette = j.box[3].box[2].palette
+        rgb_from_idx = np.zeros(rgb.shape, dtype=np.uint8)
+        for r in np.arange(1024):
+            for c in np.arange(1024):
+                rgb_from_idx[r, c] = palette[idx[r, c]]
+        np.testing.assert_array_equal(rgb, rgb_from_idx)
 
     def test_file_not_present(self):
         """Should error out if reading from a file that does not exist"""
@@ -248,19 +262,6 @@ class TestJp2k(unittest.TestCase):
         j2k = Jp2k(self.j2kfile)
         j2k.read()
 
-    @unittest.skipIf(OPJ_DATA_ROOT is None,
-                     "OPJ_DATA_ROOT environment variable not set")
-    def test_read_differing_subsamples(self):
-        """should error out with read used on differently subsampled images"""
-        # Verify that we error out appropriately if we use the read method
-        # on an image with differing subsamples
-        #
-        # Issue 86.
-        filename = opj_data_file('input/conformance/p0_05.j2k')
-        j = Jp2k(filename)
-        with self.assertRaises(RuntimeError):
-            j.read()
-
     def test_empty_box_with_j2k(self):
         """Verify that the list of boxes in a J2C/J2K file is present, but
         empty.
@@ -386,15 +387,9 @@ class TestJp2k(unittest.TestCase):
         # The file in question has multiple codestreams.
         jpx = Jp2k(self.jpxfile)
         data = jpx.read()
-        if re.match(r"""1\.[0123]""", glymur.version.openjpeg_version):
-            # openjpeg 1.3 doesn't apply the palette, so it's a 2D image here 
-            self.assertEqual(data.shape, (1024, 1024))
-        else:
-            self.assertEqual(data.shape, (1024, 1024, 3))
+        self.assertEqual(data.shape, (1024, 1024, 3))
 
 
-@unittest.skipIf(re.match(r"""1\.[01234]""", glymur.version.openjpeg_version),
-                 "Requires at least version 1.5")
 class TestJp2k_write(unittest.TestCase):
     """Write tests, can be run by versions 1.5+"""
 
@@ -757,6 +752,67 @@ class TestJp2k_2_1(unittest.TestCase):
                 else:
                     with self.assertRaisesRegex((IOError, OSError), regexp):
                         j.read(rlevel=1)
+
+@unittest.skipIf(OPJ_DATA_ROOT is None,
+                 "OPJ_DATA_ROOT environment variable not set")
+class TestJp2kOpjDataRoot(unittest.TestCase):
+    """These tests should be run by just about all configuration."""
+
+    def test_no_cxform_pclr_jp2(self):
+        """Indices for pclr jpxfile if no color transform"""
+        filename = opj_data_file('input/conformance/file9.jp2')
+        j = Jp2k(filename)
+        rgb = j.read()
+        idx = j.read(no_cxform=True)
+        self.assertEqual(rgb.shape, (512, 768, 3))
+        self.assertEqual(idx.shape, (512, 768))
+
+        # Should be able to manually reconstruct the RGB image from the palette
+        # and indices.
+        palette = j.box[2].box[1].palette
+        rgb_from_idx = np.zeros(rgb.shape, dtype=np.uint8)
+        for r in np.arange(rgb.shape[0]):
+            for c in np.arange(rgb.shape[1]):
+                rgb_from_idx[r, c] = palette[idx[r, c]]
+        np.testing.assert_array_equal(rgb, rgb_from_idx)
+
+    def test_stupid_windows_eol_at_end(self):
+        """Garbage characters at the end of the file."""
+        filename = opj_data_file('input/nonregression/issue211.jp2')
+        if sys.hexversion < 0x03000000:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                jp2 = Jp2k(filename)
+        else:
+            with self.assertWarns(UserWarning):
+                jp2 = Jp2k(filename)
+
+    def test_read_differing_subsamples(self):
+        """should error out with read used on differently subsampled images"""
+        # Verify that we error out appropriately if we use the read method
+        # on an image with differing subsamples
+        #
+        # Issue 86.
+        filename = opj_data_file('input/conformance/p0_05.j2k')
+        j = Jp2k(filename)
+        with self.assertRaises(RuntimeError):
+            j.read()
+
+    def test_no_cxform_cmap(self):
+        """Bands as physically ordered, not as physically intended"""
+        # This file has the components physically reversed.  The cmap box
+        # tells the decoder how to order them, but this flag prevents that.
+        filename = opj_data_file('input/conformance/file2.jp2')
+        j = Jp2k(filename)
+        ycbcr = j.read()
+        crcby = j.read(no_cxform=True)
+
+        expected = np.zeros(ycbcr.shape, ycbcr.dtype)
+        for k in range(crcby.shape[2]):
+            expected[:,:,crcby.shape[2] - k - 1] = crcby[:,:,k]
+
+        np.testing.assert_array_equal(ycbcr, expected)
+
 
 
 if __name__ == "__main__":
