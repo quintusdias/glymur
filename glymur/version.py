@@ -9,8 +9,10 @@ License:  MIT
 """
 
 import sys
-import numpy as np
 from distutils.version import LooseVersion
+
+import lxml.etree
+import numpy as np
 
 from .lib import openjpeg as opj
 from .lib import openjp2 as opj2
@@ -48,10 +50,12 @@ OPENJPEG      {openjpeg}
 Python        {python}
 sys.platform  {platform}
 sys.maxsize   {maxsize}
+lxml          {elxml}
 numpy         {numpy}
 """.format(glymur=version,
            openjpeg=openjpeg_version,
            python=sys.version,
            platform=sys.platform,
            maxsize=sys.maxsize,
+           elxml=lxml.etree.__version__,
            numpy=np.__version__)

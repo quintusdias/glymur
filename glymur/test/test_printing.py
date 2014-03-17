@@ -50,6 +50,14 @@ class TestPrinting(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_version_info(self):
+        """Should be able to print(glymur.version.info)"""
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(glymur.version.info)
+            actual = fake_out.getvalue().strip()
+
+        self.assertTrue(True)
+
     @unittest.skipIf(sys.hexversion < 0x03000000, "Needs unittest in 3.x.")
     def test_unknown_superbox(self):
         """Verify that we can handle an unknown superbox."""
