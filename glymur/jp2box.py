@@ -2502,7 +2502,7 @@ class NumberListBox(Jp2kBox):
             elif (association >> 24) == 2:
                 idx = association & 0x00FFFFFF
                 msg += 'Compositing Layer {0}'
-                msg = msg.format(j, idx)
+                msg = msg.format(idx)
             else:
                 msg += 'unrecognized'
         return msg
