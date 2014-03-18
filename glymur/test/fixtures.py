@@ -580,8 +580,9 @@ file1_xml = """XML Box (xml ) @ (36, 439)
 
 issue_182_cmap = """Component Mapping Box (cmap) @ (130, 24)
     Component 0 ==> palette column 0
-    Component 1 ==> palette column 0
-    Component 2 ==> 2"""
+    Component 0 ==> palette column 1
+    Component 0 ==> palette column 2
+    Component 0 ==> palette column 3"""
 
 issue_183_colr = """Colour Specification Box (colr) @ (62, 12)
     Method:  restricted ICC profile
