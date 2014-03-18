@@ -412,7 +412,7 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)
     Main header:
         SOC marker segment @ (3231, 0)
         SIZ marker segment @ (3233, 47)
-            Profile:  2
+            Profile:  no profile
             Reference Grid Height, Width:  (1456 x 2592)
             Vertical, Horizontal Reference Grid Offset:  (0 x 0)
             Reference Tile Height, Width:  (1456 x 2592)
@@ -477,7 +477,7 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)
     Main header:
         SOC marker segment @ (3231, 0)
         SIZ marker segment @ (3233, 47)
-            Profile:  2
+            Profile:  no profile
             Reference Grid Height, Width:  (1456 x 2592)
             Vertical, Horizontal Reference Grid Offset:  (0 x 0)
             Reference Tile Height, Width:  (1456 x 2592)

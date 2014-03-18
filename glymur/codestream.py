@@ -28,7 +28,6 @@ import numpy as np
 from .core import LRCP, RLCP, RPCL, PCRL, CPRL
 from .core import WAVELET_XFORM_9X7_IRREVERSIBLE
 from .core import WAVELET_XFORM_5X3_REVERSIBLE
-from .core import _CAPABILITIES_DISPLAY
 from .lib import openjp2 as opj2
 
 class _keydefaultdict(collections.defaultdict):
@@ -55,6 +54,22 @@ _PROGRESSION_ORDER_DISPLAY = _keydefaultdict(_factory,
 _WAVELET_TRANSFORM_DISPLAY = _keydefaultdict(_factory,
         { WAVELET_XFORM_9X7_IRREVERSIBLE: '9-7 irreversible',
           WAVELET_XFORM_5X3_REVERSIBLE: '5-3 reversible'})
+
+_NO_PROFILE = 0
+_PROFILE_0 = 1
+_PROFILE_1 = 2
+_PROFILE_3 = 3
+_PROFILE_4 = 4
+
+_KNOWN_PROFILES = [_NO_PROFILE, _PROFILE_0, _PROFILE_1, _PROFILE_3, _PROFILE_4]
+
+# How to display the codestream profile.
+_CAPABILITIES_DISPLAY = _keydefaultdict(_factory,
+        { _NO_PROFILE: 'no profile',
+          _PROFILE_0: '0',
+          _PROFILE_1: '1',
+          _PROFILE_3: '3',
+          _PROFILE_4: '4'} )
 
 # Need a catch-all list of valid markers.
 # See table A-1 in ISO/IEC FCD15444-1.
@@ -672,6 +687,9 @@ class Codestream(object):
         data = struct.unpack('>HIIIIIIIIH', xy_buffer)
 
         rsiz = data[0]
+        if rsiz not in _KNOWN_PROFILES:
+            warnings.warn("Invalid profile: (Rsiz={0}).".format(rsiz))
+
         xysiz = (data[1], data[2])
         xyosiz = (data[3], data[4])
         xytsiz = (data[5], data[6])
