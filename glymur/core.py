@@ -90,9 +90,3 @@ _COLORSPACE = {SRGB: {"R": 1, "G": 2, "B": 3},
                E_SRGB: {"R": 1, "G": 2, "B": 3},
                ROMM_RGB: {"R": 1, "G": 2, "B": 3}}
 
-# How to display the codestream profile.
-_CAPABILITIES_DISPLAY = {
-    0: '2',
-    1: '0',
-    2: '1',
-    3: '3'}

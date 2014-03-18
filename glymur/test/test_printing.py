@@ -349,7 +349,7 @@ class TestPrinting(unittest.TestCase):
             actual = fake_out.getvalue().strip()
 
         lines = ['SIZ marker segment @ (3233, 47)',
-                 '    Profile:  2',
+                 '    Profile:  no profile',
                  '    Reference Grid Height, Width:  (1456 x 2592)',
                  '    Vertical, Horizontal Reference Grid Offset:  (0 x 0)',
                  '    Reference Tile Height, Width:  (1456 x 2592)',
@@ -422,7 +422,7 @@ class TestPrinting(unittest.TestCase):
         lst = ['Codestream:',
                '    SOC marker segment @ (3231, 0)',
                '    SIZ marker segment @ (3233, 47)',
-               '        Profile:  2',
+               '        Profile:  no profile',
                '        Reference Grid Height, Width:  (1456 x 2592)',
                '        Vertical, Horizontal Reference Grid Offset:  (0 x 0)',
                '        Reference Tile Height, Width:  (1456 x 2592)',
@@ -652,6 +652,15 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+    def test_bad_rsiz(self):
+        """Should still be able to print if rsiz is bad, issue196"""
+        filename = opj_data_file('input/nonregression/edf_c2_1002767.jp2')
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            j = Jp2k(filename)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j)
 
     def test_bad_wavelet_transform(self):
         """Should still be able to print if wavelet xform is bad, issue195"""

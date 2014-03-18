@@ -51,8 +51,19 @@ class TestCodestreamOpjData(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_bad_rsiz(self):
+        """Should warn if RSIZ is bad.  Issue196"""
+        filename = opj_data_file('input/nonregression/edf_c2_1002767.jp2')
+        if sys.hexversion < 0x03000000:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                j = Jp2k(filename)
+        else:
+            with self.assertWarns(UserWarning):
+                j = Jp2k(filename)
+
     def test_bad_wavelet_transform(self):
-        """Should warn if wavelet transform is bad.  Issue129"""
+        """Should warn if wavelet transform is bad.  Issue195"""
         filename = opj_data_file('input/nonregression/edf_c2_10025.jp2')
         if sys.hexversion < 0x03000000:
             with warnings.catch_warnings():
