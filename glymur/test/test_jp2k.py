@@ -96,7 +96,7 @@ class TestJp2k(unittest.TestCase):
         """Indices for pclr jpxfile if no color transform"""
         j = Jp2k(self.jpxfile)
         rgb = j.read()
-        idx = j.read(no_cxform=True)
+        idx = j.read(ignore_pclr_cmap_cdef=True)
         self.assertEqual(rgb.shape, (1024, 1024, 3))
         self.assertEqual(idx.shape, (1024, 1024))
 
@@ -108,6 +108,21 @@ class TestJp2k(unittest.TestCase):
             for c in np.arange(1024):
                 rgb_from_idx[r, c] = palette[idx[r, c]]
         np.testing.assert_array_equal(rgb, rgb_from_idx)
+
+    def test_no_cxform_cmap(self):
+        """Bands as physically ordered, not as physically intended"""
+        # This file has the components physically reversed.  The cmap box
+        # tells the decoder how to order them, but this flag prevents that.
+        filename = opj_data_file('input/conformance/file2.jp2')
+        j = Jp2k(filename)
+        ycbcr = j.read()
+        crcby = j.read(ignore_pclr_cmap_cdef=True)
+
+        expected = np.zeros(ycbcr.shape, ycbcr.dtype)
+        for k in range(crcby.shape[2]):
+            expected[:,:,crcby.shape[2] - k - 1] = crcby[:,:,k]
+
+        np.testing.assert_array_equal(ycbcr, expected)
 
     def test_file_not_present(self):
         """Should error out if reading from a file that does not exist"""
@@ -763,7 +778,7 @@ class TestJp2kOpjDataRoot(unittest.TestCase):
         filename = opj_data_file('input/conformance/file9.jp2')
         j = Jp2k(filename)
         rgb = j.read()
-        idx = j.read(no_cxform=True)
+        idx = j.read(ignore_pclr_cmap_cdef=True)
         self.assertEqual(rgb.shape, (512, 768, 3))
         self.assertEqual(idx.shape, (512, 768))
 
@@ -805,7 +820,7 @@ class TestJp2kOpjDataRoot(unittest.TestCase):
         filename = opj_data_file('input/conformance/file2.jp2')
         j = Jp2k(filename)
         ycbcr = j.read()
-        crcby = j.read(no_cxform=True)
+        crcby = j.read(ignore_pclr_cmap_cdef=True)
 
         expected = np.zeros(ycbcr.shape, ycbcr.dtype)
         for k in range(crcby.shape[2]):
