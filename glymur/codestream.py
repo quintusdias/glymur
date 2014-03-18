@@ -17,7 +17,6 @@ codestreams.
 # the base Segment class.
 # pylint: disable=R0903
 
-import collections
 import math
 import struct
 import sys
@@ -28,30 +27,18 @@ import numpy as np
 from .core import LRCP, RLCP, RPCL, PCRL, CPRL
 from .core import WAVELET_XFORM_9X7_IRREVERSIBLE
 from .core import WAVELET_XFORM_5X3_REVERSIBLE
+from .core import _Keydefaultdict
 from .lib import openjp2 as opj2
 
-class _keydefaultdict(collections.defaultdict):
-    """Unlisted keys help form their own error message.
-
-    Normally defaultdict uses a factory function with no input arguments, but
-    that's not quite the behavior we want.
-    """
-    def __missing__(self, key):
-        if self.default_factory is None:
-            raise KeyError(key)
-        else:
-            ret = self[key] = self.default_factory(key)
-            return ret
-
 _factory = lambda x:  '{0} (invalid)'.format(x)
-_PROGRESSION_ORDER_DISPLAY = _keydefaultdict(_factory,
+_PROGRESSION_ORDER_DISPLAY = _Keydefaultdict(_factory,
         { LRCP: 'LRCP',
           RLCP: 'RLCP',
           RPCL: 'RPCL',
           PCRL: 'PCRL',
           CPRL: 'CPRL'})
 
-_WAVELET_TRANSFORM_DISPLAY = _keydefaultdict(_factory,
+_WAVELET_TRANSFORM_DISPLAY = _Keydefaultdict(_factory,
         { WAVELET_XFORM_9X7_IRREVERSIBLE: '9-7 irreversible',
           WAVELET_XFORM_5X3_REVERSIBLE: '5-3 reversible'})
 
@@ -64,7 +51,7 @@ _PROFILE_4 = 4
 _KNOWN_PROFILES = [_NO_PROFILE, _PROFILE_0, _PROFILE_1, _PROFILE_3, _PROFILE_4]
 
 # How to display the codestream profile.
-_CAPABILITIES_DISPLAY = _keydefaultdict(_factory,
+_CAPABILITIES_DISPLAY = _Keydefaultdict(_factory,
         { _NO_PROFILE: 'no profile',
           _PROFILE_0: '0',
           _PROFILE_1: '1',

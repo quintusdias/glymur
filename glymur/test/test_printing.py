@@ -653,6 +653,16 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_invalid_colorspace(self):
+        """An invalid colorspace shouldn't cause an error."""
+        filename = opj_data_file('input/nonregression/edf_c2_1103421.jp2')
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            jp2 = Jp2k(filename)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(jp2)
+
+
     def test_bad_rsiz(self):
         """Should still be able to print if rsiz is bad, issue196"""
         filename = opj_data_file('input/nonregression/edf_c2_1002767.jp2')
