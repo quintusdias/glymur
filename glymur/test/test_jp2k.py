@@ -99,7 +99,7 @@ class TestJp2k(unittest.TestCase):
         """Indices for pclr jpxfile if no color transform"""
         j = Jp2k(self.jpxfile)
         rgb = j.read()
-        idx = j.read(no_cxform=True)
+        idx = j.read(ignore_pclr_cmap_cdef=True)
         self.assertEqual(rgb.shape, (1024, 1024, 3))
         self.assertEqual(idx.shape, (1024, 1024))
 
@@ -119,7 +119,7 @@ class TestJp2k(unittest.TestCase):
         filename = opj_data_file('input/conformance/file2.jp2')
         j = Jp2k(filename)
         ycbcr = j.read()
-        crcby = j.read(no_cxform=True)
+        crcby = j.read(ignore_pclr_cmap_cdef=True)
 
         expected = np.zeros(ycbcr.shape, ycbcr.dtype)
         for k in range(crcby.shape[2]):

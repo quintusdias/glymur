@@ -224,7 +224,7 @@ class TestSuiteWriteCinema(unittest.TestCase):
 
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-@unittest.skipIf(re.match(r"""2\.0""", glymur.version.openjpeg_version),
+@unittest.skipIf(not re.match(r"""(1.5|2.0)""", glymur.version.openjpeg_version),
                  "Functionality implemented for 2.1")
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_OPJ_DATA_ROOT environment variable not set")
