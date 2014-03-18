@@ -879,9 +879,9 @@ class ComponentMappingBox(Jp2kBox):
         read_buffer = fptr.read(num_bytes)
         data = struct.unpack('>' + 'HBB' * num_components, read_buffer)
 
-        component_index = data[0:num_bytes:num_components]
-        mapping_type = data[1:num_bytes:num_components]
-        palette_index = data[2:num_bytes:num_components]
+        component_index = data[0:num_bytes:3]
+        mapping_type = data[1:num_bytes:3]
+        palette_index = data[2:num_bytes:3]
 
         box = ComponentMappingBox(component_index, mapping_type, palette_index,
                                   length=length, offset=offset)
