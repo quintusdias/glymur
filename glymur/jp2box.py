@@ -419,6 +419,9 @@ class ColourSpecificationBox(Jp2kBox):
             # enumerated colour space
             read_buffer = fptr.read(4)
             colorspace, = struct.unpack('>I', read_buffer)
+            if colorspace not in _COLORSPACE_MAP_DISPLAY.keys():
+                msg = "Unrecognized colorspace: {0}".format(colorspace)
+                warnings.warn(msg)
             icc_profile = None
 
         else:

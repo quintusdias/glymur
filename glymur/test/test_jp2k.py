@@ -758,6 +758,13 @@ class TestJp2k_2_1(unittest.TestCase):
 class TestJp2kOpjDataRoot(unittest.TestCase):
     """These tests should be run by just about all configuration."""
 
+    @unittest.skipIf(sys.hexversion < 0x03000000, "Test requires Python 3.3+")
+    def test_invalid_colorspace(self):
+        """Should warn in case of invalid colorspace."""
+        filename = opj_data_file('input/nonregression/edf_c2_1103421.jp2')
+        with self.assertWarns(UserWarning):
+            jp2 = Jp2k(filename)
+
     def test_no_cxform_pclr_jp2(self):
         """Indices for pclr jpxfile if no color transform"""
         filename = opj_data_file('input/conformance/file9.jp2')
