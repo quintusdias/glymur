@@ -5830,9 +5830,9 @@ class TestSuiteDump(unittest.TestCase):
 
         # Jp2 Header
         # Component mapping box
-        self.assertEqual(jp2.box[3].box[3].component_index, (0, 1, 2))
-        self.assertEqual(jp2.box[3].box[3].mapping_type, (1, 1, 0))
-        self.assertEqual(jp2.box[3].box[3].palette_index, (0, 0, 1))
+        self.assertEqual(jp2.box[3].box[3].component_index, (0, 0, 0, 0))
+        self.assertEqual(jp2.box[3].box[3].mapping_type, (1, 1, 1, 1))
+        self.assertEqual(jp2.box[3].box[3].palette_index, (0, 1, 2, 3))
 
         c = jp2.box[4].main_header
 
