@@ -653,6 +653,15 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_bad_wavelet_transform(self):
+        """Should still be able to print if wavelet xform is bad, issue195"""
+        filename = opj_data_file('input/nonregression/edf_c2_10025.jp2')
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            j = Jp2k(filename)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j)
+
     def test_invalid_progression_order(self):
         """Should still be able to print even if prog order is invalid."""
         jfile = opj_data_file('input/nonregression/2977.pdf.asan.67.2198.jp2')

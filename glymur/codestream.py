@@ -52,9 +52,9 @@ _PROGRESSION_ORDER_DISPLAY = _keydefaultdict(_factory,
           PCRL: 'PCRL',
           CPRL: 'CPRL'})
 
-_WAVELET_TRANSFORM_DISPLAY = {
-    WAVELET_XFORM_9X7_IRREVERSIBLE: '9-7 irreversible',
-    WAVELET_XFORM_5X3_REVERSIBLE: '5-3 reversible'}
+_WAVELET_TRANSFORM_DISPLAY = _keydefaultdict(_factory,
+        { WAVELET_XFORM_9X7_IRREVERSIBLE: '9-7 irreversible',
+          WAVELET_XFORM_5X3_REVERSIBLE: '5-3 reversible'})
 
 # Need a catch-all list of valid markers.
 # See table A-1 in ISO/IEC FCD15444-1.
@@ -389,6 +389,11 @@ class Codestream(object):
         if spcod[0] not in [LRCP, RLCP, RPCL, PCRL, CPRL]:
             msg = "Invalid progression order in COD segment: {0}."
             warnings.warn(msg.format(spcod[0]))
+
+        if spcod[8] not in [WAVELET_XFORM_9X7_IRREVERSIBLE,
+                            WAVELET_XFORM_5X3_REVERSIBLE]:
+            msg = "Invalid wavelet transform in COD segment: {0}."
+            warnings.warn(msg.format(spcod[8]))
 
         sop = (scod & 2) > 0
         eph = (scod & 4) > 0
