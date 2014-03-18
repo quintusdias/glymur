@@ -51,6 +51,17 @@ class TestCodestreamOpjData(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_bad_wavelet_transform(self):
+        """Should warn if wavelet transform is bad.  Issue129"""
+        filename = opj_data_file('input/nonregression/edf_c2_10025.jp2')
+        if sys.hexversion < 0x03000000:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                j = Jp2k(filename)
+        else:
+            with self.assertWarns(UserWarning):
+                j = Jp2k(filename)
+
     def test_invalid_progression_order(self):
         """Should still be able to parse even if prog order is invalid."""
         jfile = opj_data_file('input/nonregression/2977.pdf.asan.67.2198.jp2')
