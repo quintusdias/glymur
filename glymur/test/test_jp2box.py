@@ -373,14 +373,19 @@ class TestFileTypeBox(unittest.TestCase):
 
     def test_brand_unknown(self):
         """A ftyp box brand must be 'jp2 ' or 'jpx '."""
-        ftyp = glymur.jp2box.FileTypeBox(brand='jp3')
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            ftyp = glymur.jp2box.FileTypeBox(brand='jp3')
         with self.assertRaises(IOError):
             with tempfile.TemporaryFile() as tfile:
                 ftyp.write(tfile) 
 
     def test_cl_entry_unknown(self):
         """A ftyp box cl list can only contain 'jp2 ', 'jpx ', or 'jpxb'."""
-        ftyp = glymur.jp2box.FileTypeBox(compatibility_list=['jp3'])
+        with warnings.catch_warnings():
+            # Bad compatibility list item.
+            warnings.simplefilter("ignore")
+            ftyp = glymur.jp2box.FileTypeBox(compatibility_list=['jp3'])
         with self.assertRaises(IOError):
             with tempfile.TemporaryFile() as tfile:
                 ftyp.write(tfile) 

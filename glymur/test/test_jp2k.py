@@ -760,6 +760,13 @@ class TestJp2kOpjDataRoot(unittest.TestCase):
 
     @unittest.skipIf(sys.hexversion < 0x03000000, "Test requires Python 3.3+")
     def test_invalid_approximation(self):
+        """Should warn in case of bad ftyp brand."""
+        filename = opj_data_file('input/nonregression/edf_c2_1000290.jp2')
+        with self.assertWarns(UserWarning):
+            jp2 = Jp2k(filename)
+
+    @unittest.skipIf(sys.hexversion < 0x03000000, "Test requires Python 3.3+")
+    def test_invalid_approximation(self):
         """Should warn in case of invalid approximation."""
         filename = opj_data_file('input/nonregression/edf_c2_1015644.jp2')
         with self.assertWarns(UserWarning):
@@ -817,7 +824,10 @@ class TestJp2kOpjDataRoot(unittest.TestCase):
         # This file has the components physically reversed.  The cmap box
         # tells the decoder how to order them, but this flag prevents that.
         filename = opj_data_file('input/conformance/file2.jp2')
-        j = Jp2k(filename)
+        with warnings.catch_warnings():
+            # The file has a bad compatibility list entry.  Not important here.
+            warnings.simplefilter("ignore")
+            j = Jp2k(filename)
         ycbcr = j.read()
         crcby = j.read(ignore_pclr_cmap_cdef=True)
 

@@ -327,7 +327,10 @@ class TestSuite(unittest.TestCase):
 
     def test_ETS_JP2_file1(self):
         jfile = opj_data_file('input/conformance/file1.jp2')
-        jp2k = Jp2k(jfile)
+        with warnings.catch_warnings():
+            # Bad compatibility list item.
+            warnings.simplefilter("ignore")
+            jp2k = Jp2k(jfile)
         jpdata = jp2k.read()
         self.assertEqual(jpdata.shape, (512, 768, 3))
 
@@ -3114,7 +3117,10 @@ class TestSuiteDump(unittest.TestCase):
 
     def test_NR_file1_dump(self):
         jfile = opj_data_file('input/conformance/file1.jp2')
-        jp2 = Jp2k(jfile)
+        with warnings.catch_warnings():
+            # Bad compatibility list item.
+            warnings.simplefilter("ignore")
+            jp2 = Jp2k(jfile)
 
         ids = [box.box_id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'xml ', 'jp2h', 'xml ',

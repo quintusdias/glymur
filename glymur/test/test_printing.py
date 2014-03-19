@@ -863,7 +863,10 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
     def test_channel_definition(self):
         """verify printing of cdef box"""
         filename = opj_data_file('input/conformance/file2.jp2')
-        j = glymur.Jp2k(filename)
+        with warnings.catch_warnings():
+            # Bad compatibility list item.
+            warnings.simplefilter("ignore")
+            j = glymur.Jp2k(filename)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.box[2].box[2])
             actual = fake_out.getvalue().strip()

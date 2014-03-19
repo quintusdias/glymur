@@ -85,6 +85,17 @@ class Jp2kBox(object):
         msg += " @ ({0}, {1})".format(self.offset, self.length)
         return msg
 
+    def _dispatch_validation_error(self, msg, writing=False):
+        """Issue either a warning or an error depending on circumstance.
+
+        If writing to file, then error out, as we do not wish to create bad
+        JP2 files.  If reading, then we should be more lenient and just warn.
+        """
+        if writing:
+            raise IOError(msg)
+        else:
+            warnings.warn(msg)
+
     def write(self, _):
         """Must be implemented in a subclass.
         """
@@ -1102,6 +1113,7 @@ class FileTypeBox(Jp2kBox):
             self.compatibility_list = compatibility_list
         self.length = length
         self.offset = offset
+        self._validate(writing=False)
 
     def __repr__(self):
         msg = "glymur.jp2box.FileTypeBox(brand='{0}', minor_version={1}, "
@@ -1123,22 +1135,23 @@ class FileTypeBox(Jp2kBox):
 
         return msg
 
-    def _validate(self):
+    def _validate(self, writing=False):
         """Validate the box before writing to file."""
         if self.brand not in ['jp2 ', 'jpx ']:
             msg = "The file type brand must be either 'jp2 ' or 'jpx '."
-            raise IOError(msg)
+            self._dispatch_validation_error(msg, writing=writing)
         valid_cls = ['jp2 ', 'jpx ', 'jpxb']
         for item in self.compatibility_list:
             if item not in valid_cls:
                 msg = "The file type compatibility list item '{0}' is not "
                 msg += "valid:  valid entries are {1}"
-                raise IOError(msg.format(item, valid_cls))
+                msg = msg.format(item, valid_cls)
+                self._dispatch_validation_error(msg, writing=writing)
 
     def write(self, fptr):
         """Write a File Type box to file.
         """
-        self._validate()
+        self._validate(writing=True)
         length = 16 + 4*len(self.compatibility_list)
         fptr.write(struct.pack('>I', length))
         fptr.write('ftyp'.encode())
