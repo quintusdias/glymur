@@ -455,10 +455,10 @@ class TestColourSpecificationBox(unittest.TestCase):
                                                  method=method)
 
     def test_colr_with_bad_approx(self):
-        """colr must have a valid approximation field"""
+        """colr should have a valid approximation field"""
         colorspace = glymur.core.SRGB
         approx = -1
-        with self.assertRaises(IOError):
+        with self.assertWarns(UserWarning):
             glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
                                                  approximation=approx)
 
