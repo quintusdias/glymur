@@ -653,6 +653,16 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_cinema_profile(self):
+        """Should print Cinema 2K when the profile is 3."""
+        filename = opj_data_file('input/nonregression/_00042.j2k')
+        j2k = Jp2k(filename)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            c = j2k.get_codestream()
+            print(c.segment[1])
+            actual = fake_out.getvalue().strip()
+        self.assertEqual(actual, fixtures.cinema2k_profile)
+
     def test_invalid_colorspace(self):
         """An invalid colorspace shouldn't cause an error."""
         filename = opj_data_file('input/nonregression/edf_c2_1103421.jp2')
@@ -661,7 +671,6 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
             jp2 = Jp2k(filename)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(jp2)
-
 
     def test_bad_rsiz(self):
         """Should still be able to print if rsiz is bad, issue196"""

@@ -55,8 +55,8 @@ _CAPABILITIES_DISPLAY = _Keydefaultdict(_factory,
         { _NO_PROFILE: 'no profile',
           _PROFILE_0: '0',
           _PROFILE_1: '1',
-          _PROFILE_3: '3',
-          _PROFILE_4: '4'} )
+          _PROFILE_3: 'Cinema 2K',
+          _PROFILE_4: 'Cinema 4K'} )
 
 # Need a catch-all list of valid markers.
 # See table A-1 in ISO/IEC FCD15444-1.
