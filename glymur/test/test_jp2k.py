@@ -758,7 +758,22 @@ class TestJp2k_2_1(unittest.TestCase):
 class TestJp2kOpjDataRoot(unittest.TestCase):
     """These tests should be run by just about all configuration."""
 
-    @unittest.skipIf(sys.hexversion < 0x03000000, "Test requires Python 3.3+")
+    def test_undecodeable_box_id(self):
+        """Should warn in case of undecodeable box ID but not error out."""
+        filename = opj_data_file('input/nonregression/edf_c2_1013627.jp2')
+        if sys.hexversion < 0x03000000:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                jp2 = Jp2k(filename)
+        else:
+            with self.assertWarns(UserWarning):
+                jp2 = Jp2k(filename)
+
+        # Now make sure we got all of the boxes.  Ignore the last, which was
+        # bad.
+        box_ids = [box.box_id for box in jp2.box[:-1]]
+        self.assertEqual(box_ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
+
     def test_invalid_approximation(self):
         """Should warn in case of bad ftyp brand."""
         filename = opj_data_file('input/nonregression/edf_c2_1000290.jp2')

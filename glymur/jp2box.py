@@ -177,6 +177,13 @@ class Jp2kBox(object):
         """
         try:
             box = _BOX_WITH_ID[box_id].parse(fptr, start, num_bytes)
+
+        except UnicodeDecodeError:
+            msg = 'Unrecognized box ({0}) encountered.'.format(box_id)
+            warnings.warn(msg)
+            box = UnknownBox('    ', offset=start, length=num_bytes,
+                             longname='Unknown')
+
         except KeyError:
             msg = 'Unrecognized box ({0}) encountered.'.format(box_id)
             warnings.warn(msg)
@@ -194,7 +201,6 @@ class Jp2kBox(object):
                 pos = fptr.tell()
                 read_buffer = fptr.read(8)
                 _, sub_id = struct.unpack('>I4s', read_buffer)
-                sub_id = sub_id.decode('utf-8')
 
                 # Regardless of whether or not we recognize the box, rewind back
                 # to properly advance to the next box.
@@ -230,16 +236,12 @@ class Jp2kBox(object):
                 break
 
             read_buffer = fptr.read(8)
-            try:
-                (box_length, box_id) = struct.unpack('>I4s', read_buffer)
-            except Exception as err:
+            if len(read_buffer) < 8:
                 msg = "Extra bytes at end of file ignored."
                 warnings.warn(msg)
                 return superbox
 
-            if sys.hexversion >= 0x03000000:
-                box_id = box_id.decode('utf-8')
-
+            (box_length, box_id) = struct.unpack('>I4s', read_buffer)
             if box_length == 0:
                 # The length of the box is presumed to last until the end of
                 # the file.  Compute the effective length of the box.
@@ -2998,7 +3000,11 @@ class UUIDBox(Jp2kBox):
 
         try:
             self._parse_raw_data()
-        except RuntimeError as error:
+        except KeyError as error:
+            # Such as when an Exif tag is unrecognized.
+            warnings.warn(str(error))
+        except IOError as error:
+            # Such as when Exif byte order is unrecognized.
             warnings.warn(str(error))
 
     def _parse_raw_data(self):
@@ -3088,33 +3094,33 @@ class UUIDBox(Jp2kBox):
 
 # Map each box ID to the corresponding class.
 _BOX_WITH_ID = {
-    'asoc': AssociationBox,
-    'cdef': ChannelDefinitionBox,
-    'cmap': ComponentMappingBox,
-    'colr': ColourSpecificationBox,
-    'dtbl': DataReferenceBox,
-    'ftyp': FileTypeBox,
-    'ihdr': ImageHeaderBox,
-    'jP  ': JPEG2000SignatureBox,
-    'jpch': CodestreamHeaderBox,
-    'jplh': CompositingLayerHeaderBox,
-    'jp2c': ContiguousCodestreamBox,
-    'free': FreeBox,
-    'flst': FragmentListBox,
-    'ftbl': FragmentTableBox,
-    'jp2h': JP2HeaderBox,
-    'lbl ': LabelBox,
-    'nlst': NumberListBox,
-    'pclr': PaletteBox,
-    'res ': ResolutionBox,
-    'resc': CaptureResolutionBox,
-    'resd': DisplayResolutionBox,
-    'rreq': ReaderRequirementsBox,
-    'uinf': UUIDInfoBox,
-    'ulst': UUIDListBox,
-    'url ': DataEntryURLBox,
-    'uuid': UUIDBox,
-    'xml ': XMLBox}
+    b'asoc': AssociationBox,
+    b'cdef': ChannelDefinitionBox,
+    b'cmap': ComponentMappingBox,
+    b'colr': ColourSpecificationBox,
+    b'dtbl': DataReferenceBox,
+    b'ftyp': FileTypeBox,
+    b'ihdr': ImageHeaderBox,
+    b'jP  ': JPEG2000SignatureBox,
+    b'jpch': CodestreamHeaderBox,
+    b'jplh': CompositingLayerHeaderBox,
+    b'jp2c': ContiguousCodestreamBox,
+    b'free': FreeBox,
+    b'flst': FragmentListBox,
+    b'ftbl': FragmentTableBox,
+    b'jp2h': JP2HeaderBox,
+    b'lbl ': LabelBox,
+    b'nlst': NumberListBox,
+    b'pclr': PaletteBox,
+    b'res ': ResolutionBox,
+    b'resc': CaptureResolutionBox,
+    b'resd': DisplayResolutionBox,
+    b'rreq': ReaderRequirementsBox,
+    b'uinf': UUIDInfoBox,
+    b'ulst': UUIDListBox,
+    b'url ': DataEntryURLBox,
+    b'uuid': UUIDBox,
+    b'xml ': XMLBox}
 
 _printoptions = {'short': False, 'xml': True, 'codestream': True}
 

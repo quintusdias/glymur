@@ -43,7 +43,7 @@ def tiff_header(read_buffer):
         endian = '>'
     else:
         msg = "Bad byte order indication: {0}".format(read_buffer[6:8])
-        raise RuntimeError(msg)
+        raise IOError(msg)
 
     _, offset = struct.unpack(endian + 'HI', read_buffer[8:14])
 
