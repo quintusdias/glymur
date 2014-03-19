@@ -316,9 +316,6 @@ class ColourSpecificationBox(Jp2kBox):
 
         self.method = method
         self.precedence = precedence
-
-        if approximation not in (0, 1, 2, 3, 4):
-            warnings.warn("Invalid approximation:  {0}".format(approximation))
         self.approximation = approximation
 
         self.colorspace = colorspace
@@ -326,14 +323,19 @@ class ColourSpecificationBox(Jp2kBox):
         self.length = length
         self.offset = offset
 
-        self._validate()
+        self._validate(writing=False)
 
-    def _validate(self):
+    def _validate(self, writing=False):
         """Verify that the box obeys the specifications."""
         if self.colorspace is not None and self.icc_profile is not None:
-            raise IOError("colorspace and icc_profile cannot both be set.")
+            msg = "Colorspace and icc_profile cannot both be set."
+            self._dispatch_validation_error(msg, writing=writing)
         if self.method not in (1, 2, 3, 4):
-            raise IOError("Invalid method.")
+            msg = "Invalid method.".format(self.method)
+            self._dispatch_validation_error(msg, writing=writing)
+        if self.approximation not in (0, 1, 2, 3, 4):
+            msg = "Invalid approximation:  {0}".format(self.approximation)
+            self._dispatch_validation_error(msg, writing=writing)
 
     def _write_validate(self):
         """In addition to constructor validation steps, run validation steps
@@ -341,15 +343,15 @@ class ColourSpecificationBox(Jp2kBox):
         if self.colorspace is None:
             msg = "Writing Colour Specification boxes without enumerated "
             msg += "colorspaces is not supported at this time."
-            raise IOError(msg)
+            self._dispatch_validation_error(msg, writing=True)
 
         if self.icc_profile is None:
             if self.colorspace not in [SRGB, GREYSCALE, YCC]:
                 msg = "Colorspace should correspond to one of SRGB, GREYSCALE, "
                 msg += "or YCC."
-                raise IOError(msg)
+                self._dispatch_validation_error(msg, writing=True)
 
-        self._validate()
+        self._validate(writing=True)
 
 
     def __repr__(self):
@@ -607,15 +609,15 @@ class ChannelDefinitionBox(Jp2kBox):
         self.channel_type = tuple(channel_type)
         self.association = tuple(association)
         self.__dict__.update(**kwargs)
-        self._validate()
+        self._validate(writing=False)
 
-    def _validate(self):
+    def _validate(self, writing=False):
         """Verify that the box obeys the specifications."""
         # channel type and association must be specified.
         if not ((len(self.index) == len(self.channel_type)) and
                 (len(self.channel_type) == len(self.association))):
             msg = "Length of channel definition box inputs must be the same."
-            raise IOError(msg)
+            self._dispatch_validation_error(msg, writing=writing)
 
         # channel types must be one of 0, 1, 2, 65535
         if any(x not in [0, 1, 2, 65535] for x in self.channel_type):
@@ -624,7 +626,7 @@ class ChannelDefinitionBox(Jp2kBox):
             msg += "    1     - opacity\n"
             msg += "    2     - premultiplied opacity\n"
             msg += "    65535 - unspecified"
-            raise IOError(msg)
+            self._dispatch_validation_error(msg, writing=writing)
 
 
     def __str__(self):
@@ -651,7 +653,7 @@ class ChannelDefinitionBox(Jp2kBox):
     def write(self, fptr):
         """Write a channel definition box to file.
         """
-        self._validate()
+        self._validate(writing=True)
         num_components = len(self.association)
         fptr.write(struct.pack('>I', 8 + 2 + num_components * 6))
         fptr.write('cdef'.encode('utf-8'))
@@ -993,23 +995,23 @@ class DataReferenceBox(Jp2kBox):
             self.DR = data_entry_url_boxes
         self.length = length
         self.offset = offset
-        self._validate()
+        self._validate(writing=False)
 
-    def _validate(self):
+    def _validate(self, writing=False):
         """Verify that the box obeys the specifications."""
         for box in self.DR:
             if box.box_id != 'url ':
                 msg = 'All child boxes of a data reference box must be data '
                 msg += 'entry URL boxes.'
-                raise IOError(msg)
+                self._dispatch_validation_error(msg, writing=writing)
 
     def _write_validate(self):
         """Verify that the box obeys the specifications for writing.
         """
         if len(self.DR) == 0:
             msg = "A data reference box cannot be empty when written to a file."
-            raise IOError(msg)
-        self._validate()
+            self._dispatch_validation_error(msg, writing=True)
+        self._validate(writing=True)
 
     def write(self, fptr):
         """Write a Data Reference box to file.
@@ -1227,18 +1229,21 @@ class FragmentListBox(Jp2kBox):
         self.data_reference = data_reference
         self.length = length
         self.offset = offset
+        self._validate(writing=False)
 
-    def _validate(self):
+    def _validate(self, writing=False):
         """Validate internal correctness."""
         if (((len(self.fragment_offset) != len(self.fragment_length)) or
              (len(self.fragment_length) != len(self.data_reference)))):
             msg = "The lengths of the fragment offsets, fragment lengths, and "
             msg += "data reference items must be the same."
-            raise IOError(msg)
+            self._dispatch_validation_error(msg, writing=writing)
         if any([x <= 0 for x in self.fragment_offset]):
-            raise IOError("Fragment offsets must all be positive.")
+            msg = "Fragment offsets must all be positive."
+            self._dispatch_validation_error(msg, writing=writing)
         if any([x <= 0 for x in self.fragment_length]):
-            raise IOError("Fragment lengths must all be positive.")
+            msg = "Fragment lengths must all be positive."
+            self._dispatch_validation_error(msg, writing=writing)
 
     def __repr__(self):
         msg = "glymur.jp2box.FragmentListBox()"
@@ -1262,7 +1267,7 @@ class FragmentListBox(Jp2kBox):
     def write(self, fptr):
         """Write a fragment list box to file.
         """
-        self._validate()
+        self._validate(writing=True)
         num_items = len(self.fragment_offset)
         length = 8 + 2 + num_items * 14
         fptr.write(struct.pack('>I', length))
@@ -1357,18 +1362,18 @@ class FragmentTableBox(Jp2kBox):
 
         return box
 
-    def _validate(self):
+    def _validate(self, writing=False):
         """Self-validate the box before writing."""
         box_ids = [box.box_id for box in self.box]
         if len(box_ids) != 1 or box_ids[0] != 'flst':
             msg = "Fragment table boxes must have a single fragment list "
             msg += "box as a child box."
-            raise IOError(msg)
+            self._dispatch_validation_error(msg, writing=writing)
 
     def write(self, fptr):
         """Write a fragment table box to file.
         """
-        self._validate()
+        self._validate(writing=True)
         self._write_superbox(fptr)
 
 
@@ -1779,15 +1784,15 @@ class PaletteBox(Jp2kBox):
         self.signed = signed
         self.length = length
         self.offset = offset
-        self._validate()
+        self._validate(writing=False)
 
-    def _validate(self):
+    def _validate(self, writing=False):
         """Verify that the box obeys the specifications."""
         if ((len(self.bits_per_component) != len(self.signed)) or
                 (len(self.signed) != self.palette.shape[1])):
             msg = "The length of the 'bits_per_component' and the 'signed' "
             msg += "members must equal the number of columns of the palette."
-            raise IOError(msg)
+            self._dispatch_validation_error(msg, writing=writing)
 
     def __repr__(self):
         msg = "glymur.jp2box.PaletteBox({0}, bits_per_component={1}, "
@@ -1807,7 +1812,7 @@ class PaletteBox(Jp2kBox):
     def write(self, fptr):
         """Write a Palette box to file.
         """
-        self._validate()
+        self._validate(writing=True)
         bytes_per_row = sum(self.bits_per_component) / 8
         bytes_per_palette = bytes_per_row * self.palette.shape[0]
         box_length = 8 + 3 + self.palette.shape[1] + bytes_per_palette

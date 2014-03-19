@@ -8,6 +8,8 @@ import struct
 import sys
 import tempfile
 import unittest
+import warnings
+
 import lxml.etree as ET
 
 import glymur
@@ -207,13 +209,14 @@ class TestJPXWrap(unittest.TestCase):
             with self.assertRaises(IOError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
+    @unittest.skipIf(sys.hexversion < 0x03000000, "Needs unittest in 3.x.")
     def test_deurl_child_of_dtbl(self):
         """Data reference boxes can only contain data entry url boxes."""
         jp2 = Jp2k(self.jp2file)
         boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
 
         ftyp = glymur.jp2box.FileTypeBox()
-        with self.assertRaises(IOError):
+        with self.assertWarns(UserWarning):
             dref = glymur.jp2box.DataReferenceBox([ftyp])
 
         # Try to get around it by appending the ftyp box after creation.
@@ -337,7 +340,9 @@ class TestJPX(unittest.TestCase):
         offset = [89]
         length = [1132288]
         reference = [0, 0]
-        flst = glymur.jp2box.FragmentListBox(offset, length, reference)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            flst = glymur.jp2box.FragmentListBox(offset, length, reference)
         with self.assertRaises(IOError):
             with tempfile.TemporaryFile() as tfile:
                 flst.write(tfile)
@@ -347,8 +352,10 @@ class TestJPX(unittest.TestCase):
         offset = [0]
         length = [1132288]
         reference = [0]
-        flst = glymur.jp2box.FragmentListBox(offset, length, reference)
-        with self.assertRaises(IOError):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            flst = glymur.jp2box.FragmentListBox(offset, length, reference)
+        with self.assertRaises((IOError, OSError)):
             with tempfile.TemporaryFile() as tfile:
                 flst.write(tfile)
 
@@ -357,14 +364,18 @@ class TestJPX(unittest.TestCase):
         offset = [89]
         length = [0]
         reference = [0]
-        flst = glymur.jp2box.FragmentListBox(offset, length, reference)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            flst = glymur.jp2box.FragmentListBox(offset, length, reference)
         with self.assertRaises(IOError):
             with tempfile.TemporaryFile() as tfile:
                 flst.write(tfile)
 
     def test_ftbl_boxes_empty(self):
         """A fragment table box must have at least one child box."""
-        ftbl = glymur.jp2box.FragmentTableBox()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            ftbl = glymur.jp2box.FragmentTableBox()
         with self.assertRaises(IOError):
             with tempfile.TemporaryFile() as tfile:
                 ftbl.write(tfile)
