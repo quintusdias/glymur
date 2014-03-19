@@ -402,7 +402,7 @@ class TestJPX(unittest.TestCase):
 
             with self.assertWarns(UserWarning):
                 jpx = Jp2k(tfile.name)
-            self.assertEqual(jpx.box[-1].box_id, 'grp ')
+            self.assertEqual(jpx.box[-1].box_id, b'grp ')
             self.assertEqual(jpx.box[-1].box[0].box_id, 'free')
 
     def test_free_box(self):
