@@ -759,6 +759,13 @@ class TestJp2kOpjDataRoot(unittest.TestCase):
     """These tests should be run by just about all configuration."""
 
     @unittest.skipIf(sys.hexversion < 0x03000000, "Test requires Python 3.3+")
+    def test_invalid_approximation(self):
+        """Should warn in case of invalid approximation."""
+        filename = opj_data_file('input/nonregression/edf_c2_1015644.jp2')
+        with self.assertWarns(UserWarning):
+            jp2 = Jp2k(filename)
+
+    @unittest.skipIf(sys.hexversion < 0x03000000, "Test requires Python 3.3+")
     def test_invalid_colorspace(self):
         """Should warn in case of invalid colorspace."""
         filename = opj_data_file('input/nonregression/edf_c2_1103421.jp2')

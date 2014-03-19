@@ -33,6 +33,7 @@ from .core import _COLOR_TYPE_MAP_DISPLAY
 from .core import SRGB, GREYSCALE, YCC
 from .core import ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE
 from .core import ANY_ICC_PROFILE, VENDOR_COLOR_METHOD
+from .core import _Keydefaultdict
 
 from . import _uuid_io
 
@@ -42,14 +43,12 @@ _METHOD_DISPLAY = {
     ANY_ICC_PROFILE: 'any ICC profile',
     VENDOR_COLOR_METHOD: 'vendor color method'}
 
-_APPROX_DISPLAY = {1: 'accurately represents correct colorspace definition',
-                   2: 'approximates correct colorspace definition, '
-                      + 'exceptional quality',
-                   3: 'approximates correct colorspace definition, '
-                      + 'reasonable quality',
-                   4: 'approximates correct colorspace definition, '
-                      + 'poor quality'}
-
+_factory = lambda x:  '{0} (invalid)'.format(x)
+_APPROX_DISPLAY = _Keydefaultdict(_factory,
+        {1: 'accurately represents correct colorspace definition',
+         2: 'approximates correct colorspace definition, exceptional quality',
+         3: 'approximates correct colorspace definition, reasonable quality',
+         4: 'approximates correct colorspace definition, poor quality'})
 
 class Jp2kBox(object):
     """Superclass for JPEG 2000 boxes.
@@ -301,13 +300,19 @@ class ColourSpecificationBox(Jp2kBox):
                  approximation=0, colorspace=None, icc_profile=None,
                  length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='colr', longname='Colour Specification')
+
         self.method = method
         self.precedence = precedence
+
+        if approximation not in (0, 1, 2, 3, 4):
+            warnings.warn("Invalid approximation:  {0}".format(approximation))
         self.approximation = approximation
+
         self.colorspace = colorspace
         self.icc_profile = icc_profile
         self.length = length
         self.offset = offset
+
         self._validate()
 
     def _validate(self):
@@ -316,8 +321,6 @@ class ColourSpecificationBox(Jp2kBox):
             raise IOError("colorspace and icc_profile cannot both be set.")
         if self.method not in (1, 2, 3, 4):
             raise IOError("Invalid method.")
-        if self.approximation not in (0, 1, 2, 3, 4):
-            raise IOError("Invalid approximation.")
 
     def _write_validate(self):
         """In addition to constructor validation steps, run validation steps
