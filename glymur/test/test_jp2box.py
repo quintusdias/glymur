@@ -454,6 +454,7 @@ class TestColourSpecificationBox(unittest.TestCase):
             glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
                                                  method=method)
 
+    @unittest.skipIf(sys.hexversion < 0x03030000, "Requires 3.3+")
     def test_colr_with_bad_approx(self):
         """colr should have a valid approximation field"""
         colorspace = glymur.core.SRGB
