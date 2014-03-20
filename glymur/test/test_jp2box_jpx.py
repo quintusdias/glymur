@@ -110,6 +110,26 @@ class TestJPXWrap(unittest.TestCase):
             with self.assertRaises(IOError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
+    def test_jpch_jplh(self):
+        """Write a codestream header, compositing layer header box."""
+        jp2 = Jp2k(self.jp2file)
+        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+
+        # The ftyp box must be modified to jpx.
+        boxes[1].brand = 'jpx '
+        boxes[1].compatibility_list = ['jp2 ', 'jpxb']
+
+        jpch = glymur.jp2box.CodestreamHeaderBox()
+        boxes.append(jpch)
+        jplh = glymur.jp2box.CompositingLayerHeaderBox()
+        boxes.append(jplh)
+
+        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+            jpx = jp2.wrap(tfile.name, boxes=boxes)
+
+            self.assertEqual(jpx.box[-2].box_id, 'jpch')
+            self.assertEqual(jpx.box[-1].box_id, 'jplh')
+
     def test_cgrp(self):
         """Write a color group box."""
         jp2 = Jp2k(self.jp2file)
