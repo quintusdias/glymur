@@ -16,6 +16,7 @@ import glymur
 from glymur import Jp2k
 from glymur.jp2box import DataEntryURLBox, FileTypeBox, JPEG2000SignatureBox
 from glymur.jp2box import DataReferenceBox, FragmentListBox, FragmentTableBox
+from glymur.jp2box import ColourSpecificationBox
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
 class TestJPXWrap(unittest.TestCase):
@@ -108,6 +109,48 @@ class TestJPXWrap(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
             with self.assertRaises(IOError):
                 jp2.wrap(tfile.name, boxes=boxes)
+
+    def test_cgrp(self):
+        """Write a color group box."""
+        jp2 = Jp2k(self.jp2file)
+        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+
+        # The ftyp box must be modified to jpx.
+        boxes[1].brand = 'jpx '
+        boxes[1].compatibility_list = ['jp2 ', 'jpxb']
+
+        colr_rgb = ColourSpecificationBox(colorspace=glymur.core.SRGB)
+        colr_gr = ColourSpecificationBox(colorspace=glymur.core.GREYSCALE)
+        box = [colr_rgb, colr_gr]
+
+        cgrp = glymur.jp2box.ColourGroupBox(box=box)
+        boxes.append(cgrp)
+
+        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+            jpx = jp2.wrap(tfile.name, boxes=boxes)
+
+            self.assertEqual(jpx.box[-1].box_id, 'cgrp')
+            self.assertEqual(jpx.box[-1].box[0].box_id, 'colr')
+            self.assertEqual(jpx.box[-1].box[1].box_id, 'colr')
+
+    def test_cgrp_neg(self):
+        """Can't write a cgrp with anything but colr sub boxes"""
+        jp2 = Jp2k(self.jp2file)
+        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+
+        # The ftyp box must be modified to jpx.
+        boxes[1].brand = 'jpx '
+        boxes[1].compatibility_list = ['jp2 ', 'jpxb']
+
+        lblb = glymur.jp2box.LabelBox("Just a test")
+        box = [lblb]
+
+        cgrp = glymur.jp2box.ColourGroupBox(box=box)
+        boxes.append(cgrp)
+
+        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+            with self.assertRaises(IOError):
+                jpx = jp2.wrap(tfile.name, boxes=boxes)
 
     def test_ftbl(self):
         """Write a fragment table box."""

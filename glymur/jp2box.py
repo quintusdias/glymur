@@ -754,6 +754,75 @@ class CodestreamHeaderBox(Jp2kBox):
         return box
 
 
+class ColourGroupBox(Jp2kBox):
+    """Container for colour group box information.
+
+    Attributes
+    ----------
+    box_id : str
+        4-character identifier for the box.
+    length : int
+        length of the box in bytes.
+    offset : int
+        offset of the box from the start of the file.
+    longname : str
+        more verbose description of the box.
+    box : list
+        List of boxes contained in this superbox.
+    """
+    def __init__(self, box=None, length=0, offset=-1):
+        Jp2kBox.__init__(self, box_id='cgrp', longname='Colour Group')
+        self.length = length
+        self.offset = offset
+        self.box = box if box is not None else []
+
+    def __repr__(self):
+        msg = "glymur.jp2box.ColourGroupBox(box={0})".format(self.box)
+        return msg
+
+    def __str__(self):
+        msg = self._str_superbox()
+        return msg
+
+    def _validate(self, writing=True):
+        """Verify that the box obeys the specifications."""
+        if any([box.box_id != 'colr' for box in self.box]):
+            msg = "Colour group boxes can only contain colour specification "
+            msg += "boxes."
+            self._dispatch_validation_error(msg, writing=writing)
+
+    def write(self, fptr):
+        """Write an association box to file.
+        """
+        self._validate(writing=True)
+        self._write_superbox(fptr)
+
+    @staticmethod
+    def parse(fptr, offset, length):
+        """Parse colour group box.
+
+        Parameters
+        ----------
+        fptr : file
+            Open file object.
+        offset : int
+            Start position of box in bytes.
+        length : int
+            Length of the box in bytes.
+
+        Returns
+        -------
+        ColourGroupBox instance
+        """
+        box = ColourGroupBox(length=length, offset=offset)
+
+        # The colour group box is a superbox, so go ahead and parse its
+        # child boxes.
+        box.box = box.parse_superbox(fptr)
+
+        return box
+
+
 class CompositingLayerHeaderBox(Jp2kBox):
     """Container for compositing layer header box information.
 
@@ -3101,6 +3170,7 @@ class UUIDBox(Jp2kBox):
 _BOX_WITH_ID = {
     b'asoc': AssociationBox,
     b'cdef': ChannelDefinitionBox,
+    b'cgrp': ColourGroupBox,
     b'cmap': ComponentMappingBox,
     b'colr': ColourSpecificationBox,
     b'dtbl': DataReferenceBox,
