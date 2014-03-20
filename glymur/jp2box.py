@@ -728,6 +728,11 @@ class CodestreamHeaderBox(Jp2kBox):
         msg = self._str_superbox()
         return msg
 
+    def write(self, fptr):
+        """Write a codestream header box to file.
+        """
+        self._write_superbox(fptr)
+
     @staticmethod
     def parse(fptr, offset, length):
         """Parse codestream header box.
@@ -792,7 +797,7 @@ class ColourGroupBox(Jp2kBox):
             self._dispatch_validation_error(msg, writing=writing)
 
     def write(self, fptr):
-        """Write an association box to file.
+        """Write a colour group box to file.
         """
         self._validate(writing=True)
         self._write_superbox(fptr)
@@ -854,6 +859,11 @@ class CompositingLayerHeaderBox(Jp2kBox):
     def __str__(self):
         msg = self._str_superbox()
         return msg
+
+    def write(self, fptr):
+        """Write a compositing layer header box to file.
+        """
+        self._write_superbox(fptr)
 
     @staticmethod
     def parse(fptr, offset, length):
