@@ -402,7 +402,7 @@ class ColourSpecificationBox(Jp2kBox):
         self._write_validate()
         length = 15 if self.icc_profile is None else 11 + len(self.icc_profile)
         fptr.write(struct.pack('>I', length))
-        fptr.write('colr'.encode())
+        fptr.write(b'colr')
 
         read_buffer = struct.pack('>BBBI',
                                   self.method,
@@ -656,7 +656,7 @@ class ChannelDefinitionBox(Jp2kBox):
         self._validate(writing=True)
         num_components = len(self.association)
         fptr.write(struct.pack('>I', 8 + 2 + num_components * 6))
-        fptr.write('cdef'.encode('utf-8'))
+        fptr.write(b'cdef')
         fptr.write(struct.pack('>H', num_components))
         for j in range(num_components):
             fptr.write(struct.pack('>' + 'H' * 3,
@@ -946,7 +946,7 @@ class ComponentMappingBox(Jp2kBox):
         """Write a Component Mapping box to file.
         """
         length = 8 + 4 * len(self.component_index)
-        write_buffer = struct.pack('>I4s', length, self.box_id.encode())
+        write_buffer = struct.pack('>I4s', length, b'cmap')
         fptr.write(write_buffer)
 
         for j in range(len(self.component_index)):
@@ -1100,7 +1100,7 @@ class DataReferenceBox(Jp2kBox):
         # Very similar to the say a superbox is written.
         orig_pos = fptr.tell()
         fptr.write(struct.pack('>I', 0))
-        fptr.write(self.box_id.encode())
+        fptr.write(b'dtbl')
 
         # Write the number of data entry url boxes.
         write_buffer = struct.pack('>H', len(self.DR))
@@ -1237,7 +1237,7 @@ class FileTypeBox(Jp2kBox):
         self._validate(writing=True)
         length = 16 + 4*len(self.compatibility_list)
         fptr.write(struct.pack('>I', length))
-        fptr.write('ftyp'.encode())
+        fptr.write(b'ftyp')
         fptr.write(self.brand.encode())
         fptr.write(struct.pack('>I', self.minor_version))
 
@@ -1350,7 +1350,7 @@ class FragmentListBox(Jp2kBox):
         num_items = len(self.fragment_offset)
         length = 8 + 2 + num_items * 14
         fptr.write(struct.pack('>I', length))
-        fptr.write(self.box_id.encode())
+        fptr.write(b'flst')
         fptr.write(struct.pack('>H', num_items))
         for j in range(num_items):
             write_buffer = struct.pack('>QIH',
@@ -1596,7 +1596,7 @@ class ImageHeaderBox(Jp2kBox):
         """Write an Image Header box to file.
         """
         fptr.write(struct.pack('>I', 22))
-        fptr.write('ihdr'.encode())
+        fptr.write(b'ihdr')
 
         # signedness and bps are stored together in a single byte
         bit_depth_signedness = 0x80 if self.signed else 0x00
@@ -1811,7 +1811,7 @@ class JPEG2000SignatureBox(Jp2kBox):
         """Write a JPEG 2000 Signature box to file.
         """
         fptr.write(struct.pack('>I', 12))
-        fptr.write(self.box_id.encode())
+        fptr.write(b'jP  ')
         fptr.write(struct.pack('>BBBB', *self.signature))
 
     @staticmethod
@@ -1897,8 +1897,7 @@ class PaletteBox(Jp2kBox):
         box_length = 8 + 3 + self.palette.shape[1] + bytes_per_palette
 
         # Write the usual header.
-        write_buffer = struct.pack('>I4s',
-                                   int(box_length), self.box_id.encode())
+        write_buffer = struct.pack('>I4s', int(box_length), b'pclr')
         fptr.write(write_buffer)
 
         write_buffer = struct.pack('>HB', self.palette.shape[0],
@@ -2541,7 +2540,7 @@ class LabelBox(Jp2kBox):
         """
         length = 8 + len(self.label.encode())
         fptr.write(struct.pack('>I', length))
-        fptr.write(self.box_id.encode())
+        fptr.write(b'lbl ')
         fptr.write(self.label.encode())
 
     @staticmethod
@@ -2618,7 +2617,7 @@ class NumberListBox(Jp2kBox):
 
     @staticmethod
     def parse(fptr, offset, length):
-        """Parse Label box.
+        """Parse number list box.
 
         Parameters
         ----------
@@ -2644,7 +2643,7 @@ class NumberListBox(Jp2kBox):
         """Write a NumberList box to file.
         """
         fptr.write(struct.pack('>I', len(self.associations) * 4 + 8))
-        fptr.write(self.box_id.encode())
+        fptr.write(b'nlst')
 
         fmt = '>' + 'I' * len(self.associations)
         write_buffer = struct.pack(fmt, *self.associations)
@@ -2718,7 +2717,7 @@ class XMLBox(Jp2kBox):
             read_buffer = ET.tostring(self.xml.getroot(), encoding='utf-8')
 
         fptr.write(struct.pack('>I', len(read_buffer) + 8))
-        fptr.write(self.box_id.encode())
+        fptr.write(b'xml ')
         fptr.write(read_buffer)
 
     @staticmethod
@@ -2946,7 +2945,7 @@ class DataEntryURLBox(Jp2kBox):
 
         length = 8 + 1 + 3 + len(url.encode())
         write_buffer = struct.pack('>I4sBBBB',
-                                   length, self.box_id.encode(),
+                                   length, b'url ',
                                    self.version,
                                    self.flag[0], self.flag[1], self.flag[2])
         fptr.write(write_buffer)
