@@ -78,8 +78,8 @@ class TestPrinting(unittest.TestCase):
             with patch('sys.stdout', new=StringIO()) as fake_out:
                 print(jpx.box[-1])
                 actual = fake_out.getvalue().strip()
-            lines = ["Unknown Box (b'grp ') @ (695609, 20)",
-                     '    Free Box (free) @ (695617, 12)']
+            lines = ["Unknown Box (b'grp ') @ (1399071, 20)",
+                     '    Free Box (free) @ (1399079, 12)']
             expected = '\n'.join(lines)
             self.assertEqual(actual, expected)
 

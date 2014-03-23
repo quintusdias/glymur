@@ -63,6 +63,24 @@ class TestJp2k(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_no_cxform_pclr_jpx(self):
+        """Indices for pclr jpxfile if no color transform"""
+        j = Jp2k(self.jpxfile)
+        rgb = j.read()
+        idx = j.read(ignore_pclr_cmap_cdef=True)
+        nr, nc = 1024, 1024
+        self.assertEqual(rgb.shape, (nr, nc, 3))
+        self.assertEqual(idx.shape, (nr, nc))
+
+        # Should be able to manually reconstruct the RGB image from the palette
+        # and indices.
+        palette = j.box[2].box[2].palette
+        rgb_from_idx = np.zeros(rgb.shape, dtype=np.uint8)
+        for r in np.arange(nr):
+            for c in np.arange(nc):
+                rgb_from_idx[r, c] = palette[idx[r, c]]
+        np.testing.assert_array_equal(rgb, rgb_from_idx)
+
     def test_repr(self):
         """Verify that results of __repr__ are eval-able."""
         j = Jp2k(self.j2kfile)
@@ -91,23 +109,6 @@ class TestJp2k(unittest.TestCase):
         filename = pkg_resources.resource_filename(glymur.__name__, "jp2k.py")
         with self.assertRaises(IOError):
             Jp2k(filename)
-
-    def test_no_cxform_pclr_jpx(self):
-        """Indices for pclr jpxfile if no color transform"""
-        j = Jp2k(self.jpxfile)
-        rgb = j.read()
-        idx = j.read(ignore_pclr_cmap_cdef=True)
-        self.assertEqual(rgb.shape, (1024, 1024, 3))
-        self.assertEqual(idx.shape, (1024, 1024))
-
-        # Should be able to manually reconstruct the RGB image from the palette
-        # and indices.
-        palette = j.box[3].box[2].palette
-        rgb_from_idx = np.zeros(rgb.shape, dtype=np.uint8)
-        for r in np.arange(1024):
-            for c in np.arange(1024):
-                rgb_from_idx[r, c] = palette[idx[r, c]]
-        np.testing.assert_array_equal(rgb, rgb_from_idx)
 
     def test_file_not_present(self):
         """Should error out if reading from a file that does not exist"""
