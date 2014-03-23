@@ -678,8 +678,9 @@ class TestWrap(unittest.TestCase):
     def test_jpx_to_jp2(self):
         """basic test for rewrapping a jpx file"""
         jpx = Jp2k(self.jpxfile)
-        idx = [0, 1, 3, 6]
-        boxes = [jpx.box[idx] for idx in [0, 1, 3, 6]]
+        # Use only the signature, file type, header, and 1st codestream.
+        lst = [0, 1, 2, 5]
+        boxes = [jpx.box[idx] for idx in lst]
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             jp2 = jpx.wrap(tfile.name, boxes=boxes)
 

@@ -34,13 +34,13 @@ def goodstuff():
 
 
 def jpxfile():
-    """Shortcut for specifying path to 12-v6.4.jpx.
+    """Shortcut for specifying path to heliov.jpx.
 
     Returns
     -------
     file : str
         Platform-independent path to 12-v6.4.jpx
     """
-    filename = pkg_resources.resource_filename(__name__, "12-v6.4.jpx")
+    filename = pkg_resources.resource_filename(__name__, "heliov.jpx")
     return filename
 

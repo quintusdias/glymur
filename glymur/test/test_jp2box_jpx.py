@@ -451,6 +451,7 @@ class TestJPX(unittest.TestCase):
             with tempfile.TemporaryFile() as tfile:
                 ftbl.write(tfile)
 
+    @unittest.skip("No such jpx file anymore.")
     def test_jpx_rreq_mask_length_3(self):
         """There are some JPX files with rreq mask length of 3."""
         jpx = Jp2k(self.jpxfile)
@@ -478,12 +479,6 @@ class TestJPX(unittest.TestCase):
                 jpx = Jp2k(tfile.name)
             self.assertEqual(jpx.box[-1].box_id, b'grp ')
             self.assertEqual(jpx.box[-1].box[0].box_id, 'free')
-
-    def test_free_box(self):
-        """Verify that we can handle a free box."""
-        j = Jp2k(self.jpxfile)
-        self.assertEqual(j.box[16].box[0].box_id, 'free')
-        self.assertEqual(type(j.box[16].box[0]), glymur.jp2box.FreeBox)
 
     def test_data_reference_requires_dtbl(self):
         """The existance of a data reference box requires a ftbl box as well."""
@@ -557,17 +552,17 @@ class TestJPX(unittest.TestCase):
             self.assertEqual(jpx.box[-1].box[0].data_reference, (3,))
 
     def test_nlst(self):
-        """Verify that we can handle a free box."""
+        """Verify that we can handle a number list box."""
         j = Jp2k(self.jpxfile)
-        self.assertEqual(j.box[16].box[1].box[0].box_id, 'nlst')
-        self.assertEqual(type(j.box[16].box[1].box[0]),
-                         glymur.jp2box.NumberListBox)
+        nlst = j.box[12].box[0].box[0]
+        self.assertEqual(nlst.box_id, 'nlst')
+        self.assertEqual(type(nlst), glymur.jp2box.NumberListBox)
 
         # Two associations.
-        self.assertEqual(len(j.box[16].box[1].box[0].associations), 2)
+        self.assertEqual(len(nlst.associations), 2)
 
         # Codestream 0
-        self.assertEqual(j.box[16].box[1].box[0].associations[0], 1 << 24)
+        self.assertEqual(nlst.associations[0], 1 << 24)
 
         # Compositing Layer 0
-        self.assertEqual(j.box[16].box[1].box[0].associations[1], 2 << 24)
+        self.assertEqual(nlst.associations[1], 2 << 24)
