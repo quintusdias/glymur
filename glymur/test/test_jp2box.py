@@ -58,6 +58,23 @@ class TestDataEntryURL(unittest.TestCase):
     def setUp(self):
         self.jp2file = glymur.data.nemo()
 
+    def test_wrap_greyscale(self):
+        """A single component should be wrapped as GREYSCALE."""
+        j = Jp2k(self.jp2file)
+        data = j.read()
+        red = data[:, :, 0]
+
+        # Write it back out as a raw codestream.
+        with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile1:
+            j2k = glymur.Jp2k(tfile1.name, 'wb')
+            j2k.write(data[:, :, 0])
+
+            # Ok, now rewrap it as JP2.  The colorspace should be GREYSCALE.
+            with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile2:
+                jp2 = j2k.wrap(tfile2.name)
+                self.assertEqual(jp2.box[2].box[1].colorspace,
+                        glymur.core.GREYSCALE)
+
     def test_basic_url(self):
         """Just your most basic URL box."""
         # Wrap our j2k file in a JP2 box along with an interior url box.

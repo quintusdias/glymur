@@ -23,6 +23,7 @@ class TestJPXWrap(unittest.TestCase):
     """Test suite for wrapping JPX files."""
 
     def setUp(self):
+        self.jpxfile = glymur.data.jpxfile()
         self.jp2file = glymur.data.nemo()
         self.j2kfile = glymur.data.goodstuff()
 
@@ -43,6 +44,17 @@ class TestJPXWrap(unittest.TestCase):
 
     def tearDown(self):
         os.unlink(self.xmlfile)
+
+    def test_full_blown_jpx(self):
+        """Rewrap a jpx file."""
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile1:
+            jpx = Jp2k(self.jpxfile)
+            idx = list(range(5)) + list(range(6, 9)) + list(range(9, 12)) + [12]
+            boxes = [jpx.box[j] for j in idx]
+            jpx2 = jpx.wrap(tfile1.name, boxes=boxes)
+            exp_ids = [box.box_id for box in boxes]
+        act_ids = [box.box_id for box in jpx2.box]
+        self.assertEqual(exp_ids, act_ids)
 
     def test_jpx_ftbl_no_codestream(self):
         """Can have a jpx with no codestream."""

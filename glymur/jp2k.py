@@ -18,6 +18,7 @@ else:
 
 from collections import Counter
 import ctypes
+import itertools
 import math
 import os
 import re
@@ -606,7 +607,7 @@ class Jp2k(Jp2kBox):
         self.parse()
 
     def wrap(self, filename, boxes=None):
-        """Write the codestream back out to file, wrapped in new JP2 jacket.
+        """Create a new JP2/JPX file wrapped in a new jacket.
 
         Parameters
         ----------
@@ -640,10 +641,22 @@ class Jp2k(Jp2kBox):
             height = codestream.segment[1].ysiz
             width = codestream.segment[1].xsiz
             num_components = len(codestream.segment[1].xrsiz)
+            if num_components < 3:
+                colorspace = GREYSCALE
+            else:
+                if len(self.box) == 0:
+                    # Best guess is SRGB
+                    colorspace = SRGB
+                else:
+                    # Take whatever the first jp2 header / color specification
+                    # says.
+                    jp2hs = [box for box in self.box if box.box_id == 'jp2h']
+                    colorspace = jp2hs[0].box[1].colorspace
+
             boxes[2].box = [ImageHeaderBox(height=height,
                                            width=width,
                                            num_components=num_components),
-                            ColourSpecificationBox(colorspace=SRGB)]
+                            ColourSpecificationBox(colorspace=colorspace)]
 
         _validate_jp2_box_sequence(boxes)
 
@@ -652,28 +665,30 @@ class Jp2k(Jp2kBox):
                 if box.box_id != 'jp2c':
                     box.write(ofile)
                 else:
-                    # The codestream gets written last.
+                    # Codestreams require a bit more care.
                     if len(self.box) == 0:
                         # Am I a raw codestream?  If so, then it is pretty
                         # easy, just write the codestream box header plus all
                         # of myself out to file.
                         ofile.write(struct.pack('>I', self.length + 8))
-                        ofile.write('jp2c'.encode())
+                        ofile.write(b'jp2c')
                         with open(self.filename, 'rb') as ifile:
                             ofile.write(ifile.read())
                     else:
                         # OK, I'm a jp2 file.  Need to find out where the
                         # raw codestream actually starts.
-                        jp2c = [box for box in self.box
-                                if box.box_id == 'jp2c']
-                        jp2c = jp2c[0]
-                        ofile.write(struct.pack('>I', jp2c.length))
-                        ofile.write('jp2c'.encode())
+                        offset = box.offset
+                        length = box.length
+                        if offset == -1:
+                            # Find the first codestream in the file.
+                            jp2c = [box for box in self.box
+                                    if box.box_id == 'jp2c']
+                            offset = jp2c[0].offset
+                            length = jp2c[0].length
+
                         with open(self.filename, 'rb') as ifile:
-                            # Seek 8 bytes past the L, T fields to get to the
-                            # raw codestream.
-                            ifile.seek(jp2c.offset + 8)
-                            ofile.write(ifile.read(jp2c.length - 8))
+                            ifile.seek(offset)
+                            ofile.write(ifile.read(length))
 
             ofile.flush()
 
@@ -1301,7 +1316,7 @@ def _check_jp2h_child_boxes(boxes, parent_box_name):
     """Certain boxes can only reside in the JP2 header."""
     box_ids = set([box.box_id for box in boxes])
     intersection = box_ids.intersection(JP2H_CHILDREN)
-    if len(intersection) > 0 and parent_box_name != 'jp2h':
+    if len(intersection) > 0 and parent_box_name not in ['jp2h', 'jpch']:
         msg = "A '{0}' box can only be nested in a JP2 header box."
         raise IOError(msg.format(list(intersection)[0]))
 
