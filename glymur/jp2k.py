@@ -607,7 +607,12 @@ class Jp2k(Jp2kBox):
         self.parse()
 
     def wrap(self, filename, boxes=None):
-        """Create a new JP2/JPX file wrapped in a new jacket.
+        """Create a new JP2/JPX file wrapped in a new set of JP2 boxes.
+
+        This method is primarily aimed at wrapping a raw codestream in a set of
+        of JP2 boxes (turning it into a JP2 file instead of just a raw
+        codestream), or rewrapping a codestream in a JP2 file in a new "jacket"
+        of JP2 boxes.
 
         Parameters
         ----------
@@ -617,6 +622,8 @@ class Jp2k(Jp2kBox):
             JP2 box definitions to define the JP2 file format.  If not
             provided, a default ""jacket" is assumed, consisting of JP2
             signature, file type, JP2 header, and contiguous codestream boxes.
+            A JPX file rewrapped without the boxes argument results in a JP2
+            file encompassing the first codestream.
 
         Returns
         -------
@@ -675,20 +682,46 @@ class Jp2k(Jp2kBox):
                         with open(self.filename, 'rb') as ifile:
                             ofile.write(ifile.read())
                     else:
-                        # OK, I'm a jp2 file.  Need to find out where the
+                        # OK, I'm a jp2/jpx file.  Need to find out where the
                         # raw codestream actually starts.
                         offset = box.offset
                         length = box.length
                         if offset == -1:
+                            if self.box[1].brand == 'jpx ':
+                                msg = "The codestream box must have its offset "
+                                msg += "and length attributes fully specified "
+                                msg += "if the file type brand is JPX."
+                                raise IOError(msg)
+
                             # Find the first codestream in the file.
                             jp2c = [box for box in self.box
                                     if box.box_id == 'jp2c']
                             offset = jp2c[0].offset
                             length = jp2c[0].length
 
+                        # Verify that the specified codestream is right.
                         with open(self.filename, 'rb') as ifile:
                             ifile.seek(offset)
-                            ofile.write(ifile.read(length))
+                            read_buffer = ifile.read(8)
+                            L, T = struct.unpack_from('>I4s', read_buffer, 0)
+                            if T != b'jp2c':
+                                msg = "Unable to locate the specified codestream."
+                                raise IOError(msg)
+                            if L == 0:
+                                # The length of the box is presumed to last
+                                # until the end of the file.  Compute the
+                                # effective length of the box.
+                                L = os.path.getsize(ifile.name) - fptr.tell() + 8
+
+                            elif L == 1:
+                                # The length of the box is in the XL field, a
+                                # 64-bit value.
+                                read_buffer = ifile.read(8)
+                                L, = struct.unpack('>Q', read_buffer)
+
+                            ifile.seek(offset)
+                            read_buffer = ifile.read(L)
+                            ofile.write(read_buffer)
 
             ofile.flush()
 

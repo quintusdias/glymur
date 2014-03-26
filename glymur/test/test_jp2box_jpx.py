@@ -45,21 +45,6 @@ class TestJPXWrap(unittest.TestCase):
     def tearDown(self):
         os.unlink(self.xmlfile)
 
-    def test_full_blown_jpx(self):
-        """Rewrap a jpx file."""
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile1:
-            jpx = Jp2k(self.jpxfile)
-            idx = list(range(5)) + list(range(9, 12)) + list(range(6, 9)) + [12]
-            boxes = [jpx.box[j] for j in idx]
-            jpx2 = jpx.wrap(tfile1.name, boxes=boxes)
-            exp_ids = [box.box_id for box in boxes]
-            lengths = [box.length for box in jpx.box]
-            exp_lengths = [lengths[j] for j in idx]
-        act_ids = [box.box_id for box in jpx2.box]
-        act_lengths = [box.length for box in jpx2.box]
-        self.assertEqual(exp_ids, act_ids)
-        self.assertEqual(exp_lengths, act_lengths)
-
     def test_jpx_ftbl_no_codestream(self):
         """Can have a jpx with no codestream."""
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile1:

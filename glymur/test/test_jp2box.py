@@ -858,6 +858,67 @@ class TestWrap(unittest.TestCase):
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
+    def test_wrap_jpx_to_jp2_with_unadorned_jpch(self):
+        """A JPX file rewrapped with plain jpch is not allowed."""
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile1:
+            jpx = Jp2k(self.jpxfile)
+            boxes = [jpx.box[0], jpx.box[1], jpx.box[2],
+                     glymur.jp2box.ContiguousCodestreamBox()]
+            with self.assertRaises(IOError):
+                jpx.wrap(tfile1.name, boxes=boxes)
+
+    def test_wrap_jpx_to_jp2_with_incorrect_jp2c_offset(self):
+        """Reject A JPX file rewrapped with bad jp2c offset."""
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile1:
+            jpx = Jp2k(self.jpxfile)
+            jpch = jpx.box[5]
+
+            # The offset should be 902.
+            jpch.offset = 901
+            jpch.length = 313274
+            boxes = [jpx.box[0], jpx.box[1], jpx.box[2], jpch]
+            with self.assertRaises(IOError):
+                jpx.wrap(tfile1.name, boxes=boxes)
+
+    def test_wrap_jpx_to_jp2_with_correctly_specified_jp2c(self):
+        """Accept A JPX file rewrapped with good jp2c."""
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile1:
+            jpx = Jp2k(self.jpxfile)
+            jpch = jpx.box[5]
+
+            # This time get it right.
+            jpch.offset = 903
+            jpch.length = 313274
+            boxes = [jpx.box[0], jpx.box[1], jpx.box[2], jpch]
+            jp2 = jpx.wrap(tfile1.name, boxes=boxes)
+
+        act_ids = [box.box_id for box in jp2.box]
+        exp_ids = ['jP  ', 'ftyp', 'jp2h', 'jp2c']
+        self.assertEqual(act_ids, exp_ids)
+
+        act_offsets = [box.offset for box in jp2.box]
+        exp_offsets = [0, 12, 40, 887]
+        self.assertEqual(act_offsets, exp_offsets)
+
+        act_lengths = [box.length for box in jp2.box]
+        exp_lengths = [12, 28, 847, 313274]
+        self.assertEqual(act_lengths, exp_lengths)
+
+    def test_full_blown_jpx(self):
+        """Rewrap a jpx file."""
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile1:
+            jpx = Jp2k(self.jpxfile)
+            idx = list(range(5)) + list(range(9, 12)) + list(range(6, 9)) + [12]
+            boxes = [jpx.box[j] for j in idx]
+            jpx2 = jpx.wrap(tfile1.name, boxes=boxes)
+            exp_ids = [box.box_id for box in boxes]
+            lengths = [box.length for box in jpx.box]
+            exp_lengths = [lengths[j] for j in idx]
+        act_ids = [box.box_id for box in jpx2.box]
+        act_lengths = [box.length for box in jpx2.box]
+        self.assertEqual(exp_ids, act_ids)
+        self.assertEqual(exp_lengths, act_lengths)
+
 
 class TestJp2Boxes(unittest.TestCase):
     """Tests for canonical JP2 boxes."""
