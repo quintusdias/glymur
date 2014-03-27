@@ -3447,7 +3447,7 @@ class TestSuiteDump(unittest.TestCase):
         # Image header
         self.assertEqual(jp2.box[2].box[0].height, 400)
         self.assertEqual(jp2.box[2].box[0].width, 700)
-        self.assertEqual(jp2.box[2].box[0].num_components, 1)
+        self.assertEqual(jp2.box[2].box[0].num_components, 3)
         self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
         self.assertEqual(jp2.box[2].box[0].signed, False)
         self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet

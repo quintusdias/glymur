@@ -29,7 +29,7 @@ import numpy as np
 
 from .codestream import Codestream
 from .core import SRGB, GREYSCALE
-from .core import PROGRESSION_ORDER, RSIZ, CINEMA_MODE
+from .core import PROGRESSION_ORDER, CINEMA_MODE
 from .core import ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE
 from .jp2box import Jp2kBox
 from .jp2box import JPEG2000SignatureBox, FileTypeBox, JP2HeaderBox
@@ -442,7 +442,7 @@ class Jp2k(Jp2kBox):
             If glymur is unable to load the openjp2 library.
         """
         if opj2.OPENJP2 is not None:
-            self._write_openjp2(img_array,  verbose=verbose, **kwargs)
+            self._write_openjp2(img_array, verbose=verbose, **kwargs)
         elif opj.OPENJPEG is not None:
             self._write_openjpeg(img_array, verbose=verbose, **kwargs)
         else:
@@ -606,7 +606,12 @@ class Jp2k(Jp2kBox):
         self.parse()
 
     def wrap(self, filename, boxes=None):
-        """Write the codestream back out to file, wrapped in new JP2 jacket.
+        """Create a new JP2/JPX file wrapped in a new set of JP2 boxes.
+
+        This method is primarily aimed at wrapping a raw codestream in a set of
+        of JP2 boxes (turning it into a JP2 file instead of just a raw
+        codestream), or rewrapping a codestream in a JP2 file in a new "jacket"
+        of JP2 boxes.
 
         Parameters
         ----------
@@ -616,6 +621,8 @@ class Jp2k(Jp2kBox):
             JP2 box definitions to define the JP2 file format.  If not
             provided, a default ""jacket" is assumed, consisting of JP2
             signature, file type, JP2 header, and contiguous codestream boxes.
+            A JPX file rewrapped without the boxes argument results in a JP2
+            file encompassing the first codestream.
 
         Returns
         -------
@@ -631,19 +638,7 @@ class Jp2k(Jp2kBox):
         >>> jp2 = j2k.wrap(tfile.name)
         """
         if boxes is None:
-            # Try to create a reasonable default.
-            boxes = [JPEG2000SignatureBox(),
-                     FileTypeBox(),
-                     JP2HeaderBox(),
-                     ContiguousCodestreamBox()]
-            codestream = self.get_codestream()
-            height = codestream.segment[1].ysiz
-            width = codestream.segment[1].xsiz
-            num_components = len(codestream.segment[1].xrsiz)
-            boxes[2].box = [ImageHeaderBox(height=height,
-                                           width=width,
-                                           num_components=num_components),
-                            ColourSpecificationBox(colorspace=SRGB)]
+            boxes = self._get_default_jp2_boxes()
 
         _validate_jp2_box_sequence(boxes)
 
@@ -652,33 +647,91 @@ class Jp2k(Jp2kBox):
                 if box.box_id != 'jp2c':
                     box.write(ofile)
                 else:
-                    # The codestream gets written last.
-                    if len(self.box) == 0:
-                        # Am I a raw codestream?  If so, then it is pretty
-                        # easy, just write the codestream box header plus all
-                        # of myself out to file.
-                        ofile.write(struct.pack('>I', self.length + 8))
-                        ofile.write('jp2c'.encode())
-                        with open(self.filename, 'rb') as ifile:
-                            ofile.write(ifile.read())
-                    else:
-                        # OK, I'm a jp2 file.  Need to find out where the
-                        # raw codestream actually starts.
-                        jp2c = [box for box in self.box
-                                if box.box_id == 'jp2c']
-                        jp2c = jp2c[0]
-                        ofile.write(struct.pack('>I', jp2c.length))
-                        ofile.write('jp2c'.encode())
-                        with open(self.filename, 'rb') as ifile:
-                            # Seek 8 bytes past the L, T fields to get to the
-                            # raw codestream.
-                            ifile.seek(jp2c.offset + 8)
-                            ofile.write(ifile.read(jp2c.length - 8))
-
+                    self._write_wrapped_codestream(ofile, box)
             ofile.flush()
 
         jp2 = Jp2k(filename)
         return jp2
+
+    def _write_wrapped_codestream(self, ofile, box):
+        """Write wrapped codestream."""
+        # Codestreams require a bit more care.
+        # Am I a raw codestream?
+        if len(self.box) == 0:
+            # Yes, just write the codestream box header plus all
+            # of myself out to file.
+            ofile.write(struct.pack('>I', self.length + 8))
+            ofile.write(b'jp2c')
+            with open(self.filename, 'rb') as ifile:
+                ofile.write(ifile.read())
+            return
+
+        # OK, I'm a jp2/jpx file.  Need to find out where the raw codestream
+        # actually starts.
+        offset = box.offset
+        if offset == -1:
+            if self.box[1].brand == 'jpx ':
+                msg = "The codestream box must have its offset and "
+                msg += "length attributes fully specified if the file "
+                msg += "type brand is JPX."
+                raise IOError(msg)
+
+            # Find the first codestream in the file.
+            jp2c = [box for box in self.box if box.box_id == 'jp2c']
+            offset = jp2c[0].offset
+
+        # Ready to write the codestream.
+        with open(self.filename, 'rb') as ifile:
+            ifile.seek(offset)
+
+            # Verify that the specified codestream is right.
+            read_buffer = ifile.read(8)
+            L, T = struct.unpack_from('>I4s', read_buffer, 0)
+            if T != b'jp2c':
+                msg = "Unable to locate the specified codestream."
+                raise IOError(msg)
+            if L == 0:
+                # The length of the box is presumed to last until the end of 
+                # the file.  Compute the effective length of the box.
+                L = os.path.getsize(ifile.name) - ifile.tell() + 8
+
+            elif L == 1:
+                # The length of the box is in the XL field, a 64-bit value.
+                read_buffer = ifile.read(8)
+                L, = struct.unpack('>Q', read_buffer)
+
+            ifile.seek(offset)
+            read_buffer = ifile.read(L)
+            ofile.write(read_buffer)
+
+    def _get_default_jp2_boxes(self):
+        """Create a default set of JP2 boxes."""
+        # Try to create a reasonable default.
+        boxes = [JPEG2000SignatureBox(),
+                 FileTypeBox(),
+                 JP2HeaderBox(),
+                 ContiguousCodestreamBox()]
+        codestream = self.get_codestream()
+        height = codestream.segment[1].ysiz
+        width = codestream.segment[1].xsiz
+        num_components = len(codestream.segment[1].xrsiz)
+        if num_components < 3:
+            colorspace = GREYSCALE
+        else:
+            if len(self.box) == 0:
+                # Best guess is SRGB
+                colorspace = SRGB
+            else:
+                # Take whatever the first jp2 header / color specification
+                # says.
+                jp2hs = [box for box in self.box if box.box_id == 'jp2h']
+                colorspace = jp2hs[0].box[1].colorspace
+
+        boxes[2].box = [ImageHeaderBox(height=height, width=width,
+                                       num_components=num_components),
+                        ColourSpecificationBox(colorspace=colorspace)]
+
+        return boxes
 
     def read(self, **kwargs):
         """Read a JPEG 2000 image.
@@ -753,7 +806,8 @@ class Jp2k(Jp2kBox):
             msg += "the read_bands method instead."
             raise RuntimeError(msg)
 
-    def _read_openjpeg(self, rlevel=0, ignore_pclr_cmap_cdef=False, verbose=False):
+    def _read_openjpeg(self, rlevel=0, ignore_pclr_cmap_cdef=False,
+                       verbose=False):
         """Read a JPEG 2000 image using libopenjpeg.
 
         Parameters
@@ -788,9 +842,9 @@ class Jp2k(Jp2kBox):
                 # -1 is shorthand for the largest rlevel
                 rlevel = max_rlevel
             elif rlevel < -1 or rlevel > max_rlevel:
-                    msg = "rlevel must be in the range [-1, {0}] for this image."
-                    msg = msg.format(max_rlevel)
-                    raise IOError(msg)
+                msg = "rlevel must be in the range [-1, {0}] for this image."
+                msg = msg.format(max_rlevel)
+                raise IOError(msg)
 
         with ExitStack() as stack:
             try:
@@ -922,7 +976,8 @@ class Jp2k(Jp2kBox):
 
         return img_array
 
-    def _populate_dparam(self, layer, rlevel, area, tile, ignore_pclr_cmap_cdef):
+    def _populate_dparam(self, layer, rlevel, area, tile,
+                         ignore_pclr_cmap_cdef):
         """Populate decompression structure with appropriate input parameters.
 
         Parameters
@@ -1196,11 +1251,11 @@ def _validate_jp2_box_sequence(boxes):
         _validate_jpx_box_sequence(boxes)
     else:
         count = _collect_box_count(boxes)
-        for id in count.keys():
-            if id not in JP2_IDS:
+        for box_id in count.keys():
+            if box_id not in JP2_IDS:
                 msg = "The presence of a '{0}' box requires that the file type "
                 msg += "brand be set to 'jpx '."
-                raise IOError(msg.format(id))
+                raise IOError(msg.format(box_id))
 
 def _validate_jpx_box_sequence(boxes):
     """Run through series of tests for JPX box legality."""
@@ -1301,7 +1356,7 @@ def _check_jp2h_child_boxes(boxes, parent_box_name):
     """Certain boxes can only reside in the JP2 header."""
     box_ids = set([box.box_id for box in boxes])
     intersection = box_ids.intersection(JP2H_CHILDREN)
-    if len(intersection) > 0 and parent_box_name != 'jp2h':
+    if len(intersection) > 0 and parent_box_name not in ['jp2h', 'jpch']:
         msg = "A '{0}' box can only be nested in a JP2 header box."
         raise IOError(msg.format(list(intersection)[0]))
 

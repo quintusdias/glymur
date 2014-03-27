@@ -23,6 +23,7 @@ class TestJPXWrap(unittest.TestCase):
     """Test suite for wrapping JPX files."""
 
     def setUp(self):
+        self.jpxfile = glymur.data.jpxfile()
         self.jp2file = glymur.data.nemo()
         self.j2kfile = glymur.data.goodstuff()
 
