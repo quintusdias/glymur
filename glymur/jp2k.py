@@ -1250,12 +1250,26 @@ def _validate_jp2_box_sequence(boxes):
     if boxes[1].brand == 'jpx ':
         _validate_jpx_box_sequence(boxes)
     else:
+        # Validate the JP2 box IDs.
         count = _collect_box_count(boxes)
         for box_id in count.keys():
             if box_id not in JP2_IDS:
                 msg = "The presence of a '{0}' box requires that the file type "
                 msg += "brand be set to 'jpx '."
                 raise IOError(msg.format(box_id))
+
+        _validate_jp2_colr(boxes)
+
+def _validate_jp2_colr(boxes):
+    """
+    Validate JP2 requirements on colour specification boxes.
+    """
+    lst = [box for box in boxes if box.box_id == 'jp2h']
+    jp2h = lst[0]
+    for colr in [box for box in jp2h.box if box.box_id == 'colr']:
+        if colr.approximation != 0:
+            msg = "A JP2 colr box cannot have a non-zero approximation field."
+            raise IOError(msg)
 
 def _validate_jpx_box_sequence(boxes):
     """Run through series of tests for JPX box legality."""

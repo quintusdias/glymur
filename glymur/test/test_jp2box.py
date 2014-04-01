@@ -453,6 +453,18 @@ class TestColourSpecificationBox(unittest.TestCase):
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+    def test_bad_approx_jp2_field(self):
+        """JP2 has requirements for approx field"""
+        j2k = Jp2k(self.j2kfile)
+        boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
+        colr = ColourSpecificationBox(colorspace=glymur.core.SRGB,
+                                      approximation=1)
+        boxes[2].box = [self.ihdr, colr]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            with self.assertRaises(IOError):
+                j2k.wrap(tfile.name, boxes=boxes)
+
     def test_default_colr(self):
         """basic colr instantiation"""
         colr = ColourSpecificationBox(colorspace=glymur.core.SRGB)
