@@ -1933,27 +1933,43 @@ class PaletteBox(Jp2kBox):
 
         # Need to determine bps and signed or not
         read_buffer = fptr.read(num_columns)
-        data = struct.unpack('>' + 'B' * num_columns, read_buffer)
-        bps = [((x & 0x7f) + 1) for x in data]
-        signed = [((x & 0x80) > 1) for x in data]
+        bps_signed = struct.unpack('>' + 'B' * num_columns, read_buffer)
+        bps = [((x & 0x7f) + 1) for x in bps_signed]
+        signed = [((x & 0x80) > 1) for x in bps_signed]
 
-        fmt = '>'
-        for bits in bps:
-            if bits <= 8:
-                fmt += 'B'
-            elif bits <= 16:
-                fmt += 'H'
-            elif bits <= 32:
-                fmt += 'I'
+        if any(b != bps_signed[0] for b in bps_signed):
+            # Ok the palette has the same datatype for all columns.  We should
+            # be able to efficiently read it.
+            if bps <= 8:
+                dtype = np.uint8
+            elif bps <= 16:
+                dtype = np.uint16
+            elif bps <= 32:
+                dtype = np.uint32
+        
+            read_buffer = fptr.read(num_entries * np.sum(bps) / 8)
+            palette = np.frombuffer(read_buffer, dtype)
+            palette.reshape((num_entries, num_columns))
 
-        # Each palette component is padded out to the next largest byte.
-        # That means a list comprehension does this in one shot.
-        row_nbytes = sum([int(math.ceil(x/8.0)) for x in bps])
+        else:
+            # General case where the columns may not be the same width.
+            fmt = '>'
+            for bits in bps:
+                if bits <= 8:
+                    fmt += 'B'
+                elif bits <= 16:
+                    fmt += 'H'
+                elif bits <= 32:
+                    fmt += 'I'
 
-        read_buffer = fptr.read(num_entries * row_nbytes)
-        palette = np.zeros((num_entries, num_columns), dtype=np.int32)
-        for j in range(num_entries):
-            palette[j] = struct.unpack_from(fmt, read_buffer,
+            # Each palette component is padded out to the next largest byte.
+            # That means a list comprehension does this in one shot.
+            row_nbytes = sum([int(math.ceil(x/8.0)) for x in bps])
+
+            read_buffer = fptr.read(num_entries * row_nbytes)
+            palette = np.zeros((num_entries, num_columns), dtype=np.int32)
+            for j in range(num_entries):
+                palette[j] = struct.unpack_from(fmt, read_buffer,
                                             offset=j * row_nbytes)
 
         return cls(palette, bps, signed, length=length, offset=offset)
