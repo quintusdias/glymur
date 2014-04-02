@@ -1891,17 +1891,34 @@ class PaletteBox(Jp2kBox):
                                    *bps_signed)
         fptr.write(write_buffer)
 
-        if self.bits_per_component[0] <= 8:
-            code = 'B'
-        elif self.bits_per_component[0] <= 16:
-            code = 'H'
-        elif self.bits_per_component[0] <= 32:
-            code = 'I'
-
-        fmt = '>' + code * self.palette.shape[1]
-        for row in self.palette:
-            write_buffer = struct.pack(fmt, *row)
+        bps = self.bits_per_component
+        if any(b != bps[0] for b in bps):
+            # All components are the same.  Writing is straightforward.
+            if self.bits_per_component[0] <= 8:
+                code = 'B'
+                dtype = np.uint8
+            elif self.bits_per_component[0] <= 16:
+                code = 'H'
+                dtype = np.uint16
+            elif self.bits_per_component[0] <= 32:
+                code = 'I'
+                dtype = np.uint32
+            nelts = self.palette.shape[0] * self.palette.shape[1]
+            fmt = '>{0}{1}'.format(nelts, code)
+            write_buffer = struct.pack(fmt,
+                                       self.palette.astype(dtype).flatten())
             fptr.write(write_buffer)
+        else:
+            # Not all the components are the same.  More general, but much rarer
+            # case.  Does this even happen.
+            code_dict = {8: 'B', 16: 'H', 32: 'I'}
+            codes = ''
+            for width in bps:
+                codes += code_dict[width]
+            fmt = '>' + codes
+            for row in self.palette:
+                write_buffer = struct.pack(fmt, *row)
+                fptr.write(write_buffer)
 
     @staticmethod
     def parse(fptr, offset, length):
