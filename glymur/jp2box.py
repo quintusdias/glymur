@@ -1885,11 +1885,11 @@ class PaletteBox(Jp2kBox):
         if all(b == bps[0] for b in bps):
             # All components are the same.  Writing is straightforward.
             if self.bits_per_component[0] <= 8:
-                write_buffer = np.getbuffer(self.palette.astype(np.uint8))
+                write_buffer = memoryview(self.palette.astype(np.uint8))
             elif self.bits_per_component[0] <= 16:
-                write_buffer = np.getbuffer(self.palette.astype(np.uint16))
+                write_buffer = memoryview(self.palette.astype(np.uint16))
             elif self.bits_per_component[0] <= 32:
-                write_buffer = np.getbuffer(self.palette.astype(np.uint32))
+                write_buffer = memoryview(self.palette.astype(np.uint32))
             fptr.write(write_buffer)
         else:
             # Not all the components are the same.  More general, but much rarer
