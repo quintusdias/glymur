@@ -8,18 +8,22 @@ import struct
 import sys
 import tempfile
 import unittest
+import warnings
+
 import lxml.etree as ET
 
 import glymur
 from glymur import Jp2k
 from glymur.jp2box import DataEntryURLBox, FileTypeBox, JPEG2000SignatureBox
 from glymur.jp2box import DataReferenceBox, FragmentListBox, FragmentTableBox
+from glymur.jp2box import ColourSpecificationBox
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
 class TestJPXWrap(unittest.TestCase):
     """Test suite for wrapping JPX files."""
 
     def setUp(self):
+        self.jpxfile = glymur.data.jpxfile()
         self.jp2file = glymur.data.nemo()
         self.j2kfile = glymur.data.goodstuff()
 
@@ -106,6 +110,68 @@ class TestJPXWrap(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
             with self.assertRaises(IOError):
                 jp2.wrap(tfile.name, boxes=boxes)
+
+    def test_jpch_jplh(self):
+        """Write a codestream header, compositing layer header box."""
+        jp2 = Jp2k(self.jp2file)
+        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+
+        # The ftyp box must be modified to jpx.
+        boxes[1].brand = 'jpx '
+        boxes[1].compatibility_list = ['jp2 ', 'jpxb']
+
+        jpch = glymur.jp2box.CodestreamHeaderBox()
+        boxes.append(jpch)
+        jplh = glymur.jp2box.CompositingLayerHeaderBox()
+        boxes.append(jplh)
+
+        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+            jpx = jp2.wrap(tfile.name, boxes=boxes)
+
+            self.assertEqual(jpx.box[-2].box_id, 'jpch')
+            self.assertEqual(jpx.box[-1].box_id, 'jplh')
+
+    def test_cgrp(self):
+        """Write a color group box."""
+        jp2 = Jp2k(self.jp2file)
+        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+
+        # The ftyp box must be modified to jpx.
+        boxes[1].brand = 'jpx '
+        boxes[1].compatibility_list = ['jp2 ', 'jpxb']
+
+        colr_rgb = ColourSpecificationBox(colorspace=glymur.core.SRGB)
+        colr_gr = ColourSpecificationBox(colorspace=glymur.core.GREYSCALE)
+        box = [colr_rgb, colr_gr]
+
+        cgrp = glymur.jp2box.ColourGroupBox(box=box)
+        boxes.append(cgrp)
+
+        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+            jpx = jp2.wrap(tfile.name, boxes=boxes)
+
+            self.assertEqual(jpx.box[-1].box_id, 'cgrp')
+            self.assertEqual(jpx.box[-1].box[0].box_id, 'colr')
+            self.assertEqual(jpx.box[-1].box[1].box_id, 'colr')
+
+    def test_cgrp_neg(self):
+        """Can't write a cgrp with anything but colr sub boxes"""
+        jp2 = Jp2k(self.jp2file)
+        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+
+        # The ftyp box must be modified to jpx.
+        boxes[1].brand = 'jpx '
+        boxes[1].compatibility_list = ['jp2 ', 'jpxb']
+
+        lblb = glymur.jp2box.LabelBox("Just a test")
+        box = [lblb]
+
+        cgrp = glymur.jp2box.ColourGroupBox(box=box)
+        boxes.append(cgrp)
+
+        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+            with self.assertRaises(IOError):
+                jpx = jp2.wrap(tfile.name, boxes=boxes)
 
     def test_ftbl(self):
         """Write a fragment table box."""
@@ -207,13 +273,14 @@ class TestJPXWrap(unittest.TestCase):
             with self.assertRaises(IOError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
+    @unittest.skipIf(sys.hexversion < 0x03000000, "Needs unittest in 3.x.")
     def test_deurl_child_of_dtbl(self):
         """Data reference boxes can only contain data entry url boxes."""
         jp2 = Jp2k(self.jp2file)
         boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
 
         ftyp = glymur.jp2box.FileTypeBox()
-        with self.assertRaises(IOError):
+        with self.assertWarns(UserWarning):
             dref = glymur.jp2box.DataReferenceBox([ftyp])
 
         # Try to get around it by appending the ftyp box after creation.
@@ -337,7 +404,9 @@ class TestJPX(unittest.TestCase):
         offset = [89]
         length = [1132288]
         reference = [0, 0]
-        flst = glymur.jp2box.FragmentListBox(offset, length, reference)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            flst = glymur.jp2box.FragmentListBox(offset, length, reference)
         with self.assertRaises(IOError):
             with tempfile.TemporaryFile() as tfile:
                 flst.write(tfile)
@@ -347,8 +416,10 @@ class TestJPX(unittest.TestCase):
         offset = [0]
         length = [1132288]
         reference = [0]
-        flst = glymur.jp2box.FragmentListBox(offset, length, reference)
-        with self.assertRaises(IOError):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            flst = glymur.jp2box.FragmentListBox(offset, length, reference)
+        with self.assertRaises((IOError, OSError)):
             with tempfile.TemporaryFile() as tfile:
                 flst.write(tfile)
 
@@ -357,14 +428,18 @@ class TestJPX(unittest.TestCase):
         offset = [89]
         length = [0]
         reference = [0]
-        flst = glymur.jp2box.FragmentListBox(offset, length, reference)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            flst = glymur.jp2box.FragmentListBox(offset, length, reference)
         with self.assertRaises(IOError):
             with tempfile.TemporaryFile() as tfile:
                 flst.write(tfile)
 
     def test_ftbl_boxes_empty(self):
         """A fragment table box must have at least one child box."""
-        ftbl = glymur.jp2box.FragmentTableBox()
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            ftbl = glymur.jp2box.FragmentTableBox()
         with self.assertRaises(IOError):
             with tempfile.TemporaryFile() as tfile:
                 ftbl.write(tfile)
@@ -377,6 +452,7 @@ class TestJPX(unittest.TestCase):
             with tempfile.TemporaryFile() as tfile:
                 ftbl.write(tfile)
 
+    @unittest.skip("No such jpx file anymore.")
     def test_jpx_rreq_mask_length_3(self):
         """There are some JPX files with rreq mask length of 3."""
         jpx = Jp2k(self.jpxfile)
@@ -386,7 +462,7 @@ class TestJPX(unittest.TestCase):
         self.assertEqual(jpx.box[2].standard_flag,
                          (5, 42, 45, 2, 18, 19, 1, 8, 12, 31, 20))
 
-    @unittest.skipIf(sys.hexversion < 0x03000000, "Needs unittest in 3.x.")
+    @unittest.skip("Requires unnecessarily complicated code")
     def test_unknown_superbox(self):
         """Verify that we can handle an unknown superbox."""
         with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
@@ -402,14 +478,8 @@ class TestJPX(unittest.TestCase):
 
             with self.assertWarns(UserWarning):
                 jpx = Jp2k(tfile.name)
-            self.assertEqual(jpx.box[-1].box_id, 'grp ')
+            self.assertEqual(jpx.box[-1].box_id, b'grp ')
             self.assertEqual(jpx.box[-1].box[0].box_id, 'free')
-
-    def test_free_box(self):
-        """Verify that we can handle a free box."""
-        j = Jp2k(self.jpxfile)
-        self.assertEqual(j.box[16].box[0].box_id, 'free')
-        self.assertEqual(type(j.box[16].box[0]), glymur.jp2box.FreeBox)
 
     def test_data_reference_requires_dtbl(self):
         """The existance of a data reference box requires a ftbl box as well."""
@@ -483,17 +553,17 @@ class TestJPX(unittest.TestCase):
             self.assertEqual(jpx.box[-1].box[0].data_reference, (3,))
 
     def test_nlst(self):
-        """Verify that we can handle a free box."""
+        """Verify that we can handle a number list box."""
         j = Jp2k(self.jpxfile)
-        self.assertEqual(j.box[16].box[1].box[0].box_id, 'nlst')
-        self.assertEqual(type(j.box[16].box[1].box[0]),
-                         glymur.jp2box.NumberListBox)
+        nlst = j.box[12].box[0].box[0]
+        self.assertEqual(nlst.box_id, 'nlst')
+        self.assertEqual(type(nlst), glymur.jp2box.NumberListBox)
 
         # Two associations.
-        self.assertEqual(len(j.box[16].box[1].box[0].associations), 2)
+        self.assertEqual(len(nlst.associations), 2)
 
         # Codestream 0
-        self.assertEqual(j.box[16].box[1].box[0].associations[0], 1 << 24)
+        self.assertEqual(nlst.associations[0], 1 << 24)
 
         # Compositing Layer 0
-        self.assertEqual(j.box[16].box[1].box[0].associations[1], 2 << 24)
+        self.assertEqual(nlst.associations[1], 2 << 24)

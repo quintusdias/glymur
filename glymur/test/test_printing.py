@@ -50,6 +50,14 @@ class TestPrinting(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_version_info(self):
+        """Should be able to print(glymur.version.info)"""
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(glymur.version.info)
+            actual = fake_out.getvalue().strip()
+
+        self.assertTrue(True)
+
     @unittest.skipIf(sys.hexversion < 0x03000000, "Needs unittest in 3.x.")
     def test_unknown_superbox(self):
         """Verify that we can handle an unknown superbox."""
@@ -60,6 +68,9 @@ class TestPrinting(unittest.TestCase):
             # Add the header for an unknwon superbox.
             write_buffer = struct.pack('>I4s', 20, 'grp '.encode())
             tfile.write(write_buffer)
+
+            # Add a free box inside of it.  We won't be able to identify it,
+            # but it's there.
             write_buffer = struct.pack('>I4sI', 12, 'free'.encode(), 0)
             tfile.write(write_buffer)
             tfile.flush()
@@ -70,8 +81,7 @@ class TestPrinting(unittest.TestCase):
             with patch('sys.stdout', new=StringIO()) as fake_out:
                 print(jpx.box[-1])
                 actual = fake_out.getvalue().strip()
-            lines = ['Unknown Box (grp ) @ (695609, 20)',
-                     '    Free Box (free) @ (695617, 12)']
+            lines = ["Unknown Box (b'grp ') @ (1399071, 20)"]
             expected = '\n'.join(lines)
             self.assertEqual(actual, expected)
 
@@ -341,7 +351,7 @@ class TestPrinting(unittest.TestCase):
             actual = fake_out.getvalue().strip()
 
         lines = ['SIZ marker segment @ (3233, 47)',
-                 '    Profile:  2',
+                 '    Profile:  no profile',
                  '    Reference Grid Height, Width:  (1456 x 2592)',
                  '    Vertical, Horizontal Reference Grid Offset:  (0 x 0)',
                  '    Reference Tile Height, Width:  (1456 x 2592)',
@@ -414,7 +424,7 @@ class TestPrinting(unittest.TestCase):
         lst = ['Codestream:',
                '    SOC marker segment @ (3231, 0)',
                '    SIZ marker segment @ (3233, 47)',
-               '        Profile:  2',
+               '        Profile:  no profile',
                '        Reference Grid Height, Width:  (1456 x 2592)',
                '        Vertical, Horizontal Reference Grid Offset:  (0 x 0)',
                '        Reference Tile Height, Width:  (1456 x 2592)',
@@ -645,6 +655,43 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_cinema_profile(self):
+        """Should print Cinema 2K when the profile is 3."""
+        filename = opj_data_file('input/nonregression/_00042.j2k')
+        j2k = Jp2k(filename)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            c = j2k.get_codestream()
+            print(c.segment[1])
+            actual = fake_out.getvalue().strip()
+        self.assertEqual(actual, fixtures.cinema2k_profile)
+
+    def test_invalid_colorspace(self):
+        """An invalid colorspace shouldn't cause an error."""
+        filename = opj_data_file('input/nonregression/edf_c2_1103421.jp2')
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            jp2 = Jp2k(filename)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(jp2)
+
+    def test_bad_rsiz(self):
+        """Should still be able to print if rsiz is bad, issue196"""
+        filename = opj_data_file('input/nonregression/edf_c2_1002767.jp2')
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            j = Jp2k(filename)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j)
+
+    def test_bad_wavelet_transform(self):
+        """Should still be able to print if wavelet xform is bad, issue195"""
+        filename = opj_data_file('input/nonregression/edf_c2_10025.jp2')
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            j = Jp2k(filename)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j)
+
     def test_invalid_progression_order(self):
         """Should still be able to print even if prog order is invalid."""
         jfile = opj_data_file('input/nonregression/2977.pdf.asan.67.2198.jp2')
@@ -818,7 +865,10 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
     def test_channel_definition(self):
         """verify printing of cdef box"""
         filename = opj_data_file('input/conformance/file2.jp2')
-        j = glymur.Jp2k(filename)
+        with warnings.catch_warnings():
+            # Bad compatibility list item.
+            warnings.simplefilter("ignore")
+            j = glymur.Jp2k(filename)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.box[2].box[2])
             actual = fake_out.getvalue().strip()

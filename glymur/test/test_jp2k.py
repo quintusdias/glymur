@@ -63,6 +63,24 @@ class TestJp2k(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_no_cxform_pclr_jpx(self):
+        """Indices for pclr jpxfile if no color transform"""
+        j = Jp2k(self.jpxfile)
+        rgb = j.read()
+        idx = j.read(ignore_pclr_cmap_cdef=True)
+        nr, nc = 1024, 1024
+        self.assertEqual(rgb.shape, (nr, nc, 3))
+        self.assertEqual(idx.shape, (nr, nc))
+
+        # Should be able to manually reconstruct the RGB image from the palette
+        # and indices.
+        palette = j.box[2].box[2].palette
+        rgb_from_idx = np.zeros(rgb.shape, dtype=np.uint8)
+        for r in np.arange(nr):
+            for c in np.arange(nc):
+                rgb_from_idx[r, c] = palette[idx[r, c]]
+        np.testing.assert_array_equal(rgb, rgb_from_idx)
+
     def test_repr(self):
         """Verify that results of __repr__ are eval-able."""
         j = Jp2k(self.j2kfile)
@@ -91,23 +109,6 @@ class TestJp2k(unittest.TestCase):
         filename = pkg_resources.resource_filename(glymur.__name__, "jp2k.py")
         with self.assertRaises(IOError):
             Jp2k(filename)
-
-    def test_no_cxform_pclr_jpx(self):
-        """Indices for pclr jpxfile if no color transform"""
-        j = Jp2k(self.jpxfile)
-        rgb = j.read()
-        idx = j.read(no_cxform=True)
-        self.assertEqual(rgb.shape, (1024, 1024, 3))
-        self.assertEqual(idx.shape, (1024, 1024))
-
-        # Should be able to manually reconstruct the RGB image from the palette
-        # and indices.
-        palette = j.box[3].box[2].palette
-        rgb_from_idx = np.zeros(rgb.shape, dtype=np.uint8)
-        for r in np.arange(1024):
-            for c in np.arange(1024):
-                rgb_from_idx[r, c] = palette[idx[r, c]]
-        np.testing.assert_array_equal(rgb, rgb_from_idx)
 
     def test_file_not_present(self):
         """Should error out if reading from a file that does not exist"""
@@ -758,12 +759,48 @@ class TestJp2k_2_1(unittest.TestCase):
 class TestJp2kOpjDataRoot(unittest.TestCase):
     """These tests should be run by just about all configuration."""
 
+    def test_undecodeable_box_id(self):
+        """Should warn in case of undecodeable box ID but not error out."""
+        filename = opj_data_file('input/nonregression/edf_c2_1013627.jp2')
+        if sys.hexversion < 0x03000000:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                jp2 = Jp2k(filename)
+        else:
+            with self.assertWarns(UserWarning):
+                jp2 = Jp2k(filename)
+
+        # Now make sure we got all of the boxes.  Ignore the last, which was
+        # bad.
+        box_ids = [box.box_id for box in jp2.box[:-1]]
+        self.assertEqual(box_ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
+
+    def test_invalid_approximation(self):
+        """Should warn in case of bad ftyp brand."""
+        filename = opj_data_file('input/nonregression/edf_c2_1000290.jp2')
+        with self.assertWarns(UserWarning):
+            jp2 = Jp2k(filename)
+
+    @unittest.skipIf(sys.hexversion < 0x03000000, "Test requires Python 3.3+")
+    def test_invalid_approximation(self):
+        """Should warn in case of invalid approximation."""
+        filename = opj_data_file('input/nonregression/edf_c2_1015644.jp2')
+        with self.assertWarns(UserWarning):
+            jp2 = Jp2k(filename)
+
+    @unittest.skipIf(sys.hexversion < 0x03000000, "Test requires Python 3.3+")
+    def test_invalid_colorspace(self):
+        """Should warn in case of invalid colorspace."""
+        filename = opj_data_file('input/nonregression/edf_c2_1103421.jp2')
+        with self.assertWarns(UserWarning):
+            jp2 = Jp2k(filename)
+
     def test_no_cxform_pclr_jp2(self):
         """Indices for pclr jpxfile if no color transform"""
         filename = opj_data_file('input/conformance/file9.jp2')
         j = Jp2k(filename)
         rgb = j.read()
-        idx = j.read(no_cxform=True)
+        idx = j.read(ignore_pclr_cmap_cdef=True)
         self.assertEqual(rgb.shape, (512, 768, 3))
         self.assertEqual(idx.shape, (512, 768))
 
@@ -803,9 +840,12 @@ class TestJp2kOpjDataRoot(unittest.TestCase):
         # This file has the components physically reversed.  The cmap box
         # tells the decoder how to order them, but this flag prevents that.
         filename = opj_data_file('input/conformance/file2.jp2')
-        j = Jp2k(filename)
+        with warnings.catch_warnings():
+            # The file has a bad compatibility list entry.  Not important here.
+            warnings.simplefilter("ignore")
+            j = Jp2k(filename)
         ycbcr = j.read()
-        crcby = j.read(no_cxform=True)
+        crcby = j.read(ignore_pclr_cmap_cdef=True)
 
         expected = np.zeros(ycbcr.shape, ycbcr.dtype)
         for k in range(crcby.shape[2]):

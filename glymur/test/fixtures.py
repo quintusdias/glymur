@@ -412,7 +412,7 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)
     Main header:
         SOC marker segment @ (3231, 0)
         SIZ marker segment @ (3233, 47)
-            Profile:  2
+            Profile:  no profile
             Reference Grid Height, Width:  (1456 x 2592)
             Vertical, Horizontal Reference Grid Offset:  (0 x 0)
             Reference Tile Height, Width:  (1456 x 2592)
@@ -477,7 +477,7 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)
     Main header:
         SOC marker segment @ (3231, 0)
         SIZ marker segment @ (3233, 47)
-            Profile:  2
+            Profile:  no profile
             Reference Grid Height, Width:  (1456 x 2592)
             Vertical, Horizontal Reference Grid Offset:  (0 x 0)
             Reference Tile Height, Width:  (1456 x 2592)
@@ -580,8 +580,9 @@ file1_xml = """XML Box (xml ) @ (36, 439)
 
 issue_182_cmap = """Component Mapping Box (cmap) @ (130, 24)
     Component 0 ==> palette column 0
-    Component 1 ==> palette column 0
-    Component 2 ==> 2"""
+    Component 0 ==> palette column 1
+    Component 0 ==> palette column 2
+    Component 0 ==> palette column 3"""
 
 issue_183_colr = """Colour Specification Box (colr) @ (62, 12)
     Method:  restricted ICC profile
@@ -610,3 +611,14 @@ issue_186_progression_order = """COD marker segment @ (174, 12)
             Vertically stripe causal context:  False
             Predictable termination:  False
             Segmentation symbols:  False"""
+
+# Cinema 2K profile
+cinema2k_profile = """SIZ marker segment @ (2, 47)
+    Profile:  Cinema 2K
+    Reference Grid Height, Width:  (1080 x 1920)
+    Vertical, Horizontal Reference Grid Offset:  (0 x 0)
+    Reference Tile Height, Width:  (1080 x 1920)
+    Vertical, Horizontal Reference Tile Offset:  (0 x 0)
+    Bitdepth:  (12, 12, 12)
+    Signed:  (False, False, False)
+    Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))"""

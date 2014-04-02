@@ -327,7 +327,10 @@ class TestSuite(unittest.TestCase):
 
     def test_ETS_JP2_file1(self):
         jfile = opj_data_file('input/conformance/file1.jp2')
-        jp2k = Jp2k(jfile)
+        with warnings.catch_warnings():
+            # Bad compatibility list item.
+            warnings.simplefilter("ignore")
+            jp2k = Jp2k(jfile)
         jpdata = jp2k.read()
         self.assertEqual(jpdata.shape, (512, 768, 3))
 
@@ -3114,7 +3117,10 @@ class TestSuiteDump(unittest.TestCase):
 
     def test_NR_file1_dump(self):
         jfile = opj_data_file('input/conformance/file1.jp2')
-        jp2 = Jp2k(jfile)
+        with warnings.catch_warnings():
+            # Bad compatibility list item.
+            warnings.simplefilter("ignore")
+            jp2 = Jp2k(jfile)
 
         ids = [box.box_id for box in jp2.box]
         self.assertEqual(ids, ['jP  ', 'ftyp', 'xml ', 'jp2h', 'xml ',
@@ -3441,7 +3447,7 @@ class TestSuiteDump(unittest.TestCase):
         # Image header
         self.assertEqual(jp2.box[2].box[0].height, 400)
         self.assertEqual(jp2.box[2].box[0].width, 700)
-        self.assertEqual(jp2.box[2].box[0].num_components, 1)
+        self.assertEqual(jp2.box[2].box[0].num_components, 3)
         self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
         self.assertEqual(jp2.box[2].box[0].signed, False)
         self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
@@ -5476,7 +5482,7 @@ class TestSuiteDump(unittest.TestCase):
             jp2 = Jp2k(jfile)
 
         ids = [box.box_id for box in jp2.box]
-        self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'XML ', 'jp2c'])
+        self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', b'XML ', 'jp2c'])
 
         ids = [box.box_id for box in jp2.box[2].box]
         self.assertEqual(ids, ['ihdr', 'colr'])
@@ -5830,9 +5836,9 @@ class TestSuiteDump(unittest.TestCase):
 
         # Jp2 Header
         # Component mapping box
-        self.assertEqual(jp2.box[3].box[3].component_index, (0, 1, 2))
-        self.assertEqual(jp2.box[3].box[3].mapping_type, (1, 1, 0))
-        self.assertEqual(jp2.box[3].box[3].palette_index, (0, 0, 1))
+        self.assertEqual(jp2.box[3].box[3].component_index, (0, 0, 0, 0))
+        self.assertEqual(jp2.box[3].box[3].mapping_type, (1, 1, 1, 1))
+        self.assertEqual(jp2.box[3].box[3].palette_index, (0, 1, 2, 3))
 
         c = jp2.box[4].main_header
 
