@@ -176,40 +176,19 @@ class Jp2kBox(object):
             object corresponding to the current box
         """
         try:
-            box = _BOX_WITH_ID[box_id].parse(fptr, start, num_bytes)
-
-        except UnicodeDecodeError:
-            msg = 'Unrecognized box ({0}) encountered.'.format(box_id)
-            warnings.warn(msg)
-            box = UnknownBox('    ', offset=start, length=num_bytes,
-                             longname='Unknown')
+            parser = _BOX_WITH_ID[box_id].parse
 
         except KeyError:
+            # We don't recognize the box ID, so create an UnknownBox and be
+            # done with it.
             msg = 'Unrecognized box ({0}) encountered.'.format(box_id)
             warnings.warn(msg)
             box = UnknownBox(box_id, offset=start, length=num_bytes,
                              longname='Unknown')
 
-            cpos = fptr.tell()
-            if not ((cpos == start + 8) or (cpos == start + 16)):
-                # If the file pointer has advanced, then the KeyError
-                # ocurred during the parsing of the box.
-                pass
-            else:
-                # Could it be a superbox with recognizable child boxes?
-                # Peek ahead to see.
-                pos = fptr.tell()
-                read_buffer = fptr.read(8)
-                _, sub_id = struct.unpack('>I4s', read_buffer)
+            return box
 
-                # Regardless of whether or not we recognize the box, rewind back
-                # to properly advance to the next box.
-                fptr.seek(pos)
-
-                # Now process any child boxes if we actually did recognize it.
-                if sub_id in _BOX_WITH_ID.keys():
-                    box.box = box.parse_superbox(fptr)
-
+        box = parser(fptr, start, num_bytes)
         return box
 
     def parse_superbox(self, fptr):

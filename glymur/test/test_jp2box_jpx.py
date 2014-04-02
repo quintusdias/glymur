@@ -462,7 +462,7 @@ class TestJPX(unittest.TestCase):
         self.assertEqual(jpx.box[2].standard_flag,
                          (5, 42, 45, 2, 18, 19, 1, 8, 12, 31, 20))
 
-    @unittest.skipIf(sys.hexversion < 0x03000000, "Needs unittest in 3.x.")
+    @unittest.skip("Requires unnecessarily complicated code")
     def test_unknown_superbox(self):
         """Verify that we can handle an unknown superbox."""
         with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
