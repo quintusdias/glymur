@@ -68,6 +68,9 @@ class TestPrinting(unittest.TestCase):
             # Add the header for an unknwon superbox.
             write_buffer = struct.pack('>I4s', 20, 'grp '.encode())
             tfile.write(write_buffer)
+
+            # Add a free box inside of it.  We won't be able to identify it,
+            # but it's there.
             write_buffer = struct.pack('>I4sI', 12, 'free'.encode(), 0)
             tfile.write(write_buffer)
             tfile.flush()
@@ -78,8 +81,7 @@ class TestPrinting(unittest.TestCase):
             with patch('sys.stdout', new=StringIO()) as fake_out:
                 print(jpx.box[-1])
                 actual = fake_out.getvalue().strip()
-            lines = ["Unknown Box (b'grp ') @ (1399071, 20)",
-                     '    Free Box (free) @ (1399079, 12)']
+            lines = ["Unknown Box (b'grp ') @ (1399071, 20)"]
             expected = '\n'.join(lines)
             self.assertEqual(actual, expected)
 
