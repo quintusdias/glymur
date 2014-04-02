@@ -1882,21 +1882,14 @@ class PaletteBox(Jp2kBox):
         fptr.write(write_buffer)
 
         bps = self.bits_per_component
-        if any(b != bps[0] for b in bps):
+        if all(b == bps[0] for b in bps):
             # All components are the same.  Writing is straightforward.
             if self.bits_per_component[0] <= 8:
-                code = 'B'
-                dtype = np.uint8
+                write_buffer = np.getbuffer(self.palette.astype(np.uint8))
             elif self.bits_per_component[0] <= 16:
-                code = 'H'
-                dtype = np.uint16
+                write_buffer = np.getbuffer(self.palette.astype(np.uint16))
             elif self.bits_per_component[0] <= 32:
-                code = 'I'
-                dtype = np.uint32
-            nelts = self.palette.shape[0] * self.palette.shape[1]
-            fmt = '>{0}{1}'.format(nelts, code)
-            write_buffer = struct.pack(fmt,
-                                       self.palette.astype(dtype).flatten())
+                write_buffer = np.getbuffer(self.palette.astype(np.uint32))
             fptr.write(write_buffer)
         else:
             # Not all the components are the same.  More general, but much rarer
@@ -1937,19 +1930,22 @@ class PaletteBox(Jp2kBox):
         bps = [((x & 0x7f) + 1) for x in bps_signed]
         signed = [((x & 0x80) > 1) for x in bps_signed]
 
-        if any(b != bps_signed[0] for b in bps_signed):
+        if all(b == bps_signed[0] for b in bps_signed):
             # Ok the palette has the same datatype for all columns.  We should
             # be able to efficiently read it.
-            if bps <= 8:
+            if bps[0] <= 8:
+                nbytes_per_row = num_columns
                 dtype = np.uint8
-            elif bps <= 16:
+            elif bps[0] <= 16:
+                nbytes_per_row = 2 * num_columns
                 dtype = np.uint16
-            elif bps <= 32:
+            elif bps[0] <= 32:
+                nbytes_per_row = 3 * num_columns
                 dtype = np.uint32
         
-            read_buffer = fptr.read(num_entries * np.sum(bps) / 8)
-            palette = np.frombuffer(read_buffer, dtype)
-            palette.reshape((num_entries, num_columns))
+            read_buffer = fptr.read(num_entries * nbytes_per_row)
+            palette = np.frombuffer(read_buffer, dtype=dtype)
+            palette = np.reshape(palette, (num_entries, num_columns))
 
         else:
             # General case where the columns may not be the same width.
