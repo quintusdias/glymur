@@ -837,7 +837,6 @@ class Jp2k(Jp2kBox):
 
         with ExitStack() as stack:
             try:
-                dparameters.cp_reduce = rlevel
                 dparameters.decod_format = self._codec_format
 
                 dinfo = opj.create_decompress(dparameters.decod_format)
