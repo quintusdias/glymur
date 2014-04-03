@@ -43,7 +43,7 @@ _METHOD_DISPLAY = {
     ANY_ICC_PROFILE: 'any ICC profile',
     VENDOR_COLOR_METHOD: 'vendor color method'}
 
-_factory = lambda x:  '{0} (invalid)'.format(x)
+_factory = lambda x: '{0} (invalid)'.format(x)
 _APPROX_DISPLAY = _Keydefaultdict(_factory,
         {1: 'accurately represents correct colorspace definition',
          2: 'approximates correct colorspace definition, exceptional quality',
@@ -125,7 +125,7 @@ class Jp2kBox(object):
             String to be indented.
         indent_level : str
             Number of spaces of indentation to add.
-        
+
         Returns
         -------
         indented_string : str
@@ -407,15 +407,16 @@ class ColourSpecificationBox(Jp2kBox):
         -------
         ColourSpecificationBox instance
         """
+        num_bytes = offset + length - fptr.tell()
+        read_buffer = fptr.read(num_bytes)
         # Read the brand, minor version.
-        read_buffer = fptr.read(3)
-        (method, precedence, approximation) = struct.unpack('>BBB',
-                                                            read_buffer)
+        (method, precedence, approximation) = struct.unpack_from('>BBB',
+                                                                 read_buffer,
+                                                                 offset=0)
 
         if method == 1:
             # enumerated colour space
-            read_buffer = fptr.read(4)
-            colorspace, = struct.unpack('>I', read_buffer)
+            colorspace, = struct.unpack_from('>I', read_buffer, offset=3)
             if colorspace not in _COLORSPACE_MAP_DISPLAY.keys():
                 msg = "Unrecognized colorspace: {0}".format(colorspace)
                 warnings.warn(msg)
@@ -424,14 +425,13 @@ class ColourSpecificationBox(Jp2kBox):
         else:
             # ICC profile
             colorspace = None
-            numbytes = offset + length - fptr.tell()
-            if numbytes < 128:
+            if (num_bytes - 3) < 128:
                 msg = "ICC profile header is corrupt, length is "
                 msg += "only {0} instead of 128."
-                warnings.warn(msg.format(numbytes), UserWarning)
+                warnings.warn(msg.format(num_bytes - 3), UserWarning)
                 icc_profile = None
             else:
-                profile = _ICCProfile(fptr.read(numbytes))
+                profile = _ICCProfile(read_buffer[3:])
                 icc_profile = profile.header
 
         return cls(method=method,
@@ -659,12 +659,14 @@ class ChannelDefinitionBox(Jp2kBox):
         -------
         ComponentDefinitionBox instance
         """
-        # Read the number of components.
-        read_buffer = fptr.read(2)
-        num_components, = struct.unpack('>H', read_buffer)
+        num_bytes = offset + length - fptr.tell()
+        read_buffer = fptr.read(num_bytes)
 
-        read_buffer = fptr.read(num_components * 6)
-        data = struct.unpack('>' + 'HHH' * num_components, read_buffer)
+        # Read the number of components.
+        num_components, = struct.unpack_from('>H', read_buffer)
+
+        data = struct.unpack_from('>' + 'HHH' * num_components, read_buffer,
+                                  offset=2)
         index = data[0:num_components * 6:3]
         channel_type = data[1:num_components * 6:3]
         association = data[2:num_components * 6:3]
@@ -1234,19 +1236,21 @@ class FileTypeBox(Jp2kBox):
         -------
         FileTypeBox instance
         """
+        current_pos = fptr.tell()
+        num_bytes = (offset + length - current_pos)
+        read_buffer = fptr.read(num_bytes)
+
         # Read the brand, minor version.
-        read_buffer = fptr.read(8)
-        (brand, minor_version) = struct.unpack('>4sI', read_buffer)
+        (brand, minor_version) = struct.unpack_from('>4sI', read_buffer,
+                                                    offset=0)
         if sys.hexversion >= 0x030000:
             brand = brand.decode('utf-8')
 
         # Read the compatibility list.  Each entry has 4 bytes.
-        current_pos = fptr.tell()
-        num_bytes = (offset + length - current_pos) / 4
-        read_buffer = fptr.read(int(num_bytes) * 4)
         compatibility_list = []
-        for j in range(int(num_bytes)):
-            entry, = struct.unpack('>4s', read_buffer[4*j:4*(j+1)])
+        num_entries = int((offset + length - current_pos - 8) / 4)
+        for j in range(num_entries):
+            entry, = struct.unpack_from('>4s', read_buffer, offset=8 + (4 * j))
             if sys.hexversion >= 0x03000000:
                 entry = entry.decode('utf-8')
             compatibility_list.append(entry)
@@ -1942,7 +1946,7 @@ class PaletteBox(Jp2kBox):
             elif bps[0] <= 32:
                 nbytes_per_row = 3 * num_columns
                 dtype = np.uint32
-        
+
             read_buffer = fptr.read(num_entries * nbytes_per_row)
             palette = np.frombuffer(read_buffer, dtype=dtype)
             palette = np.reshape(palette, (num_entries, num_columns))
@@ -2828,13 +2832,15 @@ class UUIDListBox(Jp2kBox):
         -------
         UUIDListBox instance
         """
-        read_buffer = fptr.read(2)
-        num_uuids, = struct.unpack('>H', read_buffer)
+        num_bytes = offset + length - fptr.tell()
+        read_buffer = fptr.read(num_bytes)
+
+        num_uuids, = struct.unpack_from('>H', read_buffer)
 
         ulst = []
-        for _ in range(num_uuids):
-            read_buffer = fptr.read(16)
-            ulst.append(uuid.UUID(bytes=read_buffer))
+        for j in range(num_uuids):
+            uuid_buffer = read_buffer[2 + j * 16 : 2 + (j + 1) * 16]
+            ulst.append(uuid.UUID(bytes=uuid_buffer))
 
         return cls(ulst, length=length, offset=offset)
 

@@ -691,7 +691,7 @@ class Jp2k(Jp2kBox):
                 msg = "Unable to locate the specified codestream."
                 raise IOError(msg)
             if L == 0:
-                # The length of the box is presumed to last until the end of 
+                # The length of the box is presumed to last until the end of
                 # the file.  Compute the effective length of the box.
                 L = os.path.getsize(ifile.name) - ifile.tell() + 8
 
@@ -833,37 +833,12 @@ class Jp2k(Jp2kBox):
         """
         self._subsampling_sanity_check()
 
-        # Must check the specified rlevel against the maximum.
-        if rlevel != 0:
-            # Must check the specified rlevel against the maximum.
-            codestream = self.get_codestream()
-            max_rlevel = codestream.segment[2].spcod[4]
-            if rlevel == -1:
-                # -1 is shorthand for the largest rlevel
-                rlevel = max_rlevel
-            elif rlevel < -1 or rlevel > max_rlevel:
-                msg = "rlevel must be in the range [-1, {0}] for this image."
-                msg = msg.format(max_rlevel)
-                raise IOError(msg)
+        dparameters = self._populate_dparam(rlevel, ignore_pclr_cmap_cdef)
 
         with ExitStack() as stack:
             try:
-                # Set decoding parameters.
-                # TODO:  look to refactor, use _populate_dparam
-                dparameters = opj.DecompressionParametersType()
-                opj.set_default_decoder_parameters(ctypes.byref(dparameters))
-
-                if ignore_pclr_cmap_cdef is True:
-                    # Return raw codestream components.
-                    dparameters.flags |= 1
-
                 dparameters.cp_reduce = rlevel
                 dparameters.decod_format = self._codec_format
-
-                infile = self.filename.encode()
-                nelts = opj.PATH_LEN - len(infile)
-                infile += b'0' * nelts
-                dparameters.infile = infile
 
                 dinfo = opj.create_decompress(dparameters.decod_format)
 
@@ -931,8 +906,8 @@ class Jp2k(Jp2kBox):
         """
         self._subsampling_sanity_check()
 
-        dparam = self._populate_dparam(layer, rlevel, area, tile,
-                                       ignore_pclr_cmap_cdef)
+        dparam = self._populate_dparam(rlevel, ignore_pclr_cmap_cdef,
+                                       layer=layer, tile=tile, area=area)
 
         with ExitStack() as stack:
             if hasattr(opj2.OPENJP2,
@@ -976,8 +951,8 @@ class Jp2k(Jp2kBox):
 
         return img_array
 
-    def _populate_dparam(self, layer, rlevel, area, tile,
-                         ignore_pclr_cmap_cdef):
+    def _populate_dparam(self, rlevel, ignore_pclr_cmap_cdef, tile=None,
+                         layer=None, area=None):
         """Populate decompression structure with appropriate input parameters.
 
         Parameters
@@ -1000,7 +975,11 @@ class Jp2k(Jp2kBox):
         dparam : DecompressionParametersType (ctypes)
             Corresponds to openjp2 decompression parameters structure.
         """
-        dparam = opj2.set_default_decoder_parameters()
+        if opj2.OPENJP2 is not None:
+            dparam = opj2.set_default_decoder_parameters()
+        else:
+            dparam = opj.DecompressionParametersType()
+            opj.set_default_decoder_parameters(ctypes.byref(dparam))
 
         infile = self.filename.encode()
         nelts = opj2.PATH_LEN - len(infile)
@@ -1009,12 +988,22 @@ class Jp2k(Jp2kBox):
 
         dparam.decod_format = self._codec_format
 
-        dparam.cp_layer = layer
+        if layer is not None:
+            dparam.cp_layer = layer
 
-        if rlevel == -1:
-            # Get the lowest resolution thumbnail.
+        # Must check the specified rlevel against the maximum.
+        if rlevel != 0:
+            # Must check the specified rlevel against the maximum.
             codestream = self.get_codestream()
-            rlevel = codestream.segment[2].spcod[4]
+            max_rlevel = codestream.segment[2].spcod[4]
+            if rlevel == -1:
+                # -1 is shorthand for the largest rlevel
+                rlevel = max_rlevel
+            elif rlevel < -1 or rlevel > max_rlevel:
+                msg = "rlevel must be in the range [-1, {0}] for this image."
+                msg = msg.format(max_rlevel)
+                raise IOError(msg)
+
         dparam.cp_reduce = rlevel
 
         if area is not None:
@@ -1088,7 +1077,8 @@ class Jp2k(Jp2kBox):
                                        "of OpenJP2 installed before using "
                                        "this functionality.")
 
-        dparam = self._populate_dparam(layer, rlevel, area, tile, ignore_pclr_cmap_cdef)
+        dparam = self._populate_dparam(rlevel, ignore_pclr_cmap_cdef,
+                                       layer=layer, tile=tile, area=area)
 
         with ExitStack() as stack:
             if hasattr(opj2.OPENJP2,
