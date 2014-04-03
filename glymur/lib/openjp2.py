@@ -10,6 +10,20 @@ import sys
 from .config import glymur_config
 OPENJP2, OPENJPEG = glymur_config()
 
+def version():
+    """Wrapper for opj_version library routine."""
+    OPENJP2.opj_version.restype = ctypes.c_char_p
+    library_version = OPENJP2.opj_version()
+    if sys.hexversion >= 0x03000000:
+        return library_version.decode('utf-8')
+    else:
+        return library_version
+
+if OPENJP2 is not None:
+    _MAJOR, _MINOR, _PATCH = version().split('.')
+else:
+    _MINOR = 0
+
 ERROR_MSG_LST = []
 
 # Map certain atomic OpenJPEG datatypes to the ctypes equivalents.
@@ -35,6 +49,7 @@ CLRSPC_UNSPECIFIED = 0
 CLRSPC_SRGB = 1
 CLRSPC_GRAY = 2
 CLRSPC_YCC = 3
+CLRSPC_EYCC = 4
 COLOR_SPACE_TYPE = ctypes.c_int
 
 # supported codec
@@ -392,6 +407,8 @@ class ImageCompType(ctypes.Structure):
         # image component data
         ("data",                ctypes.POINTER(ctypes.c_int32))]
 
+    if _MINOR == '1':
+        _fields_.append(("alpha",               ctypes.c_uint16))
 
 class ImageType(ctypes.Structure):
     """Defines image data and characteristics.

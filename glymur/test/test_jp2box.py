@@ -58,6 +58,23 @@ class TestDataEntryURL(unittest.TestCase):
     def setUp(self):
         self.jp2file = glymur.data.nemo()
 
+    def test_wrap_greyscale(self):
+        """A single component should be wrapped as GREYSCALE."""
+        j = Jp2k(self.jp2file)
+        data = j.read()
+        red = data[:, :, 0]
+
+        # Write it back out as a raw codestream.
+        with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile1:
+            j2k = glymur.Jp2k(tfile1.name, 'wb')
+            j2k.write(data[:, :, 0])
+
+            # Ok, now rewrap it as JP2.  The colorspace should be GREYSCALE.
+            with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile2:
+                jp2 = j2k.wrap(tfile2.name)
+                self.assertEqual(jp2.box[2].box[1].colorspace,
+                        glymur.core.GREYSCALE)
+
     def test_basic_url(self):
         """Just your most basic URL box."""
         # Wrap our j2k file in a JP2 box along with an interior url box.
@@ -340,6 +357,7 @@ class TestChannelDefinition(unittest.TestCase):
             with self.assertRaises((IOError, OSError)):
                 j2k.wrap(tfile.name, boxes=boxes)
 
+    @unittest.skipIf(sys.hexversion < 0x03000000, "Needs unittest in 3.x.")
     def test_bad_type(self):
         """Channel types are limited to 0, 1, 2, 65535
         Should reject if not all of index, channel_type, association the
@@ -347,17 +365,18 @@ class TestChannelDefinition(unittest.TestCase):
         """
         channel_type = (COLOR, COLOR, 3)
         association = (RED, GREEN, BLUE)
-        with self.assertRaises(IOError):
+        with self.assertWarns(UserWarning):
             glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
                                                association=association)
 
+    @unittest.skipIf(sys.hexversion < 0x03000000, "Needs unittest in 3.x.")
     def test_wrong_lengths(self):
         """Should reject if not all of index, channel_type, association the
         same length.
         """
         channel_type = (COLOR, COLOR)
         association = (RED, GREEN, BLUE)
-        with self.assertRaises(IOError):
+        with self.assertWarns(UserWarning):
             glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
                                                association=association)
 
@@ -373,14 +392,19 @@ class TestFileTypeBox(unittest.TestCase):
 
     def test_brand_unknown(self):
         """A ftyp box brand must be 'jp2 ' or 'jpx '."""
-        ftyp = glymur.jp2box.FileTypeBox(brand='jp3')
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            ftyp = glymur.jp2box.FileTypeBox(brand='jp3')
         with self.assertRaises(IOError):
             with tempfile.TemporaryFile() as tfile:
                 ftyp.write(tfile) 
 
     def test_cl_entry_unknown(self):
         """A ftyp box cl list can only contain 'jp2 ', 'jpx ', or 'jpxb'."""
-        ftyp = glymur.jp2box.FileTypeBox(compatibility_list=['jp3'])
+        with warnings.catch_warnings():
+            # Bad compatibility list item.
+            warnings.simplefilter("ignore")
+            ftyp = glymur.jp2box.FileTypeBox(compatibility_list=['jp3'])
         with self.assertRaises(IOError):
             with tempfile.TemporaryFile() as tfile:
                 ftyp.write(tfile) 
@@ -429,6 +453,18 @@ class TestColourSpecificationBox(unittest.TestCase):
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+    def test_bad_approx_jp2_field(self):
+        """JP2 has requirements for approx field"""
+        j2k = Jp2k(self.j2kfile)
+        boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
+        colr = ColourSpecificationBox(colorspace=glymur.core.SRGB,
+                                      approximation=1)
+        boxes[2].box = [self.ihdr, colr]
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            with self.assertRaises(IOError):
+                j2k.wrap(tfile.name, boxes=boxes)
+
     def test_default_colr(self):
         """basic colr instantiation"""
         colr = ColourSpecificationBox(colorspace=glymur.core.SRGB)
@@ -438,27 +474,30 @@ class TestColourSpecificationBox(unittest.TestCase):
         self.assertEqual(colr.colorspace, glymur.core.SRGB)
         self.assertIsNone(colr.icc_profile)
 
+    @unittest.skipIf(sys.hexversion < 0x03030000, "Requires 3.3+")
     def test_colr_with_cspace_and_icc(self):
         """Colour specification boxes can't have both."""
-        with self.assertRaises((OSError, IOError)):
+        with self.assertWarns(UserWarning):
             colorspace = glymur.core.SRGB
             rawb = b'\x01\x02\x03\x04'
             glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
                                                  icc_profile=rawb)
 
+    @unittest.skipIf(sys.hexversion < 0x03030000, "Requires 3.3+")
     def test_colr_with_bad_method(self):
         """colr must have a valid method field"""
         colorspace = glymur.core.SRGB
         method = -1
-        with self.assertRaises(IOError):
+        with self.assertWarns(UserWarning):
             glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
                                                  method=method)
 
+    @unittest.skipIf(sys.hexversion < 0x03030000, "Requires 3.3+")
     def test_colr_with_bad_approx(self):
-        """colr must have a valid approximation field"""
+        """colr should have a valid approximation field"""
         colorspace = glymur.core.SRGB
         approx = -1
-        with self.assertRaises(IOError):
+        with self.assertWarns(UserWarning):
             glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
                                                  approximation=approx)
 
@@ -484,21 +523,23 @@ class TestPaletteBox(unittest.TestCase):
     def tearDown(self):
         pass
 
+    @unittest.skipIf(sys.hexversion < 0x03000000, "Needs unittest in 3.x.")
     def test_mismatched_bitdepth_signed(self):
         """bitdepth and signed arguments must have equal length"""
         palette = np.array([[255, 0, 255], [0, 255, 0]], dtype=np.uint8)
         bps = (8, 8, 8)
         signed = (False, False)
-        with self.assertRaises(IOError):
+        with self.assertWarns(UserWarning):
             pclr = glymur.jp2box.PaletteBox(palette, bits_per_component=bps,
                                             signed=signed)
 
+    @unittest.skipIf(sys.hexversion < 0x03000000, "Needs unittest in 3.x.")
     def test_mismatched_signed_palette(self):
         """bitdepth and signed arguments must have equal length"""
         palette = np.array([[255, 0, 255], [0, 255, 0]], dtype=np.uint8)
         bps = (8, 8, 8, 8)
         signed = (False, False, False, False)
-        with self.assertRaises(IOError):
+        with self.assertWarns(UserWarning):
             pclr = glymur.jp2box.PaletteBox(palette, bits_per_component=bps,
                                             signed=signed)
 
@@ -666,8 +707,9 @@ class TestWrap(unittest.TestCase):
     def test_jpx_to_jp2(self):
         """basic test for rewrapping a jpx file"""
         jpx = Jp2k(self.jpxfile)
-        idx = [0, 1, 3, 6]
-        boxes = [jpx.box[idx] for idx in [0, 1, 3, 6]]
+        # Use only the signature, file type, header, and 1st codestream.
+        lst = [0, 1, 2, 5]
+        boxes = [jpx.box[idx] for idx in lst]
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             jp2 = jpx.wrap(tfile.name, boxes=boxes)
 
@@ -827,6 +869,67 @@ class TestWrap(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
+
+    def test_wrap_jpx_to_jp2_with_unadorned_jpch(self):
+        """A JPX file rewrapped with plain jpch is not allowed."""
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile1:
+            jpx = Jp2k(self.jpxfile)
+            boxes = [jpx.box[0], jpx.box[1], jpx.box[2],
+                     glymur.jp2box.ContiguousCodestreamBox()]
+            with self.assertRaises(IOError):
+                jpx.wrap(tfile1.name, boxes=boxes)
+
+    def test_wrap_jpx_to_jp2_with_incorrect_jp2c_offset(self):
+        """Reject A JPX file rewrapped with bad jp2c offset."""
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile1:
+            jpx = Jp2k(self.jpxfile)
+            jpch = jpx.box[5]
+
+            # The offset should be 902.
+            jpch.offset = 901
+            jpch.length = 313274
+            boxes = [jpx.box[0], jpx.box[1], jpx.box[2], jpch]
+            with self.assertRaises(IOError):
+                jpx.wrap(tfile1.name, boxes=boxes)
+
+    def test_wrap_jpx_to_jp2_with_correctly_specified_jp2c(self):
+        """Accept A JPX file rewrapped with good jp2c."""
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile1:
+            jpx = Jp2k(self.jpxfile)
+            jpch = jpx.box[5]
+
+            # This time get it right.
+            jpch.offset = 903
+            jpch.length = 313274
+            boxes = [jpx.box[0], jpx.box[1], jpx.box[2], jpch]
+            jp2 = jpx.wrap(tfile1.name, boxes=boxes)
+
+        act_ids = [box.box_id for box in jp2.box]
+        exp_ids = ['jP  ', 'ftyp', 'jp2h', 'jp2c']
+        self.assertEqual(act_ids, exp_ids)
+
+        act_offsets = [box.offset for box in jp2.box]
+        exp_offsets = [0, 12, 40, 887]
+        self.assertEqual(act_offsets, exp_offsets)
+
+        act_lengths = [box.length for box in jp2.box]
+        exp_lengths = [12, 28, 847, 313274]
+        self.assertEqual(act_lengths, exp_lengths)
+
+    def test_full_blown_jpx(self):
+        """Rewrap a jpx file."""
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile1:
+            jpx = Jp2k(self.jpxfile)
+            idx = list(range(5)) + list(range(9, 12)) + list(range(6, 9)) + [12]
+            boxes = [jpx.box[j] for j in idx]
+            jpx2 = jpx.wrap(tfile1.name, boxes=boxes)
+            exp_ids = [box.box_id for box in boxes]
+            lengths = [box.length for box in jpx.box]
+            exp_lengths = [lengths[j] for j in idx]
+        act_ids = [box.box_id for box in jpx2.box]
+        act_lengths = [box.length for box in jpx2.box]
+        self.assertEqual(exp_ids, act_ids)
+        self.assertEqual(exp_lengths, act_lengths)
 
 
 class TestJp2Boxes(unittest.TestCase):
