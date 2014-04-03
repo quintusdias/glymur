@@ -670,8 +670,8 @@ class Codestream(object):
         read_buffer = fptr.read(2)
         length, = struct.unpack('>H', read_buffer)
 
-        xy_buffer = fptr.read(36)
-        data = struct.unpack('>HIIIIIIIIH', xy_buffer)
+        read_buffer = fptr.read(length - 2)
+        data = struct.unpack_from('>HIIIIIIIIH', read_buffer)
 
         rsiz = data[0]
         if rsiz not in _KNOWN_PROFILES:
@@ -685,9 +685,8 @@ class Codestream(object):
         # Csiz is the number of components
         Csiz = data[9]
 
-        component_buffer = fptr.read(Csiz * 3)
-        data = struct.unpack('>' + 'B' * len(component_buffer),
-                             component_buffer)
+        data = struct.unpack_from('>' + 'B' * (length - 36 - 2),
+                                  read_buffer, offset=36)
 
         bitdepth = tuple(((x & 0x7f) + 1) for x in data[0::3])
         signed = tuple(((x & 0x80) > 0) for x in data[0::3])
