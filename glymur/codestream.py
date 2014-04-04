@@ -380,13 +380,13 @@ class Codestream(object):
         COD segment instance.
         """
         offset = fptr.tell() - 2
-        offset = fptr.tell() - 2
 
-        read_buffer = fptr.read(3)
-        length, scod = struct.unpack('>HB', read_buffer)
+        read_buffer = fptr.read(2)
+        length, = struct.unpack('>H', read_buffer)
 
-        numbytes = offset + 2 + length - fptr.tell()
-        spcod = fptr.read(numbytes)
+        read_buffer = fptr.read(length - 2)
+        scod, = struct.unpack_from('>B', read_buffer, offset=0)
+        spcod = read_buffer[1:]
         spcod = np.frombuffer(spcod, dtype=np.uint8)
         if spcod[0] not in [LRCP, RLCP, RPCL, PCRL, CPRL]:
             msg = "Invalid progression order in COD segment: {0}."
