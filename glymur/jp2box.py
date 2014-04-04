@@ -159,18 +159,22 @@ class Jp2kBox(object):
         fptr.write(struct.pack('>I', end_pos - orig_pos))
         fptr.seek(end_pos)
 
-    def _parse_this_box(self, fptr, box_id, start, num_bytes):
+    def _parse_this_box(self, fptr, box_id, start, num_bytes, box_is_XL):
         """Parse the current box.
 
         Parameters
         ----------
         fptr : file
-            Open file object.
+            Open file object, currently points to start of box payload, not the
+            start of the box.
         box_id : str
             4-letter identifier for the current box.
-        start, num_bytes: int
+        start, num_bytes : int
             Byte offset and length of the current box.
-
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
         Returns
         -------
         box : Jp2kBox
@@ -189,7 +193,7 @@ class Jp2kBox(object):
 
             return box
 
-        box = parser(fptr, start, num_bytes)
+        box = parser(fptr, start, num_bytes, box_is_XL=box_is_XL)
         return box
 
     def parse_superbox(self, fptr):
@@ -221,6 +225,7 @@ class Jp2kBox(object):
                 warnings.warn(msg)
                 return superbox
 
+            box_is_XL = False
             (box_length, box_id) = struct.unpack('>I4s', read_buffer)
             if box_length == 0:
                 # The length of the box is presumed to last until the end of
@@ -231,12 +236,14 @@ class Jp2kBox(object):
                 # The length of the box is in the XL field, a 64-bit value.
                 read_buffer = fptr.read(8)
                 num_bytes, = struct.unpack('>Q', read_buffer)
+                box_is_XL = True
 
             else:
                 # The box_length value really is the length of the box!
                 num_bytes = box_length
 
-            box = self._parse_this_box(fptr, box_id, start, num_bytes)
+            box = self._parse_this_box(fptr, box_id, start, num_bytes,
+                                       box_is_XL)
 
             superbox.append(box)
 
@@ -392,7 +399,7 @@ class ColourSpecificationBox(Jp2kBox):
         fptr.write(read_buffer)
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse JPEG 2000 color specification box.
 
         Parameters
@@ -403,12 +410,16 @@ class ColourSpecificationBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
         ColourSpecificationBox instance
         """
-        num_bytes = offset + length - fptr.tell()
+        num_bytes = length - 16 if box_is_XL else length - 8
         read_buffer = fptr.read(num_bytes)
         # Read the brand, minor version.
         (method, precedence, approximation) = struct.unpack_from('>BBB',
@@ -644,7 +655,7 @@ class ChannelDefinitionBox(Jp2kBox):
                                    self.association[j]))
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse component definition box.
 
         Parameters
@@ -655,12 +666,16 @@ class ChannelDefinitionBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
         ComponentDefinitionBox instance
         """
-        num_bytes = offset + length - fptr.tell()
+        num_bytes = length - 16 if box_is_XL else length - 8
         read_buffer = fptr.read(num_bytes)
 
         # Read the number of components.
@@ -714,7 +729,7 @@ class CodestreamHeaderBox(Jp2kBox):
         self._write_superbox(fptr, b'jpch')
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse codestream header box.
 
         Parameters
@@ -725,6 +740,10 @@ class CodestreamHeaderBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
@@ -783,7 +802,7 @@ class ColourGroupBox(Jp2kBox):
         self._write_superbox(fptr, b'cgrp')
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse colour group box.
 
         Parameters
@@ -794,6 +813,10 @@ class ColourGroupBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
@@ -846,7 +869,7 @@ class CompositingLayerHeaderBox(Jp2kBox):
         self._write_superbox(fptr, b'jplh')
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse compositing layer header box.
 
         Parameters
@@ -857,6 +880,10 @@ class CompositingLayerHeaderBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
@@ -937,7 +964,7 @@ class ComponentMappingBox(Jp2kBox):
             fptr.write(write_buffer)
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse component mapping box.
 
         Parameters
@@ -948,12 +975,16 @@ class ComponentMappingBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
         ComponentMappingBox instance
         """
-        num_bytes = offset + length - fptr.tell()
+        num_bytes = length - 16 if box_is_XL else length - 8
         num_components = int(num_bytes/4)
 
         read_buffer = fptr.read(num_bytes)
@@ -1007,7 +1038,7 @@ class ContiguousCodestreamBox(Jp2kBox):
         return msg
 
     @classmethod
-    def parse(cls, fptr, offset=0, length=0):
+    def parse(cls, fptr, offset=0, length=0, box_is_XL=False):
         """Parse a codestream box.
 
         Parameters
@@ -1018,6 +1049,10 @@ class ContiguousCodestreamBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
@@ -1105,7 +1140,7 @@ class DataReferenceBox(Jp2kBox):
         return msg
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse data reference box.
 
         Parameters
@@ -1116,6 +1151,10 @@ class DataReferenceBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
@@ -1221,7 +1260,7 @@ class FileTypeBox(Jp2kBox):
             fptr.write(item.encode())
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse JPEG 2000 file type box.
 
         Parameters
@@ -1232,12 +1271,17 @@ class FileTypeBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
         FileTypeBox instance
         """
-        read_buffer = fptr.read(length - 8)
+        num_bytes = length - 16 if box_is_XL else length - 8
+        read_buffer = fptr.read(num_bytes)
         # Extract the brand, minor version.
         (brand, minor_version) = struct.unpack_from('>4sI', read_buffer, 0)
         if sys.hexversion >= 0x030000:
@@ -1333,7 +1377,7 @@ class FragmentListBox(Jp2kBox):
             fptr.write(write_buffer)
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse JPX free box.
 
         Parameters
@@ -1344,12 +1388,16 @@ class FragmentListBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
         FragmentListBox instance
         """
-        num_bytes = offset + length - fptr.tell()
+        num_bytes = length - 16 if box_is_XL else length - 8
         read_buffer = fptr.read(num_bytes)
         num_fragments, = struct.unpack_from('>H', read_buffer, offset=0)
 
@@ -1392,7 +1440,7 @@ class FragmentTableBox(Jp2kBox):
         return msg
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse JPX fragment table superbox box.
 
         Parameters
@@ -1403,6 +1451,10 @@ class FragmentTableBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
@@ -1463,7 +1515,7 @@ class FreeBox(Jp2kBox):
         return msg
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse JPX free box.
 
         Parameters
@@ -1474,6 +1526,10 @@ class FreeBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
@@ -1587,7 +1643,7 @@ class ImageHeaderBox(Jp2kBox):
         fptr.write(read_buffer)
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse JPEG 2000 image header box.
 
         Parameters
@@ -1598,6 +1654,10 @@ class ImageHeaderBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
@@ -1655,7 +1715,7 @@ class AssociationBox(Jp2kBox):
         return msg
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse association box.
 
         Parameters
@@ -1666,6 +1726,10 @@ class AssociationBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
@@ -1721,7 +1785,7 @@ class JP2HeaderBox(Jp2kBox):
         self._write_superbox(fptr, b'jp2h')
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse JPEG 2000 header box.
 
         Parameters
@@ -1732,6 +1796,10 @@ class JP2HeaderBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
@@ -1789,7 +1857,7 @@ class JPEG2000SignatureBox(Jp2kBox):
         fptr.write(struct.pack('>BBBB', *self.signature))
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse JPEG 2000 signature box.
 
         Parameters
@@ -1800,6 +1868,10 @@ class JPEG2000SignatureBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
@@ -1907,7 +1979,7 @@ class PaletteBox(Jp2kBox):
                 fptr.write(write_buffer)
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse palette box.
 
         Parameters
@@ -1918,6 +1990,10 @@ class PaletteBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
@@ -2136,7 +2212,7 @@ class ReaderRequirementsBox(Jp2kBox):
         return msg
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse reader requirements box.
 
         Parameters
@@ -2147,6 +2223,10 @@ class ReaderRequirementsBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
@@ -2343,7 +2423,7 @@ class ResolutionBox(Jp2kBox):
         return msg
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse Resolution box.
 
         Parameters
@@ -2354,6 +2434,10 @@ class ResolutionBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
@@ -2407,7 +2491,7 @@ class CaptureResolutionBox(Jp2kBox):
         return msg
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse CaptureResolutionBox.
 
         Parameters
@@ -2418,6 +2502,10 @@ class CaptureResolutionBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
@@ -2470,7 +2558,7 @@ class DisplayResolutionBox(Jp2kBox):
         return msg
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse display resolution box.
 
         Parameters
@@ -2481,6 +2569,10 @@ class DisplayResolutionBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
@@ -2538,7 +2630,7 @@ class LabelBox(Jp2kBox):
         fptr.write(self.label.encode())
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse Label box.
 
         Parameters
@@ -2549,12 +2641,16 @@ class LabelBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
         LabelBox instance
         """
-        num_bytes = offset + length - fptr.tell()
+        num_bytes = length - 16 if box_is_XL else length - 8
         read_buffer = fptr.read(num_bytes)
         label = read_buffer.decode('utf-8')
         return cls(label, length=length, offset=offset)
@@ -2609,7 +2705,7 @@ class NumberListBox(Jp2kBox):
         return msg
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse number list box.
 
         Parameters
@@ -2620,12 +2716,16 @@ class NumberListBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
         LabelBox instance
         """
-        num_bytes = offset + length - fptr.tell()
+        num_bytes = length - 16 if box_is_XL else length - 8
         raw_data = fptr.read(num_bytes)
         num_associations = int(len(raw_data) / 4)
         lst = struct.unpack('>' + 'I' * num_associations, raw_data)
@@ -2713,7 +2813,7 @@ class XMLBox(Jp2kBox):
         fptr.write(read_buffer)
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse XML box.
 
         Parameters
@@ -2724,12 +2824,16 @@ class XMLBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
         XMLBox instance
         """
-        num_bytes = offset + length - fptr.tell()
+        num_bytes = length - 16 if box_is_XL else length - 8
         read_buffer = fptr.read(num_bytes)
         try:
             text = read_buffer.decode('utf-8')
@@ -2813,7 +2917,7 @@ class UUIDListBox(Jp2kBox):
         return msg
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse UUIDList box.
 
         Parameters
@@ -2824,12 +2928,16 @@ class UUIDListBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
         UUIDListBox instance
         """
-        num_bytes = offset + length - fptr.tell()
+        num_bytes = length - 16 if box_is_XL else length - 8
         read_buffer = fptr.read(num_bytes)
 
         num_uuids, = struct.unpack_from('>H', read_buffer)
@@ -2873,7 +2981,7 @@ class UUIDInfoBox(Jp2kBox):
         return msg
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse UUIDInfo super box.
 
         Parameters
@@ -2884,6 +2992,10 @@ class UUIDInfoBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
@@ -2966,7 +3078,7 @@ class DataEntryURLBox(Jp2kBox):
         return msg
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse data entry URL box.
 
         Parameters
@@ -2977,19 +3089,22 @@ class DataEntryURLBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
         DataEntryURLbox instance
         """
-        read_buffer = fptr.read(4)
-        data = struct.unpack('>BBBB', read_buffer)
+        num_bytes = length - 16 if box_is_XL else length - 8
+        read_buffer = fptr.read(num_bytes)
+        data = struct.unpack_from('>BBBB', read_buffer)
         version = data[0]
         flag = data[1:4]
 
-        numbytes = offset + length - fptr.tell()
-        read_buffer = fptr.read(numbytes)
-        url = read_buffer.decode('utf-8').rstrip(chr(0))
+        url = read_buffer[4:].decode('utf-8').rstrip(chr(0))
         return cls(version, flag, url, length=length, offset=offset)
 
 
@@ -3140,7 +3255,7 @@ class UUIDBox(Jp2kBox):
         fptr.write(self.raw_data)
 
     @classmethod
-    def parse(cls, fptr, offset, length):
+    def parse(cls, fptr, offset, length, box_is_XL=False):
         """Parse UUID box.
 
         Parameters
@@ -3151,18 +3266,19 @@ class UUIDBox(Jp2kBox):
             Start position of box in bytes.
         length : int
             Length of the box in bytes.
+        box_is_XL : bool
+            True if the box has an XL field.  In this case, the start of the
+            box is 16 bytes behind the start of the box payload instead of being
+            8 bytes behind.
 
         Returns
         -------
         UUIDBox instance
         """
-
-        read_buffer = fptr.read(16)
-        the_uuid = uuid.UUID(bytes=read_buffer)
-
-        numbytes = offset + length - fptr.tell()
-        read_buffer = fptr.read(numbytes)
-        return cls(the_uuid, read_buffer, length=length, offset=offset)
+        num_bytes = length - 16 if box_is_XL else length - 8
+        read_buffer = fptr.read(num_bytes)
+        the_uuid = uuid.UUID(bytes=read_buffer[0:16])
+        return cls(the_uuid, read_buffer[16:], length=length, offset=offset)
 
 
 # Map each box ID to the corresponding class.
