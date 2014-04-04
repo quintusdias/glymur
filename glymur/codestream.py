@@ -27,19 +27,36 @@ import numpy as np
 from .core import LRCP, RLCP, RPCL, PCRL, CPRL
 from .core import WAVELET_XFORM_9X7_IRREVERSIBLE
 from .core import WAVELET_XFORM_5X3_REVERSIBLE
-from .core import _CAPABILITIES_DISPLAY
+from .core import _Keydefaultdict
 from .lib import openjp2 as opj2
 
-_PROGRESSION_ORDER_DISPLAY = {
-    LRCP: 'LRCP',
-    RLCP: 'RLCP',
-    RPCL: 'RPCL',
-    PCRL: 'PCRL',
-    CPRL: 'CPRL'}
+_factory = lambda x:  '{0} (invalid)'.format(x)
+_PROGRESSION_ORDER_DISPLAY = _Keydefaultdict(_factory,
+        { LRCP: 'LRCP',
+          RLCP: 'RLCP',
+          RPCL: 'RPCL',
+          PCRL: 'PCRL',
+          CPRL: 'CPRL'})
 
-_WAVELET_TRANSFORM_DISPLAY = {
-    WAVELET_XFORM_9X7_IRREVERSIBLE: '9-7 irreversible',
-    WAVELET_XFORM_5X3_REVERSIBLE: '5-3 reversible'}
+_WAVELET_TRANSFORM_DISPLAY = _Keydefaultdict(_factory,
+        { WAVELET_XFORM_9X7_IRREVERSIBLE: '9-7 irreversible',
+          WAVELET_XFORM_5X3_REVERSIBLE: '5-3 reversible'})
+
+_NO_PROFILE = 0
+_PROFILE_0 = 1
+_PROFILE_1 = 2
+_PROFILE_3 = 3
+_PROFILE_4 = 4
+
+_KNOWN_PROFILES = [_NO_PROFILE, _PROFILE_0, _PROFILE_1, _PROFILE_3, _PROFILE_4]
+
+# How to display the codestream profile.
+_CAPABILITIES_DISPLAY = _Keydefaultdict(_factory,
+        { _NO_PROFILE: 'no profile',
+          _PROFILE_0: '0',
+          _PROFILE_1: '1',
+          _PROFILE_3: 'Cinema 2K',
+          _PROFILE_4: 'Cinema 4K'} )
 
 # Need a catch-all list of valid markers.
 # See table A-1 in ISO/IEC FCD15444-1.
@@ -371,6 +388,14 @@ class Codestream(object):
         numbytes = offset + 2 + length - fptr.tell()
         spcod = fptr.read(numbytes)
         spcod = np.frombuffer(spcod, dtype=np.uint8)
+        if spcod[0] not in [LRCP, RLCP, RPCL, PCRL, CPRL]:
+            msg = "Invalid progression order in COD segment: {0}."
+            warnings.warn(msg.format(spcod[0]))
+
+        if spcod[8] not in [WAVELET_XFORM_9X7_IRREVERSIBLE,
+                            WAVELET_XFORM_5X3_REVERSIBLE]:
+            msg = "Invalid wavelet transform in COD segment: {0}."
+            warnings.warn(msg.format(spcod[8]))
 
         sop = (scod & 2) > 0
         eph = (scod & 4) > 0
@@ -645,10 +670,13 @@ class Codestream(object):
         read_buffer = fptr.read(2)
         length, = struct.unpack('>H', read_buffer)
 
-        xy_buffer = fptr.read(36)
-        data = struct.unpack('>HIIIIIIIIH', xy_buffer)
+        read_buffer = fptr.read(length - 2)
+        data = struct.unpack_from('>HIIIIIIIIH', read_buffer)
 
         rsiz = data[0]
+        if rsiz not in _KNOWN_PROFILES:
+            warnings.warn("Invalid profile: (Rsiz={0}).".format(rsiz))
+
         xysiz = (data[1], data[2])
         xyosiz = (data[3], data[4])
         xytsiz = (data[5], data[6])
@@ -657,9 +685,8 @@ class Codestream(object):
         # Csiz is the number of components
         Csiz = data[9]
 
-        component_buffer = fptr.read(Csiz * 3)
-        data = struct.unpack('>' + 'B' * len(component_buffer),
-                             component_buffer)
+        data = struct.unpack_from('>' + 'B' * (length - 36 - 2),
+                                  read_buffer, offset=36)
 
         bitdepth = tuple(((x & 0x7f) + 1) for x in data[0::3])
         signed = tuple(((x & 0x80) > 0) for x in data[0::3])
@@ -672,6 +699,18 @@ class Codestream(object):
                 msg += "dx={1}, dy={2}."
                 msg = msg.format(j, subsampling[0], subsampling[1])
                 warnings.warn(msg)
+
+        try:
+            num_tiles_x = (xysiz[0] - xyosiz[0]) / (xytsiz[0] - xytosiz[0])
+            num_tiles_y = (xysiz[1] - xyosiz[1]) / (xytsiz[1] - xytosiz[1])
+        except ZeroDivisionError as err:
+            warnings.warn("Invalid tile dimensions.")
+        else:
+            numtiles = math.ceil(num_tiles_x) * math.ceil(num_tiles_y)
+            if numtiles > 65535:
+                msg = "Invalid number of tiles ({0}).".format(numtiles)
+                warnings.warn(msg)
+
 
         kwargs = {'rsiz': rsiz,
                   'xysiz': xysiz,
@@ -1513,14 +1552,6 @@ class SIZsegment(Segment):
             else:
                 lst.append(bitdepth - 1)
         self.ssiz = tuple(lst)
-
-        num_tiles_x = (self.xsiz - self.xosiz) / (self.xtsiz - self.xtosiz)
-        num_tiles_y = (self.ysiz - self.yosiz) / (self.ytsiz - self.ytosiz)
-        numtiles = math.ceil(num_tiles_x) * math.ceil(num_tiles_y)
-        if numtiles > 65535:
-            msg = "Invalid number of tiles ({0}).".format(numtiles)
-            warnings.warn(msg)
-
 
     def __repr__(self):
         msg = "glymur.codestream.SIZsegment(rsiz={rsiz}, xysiz={xysiz}, "

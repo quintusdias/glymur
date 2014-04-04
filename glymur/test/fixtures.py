@@ -22,7 +22,7 @@ try:
         HAS_PYTHON_XMP_TOOLKIT = True
     else:
         HAS_PYTHON_XMP_TOOLKIT = False
-except ImportError:
+except:
     HAS_PYTHON_XMP_TOOLKIT = False
 
 # Need to know of the libopenjp2 version is the official 2.0.0 release and NOT
@@ -412,7 +412,7 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)
     Main header:
         SOC marker segment @ (3231, 0)
         SIZ marker segment @ (3233, 47)
-            Profile:  2
+            Profile:  no profile
             Reference Grid Height, Width:  (1456 x 2592)
             Vertical, Horizontal Reference Grid Offset:  (0 x 0)
             Reference Tile Height, Width:  (1456 x 2592)
@@ -477,7 +477,7 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)
     Main header:
         SOC marker segment @ (3231, 0)
         SIZ marker segment @ (3233, 47)
-            Profile:  2
+            Profile:  no profile
             Reference Grid Height, Width:  (1456 x 2592)
             Vertical, Horizontal Reference Grid Offset:  (0 x 0)
             Reference Tile Height, Width:  (1456 x 2592)
@@ -554,15 +554,21 @@ UUID Box (uuid) @ (77, 3146)
     UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
 Contiguous Codestream Box (jp2c) @ (3223, 1132296)"""
 
-# Output of reader requirement printing for file7.jp2
-file7_rreq = r"""Reader Requirements Box (rreq) @ (44, 24)
-    Fully Understands Aspect Mask:  0xa0
-    Display Completely Mask:  0xc0
+# Output of reader requirements printing for text_GBR.jp2
+text_GBR_rreq = r"""Reader Requirements Box (rreq) @ (40, 109)
+    Fully Understands Aspect Mask:  0xffff
+    Display Completely Mask:  0xf8f0
     Standard Features and Masks:
-        Feature 005:  0x80 Unrestricted JPEG 2000 Part 1 codestream, ITU-T Rec. T.800 | ISO/IEC 15444-1
-        Feature 060:  0x60 e-sRGB enumerated colorspace
-        Feature 043:  0x40 Deprecated - compositing layer uses restricted ICC profile
-    Vendor Features:"""
+        Feature 001:  0x8000 Deprecated - contains no extensions
+        Feature 005:  0x4080 Unrestricted JPEG 2000 Part 1 codestream, ITU-T Rec. T.800 | ISO/IEC 15444-1
+        Feature 012:  0x2040 Deprecated - codestream is contiguous
+        Feature 018:  0x1020 Deprecated - support for compositing is not required
+        Feature 044:  0x810 Compositing layer uses Any ICC profile
+    Vendor Features:
+        UUID 3a0d0218-0ae9-4115-b376-4bca41ce0e71
+        UUID 47c92ccc-d1a1-4581-b904-38bb5467713b
+        UUID bc45a774-dd50-4ec6-a9f6-f3a137f47e90
+        UUID d7c8c5ef-951f-43b2-8757-042500f538e8"""
 
 file1_xml = """XML Box (xml ) @ (36, 439)
     <IMAGE_CREATION xmlns="http://www.jpeg.org/jpx/1.0/xml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.jpeg.org/jpx/1.0/xml http://www.jpeg.org/metadata/15444-2.xsd">
@@ -571,3 +577,48 @@ file1_xml = """XML Box (xml ) @ (36, 439)
     \t\t<IMAGE_SOURCE>Professional 120 Image</IMAGE_SOURCE>
     \t</GENERAL_CREATION_INFO>
     </IMAGE_CREATION>"""
+
+issue_182_cmap = """Component Mapping Box (cmap) @ (130, 24)
+    Component 0 ==> palette column 0
+    Component 0 ==> palette column 1
+    Component 0 ==> palette column 2
+    Component 0 ==> palette column 3"""
+
+issue_183_colr = """Colour Specification Box (colr) @ (62, 12)
+    Method:  restricted ICC profile
+    Precedence:  0
+    ICC Profile:  None"""
+        
+
+# Progression order is invalid.
+issue_186_progression_order = """COD marker segment @ (174, 12)
+    Coding style:
+        Entropy coder, without partitions
+        SOP marker segments:  False
+        EPH marker segments:  False
+    Coding style parameters:
+        Progression order:  33 (invalid)
+        Number of layers:  1
+        Multiple component transformation usage:  reversible
+        Number of resolutions:  6
+        Code block height, width:  (32 x 32)
+        Wavelet transform:  9-7 irreversible
+        Precinct size:  default, 2^15 x 2^15
+        Code block context:
+            Selective arithmetic coding bypass:  False
+            Reset context probabilities on coding pass boundaries:  False
+            Termination on each coding pass:  False
+            Vertically stripe causal context:  False
+            Predictable termination:  False
+            Segmentation symbols:  False"""
+
+# Cinema 2K profile
+cinema2k_profile = """SIZ marker segment @ (2, 47)
+    Profile:  Cinema 2K
+    Reference Grid Height, Width:  (1080 x 1920)
+    Vertical, Horizontal Reference Grid Offset:  (0 x 0)
+    Reference Tile Height, Width:  (1080 x 1920)
+    Vertical, Horizontal Reference Tile Offset:  (0 x 0)
+    Bitdepth:  (12, 12, 12)
+    Signed:  (False, False, False)
+    Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))"""
