@@ -138,18 +138,19 @@ class Jp2kBox(object):
             return '\n'.join(lst)
 
 
-    def _write_superbox(self, fptr):
+    def _write_superbox(self, fptr, box_id):
         """Write a superbox.
 
         Parameters
         ----------
         fptr : file or file object
             Superbox (box of boxes) to be written to this file.
+        box_id : bytes
+            4-byte sequence that identifies the superbox.
         """
         # Write the contained boxes, then come back and write the length.
         orig_pos = fptr.tell()
-        fptr.write(struct.pack('>I', 0))
-        fptr.write(self.box_id.encode())
+        fptr.write(struct.pack('>I4s', 0, box_id))
         for box in self.box:
             box.write(fptr)
 
@@ -710,7 +711,7 @@ class CodestreamHeaderBox(Jp2kBox):
     def write(self, fptr):
         """Write a codestream header box to file.
         """
-        self._write_superbox(fptr)
+        self._write_superbox(fptr, b'jpch')
 
     @classmethod
     def parse(cls, fptr, offset, length):
@@ -779,7 +780,7 @@ class ColourGroupBox(Jp2kBox):
         """Write a colour group box to file.
         """
         self._validate(writing=True)
-        self._write_superbox(fptr)
+        self._write_superbox(fptr, b'cgrp')
 
     @classmethod
     def parse(cls, fptr, offset, length):
@@ -842,7 +843,7 @@ class CompositingLayerHeaderBox(Jp2kBox):
     def write(self, fptr):
         """Write a compositing layer header box to file.
         """
-        self._write_superbox(fptr)
+        self._write_superbox(fptr, b'jplh')
 
     @classmethod
     def parse(cls, fptr, offset, length):
@@ -1427,7 +1428,7 @@ class FragmentTableBox(Jp2kBox):
         """Write a fragment table box to file.
         """
         self._validate(writing=True)
-        self._write_superbox(fptr)
+        self._write_superbox(fptr, b'ftbl')
 
 
 
@@ -1681,7 +1682,7 @@ class AssociationBox(Jp2kBox):
     def write(self, fptr):
         """Write an association box to file.
         """
-        self._write_superbox(fptr)
+        self._write_superbox(fptr, b'asoc')
 
 
 class JP2HeaderBox(Jp2kBox):
@@ -1717,7 +1718,7 @@ class JP2HeaderBox(Jp2kBox):
     def write(self, fptr):
         """Write a JP2 Header box to file.
         """
-        self._write_superbox(fptr)
+        self._write_superbox(fptr, b'jp2h')
 
     @classmethod
     def parse(cls, fptr, offset, length):
