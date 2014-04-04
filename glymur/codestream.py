@@ -802,8 +802,8 @@ class Codestream(object):
         read_buffer = fptr.read(2)
         length, = struct.unpack('>H', read_buffer)
 
-        read_buffer = fptr.read(2)
-        ztlm, stlm = struct.unpack('>BB', read_buffer)
+        read_buffer = fptr.read(length - 2)
+        ztlm, stlm = struct.unpack_from('>BB', read_buffer)
         ttlm_st = (stlm >> 4) & 0x3
         ptlm_sp = (stlm >> 6) & 0x1
 
@@ -813,7 +813,6 @@ class Codestream(object):
         else:
             ntiles = nbytes / (ttlm_st + (ptlm_sp + 1) * 2)
 
-        read_buffer = fptr.read(nbytes)
         if ttlm_st == 0:
             ttlm = None
             fmt = ''
@@ -827,7 +826,8 @@ class Codestream(object):
         else:
             fmt += 'I'
 
-        data = struct.unpack('>' + fmt * int(ntiles), read_buffer)
+        data = struct.unpack_from('>' + fmt * int(ntiles), read_buffer,
+                                  offset=2)
         if ttlm_st == 0:
             ttlm = None
             ptlm = data
