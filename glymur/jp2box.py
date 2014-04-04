@@ -1922,13 +1922,11 @@ class PaletteBox(Jp2kBox):
         -------
         PaletteBox instance
         """
-        num_bytes = offset + length - fptr.tell()
-        read_buffer = fptr.read(num_bytes)
-        (nrows, ncols) = struct.unpack_from('>HB', read_buffer, offset=0)
+        read_buffer = fptr.read(3)
+        (nrows, ncols) = struct.unpack('>HB', read_buffer)
 
-        # Need to determine bps and signed or not
-        read_buffer = fptr.read(num_columns)
-        bps_signed = struct.unpack('>' + 'B' * num_columns, read_buffer)
+        read_buffer = fptr.read(ncols)
+        bps_signed = struct.unpack('>' + 'B' * ncols, read_buffer)
         bps = [((x & 0x7f) + 1) for x in bps_signed]
         signed = [((x & 0x80) > 1) for x in bps_signed]
 
@@ -1936,18 +1934,18 @@ class PaletteBox(Jp2kBox):
             # Ok the palette has the same datatype for all columns.  We should
             # be able to efficiently read it.
             if bps[0] <= 8:
-                nbytes_per_row = num_columns
+                nbytes_per_row = ncols
                 dtype = np.uint8
             elif bps[0] <= 16:
-                nbytes_per_row = 2 * num_columns
+                nbytes_per_row = 2 * ncols
                 dtype = np.uint16
             elif bps[0] <= 32:
-                nbytes_per_row = 3 * num_columns
+                nbytes_per_row = 3 * ncols
                 dtype = np.uint32
 
-            read_buffer = fptr.read(num_entries * nbytes_per_row)
+            read_buffer = fptr.read(nrows * nbytes_per_row)
             palette = np.frombuffer(read_buffer, dtype=dtype)
-            palette = np.reshape(palette, (num_entries, num_columns))
+            palette = np.reshape(palette, (nrows, ncols))
 
         else:
             # General case where the columns may not be the same width.
@@ -1964,9 +1962,9 @@ class PaletteBox(Jp2kBox):
             # That means a list comprehension does this in one shot.
             row_nbytes = sum([int(math.ceil(x/8.0)) for x in bps])
 
-            read_buffer = fptr.read(num_entries * row_nbytes)
-            palette = np.zeros((num_entries, num_columns), dtype=np.int32)
-            for j in range(num_entries):
+            read_buffer = fptr.read(nrows * row_nbytes)
+            palette = np.zeros((nrows, ncols), dtype=np.int32)
+            for j in range(nrows):
                 palette[j] = struct.unpack_from(fmt, read_buffer,
                                             offset=j * row_nbytes)
 
