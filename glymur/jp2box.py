@@ -2738,6 +2738,7 @@ class XMLBox(Jp2kBox):
             # Try to search for <?xml and go from there.
             decl_start = read_buffer.find(b'<?xml')
             if decl_start <= -1:
+                # Nope, that's not it.  All is lost.
                 msg = 'A problem was encountered while parsing an XML box:'
                 msg += '\n\n\t"{0}"\n\nNo XML was retrieved.'
                 warnings.warn(msg.format(str(err)))
@@ -2752,14 +2753,16 @@ class XMLBox(Jp2kBox):
             warnings.warn(msg, UserWarning)
 
         # Strip out any trailing nulls, as they can foul up XML parsing.
-        # Remove any byte order markers.
         text = text.rstrip(chr(0))
+
+        # Remove any byte order markers.
         if u'\ufeff' in text:
             msg = 'An illegal BOM (byte order marker) was detected and '
             msg += 'removed from the XML contents in the box starting at byte '
             msg += 'offset {0}'.format(offset)
             warnings.warn(msg)
             text = text.replace(u'\ufeff', '')
+
         # Remove any encoding declaration.
         if text.startswith('<?xml version="1.0" encoding="UTF-8"?>'):
             text = text[38:]
