@@ -43,7 +43,7 @@ _METHOD_DISPLAY = {
     ANY_ICC_PROFILE: 'any ICC profile',
     VENDOR_COLOR_METHOD: 'vendor color method'}
 
-_factory = lambda x:  '{0} (invalid)'.format(x)
+_factory = lambda x: '{0} (invalid)'.format(x)
 _APPROX_DISPLAY = _Keydefaultdict(_factory,
         {1: 'accurately represents correct colorspace definition',
          2: 'approximates correct colorspace definition, exceptional quality',
@@ -125,7 +125,7 @@ class Jp2kBox(object):
             String to be indented.
         indent_level : str
             Number of spaces of indentation to add.
-        
+
         Returns
         -------
         indented_string : str
@@ -407,15 +407,16 @@ class ColourSpecificationBox(Jp2kBox):
         -------
         ColourSpecificationBox instance
         """
+        num_bytes = offset + length - fptr.tell()
+        read_buffer = fptr.read(num_bytes)
         # Read the brand, minor version.
-        read_buffer = fptr.read(3)
-        (method, precedence, approximation) = struct.unpack('>BBB',
-                                                            read_buffer)
+        (method, precedence, approximation) = struct.unpack_from('>BBB',
+                                                                 read_buffer,
+                                                                 offset=0)
 
         if method == 1:
             # enumerated colour space
-            read_buffer = fptr.read(4)
-            colorspace, = struct.unpack('>I', read_buffer)
+            colorspace, = struct.unpack_from('>I', read_buffer, offset=3)
             if colorspace not in _COLORSPACE_MAP_DISPLAY.keys():
                 msg = "Unrecognized colorspace: {0}".format(colorspace)
                 warnings.warn(msg)
@@ -424,14 +425,13 @@ class ColourSpecificationBox(Jp2kBox):
         else:
             # ICC profile
             colorspace = None
-            numbytes = offset + length - fptr.tell()
-            if numbytes < 128:
+            if (num_bytes - 3) < 128:
                 msg = "ICC profile header is corrupt, length is "
                 msg += "only {0} instead of 128."
-                warnings.warn(msg.format(numbytes), UserWarning)
+                warnings.warn(msg.format(num_bytes - 3), UserWarning)
                 icc_profile = None
             else:
-                profile = _ICCProfile(fptr.read(numbytes))
+                profile = _ICCProfile(read_buffer[3:])
                 icc_profile = profile.header
 
         return cls(method=method,
@@ -659,12 +659,14 @@ class ChannelDefinitionBox(Jp2kBox):
         -------
         ComponentDefinitionBox instance
         """
-        # Read the number of components.
-        read_buffer = fptr.read(2)
-        num_components, = struct.unpack('>H', read_buffer)
+        num_bytes = offset + length - fptr.tell()
+        read_buffer = fptr.read(num_bytes)
 
-        read_buffer = fptr.read(num_components * 6)
-        data = struct.unpack('>' + 'HHH' * num_components, read_buffer)
+        # Read the number of components.
+        num_components, = struct.unpack_from('>H', read_buffer)
+
+        data = struct.unpack_from('>' + 'HHH' * num_components, read_buffer,
+                                  offset=2)
         index = data[0:num_components * 6:3]
         channel_type = data[1:num_components * 6:3]
         association = data[2:num_components * 6:3]
@@ -1103,7 +1105,7 @@ class DataReferenceBox(Jp2kBox):
 
     @classmethod
     def parse(cls, fptr, offset, length):
-        """Parse Label box.
+        """Parse data reference box.
 
         Parameters
         ----------
@@ -1234,19 +1236,17 @@ class FileTypeBox(Jp2kBox):
         -------
         FileTypeBox instance
         """
-        # Read the brand, minor version.
-        read_buffer = fptr.read(8)
-        (brand, minor_version) = struct.unpack('>4sI', read_buffer)
+        read_buffer = fptr.read(length - 8)
+        # Extract the brand, minor version.
+        (brand, minor_version) = struct.unpack_from('>4sI', read_buffer, 0)
         if sys.hexversion >= 0x030000:
             brand = brand.decode('utf-8')
 
-        # Read the compatibility list.  Each entry has 4 bytes.
-        current_pos = fptr.tell()
-        num_bytes = (offset + length - current_pos) / 4
-        read_buffer = fptr.read(int(num_bytes) * 4)
+        # Extract the compatibility list.  Each entry has 4 bytes.
+        num_entries = int((length - 16)/ 4)
         compatibility_list = []
-        for j in range(int(num_bytes)):
-            entry, = struct.unpack('>4s', read_buffer[4*j:4*(j+1)])
+        for j in range(int(num_entries)):
+            entry, = struct.unpack_from('>4s', read_buffer, 8 + j * 4)
             if sys.hexversion >= 0x03000000:
                 entry = entry.decode('utf-8')
             compatibility_list.append(entry)
@@ -1348,11 +1348,13 @@ class FragmentListBox(Jp2kBox):
         -------
         FragmentListBox instance
         """
-        read_buffer = fptr.read(2)
-        num_fragments, = struct.unpack('>H', read_buffer)
+        num_bytes = offset + length - fptr.tell()
+        read_buffer = fptr.read(num_bytes)
+        num_fragments, = struct.unpack_from('>H', read_buffer, offset=0)
 
-        read_buffer = fptr.read(num_fragments * 14)
-        lst = struct.unpack('>' + 'QIH' * num_fragments, read_buffer)
+        lst = struct.unpack_from('>' + 'QIH' * num_fragments,
+                                 read_buffer,
+                                 offset=2)
         frag_offset = lst[0::3]
         frag_len = lst[1::3]
         data_reference = lst[2::3]
@@ -1885,11 +1887,11 @@ class PaletteBox(Jp2kBox):
         if all(b == bps[0] for b in bps):
             # All components are the same.  Writing is straightforward.
             if self.bits_per_component[0] <= 8:
-                write_buffer = np.getbuffer(self.palette.astype(np.uint8))
+                write_buffer = memoryview(self.palette.astype(np.uint8))
             elif self.bits_per_component[0] <= 16:
-                write_buffer = np.getbuffer(self.palette.astype(np.uint16))
+                write_buffer = memoryview(self.palette.astype(np.uint16))
             elif self.bits_per_component[0] <= 32:
-                write_buffer = np.getbuffer(self.palette.astype(np.uint32))
+                write_buffer = memoryview(self.palette.astype(np.uint32))
             fptr.write(write_buffer)
         else:
             # Not all the components are the same.  More general, but much rarer
@@ -1920,13 +1922,11 @@ class PaletteBox(Jp2kBox):
         -------
         PaletteBox instance
         """
-        # Get the size of the palette.
         read_buffer = fptr.read(3)
-        (num_entries, num_columns) = struct.unpack('>HB', read_buffer)
+        (nrows, ncols) = struct.unpack('>HB', read_buffer)
 
-        # Need to determine bps and signed or not
-        read_buffer = fptr.read(num_columns)
-        bps_signed = struct.unpack('>' + 'B' * num_columns, read_buffer)
+        read_buffer = fptr.read(ncols)
+        bps_signed = struct.unpack('>' + 'B' * ncols, read_buffer)
         bps = [((x & 0x7f) + 1) for x in bps_signed]
         signed = [((x & 0x80) > 1) for x in bps_signed]
 
@@ -1934,18 +1934,18 @@ class PaletteBox(Jp2kBox):
             # Ok the palette has the same datatype for all columns.  We should
             # be able to efficiently read it.
             if bps[0] <= 8:
-                nbytes_per_row = num_columns
+                nbytes_per_row = ncols
                 dtype = np.uint8
             elif bps[0] <= 16:
-                nbytes_per_row = 2 * num_columns
+                nbytes_per_row = 2 * ncols
                 dtype = np.uint16
             elif bps[0] <= 32:
-                nbytes_per_row = 3 * num_columns
+                nbytes_per_row = 3 * ncols
                 dtype = np.uint32
-        
-            read_buffer = fptr.read(num_entries * nbytes_per_row)
+
+            read_buffer = fptr.read(nrows * nbytes_per_row)
             palette = np.frombuffer(read_buffer, dtype=dtype)
-            palette = np.reshape(palette, (num_entries, num_columns))
+            palette = np.reshape(palette, (nrows, ncols))
 
         else:
             # General case where the columns may not be the same width.
@@ -1962,9 +1962,9 @@ class PaletteBox(Jp2kBox):
             # That means a list comprehension does this in one shot.
             row_nbytes = sum([int(math.ceil(x/8.0)) for x in bps])
 
-            read_buffer = fptr.read(num_entries * row_nbytes)
-            palette = np.zeros((num_entries, num_columns), dtype=np.int32)
-            for j in range(num_entries):
+            read_buffer = fptr.read(nrows * row_nbytes)
+            palette = np.zeros((nrows, ncols), dtype=np.int32)
+            for j in range(nrows):
                 palette[j] = struct.unpack_from(fmt, read_buffer,
                                             offset=j * row_nbytes)
 
@@ -2828,13 +2828,15 @@ class UUIDListBox(Jp2kBox):
         -------
         UUIDListBox instance
         """
-        read_buffer = fptr.read(2)
-        num_uuids, = struct.unpack('>H', read_buffer)
+        num_bytes = offset + length - fptr.tell()
+        read_buffer = fptr.read(num_bytes)
+
+        num_uuids, = struct.unpack_from('>H', read_buffer)
 
         ulst = []
-        for _ in range(num_uuids):
-            read_buffer = fptr.read(16)
-            ulst.append(uuid.UUID(bytes=read_buffer))
+        for j in range(num_uuids):
+            uuid_buffer = read_buffer[2 + j * 16 : 2 + (j + 1) * 16]
+            ulst.append(uuid.UUID(bytes=uuid_buffer))
 
         return cls(ulst, length=length, offset=offset)
 

@@ -380,13 +380,13 @@ class Codestream(object):
         COD segment instance.
         """
         offset = fptr.tell() - 2
-        offset = fptr.tell() - 2
 
-        read_buffer = fptr.read(3)
-        length, scod = struct.unpack('>HB', read_buffer)
+        read_buffer = fptr.read(2)
+        length, = struct.unpack('>H', read_buffer)
 
-        numbytes = offset + 2 + length - fptr.tell()
-        spcod = fptr.read(numbytes)
+        read_buffer = fptr.read(length - 2)
+        scod, = struct.unpack_from('>B', read_buffer, offset=0)
+        spcod = read_buffer[1:]
         spcod = np.frombuffer(spcod, dtype=np.uint8)
         if spcod[0] not in [LRCP, RLCP, RPCL, PCRL, CPRL]:
             msg = "Invalid progression order in COD segment: {0}."
@@ -583,22 +583,21 @@ class Codestream(object):
         read_buffer = fptr.read(2)
         length, = struct.unpack('>H', read_buffer)
 
+        read_buffer = fptr.read(length - 2)
         if self._csiz > 256:
-            read_buffer = fptr.read(3)
             fmt = '>HB'
-            mantissa_exponent_buffer_length = length - 5
+            mantissa_exponent_offset = 3
         else:
-            read_buffer = fptr.read(2)
             fmt = '>BB'
-            mantissa_exponent_buffer_length = length - 4
-        cqcc, sqcc = struct.unpack(fmt, read_buffer)
+            mantissa_exponent_offset = 2
+        cqcc, sqcc = struct.unpack_from(fmt, read_buffer)
         if cqcc >= self._csiz:
             msg = "Invalid component number ({0}), "
             msg += "number of components is only {1}."
             msg = msg.format(cqcc, self._csiz)
             warnings.warn(msg)
 
-        spqcc = fptr.read(mantissa_exponent_buffer_length)
+        spqcc = read_buffer[mantissa_exponent_offset:]
 
         return QCCsegment(cqcc, sqcc, spqcc, length, offset)
 
@@ -670,8 +669,8 @@ class Codestream(object):
         read_buffer = fptr.read(2)
         length, = struct.unpack('>H', read_buffer)
 
-        xy_buffer = fptr.read(36)
-        data = struct.unpack('>HIIIIIIIIH', xy_buffer)
+        read_buffer = fptr.read(length - 2)
+        data = struct.unpack_from('>HIIIIIIIIH', read_buffer)
 
         rsiz = data[0]
         if rsiz not in _KNOWN_PROFILES:
@@ -685,9 +684,8 @@ class Codestream(object):
         # Csiz is the number of components
         Csiz = data[9]
 
-        component_buffer = fptr.read(Csiz * 3)
-        data = struct.unpack('>' + 'B' * len(component_buffer),
-                             component_buffer)
+        data = struct.unpack_from('>' + 'B' * (length - 36 - 2),
+                                  read_buffer, offset=36)
 
         bitdepth = tuple(((x & 0x7f) + 1) for x in data[0::3])
         signed = tuple(((x & 0x80) > 0) for x in data[0::3])
@@ -804,8 +802,8 @@ class Codestream(object):
         read_buffer = fptr.read(2)
         length, = struct.unpack('>H', read_buffer)
 
-        read_buffer = fptr.read(2)
-        ztlm, stlm = struct.unpack('>BB', read_buffer)
+        read_buffer = fptr.read(length - 2)
+        ztlm, stlm = struct.unpack_from('>BB', read_buffer)
         ttlm_st = (stlm >> 4) & 0x3
         ptlm_sp = (stlm >> 6) & 0x1
 
@@ -815,7 +813,6 @@ class Codestream(object):
         else:
             ntiles = nbytes / (ttlm_st + (ptlm_sp + 1) * 2)
 
-        read_buffer = fptr.read(nbytes)
         if ttlm_st == 0:
             ttlm = None
             fmt = ''
@@ -829,7 +826,8 @@ class Codestream(object):
         else:
             fmt += 'I'
 
-        data = struct.unpack('>' + fmt * int(ntiles), read_buffer)
+        data = struct.unpack_from('>' + fmt * int(ntiles), read_buffer,
+                                  offset=2)
         if ttlm_st == 0:
             ttlm = None
             ptlm = data
