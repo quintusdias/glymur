@@ -583,22 +583,21 @@ class Codestream(object):
         read_buffer = fptr.read(2)
         length, = struct.unpack('>H', read_buffer)
 
+        read_buffer = fptr.read(length - 2)
         if self._csiz > 256:
-            read_buffer = fptr.read(3)
             fmt = '>HB'
-            mantissa_exponent_buffer_length = length - 5
+            mantissa_exponent_offset = 3
         else:
-            read_buffer = fptr.read(2)
             fmt = '>BB'
-            mantissa_exponent_buffer_length = length - 4
-        cqcc, sqcc = struct.unpack(fmt, read_buffer)
+            mantissa_exponent_offset = 2
+        cqcc, sqcc = struct.unpack_from(fmt, read_buffer)
         if cqcc >= self._csiz:
             msg = "Invalid component number ({0}), "
             msg += "number of components is only {1}."
             msg = msg.format(cqcc, self._csiz)
             warnings.warn(msg)
 
-        spqcc = fptr.read(mantissa_exponent_buffer_length)
+        spqcc = read_buffer[mantissa_exponent_offset:]
 
         return QCCsegment(cqcc, sqcc, spqcc, length, offset)
 
