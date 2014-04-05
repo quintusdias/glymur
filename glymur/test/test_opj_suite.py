@@ -5784,6 +5784,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[4].ccme.decode('latin-1'),
                          "Kakadu-v5.2.1")
 
+    @unittest.skip("Bad PCLR box")        
     def test_NR_mem_b2ace68c_1381_dump(self):
         jfile = opj_data_file('input/nonregression/mem-b2ace68c-1381.jp2')
         with warnings.catch_warnings():

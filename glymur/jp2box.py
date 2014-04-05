@@ -194,7 +194,17 @@ class Jp2kBox(object):
 
             return box
 
-        box = parser(fptr, start, num_bytes, box_is_XL=box_is_XL)
+        try:
+            box = parser(fptr, start, num_bytes, box_is_XL=box_is_XL)
+        except ValueError as err:
+            msg = "Encountered an unrecoverable ValueError while parsing a {0} "
+            msg += "box at byte offset {1}.  The original error message was "
+            msg += "\"{2}\""
+            msg = msg.format(box_id.decode('utf-8'), start, str(err))
+            warnings.warn(msg, UserWarning)
+            box = UnknownBox(box_id.decode('utf-8'),
+                             length=num_bytes, offset=start, longname='Unknown')
+
         return box
 
     def parse_superbox(self, fptr):
@@ -2010,11 +2020,12 @@ class PaletteBox(Jp2kBox):
         -------
         PaletteBox instance
         """
-        read_buffer = fptr.read(3)
-        (nrows, ncols) = struct.unpack('>HB', read_buffer)
+        num_bytes = length - 16 if box_is_XL else length - 8
+        read_buffer = fptr.read(num_bytes)
+        nrows, ncols = struct.unpack_from('>HB', read_buffer, offset=0)
 
-        read_buffer = fptr.read(ncols)
-        bps_signed = struct.unpack('>' + 'B' * ncols, read_buffer)
+        bps_signed = struct.unpack_from('>' + 'B' * ncols, read_buffer,
+                                        offset=3)
         bps = [((x & 0x7f) + 1) for x in bps_signed]
         signed = [((x & 0x80) > 1) for x in bps_signed]
 
@@ -2031,8 +2042,7 @@ class PaletteBox(Jp2kBox):
                 nbytes_per_row = 3 * ncols
                 dtype = np.uint32
 
-            read_buffer = fptr.read(nrows * nbytes_per_row)
-            palette = np.frombuffer(read_buffer, dtype=dtype)
+            palette = np.frombuffer(read_buffer[3 + ncols:], dtype=dtype)
             palette = np.reshape(palette, (nrows, ncols))
 
         else:
@@ -2050,11 +2060,10 @@ class PaletteBox(Jp2kBox):
             # That means a list comprehension does this in one shot.
             row_nbytes = sum([int(math.ceil(x/8.0)) for x in bps])
 
-            read_buffer = fptr.read(nrows * row_nbytes)
             palette = np.zeros((nrows, ncols), dtype=np.int32)
             for j in range(nrows):
-                palette[j] = struct.unpack_from(fmt, read_buffer,
-                                            offset=j * row_nbytes)
+                poff = 3 + ncols + j * row_nbytes
+                palette[j] = struct.unpack_from(fmt, read_buffer, offset=poff)
 
         return cls(palette, bps, signed, length=length, offset=offset)
 
