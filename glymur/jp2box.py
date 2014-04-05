@@ -15,6 +15,7 @@ References
 
 from collections import OrderedDict
 import datetime
+import io
 import math
 import os
 import pprint
@@ -1160,21 +1161,31 @@ class DataReferenceBox(Jp2kBox):
         -------
         DataReferenceBox instance
         """
+        num_bytes = length - 16 if box_is_XL else length - 8
+        read_buffer = fptr.read(num_bytes)
+
         # Read the number of data references
-        read_buffer = fptr.read(2)
-        ndr, = struct.unpack('>H', read_buffer)
+        ndr, = struct.unpack_from('>H', read_buffer, offset=0)
 
-        # Read each data entry url box.
+        # Need to keep track of where the next url box starts.
+        box_offset = 2
+
         data_entry_url_box_list = []
-        for _ in range(ndr):
-            start = fptr.tell()
-            read_buffer = fptr.read(8)
-            (box_length, box_id) = struct.unpack('>I4s', read_buffer)
-            if sys.hexversion >= 0x03000000:
-                box_id = box_id.decode('utf-8')
+        for j in range(ndr):
 
-            box = DataEntryURLBox.parse(fptr, start, box_length)
+            # Create an in-memory binary stream for each URL box.
+            box_fptr = io.BytesIO(read_buffer[box_offset:])
+            box_buffer = box_fptr.read(8)
+            (box_length, box_id) = struct.unpack_from('>I4s', box_buffer,
+                                                      offset=0)
+            box = DataEntryURLBox.parse(box_fptr, 0, box_length)
+
+            # Need to adjust the box start to that of the "real" file.
+            box.start = offset + box_offset
             data_entry_url_box_list.append(box)
+
+            # Point to the next embedded URL box.
+            box_offset += box_length
 
         return cls(data_entry_url_box_list, length=length, offset=offset)
 
