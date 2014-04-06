@@ -997,9 +997,22 @@ class ContiguousCodestreamBox(Jp2kBox):
     """
     def __init__(self, main_header=None, length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='jp2c', longname='Contiguous Codestream')
-        self.main_header = main_header
+        self._main_header = main_header
         self.length = length
         self.offset = offset
+
+        # The filename can be set if lazy loading is desired.
+        self._filename = None
+
+    @property
+    def main_header(self):
+        if self._main_header is None:
+            if self._filename is not None:
+                with open(self._filename, 'rb') as fptr:
+                    fptr.seek(self._offset + 8)
+                    main_header = Codestream(fptr, self._length, header_only=True)
+                    self._main_header = main_header
+        return self._main_header
 
     def __repr__(self):
         msg = "glymur.jp2box.ContiguousCodeStreamBox(main_header={0})"
@@ -1035,8 +1048,11 @@ class ContiguousCodestreamBox(Jp2kBox):
         -------
         ContiguousCodestreamBox instance
         """
-        main_header = Codestream(fptr, length, header_only=True)
-        return cls(main_header, length=length, offset=offset)
+        box = cls(None, length=length, offset=offset)
+        box._filename = fptr.name
+        box._length = length
+        box._offset = offset
+        return box
 
 
 class DataReferenceBox(Jp2kBox):
