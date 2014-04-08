@@ -381,8 +381,7 @@ class ColourSpecificationBox(Jp2kBox):
         """
         self._write_validate()
         length = 15 if self.icc_profile is None else 11 + len(self.icc_profile)
-        fptr.write(struct.pack('>I', length))
-        fptr.write(b'colr')
+        fptr.write(struct.pack('>I4s', length, b'colr'))
 
         read_buffer = struct.pack('>BBBI',
                                   self.method,
@@ -634,8 +633,7 @@ class ChannelDefinitionBox(Jp2kBox):
         """
         self._validate(writing=True)
         num_components = len(self.association)
-        fptr.write(struct.pack('>I', 8 + 2 + num_components * 6))
-        fptr.write(b'cdef')
+        fptr.write(struct.pack('>I4s', 8 + 2 + num_components * 6, b'cdef'))
         fptr.write(struct.pack('>H', num_components))
         for j in range(num_components):
             fptr.write(struct.pack('>' + 'H' * 3,
@@ -1076,8 +1074,7 @@ class DataReferenceBox(Jp2kBox):
 
         # Very similar to the say a superbox is written.
         orig_pos = fptr.tell()
-        fptr.write(struct.pack('>I', 0))
-        fptr.write(b'dtbl')
+        fptr.write(struct.pack('>I4s', 0, b'dtbl'))
 
         # Write the number of data entry url boxes.
         write_buffer = struct.pack('>H', len(self.DR))
@@ -1212,8 +1209,7 @@ class FileTypeBox(Jp2kBox):
         """
         self._validate(writing=True)
         length = 16 + 4*len(self.compatibility_list)
-        fptr.write(struct.pack('>I', length))
-        fptr.write(b'ftyp')
+        fptr.write(struct.pack('>I4s', length, b'ftyp'))
         fptr.write(self.brand.encode())
         fptr.write(struct.pack('>I', self.minor_version))
 
@@ -1251,8 +1247,6 @@ class FileTypeBox(Jp2kBox):
             if sys.hexversion >= 0x03000000:
                 entry = entry.decode('utf-8')
             compatibility_list.append(entry)
-
-        compatibility_list = compatibility_list
 
         return cls(brand=brand, minor_version=minor_version,
                    compatibility_list=compatibility_list,
@@ -1322,8 +1316,7 @@ class FragmentListBox(Jp2kBox):
         self._validate(writing=True)
         num_items = len(self.fragment_offset)
         length = 8 + 2 + num_items * 14
-        fptr.write(struct.pack('>I', length))
-        fptr.write(b'flst')
+        fptr.write(struct.pack('>I4s', length, b'flst'))
         fptr.write(struct.pack('>H', num_items))
         for j in range(num_items):
             write_buffer = struct.pack('>QIH',
@@ -1570,8 +1563,7 @@ class ImageHeaderBox(Jp2kBox):
     def write(self, fptr):
         """Write an Image Header box to file.
         """
-        fptr.write(struct.pack('>I', 22))
-        fptr.write(b'ihdr')
+        fptr.write(struct.pack('>I4s', 22, b'ihdr'))
 
         # signedness and bps are stored together in a single byte
         bit_depth_signedness = 0x80 if self.signed else 0x00
@@ -1784,8 +1776,7 @@ class JPEG2000SignatureBox(Jp2kBox):
     def write(self, fptr):
         """Write a JPEG 2000 Signature box to file.
         """
-        fptr.write(struct.pack('>I', 12))
-        fptr.write(b'jP  ')
+        fptr.write(struct.pack('>I4s', 12, b'jP  '))
         fptr.write(struct.pack('>BBBB', *self.signature))
 
     @classmethod
@@ -2533,8 +2524,7 @@ class LabelBox(Jp2kBox):
         """Write a Label box to file.
         """
         length = 8 + len(self.label.encode())
-        fptr.write(struct.pack('>I', length))
-        fptr.write(b'lbl ')
+        fptr.write(struct.pack('>I4s', length, b'lbl '))
         fptr.write(self.label.encode())
 
     @classmethod
@@ -2634,8 +2624,7 @@ class NumberListBox(Jp2kBox):
     def write(self, fptr):
         """Write a NumberList box to file.
         """
-        fptr.write(struct.pack('>I', len(self.associations) * 4 + 8))
-        fptr.write(b'nlst')
+        fptr.write(struct.pack('>I4s', len(self.associations) * 4 + 8, b'nlst'))
 
         fmt = '>' + 'I' * len(self.associations)
         write_buffer = struct.pack(fmt, *self.associations)
@@ -2708,8 +2697,7 @@ class XMLBox(Jp2kBox):
             # AssertionError on 2.6
             read_buffer = ET.tostring(self.xml.getroot(), encoding='utf-8')
 
-        fptr.write(struct.pack('>I', len(read_buffer) + 8))
-        fptr.write(b'xml ')
+        fptr.write(struct.pack('>I4s', len(read_buffer) + 8, b'xml '))
         fptr.write(read_buffer)
 
     @classmethod
