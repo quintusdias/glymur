@@ -1048,7 +1048,11 @@ class ContiguousCodestreamBox(Jp2kBox):
         -------
         ContiguousCodestreamBox instance
         """
-        box = cls(None, length=length, offset=offset)
+        if _parseoptions['codestream'] is True:
+            main_header = Codestream(fptr, length, header_only=True)
+        else:
+            main_header = None
+        box = cls(main_header, length=length, offset=offset)
         box._filename = fptr.name
         box._length = length
         box._offset = offset
@@ -3232,6 +3236,50 @@ _BOX_WITH_ID = {
     b'url ': DataEntryURLBox,
     b'uuid': UUIDBox,
     b'xml ': XMLBox}
+
+_parseoptions = {'codestream': True}
+
+def set_parseoptions(codestream=True):
+    """Set parsing options.
+
+    These options determine the way JPEG 2000 boxes are parsed.
+
+    Parameters
+    ----------
+    codestream : bool, defaults to True
+        When False, the codestream header is only parsed when accessed.  This
+        can results in faster JP2/JPX parsing.
+
+    See also
+    --------
+    get_parseoptions
+
+    Examples
+    --------
+    To put back the default options, you can use:
+
+    >>> import glymur
+    >>> glymur.set_parseoptions(codestream=True)
+    """
+    _parseoptions['codestream'] = codestream
+
+def get_parseoptions():
+    """Return the current parsing options.
+
+    Returns
+    -------
+    print_opts : dict
+        Dictionary of current print options with keys
+
+          - codestream : bool
+
+        For a full description of these options, see `set_parseoptions`.
+
+    See also
+    --------
+    set_parseoptions
+    """
+    return _parseoptions
 
 _printoptions = {'short': False, 'xml': True, 'codestream': True}
 

@@ -756,6 +756,35 @@ class TestJp2k_2_1(unittest.TestCase):
 
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
+class TestParsing(unittest.TestCase):
+    """Tests for verifying how paring may be altered."""
+    def setUp(self):
+        # Reset parseoptions for every test.
+        glymur.set_parseoptions(codestream=True)
+
+    def tearDown(self):
+        pass
+
+    def test_bad_rsiz(self):
+        """Should not warn if RSIZ when parsing is turned off."""
+        # Actually there are three warning triggered by this codestream.
+        filename = opj_data_file('input/nonregression/edf_c2_1002767.jp2')
+        glymur.set_parseoptions(codestream=False)
+        with warnings.catch_warnings(record=True) as w:
+            j = Jp2k(filename)
+            self.assertEqual(len(w), 0)
+
+        glymur.set_parseoptions(codestream=True)
+        with warnings.catch_warnings(record=True) as w:
+            j = Jp2k(filename)
+            self.assertEqual(len(w), 3)
+
+        if sys.hexversion >= 0x03000000:
+            with self.assertWarns(UserWarning):
+                jp2 = Jp2k(filename)
+
+@unittest.skipIf(OPJ_DATA_ROOT is None,
+                 "OPJ_DATA_ROOT environment variable not set")
 class TestJp2kOpjDataRoot(unittest.TestCase):
     """These tests should be run by just about all configuration."""
 

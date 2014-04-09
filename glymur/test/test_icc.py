@@ -35,7 +35,7 @@ class TestICC(unittest.TestCase):
             # The file has a bad compatibility list entry.  Not important here.
             warnings.simplefilter("ignore")
             j = Jp2k(filename)
-        profile = j.box[2].box[1].icc_profile
+        profile = j.box[3].box[1].icc_profile
         self.assertEqual(profile['Size'], 546)
         self.assertEqual(profile['Preferred CMM Type'], 0)
         self.assertEqual(profile['Version'], '2.2.0')
