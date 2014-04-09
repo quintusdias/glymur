@@ -990,14 +990,18 @@ class ContiguousCodestreamBox(Jp2kBox):
         offset of the box from the start of the file.
     longname : str
         more verbose description of the box.
-    main_header : list
-        List of segments in the codestream header.
+    main_header : Codestream object
+        contains list of main header marker/segments
+    main_header_offset : int
+        offset of main header from start of file
     """
-    def __init__(self, main_header=None, length=0, offset=-1):
+    def __init__(self, main_header=None, main_header_offset=None, length=0,
+                 offset=-1):
         Jp2kBox.__init__(self, box_id='jp2c', longname='Contiguous Codestream')
         self._main_header = main_header
         self.length = length
         self.offset = offset
+        self.main_header_offset = main_header_offset
 
         # The filename can be set if lazy loading is desired.
         self._filename = None
@@ -1046,11 +1050,13 @@ class ContiguousCodestreamBox(Jp2kBox):
         -------
         ContiguousCodestreamBox instance
         """
+        main_header_offset = fptr.tell()
         if _parseoptions['codestream'] is True:
             main_header = Codestream(fptr, length, header_only=True)
         else:
             main_header = None
-        box = cls(main_header, length=length, offset=offset)
+        box = cls(main_header, main_header_offset=main_header_offset,
+                  length=length, offset=offset)
         box._filename = fptr.name
         box._length = length
         box._offset = offset

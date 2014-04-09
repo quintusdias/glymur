@@ -935,6 +935,9 @@ class TestWrap(unittest.TestCase):
 class TestJp2Boxes(unittest.TestCase):
     """Tests for canonical JP2 boxes."""
 
+    def setUp(self):
+        self.jpxfile = glymur.data.jpxfile()
+
     def test_default_jp2k(self):
         """Should be able to instantiate a JPEG2000SignatureBox"""
         jp2k = glymur.jp2box.JPEG2000SignatureBox()
@@ -970,6 +973,12 @@ class TestJp2Boxes(unittest.TestCase):
         box = ContiguousCodestreamBox()
         self.assertEqual(box.box_id, 'jp2c')
         self.assertIsNone(box.main_header)
+
+    def test_codestream_main_header_offset(self):
+        """main_header_offset is an attribute of the CCS box"""
+        j = Jp2k(self.jpxfile);
+        self.assertEqual(j.box[5].main_header_offset,
+                         j.box[5].offset + 8)
 
 
 class TestRepr(unittest.TestCase):
