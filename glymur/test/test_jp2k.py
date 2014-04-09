@@ -775,10 +775,6 @@ class TestParsing(unittest.TestCase):
             self.assertEqual(len(w), 0)
 
         glymur.set_parseoptions(codestream=True)
-        with warnings.catch_warnings(record=True) as w:
-            j = Jp2k(filename)
-            self.assertEqual(len(w), 3)
-
         if sys.hexversion >= 0x03000000:
             with self.assertWarns(UserWarning):
                 jp2 = Jp2k(filename)
