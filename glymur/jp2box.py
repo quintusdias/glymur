@@ -2241,7 +2241,7 @@ def _parse_rreq3(read_buffer, length, offset):
     num_standard_features, = struct.unpack_from('>H', read_buffer, offset=7)
 
     fmt = '>' + 'HBBB' * num_standard_features
-    lst = struct.unpack(fmt, read_buffer, offset=9)
+    lst = struct.unpack_from(fmt, read_buffer, offset=9)
 
     standard_flag = lst[0::4]
     standard_mask = []
