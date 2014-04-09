@@ -15,6 +15,7 @@ References
 
 from collections import OrderedDict
 import datetime
+import io
 import math
 import os
 import pprint
@@ -165,10 +166,11 @@ class Jp2kBox(object):
         Parameters
         ----------
         fptr : file
-            Open file object.
+            Open file object, currently points to start of box payload, not the
+            start of the box.
         box_id : str
             4-letter identifier for the current box.
-        start, num_bytes: int
+        start, num_bytes : int
             Byte offset and length of the current box.
 
         Returns
@@ -189,7 +191,17 @@ class Jp2kBox(object):
 
             return box
 
-        box = parser(fptr, start, num_bytes)
+        try:
+            box = parser(fptr, start, num_bytes)
+        except ValueError as err:
+            msg = "Encountered an unrecoverable ValueError while parsing a {0} "
+            msg += "box at byte offset {1}.  The original error message was "
+            msg += "\"{2}\""
+            msg = msg.format(box_id.decode('utf-8'), start, str(err))
+            warnings.warn(msg, UserWarning)
+            box = UnknownBox(box_id.decode('utf-8'),
+                             length=num_bytes, offset=start, longname='Unknown')
+
         return box
 
     def parse_superbox(self, fptr):
@@ -985,9 +997,22 @@ class ContiguousCodestreamBox(Jp2kBox):
     """
     def __init__(self, main_header=None, length=0, offset=-1):
         Jp2kBox.__init__(self, box_id='jp2c', longname='Contiguous Codestream')
-        self.main_header = main_header
+        self._main_header = main_header
         self.length = length
         self.offset = offset
+
+        # The filename can be set if lazy loading is desired.
+        self._filename = None
+
+    @property
+    def main_header(self):
+        if self._main_header is None:
+            if self._filename is not None:
+                with open(self._filename, 'rb') as fptr:
+                    fptr.seek(self._offset + 8)
+                    main_header = Codestream(fptr, self._length, header_only=True)
+                    self._main_header = main_header
+        return self._main_header
 
     def __repr__(self):
         msg = "glymur.jp2box.ContiguousCodeStreamBox(main_header={0})"
@@ -1023,8 +1048,15 @@ class ContiguousCodestreamBox(Jp2kBox):
         -------
         ContiguousCodestreamBox instance
         """
-        main_header = Codestream(fptr, length, header_only=True)
-        return cls(main_header, length=length, offset=offset)
+        if _parseoptions['codestream'] is True:
+            main_header = Codestream(fptr, length, header_only=True)
+        else:
+            main_header = None
+        box = cls(main_header, length=length, offset=offset)
+        box._filename = fptr.name
+        box._length = length
+        box._offset = offset
+        return box
 
 
 class DataReferenceBox(Jp2kBox):
@@ -1121,21 +1153,31 @@ class DataReferenceBox(Jp2kBox):
         -------
         DataReferenceBox instance
         """
+        num_bytes = offset + length - fptr.tell()
+        read_buffer = fptr.read(num_bytes)
+
         # Read the number of data references
-        read_buffer = fptr.read(2)
-        ndr, = struct.unpack('>H', read_buffer)
+        ndr, = struct.unpack_from('>H', read_buffer, offset=0)
 
-        # Read each data entry url box.
+        # Need to keep track of where the next url box starts.
+        box_offset = 2
+
         data_entry_url_box_list = []
-        for _ in range(ndr):
-            start = fptr.tell()
-            read_buffer = fptr.read(8)
-            (box_length, box_id) = struct.unpack('>I4s', read_buffer)
-            if sys.hexversion >= 0x03000000:
-                box_id = box_id.decode('utf-8')
+        for j in range(ndr):
 
-            box = DataEntryURLBox.parse(fptr, start, box_length)
+            # Create an in-memory binary stream for each URL box.
+            box_fptr = io.BytesIO(read_buffer[box_offset:])
+            box_buffer = box_fptr.read(8)
+            (box_length, box_id) = struct.unpack_from('>I4s', box_buffer,
+                                                      offset=0)
+            box = DataEntryURLBox.parse(box_fptr, 0, box_length)
+
+            # Need to adjust the box start to that of the "real" file.
+            box.start = offset + box_offset
             data_entry_url_box_list.append(box)
+
+            # Point to the next embedded URL box.
+            box_offset += box_length
 
         return cls(data_entry_url_box_list, length=length, offset=offset)
 
@@ -1237,7 +1279,8 @@ class FileTypeBox(Jp2kBox):
         -------
         FileTypeBox instance
         """
-        read_buffer = fptr.read(length - 8)
+        num_bytes = offset + length - fptr.tell()
+        read_buffer = fptr.read(num_bytes)
         # Extract the brand, minor version.
         (brand, minor_version) = struct.unpack_from('>4sI', read_buffer, 0)
         if sys.hexversion >= 0x030000:
@@ -1923,11 +1966,12 @@ class PaletteBox(Jp2kBox):
         -------
         PaletteBox instance
         """
-        read_buffer = fptr.read(3)
-        (nrows, ncols) = struct.unpack('>HB', read_buffer)
+        num_bytes = offset + length - fptr.tell()
+        read_buffer = fptr.read(num_bytes)
+        nrows, ncols = struct.unpack_from('>HB', read_buffer, offset=0)
 
-        read_buffer = fptr.read(ncols)
-        bps_signed = struct.unpack('>' + 'B' * ncols, read_buffer)
+        bps_signed = struct.unpack_from('>' + 'B' * ncols, read_buffer,
+                                        offset=3)
         bps = [((x & 0x7f) + 1) for x in bps_signed]
         signed = [((x & 0x80) > 1) for x in bps_signed]
 
@@ -1944,8 +1988,7 @@ class PaletteBox(Jp2kBox):
                 nbytes_per_row = 3 * ncols
                 dtype = np.uint32
 
-            read_buffer = fptr.read(nrows * nbytes_per_row)
-            palette = np.frombuffer(read_buffer, dtype=dtype)
+            palette = np.frombuffer(read_buffer[3 + ncols:], dtype=dtype)
             palette = np.reshape(palette, (nrows, ncols))
 
         else:
@@ -1963,11 +2006,10 @@ class PaletteBox(Jp2kBox):
             # That means a list comprehension does this in one shot.
             row_nbytes = sum([int(math.ceil(x/8.0)) for x in bps])
 
-            read_buffer = fptr.read(nrows * row_nbytes)
             palette = np.zeros((nrows, ncols), dtype=np.int32)
             for j in range(nrows):
-                palette[j] = struct.unpack_from(fmt, read_buffer,
-                                            offset=j * row_nbytes)
+                poff = 3 + ncols + j * row_nbytes
+                palette[j] = struct.unpack_from(fmt, read_buffer, offset=poff)
 
         return cls(palette, bps, signed, length=length, offset=offset)
 
@@ -2152,29 +2194,34 @@ class ReaderRequirementsBox(Jp2kBox):
         -------
         ReaderRequirementsBox instance
         """
-        read_buffer = fptr.read(1)
-        mask_length, = struct.unpack('>B', read_buffer)
+        num_bytes = offset + length - fptr.tell()
+        read_buffer = fptr.read(num_bytes)
+        mask_length, = struct.unpack_from('>B', read_buffer, offset=0)
 
         if mask_length == 3:
-            return _parse_rreq3(fptr, length, offset)
+            return _parse_rreq3(read_buffer, length, offset)
 
         # Fully Understands Aspect Mask
         # Decodes Completely Mask
-        read_buffer = fptr.read(2 * mask_length)
-
         fuam = dcm = standard_flag = standard_mask = []
         vendor_feature = vendor_mask = []
 
         # The mask length tells us the format string to use when unpacking
         # from the buffer read from file.
-
         try:
             mask_format = {1: 'B', 2: 'H', 4: 'I', 8: 'Q'}[mask_length]
-            fuam, dcm = struct.unpack('>' + mask_format * 2, read_buffer)
-            standard_flag, standard_mask = _parse_standard_flag(fptr,
-                                                                mask_length)
-            vendor_feature, vendor_mask = _parse_vendor_features(fptr,
-                                                                 mask_length)
+            fuam, dcm = struct.unpack_from('>' + mask_format * 2, read_buffer,
+                                           offset=1)
+            std_flg_offset = 1 + 2 * mask_length
+            data = _parse_standard_flag(read_buffer[std_flg_offset:],
+                                        mask_length)
+            standard_flag, standard_mask = data
+
+            nflags = len(standard_flag)
+            vendor_offset = 1 + 2 * mask_length + 2 + (2 + mask_length) * nflags
+            data = _parse_vendor_features(read_buffer[vendor_offset:],
+                                          mask_length)
+            vendor_feature, vendor_mask = data
 
         except KeyError:
             msg = 'The ReaderRequirements box (rreq) has a mask length of {0} '
@@ -2187,27 +2234,23 @@ class ReaderRequirementsBox(Jp2kBox):
                    length=length, offset=offset)
 
 
-def _parse_rreq3(fptr, length, offset):
+def _parse_rreq3(read_buffer, length, offset):
     """Parse a reader requirements box.  Special case when mask length is 3."""
     # Fully Understands Aspect Mask
     # Decodes Completely Mask
-    read_buffer = fptr.read(2 * 3)
-
     fuam = dcm = standard_flag = standard_mask = []
     vendor_feature = vendor_mask = []
 
     # The mask length tells us the format string to use when unpacking
     # from the buffer read from file.
-    lst = struct.unpack('>BBBBBB', read_buffer)
+    lst = struct.unpack_from('>BBBBBB', read_buffer, offset=1)
     fuam = lst[0] << 16 | lst[1] << 8 | lst[2]
     dcm = lst[3] << 16 | lst[4] << 8 | lst[5]
 
-    read_buffer = fptr.read(2)
-    num_standard_features, = struct.unpack('>H', read_buffer)
+    num_standard_features, = struct.unpack_from('>H', read_buffer, offset=7)
 
     fmt = '>' + 'HBBB' * num_standard_features
-    read_buffer = fptr.read(num_standard_features * 5)
-    lst = struct.unpack(fmt, read_buffer)
+    lst = struct.unpack(fmt, read_buffer, offset=9)
 
     standard_flag = lst[0::4]
     standard_mask = []
@@ -2216,21 +2259,23 @@ def _parse_rreq3(fptr, length, offset):
         mask = items[0] << 16 | items[1] << 8 | items[2]
         standard_mask.append(mask)
 
-    read_buffer = fptr.read(2)
-    num_vendor_features, = struct.unpack('>H', read_buffer)
+    boffset = 9 + num_standard_features * 5
+    num_vendor_features, = struct.unpack_from('>H', read_buffer,
+                                              offset=boffset)
 
     fmt = '>' + 'HBBB' * num_vendor_features
-    read_buffer = fptr.read(num_vendor_features * 5)
-    lst = struct.unpack(fmt, read_buffer)
+    buffer_offset = 11 + num_standard_features * 5
+    lst = struct.unpack_from(fmt, read_buffer, offset=buffer_offset)
 
     # Each vendor feature consists of a 16-byte UUID plus a mask whose
     # length is specified by, you guessed it, "mask_length".
     entry_length = 16 + 3
-    read_buffer = fptr.read(num_vendor_features * entry_length)
     vendor_feature = []
     vendor_mask = []
+    read_buffer = read_buffer[9 + num_standard_features * 10:]
     for j in range(num_vendor_features):
-        ubuffer = read_buffer[j * entry_length:(j + 1) * entry_length]
+        uslice = slice(j * entry_length, (j + 1) * entry_length)
+        ubuffer = read_buffer[slice]
         vendor_feature.append(uuid.UUID(bytes=ubuffer[0:16]))
 
         lst = struct.unpack('>BBB', ubuffer[16:])
@@ -2243,7 +2288,7 @@ def _parse_rreq3(fptr, length, offset):
     return box
 
 
-def _parse_standard_flag(fptr, mask_length):
+def _parse_standard_flag(read_buffer, mask_length):
     """Construct standard flag, standard mask data from the file.
 
     Specifically working on Reader Requirements box.
@@ -2259,16 +2304,16 @@ def _parse_standard_flag(fptr, mask_length):
     # from the buffer read from file.
     mask_format = {1: 'B', 2: 'H', 4: 'I'}[mask_length]
 
-    read_buffer = fptr.read(2)
-    num_standard_flags, = struct.unpack('>H', read_buffer)
+    #read_buffer = fptr.read(2)
+    num_standard_flags, = struct.unpack_from('>H', read_buffer, offset=0)
 
     # Read in standard flags and standard masks.  Each standard flag should
     # be two bytes, but the standard mask flag is as long as specified by
     # the mask length.
-    read_buffer = fptr.read(num_standard_flags * (2 + mask_length))
+    #read_buffer = fptr.read(num_standard_flags * (2 + mask_length))
 
     fmt = '>' + ('H' + mask_format) * num_standard_flags
-    data = struct.unpack(fmt, read_buffer)
+    data = struct.unpack_from(fmt, read_buffer, offset=2)
 
     standard_flag = data[0:num_standard_flags * 2:2]
     standard_mask = data[1:num_standard_flags * 2:2]
@@ -2276,7 +2321,7 @@ def _parse_standard_flag(fptr, mask_length):
     return standard_flag, standard_mask
 
 
-def _parse_vendor_features(fptr, mask_length):
+def _parse_vendor_features(read_buffer, mask_length):
     """Construct vendor features, vendor mask data from the file.
 
     Specifically working on Reader Requirements box.
@@ -2292,17 +2337,17 @@ def _parse_vendor_features(fptr, mask_length):
     # from the buffer read from file.
     mask_format = {1: 'B', 2: 'H', 4: 'I'}[mask_length]
 
-    read_buffer = fptr.read(2)
-    num_vendor_features, = struct.unpack('>H', read_buffer)
+    num_vendor_features, = struct.unpack_from('>H', read_buffer)
 
     # Each vendor feature consists of a 16-byte UUID plus a mask whose
     # length is specified by, you guessed it, "mask_length".
     entry_length = 16 + mask_length
-    read_buffer = fptr.read(num_vendor_features * entry_length)
+    #read_buffer = fptr.read(num_vendor_features * entry_length)
     vendor_feature = []
     vendor_mask = []
     for j in range(num_vendor_features):
-        ubuffer = read_buffer[j * entry_length:(j + 1) * entry_length]
+        uslice = slice(2 + j * entry_length, 2 + (j + 1) * entry_length)
+        ubuffer = read_buffer[uslice]
         vendor_feature.append(uuid.UUID(bytes=ubuffer[0:16]))
 
         vmask = struct.unpack('>' + mask_format, ubuffer[16:])
@@ -2985,14 +3030,13 @@ class DataEntryURLBox(Jp2kBox):
         -------
         DataEntryURLbox instance
         """
-        read_buffer = fptr.read(4)
-        data = struct.unpack('>BBBB', read_buffer)
+        num_bytes = offset + length - fptr.tell()
+        read_buffer = fptr.read(num_bytes)
+        data = struct.unpack_from('>BBBB', read_buffer)
         version = data[0]
         flag = data[1:4]
 
-        numbytes = offset + length - fptr.tell()
-        read_buffer = fptr.read(numbytes)
-        url = read_buffer.decode('utf-8').rstrip(chr(0))
+        url = read_buffer[4:].decode('utf-8').rstrip(chr(0))
         return cls(version, flag, url, length=length, offset=offset)
 
 
@@ -3159,13 +3203,10 @@ class UUIDBox(Jp2kBox):
         -------
         UUIDBox instance
         """
-
-        read_buffer = fptr.read(16)
-        the_uuid = uuid.UUID(bytes=read_buffer)
-
-        numbytes = offset + length - fptr.tell()
-        read_buffer = fptr.read(numbytes)
-        return cls(the_uuid, read_buffer, length=length, offset=offset)
+        num_bytes = offset + length - fptr.tell()
+        read_buffer = fptr.read(num_bytes)
+        the_uuid = uuid.UUID(bytes=read_buffer[0:16])
+        return cls(the_uuid, read_buffer[16:], length=length, offset=offset)
 
 
 # Map each box ID to the corresponding class.
@@ -3198,6 +3239,50 @@ _BOX_WITH_ID = {
     b'url ': DataEntryURLBox,
     b'uuid': UUIDBox,
     b'xml ': XMLBox}
+
+_parseoptions = {'codestream': True}
+
+def set_parseoptions(codestream=True):
+    """Set parsing options.
+
+    These options determine the way JPEG 2000 boxes are parsed.
+
+    Parameters
+    ----------
+    codestream : bool, defaults to True
+        When False, the codestream header is only parsed when accessed.  This
+        can results in faster JP2/JPX parsing.
+
+    See also
+    --------
+    get_parseoptions
+
+    Examples
+    --------
+    To put back the default options, you can use:
+
+    >>> import glymur
+    >>> glymur.set_parseoptions(codestream=True)
+    """
+    _parseoptions['codestream'] = codestream
+
+def get_parseoptions():
+    """Return the current parsing options.
+
+    Returns
+    -------
+    print_opts : dict
+        Dictionary of current print options with keys
+
+          - codestream : bool
+
+        For a full description of these options, see `set_parseoptions`.
+
+    See also
+    --------
+    set_parseoptions
+    """
+    return _parseoptions
 
 _printoptions = {'short': False, 'xml': True, 'codestream': True}
 
