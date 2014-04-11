@@ -547,13 +547,13 @@ class Jp2k(Jp2kBox):
 
             opj2.setup_encoder(codec, cparams, image)
 
-            if _OPENJP2_IS_OFFICIAL_V2:
+            if re.match("2.0", version.openjpeg_version) is not None:
                 fptr = libc.fopen(self.filename, 'wb')
                 strm = opj2.stream_create_default_file_stream(fptr, False)
                 stack.callback(opj2.stream_destroy, strm)
                 stack.callback(libc.fclose, fptr)
             else:
-                # This routine introduced in 2.0 devel series.
+                # Introduced in 2.1 devel series.
                 strm = opj2.stream_create_default_file_stream_v3(self.filename,
                                                                  False)
                 stack.callback(opj2.stream_destroy_v3, strm)
@@ -1080,17 +1080,17 @@ class Jp2k(Jp2kBox):
                                        layer=layer, tile=tile, area=area)
 
         with ExitStack() as stack:
-            if hasattr(opj2.OPENJP2,
-                       'opj_stream_create_default_file_stream_v3'):
-                filename = self.filename
-                stream = opj2.stream_create_default_file_stream_v3(filename,
-                                                                   True)
-                stack.callback(opj2.stream_destroy_v3, stream)
-            else:
+            if re.match("2.0", version.openjpeg_version):
                 fptr = libc.fopen(self.filename, 'rb')
                 stack.callback(libc.fclose, fptr)
                 stream = opj2.stream_create_default_file_stream(fptr, True)
                 stack.callback(opj2.stream_destroy, stream)
+            else:
+                # API change in 2.1+
+                filename = self.filename
+                stream = opj2.stream_create_default_file_stream_v3(filename,
+                                                                   True)
+                stack.callback(opj2.stream_destroy_v3, stream)
             codec = opj2.create_decompress(self._codec_format)
             stack.callback(opj2.destroy_codec, codec)
 
@@ -1147,12 +1147,6 @@ class Jp2k(Jp2kBox):
             Bitdepth:  (8, 8, 8)
             Signed:  (False, False, False)
             Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))
-
-        Raises
-        ------
-        IOError
-            If the file is JPX with more than one codestream and no JP2
-            compatibility is advertised.
         """
         with open(self.filename, 'rb') as fptr:
             if self._codec_format == opj2.CODEC_J2K:
@@ -1161,11 +1155,6 @@ class Jp2k(Jp2kBox):
             else:
                 ftyp = self.box[1]
                 box = [x for x in self.box if x.box_id == 'jp2c']
-                if len(box) > 1 and 'jp2 ' not in ftyp.compatibility_list:
-                    msg = "If more than one codestream exists, JP2 "
-                    msg += "compatibiltity must be advertised by the FileType "
-                    msg += "box."
-                    raise RuntimeError(msg)
                 fptr.seek(box[0].offset)
                 read_buffer = fptr.read(8)
                 (box_length, _) = struct.unpack('>I4s', read_buffer)
@@ -1183,7 +1172,7 @@ class Jp2k(Jp2kBox):
             return codestream
 
 
-def component2dtype(component):
+def _component2dtype(component):
     """Take an OpenJPEG component structure and determine the numpy datatype.
 
     Parameters
@@ -1474,7 +1463,7 @@ def extract_image_cube(image):
     """
     ncomps = image.contents.numcomps
     component = image.contents.comps[0]
-    dtype = component2dtype(component)
+    dtype = _component2dtype(component)
 
     nrows = component.h
     ncols = component.w
@@ -1508,7 +1497,7 @@ def extract_image_bands(image):
     for k in range(image.contents.numcomps):
         component = image.contents.comps[k]
 
-        dtype = component2dtype(component)
+        dtype = _component2dtype(component)
         nrows = component.h
         ncols = component.w
 
@@ -1698,7 +1687,7 @@ def _validate_compression_params(img_array, cparams):
         msg = "{0}D imagery is not allowed.".format(img_array.ndim)
         raise IOError(msg)
 
-    if _OPENJP2_IS_OFFICIAL_V2:
+    if re.match("2.0", version.openjpeg_version) is not None:
         if (((img_array.ndim != 2) and
              (img_array.shape[2] != 1 and img_array.shape[2] != 3))):
             msg = "Writing images is restricted to single-channel "
@@ -1710,14 +1699,6 @@ def _validate_compression_params(img_array, cparams):
     if img_array.dtype != np.uint8 and img_array.dtype != np.uint16:
         msg = "Only uint8 and uint16 images are currently supported."
         raise RuntimeError(msg)
-
-# Need to known if openjp2 library is the officially release v2.0.0 or not.
-_OPENJP2_IS_OFFICIAL_V2 = False
-if opj2.OPENJP2 is not None:
-    if opj2.version() == '2.0.0':
-        if not hasattr(opj2.OPENJP2,
-                       'opj_stream_create_default_file_stream_v3'):
-            _OPENJP2_IS_OFFICIAL_V2 = True
 
 _COLORSPACE_MAP = {'rgb': opj2.CLRSPC_SRGB,
                    'gray': opj2.CLRSPC_GRAY,

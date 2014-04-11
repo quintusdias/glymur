@@ -543,6 +543,16 @@ class TestPaletteBox(unittest.TestCase):
             pclr = glymur.jp2box.PaletteBox(palette, bits_per_component=bps,
                                             signed=signed)
 
+    def test_writing_with_different_bitdepths(self):
+        """Bitdepths must be the same when writing."""
+        palette = np.array([[255, 0, 255], [0, 255, 0]], dtype=np.uint16)
+        bps = (8, 16, 8)
+        signed = (False, False, False)
+        pclr = glymur.jp2box.PaletteBox(palette, bits_per_component=bps,
+                                        signed=signed)
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            with self.assertRaises(IOError):
+                pclr.write(tfile)
 
 class TestAppend(unittest.TestCase):
     """Tests for append method."""
@@ -732,6 +742,49 @@ class TestWrap(unittest.TestCase):
             jp2 = j2k.wrap(tfile.name)
         boxes = [box.box_id for box in jp2.box]
         self.assertEqual(boxes, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
+
+    def test_wrap_jp2_Lzero(self):
+        """Wrap jp2 with jp2c box length is zero"""
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            with open(self.jp2file, 'rb') as ifile:
+                tfile.write(ifile.read())
+            # Rewrite with codestream length as zero.
+            tfile.seek(3223)
+            tfile.write(struct.pack('>I', 0))
+            tfile.flush()
+            jp2 = Jp2k(tfile.name)
+
+            with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile2:
+                jp2 = jp2.wrap(tfile2.name)
+        boxes = [box for box in jp2.box]
+        self.assertEqual(boxes[3].length, 1132296)
+
+    def test_wrap_jp2_Lone(self):
+        """Wrap jp2 with jp2c box length is 1, implies Q field"""
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            with open(self.jp2file, 'rb') as ifile:
+                tfile.write(ifile.read(3223))
+                # Write new L, T, Q fields
+                tfile.write(struct.pack('>I4sQ', 1, b'jp2c', 1132296 + 8))
+                # skip over the old L, T fields
+                ifile.seek(3231)
+                tfile.write(ifile.read())
+            tfile.flush()
+            jp2 = Jp2k(tfile.name)
+
+            with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile2:
+                jp2 = jp2.wrap(tfile2.name)
+        boxes = [box for box in jp2.box]
+        self.assertEqual(boxes[3].length, 1132296 + 8)
+
+    def test_wrap_compatibility_not_jp2(self):
+        """File type compatibility must contain jp2"""
+        jp2 = Jp2k(self.jp2file)
+        boxes = [box for box in jp2.box]
+        boxes[1].compatibility_list = ['jpx ']
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            with self.assertRaises(IOError):
+                jp2.wrap(tfile.name, boxes=boxes)
 
     def test_empty_jp2h(self):
         """JP2H box list cannot be empty."""
@@ -991,6 +1044,59 @@ class TestRepr(unittest.TestCase):
         newbox = eval(repr(jp2k))
         self.assertTrue(isinstance(newbox, glymur.jp2box.JPEG2000SignatureBox))
         self.assertEqual(newbox.signature, (13, 10, 135, 10))
+
+    def test_free(self):
+        """Should be able to instantiate a free box"""
+        free = glymur.jp2box.FreeBox()
+
+        # Test the representation instantiation.
+        newbox = eval(repr(free))
+        self.assertTrue(isinstance(newbox, glymur.jp2box.FreeBox))
+
+    def test_nlst(self):
+        """Should be able to instantiate a number list box"""
+        assn = (0, 1, 2)
+        nlst = glymur.jp2box.NumberListBox(assn)
+
+        # Test the representation instantiation.
+        newbox = eval(repr(nlst))
+        self.assertTrue(isinstance(newbox, glymur.jp2box.NumberListBox))
+        self.assertEqual(newbox.associations, (0, 1, 2))
+
+    def test_ftbl(self):
+        """Should be able to instantiate a fragment table box"""
+        ftbl = glymur.jp2box.FragmentTableBox()
+
+        # Test the representation instantiation.
+        newbox = eval(repr(ftbl))
+        self.assertTrue(isinstance(newbox, glymur.jp2box.FragmentTableBox))
+
+    def test_dref(self):
+        """Should be able to instantiate a data reference box"""
+        dref = glymur.jp2box.DataReferenceBox()
+
+        # Test the representation instantiation.
+        newbox = eval(repr(dref))
+        self.assertTrue(isinstance(newbox, glymur.jp2box.DataReferenceBox))
+
+    def test_flst(self):
+        """Should be able to instantiate a fragment list box"""
+        flst = glymur.jp2box.FragmentListBox([89], [1132288], [0])
+
+        # Test the representation instantiation.
+        newbox = eval(repr(flst))
+        self.assertTrue(isinstance(newbox, glymur.jp2box.FragmentListBox))
+        self.assertEqual(newbox.fragment_offset, [89])
+        self.assertEqual(newbox.fragment_length, [1132288])
+        self.assertEqual(newbox.data_reference, [0])
+
+    def test_default_cgrp(self):
+        """Should be able to instantiate a color group box"""
+        cgrp = glymur.jp2box.ColourGroupBox()
+
+        # Test the representation instantiation.
+        newbox = eval(repr(cgrp))
+        self.assertTrue(isinstance(newbox, glymur.jp2box.ColourGroupBox))
 
     def test_default_ftyp(self):
         """Should be able to instantiate a FileTypeBox"""

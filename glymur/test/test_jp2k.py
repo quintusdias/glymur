@@ -779,6 +779,17 @@ class TestParsing(unittest.TestCase):
             with self.assertWarns(UserWarning):
                 jp2 = Jp2k(filename)
 
+    @unittest.skip("blah")
+    def test_main_header(self):
+        """Verify that the main header is not loaded when parsing turned off."""
+        # The hidden _main_header attribute should show up after accessing it.
+        glymur.set_parseoptions(codestream=False)
+        jp2 = Jp2k(self.jp2file)
+        jp2c = jp2.box[4]
+        self.assertIsNone(jp2c._main_header)
+        main_header = jp2c.main_header
+        self.assertIsNotNone(jp2c._main_header)
+
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 class TestJp2kOpjDataRoot(unittest.TestCase):

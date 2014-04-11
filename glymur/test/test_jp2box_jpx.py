@@ -3,6 +3,7 @@
 Test suite specifically targeting JPX box layout.
 """
 
+import ctypes
 import os
 import struct
 import sys
@@ -52,6 +53,7 @@ class TestJPXWrap(unittest.TestCase):
                 tfile1.write(fptr.read())
             tfile1.flush()
             jp2_1 = Jp2k(tfile1.name)
+            jp2h = jp2_1.box[2]
 
             jp2c = [box for box in jp2_1.box if box.box_id == 'jp2c'][0]
 
@@ -61,12 +63,13 @@ class TestJPXWrap(unittest.TestCase):
             clen = []
             dr_idx = []
 
-            coff.append(jp2c.offset + 8)
+            coff.append(jp2c.main_header_offset)
             clen.append(jp2c.length - (coff[0] - jp2c.offset))
             dr_idx.append(1)
 
             # Make the url box for this codestream.
             url1 = DataEntryURLBox(0, [0, 0, 0], 'file://' + tfile1.name)
+            url1_name_len = len(url1.url) + 1
 
             with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile2:
 
@@ -74,7 +77,7 @@ class TestJPXWrap(unittest.TestCase):
                 jp2_2 = j2k.wrap(tfile2.name)
 
                 jp2c = [box for box in jp2_2.box if box.box_id == 'jp2c'][0]
-                coff.append(jp2c.offset + 8)
+                coff.append(jp2c.main_header_offset)
                 clen.append(jp2c.length - (coff[0] - jp2c.offset))
                 dr_idx.append(2)
 
@@ -85,7 +88,7 @@ class TestJPXWrap(unittest.TestCase):
                          FileTypeBox(brand='jpx ',
                                      compatibility_list=['jpx ',
                                                          'jp2 ', 'jpxb']),
-                         jp2_1.box[2]]
+                         jp2h]
                 with tempfile.NamedTemporaryFile(suffix='.jpx') as tjpx:
                     for box in boxes:
                         box.write(tjpx)
@@ -98,6 +101,15 @@ class TestJPXWrap(unittest.TestCase):
                     dtbl = DataReferenceBox(data_entry_url_boxes=boxes)
                     dtbl.write(tjpx)
                     tjpx.flush()
+
+                    jpx_no_jp2c = Jp2k(tjpx.name)
+                    jpx_boxes = [box.box_id for box in jpx_no_jp2c.box]
+                    self.assertEqual(jpx_boxes, ['jP  ', 'ftyp', 'jp2h',
+                                                 'ftbl', 'dtbl'])
+                    self.assertEqual(jpx_no_jp2c.box[4].DR[0].offset, 141)
+
+                    offset = 141 + 8 + 4 + url1_name_len
+                    self.assertEqual(jpx_no_jp2c.box[4].DR[1].offset, offset)
 
     def test_jp2_with_jpx_box(self):
         """If the brand is jp2, then no jpx boxes are allowed."""
@@ -154,8 +166,8 @@ class TestJPXWrap(unittest.TestCase):
             self.assertEqual(jpx.box[-1].box[0].box_id, 'colr')
             self.assertEqual(jpx.box[-1].box[1].box_id, 'colr')
 
-    def test_cgrp_neg(self):
-        """Can't write a cgrp with anything but colr sub boxes"""
+    def test_label_neg(self):
+        """Can't write a label box embedded in any old box."""
         jp2 = Jp2k(self.jp2file)
         boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
 
@@ -165,6 +177,26 @@ class TestJPXWrap(unittest.TestCase):
 
         lblb = glymur.jp2box.LabelBox("Just a test")
         box = [lblb]
+
+        cgrp = glymur.jp2box.ColourGroupBox(box=box)
+        boxes.append(cgrp)
+
+        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+            with self.assertRaises(IOError):
+                jpx = jp2.wrap(tfile.name, boxes=boxes)
+
+    def test_cgrp_neg(self):
+        """Can't write a cgrp with anything but colr sub boxes"""
+        jp2 = Jp2k(self.jp2file)
+        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+
+        # The ftyp box must be modified to jpx.
+        boxes[1].brand = 'jpx '
+        boxes[1].compatibility_list = ['jp2 ', 'jpxb']
+
+        the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
+        xmlb = glymur.jp2box.XMLBox(xml=the_xml)
+        box = [xmlb]
 
         cgrp = glymur.jp2box.ColourGroupBox(box=box)
         boxes.append(cgrp)
@@ -459,7 +491,7 @@ class TestJPX(unittest.TestCase):
         self.assertEqual(jpx.box[2].box_id, 'rreq')
         self.assertEqual(type(jpx.box[2]),
                          glymur.jp2box.ReaderRequirementsBox)
-        self.assertEqual(jpx.box[2].standard_flag,
+        self.asserwrite_buffertEqual(jpx.box[2].standard_flag,
                          (5, 42, 45, 2, 18, 19, 1, 8, 12, 31, 20))
 
     @unittest.skip("Requires unnecessarily complicated code")
@@ -551,6 +583,52 @@ class TestJPX(unittest.TestCase):
             self.assertEqual(jpx.box[-1].box[0].fragment_offset, (4237,))
             self.assertEqual(jpx.box[-1].box[0].fragment_length, (170246,))
             self.assertEqual(jpx.box[-1].box[0].data_reference, (3,))
+
+    def test_rreq3(self):
+        """Verify that we can read a rreq box with mask length 3 bytes"""
+        rreq_buffer = ctypes.create_string_buffer(74)
+        struct.pack_into('>I4s', rreq_buffer, 0, 74, b'rreq')
+
+        # mask length
+        struct.pack_into('>B', rreq_buffer, 8, 3)
+
+        # fuam, dcm.  6 bytes, two sets of 3.
+        lst = (255, 224, 0, 0, 31, 252)
+        struct.pack_into('>BBBBBB', rreq_buffer, 9, *lst)
+
+        # number of standard features: 11
+        struct.pack_into('>H', rreq_buffer, 15, 11)
+
+        standard_flags = [5, 42, 45, 2, 18, 19, 1, 8, 12, 31, 20]
+        standard_masks = [8388608, 4194304, 2097152, 1048576, 524288, 262144,
+                          131072, 65536, 32768, 16384, 8192]
+        for j in range(len(standard_flags)):
+            mask = (standard_masks[j] >> 16,
+                    standard_masks[j] & 0x0000ffff>> 8,
+                    standard_masks[j] & 0x000000ff)
+            struct.pack_into('>HBBB', rreq_buffer, 17 + j * 5,
+                             standard_flags[j], *mask)
+
+        # num vendor features: 0
+        struct.pack_into('>H', rreq_buffer, 72, 0)
+
+        # Ok, done with the box, we can now insert it into the jpx file after
+        # the ftyp box.
+        with tempfile.NamedTemporaryFile(suffix=".jpx") as ofile:
+            with open(self.jpxfile, 'rb') as ifile:
+                ofile.write(ifile.read(40))
+                ofile.write(rreq_buffer)
+                ofile.write(ifile.read())
+                ofile.flush()
+
+            jpx = Jp2k(ofile.name)
+
+        self.assertEqual(jpx.box[2].box_id, 'rreq')
+        self.assertEqual(type(jpx.box[2]),
+                         glymur.jp2box.ReaderRequirementsBox)
+        self.assertEqual(jpx.box[2].standard_flag,
+                         (5, 42, 45, 2, 18, 19, 1, 8, 12, 31, 20))
+
 
     def test_nlst(self):
         """Verify that we can handle a number list box."""

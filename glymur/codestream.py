@@ -188,15 +188,7 @@ class Codestream(object):
         while True:
 
             read_buffer = fptr.read(2)
-            try:
-                self._marker_id, = struct.unpack('>H', read_buffer)
-            except struct.error:
-                # Treat this as a warning.
-                msg = "Marker had length {0} instead of expected length of 2 "
-                msg += "bytes.  Codestream parsing terminated."
-                warnings.warn(msg.format(len(read_buffer)))
-                break
-
+            self._marker_id, = struct.unpack('>H', read_buffer)
             self._offset = fptr.tell() - 2
 
             if self._marker_id == 0xff90 and header_only:
