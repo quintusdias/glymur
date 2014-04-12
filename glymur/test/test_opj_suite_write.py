@@ -794,7 +794,6 @@ class TestSuiteWrite(unittest.TestCase):
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(len(codestream.segment[2].spcod), 9)
 
-    @unittest.skip("Known failure in openjpeg test suite.")
     def test_NR_ENC_random_issue_0005_tif_12_encode(self):
         """NR-ENC-random-issue-0005.tif-12-encode"""
         # opj_decompress has trouble reading it, but that is not an issue here.

@@ -5,11 +5,29 @@ Wraps individual functions in openjp2 library.
 # pylint: disable=C0302,R0903,W0201
 
 import ctypes
+import re
 import sys
 
 from .config import glymur_config
 OPENJP2, OPENJPEG = glymur_config()
 
+def version():
+    """Wrapper for opj_version library routine."""
+    try:
+        OPENJP2.opj_version.restype = ctypes.c_char_p
+    except AttributeError:
+        # No library, so the version is zero.
+        return "0.0.0"
+    library_version = OPENJP2.opj_version()
+    if sys.hexversion >= 0x03000000:
+        return library_version.decode('utf-8')
+    else:
+        return library_version
+
+if OPENJP2 is not None:
+    _MAJOR, _MINOR, _PATH = version().split('.')
+else:
+    _MINOR = 0
 ERROR_MSG_LST = []
 
 # Map certain atomic OpenJPEG datatypes to the ctypes equivalents.
@@ -353,6 +371,16 @@ class CompressionParametersType(ctypes.Structure):
         # based encoding without offset concerning all the components.
         ("mct_data",              ctypes.c_void_p)]
 
+    if _MINOR == '1':
+        # Maximum size (in bytes) for the whole codestream.
+        # If == 0, codestream size limitation is not considered.
+        # If it does not comply with tcp_rates, max_cs_size prevails and a
+        # warning is issued.
+        _fields_.append(("max_cs_size",               ctypes.c_int32))
+
+        # To be used to combine OPJ_PROFILE_*, OPJ_EXTENSION_* and (sub)levels
+        # values.
+        _fields_.append(("rsiz",                      ctypes.c_uint16))
 
 class ImageCompType(ctypes.Structure):
     """Defines a single image component.
@@ -391,6 +419,9 @@ class ImageCompType(ctypes.Structure):
 
         # image component data
         ("data",                ctypes.POINTER(ctypes.c_int32))]
+
+    if _MINOR == '1':
+        _fields_.append(("alpha", ctypes.c_uint16))
 
 
 class ImageType(ctypes.Structure):
@@ -1261,11 +1292,10 @@ def start_compress(codec, image, stream):
     OPENJP2.opj_start_compress(codec, image, stream)
 
 
-def stream_create_default_file_stream(fptr, isa_read_stream):
+def _stream_create_default_file_stream_2p0(fptr, isa_read_stream):
     """Wraps openjp2 library function opj_stream_create_default_vile_stream.
 
-    Sets the stream to be a file stream.  This is valid only for version 2.0.0
-    of OpenJPEG.
+    Sets the stream to be a file stream.
 
     Parameters
     ----------
@@ -1287,11 +1317,10 @@ def stream_create_default_file_stream(fptr, isa_read_stream):
     return stream
 
 
-def stream_create_default_file_stream_v3(fname, isa_read_stream):
-    """Wraps openjp2 library function opj_stream_create_default_vile_stream_v3.
+def _stream_create_default_file_stream_2p1(fname, isa_read_stream):
+    """Wraps openjp2 library function opj_stream_create_default_vile_stream.
 
-    Sets the stream to be a file stream.  This function is only valid for the
-    trunk/development 2.0+ version of the openjp2 library.
+    Sets the stream to be a file stream.
 
     Parameters
     ----------
@@ -1306,14 +1335,18 @@ def stream_create_default_file_stream_v3(fname, isa_read_stream):
         An OpenJPEG file stream.
     """
     ARGTYPES = [ctypes.c_char_p, ctypes.c_int32]
-    OPENJP2.opj_stream_create_default_file_stream_v3.argtypes = ARGTYPES
-    OPENJP2.opj_stream_create_default_file_stream_v3.restype = STREAM_TYPE_P
+    OPENJP2.opj_stream_create_default_file_stream.argtypes = ARGTYPES
+    OPENJP2.opj_stream_create_default_file_stream.restype = STREAM_TYPE_P
     read_stream = 1 if isa_read_stream else 0
     file_argument = ctypes.c_char_p(fname.encode())
-    stream = OPENJP2.opj_stream_create_default_file_stream_v3(file_argument,
-                                                              read_stream)
+    stream = OPENJP2.opj_stream_create_default_file_stream(file_argument,
+                                                           read_stream)
     return stream
 
+if re.match(r'''2.0''', version()):
+    stream_create_default_file_stream = _stream_create_default_file_stream_2p0
+else:
+    stream_create_default_file_stream = _stream_create_default_file_stream_2p1
 
 def stream_destroy(stream):
     """Wraps openjp2 library function opj_stream_destroy.
@@ -1328,21 +1361,6 @@ def stream_destroy(stream):
     OPENJP2.opj_stream_destroy.argtypes = [STREAM_TYPE_P]
     OPENJP2.opj_stream_destroy.restype = ctypes.c_void_p
     OPENJP2.opj_stream_destroy(stream)
-
-
-def stream_destroy_v3(stream):
-    """Wraps openjp2 library function opj_stream_destroy_v3.
-
-    Destroys the stream created by create_stream_v3.
-
-    Parameters
-    ----------
-    stream : STREAM_TYPE_P
-        The file stream.
-    """
-    OPENJP2.opj_stream_destroy_v3.argtypes = [STREAM_TYPE_P]
-    OPENJP2.opj_stream_destroy_v3.restype = ctypes.c_void_p
-    OPENJP2.opj_stream_destroy_v3(stream)
 
 
 def write_tile(codec, tile_index, data, data_size, stream):
@@ -1388,11 +1406,3 @@ def set_error_message(msg):
     ERROR_MSG_LST.append(msg)
 
 
-def version():
-    """Wrapper for opj_version library routine."""
-    OPENJP2.opj_version.restype = ctypes.c_char_p
-    library_version = OPENJP2.opj_version()
-    if sys.hexversion >= 0x03000000:
-        return library_version.decode('utf-8')
-    else:
-        return library_version

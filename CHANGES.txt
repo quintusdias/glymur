@@ -1,3 +1,6 @@
+May 09, 2014 - v0.5.11  Added support for Python 3.4, OpenJPEG 2.0.1, and
+    OpenJPEG 2.1.0.
+
 Jan 28, 2014 - v0.5.10  Fixed bad warning when reader requirements box mask
     length is unsupported.
 

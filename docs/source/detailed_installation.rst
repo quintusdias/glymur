@@ -7,27 +7,18 @@ Most users won't need to read this!  You've been warned...
 Glymur Configuration
 ''''''''''''''''''''''
 
-The default glymur installation process relies upon OpenJPEG
-being properly installed on your system.  If you have version 1.5 you can
-both read and write JPEG 2000 files, but you may wish to install version 2.0 
-or the 2.0+ version from OpenJPEG's development trunk for better performance.
-If you do that, you should compile it as a shared library (named *openjp2*
-instead of *openjpeg*) from the developmental source that you can retrieve
-via subversion.  As of this time of writing, svn revision 2347 works.
-You should also download the test data for the purpose of configuring
-and running OpenJPEG's test suite, check their instructions for all this.
-You should set the **OPJ_DATA_ROOT** environment variable for the purpose
-of running Glymur's test suite. ::
+The default glymur installation process relies upon OpenJPEG being
+properly installed on your system as a shared library.  You need
+at least version 1.5 in order to read and write JPEG 2000 files.
 
-    $ svn co http://openjpeg.googlecode.com/svn/data 
-    $ export OPJ_DATA_ROOT=`pwd`/data
-
-Glymur uses ctypes to access the openjp2/openjpeg libraries,
-and because ctypes accesses libraries in a platform-dependent manner, it is 
-recommended that you create a configuration file to help Glymur properly find
-the openjpeg or openjp2 libraries (linux users don't need to bother with this 
-if you are using OpenJPEG as provided by your package manager).  The 
-configuration format is the same as used by Python's configparser module, 
+Glymur uses ctypes to access the openjp2/openjpeg libraries, and
+because ctypes accesses libraries in a platform-dependent manner,
+it is recommended that if you compile and install OpenJPEG into a
+non-standard location,  you should create a configuration file to
+help Glymur properly find the openjpeg or openjp2 libraries (linux
+users or macports users don't need to bother with this if you are
+using OpenJPEG as provided by your package manager).  The configuration
+format is the same as used by Python's configparser module,
 i.e.  ::
 
     [library]
@@ -35,7 +26,7 @@ i.e.  ::
 
 This assumes, of course, that you've installed OpenJPEG into
 /opt/openjp2-svn on a linux system.  The location of the configuration file
-can vary as well (of course).  If you use either linux or mac, the path
+can vary as well.  If you use either linux or mac, the path
 to the configuration file would normally be ::
 
     $HOME/.config/glymur/glymurrc 
@@ -58,78 +49,17 @@ installed in a non-standard place, i.e. ::
     [library]
     openjpeg: /not/the/usual/location/lib/libopenjpeg.so
 
-''''''''''''''''''''''''''''''
-Package Management Suggestions
-''''''''''''''''''''''''''''''
-
-You only need to read this section if you want detailed 
-platform-specific instructions on running as many tests as possible or wish to
-use your system's package manager to install as many required 
-packages/RPMs/ports/whatever without going through pip.
-
-
-Mac OS X
---------
-All the necessary packages are available to use glymur with Python 2.6, 2.7, 
-and 3.3 via MacPorts.  For python 3.3, you should install the following set of
-ports:
-
-      * python33
-      * py33-numpy
-      * py33-distribute
-      * py33-matplotlib (optional, for running certain tests)
-      * py33-Pillow (optional, for running certain tests)
-
-MacPorts supplies both OpenJPEG 1.5.0 and OpenJPEG 2.0.0.
-
-Linux
------
-For the most part, you only need python and numpy to run glymur, so on
-just about all distributions you are already set to go (and you don't
-need to mess around with a configuration file, as the openjpeg shared
-libraries are found in the usual places thanks to your package manager).
-In order to run as many tests as possible, however, the following Python
-packages may also need to be installed.  Consult your package manager
-documentation or use pip.
-
-      * setuptools
-      * matplotlib
-      * pillow
-      * contextlib2 (python 2.6, 2.7 only)
-      * mock (python 2.6, 2.7 only)
-      * ordereddict (python 2.6 only)
-
-Glymur's been tested on the following linux platforms without any unexpected
-difficulties:
- 
-      * OpenSUSE 12.3
-      * Fedora 17, 18, 19
-      * Raspian
-      * Travis CI (currently Ubuntu 12.04?)
-      * CentOS 6.4
-
-Windows
--------
-32-bit WinPython 2.7.5 seemed to work with OpenJPEG 1.X, 2.0, and the
-development version, but still required contextlib2 and mock to be
-installed via pip.   WinPython 3.3.2, however, seems to have trouble
-with OpenJPEG 2.0, so I would suggest using the development version with
-that configuration.  I no longer have any access to a windows machine,
-so I cannot currently offer much guidance here.
-
-
 '''''''
 Testing
 '''''''
+It is not necessary, but you may wish to download OpenJPEG's test
+data for the purpose of configuring and running OpenJPEG's test
+suite.  Check their instructions on how to do that.  You can then
+set the **OPJ_DATA_ROOT** environment variable for the purpose of
+pointing Glymur to OpenJPEG's test suite. ::
 
-There are two environment variables you may wish to set before running the
-tests.  
-
-    * **OPJ_DATA_ROOT** - points to directory for OpenJPEG test data (see above)
-    * **FORMAT_CORPUS_DATA_ROOT** - points to directory for format-corpus repository  (see https://github.com/openplanets/format-corpus if you wish, but you really don't need to bother with this)
-
-Setting these two environment variables is not required, as any tests using 
-either of them will be skipped.
+    $ svn co http://openjpeg.googlecode.com/svn/data 
+    $ export OPJ_DATA_ROOT=`pwd`/data
 
 In order to run the tests, you can either run them from within
 python as follows ... ::
@@ -141,11 +71,3 @@ or from the command line. ::
 
     $ cd /to/where/you/unpacked/glymur
     $ python -m unittest discover
-
-Quite a few tests are currently skipped.  These include tests whose
-OpenJPEG counterparts are already failing, and others which do pass but
-still produce heaps of output on stderr.  Rather than let this swamp
-the signal (that most of those tests are actually passing), they've been
-filtered out for now.  There are also more skipped tests on Python 2.7
-than on Python 3.3.  The important part is whether or not any test
-errors are reported at the end.

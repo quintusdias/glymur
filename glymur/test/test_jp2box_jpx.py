@@ -53,8 +53,10 @@ class TestReaderRequirements(unittest.TestCase):
                 tfile.write(nemof.read())
                 tfile.flush()
 
-            with self.assertWarns(UserWarning):
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter("always")
                 j = Jp2k(tfile.name)
+                self.assertEqual(len(w), 1)
             self.assertEqual(j.box[2].box_id, 'rreq')
             self.assertEqual(type(j.box[2]),
                              glymur.jp2box.ReaderRequirementsBox)

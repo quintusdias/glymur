@@ -15,6 +15,7 @@ import imp
 import os
 import sys
 import tempfile
+import warnings
 
 if sys.hexversion < 0x02070000:
     import unittest2 as unittest
@@ -87,8 +88,10 @@ class TestSuite(unittest.TestCase):
                     with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
                         # Misconfigured new configuration file should
                         # be rejected.
-                        with self.assertWarns(UserWarning):
+                        with warnings.catch_warnings(record=True) as w:
+                            warnings.simplefilter("always")
                             imp.reload(glymur.lib.openjp2)
+                            self.assertEqual(len(w), 1)
 
 
 @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None and

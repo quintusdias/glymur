@@ -167,3 +167,252 @@ def read_pgx_header(pgx_file):
 
     header = header.rstrip()
     return header, pos
+
+text_gbr_27 = """Colour Specification Box (colr) @ (179, 1339)
+    Method:  any ICC profile
+    Precedence:  2
+    Approximation:  accurately represents correct colorspace definition
+    ICC Profile:
+        {'Color Space': 'RGB',
+         'Connection Space': 'XYZ',
+         'Creator': u'appl',
+         'Datetime': datetime.datetime(2009, 2, 25, 11, 26, 11),
+         'Device Attributes': 'reflective, glossy, positive media polarity, color media',
+         'Device Class': 'display device profile',
+         'Device Manufacturer': u'appl',
+         'Device Model': '',
+         'File Signature': u'acsp',
+         'Flags': 'not embedded, can be used independently',
+         'Illuminant': array([ 0.96420288,  1.        ,  0.8249054 ]),
+         'Platform': u'APPL',
+         'Preferred CMM Type': 1634758764,
+         'Rendering Intent': 'perceptual',
+         'Size': 1328,
+         'Version': '2.2.0'}"""
+
+text_gbr_33 = """Colour Specification Box (colr) @ (179, 1339)
+    Method:  any ICC profile
+    Precedence:  2
+    Approximation:  accurately represents correct colorspace definition
+    ICC Profile:
+        {'Size': 1328,
+         'Preferred CMM Type': 1634758764,
+         'Version': '2.2.0',
+         'Device Class': 'display device profile',
+         'Color Space': 'RGB',
+         'Connection Space': 'XYZ',
+         'Datetime': datetime.datetime(2009, 2, 25, 11, 26, 11),
+         'File Signature': 'acsp',
+         'Platform': 'APPL',
+         'Flags': 'not embedded, can be used independently',
+         'Device Manufacturer': 'appl',
+         'Device Model': '',
+         'Device Attributes': 'reflective, glossy, positive media polarity, color media',
+         'Rendering Intent': 'perceptual',
+         'Illuminant': array([ 0.96420288,  1.        ,  0.8249054 ]),
+         'Creator': 'appl'}"""
+
+text_gbr_34 = """Colour Specification Box (colr) @ (179, 1339)
+    Method:  any ICC profile
+    Precedence:  2
+    Approximation:  accurately represents correct colorspace definition
+    ICC Profile:
+        {'Size': 1328,
+         'Preferred CMM Type': 1634758764,
+         'Version': '2.2.0',
+         'Device Class': 'display device profile',
+         'Color Space': 'RGB',
+         'Connection Space': 'XYZ',
+         'Datetime': datetime.datetime(2009, 2, 25, 11, 26, 11),
+         'File Signature': 'acsp',
+         'Platform': 'APPL',
+         'Flags': 'not embedded, can be used independently',
+         'Device Manufacturer': 'appl',
+         'Device Model': '',
+         'Device Attributes': 'reflective, glossy, positive media polarity, color '
+                              'media',
+         'Rendering Intent': 'perceptual',
+         'Illuminant': array([ 0.96420288,  1.        ,  0.8249054 ]),
+         'Creator': 'appl'}"""
+
+
+# Metadata dump of nemo.
+nemo_dump_full_opj2 = r'''JPEG 2000 Signature Box (jP  ) @ (0, 12)
+    Signature:  0d0a870a
+File Type Box (ftyp) @ (12, 20)
+    Brand:  jp2 
+    Compatibility:  ['jp2 ']
+JP2 Header Box (jp2h) @ (32, 45)
+    Image Header Box (ihdr) @ (40, 22)
+        Size:  [1456 2592 3]
+        Bitdepth:  8
+        Signed:  False
+        Compression:  wavelet
+        Colorspace Unknown:  False
+    Colour Specification Box (colr) @ (62, 15)
+        Method:  enumerated colorspace
+        Precedence:  0
+        Colorspace:  sRGB
+UUID Box (uuid) @ (77, 638)
+    UUID:  4a706754-6966-6645-7869-662d3e4a5032 (Exif)
+    UUID Data:  
+{'Image': {'Make': 'HTC',
+           'Model': 'HTC Glacier',
+           'XResolution': 72.0,
+           'YResolution': 72.0,
+           'ResolutionUnit': 2,
+           'YCbCrPositioning': 1,
+           'ExifTag': 138,
+           'GPSTag': 354},
+ 'Photo': {'ISOSpeedRatings': 76,
+           'ExifVersion': (48, 50, 50, 48),
+           'DateTimeOriginal': '2013:02:09 14:47:53',
+           'DateTimeDigitized': '2013:02:09 14:47:53',
+           'ComponentsConfiguration': (1, 2, 3, 0),
+           'FocalLength': 3.53,
+           'FlashpixVersion': (48, 49, 48, 48),
+           'ColorSpace': 1,
+           'PixelXDimension': 2528,
+           'PixelYDimension': 1424,
+           'InteroperabilityTag': 324},
+ 'GPSInfo': {'GPSVersionID': (2, 2, 0),
+             'GPSLatitudeRef': 'N',
+             'GPSLatitude': [42.0, 20.0, 33.61],
+             'GPSLongitudeRef': 'W',
+             'GPSLongitude': [71.0, 5.0, 17.32],
+             'GPSAltitudeRef': 0,
+             'GPSAltitude': 0.0,
+             'GPSTimeStamp': [19.0, 47.0, 53.0],
+             'GPSMapDatum': 'WGS-84',
+             'GPSProcessingMethod': (65,
+                                     83,
+                                     67,
+                                     73,
+                                     73,
+                                     0,
+                                     0,
+                                     0,
+                                     78,
+                                     69,
+                                     84,
+                                     87,
+                                     79,
+                                     82,
+                                     75),
+             'GPSDateStamp': '2013:02:09'},
+ 'Iop': None}
+UUID Box (uuid) @ (715, 2412)
+    UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
+    UUID Data:  
+    <ns0:xmpmeta xmlns:ns0="adobe:ns:meta/" xmlns:ns2="http://ns.adobe.com/xap/1.0/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" ns0:xmptk="XMP Core 4.4.0-Exiv2">
+      <rdf:RDF>
+        <rdf:Description ns2:CreatorTool="glymur" rdf:about="" />
+      </rdf:RDF>
+    </ns0:xmpmeta>
+    
+Contiguous Codestream Box (jp2c) @ (3127, 1132296)
+    Main header:
+        SOC marker segment @ (3135, 0)
+        SIZ marker segment @ (3137, 47)
+            Profile:  2
+            Reference Grid Height, Width:  (1456 x 2592)
+            Vertical, Horizontal Reference Grid Offset:  (0 x 0)
+            Reference Tile Height, Width:  (1456 x 2592)
+            Vertical, Horizontal Reference Tile Offset:  (0 x 0)
+            Bitdepth:  (8, 8, 8)
+            Signed:  (False, False, False)
+            Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))
+        COD marker segment @ (3186, 12)
+            Coding style:
+                Entropy coder, without partitions
+                SOP marker segments:  False
+                EPH marker segments:  False
+            Coding style parameters:
+                Progression order:  LRCP
+                Number of layers:  2
+                Multiple component transformation usage:  reversible
+                Number of resolutions:  2
+                Code block height, width:  (64 x 64)
+                Wavelet transform:  5-3 reversible
+                Precinct size:  default, 2^15 x 2^15
+                Code block context:
+                    Selective arithmetic coding bypass:  False
+                    Reset context probabilities on coding pass boundaries:  False
+                    Termination on each coding pass:  False
+                    Vertically stripe causal context:  False
+                    Predictable termination:  False
+                    Segmentation symbols:  False
+        QCD marker segment @ (3200, 7)
+            Quantization style:  no quantization, 2 guard bits
+            Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]
+        CME marker segment @ (3209, 37)
+            "Created by OpenJPEG version 2.0.0"'''
+nemo_dump_full_p27 = r'''JPEG 2000 Signature Box (jP  ) @ (0, 12)
+    Signature:  0d0a870a
+File Type Box (ftyp) @ (12, 20)
+    Brand:  jp2 
+    Compatibility:  ['jp2 ']
+JP2 Header Box (jp2h) @ (32, 45)
+    Image Header Box (ihdr) @ (40, 22)
+        Size:  [1456 2592 3]
+        Bitdepth:  8
+        Signed:  False
+        Compression:  wavelet
+        Colorspace Unknown:  False
+    Colour Specification Box (colr) @ (62, 15)
+        Method:  enumerated colorspace
+        Precedence:  0
+        Colorspace:  sRGB
+UUID Box (uuid) @ (77, 638)
+    UUID:  4a706754-6966-6645-7869-662d3e4a5032 (Exif)
+    UUID Data:  
+{'GPSInfo': OrderedDict([('GPSVersionID', (2, 2, 0)), ('GPSLatitudeRef', 'N'), ('GPSLatitude', [42.0, 20.0, 33.61]), ('GPSLongitudeRef', 'W'), ('GPSLongitude', [71.0, 5.0, 17.32]), ('GPSAltitudeRef', 0), ('GPSAltitude', 0.0), ('GPSTimeStamp', [19.0, 47.0, 53.0]), ('GPSMapDatum', 'WGS-84'), ('GPSProcessingMethod', (65, 83, 67, 73, 73, 0, 0, 0, 78, 69, 84, 87, 79, 82, 75)), ('GPSDateStamp', '2013:02:09')]),
+ 'Image': OrderedDict([('Make', 'HTC'), ('Model', 'HTC Glacier'), ('XResolution', 72.0), ('YResolution', 72.0), ('ResolutionUnit', 2), ('YCbCrPositioning', 1), ('ExifTag', 138), ('GPSTag', 354)]),
+ 'Iop': None,
+ 'Photo': OrderedDict([('ISOSpeedRatings', 76), ('ExifVersion', (48, 50, 50, 48)), ('DateTimeOriginal', '2013:02:09 14:47:53'), ('DateTimeDigitized', '2013:02:09 14:47:53'), ('ComponentsConfiguration', (1, 2, 3, 0)), ('FocalLength', 3.53), ('FlashpixVersion', (48, 49, 48, 48)), ('ColorSpace', 1), ('PixelXDimension', 2528), ('PixelYDimension', 1424), ('InteroperabilityTag', 324)])}
+UUID Box (uuid) @ (715, 2412)
+    UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
+    UUID Data:  
+    <ns0:xmpmeta xmlns:ns0="adobe:ns:meta/" xmlns:ns2="http://ns.adobe.com/xap/1.0/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" ns0:xmptk="XMP Core 4.4.0-Exiv2">
+      <rdf:RDF>
+        <rdf:Description ns2:CreatorTool="glymur" rdf:about="" />
+      </rdf:RDF>
+    </ns0:xmpmeta>
+    
+Contiguous Codestream Box (jp2c) @ (3127, 1132296)
+    Main header:
+        SOC marker segment @ (3135, 0)
+        SIZ marker segment @ (3137, 47)
+            Profile:  2
+            Reference Grid Height, Width:  (1456 x 2592)
+            Vertical, Horizontal Reference Grid Offset:  (0 x 0)
+            Reference Tile Height, Width:  (1456 x 2592)
+            Vertical, Horizontal Reference Tile Offset:  (0 x 0)
+            Bitdepth:  (8, 8, 8)
+            Signed:  (False, False, False)
+            Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))
+        COD marker segment @ (3186, 12)
+            Coding style:
+                Entropy coder, without partitions
+                SOP marker segments:  False
+                EPH marker segments:  False
+            Coding style parameters:
+                Progression order:  LRCP
+                Number of layers:  2
+                Multiple component transformation usage:  reversible
+                Number of resolutions:  2
+                Code block height, width:  (64 x 64)
+                Wavelet transform:  5-3 reversible
+                Precinct size:  default, 2^15 x 2^15
+                Code block context:
+                    Selective arithmetic coding bypass:  False
+                    Reset context probabilities on coding pass boundaries:  False
+                    Termination on each coding pass:  False
+                    Vertically stripe causal context:  False
+                    Predictable termination:  False
+                    Segmentation symbols:  False
+        QCD marker segment @ (3200, 7)
+            Quantization style:  no quantization, 2 guard bits
+            Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]
+        CME marker segment @ (3209, 37)
+            "Created by OpenJPEG version 2.0.0"'''

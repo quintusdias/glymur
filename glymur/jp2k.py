@@ -19,6 +19,7 @@ else:
 import ctypes
 import math
 import os
+import re
 import struct
 import warnings
 
@@ -490,16 +491,16 @@ class Jp2k(Jp2kBox):
     
             opj2.setup_encoder(codec, cparams, image)
     
-            if _OPENJP2_IS_OFFICIAL_V2:
+            if re.match("2.0", version.openjpeg_version):
                 fptr = libc.fopen(self.filename, 'wb')
                 strm = opj2.stream_create_default_file_stream(fptr, False)
                 stack.callback(opj2.stream_destroy, strm)
                 stack.callback(libc.fclose, fptr)
             else:
-                # This routine introduced in 2.0 devel series.
-                strm = opj2.stream_create_default_file_stream_v3(self.filename,
+                # This routine introduced in 2.1.
+                strm = opj2.stream_create_default_file_stream(self.filename,
                                                                  False)
-                stack.callback(opj2.stream_destroy_v3, strm)
+                stack.callback(opj2.stream_destroy, strm)
     
             opj2.start_compress(codec, image, strm)
             opj2.encode(codec, strm)
@@ -807,17 +808,16 @@ class Jp2k(Jp2kBox):
         dparam = self._populate_dparam(layer, rlevel, area, tile)
 
         with ExitStack() as stack:
-            if hasattr(opj2.OPENJP2,
-                       'opj_stream_create_default_file_stream_v3'):
-                filename = self.filename
-                stream = opj2.stream_create_default_file_stream_v3(filename,
-                                                                   True)
-                stack.callback(opj2.stream_destroy_v3, stream)
-            else:
+            if re.match("2.0", version.openjpeg_version):
                 fptr = libc.fopen(self.filename, 'rb')
                 stack.callback(libc.fclose, fptr)
                 stream = opj2.stream_create_default_file_stream(fptr, True)
                 stack.callback(opj2.stream_destroy, stream)
+            else:
+                filename = self.filename
+                stream = opj2.stream_create_default_file_stream(filename, True)
+                stack.callback(opj2.stream_destroy, stream)
+
             codec = opj2.create_decompress(self._codec_format)
             stack.callback(opj2.destroy_codec, codec)
 
@@ -952,16 +952,14 @@ class Jp2k(Jp2kBox):
         dparam = self._populate_dparam(layer, rlevel, area, tile)
 
         with ExitStack() as stack:
-            if hasattr(opj2.OPENJP2,
-                       'opj_stream_create_default_file_stream_v3'):
-                filename = self.filename
-                stream = opj2.stream_create_default_file_stream_v3(filename,
-                                                                   True)
-                stack.callback(opj2.stream_destroy_v3, stream)
-            else:
+            if re.match("2.0", version.openjpeg_version):
                 fptr = libc.fopen(self.filename, 'rb')
                 stack.callback(libc.fclose, fptr)
                 stream = opj2.stream_create_default_file_stream(fptr, True)
+                stack.callback(opj2.stream_destroy, stream)
+            else:
+                filename = self.filename
+                stream = opj2.stream_create_default_file_stream(filename, True)
                 stack.callback(opj2.stream_destroy, stream)
             codec = opj2.create_decompress(self._codec_format)
             stack.callback(opj2.destroy_codec, codec)
@@ -1389,7 +1387,7 @@ def _validate_compression_params(img_array, cparams):
         msg = "{0}D imagery is not allowed.".format(img_array.ndim)
         raise IOError(msg)
 
-    if _OPENJP2_IS_OFFICIAL_V2:
+    if re.match("2.0.0", version.openjpeg_version):
         if (((img_array.ndim != 2) and
              (img_array.shape[2] != 1 and img_array.shape[2] != 3))):
             msg = "Writing images is restricted to single-channel "
@@ -1401,14 +1399,6 @@ def _validate_compression_params(img_array, cparams):
     if img_array.dtype != np.uint8 and img_array.dtype != np.uint16:
         msg = "Only uint8 and uint16 images are currently supported."
         raise RuntimeError(msg)
-
-# Need to known if openjp2 library is the officially release v2.0.0 or not.
-_OPENJP2_IS_OFFICIAL_V2 = False
-if opj2.OPENJP2 is not None:
-    if opj2.version() == '2.0.0':
-        if not hasattr(opj2.OPENJP2,
-                       'opj_stream_create_default_file_stream_v3'):
-            _OPENJP2_IS_OFFICIAL_V2 = True
 
 _COLORSPACE_MAP = {'rgb': opj2.CLRSPC_SRGB,
                    'gray': opj2.CLRSPC_GRAY,

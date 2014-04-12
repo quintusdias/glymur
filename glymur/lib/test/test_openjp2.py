@@ -9,6 +9,7 @@ Tests for libopenjp2 wrapping functions.
 # pylint: disable=F0401
 
 import os
+import re
 import sys
 import tempfile
 
@@ -22,17 +23,15 @@ import numpy as np
 import glymur
 from glymur.lib import openjp2
 
-OPENJP2_IS_V2_OFFICIAL = False
-if openjp2.OPENJP2 is not None:
-    if not hasattr(openjp2.OPENJP2,
-                   'opj_stream_create_default_file_stream_v3'):
-        OPENJP2_IS_V2_OFFICIAL = True
-
+if re.match("2.0", glymur.version.openjpeg_version):
+    OPENJP2_IS_V2_OFFICIAL = True
+else:
+    OPENJP2_IS_V2_OFFICIAL = False
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
 @unittest.skipIf(openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
-@unittest.skipIf(OPENJP2_IS_V2_OFFICIAL, "API followed here specific to V2.0+")
+@unittest.skipIf(OPENJP2_IS_V2_OFFICIAL, "API followed here specific to V2.1")
 class TestOpenJP2(unittest.TestCase):
     """Test openjp2 library functionality.
 
@@ -89,7 +88,7 @@ class TestOpenJP2(unittest.TestCase):
         openjp2.set_warning_handler(codec, None)
         openjp2.set_error_handler(codec, None)
 
-        stream = openjp2.stream_create_default_file_stream_v3(filename, True)
+        stream = openjp2.stream_create_default_file_stream(filename, True)
 
         openjp2.setup_decoder(codec, dparam)
         image = openjp2.read_header(stream, codec)
@@ -110,7 +109,7 @@ class TestOpenJP2(unittest.TestCase):
 
         openjp2.end_decompress(codec, stream)
         openjp2.destroy_codec(codec)
-        openjp2.stream_destroy_v3(stream)
+        openjp2.stream_destroy(stream)
         openjp2.image_destroy(image)
 
     def test_tte0(self):
@@ -318,15 +317,15 @@ def tile_encoder(**kwargs):
 
     openjp2.setup_encoder(codec, l_param, l_image)
 
-    stream = openjp2.stream_create_default_file_stream_v3(kwargs['filename'],
-                                                          False)
+    stream = openjp2.stream_create_default_file_stream(kwargs['filename'],
+                                                       False)
     openjp2.start_compress(codec, l_image, stream)
 
     for j in np.arange(num_tiles):
         openjp2.write_tile(codec, j, data, tile_size, stream)
 
     openjp2.end_compress(codec, stream)
-    openjp2.stream_destroy_v3(stream)
+    openjp2.stream_destroy(stream)
     openjp2.destroy_codec(codec)
     openjp2.image_destroy(l_image)
 
@@ -335,8 +334,8 @@ def tile_decoder(**kwargs):
     
     Reads a tile.  That's all it does. 
     """
-    stream = openjp2.stream_create_default_file_stream_v3(kwargs['filename'],
-                                                          True)
+    stream = openjp2.stream_create_default_file_stream(kwargs['filename'],
+                                                       True)
     dparam = openjp2.set_default_decoder_parameters()
 
     dparam.decod_format = kwargs['codec_format']
@@ -371,7 +370,7 @@ def tile_decoder(**kwargs):
 
     openjp2.end_decompress(codec, stream)
     openjp2.destroy_codec(codec)
-    openjp2.stream_destroy_v3(stream)
+    openjp2.stream_destroy(stream)
     openjp2.image_destroy(image)
 
 def ttx0_setup(filename):

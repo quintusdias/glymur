@@ -1,9 +1,6 @@
 """
 Tests for general glymur functionality.
 """
-# E1101:  assertWarns introduced in python 3.2
-# pylint: disable=E1101
-
 # R0904:  Not too many methods in unittest.
 # pylint: disable=R0904
 
@@ -384,13 +381,9 @@ class TestJp2k(unittest.TestCase):
 
             # Verify that a warning is issued, but only on python3.
             # On python2, just suppress the warning.
-            if sys.hexversion < 0x03030000:
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
-                    j = Jp2k(tfile.name)
-            else:
-                with self.assertWarns(UserWarning):
-                    j = Jp2k(tfile.name)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                j = Jp2k(tfile.name)
 
             exif = j.box[3].data
             # Were the tag == 271, 'Make' would be in the keys instead.
@@ -590,8 +583,8 @@ class TestJp2k_1_x(unittest.TestCase):
             j2k.read(layer=1)
 
 
-@unittest.skipIf(not OPENJP2_IS_V2_OFFICIAL,
-                 "Tests only to be run on 2.0 official.")
+@unittest.skipIf(re.match("2.0.0", glymur.version.openjpeg_version) is None,
+                 "Tests only to be run on 2.0.0.")
 class TestJp2k_2_0_official(unittest.TestCase):
     """Test suite to only be run on v2.0 official."""
 

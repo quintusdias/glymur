@@ -18,6 +18,7 @@ Test suite specifically targeting JP2 box layout.
 
 import doctest
 import os
+import re
 import shutil
 import struct
 import sys
@@ -57,7 +58,7 @@ def load_tests(loader, tests, ignore):
     return tests
 
 @unittest.skipIf(glymur.version.openjpeg_version_tuple[0] < 2 or
-                 OPENJP2_IS_V2_OFFICIAL,
+                 re.match(r'''2.0.0''', glymur.version.openjpeg_version),
                  "Not supported until 2.0+.")
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
 class TestChannelDefinition(unittest.TestCase):

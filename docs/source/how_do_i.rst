@@ -4,7 +4,7 @@ How do I...?
 
 
 ... read the lowest resolution thumbnail?
-=====================================
+=========================================
 Printing the Jp2k object should reveal the number of resolutions (look in the
 COD segment section), but you can take a shortcut by supplying -1 as the
 resolution level. ::
@@ -15,7 +15,7 @@ resolution level. ::
     >>> thumbnail = j.read(rlevel=-1)
 
 ... display metadata?
-=================
+=====================
 There are two ways.  From the unix command line, the script *jp2dump* is
 available. ::
 
@@ -35,7 +35,7 @@ codestream box, only the main header is printed.  It is possible to print
     >>> print(j.get_codestream())
 
 ... add XML metadata?
-=================
+=====================
 You can append any number of XML boxes to a JP2 file (not to a raw codestream).
 Consider the following XML file `data.xml` : ::
 
@@ -67,7 +67,7 @@ The **append** method can add an XML box as shown below::
     >>> print(jp2)
 
 ... add metadata in a more general fashion?
-=======================================
+===========================================
 An existing raw codestream (or JP2 file) can be wrapped (re-wrapped) in a 
 user-defined set of JP2 boxes.  To get just a minimal JP2 jacket on the 
 codestream provided by `goodstuff.j2k` (a file consisting of a raw codestream),
@@ -158,11 +158,11 @@ while **append** modifies an existing file and is currently limited to XML
 boxes.
 
 ... create an image with an alpha layer?
-====================================
+========================================
 
-OpenJPEG can create JP2 files with more than 3 components (requires
-the development version of OpenJPEG), but by default, any extra components are
-not described as such.  In order to do so, we need to rewrap such
+OpenJPEG can create JP2 files with more than 3 components (requires version
+2.1), but by default any extra components are not described as such by the JP2
+boxes created by OpenJPEG.  In order to do so, we need to rewrap such
 an image in a set of boxes that includes a channel definition box.
 
 This example is based on SciPy example code found at 

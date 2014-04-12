@@ -15,6 +15,7 @@ import os
 import struct
 import sys
 import tempfile
+import warnings
 
 if sys.hexversion < 0x02070000:
     import unittest2 as unittest
@@ -98,8 +99,10 @@ class TestCodestream(unittest.TestCase):
                 tfile.write(read_buffer)
                 tfile.flush()
 
-                with self.assertWarns(UserWarning):
+                with warnings.catch_warnings(record=True) as w:
+                    warnings.simplefilter("always")
                     codestream = Jp2k(tfile.name).get_codestream()
+                    self.assertEqual(len(w), 1)
 
                 self.assertEqual(codestream.segment[2].marker_id, '0xff79')
                 self.assertEqual(codestream.segment[2].length, 3)

@@ -23,6 +23,7 @@ import sys
 import tempfile
 import warnings
 import xml.etree.cElementTree as ET
+import warnings
 
 if sys.hexversion < 0x03000000:
     from StringIO import StringIO
@@ -212,18 +213,12 @@ class TestJp2kBadXmlFile(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @unittest.skipIf(sys.hexversion < 0x03020000,
-                     "Uses features introduced in 3.2.")
-    def test_invalid_xml_box_warning(self):
-        """Should warn in case of bad XML"""
-        with self.assertWarns(UserWarning):
-            Jp2k(self._bad_xml_file)
-
     def test_invalid_xml_box(self):
         """Should be able to recover info from xml box with bad xml."""
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
             jp2k = Jp2k(self._bad_xml_file)
+            self.assertEqual(len(w), 1)
 
         self.assertEqual(jp2k.box[3].box_id, 'xml ')
         self.assertEqual(jp2k.box[3].offset, 77)
@@ -276,8 +271,10 @@ class TestBadButRecoverableXmlFile(unittest.TestCase):
                      "Uses features introduced in 3.2.")
     def test_bad_xml_box_warning(self):
         """Should warn in case of bad XML"""
-        with self.assertWarns(UserWarning):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
             Jp2k(self._bad_xml_file)
+            self.assertEqual(len(w), 1)
 
     def test_recover_from_bad_xml(self):
         """Should be able to recover info from xml box with bad xml."""

@@ -11,6 +11,7 @@ ICC profile tests.
 import datetime
 import os
 import sys
+import warnings
 
 if sys.hexversion < 0x02070000:
     import unittest2 as unittest
@@ -65,16 +66,16 @@ class TestICC(unittest.TestCase):
 
         self.assertEqual(profile['Creator'], 'JPEG')
 
-    @unittest.skipIf(sys.hexversion < 0x03020000,
-                     "Uses features introduced in 3.2.")
     def test_invalid_profile_header(self):
         """invalid ICC header data should cause UserWarning"""
         jfile = opj_data_file('input/nonregression/orb-blue10-lin-jp2.jp2')
 
         # assertWarns in Python 3.3 (python2.7/pylint issue)
         # pylint: disable=E1101
-        with self.assertWarns(UserWarning):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
             Jp2k(jfile)
+            self.assertEqual(len(w), 1)
 
 if __name__ == "__main__":
     unittest.main()
