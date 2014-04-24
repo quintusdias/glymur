@@ -2974,14 +2974,15 @@ class DataEntryURLBox(Jp2kBox):
         url = self.url
         if self.url[-1] != chr(0):
             url = url + chr(0)
+        url = url.encode()
 
-        length = 8 + 1 + 3 + len(url.encode())
+        length = 8 + 1 + 3 + len(url)
         write_buffer = struct.pack('>I4sBBBB',
                                    length, b'url ',
                                    self.version,
                                    self.flag[0], self.flag[1], self.flag[2])
         fptr.write(write_buffer)
-        fptr.write(url.encode())
+        fptr.write(url)
 
 
     def __repr__(self):
