@@ -29,10 +29,9 @@ import glymur
 @unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
                  "Cannot read input image without scikit-image/freeimage")
 @unittest.skipIf(os.name == "nt", "no write support on windows, period")
-@unittest.skipIf(fixtures.OPENJP2_IS_V2_OFFICIAL,
-                 "Feature not supported in 2.0.0 official")
-@unittest.skipIf(glymur.version.openjpeg_version_tuple[0] == 1,
-                 "Feature not supported in 1.5")
+@unittest.skipIf(re.match(r'''(1|2.0.0)''',
+                          glymur.version.openjpeg_version) is not None,
+                 "Uses features not supported until 2.0.1")
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 class TestSuiteWriteCinema(unittest.TestCase):
@@ -225,8 +224,8 @@ class TestSuiteWriteCinema(unittest.TestCase):
 @unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
                  "Cannot read input image without scikit-image/freeimage")
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-@unittest.skipIf(not re.match("(1.5|2.0)", glymur.version.openjpeg_version),
-                 "Functionality implemented for 2.1")
+@unittest.skipIf(not re.match("(1.5|2.0.0)", glymur.version.openjpeg_version),
+                 "Functionality implemented for 2.0.1")
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_OPJ_DATA_ROOT environment variable not set")
 class TestSuiteNegative2pointzero(unittest.TestCase):

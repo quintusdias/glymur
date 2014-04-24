@@ -36,7 +36,7 @@ from glymur.jp2box import JPEG2000SignatureBox
 from glymur.core import COLOR, OPACITY
 from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE
 
-from .fixtures import OPENJP2_IS_V2_OFFICIAL, opj_data_file
+from .fixtures import opj_data_file
 
 try:
     FORMAT_CORPUS_DATA_ROOT = os.environ['FORMAT_CORPUS_DATA_ROOT']
@@ -117,9 +117,9 @@ class TestDataEntryURL(unittest.TestCase):
                 self.assertEqual(url + chr(0), read_url)
 
 
-@unittest.skipIf(glymur.version.openjpeg_version_tuple[0] < 2 or
-                 OPENJP2_IS_V2_OFFICIAL,
-                 "Not supported until 2.0+.")
+@unittest.skipIf(re.match(r'''(1|2.0.0)''',
+                          glymur.version.openjpeg_version) is not None,
+                 "Not supported until 2.1")
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
 class TestChannelDefinition(unittest.TestCase):
     """Test suite for channel definition boxes."""
