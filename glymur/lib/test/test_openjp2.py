@@ -6,6 +6,7 @@ Tests for libopenjp2 wrapping functions.
 # pylint: disable=R0904,W0142
 
 import os
+import re
 import sys
 import tempfile
 import unittest
@@ -15,17 +16,13 @@ import numpy as np
 import glymur
 from glymur.lib import openjp2
 
-OPENJP2_IS_V2_OFFICIAL = False
-if openjp2.OPENJP2 is not None:
-    if not hasattr(openjp2.OPENJP2,
-                   'opj_stream_create_default_file_stream_v3'):
-        OPENJP2_IS_V2_OFFICIAL = True
-
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
 @unittest.skipIf(openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
-@unittest.skipIf(OPENJP2_IS_V2_OFFICIAL, "API followed here specific to V2.0+")
+@unittest.skipIf(re.match(r'''(1|2.0)''',
+                              glymur.version.openjpeg_version) is not None,
+                     "Not to be run until 2.1.0")
 class TestOpenJP2(unittest.TestCase):
     """Test openjp2 library functionality.
 

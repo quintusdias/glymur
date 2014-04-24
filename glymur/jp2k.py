@@ -167,7 +167,7 @@ class Jp2k(Jp2kBox):
         fps : int
             Frames per second, should be either 24 or 48.
         """
-        if re.match("(1.5|2.0)", version.openjpeg_version) is not None:
+        if re.match("(1.5|2.0.0)", version.openjpeg_version) is not None:
             msg = "Writing Cinema2K or Cinema4K files is not supported with "
             msg += 'openjpeg library versions less than 2.0.1.'
             raise IOError(msg)
@@ -1687,7 +1687,7 @@ def _validate_compression_params(img_array, cparams):
         msg = "{0}D imagery is not allowed.".format(img_array.ndim)
         raise IOError(msg)
 
-    if re.match("2.0", version.openjpeg_version) is not None:
+    if re.match("2.0.0", version.openjpeg_version) is not None:
         if (((img_array.ndim != 2) and
              (img_array.shape[2] != 1 and img_array.shape[2] != 3))):
             msg = "Writing images is restricted to single-channel "

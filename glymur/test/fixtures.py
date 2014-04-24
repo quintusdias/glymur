@@ -25,14 +25,6 @@ try:
 except:
     HAS_PYTHON_XMP_TOOLKIT = False
 
-# Need to know of the libopenjp2 version is the official 2.0.0 release and NOT
-# the 2.0+ development version.
-OPENJP2_IS_V2_OFFICIAL = False
-if glymur.lib.openjp2.OPENJP2 is not None:
-    if not hasattr(glymur.lib.openjp2.OPENJP2,
-                   'opj_stream_create_default_file_stream_v3'):
-        OPENJP2_IS_V2_OFFICIAL = True
-
 
 NO_READ_BACKEND_MSG = "Matplotlib with the PIL backend must be available in "
 NO_READ_BACKEND_MSG += "order to run the tests in this suite."

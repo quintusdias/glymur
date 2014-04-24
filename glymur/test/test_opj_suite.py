@@ -38,7 +38,7 @@ import numpy as np
 from glymur import Jp2k
 import glymur
 
-from .fixtures import OPENJP2_IS_V2_OFFICIAL, OPJ_DATA_ROOT
+from .fixtures import OPJ_DATA_ROOT
 from .fixtures import mse, peak_tolerance, read_pgx, opj_data_file
 
 
@@ -6599,10 +6599,9 @@ class TestSuite2point0(unittest.TestCase):
 
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
-@unittest.skipIf(OPENJP2_IS_V2_OFFICIAL,
-                 "Test not in done in v2.0.0 official")
-@unittest.skipIf(glymur.version.openjpeg_version_tuple[0] == 1,
-                 "Tests not introduced until 2.1")
+@unittest.skipIf(re.match(r'''(1|2.0.0)''',
+                          glymur.version.openjpeg_version) is not None,
+                 "Only supported in 2.0.1 or higher")
 class TestSuite2point1(unittest.TestCase):
     """Runs tests introduced in version 2.0+ or that pass only in 2.0+"""
 

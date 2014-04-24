@@ -29,7 +29,7 @@ import pkg_resources
 import glymur
 from glymur import Jp2k
 
-from .fixtures import HAS_PYTHON_XMP_TOOLKIT, OPENJP2_IS_V2_OFFICIAL
+from .fixtures import HAS_PYTHON_XMP_TOOLKIT
 if HAS_PYTHON_XMP_TOOLKIT:
     import libxmp
     from libxmp import XMPMeta
@@ -379,10 +379,9 @@ class TestJp2k(unittest.TestCase):
         creator_tool = xmp.get_property(libxmp.consts.XMP_NS_XMP, 'CreatorTool')
         self.assertEqual(creator_tool, 'Google') 
 
-    @unittest.skipIf(fixtures.OPENJP2_IS_V2_OFFICIAL,
-                     "Feature not supported in 2.0.0 official")
-    @unittest.skipIf(glymur.version.openjpeg_version_tuple[0] == 1,
-                     "Feature not supported in 1.5")
+    @unittest.skipIf(re.match(r'''(1|2.0.0)''',
+                              glymur.version.openjpeg_version) is not None,
+                     "Not supported until 2.0.1")
     def test_jpx_mult_codestreams_jp2_brand(self):
         """Read JPX codestream when jp2-compatible."""
         # The file in question has multiple codestreams.
@@ -581,7 +580,8 @@ class TestJp2k_1_x(unittest.TestCase):
             j2k.read(layer=1)
 
 
-@unittest.skipIf(not OPENJP2_IS_V2_OFFICIAL,
+@unittest.skipIf(re.match(r'''2.0.0''',
+                          glymur.version.openjpeg_version) is None,
                  "Tests only to be run on 2.0 official.")
 class TestJp2k_2_0_official(unittest.TestCase):
     """Test suite to only be run on v2.0 official."""
@@ -679,9 +679,9 @@ class TestJp2k_2_0(unittest.TestCase):
                 self.assertEqual(jasoc.box[3].box[1].box_id, 'xml ')
 
 
-@unittest.skipIf(glymur.version.openjpeg_version_tuple[0] < 2 or
-                 OPENJP2_IS_V2_OFFICIAL,
-                 "Missing openjp2 library version 2.0+.")
+@unittest.skipIf(re.match(r'''(1|2.0.0)''',
+                          glymur.version.openjpeg_version) is not None,
+                 "Not to be run until unless 2.0.1 or higher is present")
 class TestJp2k_2_1(unittest.TestCase):
     """Only to be run in 2.0+."""
 
