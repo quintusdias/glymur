@@ -1011,7 +1011,7 @@ class ContiguousCodestreamBox(Jp2kBox):
         if self._main_header is None:
             if self._filename is not None:
                 with open(self._filename, 'rb') as fptr:
-                    fptr.seek(self._offset + 8)
+                    fptr.seek(self.main_header_offset)
                     main_header = Codestream(fptr, self._length, header_only=True)
                     self._main_header = main_header
         return self._main_header
@@ -1059,7 +1059,6 @@ class ContiguousCodestreamBox(Jp2kBox):
                   length=length, offset=offset)
         box._filename = fptr.name
         box._length = length
-        box._offset = offset
         return box
 
 
@@ -1110,7 +1109,7 @@ class DataReferenceBox(Jp2kBox):
         """
         self._write_validate()
 
-        # Very similar to the say a superbox is written.
+        # Very similar to the way a superbox is written.
         orig_pos = fptr.tell()
         fptr.write(struct.pack('>I4s', 0, b'dtbl'))
 
@@ -1176,7 +1175,7 @@ class DataReferenceBox(Jp2kBox):
             box = DataEntryURLBox.parse(box_fptr, 0, box_length)
 
             # Need to adjust the box start to that of the "real" file.
-            box.start = offset + box_offset
+            box.offset = offset + 8 + box_offset
             data_entry_url_box_list.append(box)
 
             # Point to the next embedded URL box.
@@ -1341,7 +1340,10 @@ class FragmentListBox(Jp2kBox):
             self._dispatch_validation_error(msg, writing=writing)
 
     def __repr__(self):
-        msg = "glymur.jp2box.FragmentListBox()"
+        msg = "glymur.jp2box.FragmentListBox({0}, {1}, {2})"
+        msg = msg.format(str(self.fragment_offset),
+                         str(self.fragment_length),
+                         str(self.data_reference))
         return msg
 
     def __str__(self):
@@ -1426,7 +1428,8 @@ class FragmentTableBox(Jp2kBox):
         self.box = box if box is not None else []
 
     def __repr__(self):
-        msg = "glymur.jp2box.FragmentTableBox()"
+        msg = "glymur.jp2box.FragmentTableBox(box={0})"
+        msg = msg.format(None) if (len(self.box) == 0) else msg.format(self.box)
         return msg
 
     def __str__(self):
@@ -1884,6 +1887,12 @@ class PaletteBox(Jp2kBox):
             msg = "The length of the 'bits_per_component' and the 'signed' "
             msg += "members must equal the number of columns of the palette."
             self._dispatch_validation_error(msg, writing=writing)
+        bps = self.bits_per_component
+        if writing and not all(b == bps[0] for b in bps):
+            # We don't support writing palettes with bit depths that are
+            # different.
+            msg = "Writing palettes with varying bit depths is not supported."
+            self._dispatch_validation_error(msg, writing=writing)
 
     def __repr__(self):
         msg = "glymur.jp2box.PaletteBox({0}, bits_per_component={1}, "
@@ -1925,26 +1934,14 @@ class PaletteBox(Jp2kBox):
         fptr.write(write_buffer)
 
         bps = self.bits_per_component
-        if all(b == bps[0] for b in bps):
-            # All components are the same.  Writing is straightforward.
-            if self.bits_per_component[0] <= 8:
-                write_buffer = memoryview(self.palette.astype(np.uint8))
-            elif self.bits_per_component[0] <= 16:
-                write_buffer = memoryview(self.palette.astype(np.uint16))
-            elif self.bits_per_component[0] <= 32:
-                write_buffer = memoryview(self.palette.astype(np.uint32))
-            fptr.write(write_buffer)
-        else:
-            # Not all the components are the same.  More general, but much rarer
-            # case.  Does this even happen.
-            code_dict = {8: 'B', 16: 'H', 32: 'I'}
-            codes = ''
-            for width in bps:
-                codes += code_dict[width]
-            fmt = '>' + codes
-            for row in self.palette:
-                write_buffer = struct.pack(fmt, *row)
-                fptr.write(write_buffer)
+        # All components are the same.  Writing is straightforward.
+        if self.bits_per_component[0] <= 8:
+            write_buffer = memoryview(self.palette.astype(np.uint8))
+        elif self.bits_per_component[0] <= 16:
+            write_buffer = memoryview(self.palette.astype(np.uint16))
+        elif self.bits_per_component[0] <= 32:
+            write_buffer = memoryview(self.palette.astype(np.uint32))
+        fptr.write(write_buffer)
 
     @classmethod
     def parse(cls, fptr, offset, length):
@@ -2635,18 +2632,19 @@ class NumberListBox(Jp2kBox):
                 msg += 'the rendered result'
             elif (association >> 24) == 1:
                 idx = association & 0x00FFFFFF
-                msg += 'Codestream {0}'
+                msg += 'codestream {0}'
                 msg = msg.format(idx)
             elif (association >> 24) == 2:
                 idx = association & 0x00FFFFFF
-                msg += 'Compositing Layer {0}'
+                msg += 'compositing layer {0}'
                 msg = msg.format(idx)
             else:
                 msg += 'unrecognized'
         return msg
 
     def __repr__(self):
-        msg = 'glymur.jp2box.NumberListBox()'
+        msg = 'glymur.jp2box.NumberListBox(associations={0})'
+        msg = msg.format(self.associations)
         return msg
 
     @classmethod

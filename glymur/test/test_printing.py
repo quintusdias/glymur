@@ -50,6 +50,18 @@ class TestPrinting(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_codestream(self):
+        """Should be able to print a raw codestream."""
+        j = glymur.Jp2k(self.j2kfile)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j)
+            actual = fake_out.getvalue().strip()
+            # Remove the file line, as that is filesystem-dependent.
+            lines = actual.split('\n')
+            actual = '\n'.join(lines[1:])
+
+        self.assertEqual(actual, fixtures.codestream)
+
     def test_version_info(self):
         """Should be able to print(glymur.version.info)"""
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -598,6 +610,63 @@ class TestPrinting(unittest.TestCase):
             expected = '\n'.join(lines)
             self.assertEqual(actual, expected)
 
+    def test_flst(self):
+        """Verify printing of fragment list box."""
+        flst = glymur.jp2box.FragmentListBox([89], [1132288], [0])
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(flst)
+            actual = fake_out.getvalue().strip()
+        self.assertEqual(actual, fixtures.fragment_list_box)
+
+    def test_dref(self):
+        """Verify printing of data reference box."""
+        dref = glymur.jp2box.DataReferenceBox()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(dref)
+            actual = fake_out.getvalue().strip()
+        self.assertEqual(actual, 'Data Reference Box (dtbl) @ (-1, 0)')
+
+    def test_jplh_cgrp(self):
+        """Verify printing of compositing layer header box, color group box."""
+        jpx = glymur.Jp2k(self.jpxfile)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(jpx.box[7])
+            actual = fake_out.getvalue().strip()
+        self.assertEqual(actual, fixtures.jplh_color_group_box)
+
+    def test_free(self):
+        """Verify printing of Free box."""
+        free = glymur.jp2box.FreeBox()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(free)
+            actual = fake_out.getvalue().strip()
+        self.assertEqual(actual, 'Free Box (free) @ (-1, 0)')
+
+    def test_nlst(self):
+        """Verify printing of number list box."""
+        assn = (0, 16777216, 33554432)
+        nlst = glymur.jp2box.NumberListBox(assn)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(nlst)
+            actual = fake_out.getvalue().strip()
+        self.assertEqual(actual, fixtures.number_list_box)
+
+    def test_ftbl(self):
+        """Verify printing of fragment table box."""
+        ftbl = glymur.jp2box.FragmentTableBox()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(ftbl)
+            actual = fake_out.getvalue().strip()
+        self.assertEqual(actual, 'Fragment Table Box (ftbl) @ (-1, 0)')
+
+    def test_jpch(self):
+        """Verify printing of JPCH box."""
+        jpx = glymur.Jp2k(self.jpxfile)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(jpx.box[3])
+            actual = fake_out.getvalue().strip()
+        self.assertEqual(actual, 'Codestream Header Box (jpch) @ (887, 8)')
+
     @unittest.skipIf(sys.hexversion < 0x03000000,
                      "Ordered dicts not printing well in 2.7")
     def test_exif_uuid(self):
@@ -893,6 +962,17 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
+    def test_componentmapping_box_alpha(self):
+        """Verify __repr__ method on cmap box."""
+        cmap = glymur.jp2box.ComponentMappingBox(component_index=(0, 0, 0),
+                                                 mapping_type=(1, 1, 1),
+                                                 palette_index=(0, 1, 2))
+        newbox = eval(repr(cmap))
+        self.assertEqual(newbox.box_id, 'cmap')
+        self.assertEqual(newbox.component_index, (0, 0, 0))
+        self.assertEqual(newbox.mapping_type, (1, 1, 1))
+        self.assertEqual(newbox.palette_index, (0, 1, 2))
+
     def test_palette7(self):
         """verify printing of pclr box"""
         filename = opj_data_file('input/conformance/file9.jp2')
@@ -905,7 +985,6 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    @unittest.skip("file7 no longer has a rreq")
     def test_rreq(self):
         """verify printing of reader requirements box"""
         filename = opj_data_file('input/nonregression/text_GBR.jp2')

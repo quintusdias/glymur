@@ -2,6 +2,7 @@
 """
 Part of glymur.
 """
+from collections import OrderedDict
 import pprint
 import re
 import struct
@@ -9,12 +10,6 @@ import sys
 import warnings
 
 import lxml.etree as ET
-
-if sys.hexversion < 0x02070000:
-    # pylint: disable=F0401,E0611
-    from ordereddict import OrderedDict
-else:
-    from collections import OrderedDict
 
 def xml(raw_data):
     """

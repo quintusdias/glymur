@@ -16,6 +16,13 @@ import unittest
 
 import numpy as np
 
+try:
+    import skimage.io
+    skimage.io.use_plugin('freeimage', 'imread')
+    _HAS_SKIMAGE_FREEIMAGE_SUPPORT = True
+except ((ImportError, RuntimeError)):
+    _HAS_SKIMAGE_FREEIMAGE_SUPPORT = False
+
 from .fixtures import OPJ_DATA_ROOT, opj_data_file, read_image
 from .fixtures import NO_READ_BACKEND, NO_READ_BACKEND_MSG
 
@@ -34,6 +41,21 @@ class TestSuiteNegative(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+
+    @unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+                     "Cannot read input image without scikit-image/freeimage")
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+    def test_cinema2K_bad_frame_rate(self):
+        """Cinema2k frame rate must be either 24 or 48."""
+        relfile = 'input/nonregression/X_5_2K_24_235_CBR_STEM24_000.tif'
+        infile = opj_data_file(relfile)
+        data = skimage.io.imread(infile)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(IOError):
+                j.write(data, cinema2k=36)
+
 
     @unittest.skipIf(NO_READ_BACKEND, NO_READ_BACKEND_MSG)
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")

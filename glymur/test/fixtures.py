@@ -622,3 +622,57 @@ cinema2k_profile = """SIZ marker segment @ (2, 47)
     Bitdepth:  (12, 12, 12)
     Signed:  (False, False, False)
     Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))"""
+
+jplh_color_group_box = r"""Compositing Layer Header Box (jplh) @ (314227, 31)
+    Colour Group Box (cgrp) @ (314235, 23)
+        Colour Specification Box (colr) @ (314243, 15)
+            Method:  enumerated colorspace
+            Precedence:  0
+            Colorspace:  sRGB"""
+
+fragment_list_box = r"""Fragment List Box (flst) @ (-1, 0)
+    Offset 0:  89
+    Fragment Length 0:  1132288
+    Data Reference 0:  0"""
+
+number_list_box = r"""Number List Box (nlst) @ (-1, 0)
+    Association[0]:  the rendered result
+    Association[1]:  codestream 0
+    Association[2]:  compositing layer 0"""
+
+
+goodstuff = r"""Codestream:
+    SOC marker segment @ (0, 0)
+    SIZ marker segment @ (2, 47)
+        Profile:  no profile
+        Reference Grid Height, Width:  (800 x 480)
+        Vertical, Horizontal Reference Grid Offset:  (0 x 0)
+        Reference Tile Height, Width:  (800 x 480)
+        Vertical, Horizontal Reference Tile Offset:  (0 x 0)
+        Bitdepth:  (8, 8, 8)
+        Signed:  (False, False, False)
+        Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))
+    COD marker segment @ (51, 12)
+        Coding style:
+            Entropy coder, without partitions
+            SOP marker segments:  False
+            EPH marker segments:  False
+        Coding style parameters:
+            Progression order:  LRCP
+            Number of layers:  1
+            Multiple component transformation usage:  reversible
+            Number of resolutions:  6
+            Code block height, width:  (64 x 64)
+            Wavelet transform:  5-3 reversible
+            Precinct size:  default, 2^15 x 2^15
+            Code block context:
+                Selective arithmetic coding bypass:  False
+                Reset context probabilities on coding pass boundaries:  False
+                Termination on each coding pass:  False
+                Vertically stripe causal context:  False
+                Predictable termination:  False
+                Segmentation symbols:  False
+    QCD marker segment @ (65, 19)
+        Quantization style:  no quantization, 2 guard bits
+        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10)]"""
+
