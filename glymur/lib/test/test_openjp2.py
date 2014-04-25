@@ -79,7 +79,7 @@ class TestOpenJP2(unittest.TestCase):
         openjp2.set_warning_handler(codec, None)
         openjp2.set_error_handler(codec, None)
 
-        stream = openjp2.stream_create_default_file_stream_v3(filename, True)
+        stream = openjp2.stream_create_default_file_stream(filename, True)
 
         openjp2.setup_decoder(codec, dparam)
         image = openjp2.read_header(stream, codec)
@@ -100,7 +100,7 @@ class TestOpenJP2(unittest.TestCase):
 
         openjp2.end_decompress(codec, stream)
         openjp2.destroy_codec(codec)
-        openjp2.stream_destroy_v3(stream)
+        openjp2.stream_destroy(stream)
         openjp2.image_destroy(image)
 
     def test_tte0(self):
@@ -308,7 +308,7 @@ def tile_encoder(**kwargs):
 
     openjp2.setup_encoder(codec, l_param, l_image)
 
-    stream = openjp2.stream_create_default_file_stream_v3(kwargs['filename'],
+    stream = openjp2.stream_create_default_file_stream(kwargs['filename'],
                                                           False)
     openjp2.start_compress(codec, l_image, stream)
 
@@ -316,7 +316,7 @@ def tile_encoder(**kwargs):
         openjp2.write_tile(codec, j, data, tile_size, stream)
 
     openjp2.end_compress(codec, stream)
-    openjp2.stream_destroy_v3(stream)
+    openjp2.stream_destroy(stream)
     openjp2.destroy_codec(codec)
     openjp2.image_destroy(l_image)
 
@@ -325,7 +325,7 @@ def tile_decoder(**kwargs):
 
     Reads a tile.  That's all it does.
     """
-    stream = openjp2.stream_create_default_file_stream_v3(kwargs['filename'],
+    stream = openjp2.stream_create_default_file_stream(kwargs['filename'],
                                                           True)
     dparam = openjp2.set_default_decoder_parameters()
 
@@ -361,7 +361,7 @@ def tile_decoder(**kwargs):
 
     openjp2.end_decompress(codec, stream)
     openjp2.destroy_codec(codec)
-    openjp2.stream_destroy_v3(stream)
+    openjp2.stream_destroy(stream)
     openjp2.image_destroy(image)
 
 def ttx0_setup(filename):
