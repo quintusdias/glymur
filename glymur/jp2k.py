@@ -29,8 +29,9 @@ import numpy as np
 
 from .codestream import Codestream
 from .core import SRGB, GREYSCALE
-from .core import PROGRESSION_ORDER, CINEMA_MODE
+from .core import PROGRESSION_ORDER
 from .core import ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE
+from . import core
 from .jp2box import Jp2kBox
 from .jp2box import JPEG2000SignatureBox, FileTypeBox, JP2HeaderBox
 from .jp2box import ColourSpecificationBox, ContiguousCodestreamBox
@@ -173,14 +174,34 @@ class Jp2k(Jp2kBox):
             raise IOError(msg)
 
         if cinema_mode == 'cinema2k':
-            if fps == 24:
-                cparams.cp_cinema = CINEMA_MODE['cinema2k_24']
-            elif fps == 48:
-                cparams.cp_cinema = CINEMA_MODE['cinema2k_48']
-            else:
+            if fps not in [24, 48]:
                 raise IOError('Cinema2K frame rate must be either 24 or 48.')
+
+            if re.match("2.0", version.openjpeg_version) is not None:
+                # 2.0 API
+                if fps == 24:
+                    cparams.cp_cinema = core.CINEMA_MODE['cinema2k_24']
+                else:
+                    cparams.cp_cinema = core.CINEMA_MODE['cinema2k_48']
+            else:
+                # 2.1 API
+                if fps == 24:
+                    cparams.rsiz = core.PROFILE['cinema_2k']
+                    cparams.max_comp_size = core.CINEMA_24_COMP
+                    cparams.max_cs_size = core.CINEMA_24_CS
+                else:
+                    cparams.rsiz = core.PROFILE['cinema_2k']
+                    cparams.max_comp_size = core.CINEMA_48_COMP
+                    cparams.max_cs_size = core.CINEMA_48_CS
+
         else:
-            cparams.cp_cinema = CINEMA_MODE['cinema4k_24']
+            # cinema4k
+            if re.match("2.0", version.openjpeg_version) is not None:
+                # 2.0 API
+                cparams.cp_cinema = core.CINEMA_MODE['cinema4k_24']
+            else:
+                # 2.1 API
+                cparams.rsiz = core.PROFILE['cinema_4k']
 
         return
 
@@ -554,9 +575,9 @@ class Jp2k(Jp2kBox):
                 stack.callback(libc.fclose, fptr)
             else:
                 # Introduced in 2.1 devel series.
-                strm = opj2.stream_create_default_file_stream_v3(self.filename,
-                                                                 False)
-                stack.callback(opj2.stream_destroy_v3, strm)
+                strm = opj2.stream_create_default_file_stream(self.filename,
+                                                              False)
+                stack.callback(opj2.stream_destroy, strm)
 
             opj2.start_compress(codec, image, strm)
             opj2.encode(codec, strm)
@@ -909,12 +930,10 @@ class Jp2k(Jp2kBox):
                                        layer=layer, tile=tile, area=area)
 
         with ExitStack() as stack:
-            if hasattr(opj2.OPENJP2,
-                       'opj_stream_create_default_file_stream_v3'):
+            if re.match("2.1", version.openjpeg_version):
                 filename = self.filename
-                stream = opj2.stream_create_default_file_stream_v3(filename,
-                                                                   True)
-                stack.callback(opj2.stream_destroy_v3, stream)
+                stream = opj2.stream_create_default_file_stream(filename, True)
+                stack.callback(opj2.stream_destroy, stream)
             else:
                 fptr = libc.fopen(self.filename, 'rb')
                 stack.callback(libc.fclose, fptr)
@@ -1080,17 +1099,16 @@ class Jp2k(Jp2kBox):
                                        layer=layer, tile=tile, area=area)
 
         with ExitStack() as stack:
-            if re.match("2.0", version.openjpeg_version):
+            if re.match("2.1", version.openjpeg_version):
+                # API change in 2.1
+                filename = self.filename
+                stream = opj2.stream_create_default_file_stream(filename, True)
+                stack.callback(opj2.stream_destroy, stream)
+            else:
                 fptr = libc.fopen(self.filename, 'rb')
                 stack.callback(libc.fclose, fptr)
                 stream = opj2.stream_create_default_file_stream(fptr, True)
                 stack.callback(opj2.stream_destroy, stream)
-            else:
-                # API change in 2.1+
-                filename = self.filename
-                stream = opj2.stream_create_default_file_stream_v3(filename,
-                                                                   True)
-                stack.callback(opj2.stream_destroy_v3, stream)
             codec = opj2.create_decompress(self._codec_format)
             stack.callback(opj2.destroy_codec, codec)
 
