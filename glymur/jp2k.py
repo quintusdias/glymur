@@ -180,28 +180,28 @@ class Jp2k(Jp2kBox):
             if re.match("2.0", version.openjpeg_version) is not None:
                 # 2.0 API
                 if fps == 24:
-                    cparams.cp_cinema = core.CINEMA_MODE['cinema2k_24']
+                    cparams.cp_cinema = core.OPJ_CINEMA_2K_24
                 else:
-                    cparams.cp_cinema = core.CINEMA_MODE['cinema2k_48']
+                    cparams.cp_cinema = core.OPJ_CINEMA_2K_48
             else:
                 # 2.1 API
                 if fps == 24:
-                    cparams.rsiz = core.PROFILE['cinema_2k']
-                    cparams.max_comp_size = core.CINEMA_24_COMP
-                    cparams.max_cs_size = core.CINEMA_24_CS
+                    cparams.rsiz = core.OPJ_PROFILE_CINEMA_2K
+                    cparams.max_comp_size = core.OPJ_CINEMA_24_COMP
+                    cparams.max_cs_size = core.OPJ_CINEMA_24_CS
                 else:
-                    cparams.rsiz = core.PROFILE['cinema_2k']
-                    cparams.max_comp_size = core.CINEMA_48_COMP
-                    cparams.max_cs_size = core.CINEMA_48_CS
+                    cparams.rsiz = core.OPJ_PROFILE_CINEMA_2K
+                    cparams.max_comp_size = core.OPJ_CINEMA_48_COMP
+                    cparams.max_cs_size = core.OPJ_CINEMA_48_CS
 
         else:
             # cinema4k
             if re.match("2.0", version.openjpeg_version) is not None:
                 # 2.0 API
-                cparams.cp_cinema = core.CINEMA_MODE['cinema4k_24']
+                cparams.cp_cinema = core.OPJ_CINEMA_4K_24
             else:
                 # 2.1 API
-                cparams.rsiz = core.PROFILE['cinema_4k']
+                cparams.rsiz = core.OPJ_PROFILE_CINEMA_4K
 
         return
 
@@ -1642,9 +1642,17 @@ def _populate_image_struct(cparams, image, imgdata):
 
     # Stage the image data to the openjpeg data structure.
     for k in range(0, num_comps):
-        if cparams.cp_cinema:
-            image.contents.comps[k].prec = 12
-            image.contents.comps[k].bpp = 12
+        if re.match("2.0", version.openjpeg_version) is not None:
+            # 2.0 API
+            if cparams.cp_cinema:
+                image.contents.comps[k].prec = 12
+                image.contents.comps[k].bpp = 12
+        else:
+            # 2.1 API
+            if cparams.rsiz in (core.OPJ_PROFILE_CINEMA_2K,
+                                core.OPJ_PROFILE_CINEMA_4K):
+                image.contents.comps[k].prec = 12
+                image.contents.comps[k].bpp = 12
 
         layer = np.ascontiguousarray(imgdata[:, :, k], dtype=np.int32)
         dest = image.contents.comps[k].data

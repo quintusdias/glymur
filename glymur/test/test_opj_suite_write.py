@@ -11,6 +11,7 @@ import re
 import sys
 import tempfile
 import unittest
+import warnings
 
 try:
     import skimage.io
@@ -156,7 +157,10 @@ class TestSuiteWriteCinema(unittest.TestCase):
         data = skimage.io.imread(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
-            j.write(data, cinema4k=True)
+            with warnings.catch_warnings():
+                # Just turn off warnings.
+                warnings.simplefilter("ignore")
+                j.write(data, cinema4k=True)
 
             codestream = j.get_codestream()
             self.check_cinema4k_codestream(codestream, (4096, 2160))
@@ -216,7 +220,10 @@ class TestSuiteWriteCinema(unittest.TestCase):
         data = skimage.io.imread(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
-            j.write(data, cinema2k=48)
+            with warnings.catch_warnings():
+                # Just turn off warnings.
+                warnings.simplefilter("ignore")
+                j.write(data, cinema2k=48)
 
             codestream = j.get_codestream()
             self.check_cinema2k_codestream(codestream, (1998, 1080))
