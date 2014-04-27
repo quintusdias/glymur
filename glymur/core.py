@@ -38,56 +38,47 @@ CINEMA2K_24 = 1
 CINEMA2K_48 = 2
 CINEMA4K_24 = 3
 
-CINEMA_MODE = {
-    'off': OFF,
-    'cinema2k_24': CINEMA2K_24,
-    'cinema2k_48': CINEMA2K_48,
-    'cinema4k_24': CINEMA4K_24, }
+OPJ_OFF = 0          # Not Digital Cinema
+OPJ_CINEMA2K_24 = 1  # 2K Digital Cinema at 24 fps
+OPJ_CINEMA2K_48 = 2  # 2K Digital Cinema at 48 fps
+OPJ_CINEMA4K_24 = 3  # 4K Digital Cinema at 24 fps
 
-PROFILE = {
-        # no profile, conform to 15444-1
-        'none': 0x0000,
-        # profile 0 as described in 15444-1,Table A.45
-        '0': 0x0001,
-        'zero': 0x0001,
-        0: 0x0001,
-        # profile 1 as described in 15444-1,Table A.45
-        '1': 0x0002,
-        'one': 0x0002,
-        1: 0x0002,
-        # at least 1 extension defined in 15444-2 (Part-2)
-        '2': 0x8000,
-        2: 0x8000,
-        'two': 0x8000,
-        # 2K cinema profile defined in 15444-1 AMD1
-        'cinema_2k': 0x0003,
-        # 4K cinema profile defined in 15444-1 AMD1
-        'cinema_4k': 0x0004,
-        # scalable 2K cinema profile defined in 15444-1 AMD2
-        'cinema_s2k': 0x0005,
-        # scalable 4K cinema profile defined in 15444-1 AMD2
-        'cinema_s4k': 0x0006,
-        # long term storage cinema profile defined in 15444-1 AMD2
-        'cinema_lts': 0x0007,
-        # Single Multi Tile Broadcast profile defined in 15444-1 AMD3
-        'bc_single': 0x0100,
-        # Multi Tile Broadcast profile defined in 15444-1 AMD3
-        'bc_multi': 0x0200,
-        # Multi Tile Reversible Broadcast profile defined in 15444-1 AMD3
-        'bc_multi_r': 0x0300,
-        # 2K Single Tile Lossy IMF profile defined in 15444-1 AMD 8
-        'imf_2k': 0x0400,
-        # 4K Single Tile Lossy IMF profile defined in 15444-1 AMD 8
-        'imf_4k': 0x0401,
-        # 8K Single Tile Lossy IMF profile defined in 15444-1 AMD 8
-        'imf_8k': 0x0402,
-        # 2K Single/Multi Tile Reversible IMF profile defined in 15444-1 AMD 8
-        'imf_2k_r': 0x0403,
-        # 4K Single/Multi Tile Reversible IMF profile defined in 15444-1 AMD 8
-        'imf_4k_r': 0x0800,
-        # 8K Single/Multi Tile Reversible IMF profile defined in 15444-1 AMD 8
-        'imf_8k_r': 0x0801,
-        }
+# no profile, conform to 15444-1
+OPJ_PROFILE_NONE = 0x0000
+# Profile 0 as described in 15444-1,Table A.45
+OPJ_PROFILE_0 = 0x0001
+# Profile 1 as described in 15444-1,Table A.45
+OPJ_PROFILE_1 = 0x0002
+# At least 1 extension defined in 15444-2 (Part-2)
+OPJ_PROFILE_PART2 = 0x8000
+# 2K cinema profile defined in 15444-1 AMD1
+OPJ_PROFILE_CINEMA_2K = 0x0003
+# 4K cinema profile defined in 15444-1 AMD1
+OPJ_PROFILE_CINEMA_4K = 0x0004
+# Scalable 2K cinema profile defined in 15444-1 AMD2
+OPJ_PROFILE_CINEMA_S2K = 0x0005
+# Scalable 4K cinema profile defined in 15444-1 AMD2
+OPJ_PROFILE_CINEMA_S4K = 0x0006
+# Long term storage cinema profile defined in 15444-1 AMD2
+OPJ_PROFILE_CINEMA_LTS = 0x0007
+# Single Tile Broadcast profile defined in 15444-1 AMD3
+OPJ_PROFILE_BC_SINGLE = 0x0100
+# Multi Tile Broadcast profile defined in 15444-1 AMD3
+OPJ_PROFILE_BC_MULTI = 0x0200
+# Multi Tile Reversible Broadcast profile defined in 15444-1 AMD3
+OPJ_PROFILE_BC_MULTI_R = 0x0300
+# 2K Single Tile Lossy IMF profile defined in 15444-1 AMD 8
+OPJ_PROFILE_IMF_2K = 0x0400
+# 4K Single Tile Lossy IMF profile defined in 15444-1 AMD 8
+OPJ_PROFILE_IMF_4K = 0x0401
+# 8K Single Tile Lossy IMF profile defined in 15444-1 AMD 8
+OPJ_PROFILE_IMF_8K = 0x0402
+# 2K Single/Multi Tile Reversible IMF profile defined in 15444-1 AMD 8
+OPJ_PROFILE_IMF_2K_R = 0x0403
+# 4K Single/Multi Tile Reversible IMF profile defined in 15444-1 AMD 8
+OPJ_PROFILE_IMF_4K_R = 0x0800
+# 8K Single/Multi Tile Reversible IMF profile defined in 15444-1 AMD 8
+OPJ_PROFILE_IMF_8K_R = 0x0801
 
 # JPEG 2000 codestream and component size limits in cinema profiles
 #
