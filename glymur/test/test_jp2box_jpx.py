@@ -484,16 +484,6 @@ class TestJPX(unittest.TestCase):
             with tempfile.TemporaryFile() as tfile:
                 ftbl.write(tfile)
 
-    @unittest.skip("No such jpx file anymore.")
-    def test_jpx_rreq_mask_length_3(self):
-        """There are some JPX files with rreq mask length of 3."""
-        jpx = Jp2k(self.jpxfile)
-        self.assertEqual(jpx.box[2].box_id, 'rreq')
-        self.assertEqual(type(jpx.box[2]),
-                         glymur.jp2box.ReaderRequirementsBox)
-        self.asserwrite_buffertEqual(jpx.box[2].standard_flag,
-                         (5, 42, 45, 2, 18, 19, 1, 8, 12, 31, 20))
-
     @unittest.skip("Requires unnecessarily complicated code")
     def test_unknown_superbox(self):
         """Verify that we can handle an unknown superbox."""

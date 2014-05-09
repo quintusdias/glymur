@@ -759,6 +759,7 @@ class TestJp2k_2_1(unittest.TestCase):
 class TestParsing(unittest.TestCase):
     """Tests for verifying how paring may be altered."""
     def setUp(self):
+        self.jp2file = glymur.data.nemo()
         # Reset parseoptions for every test.
         glymur.set_parseoptions(codestream=True)
 
@@ -779,7 +780,7 @@ class TestParsing(unittest.TestCase):
             with self.assertWarns(UserWarning):
                 jp2 = Jp2k(filename)
 
-    @unittest.skip("blah")
+    #@unittest.skip("blah")
     def test_main_header(self):
         """Verify that the main header is not loaded when parsing turned off."""
         # The hidden _main_header attribute should show up after accessing it.
