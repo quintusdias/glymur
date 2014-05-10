@@ -725,6 +725,8 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         # Reset printoptions for every test.
         glymur.set_printoptions(short=False, xml=True, codestream=True)
 
+        warnings.resetwarnings()
+
     def tearDown(self):
         pass
 

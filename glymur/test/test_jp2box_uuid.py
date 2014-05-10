@@ -138,6 +138,8 @@ class TestUUIDExif(unittest.TestCase):
                 warnings.simplefilter('always')
                 j = glymur.Jp2k(tfile.name)
                 self.assertTrue(issubclass(w[0].category, UserWarning))
+                msg = 'Invalid TIFF tag'
+                self.assertTrue(msg in str(w[0].message))
 
             self.assertEqual(j.box[-1].box_id, 'uuid')
 

@@ -101,8 +101,12 @@ class _Ifd(object):
     def parse_tag(self, dtype, count, offset_buf):
         """Interpret an Exif image tag data payload.
         """
-        fmt = self.datatype2fmt[dtype][0] * count
-        payload_size = self.datatype2fmt[dtype][1] * count
+        try:
+            fmt = self.datatype2fmt[dtype][0] * count
+            payload_size = self.datatype2fmt[dtype][1] * count
+        except KeyError:
+            msg = 'Invalid TIFF tag datatype ({0}).'.format(dtype)
+            raise IOError(msg)
 
         if payload_size <= 4:
             # Interpret the payload from the 4 bytes in the tag entry.

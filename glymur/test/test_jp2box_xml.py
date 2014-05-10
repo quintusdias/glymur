@@ -207,15 +207,14 @@ class TestJp2kBadXmlFile(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_invalid_xml_box_warning(self):
-        """Should warn in case of bad XML"""
-        Jp2k(self._bad_xml_file)
-
     def test_invalid_xml_box(self):
         """Should be able to recover info from xml box with bad xml."""
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
             jp2k = Jp2k(self._bad_xml_file)
+            self.assertTrue(issubclass(w[0].category, UserWarning))
+            msg = 'No XML was retrieved'
+            self.assertTrue(msg in str(w[0].message))
 
         self.assertEqual(jp2k.box[3].box_id, 'xml ')
         self.assertEqual(jp2k.box[3].offset, 77)
