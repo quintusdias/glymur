@@ -70,7 +70,6 @@ class TestPrinting(unittest.TestCase):
 
         self.assertTrue(True)
 
-    @unittest.skipIf(sys.hexversion < 0x03000000, "Needs unittest in 3.x.")
     def test_unknown_superbox(self):
         """Verify that we can handle an unknown superbox."""
         with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
@@ -87,14 +86,19 @@ class TestPrinting(unittest.TestCase):
             tfile.write(write_buffer)
             tfile.flush()
 
-            with self.assertWarns(UserWarning):
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter('always')
                 jpx = Jp2k(tfile.name)
+                self.assertTrue(len(w), 1)
+
             glymur.set_printoptions(short=True)
             with patch('sys.stdout', new=StringIO()) as fake_out:
                 print(jpx.box[-1])
                 actual = fake_out.getvalue().strip()
-            lines = ["Unknown Box (b'grp ') @ (1399071, 20)"]
-            expected = '\n'.join(lines)
+            if sys.hexversion < 0x03000000:
+                expected = "Unknown Box (grp ) @ (1399071, 20)"
+            else:
+                expected = "Unknown Box (b'grp ') @ (1399071, 20)"
             self.assertEqual(actual, expected)
 
     def test_printoptions_bad_argument(self):
@@ -767,7 +771,7 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             jp2 = Jp2k(jfile)
-        codestream = jp2.get_codestream()
+            codestream = jp2.get_codestream()
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(codestream.segment[2])
             actual = fake_out.getvalue().strip()

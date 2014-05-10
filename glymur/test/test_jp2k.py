@@ -757,8 +757,9 @@ class TestJp2k_2_1(unittest.TestCase):
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 class TestParsing(unittest.TestCase):
-    """Tests for verifying how paring may be altered."""
+    """Tests for verifying how parsing may be altered."""
     def setUp(self):
+        self.jp2file = glymur.data.nemo()
         # Reset parseoptions for every test.
         glymur.set_parseoptions(codestream=True)
 
@@ -775,11 +776,11 @@ class TestParsing(unittest.TestCase):
             self.assertEqual(len(w), 0)
 
         glymur.set_parseoptions(codestream=True)
-        if sys.hexversion >= 0x03000000:
-            with self.assertWarns(UserWarning):
-                jp2 = Jp2k(filename)
+        with warnings.catch_warnings(record=True) as w:
+            jp2 = Jp2k(filename)
+            self.assertTrue(issubclass(w[0].category, UserWarning))
+            self.assertTrue('Invalid profile' in str(w[0].message))
 
-    @unittest.skip("blah")
     def test_main_header(self):
         """Verify that the main header is not loaded when parsing turned off."""
         # The hidden _main_header attribute should show up after accessing it.
@@ -792,44 +793,62 @@ class TestParsing(unittest.TestCase):
 
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
-class TestJp2kOpjDataRoot(unittest.TestCase):
+class TestJp2kOpjDataRootWarnings(unittest.TestCase):
     """These tests should be run by just about all configuration."""
 
     def test_undecodeable_box_id(self):
         """Should warn in case of undecodeable box ID but not error out."""
         filename = opj_data_file('input/nonregression/edf_c2_1013627.jp2')
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                jp2 = Jp2k(filename)
-        else:
-            with self.assertWarns(UserWarning):
-                jp2 = Jp2k(filename)
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            jp2 = Jp2k(filename)
+            self.assertTrue(issubclass(w[0].category, UserWarning))
+            self.assertTrue('Unrecognized box' in str(w[0].message))
 
         # Now make sure we got all of the boxes.  Ignore the last, which was
         # bad.
         box_ids = [box.box_id for box in jp2.box[:-1]]
         self.assertEqual(box_ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
 
-    def test_invalid_approximation(self):
+    def test_bad_ftyp_brand(self):
         """Should warn in case of bad ftyp brand."""
         filename = opj_data_file('input/nonregression/edf_c2_1000290.jp2')
-        with self.assertWarns(UserWarning):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             jp2 = Jp2k(filename)
+            self.assertTrue(issubclass(w[0].category, UserWarning))
 
-    @unittest.skipIf(sys.hexversion < 0x03000000, "Test requires Python 3.3+")
     def test_invalid_approximation(self):
         """Should warn in case of invalid approximation."""
         filename = opj_data_file('input/nonregression/edf_c2_1015644.jp2')
-        with self.assertWarns(UserWarning):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             jp2 = Jp2k(filename)
+            self.assertTrue(issubclass(w[0].category, UserWarning))
+            self.assertTrue('Invalid approximation' in str(w[0].message))
 
-    @unittest.skipIf(sys.hexversion < 0x03000000, "Test requires Python 3.3+")
     def test_invalid_colorspace(self):
         """Should warn in case of invalid colorspace."""
         filename = opj_data_file('input/nonregression/edf_c2_1103421.jp2')
-        with self.assertWarns(UserWarning):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             jp2 = Jp2k(filename)
+            self.assertTrue(issubclass(w[1].category, UserWarning))
+            self.assertTrue('Unrecognized colorspace' in str(w[1].message))
+
+    def test_stupid_windows_eol_at_end(self):
+        """Garbage characters at the end of the file."""
+        filename = opj_data_file('input/nonregression/issue211.jp2')
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
+            jp2 = Jp2k(filename)
+            self.assertTrue(issubclass(w[1].category, UserWarning))
+
+
+@unittest.skipIf(OPJ_DATA_ROOT is None,
+                 "OPJ_DATA_ROOT environment variable not set")
+class TestJp2kOpjDataRoot(unittest.TestCase):
+    """These tests should be run by just about all configuration."""
 
     def test_no_cxform_pclr_jp2(self):
         """Indices for pclr jpxfile if no color transform"""
@@ -848,17 +867,6 @@ class TestJp2kOpjDataRoot(unittest.TestCase):
             for c in np.arange(rgb.shape[1]):
                 rgb_from_idx[r, c] = palette[idx[r, c]]
         np.testing.assert_array_equal(rgb, rgb_from_idx)
-
-    def test_stupid_windows_eol_at_end(self):
-        """Garbage characters at the end of the file."""
-        filename = opj_data_file('input/nonregression/issue211.jp2')
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-                jp2 = Jp2k(filename)
-        else:
-            with self.assertWarns(UserWarning):
-                jp2 = Jp2k(filename)
 
     def test_read_differing_subsamples(self):
         """should error out with read used on differently subsampled images"""
