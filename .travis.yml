@@ -2,6 +2,7 @@ language: python
 python:
   - "2.7"
   - "3.3"
+  - "3.4"
 
 before_install:
   - sudo apt-get update -qq
@@ -13,6 +14,7 @@ before_install:
 install:
   - if [[ $TRAVIS_PYTHON_VERSION == '2.7' ]]; then pip install lxml contextlib2 mock; fi
   - if [[ $TRAVIS_PYTHON_VERSION == '3.3' ]]; then pip install lxml numpy; fi
+  - if [[ $TRAVIS_PYTHON_VERSION == '3.4' ]]; then pip install lxml numpy; fi
 
 # command to run tests
 script:
