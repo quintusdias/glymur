@@ -1241,8 +1241,10 @@ class FileTypeBox(Jp2kBox):
     def _validate(self, writing=False):
         """Validate the box before writing to file."""
         if self.brand not in ['jp2 ', 'jpx ']:
-            msg = "The file type brand must be either 'jp2 ' or 'jpx '."
-            self._dispatch_validation_error(msg, writing=writing)
+            msg = "The file type brand was '{0}'.  "
+            msg += "It should be either 'jp2 ' or 'jpx '."
+            self._dispatch_validation_error(msg.format(self.brand),
+                                            writing=writing)
         valid_cls = ['jp2 ', 'jpx ', 'jpxb']
         for item in self.compatibility_list:
             if item not in valid_cls:
