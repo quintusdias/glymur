@@ -83,7 +83,6 @@ class TestUUIDExif(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @unittest.skipIf(sys.hexversion < 0x03000000, "Requires assertWarns, 3.2+")
     def test_unrecognized_exif_tag(self):
         """Verify warning in case of unrecognized tag."""
         with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
@@ -106,10 +105,13 @@ class TestUUIDExif(unittest.TestCase):
             tfile.write(struct.pack('<HHI4s', 171, 2, 3, b'HTC\x00'))
             tfile.flush()
 
-            with self.assertWarns(UserWarning):
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter('always')
                 j = glymur.Jp2k(tfile.name)
+                self.assertTrue(issubclass(w[0].category, UserWarning))
+                msg = 'Unrecognized Exif tag'
+                self.assertTrue(msg in str(w[0].message))
 
-    @unittest.skipIf(sys.hexversion < 0x03000000, "Requires assertWarns, 3.2+")
     def test_bad_tag_datatype(self):
         """Only certain datatypes are allowable"""
         with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
@@ -132,12 +134,13 @@ class TestUUIDExif(unittest.TestCase):
             tfile.write(struct.pack('<HHI4s', 271, 2000, 3, b'HTC\x00'))
             tfile.flush()
 
-            with self.assertWarns(UserWarning):
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter('always')
                 j = glymur.Jp2k(tfile.name)
+                self.assertTrue(issubclass(w[0].category, UserWarning))
 
             self.assertEqual(j.box[-1].box_id, 'uuid')
 
-    @unittest.skipIf(sys.hexversion < 0x03000000, "Requires assertWarns, 3.2+")
     def test_bad_tiff_header_byte_order_indication(self):
         """Only b'II' and b'MM' are allowed."""
         with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
@@ -160,8 +163,10 @@ class TestUUIDExif(unittest.TestCase):
             tfile.write(struct.pack('<HHI4s', 271, 2, 3, b'HTC\x00'))
             tfile.flush()
 
-            with self.assertWarns(UserWarning):
+            with warnings.catch_warnings(record=True) as w:
+                warnings.simplefilter('always')
                 j = glymur.Jp2k(tfile.name)
+                self.assertTrue(issubclass(w[0].category, UserWarning))
 
             self.assertEqual(j.box[-1].box_id, 'uuid')
 

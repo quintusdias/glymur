@@ -357,7 +357,6 @@ class TestChannelDefinition(unittest.TestCase):
             with self.assertRaises((IOError, OSError)):
                 j2k.wrap(tfile.name, boxes=boxes)
 
-    @unittest.skipIf(sys.hexversion < 0x03000000, "Needs unittest in 3.x.")
     def test_bad_type(self):
         """Channel types are limited to 0, 1, 2, 65535
         Should reject if not all of index, channel_type, association the
@@ -365,20 +364,26 @@ class TestChannelDefinition(unittest.TestCase):
         """
         channel_type = (COLOR, COLOR, 3)
         association = (RED, GREEN, BLUE)
-        with self.assertWarns(UserWarning):
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
                                                association=association)
+            self.assertEqual(len(w), 1)
+            self.assertTrue(issubclass(w[0].category, UserWarning))
 
-    @unittest.skipIf(sys.hexversion < 0x03000000, "Needs unittest in 3.x.")
     def test_wrong_lengths(self):
         """Should reject if not all of index, channel_type, association the
         same length.
         """
         channel_type = (COLOR, COLOR)
         association = (RED, GREEN, BLUE)
-        with self.assertWarns(UserWarning):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
                                                association=association)
+            self.assertEqual(len(w), 1)
+            self.assertTrue(issubclass(w[0].category, UserWarning))
 
 
 class TestFileTypeBox(unittest.TestCase):
@@ -474,32 +479,41 @@ class TestColourSpecificationBox(unittest.TestCase):
         self.assertEqual(colr.colorspace, glymur.core.SRGB)
         self.assertIsNone(colr.icc_profile)
 
-    @unittest.skipIf(sys.hexversion < 0x03030000, "Requires 3.3+")
     def test_colr_with_cspace_and_icc(self):
         """Colour specification boxes can't have both."""
-        with self.assertWarns(UserWarning):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             colorspace = glymur.core.SRGB
             rawb = b'\x01\x02\x03\x04'
             glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
                                                  icc_profile=rawb)
+            self.assertTrue(issubclass(w[0].category,UserWarning))
+            msg = 'Colorspace and icc_profile cannot both be set'
+            self.assertTrue(msg in str(w[0].message))
 
-    @unittest.skipIf(sys.hexversion < 0x03030000, "Requires 3.3+")
     def test_colr_with_bad_method(self):
         """colr must have a valid method field"""
         colorspace = glymur.core.SRGB
         method = -1
-        with self.assertWarns(UserWarning):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
                                                  method=method)
+            self.assertTrue(issubclass(w[0].category,UserWarning))
+            msg = 'Invalid method'
+            self.assertTrue(msg in str(w[0].message))
 
-    @unittest.skipIf(sys.hexversion < 0x03030000, "Requires 3.3+")
     def test_colr_with_bad_approx(self):
         """colr should have a valid approximation field"""
         colorspace = glymur.core.SRGB
         approx = -1
-        with self.assertWarns(UserWarning):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
                                                  approximation=approx)
+            self.assertTrue(issubclass(w[0].category,UserWarning))
+            msg = 'Invalid approximation'
+            self.assertTrue(msg in str(w[0].message))
 
     def test_colr_with_bad_color(self):
         """colr must have a valid color, strange as though that may sound."""
@@ -523,25 +537,29 @@ class TestPaletteBox(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @unittest.skipIf(sys.hexversion < 0x03000000, "Needs unittest in 3.x.")
     def test_mismatched_bitdepth_signed(self):
         """bitdepth and signed arguments must have equal length"""
         palette = np.array([[255, 0, 255], [0, 255, 0]], dtype=np.uint8)
         bps = (8, 8, 8)
         signed = (False, False)
-        with self.assertWarns(UserWarning):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             pclr = glymur.jp2box.PaletteBox(palette, bits_per_component=bps,
                                             signed=signed)
+            self.assertEqual(len(w), 1)
+            self.assertTrue(issubclass(w[0].category, UserWarning))
 
-    @unittest.skipIf(sys.hexversion < 0x03000000, "Needs unittest in 3.x.")
     def test_mismatched_signed_palette(self):
         """bitdepth and signed arguments must have equal length"""
         palette = np.array([[255, 0, 255], [0, 255, 0]], dtype=np.uint8)
         bps = (8, 8, 8, 8)
         signed = (False, False, False, False)
-        with self.assertWarns(UserWarning):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             pclr = glymur.jp2box.PaletteBox(palette, bits_per_component=bps,
                                             signed=signed)
+            self.assertEqual(len(w), 1)
+            self.assertTrue(issubclass(w[0].category, UserWarning))
 
     def test_writing_with_different_bitdepths(self):
         """Bitdepths must be the same when writing."""
