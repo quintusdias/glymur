@@ -148,38 +148,6 @@ class TestSuite(unittest.TestCase):
         pgxdata = read_pgx(pgxfile)
         np.testing.assert_array_equal(jpdata, pgxdata)
 
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_ETS_C1P0_p0_12_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_12.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=0)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p0_12_0.pgx')
-        pgxdata = read_pgx(pgxfile)
-        np.testing.assert_array_equal(jpdata, pgxdata)
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_ETS_C1P0_p0_13_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_13.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read(rlevel=0)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p0_13_0.pgx')
-        pgxdata = read_pgx(pgxfile)
-        np.testing.assert_array_equal(jpdata[:, :, 0], pgxdata)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p0_13_1.pgx')
-        pgxdata = read_pgx(pgxfile)
-        np.testing.assert_array_equal(jpdata[:, :, 1], pgxdata)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p0_13_2.pgx')
-        pgxdata = read_pgx(pgxfile)
-        np.testing.assert_array_equal(jpdata[:, :, 2], pgxdata)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p0_13_3.pgx')
-        pgxdata = read_pgx(pgxfile)
-        np.testing.assert_array_equal(jpdata[:, :, 3], pgxdata)
-
     def test_ETS_C1P0_p0_14_j2k(self):
         jfile = opj_data_file('input/conformance/p0_14.j2k')
         jp2k = Jp2k(jfile)
@@ -253,64 +221,6 @@ class TestSuite(unittest.TestCase):
         pgxdata = read_pgx(pgxfile)
         self.assertTrue(peak_tolerance(jpdata, pgxdata) < 624)
         self.assertTrue(mse(jpdata, pgxdata) < 3080)
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_ETS_C1P1_p1_05_j2k(self):
-        jfile = opj_data_file('input/conformance/p1_05.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read()
-
-        pgxfile = opj_data_file('baseline/conformance/c1p1_05_0.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[:, :, 0], pgxdata) < 40)
-        self.assertTrue(mse(jpdata[:, :, 0], pgxdata) < 8.458)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p1_05_1.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[:, :, 1], pgxdata) < 40)
-        self.assertTrue(mse(jpdata[:, :, 1], pgxdata) < 9.816)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p1_05_2.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[:, :, 2], pgxdata) < 40)
-        self.assertTrue(mse(jpdata[:, :, 2], pgxdata) < 10.154)
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_ETS_C1P1_p1_06_j2k(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read()
-
-        pgxfile = opj_data_file('baseline/conformance/c1p1_06_0.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[:, :, 0], pgxdata) < 2)
-        self.assertTrue(mse(jpdata[:, :, 0], pgxdata) < 0.6)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p1_06_1.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[:, :, 1], pgxdata) < 2)
-        self.assertTrue(mse(jpdata[:, :, 1], pgxdata) < 0.6)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p1_06_2.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[:, :, 2], pgxdata) < 2)
-        self.assertTrue(mse(jpdata[:, :, 2], pgxdata) < 0.6)
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_ETS_C1P1_p1_07_j2k(self):
-        jfile = opj_data_file('input/conformance/p1_07.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read_bands()
-
-        pgxfile = opj_data_file('baseline/conformance/c1p1_07_0.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[0], pgxdata) <= 0)
-        self.assertTrue(mse(jpdata[0], pgxdata) <= 0)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p1_07_1.pgx')
-        pgxdata = read_pgx(pgxfile)
-        self.assertTrue(peak_tolerance(jpdata[1], pgxdata) <= 0)
-        self.assertTrue(mse(jpdata[1], pgxdata) <= 0)
 
     def test_ETS_JP2_file1(self):
         jfile = opj_data_file('input/conformance/file1.jp2')
@@ -429,15 +339,6 @@ class TestSuite(unittest.TestCase):
         Jp2k(jfile).read()
         self.assertTrue(True)
 
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_illegalcolortransform_j2k_14_decode(self):
-        # Stream too short, expected SOT.
-        jfile = opj_data_file('input/nonregression/illegalcolortransform.j2k')
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            Jp2k(jfile).read()
-        self.assertTrue(True)
-
     def test_NR_DEC_j2k32_j2k_15_decode(self):
         jfile = opj_data_file('input/nonregression/j2k32.j2k')
         Jp2k(jfile).read()
@@ -505,86 +406,6 @@ class TestSuite(unittest.TestCase):
         jfile = opj_data_file('input/nonregression/pacs.ge.j2k')
         Jp2k(jfile).read()
         self.assertTrue(True)
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_76_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        fulldata = jp2k.read()
-        tiledata = jp2k.read(tile=0)
-        np.testing.assert_array_equal(tiledata, fulldata[0:3, 0:3])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_77_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        fulldata = jp2k.read()
-        tiledata = jp2k.read(tile=5)
-        np.testing.assert_array_equal(tiledata, fulldata[3:6, 3:6])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_78_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        fulldata = jp2k.read()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            tiledata = jp2k.read(tile=9)
-        np.testing.assert_array_equal(tiledata, fulldata[6:9, 3:6])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_79_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        fulldata = jp2k.read()
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            tiledata = jp2k.read(tile=15)
-        np.testing.assert_array_equal(tiledata, fulldata[9:12, 9:12])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_80_decode(self):
-        # Just read the data, don't bother verifying.
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            jp2k.read(tile=0, rlevel=2)
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_81_decode(self):
-        # Just read the data, don't bother verifying.
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            jp2k.read(tile=5, rlevel=2)
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_82_decode(self):
-        # Just read the data, don't bother verifying.
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            jp2k.read(tile=9, rlevel=2)
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_83_decode(self):
-        # tile size is 3x3.  Reducing two levels results in no data.
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            with self.assertRaises((IOError, OSError)):
-                jp2k.read(tile=15, rlevel=2)
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_84_decode(self):
-        # Just read the data, don't bother verifying.
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        jp2k.read(rlevel=4)
 
 
 @unittest.skipIf(OPJ_DATA_ROOT is None,
@@ -4606,7 +4427,6 @@ class TestSuiteDump(unittest.TestCase):
         # Comment value
         self.assertEqual(c.segment[4].ccme.decode('latin-1'), "Kakadu-v6.3.1")
 
-    @unittest.skip("fprintf stderr output in r2343.")
     def test_NR_illegalcolortransform_dump(self):
         jfile = opj_data_file('input/nonregression/illegalcolortransform.j2k')
         jp2k = Jp2k(jfile)
@@ -5924,120 +5744,6 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[4].ccme.decode('latin-1'),
                          "Kakadu-v5.2.1")
 
-    @unittest.skip("Bad PCLR box")        
-    def test_NR_mem_b2ace68c_1381_dump(self):
-        jfile = opj_data_file('input/nonregression/mem-b2ace68c-1381.jp2')
-        with warnings.catch_warnings():
-            # This file has a bad pclr box, we test for this elsewhere.
-            warnings.simplefilter("ignore")
-            jp2 = Jp2k(jfile)
-
-        ids = [box.box_id for box in jp2.box]
-        self.assertEqual(ids, ['jP  ', 'ftyp', 'rreq', 'jp2h', 'jp2c'])
-
-        ids = [box.box_id for box in jp2.box[3].box]
-        self.assertEqual(ids, ['ihdr', 'colr', 'pclr', 'cmap'])
-
-        # Signature box.  Check for corruption.
-        self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[0], 'jp2 ')
-        self.assertEqual(jp2.box[1].compatibility_list[1], 'jpxb')
-        self.assertEqual(jp2.box[1].compatibility_list[2], 'jpx ')
-
-        # Reader requirements talk.
-        # cmyk colourspace
-        self.assertTrue(55 in jp2.box[2].standard_flag)
-
-        # Jp2 Header
-        # Image header
-        self.assertEqual(jp2.box[3].box[0].height, 865)
-        self.assertEqual(jp2.box[3].box[0].width, 649)
-        self.assertEqual(jp2.box[3].box[0].num_components, 1)
-        self.assertEqual(jp2.box[3].box[0].bits_per_component, 1)
-        self.assertEqual(jp2.box[3].box[0].signed, False)
-        self.assertEqual(jp2.box[3].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[3].box[0].colorspace_unknown, True)
-        self.assertEqual(jp2.box[3].box[0].ip_provided, False)
-
-        # Jp2 Header
-        # Colour specification
-        self.assertEqual(jp2.box[3].box[1].method,
-                         glymur.core.ENUMERATED_COLORSPACE)
-        self.assertEqual(jp2.box[3].box[1].precedence, 2)
-        self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(jp2.box[3].box[1].colorspace, glymur.core.CMYK)
-
-        # Jp2 Header
-        # Palette box.
-        self.assertEqual(jp2.box[3].box[2].palette.shape, (1, 4))
-
-        # Jp2 Header
-        # Component mapping box
-        self.assertEqual(jp2.box[3].box[3].component_index, (0, 0, 0, 0))
-        self.assertEqual(jp2.box[3].box[3].mapping_type, (1, 1, 1, 1))
-        self.assertEqual(jp2.box[3].box[3].palette_index, (0, 1, 2, 3))
-
-        c = jp2.box[4].main_header
-
-        ids = [x.marker_id for x in c.segment]
-        expected = ['SOC', 'SIZ', 'COD', 'QCD']
-        self.assertEqual(ids, expected)
-
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 649)
-        self.assertEqual(c.segment[1].ysiz, 865)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (256, 256))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (1,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)])
-
-        # COD: Coding style default
-        self.assertFalse(c.segment[2].scod & 2)  # no sop
-        self.assertFalse(c.segment[2].scod & 4)  # no eph
-        self.assertEqual(c.segment[2].spcod[0], glymur.core.RLCP)
-        self.assertEqual(c.segment[2].layers, 1)  # layers = 1
-        self.assertEqual(c.segment[2].spcod[3], 0)  # mct
-        self.assertEqual(c.segment[2].spcod[4], 5)  # level
-        self.assertEqual(tuple(c.segment[2].code_block_size),
-                         (32, 32))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
-        self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-        self.assertEqual(len(c.segment[2].spcod), 9)
-
-        # QCD: Quantization default
-        self.assertEqual(c.segment[3].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[3].guard_bits, 3)
-        self.assertEqual(c.segment[3].mantissa, [0] * 16)
-        self.assertEqual(c.segment[3].exponent, [1] + [2, 2, 3] * 5)
-
     def test_NR_mem_b2b86b74_2753_dump(self):
         jfile = opj_data_file('input/nonregression/mem-b2b86b74-2753.jp2')
         jp2 = Jp2k(jfile)
@@ -6651,16 +6357,6 @@ class TestSuite2point1(unittest.TestCase):
         Jp2k(jfile).read()
         self.assertTrue(True)
 
-    @unittest.skip("Failing as of r2436")
-    def test_NR_DEC_mem_b2ace68c_1381_jp2_34_decode(self):
-        jfile = opj_data_file('input/nonregression/mem-b2ace68c-1381.jp2')
-        with warnings.catch_warnings():
-            # This file has a bad pclr box, we test for this elsewhere.
-            warnings.simplefilter("ignore")
-            j = Jp2k(jfile)
-        j.read()
-        self.assertTrue(True)
-
     def test_NR_DEC_mem_b2b86b74_2753_jp2_35_decode(self):
         jfile = opj_data_file('input/nonregression/mem-b2b86b74-2753.jp2')
         Jp2k(jfile).read()
@@ -6843,77 +6539,6 @@ class TestSuite2point1(unittest.TestCase):
             j = Jp2k(jfile)
             with self.assertRaises(IOError):
                 j.read()
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_61_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(0, 0, 12, 12))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[0:12, 0:12])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_62_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(1, 8, 8, 11))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[1:8, 8:11])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_63_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(9, 9, 12, 12))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[9:12, 9:12])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_64_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(10, 4, 12, 10))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[10:12, 4:10])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_65_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(3, 3, 9, 9))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[3:9, 3:9])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_66_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(4, 4, 7, 7))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[4:7, 4:7])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_67_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(4, 4, 5, 5))
-        odata = jp2k.read()
-        np.testing.assert_array_equal(ssdata, odata[4:5, 4: 5])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_68_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(0, 0, 12, 12), rlevel=1)
-        odata = jp2k.read(rlevel=1)
-        np.testing.assert_array_equal(ssdata, odata[0:6, 0:6])
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_p1_06_j2k_69_decode(self):
-        jfile = opj_data_file('input/conformance/p1_06.j2k')
-        jp2k = Jp2k(jfile)
-        ssdata = jp2k.read(area=(1, 8, 8, 11), rlevel=1)
-        self.assertEqual(ssdata.shape, (3, 2, 3))
 
     def test_NR_DEC_p1_06_j2k_70_decode(self):
         jfile = opj_data_file('input/conformance/p1_06.j2k')
