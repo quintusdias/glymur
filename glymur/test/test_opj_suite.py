@@ -299,19 +299,6 @@ class TestSuite(unittest.TestCase):
         jp2.read()
         self.assertTrue(True)
 
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_123_j2c_3_decode(self):
-        jfile = opj_data_file('input/nonregression/123.j2c')
-        jp2 = Jp2k(jfile)
-        jp2.read()
-        self.assertTrue(True)
-
-    @unittest.skip("fprintf stderr output in r2343.")
-    def test_NR_DEC_bug_j2c_8_decode(self):
-        jfile = opj_data_file('input/nonregression/bug.j2c')
-        Jp2k(jfile).read()
-        self.assertTrue(True)
-
     def test_NR_DEC_buxI_j2k_9_decode(self):
         jfile = opj_data_file('input/nonregression/buxI.j2k')
         Jp2k(jfile).read()
