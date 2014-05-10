@@ -814,9 +814,9 @@ class TestJp2kOpjDataRootWarnings(unittest.TestCase):
         """Should warn in case of bad ftyp brand."""
         filename = opj_data_file('input/nonregression/edf_c2_1000290.jp2')
         with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
-            jp2 = Jp2k(filename)
-            self.assertTrue(issubclass(w[0].category, UserWarning))
+           warnings.simplefilter('always')
+           jp2 = Jp2k(filename)
+           self.assertTrue(issubclass(w[0].category, UserWarning))
 
     def test_invalid_approximation(self):
         """Should warn in case of invalid approximation."""
