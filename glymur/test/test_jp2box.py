@@ -1332,7 +1332,6 @@ class TestRepr(unittest.TestCase):
         else:
             self.assertRegex(repr(box), regexp)
 
-    @unittest.skipIf(sys.hexversion < 0x02070000, "Requires 2.7+")
     def test_uuid_box_xmp(self):
         """Verify uuid repr method for XMP UUID box."""
         jp2file = glymur.data.nemo()
