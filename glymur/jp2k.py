@@ -180,9 +180,9 @@ class Jp2k(Jp2kBox):
             if re.match("2.0", version.openjpeg_version) is not None:
                 # 2.0 API
                 if fps == 24:
-                    cparams.cp_cinema = core.OPJ_CINEMA_2K_24
+                    cparams.cp_cinema = core.OPJ_CINEMA2K_24
                 else:
-                    cparams.cp_cinema = core.OPJ_CINEMA_2K_48
+                    cparams.cp_cinema = core.OPJ_CINEMA2K_48
             else:
                 # 2.1 API
                 if fps == 24:
@@ -198,7 +198,7 @@ class Jp2k(Jp2kBox):
             # cinema4k
             if re.match("2.0", version.openjpeg_version) is not None:
                 # 2.0 API
-                cparams.cp_cinema = core.OPJ_CINEMA_4K_24
+                cparams.cp_cinema = core.OPJ_CINEMA4K_24
             else:
                 # 2.1 API
                 cparams.rsiz = core.OPJ_PROFILE_CINEMA_4K
