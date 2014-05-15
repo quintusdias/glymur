@@ -68,10 +68,11 @@ The **append** method can add an XML box as shown below::
 
 ... add metadata in a more general fashion?
 ===========================================
-An existing raw codestream (or JP2 file) can be wrapped (re-wrapped) in a 
-user-defined set of JP2 boxes.  To get just a minimal JP2 jacket on the 
-codestream provided by `goodstuff.j2k` (a file consisting of a raw codestream),
-you can use the **wrap** method with no box argument: ::
+An existing raw codestream or JP2 file can be wrapped (re-wrapped in the case
+of JP2) in a user-defined set of JP2 boxes.  To get just a minimal
+JP2 jacket on the codestream provided by `goodstuff.j2k` (a file
+consisting of a raw codestream), you can use the **wrap** method
+with no box argument: ::
 
     >>> import glymur
     >>> jfile = glymur.data.goodstuff()
@@ -106,10 +107,12 @@ layer (the signature, file type, JP2 header, and contiguous codestream), with
 two additional boxes (image header and color specification) contained in the
 JP2 header superbox.
 
-XML boxes are not in the minimal set of box requirements for the JP2 format, so
-in order to add an XML box into the mix before the codestream box, we'll need to 
-re-specify all of the boxes.  If you already have a JP2 jacket in place, you can just reuse that,
-though.  Take the following example content in an XML file `favorites.xml` : ::
+XML boxes are not in the minimal set of box requirements for the
+JP2 format, so in order to add an XML box into the mix before the
+codestream box, we'll need to re-specify all of the boxes.  If you
+already have a JP2 jacket in place, you can just reuse that, though.
+Take the following example content in an XML file `favorites.xml`
+: ::
 
     <?xml version="1.0"?>
     <favorite_things>

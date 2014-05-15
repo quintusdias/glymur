@@ -1,20 +1,21 @@
 ----------------------------------
 Advanced Installation Instructions
 ----------------------------------
-Most users won't need to read this!  You've been warned...
 
 ''''''''''''''''''''''
 Glymur Configuration
 ''''''''''''''''''''''
 
 The default glymur installation process relies upon OpenJPEG being
-properly installed on your system as a shared library.  You need
-at least version 1.5 in order to read and write JPEG 2000 files.
+properly installed on your system as a shared library.  If you have OpenJPEG
+installed through your system's package manager on linux or if you use MacPorts
+on the mac, you are probably already set to go.  But if you have OpenJPEG 
+installed into a non-standard place or if you use windows, then read on.
 
 Glymur uses ctypes to access the openjp2/openjpeg libraries, and
 because ctypes accesses libraries in a platform-dependent manner,
 it is recommended that if you compile and install OpenJPEG into a
-non-standard location,  you should create a configuration file to
+non-standard location,  you should then create a configuration file to
 help Glymur properly find the openjpeg or openjp2 libraries (linux
 users or macports users don't need to bother with this if you are
 using OpenJPEG as provided by your package manager).  The configuration
