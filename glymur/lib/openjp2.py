@@ -1293,7 +1293,7 @@ def start_compress(codec, image, stream):
 
 
 def _stream_create_default_file_stream_2p0(fptr, isa_read_stream):
-    """Wraps openjp2 library function opj_stream_create_default_vile_stream.
+    """Wraps openjp2 library function opj_stream_create_default_file_stream.
 
     Sets the stream to be a file stream.
 
@@ -1318,7 +1318,7 @@ def _stream_create_default_file_stream_2p0(fptr, isa_read_stream):
 
 
 def _stream_create_default_file_stream_2p1(fname, isa_read_stream):
-    """Wraps openjp2 library function opj_stream_create_default_vile_stream.
+    """Wraps openjp2 library function opj_stream_create_default_file_stream.
 
     Sets the stream to be a file stream.
 
@@ -1343,11 +1343,6 @@ def _stream_create_default_file_stream_2p1(fname, isa_read_stream):
                                                            read_stream)
     return stream
 
-if re.match(r'''2.0''', version()):
-    stream_create_default_file_stream = _stream_create_default_file_stream_2p0
-else:
-    stream_create_default_file_stream = _stream_create_default_file_stream_2p1
-
 def stream_destroy(stream):
     """Wraps openjp2 library function opj_stream_destroy.
 
@@ -1362,6 +1357,51 @@ def stream_destroy(stream):
     OPENJP2.opj_stream_destroy.restype = ctypes.c_void_p
     OPENJP2.opj_stream_destroy(stream)
 
+if re.match(r'''2.0''', version()):
+    # We must have the 2.0.x
+    stream_create_default_file_stream = _stream_create_default_file_stream_2p0
+else:
+    # We must have version 2.1.  
+    stream_create_default_file_stream = _stream_create_default_file_stream_2p1
+
+# The _v3 functions existed only in the SVN version of OpenJPEG, before 2.1.0
+# was released
+stream_create_default_file_stream_v3 = _stream_create_default_file_stream_2p1
+stream_create_default_file_stream_v3.__doc__ = r"""
+Wraps openjp2 library function opj_stream_create_default_file_stream_v3.
+
+    Sets the stream to be a file stream.
+
+    This function is deprecated and will be removed in the 0.6.0 version of
+    glymur.  Please use stream_create_default_file_stream instead.
+
+    Parameters
+    ----------
+    fname : str
+        Specifies a file.
+    isa_read_stream:  bool
+        True (read) or False (write)
+
+    Returns
+    -------
+    stream : stream_t
+        An OpenJPEG file stream.
+    """
+
+stream_destroy_v3 = stream_destroy
+stream_destroy_v3.__doc__ = r"""
+Wraps openjp2 library function opj_stream_destroy.
+
+    Destroys the stream created by create_stream.
+
+    This function is deprecated and wil be removed in the 0.6.0 version of
+    glymur.  Please use stream_destroy instead.
+
+    Parameters
+    ----------
+    stream : STREAM_TYPE_P
+        The file stream.
+    """
 
 def write_tile(codec, tile_index, data, data_size, stream):
     """Wraps openjp2 library function opj_write_tile.

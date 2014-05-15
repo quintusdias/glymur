@@ -15,8 +15,10 @@ Contents:
    introduction
    detailed_installation
    how_do_i
-   roadmap
    api
+   roadmap
+   whatsnew/index
+
 
 ------------------
 Indices and tables
