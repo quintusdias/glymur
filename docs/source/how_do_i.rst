@@ -71,7 +71,7 @@ The **append** method can add an XML box as shown below::
 An existing raw codestream or JP2 file can be wrapped (re-wrapped in the case
 of JP2) in a user-defined set of JP2 boxes.  To get just a minimal
 JP2 jacket on the codestream provided by `goodstuff.j2k` (a file
-consisting of a raw codestream), you can use the **wrap** method
+consisting of just a raw codestream), you can use the **wrap** method
 with no box argument: ::
 
     >>> import glymur
@@ -222,8 +222,8 @@ Here's how the Preview application on the mac shows the RGBA image.
 .. image:: goodstuff_alpha.png
 
     
-work with XMP UUIDs?
-====================
+... work with XMP UUIDs?
+========================
 The example JP2 file shipped with glymur has an XMP UUID. ::
 
     >>> import glymur
