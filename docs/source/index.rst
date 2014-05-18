@@ -16,7 +16,6 @@ Contents:
    detailed_installation
    how_do_i
    api
-   changelog
    roadmap
    whatsnew/index
 

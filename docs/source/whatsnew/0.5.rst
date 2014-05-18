@@ -5,47 +5,37 @@ Changes in glymur 0.5
 Changes in 0.5.12
 =================
 
-Bug Fixes
----------
-
 * Minor documentation fixes for grammar and style.
-
 
 Changes in 0.5.11
 =================
 
-Changes unlikely to affect compatibility
-----------------------------------------
-
 * Added support for Python 3.4.
 * OpenJPEG 1.5.2 and 2.0.1 are officially supported.
-
-Changes which may break existing code
--------------------------------------
-
 * OpenJPEG 2.1.0 is officially supported, but the ABI changes introduced by
   OpenJPEG 2.1.0 required corresponding changes to glymur's ctypes interface.
-  The ``glymur.lib.openjp2.stream_create_default_file_stream_v3`` and
-  ``glymur.lib.openjp2.opj.stream_destroy_v3`` functions were renamed to follow
-  OpenJPEG's upstream changes.  Unless you were using the development version
-  of OpenJPEG, you should not be affected by this.
+  The functions 
+
+    * ``glymur.lib.openjp2.stream_create_default_file_stream_v3``
+    * ``glymur.lib.openjp2.opj.stream_destroy_v3``
+
+  functions were renamed to 
+
+    * ``glymur.lib.openjp2.stream_create_default_file_stream``
+    * ``glymur.lib.openjp2.opj.stream_destroy``
+
+  in order to follow OpenJPEG's upstream changes.  Unless you were using the
+  svn version of OpenJPEG, you should not be affected by this.
 
 
 Changes in 0.5.10
 =================
 
-Bug fixes
----------
-
 * Fixed bad warning issued when an unsupported reader requirement box mask
   length was encountered.
 
-
 Changes in 0.5.9
 ================
-
-Bug fixes
----------
 
 * Fixed bad library load on linux as a result of botched 0.5.8 release.
   This release was primarily aimed at supporting SunPy.
