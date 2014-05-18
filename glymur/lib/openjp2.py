@@ -1293,7 +1293,7 @@ def start_compress(codec, image, stream):
 
 
 def _stream_create_default_file_stream_2p0(fptr, isa_read_stream):
-    """Wraps openjp2 library function opj_stream_create_default_vile_stream.
+    """Wraps openjp2 library function opj_stream_create_default_file_stream.
 
     Sets the stream to be a file stream.
 
@@ -1318,7 +1318,7 @@ def _stream_create_default_file_stream_2p0(fptr, isa_read_stream):
 
 
 def _stream_create_default_file_stream_2p1(fname, isa_read_stream):
-    """Wraps openjp2 library function opj_stream_create_default_vile_stream.
+    """Wraps openjp2 library function opj_stream_create_default_file_stream.
 
     Sets the stream to be a file stream.
 
@@ -1344,8 +1344,10 @@ def _stream_create_default_file_stream_2p1(fname, isa_read_stream):
     return stream
 
 if re.match(r'''2.0''', version()):
+    # We must have the devel version of 2.1
     stream_create_default_file_stream = _stream_create_default_file_stream_2p0
 else:
+    # We must have version 2.1.  
     stream_create_default_file_stream = _stream_create_default_file_stream_2p1
 
 def stream_destroy(stream):
