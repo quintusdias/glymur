@@ -401,23 +401,6 @@ class TestJp2k_write(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_irreversible(self):
-        """Irreversible"""
-        filename = opj_data_file('input/nonregression/issue141.rawl')
-        expdata = np.fromfile(filename, dtype=np.uint16)
-        expdata.resize((2816, 2048))
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, 'wb')
-            j.write(expdata, irreversible=True)
-
-            codestream = j.get_codestream()
-            self.assertEqual(codestream.segment[2].spcod[8],
-                             glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
-
-            actdata = j.read()
-            self.assertTrue(fixtures.mse(actdata, expdata) < 250)
-
-
     def test_cblkh_different_than_width(self):
         """Verify that we can set a code block size where height does not equal
         width.
@@ -854,6 +837,23 @@ class TestJp2kOpjDataRootWarnings(unittest.TestCase):
                  "OPJ_DATA_ROOT environment variable not set")
 class TestJp2kOpjDataRoot(unittest.TestCase):
     """These tests should be run by just about all configuration."""
+
+    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+    def test_irreversible(self):
+        """Irreversible"""
+        filename = opj_data_file('input/nonregression/issue141.rawl')
+        expdata = np.fromfile(filename, dtype=np.uint16)
+        expdata.resize((2816, 2048))
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j.write(expdata, irreversible=True)
+
+            codestream = j.get_codestream()
+            self.assertEqual(codestream.segment[2].spcod[8],
+                             glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
+
+            actdata = j.read()
+            self.assertTrue(fixtures.mse(actdata, expdata) < 250)
 
     def test_no_cxform_pclr_jp2(self):
         """Indices for pclr jpxfile if no color transform"""
