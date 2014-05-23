@@ -271,6 +271,9 @@ class Jp2k(Jp2kBox):
         cparams.tcp_numlayers = 1
         cparams.cp_disto_alloc = 1
 
+        if 'irreversible' in kwargs and kwargs['irreversible'] is True:
+            cparams.irreversible = 1
+
         if 'cinema2k' in kwargs:
             self._set_cinema_params(cparams, 'cinema2k', kwargs['cinema2k'])
             return cparams
@@ -416,6 +419,8 @@ class Jp2k(Jp2kBox):
             If true, write SOP marker after each header packet.
         grid_offset : tuple, optional
             Offset (DY, DX) of the origin of the image in the reference grid.
+        irreversible : bool, optional
+            If true, use the irreversible DWT 9-7 transform. 
         mct : bool, optional
             Specifies usage of the multi component transform.  If not
             specified, defaults to True if the colorspace is RGB.

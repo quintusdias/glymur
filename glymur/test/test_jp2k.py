@@ -390,6 +390,7 @@ class TestJp2k(unittest.TestCase):
         self.assertEqual(data.shape, (1024, 1024, 3))
 
 
+@unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
 class TestJp2k_write(unittest.TestCase):
     """Write tests, can be run by versions 1.5+"""
 
@@ -400,8 +401,23 @@ class TestJp2k_write(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_irreversible(self):
+        """Irreversible"""
+        filename = opj_data_file('input/nonregression/issue141.rawl')
+        expdata = np.fromfile(filename, dtype=np.uint16)
+        expdata.resize((2816, 2048))
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j.write(expdata, irreversible=True)
 
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+            codestream = j.get_codestream()
+            self.assertEqual(codestream.segment[2].spcod[8],
+                             glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
+
+            actdata = j.read()
+            self.assertTrue(fixtures.mse(actdata, expdata) < 250)
+
+
     def test_cblkh_different_than_width(self):
         """Verify that we can set a code block size where height does not equal
         width.
@@ -418,7 +434,6 @@ class TestJp2k_write(unittest.TestCase):
             # Code block size is reported as XY in the codestream.
             self.assertEqual(tuple(codestream.segment[2].spcod[5:7]), (3, 2))
 
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_too_many_dimensions(self):
         """OpenJP2 only allows 2D or 3D images."""
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
@@ -427,7 +442,6 @@ class TestJp2k_write(unittest.TestCase):
                 data = np.zeros((128, 128, 2, 2), dtype=np.uint8)
                 j.write(data)
 
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_2d_rgb(self):
         """RGB must have at least 3 components."""
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
@@ -436,7 +450,6 @@ class TestJp2k_write(unittest.TestCase):
                 data = np.zeros((128, 128, 2), dtype=np.uint8)
                 j.write(data, colorspace='rgb')
 
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_colorspace_with_j2k(self):
         """Specifying a colorspace with J2K does not make sense"""
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
@@ -445,7 +458,6 @@ class TestJp2k_write(unittest.TestCase):
                 data = np.zeros((128, 128, 3), dtype=np.uint8)
                 j.write(data, colorspace='rgb')
 
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_specify_rgb(self):
         """specify RGB explicitly"""
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
@@ -454,7 +466,6 @@ class TestJp2k_write(unittest.TestCase):
             j.write(data, colorspace='rgb')
             self.assertEqual(j.box[2].box[1].colorspace, glymur.core.SRGB)
 
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_specify_gray(self):
         """test gray explicitly specified (that's GRAY, not GREY)"""
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
@@ -464,7 +475,6 @@ class TestJp2k_write(unittest.TestCase):
             self.assertEqual(j.box[2].box[1].colorspace,
                              glymur.core.GREYSCALE)
 
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_specify_grey(self):
         """test grey explicitly specified"""
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
@@ -474,7 +484,6 @@ class TestJp2k_write(unittest.TestCase):
             self.assertEqual(j.box[2].box[1].colorspace,
                              glymur.core.GREYSCALE)
 
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_grey_with_two_extra_comps(self):
         """should be able to write gray + two extra components"""
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
@@ -495,7 +504,6 @@ class TestJp2k_write(unittest.TestCase):
                 data = np.zeros((128, 128, 3), dtype=np.uint8)
                 j.write(data, colorspace='ycc')
 
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_write_with_jp2_in_caps(self):
         """should be able to write with JP2 suffix."""
         j2k = Jp2k(self.j2kfile)
@@ -506,7 +514,6 @@ class TestJp2k_write(unittest.TestCase):
             actdata = ofile.read()
             np.testing.assert_array_equal(actdata, expdata)
 
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_write_srgb_without_mct(self):
         """should be able to write RGB without specifying mct"""
         j2k = Jp2k(self.j2kfile)
@@ -520,7 +527,6 @@ class TestJp2k_write(unittest.TestCase):
             codestream = ofile.get_codestream()
             self.assertEqual(codestream.segment[2].spcod[3], 0)  # no mct
 
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_write_grayscale_with_mct(self):
         """MCT usage makes no sense for grayscale images."""
         j2k = Jp2k(self.j2kfile)
@@ -530,7 +536,6 @@ class TestJp2k_write(unittest.TestCase):
             with self.assertRaises(IOError):
                 ofile.write(expdata[:, :, 0], mct=True)
 
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_write_cprl(self):
         """Must be able to write a CPRL progression order file"""
         # Issue 17
