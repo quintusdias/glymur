@@ -63,6 +63,22 @@ class TestJp2k(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_irreversible(self):
+        """Irreversible"""
+        j = Jp2k(self.jp2file)
+        expdata = j.read()
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j2 = Jp2k(tfile.name, 'wb')
+            j2.write(expdata, irreversible=True)
+
+            codestream = j2.get_codestream()
+            self.assertEqual(codestream.segment[2].spcod[8],
+                             glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
+
+            actdata = j2.read()
+            self.assertTrue(fixtures.mse(actdata[0], expdata[0]) < 0.38)
+
+
     def test_no_cxform_pclr_jpx(self):
         """Indices for pclr jpxfile if no color transform"""
         j = Jp2k(self.jpxfile)
@@ -400,23 +416,6 @@ class TestJp2k_write(unittest.TestCase):
 
     def tearDown(self):
         pass
-
-    def test_irreversible(self):
-        """Irreversible"""
-        filename = opj_data_file('input/nonregression/issue141.rawl')
-        expdata = np.fromfile(filename, dtype=np.uint16)
-        expdata.resize((2816, 2048))
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, 'wb')
-            j.write(expdata, irreversible=True)
-
-            codestream = j.get_codestream()
-            self.assertEqual(codestream.segment[2].spcod[8],
-                             glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
-
-            actdata = j.read()
-            self.assertTrue(fixtures.mse(actdata, expdata) < 250)
-
 
     def test_cblkh_different_than_width(self):
         """Verify that we can set a code block size where height does not equal
