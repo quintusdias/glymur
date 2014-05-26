@@ -13,6 +13,8 @@ import tempfile
 import unittest
 import warnings
 
+import numpy as np
+
 try:
     import skimage.io
     skimage.io.use_plugin('freeimage', 'imread')
@@ -270,6 +272,19 @@ class TestSuiteWrite(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+    def test_NR_ENC_issue141_rawl_23_encode(self):
+        filename = opj_data_file('input/nonregression/issue141.rawl')
+        expdata = np.fromfile(filename, dtype=np.uint16)
+        expdata.resize((2816, 2048))
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j.write(expdata, irreversible=True)
+
+            codestream = j.get_codestream()
+            self.assertEqual(codestream.segment[2].spcod[8],
+                             glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
+
 
     def test_NR_ENC_Bretagne1_ppm_1_encode(self):
         """NR-ENC-Bretagne1.ppm-1-encode"""
