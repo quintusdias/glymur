@@ -186,7 +186,14 @@ class TestSuiteDumpWarnings(unittest.TestCase):
 
         self.assertEqual(jp2.box[-1].main_header.segment[-1].marker_id, 'QCC')
 
+    @unittest.skipIf(sys.maxsize < 2**32, 'Do not run on 32-bit platforms')
     def test_NR_broken3_jp2_dump(self):
+        """
+        NR_broken3_jp2_dump
+
+        The file in question here has a colr box with an erroneous box
+        length of over 1GB.  Don't run it on 32-bit platforms.
+        """
         jfile = opj_data_file('input/nonregression/broken3.jp2')
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('ignore')
@@ -352,6 +359,8 @@ class TestSuiteDumpWarnings(unittest.TestCase):
             warnings.simplefilter('ignore')
             Jp2k(jfile)
 
+    @unittest.skipIf(re.match("1.5|2.0.0", glymur.version.openjpeg_version),
+                     "Test not passing on 1.5.x, not introduced until 2.x")
     def test_NR_DEC_issue188_beach_64bitsbox_jp2_41_decode(self):
         # Has an 'XML ' box instead of 'xml '.  Yes that is pedantic, but it
         # really does deserve a warning.
@@ -359,7 +368,8 @@ class TestSuiteDumpWarnings(unittest.TestCase):
         jfile = opj_data_file(relpath)
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('ignore')
-            Jp2k(jfile).read()
+            j = Jp2k(jfile)
+        d = j.read()
 
 
 if __name__ == "__main__":
