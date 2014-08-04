@@ -352,6 +352,8 @@ class TestSuiteDumpWarnings(unittest.TestCase):
             warnings.simplefilter('ignore')
             Jp2k(jfile)
 
+    @unittest.skipIf(re.match("1.5|2.0.0", glymur.version.openjpeg_version),
+                     "Test not passing on 1.5.x, not introduced until 2.x")
     def test_NR_DEC_issue188_beach_64bitsbox_jp2_41_decode(self):
         # Has an 'XML ' box instead of 'xml '.  Yes that is pedantic, but it
         # really does deserve a warning.
@@ -359,7 +361,8 @@ class TestSuiteDumpWarnings(unittest.TestCase):
         jfile = opj_data_file(relpath)
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('ignore')
-            Jp2k(jfile).read()
+            j = Jp2k(jfile)
+        d = j.read()
 
 
 if __name__ == "__main__":
