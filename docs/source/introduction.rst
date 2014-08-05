@@ -27,10 +27,10 @@ but you should also be able to install Glymur via pip ::
 
     $ pip install glymur
 
-This will install the **jp2dump** script that can be used from the unix command
-line, so you should adjust your **$PATH**
-to take advantage of it.  For example, if you install with pip's
-`--user` option on linux ::
+This will install a script **jp2dump** that can be used from the unix command
+line for dumping JP2 metadata, so you should adjust your **$PATH**
+environment variable to take advantage of it.  For example, if you install
+with pip's `--user` option on linux ::
 
     $ export PATH=$HOME/.local/bin:$PATH
 

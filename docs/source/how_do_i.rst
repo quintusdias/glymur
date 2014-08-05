@@ -11,13 +11,13 @@ take a shortcut by supplying -1 as the
 resolution level. ::
 
     >>> import glymur
-    >>> file = glymur.data.nemo()
-    >>> jp2 = glymur.Jp2k(file)
+    >>> jp2file = glymur.data.nemo()
+    >>> jp2 = glymur.Jp2k(jp2file)
     >>> thumbnail = jp2.read(rlevel=-1)
 
 ... display metadata?
 =====================
-There are two ways.  From the unix command line, the script *jp2dump* is
+There are two ways.  From the unix command line, the script **jp2dump** is
 available. ::
 
     $ jp2dump /path/to/glymur/installation/data/nemo.jp2
@@ -25,8 +25,8 @@ available. ::
 From within Python, it is as simple as printing the Jp2k object, i.e. ::
 
     >>> import glymur
-    >>> file = glymur.data.nemo()
-    >>> jp2 = glymur.Jp2k(file)
+    >>> jp2file = glymur.data.nemo()
+    >>> jp2 = glymur.Jp2k(jp2file)
     >>> print(jp2)
     File:  nemo.jp2
     JPEG 2000 Signature Box (jP  ) @ (0, 12)
@@ -241,8 +241,8 @@ you can use the :py:meth:`wrap` method with no box argument: ::
 
     >>> import glymur
     >>> glymur.set_printoptions(codestream=False)
-    >>> jfile = glymur.data.goodstuff()
-    >>> j2k = glymur.Jp2k(jfile)
+    >>> jp2file = glymur.data.goodstuff()
+    >>> j2k = glymur.Jp2k(jp2file)
     >>> jp2 = j2k.wrap("newfile.jp2")
     >>> print(jp2)
     File:  newfile.jp2
@@ -524,8 +524,8 @@ You can also build up XMP metadata from scratch.  For instance, if we try to
 wrap `goodstuff.j2k` again::
 
     >>> import glymur
-    >>> jfile = glymur.data.goodstuff()
-    >>> j2k = glymur.Jp2k(jfile)
+    >>> j2kfile = glymur.data.goodstuff()
+    >>> j2k = glymur.Jp2k(j2kfile)
     >>> jp2 = j2k.wrap("goodstuff.jp2")
 
 Now build up the metadata piece-by-piece.  It would help to have the XMP 
