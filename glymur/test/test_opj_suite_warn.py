@@ -186,8 +186,14 @@ class TestSuiteDumpWarnings(unittest.TestCase):
 
         self.assertEqual(jp2.box[-1].main_header.segment[-1].marker_id, 'QCC')
 
-    @unittest.skipIf(sys.platform.startswith('linux'), 'Failing on linux')
+    @unittest.skipIf(sys.maxsize < 2**32, 'Do not run on 32-bit platforms')
     def test_NR_broken3_jp2_dump(self):
+        """
+        NR_broken3_jp2_dump
+
+        The file in question here has a colr box with an erroneous box
+        length of over 1GB.  Don't run it on 32-bit platforms.
+        """
         jfile = opj_data_file('input/nonregression/broken3.jp2')
         with warnings.catch_warnings(record=True) as w:
             warnings.simplefilter('ignore')
