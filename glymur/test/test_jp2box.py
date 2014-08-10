@@ -572,6 +572,8 @@ class TestPaletteBox(unittest.TestCase):
             with self.assertRaises(IOError):
                 pclr.write(tfile)
 
+
+@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
 class TestAppend(unittest.TestCase):
     """Tests for append method."""
 
@@ -1292,8 +1294,8 @@ class TestRepr(unittest.TestCase):
         box = glymur.jp2box.XMLBox(xml=tree)
 
         regexp = r"""glymur.jp2box.XMLBox"""
-        regexp += r"""\(xml=<lxml.etree._ElementTree object """
-        regexp += """at 0x([a-f0-9]*)>\)"""
+        regexp += r"""[(]xml=<lxml.etree._ElementTree\sobject\s"""
+        regexp += """at\s0x([a-fA-F0-9]*)>[)]"""
 
         if sys.hexversion < 0x03000000:
             self.assertRegexpMatches(repr(box), regexp)
@@ -1357,8 +1359,8 @@ class TestRepr(unittest.TestCase):
 
         # Difficult to eval(repr()) this, so just match the general pattern.
         regexp = "glymur.jp2box.ContiguousCodeStreamBox"
-        regexp += "\(main_header=<glymur.codestream.Codestream\sobject\s"
-        regexp += "at\s0x([a-f0-9]*)>\)"
+        regexp += "[(]main_header=<glymur.codestream.Codestream\sobject\s"
+        regexp += "at\s0x([a-fA-F0-9]*)>[)]"
 
         if sys.hexversion < 0x03000000:
             self.assertRegexpMatches(repr(box), regexp)
