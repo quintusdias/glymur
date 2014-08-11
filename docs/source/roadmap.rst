@@ -4,7 +4,7 @@ Known Issues
 
     * Creating a Jp2 file with the irreversible option does not work
       on windows.
-    * Eval-ing a py:meth`repr` string does not work on windows.
+    * Eval-ing a :py:meth:`repr` string does not work on windows.
 
 -------
 Roadmap
