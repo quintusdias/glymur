@@ -305,15 +305,17 @@ class TestJPXWrap(unittest.TestCase):
             with self.assertRaises(IOError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
-    @unittest.skipIf(sys.hexversion < 0x03000000, "Needs unittest in 3.x.")
     def test_deurl_child_of_dtbl(self):
         """Data reference boxes can only contain data entry url boxes."""
         jp2 = Jp2k(self.jp2file)
         boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
 
         ftyp = glymur.jp2box.FileTypeBox()
-        with self.assertWarns(UserWarning):
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter('always')
             dref = glymur.jp2box.DataReferenceBox([ftyp])
+            self.assertEqual(len(w), 1)
+            self.assertTrue(issubclass(w[0].category, UserWarning))
 
         # Try to get around it by appending the ftyp box after creation.
         dref = glymur.jp2box.DataReferenceBox()
@@ -483,25 +485,6 @@ class TestJPX(unittest.TestCase):
         with self.assertRaises(IOError):
             with tempfile.TemporaryFile() as tfile:
                 ftbl.write(tfile)
-
-    @unittest.skip("Requires unnecessarily complicated code")
-    def test_unknown_superbox(self):
-        """Verify that we can handle an unknown superbox."""
-        with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
-            with open(self.jpxfile, 'rb') as ifile:
-                tfile.write(ifile.read())
-
-            # Add the header for an unknwon superbox.
-            write_buffer = struct.pack('>I4s', 20, 'grp '.encode())
-            tfile.write(write_buffer)
-            write_buffer = struct.pack('>I4sI', 12, 'free'.encode(), 0)
-            tfile.write(write_buffer)
-            tfile.flush()
-
-            with self.assertWarns(UserWarning):
-                jpx = Jp2k(tfile.name)
-            self.assertEqual(jpx.box[-1].box_id, b'grp ')
-            self.assertEqual(jpx.box[-1].box[0].box_id, 'free')
 
     def test_data_reference_requires_dtbl(self):
         """The existance of a data reference box requires a ftbl box as well."""

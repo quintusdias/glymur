@@ -180,9 +180,9 @@ class Jp2k(Jp2kBox):
             if re.match("2.0", version.openjpeg_version) is not None:
                 # 2.0 API
                 if fps == 24:
-                    cparams.cp_cinema = core.OPJ_CINEMA_2K_24
+                    cparams.cp_cinema = core.OPJ_CINEMA2K_24
                 else:
-                    cparams.cp_cinema = core.OPJ_CINEMA_2K_48
+                    cparams.cp_cinema = core.OPJ_CINEMA2K_48
             else:
                 # 2.1 API
                 if fps == 24:
@@ -198,7 +198,7 @@ class Jp2k(Jp2kBox):
             # cinema4k
             if re.match("2.0", version.openjpeg_version) is not None:
                 # 2.0 API
-                cparams.cp_cinema = core.OPJ_CINEMA_4K_24
+                cparams.cp_cinema = core.OPJ_CINEMA4K_24
             else:
                 # 2.1 API
                 cparams.rsiz = core.OPJ_PROFILE_CINEMA_4K
@@ -270,6 +270,9 @@ class Jp2k(Jp2kBox):
         cparams.tcp_rates[0] = 0
         cparams.tcp_numlayers = 1
         cparams.cp_disto_alloc = 1
+
+        if 'irreversible' in kwargs and kwargs['irreversible'] is True:
+            cparams.irreversible = 1
 
         if 'cinema2k' in kwargs:
             self._set_cinema_params(cparams, 'cinema2k', kwargs['cinema2k'])
@@ -416,6 +419,8 @@ class Jp2k(Jp2kBox):
             If true, write SOP marker after each header packet.
         grid_offset : tuple, optional
             Offset (DY, DX) of the origin of the image in the reference grid.
+        irreversible : bool, optional
+            If true, use the irreversible DWT 9-7 transform. 
         mct : bool, optional
             Specifies usage of the multi component transform.  If not
             specified, defaults to True if the colorspace is RGB.

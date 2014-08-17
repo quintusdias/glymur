@@ -37,7 +37,9 @@ def tiff_header(read_buffer):
         # big endian
         endian = '>'
     else:
-        msg = "Bad byte order indication: {0}".format(read_buffer[6:8])
+        msg = "The byte order indication in the TIFF header ({0}) is invalid.  "
+        msg += "It should be either {1} or {2}."
+        msg = msg.format(read_buffer[6:8], bytes([73, 73]), bytes([77, 77]))
         raise IOError(msg)
 
     _, offset = struct.unpack(endian + 'HI', read_buffer[8:14])
@@ -99,8 +101,12 @@ class _Ifd(object):
     def parse_tag(self, dtype, count, offset_buf):
         """Interpret an Exif image tag data payload.
         """
-        fmt = self.datatype2fmt[dtype][0] * count
-        payload_size = self.datatype2fmt[dtype][1] * count
+        try:
+            fmt = self.datatype2fmt[dtype][0] * count
+            payload_size = self.datatype2fmt[dtype][1] * count
+        except KeyError:
+            msg = 'Invalid TIFF tag datatype ({0}).'.format(dtype)
+            raise IOError(msg)
 
         if payload_size <= 4:
             # Interpret the payload from the 4 bytes in the tag entry.

@@ -1,0 +1,23 @@
+=====================
+Changes in glymur 0.6
+=====================
+
+Changes in 0.6.0
+=================
+
+* Added Cinema2K, Cinema4K write support.
+* Added irreversible 9-7 transform write support.
+* Added set_printoptions, get_printoptions functions.
+* Added write support for JP2 UUID, data entry URL, palette, and component
+  mapping boxes.
+* Added read/write support for JPX free, number list, and data reference boxes
+* Added read support for JPX fragment list and fragment table boxes
+* Incompatible change to channel definition box constructor, channel_type and
+  association are no longer keyword arguments
+* Incompatible change to palette box constructor, it now takes a 2D numpy array
+  instead of a list of 1D arrays
+* Dropped support for 1.3 and 1.4.
+* Dropped support for Python 2.6.
+* Dropped windows support. It might still work, I don't have access to a windows
+  box with which to test it.
+* Added lxml as a package dependency, replacing ElementTree.
