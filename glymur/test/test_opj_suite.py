@@ -287,6 +287,132 @@ class TestSuite(unittest.TestCase):
         jpdata = jp2k.read()
         self.assertEqual(jpdata.shape, (512, 768, 3))
 
+    def test_NR_broken_jp2_dump(self):
+        jfile = opj_data_file('input/nonregression/broken.jp2')
+
+        with warnings.catch_warnings():
+            # colr box has bad length.
+            warnings.simplefilter("ignore")
+            jp2 = Jp2k(jfile)
+
+        ids = [box.box_id for box in jp2.box]
+        self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
+
+        ids = [box.box_id for box in jp2.box[2].box]
+        self.assertEqual(ids, ['ihdr', 'colr'])
+
+        # Signature box.  Check for corruption.
+        self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
+
+        # File type box.
+        self.assertEqual(jp2.box[1].brand, 'jp2 ')
+        self.assertEqual(jp2.box[1].minor_version, 0)
+        self.assertEqual(jp2.box[1].compatibility_list[0], 'jp2 ')
+
+        # Jp2 Header
+        # Image header
+        self.assertEqual(jp2.box[2].box[0].height, 152)
+        self.assertEqual(jp2.box[2].box[0].width, 203)
+        self.assertEqual(jp2.box[2].box[0].num_components, 3)
+        self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
+        self.assertEqual(jp2.box[2].box[0].signed, False)
+        self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
+        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
+        self.assertEqual(jp2.box[2].box[0].ip_provided, False)
+
+        # Jp2 Header
+        # Colour specification
+        self.assertEqual(jp2.box[2].box[1].method,
+                         glymur.core.ENUMERATED_COLORSPACE)
+        self.assertEqual(jp2.box[2].box[1].precedence, 0)
+        self.assertEqual(jp2.box[2].box[1].approximation, 0)  # not allowed?
+        self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.SRGB)
+
+        c = jp2.box[3].main_header
+
+        ids = [x.marker_id for x in c.segment]
+        expected = ['SOC', 'SIZ', 'CME', 'COD', 'QCD', 'QCC', 'QCC']
+        self.assertEqual(ids, expected)
+
+        # SIZ: Image and tile size
+        # Profile:
+        self.assertEqual(c.segment[1].rsiz, 0)
+        # Reference grid size
+        self.assertEqual(c.segment[1].xsiz, 203)
+        self.assertEqual(c.segment[1].ysiz, 152)
+        # Reference grid offset
+        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
+        # Tile size
+        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (203, 152))
+        # Tile offset
+        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
+        # bitdepth
+        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8))
+        # signed
+        self.assertEqual(c.segment[1].signed, (False, False, False))
+        # subsampling
+        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
+                         [(1, 1)] * 3)
+
+        # COM: comment
+        # Registration
+        self.assertEqual(c.segment[2].rcme, glymur.core.RCME_ISO_8859_1)
+        # Comment value
+        self.assertEqual(c.segment[2].ccme.decode('latin-1'),
+                         "Creator: JasPer Version 1.701.0")
+
+        # COD: Coding style default
+        self.assertFalse(c.segment[3].scod & 2)  # no sop
+        self.assertFalse(c.segment[3].scod & 4)  # no eph
+        self.assertEqual(c.segment[3].spcod[0], glymur.core.LRCP)
+        self.assertEqual(c.segment[3].layers, 1)  # layers = 1
+        self.assertEqual(c.segment[3].spcod[3], 1)  # mct
+        self.assertEqual(c.segment[3].spcod[4], 5)  # level
+        self.assertEqual(tuple(c.segment[3].code_block_size),
+                         (64, 64))  # cblk
+        # Selective arithmetic coding bypass
+        self.assertFalse(c.segment[3].spcod[7] & 0x01)
+        # Reset context probabilities
+        self.assertFalse(c.segment[3].spcod[7] & 0x02)
+        # Termination on each coding pass
+        self.assertFalse(c.segment[3].spcod[7] & 0x04)
+        # Vertically causal context
+        self.assertFalse(c.segment[3].spcod[7] & 0x08)
+        # Predictable termination
+        self.assertFalse(c.segment[3].spcod[7] & 0x0010)
+        # Segmentation symbols
+        self.assertFalse(c.segment[3].spcod[7] & 0x0020)
+        self.assertEqual(c.segment[3].spcod[8],
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
+        self.assertEqual(len(c.segment[3].spcod), 9)
+
+        # QCD: Quantization default
+        self.assertEqual(c.segment[4].sqcd & 0x1f, 0)
+        self.assertEqual(c.segment[4].guard_bits, 2)
+        self.assertEqual(c.segment[4].mantissa, [0] * 16)
+        self.assertEqual(c.segment[4].exponent,
+                         [8] + [9, 9, 10] * 5)
+
+        # QCC: Quantization component
+        # associated component
+        self.assertEqual(c.segment[5].cqcc, 1)
+        self.assertEqual(c.segment[5].guard_bits, 2)
+        # quantization type
+        self.assertEqual(c.segment[5].sqcc & 0x1f, 0)  # none
+        self.assertEqual(c.segment[5].mantissa, [0] * 16)
+        self.assertEqual(c.segment[5].exponent,
+                         [8] + [9, 9, 10] * 5)
+
+        # QCC: Quantization component
+        # associated component
+        self.assertEqual(c.segment[6].cqcc, 2)
+        self.assertEqual(c.segment[6].guard_bits, 2)
+        # quantization type
+        self.assertEqual(c.segment[6].sqcc & 0x1f, 0)  # none
+        self.assertEqual(c.segment[6].mantissa, [0] * 16)
+        self.assertEqual(c.segment[6].exponent,
+                         [8] + [9, 9, 10] * 5)
+
     def test_NR_DEC_Bretagne2_j2k_1_decode(self):
         jfile = opj_data_file('input/nonregression/Bretagne2.j2k')
         jp2 = Jp2k(jfile)
