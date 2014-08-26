@@ -11,6 +11,7 @@
 # pylint: disable=R0904
 
 import os
+import re
 import struct
 import sys
 import tempfile
@@ -76,7 +77,7 @@ class TestPrinting(unittest.TestCase):
             with open(self.jpxfile, 'rb') as ifile:
                 tfile.write(ifile.read())
             
-            # Add the header for an unknwon superbox.
+            # Add the header for an unknown superbox.
             write_buffer = struct.pack('>I4s', 20, 'grp '.encode())
             tfile.write(write_buffer)
 
@@ -86,10 +87,10 @@ class TestPrinting(unittest.TestCase):
             tfile.write(write_buffer)
             tfile.flush()
 
-            with warnings.catch_warnings(record=True) as w:
-                warnings.simplefilter('always')
+            with warnings.catch_warnings():
+                # Suppress the warning about the unrecognized box.
+                warnings.simplefilter("ignore")
                 jpx = Jp2k(tfile.name)
-                self.assertTrue(len(w), 1)
 
             glymur.set_printoptions(short=True)
             with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -725,8 +726,6 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         # Reset printoptions for every test.
         glymur.set_printoptions(short=False, xml=True, codestream=True)
 
-        warnings.resetwarnings()
-
     def tearDown(self):
         pass
 
@@ -744,6 +743,8 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         """An invalid colorspace shouldn't cause an error."""
         filename = opj_data_file('input/nonregression/edf_c2_1103421.jp2')
         with warnings.catch_warnings():
+            # Bad compatibility list item and bad colorspace warnings.  Just
+            # suppress the warnings.
             warnings.simplefilter("ignore")
             jp2 = Jp2k(filename)
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -763,14 +764,15 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         filename = opj_data_file('input/nonregression/edf_c2_10025.jp2')
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            j = Jp2k(filename)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(j)
+            jp2 = Jp2k(filename)
+            with patch('sys.stdout', new=StringIO()) as fake_out:
+                print(jp2)
 
     def test_invalid_progression_order(self):
         """Should still be able to print even if prog order is invalid."""
         jfile = opj_data_file('input/nonregression/2977.pdf.asan.67.2198.jp2')
         with warnings.catch_warnings():
+            # Multiple warnings, actually.
             warnings.simplefilter("ignore")
             jp2 = Jp2k(jfile)
             codestream = jp2.get_codestream()
@@ -1058,10 +1060,7 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
     def test_uuid(self):
         """verify printing of UUID box"""
         filename = opj_data_file('input/nonregression/text_GBR.jp2')
-        with warnings.catch_warnings():
-            # brand is 'jp2 ', but has any icc profile.
-            warnings.simplefilter("ignore")
-            jp2 = Jp2k(filename)
+        jp2 = Jp2k(filename)
 
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(jp2.box[4])

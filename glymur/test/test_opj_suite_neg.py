@@ -83,7 +83,7 @@ class TestSuiteNegative(unittest.TestCase):
         relpath = 'input/nonregression/illegalcolortransform.j2k'
         jfile = opj_data_file(relpath)
         jp2k = Jp2k(jfile)
-        with warnings.catch_warnings(record=True) as w:
+        with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             codestream = jp2k.get_codestream(header_only=False)
 
@@ -118,17 +118,6 @@ class TestSuiteNegative(unittest.TestCase):
                 j.write(data, cbsize=(2048, 2))
             with self.assertRaises(IOError):
                 j.write(data, cbsize=(2, 2048))
-
-    def test_exceeded_box(self):
-        """should warn if reading past end of a box"""
-        # Verify that a warning is issued if we read past the end of a box
-        # This file has a palette (pclr) box whose length is impossibly
-        # short.
-        infile = os.path.join(OPJ_DATA_ROOT,
-                              'input/nonregression/mem-b2ace68c-1381.jp2')
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('ignore')
-            Jp2k(infile)
 
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_precinct_size_not_p2(self):

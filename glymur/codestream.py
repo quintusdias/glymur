@@ -202,7 +202,7 @@ class Codestream(object):
                 msg = 'Invalid marker id encountered at byte {0:d} '
                 msg += 'in codestream:  "0x{1:x}"'
                 msg = msg.format(self._offset, self._marker_id)
-                warnings.warn(msg)
+                warnings.warn(msg, UserWarning)
                 break
 
             self.segment.append(segment)
