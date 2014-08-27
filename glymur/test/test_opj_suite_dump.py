@@ -52,6 +52,8 @@ class TestSuiteDump(unittest.TestCase):
     def tearDown(self):
         pass
 
+    @unittest.skipIf(re.match("1.5|2.0.0", glymur.version.openjpeg_version),
+                     "Test not passing on 1.5, 2.0:  not introduced until 2.x")
     def test_NR_DEC_issue188_beach_64bitsbox_jp2_41_decode(self):
         """
         Has an 'XML ' box instead of 'xml '.  Just verify we can read it.
