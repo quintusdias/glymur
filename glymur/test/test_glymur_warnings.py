@@ -130,29 +130,6 @@ class TestWarnings(unittest.TestCase):
         with self.assertWarnsRegex(UserWarning, regex):
             Jp2k(jfile)
 
-    def test_NR_broken4_jp2_dump(self):
-        """
-        Has an invalid marker in the main header
-        """
-        jfile = opj_data_file('input/nonregression/broken4.jp2')
-        regex = r'Invalid marker id encountered at byte \d+ in codestream'
-        with self.assertWarnsRegex(UserWarning, regex):
-            jp2 = Jp2k(jfile)
-
-    @unittest.skipIf(sys.maxsize < 2**32, 'Do not run on 32-bit platforms')
-    def test_NR_broken3_jp2_dump(self):
-        """
-        Has an impossibly large box length.
-
-        The file in question here has a colr box with an erroneous box
-        length of over 1GB.  Don't run it on 32-bit platforms.
-        """
-        jfile = opj_data_file('input/nonregression/broken3.jp2')
-        regex = re.compile(r'''b'colr'\sbox\shas\sincorrect\sbox\slength\s
-                               \(\d+\)''', re.VERBOSE)
-        with self.assertWarnsRegex(UserWarning, regex):
-            Jp2k(jfile)
-
     def test_bad_rsiz(self):
         """Should warn if RSIZ is bad.  Issue196"""
         filename = opj_data_file('input/nonregression/edf_c2_1002767.jp2')
