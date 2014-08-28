@@ -95,24 +95,6 @@ class TestSuite(unittest.TestCase):
         self.assertTrue(peak_tolerance(jpdata[:, :, 2], pgxdata) < 6)
         self.assertTrue(mse(jpdata[:, :, 2], pgxdata) < 1.07)
 
-    @unittest.skip("Known failure in OPENJPEG test suite operation.")
-    def test_ETS_C1P0_p0_07_j2k(self):
-        jfile = opj_data_file('input/conformance/p0_07.j2k')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read()
-
-        pgxfile = opj_data_file('baseline/conformance/c1p0_07_0.pgx')
-        pgxdata = read_pgx(pgxfile)
-        np.testing.assert_array_equal(jpdata[:, :, 0], pgxdata)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p0_07_1.pgx')
-        pgxdata = read_pgx(pgxfile)
-        np.testing.assert_array_equal(jpdata[:, : 1], pgxdata)
-
-        pgxfile = opj_data_file('baseline/conformance/c1p0_07_2.pgx')
-        pgxdata = read_pgx(pgxfile)
-        np.testing.assert_array_equal(jpdata[:, : 2], pgxdata)
-
     def test_ETS_C1P0_p0_08_j2k(self):
         jfile = opj_data_file('input/conformance/p0_08.j2k')
         jp2k = Jp2k(jfile)
