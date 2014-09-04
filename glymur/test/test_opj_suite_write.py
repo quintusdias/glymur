@@ -15,21 +15,15 @@ import warnings
 
 import numpy as np
 
-try:
-    import skimage.io
-    skimage.io.use_plugin('freeimage', 'imread')
-    _HAS_SKIMAGE_FREEIMAGE_SUPPORT = True
-except ((ImportError, RuntimeError)):
-    _HAS_SKIMAGE_FREEIMAGE_SUPPORT = False
-
 from .fixtures import read_image, NO_READ_BACKEND, NO_READ_BACKEND_MSG
-from .fixtures import OPJ_DATA_ROOT, opj_data_file
+from .fixtures import OPJ_DATA_ROOT, NO_SKIMAGE_FREEIMAGE_SUPPORT
+from .fixtures import opj_data_file
 from . import fixtures
 
 from glymur import Jp2k
 import glymur
 
-@unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+@unittest.skipIf(NO_SKIMAGE_FREEIMAGE_SUPPORT,
                  "Cannot read input image without scikit-image/freeimage")
 @unittest.skipIf(os.name == "nt", "no write support on windows, period")
 @unittest.skipIf(re.match(r'''(1|2.0.0)''',
@@ -230,7 +224,7 @@ class TestSuiteWriteCinema(unittest.TestCase):
             codestream = j.get_codestream()
             self.check_cinema2k_codestream(codestream, (1998, 1080))
 
-@unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+@unittest.skipIf(NO_SKIMAGE_FREEIMAGE_SUPPORT,
                  "Cannot read input image without scikit-image/freeimage")
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
 @unittest.skipIf(not re.match("(1.5|2.0.0)", glymur.version.openjpeg_version),
