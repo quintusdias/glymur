@@ -37,6 +37,19 @@ except:
     raise
 
 
+# The Cinema2K/4K tests seem to need the freeimage backend to skimage.io
+# in order to work.
+try:
+    import skimage.io
+    if 'freeimage' in skimage.io.find_available_plugins(loaded=True).keys():
+        skimage.io.use_plugin('freeimage', 'imread')
+        NO_SKIMAGE_FREEIMAGE_SUPPORT = False
+    else:
+        NO_SKIMAGE_FREEIMAGE_SUPPORT = True
+except ((ImportError, RuntimeError)):
+    NO_SKIMAGE_FREEIMAGE_SUPPORT = True
+
+
 def _indent(textstr):
     """
     Indent a string.
