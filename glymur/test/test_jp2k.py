@@ -63,6 +63,78 @@ class TestJp2k(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_slice_protocol_negative(self):
+        """
+        """
+        j = Jp2k(self.j2kfile)
+
+        with self.assertRaises(IndexError):
+            # Strides in x/y directions cannot differ.
+            d = j[::2, ::3]
+
+        with self.assertRaises(IndexError):
+            # Strides in x/y direction must be powers of 2.
+            d = j[::3, ::3]
+
+        # start and stop are not supported when slicing on Jp2k object
+        with self.assertRaises(IndexError):
+            d = j[2::2, 2::2]
+        with self.assertRaises(IndexError):
+            d = j[:8:2, :8:2]
+        with self.assertRaises(IndexError):
+            d = j[2:8:2, 2:8:2]
+
+    def test_slice_protocol_3d(self):
+        """
+        """
+        j = Jp2k(self.j2kfile)
+        all = j.read()
+
+        d = j[:,:,0]
+        np.testing.assert_array_equal(all[:,:,0], d)
+
+        d = j[:,:,1]
+        np.testing.assert_array_equal(all[:,:,1], d)
+
+        d = j[:,:,2]
+        np.testing.assert_array_equal(all[:,:,2], d)
+
+        d = j[:,:,1:3]
+        np.testing.assert_array_equal(all[:,:,1:3], d)
+
+        d = j[::2, ::2, 1:3]
+        all = j.read(rlevel=1)
+        np.testing.assert_array_equal(all[:,:,1:3], d)
+
+    def test_slice_protocol_2d(self):
+        """
+
+        """
+        j = Jp2k(self.j2kfile)
+
+        d = j[:]
+        self.assertEqual(d.shape, (800, 480, 3))
+
+        # Stride of one.
+        d = j[::1, ::1]
+        self.assertEqual(d.shape, (800, 480, 3))
+
+        # Stride of 2.
+        d = j[::2, ::2]
+        self.assertEqual(d.shape, (400, 240, 3))
+
+        d = j[::4, ::4]
+        self.assertEqual(d.shape, (200, 120, 3))
+
+        d = j[::8, ::8]
+        self.assertEqual(d.shape, (100, 60, 3))
+
+        d = j[::16, ::16]
+        self.assertEqual(d.shape, (50, 30, 3))
+
+        d = j[::32, ::32]
+        self.assertEqual(d.shape, (25, 15, 3))
+
     @unittest.skipIf(os.name == "nt", "Unexplained failure on windows")
     def test_irreversible(self):
         """Irreversible"""
