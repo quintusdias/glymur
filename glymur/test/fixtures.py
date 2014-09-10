@@ -38,14 +38,19 @@ except:
 
 
 # The Cinema2K/4K tests seem to need the freeimage backend to skimage.io
-# in order to work.
+# in order to work.  Unfortunately, scikit-image/freeimage is about as wonky as
+# it gets.  Anaconda can get totally weirded out on versions up through 3.6.4
+# on Python3 with scikit-image up through version 0.10.0.  
+NO_SKIMAGE_FREEIMAGE_SUPPORT = False
 try:
+    import skimage
     import skimage.io
-    if 'freeimage' in skimage.io.find_available_plugins(loaded=True).keys():
-        skimage.io.use_plugin('freeimage', 'imread')
-        NO_SKIMAGE_FREEIMAGE_SUPPORT = False
-    else:
+    if (((sys.hexversion >= 0x03000000) and
+         ('Anaconda' in sys.version) and
+         (re.match('0.10', skimage.__version__)))):
         NO_SKIMAGE_FREEIMAGE_SUPPORT = True
+    else:
+        skimage.io.use_plugin('freeimage', 'imread')
 except ((ImportError, RuntimeError)):
     NO_SKIMAGE_FREEIMAGE_SUPPORT = True
 
