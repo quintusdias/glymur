@@ -14,6 +14,10 @@ import unittest
 import warnings
 
 import numpy as np
+try:
+    import skimage.io
+except ImportError:
+    pass
 
 from .fixtures import read_image, NO_READ_BACKEND, NO_READ_BACKEND_MSG
 from .fixtures import OPJ_DATA_ROOT, NO_SKIMAGE_FREEIMAGE_SUPPORT
