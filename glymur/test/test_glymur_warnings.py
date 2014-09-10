@@ -8,6 +8,7 @@ Test suite for warnings issued by glymur.
 import os
 import re
 import struct
+import six
 import sys
 import tempfile
 import unittest
@@ -20,6 +21,8 @@ from .fixtures import opj_data_file, OPJ_DATA_ROOT
 
 @unittest.skipIf(sys.hexversion < 0x03030000,
                  "assertWarn methods introduced in 3.x")
+@unittest.skipIf(re.match('1.[0-6]', six.__version__) is not None,
+                 "Problem with earlier versions of six on python3")
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 class TestWarnings(unittest.TestCase):
