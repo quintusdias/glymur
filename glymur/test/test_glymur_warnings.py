@@ -8,11 +8,12 @@ Test suite for warnings issued by glymur.
 import os
 import re
 import struct
-import six
 import sys
 import tempfile
 import unittest
 import warnings
+
+import six
 
 from glymur import Jp2k
 import glymur
