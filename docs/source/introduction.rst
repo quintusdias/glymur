@@ -27,10 +27,5 @@ but you should also be able to install Glymur via pip ::
 
     $ pip install glymur
 
-This will install a script **jp2dump** that can be used from the unix command
-line for dumping JP2 metadata, so you should adjust your **$PATH**
-environment variable to take advantage of it.  For example, if you install
-with pip's `--user` option on linux ::
-
-    $ export PATH=$HOME/.local/bin:$PATH
-
+In addition to the package, this also gives you a script **jp2dump** that can
+be used from the command line line to print JPEG 2000 metadata.

@@ -17,7 +17,7 @@ resolution level. ::
 
 ... display metadata?
 =====================
-There are two ways.  From the unix command line, the script **jp2dump** is
+There are two ways.  From the command line, the script **jp2dump** is
 available. ::
 
     $ jp2dump /path/to/glymur/installation/data/nemo.jp2
