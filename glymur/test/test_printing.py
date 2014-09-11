@@ -31,7 +31,7 @@ else:
 import lxml.etree as ET
 
 import glymur
-from glymur import Jp2k
+from glymur import Jp2k, command_line
 from . import fixtures
 from .fixtures import OPJ_DATA_ROOT, opj_data_file
 from .fixtures import text_gbr_27, text_gbr_33, text_gbr_34
@@ -107,74 +107,6 @@ class TestPrinting(unittest.TestCase):
         with self.assertRaises(TypeError):
             glymur.set_printoptions(hi='low')
 
-    def test_propts_no_codestream_then_no_xml(self):
-        """Verify printed output when codestream=False and xml=False, #162"""
-        # The print options should be persistent across invocations.
-        glymur.set_printoptions(codestream=False)
-        glymur.set_printoptions(xml=False)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            glymur.jp2dump(self.jp2file)
-            actual = fake_out.getvalue().strip()
-
-        # Get rid of the filename line, as it is not set in stone.
-        lst = actual.split('\n')
-        lst = lst[1:]
-        actual = '\n'.join(lst)
-        self.assertEqual(actual, fixtures.nemo_dump_no_codestream_no_xml)
-
-    def test_printopt_no_codestr_or_xml(self):
-        """Verify printed output when codestream=False and xml=False"""
-        glymur.set_printoptions(codestream=False, xml=False)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            glymur.jp2dump(self.jp2file)
-            actual = fake_out.getvalue().strip()
-
-        # Get rid of the filename line, as it is not set in stone.
-        lst = actual.split('\n')
-        lst = lst[1:]
-        actual = '\n'.join(lst)
-        self.assertEqual(actual, fixtures.nemo_dump_no_codestream_no_xml)
-
-    def test_printoptions_no_codestream(self):
-        """Verify printed output when codestream=False"""
-        glymur.set_printoptions(codestream=False)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            glymur.jp2dump(self.jp2file)
-            actual = fake_out.getvalue().strip()
-
-        # Get rid of the filename line, as it is not set in stone.
-        lst = actual.split('\n')
-        lst = lst[1:]
-        actual = '\n'.join(lst)
-        self.assertEqual(actual, fixtures.nemo_dump_no_codestream)
-
-    def test_printoptions_no_xml(self):
-        """Verify printed output when xml=False"""
-        glymur.set_printoptions(xml=False)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            glymur.jp2dump(self.jp2file)
-            actual = fake_out.getvalue().strip()
-
-        # Get rid of the filename line, as it is not set in stone.
-        lst = actual.split('\n')
-        lst = lst[1:]
-        actual = '\n'.join(lst)
-        expected = fixtures.nemo_dump_no_xml
-        self.assertEqual(actual, expected)
-
-    def test_printoptions_short(self):
-        """Verify printed output when short=True"""
-        glymur.set_printoptions(short=True)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            glymur.jp2dump(self.jp2file)
-            actual = fake_out.getvalue().strip()
-
-        # Get rid of the filename line, as it is not set in stone.
-        lst = actual.split('\n')
-        lst = lst[1:]
-        actual = '\n'.join(lst)
-        self.assertEqual(actual, fixtures.nemo_dump_short)
-
     def test_asoc_label_box(self):
         """verify printing of asoc, label boxes"""
         # Construct a fake file with an asoc and a label box, as
@@ -227,32 +159,6 @@ class TestPrinting(unittest.TestCase):
                          '        <test>this is a test</test>']
                 expected = '\n'.join(lines)
                 self.assertEqual(actual, expected)
-
-    def test_jp2dump(self):
-        """basic jp2dump test"""
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            glymur.jp2dump(self.jp2file)
-            actual = fake_out.getvalue().strip()
-
-        # Get rid of the filename line, as it is not set in stone.
-        lst = actual.split('\n')
-        lst = lst[1:]
-        actual = '\n'.join(lst)
-        self.assertEqual(actual, fixtures.nemo_dump_full)
-
-    def test_entire_file(self):
-        """verify output from printing entire file"""
-        j = glymur.Jp2k(self.jp2file)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(j)
-            actual = fake_out.getvalue().strip()
-
-        # Get rid of the filename line, as it is not set in stone.
-        lst = actual.split('\n')
-        lst = lst[1:]
-        actual = '\n'.join(lst)
-
-        self.assertEqual(actual, fixtures.nemo_dump_full)
 
     def test_coc_segment(self):
         """verify printing of COC segment"""
@@ -1113,5 +1019,71 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
 
         self.assertTrue(True)
 
-if __name__ == "__main__":
-    unittest.main()
+
+class TestJp2dump(unittest.TestCase):
+    """Tests for verifying how jp2dump console script works."""
+    def setUp(self):
+        self.jpxfile = glymur.data.jpxfile()
+        self.jp2file = glymur.data.nemo()
+        self.j2kfile = glymur.data.goodstuff()
+
+        # Reset printoptions for every test.
+        glymur.set_printoptions(short=False, xml=True, codestream=True)
+
+    def tearDown(self):
+        pass
+
+    def run_jp2dump(self, args):
+        sys.argv = args
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            command_line.main()
+            actual = fake_out.getvalue().strip()
+            # Remove the file line, as that is filesystem-dependent.
+            lines = actual.split('\n')
+            actual = '\n'.join(lines[1:])
+        return actual
+
+    def test_default_nemo(self):
+        """Should be able to dump a JP2 file's metadata with no codestream."""
+        actual = self.run_jp2dump(['', self.jp2file])
+
+        self.assertEqual(actual, fixtures.nemo_dump_no_codestream)
+
+    def test_codestream_0(self):
+        """Verify dumping with -c 0, supressing all codestream details."""
+        actual = self.run_jp2dump(['', '-c', '0', self.jp2file])
+
+        self.assertEqual(actual, fixtures.nemo_dump_no_codestream)
+
+    def test_codestream_1(self):
+        """Verify dumping with -c 1, print just the header."""
+        actual = self.run_jp2dump(['', '-c', '1', self.jp2file])
+
+        self.assertEqual(actual, fixtures.nemo_with_codestream_header)
+
+    def test_codestream_2(self):
+        """Verify dumping with -c 2, full details."""
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            sys.argv = ['', '-c', '2', self.j2kfile]
+            command_line.main()
+            actual = fake_out.getvalue().strip()
+
+        self.assertIn(fixtures.goodstuff_with_full_header, actual)
+
+    def test_codestream_invalid(self):
+        """Verify dumping with -c 3, not allowd."""
+        with self.assertRaises(ValueError):
+            sys.argv = ['', '-c', '3', self.jp2file]
+            command_line.main()
+
+    def test_short(self):
+        """Verify dumping with -s, short option."""
+        actual = self.run_jp2dump(['', '-s', self.jp2file])
+
+        self.assertEqual(actual, fixtures.nemo_dump_short)
+
+    def test_suppress_xml(self):
+        """Verify dumping with -x, suppress XML."""
+        actual = self.run_jp2dump(['', '-x', self.jp2file])
+
+        self.assertEqual(actual, fixtures.nemo_dump_no_codestream_no_xml)
