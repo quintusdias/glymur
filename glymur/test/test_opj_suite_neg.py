@@ -16,16 +16,14 @@ import unittest
 import warnings
 
 import numpy as np
-
 try:
     import skimage.io
-    skimage.io.use_plugin('freeimage', 'imread')
-    _HAS_SKIMAGE_FREEIMAGE_SUPPORT = True
-except ((ImportError, RuntimeError)):
-    _HAS_SKIMAGE_FREEIMAGE_SUPPORT = False
+except ImportError:
+    pass
 
 from .fixtures import OPJ_DATA_ROOT, opj_data_file, read_image
 from .fixtures import NO_READ_BACKEND, NO_READ_BACKEND_MSG
+from .fixtures import NO_SKIMAGE_FREEIMAGE_SUPPORT
 
 from glymur import Jp2k
 import glymur
@@ -44,7 +42,7 @@ class TestSuiteNegative(unittest.TestCase):
         pass
 
 
-    @unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+    @unittest.skipIf(NO_SKIMAGE_FREEIMAGE_SUPPORT,
                      "Cannot read input image without scikit-image/freeimage")
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_cinema2K_bad_frame_rate(self):

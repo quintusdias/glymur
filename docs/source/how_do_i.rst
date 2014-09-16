@@ -3,21 +3,28 @@ How do I...?
 ------------
 
 
-... read the lowest resolution thumbnail?
-=========================================
-Printing the Jp2k object should reveal the number of resolutions
-(look in the COD segment section of the codestream), but you can
-take a shortcut by supplying -1 as the
-resolution level. ::
+... read the lower resolution images?
+=====================================
+Jp2k implements slicing via the :py:meth:`__getitem__` method so
+any lower resolution images in a JPEG 2000 file can easily be
+accessed, for example here's how to retrieve the first sub-image ::
 
     >>> import glymur
     >>> jp2file = glymur.data.nemo()
     >>> jp2 = glymur.Jp2k(jp2file)
-    >>> thumbnail = jp2.read(rlevel=-1)
+    >>> fullres = jp2[:]
+    >>> print(fullres.shape)
+    (1456, 2592, 3)
+    >>> thumbnail = jp2[::2, ::2]
+    >>> print(thumbnail.shape)
+    (728, 1296, 3)
+
+The :py:meth:`read` method gives many more options for other JPEG 2000 features
+such as quality layers.
 
 ... display metadata?
 =====================
-There are two ways.  From the unix command line, the script **jp2dump** is
+There are two ways.  From the command line, the script **jp2dump** is
 available. ::
 
     $ jp2dump /path/to/glymur/installation/data/nemo.jp2

@@ -37,6 +37,24 @@ except:
     raise
 
 
+# The Cinema2K/4K tests seem to need the freeimage backend to skimage.io
+# in order to work.  Unfortunately, scikit-image/freeimage is about as wonky as
+# it gets.  Anaconda can get totally weirded out on versions up through 3.6.4
+# on Python3 with scikit-image up through version 0.10.0.  
+NO_SKIMAGE_FREEIMAGE_SUPPORT = False
+try:
+    import skimage
+    import skimage.io
+    if (((sys.hexversion >= 0x03000000) and
+         ('Anaconda' in sys.version) and
+         (re.match('0.10', skimage.__version__)))):
+        NO_SKIMAGE_FREEIMAGE_SUPPORT = True
+    else:
+        skimage.io.use_plugin('freeimage', 'imread')
+except ((ImportError, RuntimeError)):
+    NO_SKIMAGE_FREEIMAGE_SUPPORT = True
+
+
 def _indent(textstr):
     """
     Indent a string.
@@ -437,7 +455,9 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)
             Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]
         CME marker segment @ (3305, 37)
             "Created by OpenJPEG version 2.0.0"'''
-nemo_dump_full = dump.format(_indent(nemo_xmp))
+
+nemo_with_codestream_header = dump.format(_indent(nemo_xmp))
+#nemo_dump_full = dump.format(_indent(nemo_xmp))
 
 nemo_dump_short = r"""JPEG 2000 Signature Box (jP  ) @ (0, 12)
 File Type Box (ftyp) @ (12, 20)
@@ -633,7 +653,7 @@ number_list_box = r"""Number List Box (nlst) @ (-1, 0)
     Association[2]:  compositing layer 0"""
 
 
-goodstuff = r"""Codestream:
+goodstuff_codestream_header = r"""Codestream:
     SOC marker segment @ (0, 0)
     SIZ marker segment @ (2, 47)
         Profile:  no profile
@@ -668,3 +688,80 @@ goodstuff = r"""Codestream:
         Quantization style:  no quantization, 2 guard bits
         Step size:  [(0, 8), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10)]"""
 
+goodstuff_with_full_header = r"""Codestream:
+    SOC marker segment @ (0, 0)
+    SIZ marker segment @ (2, 47)
+        Profile:  no profile
+        Reference Grid Height, Width:  (800 x 480)
+        Vertical, Horizontal Reference Grid Offset:  (0 x 0)
+        Reference Tile Height, Width:  (800 x 480)
+        Vertical, Horizontal Reference Tile Offset:  (0 x 0)
+        Bitdepth:  (8, 8, 8)
+        Signed:  (False, False, False)
+        Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))
+    COD marker segment @ (51, 12)
+        Coding style:
+            Entropy coder, without partitions
+            SOP marker segments:  False
+            EPH marker segments:  False
+        Coding style parameters:
+            Progression order:  LRCP
+            Number of layers:  1
+            Multiple component transformation usage:  reversible
+            Number of resolutions:  6
+            Code block height, width:  (64 x 64)
+            Wavelet transform:  5-3 reversible
+            Precinct size:  default, 2^15 x 2^15
+            Code block context:
+                Selective arithmetic coding bypass:  False
+                Reset context probabilities on coding pass boundaries:  False
+                Termination on each coding pass:  False
+                Vertically stripe causal context:  False
+                Predictable termination:  False
+                Segmentation symbols:  False
+    QCD marker segment @ (65, 19)
+        Quantization style:  no quantization, 2 guard bits
+        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10)]
+    SOT marker segment @ (86, 10)
+        Tile part index:  0
+        Tile part length:  115132
+        Tile part instance:  0
+        Number of tile parts:  1
+    COC marker segment @ (98, 9)
+        Associated component:  1
+        Coding style for this component:  Entropy coder, PARTITION = 0
+        Coding style parameters:
+            Number of resolutions:  6
+            Code block height, width:  (64 x 64)
+            Wavelet transform:  5-3 reversible
+            Code block context:
+                Selective arithmetic coding bypass:  False
+                Reset context probabilities on coding pass boundaries:  False
+                Termination on each coding pass:  False
+                Vertically stripe causal context:  False
+                Predictable termination:  False
+                Segmentation symbols:  False
+    QCC marker segment @ (109, 20)
+        Associated Component:  1
+        Quantization style:  no quantization, 2 guard bits
+        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10)]
+    COC marker segment @ (131, 9)
+        Associated component:  2
+        Coding style for this component:  Entropy coder, PARTITION = 0
+        Coding style parameters:
+            Number of resolutions:  6
+            Code block height, width:  (64 x 64)
+            Wavelet transform:  5-3 reversible
+            Code block context:
+                Selective arithmetic coding bypass:  False
+                Reset context probabilities on coding pass boundaries:  False
+                Termination on each coding pass:  False
+                Vertically stripe causal context:  False
+                Predictable termination:  False
+                Segmentation symbols:  False
+    QCC marker segment @ (142, 20)
+        Associated Component:  2
+        Quantization style:  no quantization, 2 guard bits
+        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10)]
+    SOD marker segment @ (164, 0)
+    EOC marker segment @ (115218, 0)"""
