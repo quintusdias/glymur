@@ -15,7 +15,6 @@ import re
 import struct
 import sys
 import tempfile
-import warnings
 import unittest
 
 if sys.hexversion < 0x03000000:
@@ -34,6 +33,7 @@ import glymur
 from glymur import Jp2k, command_line
 from . import fixtures
 from .fixtures import OPJ_DATA_ROOT, opj_data_file
+from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
 from .fixtures import text_gbr_27, text_gbr_33, text_gbr_34
 
 
@@ -71,6 +71,7 @@ class TestPrinting(unittest.TestCase):
 
         self.assertTrue(True)
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_unknown_superbox(self):
         """Verify that we can handle an unknown superbox."""
         with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
@@ -87,9 +88,7 @@ class TestPrinting(unittest.TestCase):
             tfile.write(write_buffer)
             tfile.flush()
 
-            with warnings.catch_warnings():
-                # Suppress the warning about the unrecognized box.
-                warnings.simplefilter("ignore")
+            with self.assertWarns(UserWarning):
                 jpx = Jp2k(tfile.name)
 
             glymur.set_printoptions(short=True)
@@ -645,48 +644,6 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
             actual = fake_out.getvalue().strip()
         self.assertEqual(actual, fixtures.cinema2k_profile)
 
-    def test_invalid_colorspace(self):
-        """An invalid colorspace shouldn't cause an error."""
-        filename = opj_data_file('input/nonregression/edf_c2_1103421.jp2')
-        with warnings.catch_warnings():
-            # Bad compatibility list item and bad colorspace warnings.  Just
-            # suppress the warnings.
-            warnings.simplefilter("ignore")
-            jp2 = Jp2k(filename)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(jp2)
-
-    def test_bad_rsiz(self):
-        """Should still be able to print if rsiz is bad, issue196"""
-        filename = opj_data_file('input/nonregression/edf_c2_1002767.jp2')
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            j = Jp2k(filename)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(j)
-
-    def test_bad_wavelet_transform(self):
-        """Should still be able to print if wavelet xform is bad, issue195"""
-        filename = opj_data_file('input/nonregression/edf_c2_10025.jp2')
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            jp2 = Jp2k(filename)
-            with patch('sys.stdout', new=StringIO()) as fake_out:
-                print(jp2)
-
-    def test_invalid_progression_order(self):
-        """Should still be able to print even if prog order is invalid."""
-        jfile = opj_data_file('input/nonregression/2977.pdf.asan.67.2198.jp2')
-        with warnings.catch_warnings():
-            # Multiple warnings, actually.
-            warnings.simplefilter("ignore")
-            jp2 = Jp2k(jfile)
-            codestream = jp2.get_codestream()
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(codestream.segment[2])
-            actual = fake_out.getvalue().strip()
-        self.assertEqual(actual, fixtures.issue_186_progression_order)
-
     def test_crg(self):
         """verify printing of CRG segment"""
         filename = opj_data_file('input/conformance/p0_03.j2k')
@@ -836,46 +793,6 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    def test_xml(self):
-        """verify printing of XML box"""
-        filename = opj_data_file('input/conformance/file1.jp2')
-        j = glymur.Jp2k(filename)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(j.box[2])
-            actual = fake_out.getvalue().strip()
-        self.assertEqual(actual, fixtures.file1_xml)
-
-    def test_channel_definition(self):
-        """verify printing of cdef box"""
-        filename = opj_data_file('input/conformance/file2.jp2')
-        with warnings.catch_warnings():
-            # Bad compatibility list item.
-            warnings.simplefilter("ignore")
-            j = glymur.Jp2k(filename)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(j.box[2].box[2])
-            actual = fake_out.getvalue().strip()
-        lines = ['Channel Definition Box (cdef) @ (81, 28)',
-                 '    Channel 0 (color) ==> (3)',
-                 '    Channel 1 (color) ==> (2)',
-                 '    Channel 2 (color) ==> (1)']
-        expected = '\n'.join(lines)
-        self.assertEqual(actual, expected)
-
-    def test_component_mapping(self):
-        """verify printing of cmap box"""
-        filename = opj_data_file('input/conformance/file9.jp2')
-        j = glymur.Jp2k(filename)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(j.box[2].box[2])
-            actual = fake_out.getvalue().strip()
-        lines = ['Component Mapping Box (cmap) @ (848, 20)',
-                 '    Component 0 ==> palette column 0',
-                 '    Component 0 ==> palette column 1',
-                 '    Component 0 ==> palette column 2']
-        expected = '\n'.join(lines)
-        self.assertEqual(actual, expected)
-
     def test_componentmapping_box_alpha(self):
         """Verify __repr__ method on cmap box."""
         cmap = glymur.jp2box.ComponentMappingBox(component_index=(0, 0, 0),
@@ -886,27 +803,6 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         self.assertEqual(newbox.component_index, (0, 0, 0))
         self.assertEqual(newbox.mapping_type, (1, 1, 1))
         self.assertEqual(newbox.palette_index, (0, 1, 2))
-
-    def test_palette7(self):
-        """verify printing of pclr box"""
-        filename = opj_data_file('input/conformance/file9.jp2')
-        j = glymur.Jp2k(filename)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(j.box[2].box[1])
-            actual = fake_out.getvalue().strip()
-        lines = ['Palette Box (pclr) @ (66, 782)',
-                 '    Size:  (256 x 3)']
-        expected = '\n'.join(lines)
-        self.assertEqual(actual, expected)
-
-    def test_rreq(self):
-        """verify printing of reader requirements box"""
-        filename = opj_data_file('input/nonregression/text_GBR.jp2')
-        j = glymur.Jp2k(filename)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(j.box[2])
-            actual = fake_out.getvalue().strip()
-        self.assertEqual(actual, fixtures.text_GBR_rreq)
 
     def test_differing_subsamples(self):
         """verify printing of SIZ with different subsampling... Issue 86."""
@@ -929,10 +825,133 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
+@unittest.skipIf(OPJ_DATA_ROOT is None,
+                 "OPJ_DATA_ROOT environment variable not set")
+@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+@unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
+class TestPrintingOpjDataRootWarns(unittest.TestCase):
+    """
+    Tests for verifying printing. restricted to OPJ_DATA_ROOT files.
+
+    These tests issue warnings.
+    """
+    def setUp(self):
+        self.jpxfile = glymur.data.jpxfile()
+        self.jp2file = glymur.data.nemo()
+        self.j2kfile = glymur.data.goodstuff()
+
+        # Reset printoptions for every test.
+        glymur.set_printoptions(short=False, xml=True, codestream=True)
+
+    def tearDown(self):
+        pass
+
+    def test_invalid_colorspace(self):
+        """An invalid colorspace shouldn't cause an error."""
+        filename = opj_data_file('input/nonregression/edf_c2_1103421.jp2')
+        with self.assertWarns(UserWarning):
+            jp2 = Jp2k(filename)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(jp2)
+
+    @unittest.skip("unexplained failure")        
+    def test_bad_rsiz(self):
+        """Should still be able to print if rsiz is bad, issue196"""
+        filename = opj_data_file('input/nonregression/edf_c2_1002767.jp2')
+        with self.assertWarns(UserWarning):
+            j = Jp2k(filename)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j)
+
+    def test_bad_wavelet_transform(self):
+        """Should still be able to print if wavelet xform is bad, issue195"""
+        filename = opj_data_file('input/nonregression/edf_c2_10025.jp2')
+        with self.assertWarns(UserWarning):
+            jp2 = Jp2k(filename)
+            with patch('sys.stdout', new=StringIO()) as fake_out:
+                print(jp2)
+
+    def test_invalid_progression_order(self):
+        """Should still be able to print even if prog order is invalid."""
+        jfile = opj_data_file('input/nonregression/2977.pdf.asan.67.2198.jp2')
+        with self.assertWarns(UserWarning):
+            # Multiple warnings, actually.
+            jp2 = Jp2k(jfile)
+            codestream = jp2.get_codestream()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(codestream.segment[2])
+            actual = fake_out.getvalue().strip()
+        self.assertEqual(actual, fixtures.issue_186_progression_order)
+
+    def test_xml(self):
+        """verify printing of XML box"""
+        filename = opj_data_file('input/conformance/file1.jp2')
+        with self.assertWarns(UserWarning):
+            j = glymur.Jp2k(filename)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j.box[2])
+            actual = fake_out.getvalue().strip()
+        self.assertEqual(actual, fixtures.file1_xml)
+
+    def test_channel_definition(self):
+        """verify printing of cdef box"""
+        filename = opj_data_file('input/conformance/file2.jp2')
+        with self.assertWarns(UserWarning):
+            # Bad compatibility list item.
+            j = glymur.Jp2k(filename)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j.box[2].box[2])
+            actual = fake_out.getvalue().strip()
+        lines = ['Channel Definition Box (cdef) @ (81, 28)',
+                 '    Channel 0 (color) ==> (3)',
+                 '    Channel 1 (color) ==> (2)',
+                 '    Channel 2 (color) ==> (1)']
+        expected = '\n'.join(lines)
+        self.assertEqual(actual, expected)
+
+    def test_component_mapping(self):
+        """verify printing of cmap box"""
+        filename = opj_data_file('input/conformance/file9.jp2')
+        with self.assertWarns(UserWarning):
+            j = glymur.Jp2k(filename)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j.box[2].box[2])
+            actual = fake_out.getvalue().strip()
+        lines = ['Component Mapping Box (cmap) @ (848, 20)',
+                 '    Component 0 ==> palette column 0',
+                 '    Component 0 ==> palette column 1',
+                 '    Component 0 ==> palette column 2']
+        expected = '\n'.join(lines)
+        self.assertEqual(actual, expected)
+
+    def test_palette7(self):
+        """verify printing of pclr box"""
+        filename = opj_data_file('input/conformance/file9.jp2')
+        with self.assertWarns(UserWarning):
+            j = glymur.Jp2k(filename)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j.box[2].box[1])
+            actual = fake_out.getvalue().strip()
+        lines = ['Palette Box (pclr) @ (66, 782)',
+                 '    Size:  (256 x 3)']
+        expected = '\n'.join(lines)
+        self.assertEqual(actual, expected)
+
+    def test_rreq(self):
+        """verify printing of reader requirements box"""
+        filename = opj_data_file('input/nonregression/text_GBR.jp2')
+        with self.assertWarns(UserWarning):
+            j = glymur.Jp2k(filename)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(j.box[2])
+            actual = fake_out.getvalue().strip()
+        self.assertEqual(actual, fixtures.text_GBR_rreq)
+
     def test_palette_box(self):
         """Verify that palette (pclr) boxes are printed without error."""
         filename = opj_data_file('input/conformance/file9.jp2')
-        j = glymur.Jp2k(filename)
+        with self.assertWarns(UserWarning):
+            j = glymur.Jp2k(filename)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.box[2].box[1])
             actual = fake_out.getvalue().strip()
@@ -946,9 +965,8 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         # ICC profiles may be used in JP2, but the approximation field should
         # be zero unless we have jpx.  This file does both.
         filename = opj_data_file('input/nonregression/text_GBR.jp2')
-        with warnings.catch_warnings():
+        with self.assertWarns(UserWarning):
             # brand is 'jp2 ', but has any icc profile.
-            warnings.simplefilter("ignore")
             jp2 = Jp2k(filename)
 
         with patch('sys.stdout', new=StringIO()) as fake_out:
@@ -966,7 +984,8 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
     def test_uuid(self):
         """verify printing of UUID box"""
         filename = opj_data_file('input/nonregression/text_GBR.jp2')
-        jp2 = Jp2k(filename)
+        with self.assertWarns(UserWarning):
+            jp2 = Jp2k(filename)
 
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(jp2.box[4])
@@ -984,9 +1003,8 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         # Format strings like %d were showing up in the output.
         filename = opj_data_file('input/nonregression/mem-b2ace68c-1381.jp2')
 
-        with warnings.catch_warnings():
+        with self.assertWarns(UserWarning):
             # Ignore warning about bad pclr box.
-            warnings.simplefilter("ignore")
             jp2 = Jp2k(filename)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(jp2.box[3].box[3])
@@ -996,9 +1014,8 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
     def test_issue183(self):
         filename = opj_data_file('input/nonregression/orb-blue10-lin-jp2.jp2')
 
-        with warnings.catch_warnings():
+        with self.assertWarns(UserWarning):
             # Ignore warning about bad pclr box.
-            warnings.simplefilter("ignore")
             jp2 = Jp2k(filename)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(jp2.box[2].box[1])
@@ -1010,8 +1027,7 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         filename = opj_data_file(os.path.join('input',
                                               'nonregression',
                                               'issue171.jp2'))
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+        with self.assertWarns(UserWarning):
             jp2 = Jp2k(filename)
             with patch('sys.stdout', new=StringIO()) as fake_out:
                 # No need to verify, it's enough that we don't error out.

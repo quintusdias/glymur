@@ -15,11 +15,11 @@ Test suite specifically targeting JP2 box layout.
 # pylint: disable=W0613
 
 import os
+import re
 import struct
 import sys
 import tempfile
 import unittest
-import warnings
 
 if sys.hexversion < 0x03000000:
     from StringIO import StringIO
@@ -40,6 +40,7 @@ from glymur.jp2box import FileTypeBox, ImageHeaderBox, JP2HeaderBox
 from glymur.jp2box import JPEG2000SignatureBox
 
 from .fixtures import OPJ_DATA_ROOT, opj_data_file
+from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
 class TestXML(unittest.TestCase):
@@ -166,7 +167,6 @@ class TestXML(unittest.TestCase):
 
 
 
-@unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
 class TestJp2kBadXmlFile(unittest.TestCase):
     """Test suite for bad XML box situations"""
 
@@ -207,14 +207,11 @@ class TestJp2kBadXmlFile(unittest.TestCase):
     def tearDown(self):
         pass
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_invalid_xml_box(self):
         """Should be able to recover info from xml box with bad xml."""
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
+        with self.assertWarns(UserWarning):
             jp2k = Jp2k(self._bad_xml_file)
-            self.assertTrue(issubclass(w[0].category, UserWarning))
-            msg = 'No XML was retrieved'
-            self.assertTrue(msg in str(w[0].message))
 
         self.assertEqual(jp2k.box[3].box_id, 'xml ')
         self.assertEqual(jp2k.box[3].offset, 77)
@@ -263,19 +260,17 @@ class TestBadButRecoverableXmlFile(unittest.TestCase):
     def tearDownClass(cls):
         os.unlink(cls._bad_xml_file)
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_bad_xml_box_warning(self):
         """Should warn in case of bad XML"""
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        regex = 'A UnicodeDecodeError was encountered parsing an XML box'
+        with self.assertWarnsRegex(UserWarning, regex):
             Jp2k(self._bad_xml_file)
-            self.assertTrue(issubclass(w[0].category, UserWarning))
-            msg = 'A UnicodeDecodeError was encountered parsing an XML box'
-            self.assertTrue(msg in str(w[0].message))
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_recover_from_bad_xml(self):
         """Should be able to recover info from xml box with bad xml."""
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+        with self.assertWarns(UserWarning):
             jp2 = Jp2k(self._bad_xml_file)
 
         self.assertEqual(jp2.box[3].box_id, 'xml ')
@@ -285,23 +280,21 @@ class TestBadButRecoverableXmlFile(unittest.TestCase):
                          b'<test>this is a test</test>')
 
 
+@unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 class TestXML_OpjDataRoot(unittest.TestCase):
     """Test suite for XML boxes, requires OPJ_DATA_ROOT."""
 
-    @unittest.skipIf(sys.platform.startswith('linux'), 'Failing on linux')
     def test_bom(self):
         """Byte order markers are illegal in UTF-8.  Issue 185"""
         filename = opj_data_file(os.path.join('input',
                                               'nonregression',
                                               'issue171.jp2'))
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
+        msg = 'An illegal BOM \(byte order marker\) was detected and removed '
+        msg += 'from the XML contents in the box starting at byte offset \d+' 
+        with self.assertWarnsRegex(UserWarning, re.compile(msg)):
             jp2 = Jp2k(filename)
-            self.assertTrue(issubclass(w[0].category, UserWarning))
-            msg = 'An illegal BOM (byte order marker) was detected and removed'
-            self.assertTrue(msg in str(w[0].message))
 
         self.assertIsNotNone(jp2.box[3].xml)
             
@@ -311,10 +304,8 @@ class TestXML_OpjDataRoot(unittest.TestCase):
         filename = opj_data_file(os.path.join('input',
                                               'nonregression',
                                               '26ccf3651020967f7778238ef5af08af.SIGFPE.d25.527.jp2'))
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter("always")
+        with self.assertWarns((UserWarning, UserWarning)):
             jp2 = Jp2k(filename)
-            self.assertTrue(issubclass(w[0].category, UserWarning))
 
         self.assertIsNone(jp2.box[3].box[1].box[1].xml)
             

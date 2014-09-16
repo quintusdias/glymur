@@ -13,7 +13,6 @@ import re
 import sys
 import tempfile
 import unittest
-import warnings
 
 import numpy as np
 try:
@@ -24,6 +23,7 @@ except ImportError:
 from .fixtures import OPJ_DATA_ROOT, opj_data_file, read_image
 from .fixtures import NO_READ_BACKEND, NO_READ_BACKEND_MSG
 from .fixtures import NO_SKIMAGE_FREEIMAGE_SUPPORT
+from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
 
 from glymur import Jp2k
 import glymur
@@ -76,13 +76,13 @@ class TestSuiteNegative(unittest.TestCase):
         jp2k.get_codestream(header_only=False)
         self.assertTrue(True)
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_nr_illegalclrtransform(self):
         """EOC marker is bad"""
         relpath = 'input/nonregression/illegalcolortransform.j2k'
         jfile = opj_data_file(relpath)
         jp2k = Jp2k(jfile)
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
+        with self.assertWarns(UserWarning):
             codestream = jp2k.get_codestream(header_only=False)
 
         # Verify that the last segment returned in the codestream is SOD,
