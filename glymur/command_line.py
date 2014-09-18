@@ -1,10 +1,15 @@
-#!/usr/bin/env python
-
+"""
+Entry point for console script jp2dump.
+"""
 import argparse
 import sys
-from . import jp2dump, set_printoptions
+import warnings
+from . import Jp2k, set_printoptions
 
 def main():
+    """
+    Entry point for console script jp2dump.
+    """
 
     description='Print JPEG2000 metadata.'
     parser = argparse.ArgumentParser(description=description)
@@ -45,5 +50,22 @@ def main():
         print_full_codestream = True
     
     filename = args.filename
-    jp2dump(args.filename, codestream=print_full_codestream)
     
+    with warnings.catch_warnings(record=True) as wctx:
+
+        # JP2 metadata can be extensive, so don't print any warnings until we
+        # are done with the metadata.
+        j = Jp2k(filename)
+        if print_full_codestream:
+            print(j.get_codestream(header_only=False))
+        else:
+            print(j)
+
+        # Re-emit any warnings that may have been suppressed.
+        if len(wctx) > 0:
+            print("\n")
+        for warning in wctx:
+            print("{0}:{1}: {2}: {3}".format(warning.filename,
+                                             warning.lineno,
+                                             warning.category.__name__,
+                                             warning.message))
