@@ -5,6 +5,7 @@ import os
 import re
 import sys
 import textwrap
+import unittest
 import warnings
 
 import numpy as np
@@ -23,6 +24,124 @@ if sys.hexversion < 0x03000000:
 elif re.match('1.[0-6]', six.__version__) is not None:
     WARNING_INFRASTRUCTURE_ISSUE = True
     WARNING_INFRASTRUCTURE_MSG = "Cannot use with this version of six"
+
+class MetadataBase(unittest.TestCase):
+    """
+    Base class for testing metadata.
+
+    This class has helper routines defined for testing metadata so that it can
+    be subclassed and used easily.
+    """
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def verify_codeblock_style(self, actual, style):
+        """
+        Verify the code-block style for SPcod and SPcoc parameters.
+
+        This information is stored in a single byte.  Please reference
+        Table A-17 in FCD15444-1
+        """
+        expected = 0
+        if style[0]:
+            # Selective arithmetic coding bypass
+            expected |= 0x01
+        if style[1]:
+            # Reset context probabilities
+            expected |= 0x02
+        if style[2]:
+            # Termination on each coding pass
+            expected |= 0x04
+        if style[3]:
+            # Vertically causal context
+            expected |= 0x08
+        if style[4]:
+            # Predictable termination
+            expected |= 0x10
+        if style[5]:
+            # Segmentation symbols
+            expected |= 0x20
+        self.assertEqual(actual, expected)
+
+    def verifySignatureBox(self, box):
+        """
+        The signature box is a constant.
+        """
+        self.assertEqual(box.signature, (13, 10, 135, 10))
+
+    def verify_filetype_box(self, actual, expected):
+        """
+        All JP2 files should have a brand reading 'jp2 ' and just a single
+        entry in the compatibility list, also 'jp2 '.  JPX files can have more
+        compatibility items.
+        """
+        self.assertEqual(actual.brand, expected.brand)
+        self.assertEqual(actual.minor_version, expected.minor_version)
+        self.assertEqual(actual.minor_version, 0)
+        for cl in expected.compatibility_list:
+            self.assertIn(cl, actual.compatibility_list)
+
+    def verifyRGNsegment(self, actual, expected):
+        """
+        verify the fields of a RGN segment
+        """
+        self.assertEqual(actual.crgn, expected.crgn) # 0 = component
+        self.assertEqual(actual.srgn, expected.srgn) # 0 = implicit
+        self.assertEqual(actual.sprgn, expected.sprgn)
+
+    def verifySOTsegment(self, actual, expected):
+        """
+        verify the fields of a SOT (start of tile) segment
+        """
+        self.assertEqual(actual.isot, expected.isot)
+        self.assertEqual(actual.psot, expected.psot)
+        self.assertEqual(actual.tpsot, expected.tpsot)
+        self.assertEqual(actual.tnsot, expected.tnsot)
+
+    def verifyCMEsegment(self, actual, expected):
+        """
+        verify the fields of a CME (comment) segment
+        """
+        self.assertEqual(actual.rcme, expected.rcme)
+        self.assertEqual(actual.ccme, expected.ccme)
+
+    def verifySizSegment(self, actual, expected):
+        """
+        Verify the fields of the SIZ segment.
+        """
+        for field in ['rsiz', 'xsiz', 'ysiz', 'xosiz', 'yosiz', 'xtsiz', 
+                'ytsiz', 'xtosiz', 'ytosiz', 'bitdepth', 'xrsiz', 'yrsiz']:
+            self.assertEqual(getattr(actual, field), getattr(expected, field))
+
+    def verifyImageHeaderBox(self, box1, box2):
+        self.assertEqual(box1.height,             box2.height)
+        self.assertEqual(box1.width,              box2.width)
+        self.assertEqual(box1.num_components,     box2.num_components)
+        self.assertEqual(box1.bits_per_component, box2.bits_per_component)
+        self.assertEqual(box1.signed,             box2.signed)
+        self.assertEqual(box1.compression,        box2.compression)
+        self.assertEqual(box1.colorspace_unknown, box2.colorspace_unknown)
+        self.assertEqual(box1.ip_provided,        box2.ip_provided)
+
+    def verifyColourSpecificationBox(self, actual, expected):
+        """
+        Does not currently check icc profiles.
+        """
+        self.assertEqual(actual.method,        expected.method)
+        self.assertEqual(actual.precedence,    expected.precedence)
+        self.assertEqual(actual.approximation, expected.approximation)
+
+        if expected.colorspace is None:
+            self.assertIsNone(actual.colorspace)
+            self.assertIsNotNone(actual.icc_profile)
+        else:
+            self.assertEqual(actual.colorspace, expected.colorspace)
+            self.assertIsNone(actual.icc_profile)
+        
 
 # The Python XMP Toolkit may be used for XMP UUIDs, but only if available and
 # if the version is at least 2.0.0.

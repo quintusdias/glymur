@@ -35,8 +35,10 @@ from glymur.jp2box import JPEG2000SignatureBox
 from glymur.core import COLOR, OPACITY
 from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE
 
-from .fixtures import opj_data_file
-from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
+from .fixtures import (
+        WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG,
+        MetadataBase
+)
 
 try:
     FORMAT_CORPUS_DATA_ROOT = os.environ['FORMAT_CORPUS_DATA_ROOT']
@@ -1039,7 +1041,7 @@ class TestJp2Boxes(unittest.TestCase):
                          j.box[5].offset + 8)
 
 
-class TestRepr(unittest.TestCase):
+class TestRepr(MetadataBase):
     """Tests for __repr__ methods."""
     def test_default_jp2k(self):
         """Should be able to eval a JPEG2000SignatureBox"""
@@ -1109,10 +1111,7 @@ class TestRepr(unittest.TestCase):
 
         # Test the representation instantiation.
         newbox = eval(repr(ftyp))
-        self.assertTrue(isinstance(newbox, glymur.jp2box.FileTypeBox))
-        self.assertEqual(newbox.brand, 'jp2 ')
-        self.assertEqual(newbox.minor_version, 0)
-        self.assertEqual(newbox.compatibility_list, ['jp2 '])
+        self.verify_filetype_box(newbox, FileTypeBox())
 
     def test_colourspecification_box(self):
         """Verify __repr__ method on colr box."""

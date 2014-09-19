@@ -35,83 +35,20 @@ import numpy as np
 
 import glymur
 from glymur import Jp2k
-from glymur.codestream import CMEsegment
+from glymur.codestream import CMEsegment, SOTsegment, RGNsegment
 from glymur.core import RCME_ISO_8859_1, RCME_BINARY
+from glymur.jp2box import FileTypeBox
 
-from .fixtures import OPJ_DATA_ROOT
-from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
-from .fixtures import mse, peak_tolerance, read_pgx, opj_data_file
+from .fixtures import (
+        MetadataBase, OPJ_DATA_ROOT,
+        WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG,
+        mse, peak_tolerance, read_pgx, opj_data_file
+)
 
-
-class TestSuiteBase(unittest.TestCase):
-
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
-    def verifySignatureBox(self, box):
-        """
-        The signature box is a constant.
-        """
-        self.assertEqual(box.signature, (13, 10, 135, 10))
-
-    def verifyFileTypeBox(self, box, brand, clist):
-        """
-        All JP2 files should have a brand reading 'jp2 ' and just a single
-        entry in the compatibility list, also 'jp2 '.  JPX files can have more
-        compatibility items.
-        """
-        self.assertEqual(box.brand, brand)
-        self.assertEqual(box.minor_version, 0)
-        for cl in clist:
-            self.assertIn(cl, box.compatibility_list)
-
-    def verifyCMEsegment(self, actual, expected):
-        """
-        verify the fields of a CME (comment) segment
-        """
-        self.assertEqual(actual.rcme, expected.rcme)
-        self.assertEqual(actual.ccme, expected.ccme)
-
-    def verifySizSegment(self, actual, expected):
-        """
-        Verify the fields of the SIZ segment.
-        """
-        for field in ['rsiz', 'xsiz', 'ysiz', 'xosiz', 'yosiz', 'xtsiz', 
-                'ytsiz', 'xtosiz', 'ytosiz', 'bitdepth', 'xrsiz', 'yrsiz']:
-            self.assertEqual(getattr(actual, field), getattr(expected, field))
-
-    def verifyImageHeaderBox(self, box1, box2):
-        self.assertEqual(box1.height,             box2.height)
-        self.assertEqual(box1.width,              box2.width)
-        self.assertEqual(box1.num_components,     box2.num_components)
-        self.assertEqual(box1.bits_per_component, box2.bits_per_component)
-        self.assertEqual(box1.signed,             box2.signed)
-        self.assertEqual(box1.compression,        box2.compression)
-        self.assertEqual(box1.colorspace_unknown, box2.colorspace_unknown)
-        self.assertEqual(box1.ip_provided,        box2.ip_provided)
-
-    def verifyColourSpecificationBox(self, actual, expected):
-        """
-        Does not currently check icc profiles.
-        """
-        self.assertEqual(actual.method,        expected.method)
-        self.assertEqual(actual.precedence,    expected.precedence)
-        self.assertEqual(actual.approximation, expected.approximation)
-
-        if expected.colorspace is None:
-            self.assertIsNone(actual.colorspace)
-            self.assertIsNotNone(actual.icc_profile)
-        else:
-            self.assertEqual(actual.colorspace, expected.colorspace)
-            self.assertIsNone(actual.icc_profile)
-        
 
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
-class TestSuite(TestSuiteBase):
+class TestSuite(MetadataBase):
 
     def setUp(self):
         pass
@@ -130,7 +67,7 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         self.verifySignatureBox(jp2.box[0])
-        self.verifyFileTypeBox(jp2.box[1], 'jp2 ', ['jp2 '])
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
 
         ihdr = glymur.jp2box.ImageHeaderBox(243, 720, num_components=3)
         self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
@@ -159,18 +96,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (32, 128))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -215,26 +142,12 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[3].spcod[4], 3)  # layers
         self.assertEqual(tuple(c.segment[3].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[3].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[3].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[3].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[3].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[3].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[3].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[3].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[3].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[4].isot, 0)
-        self.assertEqual(c.segment[4].psot, 7314)
-        self.assertEqual(c.segment[4].tpsot, 0)
-        self.assertEqual(c.segment[4].tnsot, 1)
+        self.verifySOTsegment(c.segment[4], SOTsegment(0, 7314, 0, 1))
 
     def test_NR_p0_02_dump(self):
         jfile = opj_data_file('input/conformance/p0_02.j2k')
@@ -254,18 +167,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 3)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertTrue(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertTrue(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertTrue(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, True, False, True, True])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
@@ -274,18 +177,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[3].spcoc[0], 3)  # levels
         self.assertEqual(tuple(c.segment[3].code_block_size),
                          (32, 32))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[3].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[3].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertTrue(c.segment[3].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[3].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertTrue(c.segment[3].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertTrue(c.segment[3].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[3].spcoc[3],
+                [False, False, True, False, True, True])
         self.assertEqual(c.segment[3].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -304,11 +197,7 @@ class TestSuite(TestSuiteBase):
         # One unknown marker
         self.assertEqual(c.segment[6].marker_id, '0xff30')
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[7].isot, 0)
-        self.assertEqual(c.segment[7].psot, 6047)
-        self.assertEqual(c.segment[7].tpsot, 0)
-        self.assertEqual(c.segment[7].tnsot, 1)
+        self.verifySOTsegment(c.segment[7], SOTsegment(0, 6047, 0, 1))
 
         # SOD:  start of data
         # Just one.
@@ -341,18 +230,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 1)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -399,16 +278,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[10].ttlm, (0, 1, 2, 3))
         self.assertEqual(c.segment[10].ptlm, (4267, 2117, 4080, 2081))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[11].isot, 0)
-        self.assertEqual(c.segment[11].psot, 4267)
-        self.assertEqual(c.segment[11].tpsot, 0)
-        self.assertEqual(c.segment[11].tnsot, 1)
-
-        # RGN: region of interest
-        self.assertEqual(c.segment[12].crgn, 0)
-        self.assertEqual(c.segment[12].srgn, 0)
-        self.assertEqual(c.segment[12].sprgn, 7)
+        self.verifySOTsegment(c.segment[11], SOTsegment(0, 4267, 0, 1))
+        self.verifyRGNsegment(c.segment[12], RGNsegment(0, 0, 7))
 
         # SOD:  start of data
         # Just one.
@@ -433,18 +304,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 6)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertTrue(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, True, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size,
@@ -495,11 +356,7 @@ class TestSuite(TestSuiteBase):
                 "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
         self.verifyCMEsegment(c.segment[6], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[7].isot, 0)
-        self.assertEqual(c.segment[7].psot, 264383)
-        self.assertEqual(c.segment[7].tpsot, 0)
-        self.assertEqual(c.segment[7].tnsot, 1)
+        self.verifySOTsegment(c.segment[7], SOTsegment(0, 264383, 0, 1))
 
         # SOD:  start of data
         # Just one.
@@ -525,18 +382,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 6)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (32, 32))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -546,18 +393,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[3].spcoc[0], 3)  # levels
         self.assertEqual(tuple(c.segment[3].code_block_size),
                          (32, 32))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[3].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[3].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[3].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[3].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[3].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[3].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[3].spcoc[3],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[3].spcoc[4],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
@@ -566,18 +403,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[4].spcoc[0], 6)  # levels
         self.assertEqual(tuple(c.segment[4].code_block_size),
                          (32, 32))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[4].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[4].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[4].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[4].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[4].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[4].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[4].spcoc[3],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[4].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -622,11 +449,7 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[9].ttlm, (0,))
         self.assertEqual(c.segment[9].ptlm, (1310540,))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[10].isot, 0)
-        self.assertEqual(c.segment[10].psot, 1310540)
-        self.assertEqual(c.segment[10].tpsot, 0)
-        self.assertEqual(c.segment[10].tnsot, 1)
+        self.verifySOTsegment(c.segment[10], SOTsegment(0, 1310540, 0, 1))
 
         # SOD:  start of data
         # Just one.
@@ -652,18 +475,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 6)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -721,36 +534,14 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[7].spcoc[0], 6)  # levels
         self.assertEqual(tuple(c.segment[7].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[7].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[7].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[7].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[7].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[7].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[7].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[7].spcoc[3],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[7].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
-        # RGN: region of interest
-        self.assertEqual(c.segment[8].crgn, 0)  # component
-        self.assertEqual(c.segment[8].srgn, 0)  # implicit
-        self.assertEqual(c.segment[8].sprgn, 11)
-
-        # SOT: start of tile part
-        self.assertEqual(c.segment[9].isot, 0)
-        self.assertEqual(c.segment[9].psot, 33582)
-        self.assertEqual(c.segment[9].tpsot, 0)
-        self.assertEqual(c.segment[9].tnsot, 1)
-
-        # RGN: region of interest
-        self.assertEqual(c.segment[10].crgn, 0)  # component
-        self.assertEqual(c.segment[10].srgn, 0)  # implicit
-        self.assertEqual(c.segment[10].sprgn, 9)
+        self.verifyRGNsegment(c.segment[8], RGNsegment(0, 0, 11))
+        self.verifySOTsegment(c.segment[9], SOTsegment(0, 33582, 0, 1))
+        self.verifyRGNsegment(c.segment[10], RGNsegment(0, 0, 9))
 
         # SOD:  start of data
         # Just one.
@@ -775,18 +566,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 3)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -802,11 +583,7 @@ class TestSuite(TestSuiteBase):
         pargs = (RCME_ISO_8859_1, "Kakadu-3.0.7".encode())
         self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[5].isot, 0)
-        self.assertEqual(c.segment[5].psot, 9951)
-        self.assertEqual(c.segment[5].tpsot, 0)
-        self.assertEqual(c.segment[5].tnsot, 0)  # unknown
+        self.verifySOTsegment(c.segment[5], SOTsegment(0, 9951, 0, 0))
 
         # POD: progression order change
         self.assertEqual(c.segment[6].rspod, (0,))
@@ -842,18 +619,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 7)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -863,18 +630,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[3].spcoc[0], 6)  # levels
         self.assertEqual(tuple(c.segment[3].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[3].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[3].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[3].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[3].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[3].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[3].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[3].spcoc[3],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[3].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -883,18 +640,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[4].spcoc[0], 7)  # levels
         self.assertEqual(tuple(c.segment[4].code_block_size),
                          (32, 32))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[4].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[4].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[4].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[4].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[4].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[4].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[4].spcoc[3],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[4].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -903,18 +650,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[5].spcoc[0], 8)  # levels
         self.assertEqual(tuple(c.segment[5].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[5].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[5].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[5].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[5].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[5].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[5].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[5].spcoc[3],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[5].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -952,11 +689,7 @@ class TestSuite(TestSuiteBase):
         pargs = (RCME_ISO_8859_1, "Kakadu-3.0.7".encode())
         self.verifyCMEsegment(c.segment[9], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[10].isot, 0)
-        self.assertEqual(c.segment[10].psot, 3820593)
-        self.assertEqual(c.segment[10].tpsot, 0)
-        self.assertEqual(c.segment[10].tnsot, 1)  # unknown
+        self.verifySOTsegment(c.segment[10], SOTsegment(0, 3820593, 0, 1))
 
     def test_NR_p0_09_dump(self):
         jfile = opj_data_file('input/conformance/p0_09.j2k')
@@ -976,18 +709,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1006,11 +729,7 @@ class TestSuite(TestSuiteBase):
         pargs = (RCME_ISO_8859_1, "Kakadu-3.0.7".encode())
         self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[5].isot, 0)
-        self.assertEqual(c.segment[5].psot, 478)
-        self.assertEqual(c.segment[5].tpsot, 0)
-        self.assertEqual(c.segment[5].tnsot, 1)  # unknown
+        self.verifySOTsegment(c.segment[5], SOTsegment(0, 478, 0, 1))
 
         # SOD:  start of data
         # Just one.
@@ -1038,18 +757,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 3)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1062,88 +771,33 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[3].exponent,
                          [11, 12, 12, 13, 12, 12, 13, 12, 12, 13])
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[4].isot, 0)
-        self.assertEqual(c.segment[4].psot, 2453)
-        self.assertEqual(c.segment[4].tpsot, 0)
-        self.assertEqual(c.segment[4].tnsot, 0)
+        self.verifySOTsegment(c.segment[4], SOTsegment(0, 2453, 0, 0))
 
-        # SOD:  start of data
         self.assertEqual(c.segment[5].marker_id, 'SOD')
+        self.verifySOTsegment(c.segment[6], SOTsegment(1, 2403, 0, 0))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[6].isot, 1)
-        self.assertEqual(c.segment[6].psot, 2403)
-        self.assertEqual(c.segment[6].tpsot, 0)
-        self.assertEqual(c.segment[6].tnsot, 0)
-
-        # SOD:  start of data
         self.assertEqual(c.segment[7].marker_id, 'SOD')
+        self.verifySOTsegment(c.segment[8], SOTsegment(2, 2420, 0, 0))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[8].isot, 2)
-        self.assertEqual(c.segment[8].psot, 2420)
-        self.assertEqual(c.segment[8].tpsot, 0)
-        self.assertEqual(c.segment[8].tnsot, 0)
-
-        # SOD:  start of data
         self.assertEqual(c.segment[9].marker_id, 'SOD')
+        self.verifySOTsegment(c.segment[10], SOTsegment(3, 2472, 0, 0))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[10].isot, 3)
-        self.assertEqual(c.segment[10].psot, 2472)
-        self.assertEqual(c.segment[10].tpsot, 0)
-        self.assertEqual(c.segment[10].tnsot, 0)
-
-        # SOD:  start of data
         self.assertEqual(c.segment[11].marker_id, 'SOD')
+        self.verifySOTsegment(c.segment[12], SOTsegment(0, 1043, 1, 2))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[12].isot, 0)
-        self.assertEqual(c.segment[12].psot, 1043)
-        self.assertEqual(c.segment[12].tpsot, 1)
-        self.assertEqual(c.segment[12].tnsot, 2)
-
-        # SOD:  start of data
         self.assertEqual(c.segment[13].marker_id, 'SOD')
+        self.verifySOTsegment(c.segment[14], SOTsegment(1, 1101, 1, 2))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[14].isot, 1)
-        self.assertEqual(c.segment[14].psot, 1101)
-        self.assertEqual(c.segment[14].tpsot, 1)
-        self.assertEqual(c.segment[14].tnsot, 2)
-
-        # SOD:  start of data
         self.assertEqual(c.segment[15].marker_id, 'SOD')
+        self.verifySOTsegment(c.segment[16], SOTsegment(3, 1054, 1, 2))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[16].isot, 3)
-        self.assertEqual(c.segment[16].psot, 1054)
-        self.assertEqual(c.segment[16].tpsot, 1)
-        self.assertEqual(c.segment[16].tnsot, 2)
-
-        # SOD:  start of data
         self.assertEqual(c.segment[17].marker_id, 'SOD')
+        self.verifySOTsegment(c.segment[18], SOTsegment(2, 14, 1, 0))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[18].isot, 2)
-        self.assertEqual(c.segment[18].psot, 14)
-        self.assertEqual(c.segment[18].tpsot, 1)
-        self.assertEqual(c.segment[18].tnsot, 0)
-
-        # SOD:  start of data
         self.assertEqual(c.segment[19].marker_id, 'SOD')
+        self.verifySOTsegment(c.segment[20], SOTsegment(2, 1089, 2, 0))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[20].isot, 2)
-        self.assertEqual(c.segment[20].psot, 1089)
-        self.assertEqual(c.segment[20].tpsot, 2)
-        self.assertEqual(c.segment[20].tnsot, 0)
-
-        # SOD:  start of data
         self.assertEqual(c.segment[21].marker_id, 'SOD')
-
-        # EOC:  end of codestream
         self.assertEqual(c.segment[22].marker_id, 'EOC')
 
     def test_NR_p0_11_dump(self):
@@ -1164,18 +818,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 0)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertTrue(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, True])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size, [(128, 2)])
@@ -1191,11 +835,7 @@ class TestSuite(TestSuiteBase):
                 "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
         self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[5].isot, 0)
-        self.assertEqual(c.segment[5].psot, 118)
-        self.assertEqual(c.segment[5].tpsot, 0)
-        self.assertEqual(c.segment[5].tnsot, 1)
+        self.verifySOTsegment(c.segment[5], SOTsegment(0, 118, 0, 1))
 
         # SOD:  start of data
         self.assertEqual(c.segment[6].marker_id, 'SOD')
@@ -1228,18 +868,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 3)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (32, 32))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertTrue(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, True, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1255,11 +885,7 @@ class TestSuite(TestSuiteBase):
         pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
         self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[5].isot, 0)
-        self.assertEqual(c.segment[5].psot, 162)
-        self.assertEqual(c.segment[5].tpsot, 0)
-        self.assertEqual(c.segment[5].tnsot, 1)
+        self.verifySOTsegment(c.segment[5], SOTsegment(0, 162, 0, 1))
 
         # SOD:  start of data
         self.assertEqual(c.segment[6].marker_id, 'SOD')
@@ -1291,18 +917,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 1)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size), (32, 32))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertTrue(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, True, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1311,18 +927,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[3].ccoc, 2)
         self.assertEqual(c.segment[3].spcoc[0], 1)  # levels
         self.assertEqual(tuple(c.segment[3].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[3].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[3].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[3].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[3].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[3].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[3].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[3].spcoc[3],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[3].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -1352,10 +958,7 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[6].exponent, [9, 10, 10, 11])
         self.assertEqual(c.segment[6].mantissa, [0, 0, 0, 0])
 
-        # RGN: region of interest
-        self.assertEqual(c.segment[7].crgn, 3)
-        self.assertEqual(c.segment[7].srgn, 0)
-        self.assertEqual(c.segment[7].sprgn, 11)
+        self.verifyRGNsegment(c.segment[7], RGNsegment(3, 0, 11))
 
         # POD:  progression order change
         self.assertEqual(c.segment[8].rspod, (0, 0))
@@ -1369,11 +972,7 @@ class TestSuite(TestSuiteBase):
         pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
         self.verifyCMEsegment(c.segment[9], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[10].isot, 0)
-        self.assertEqual(c.segment[10].psot, 1537)
-        self.assertEqual(c.segment[10].tpsot, 0)
-        self.assertEqual(c.segment[10].tnsot, 1)
+        self.verifySOTsegment(c.segment[10], SOTsegment(0, 1537, 0, 1))
 
         # SOD:  start of data
         self.assertEqual(c.segment[11].marker_id, 'SOD')
@@ -1399,18 +998,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1427,16 +1016,8 @@ class TestSuite(TestSuiteBase):
         pargs = (RCME_ISO_8859_1, "Kakadu-3.0.7".encode())
         self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[5].isot, 0)
-        self.assertEqual(c.segment[5].psot, 1528)
-        self.assertEqual(c.segment[5].tpsot, 0)
-        self.assertEqual(c.segment[5].tnsot, 1)
-
-        # SOD:  start of data
+        self.verifySOTsegment(c.segment[5], SOTsegment(0, 1528, 0, 1))
         self.assertEqual(c.segment[6].marker_id, 'SOD')
-
-        # EOC:  end of codestream
         self.assertEqual(c.segment[7].marker_id, 'EOC')
 
     def test_NR_p0_15_dump(self):
@@ -1457,18 +1038,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 1)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1516,49 +1087,30 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[10].ttlm, (0, 1, 2, 3))
         self.assertEqual(c.segment[10].ptlm, (4267, 2117, 4080, 2081))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[11].isot, 0)
-        self.assertEqual(c.segment[11].psot, 4267)
-        self.assertEqual(c.segment[11].tpsot, 0)
-        self.assertEqual(c.segment[11].tnsot, 1)
+        self.verifySOTsegment(c.segment[11], SOTsegment(0, 4267, 0, 1))
 
-        # RGN: region of interest
-        self.assertEqual(c.segment[12].crgn, 0)
-        self.assertEqual(c.segment[12].srgn, 0)
-        self.assertEqual(c.segment[12].sprgn, 7)
+        self.verifyRGNsegment(c.segment[12], RGNsegment(0, 0, 7))
 
         # SOD:  start of data
         self.assertEqual(c.segment[13].marker_id, 'SOD')
 
         # 16 SOP markers would be here if we were looking for them
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[31].isot, 1)
-        self.assertEqual(c.segment[31].psot, 2117)
-        self.assertEqual(c.segment[31].tpsot, 0)
-        self.assertEqual(c.segment[31].tnsot, 1)
+        self.verifySOTsegment(c.segment[31], SOTsegment(1, 2117, 0, 1))
 
         # SOD:  start of data
         self.assertEqual(c.segment[32].marker_id, 'SOD')
 
         # 16 SOP markers would be here if we were looking for them
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[49].isot, 2)
-        self.assertEqual(c.segment[49].psot, 4080)
-        self.assertEqual(c.segment[49].tpsot, 0)
-        self.assertEqual(c.segment[49].tnsot, 1)
+        self.verifySOTsegment(c.segment[49], SOTsegment(2, 4080, 0, 1))
 
         # SOD:  start of data
         self.assertEqual(c.segment[50].marker_id, 'SOD')
 
         # 16 SOP markers would be here if we were looking for them
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[67].isot, 3)
-        self.assertEqual(c.segment[67].psot, 2081)
-        self.assertEqual(c.segment[67].tpsot, 0)
-        self.assertEqual(c.segment[67].tnsot, 1)
+        self.verifySOTsegment(c.segment[67], SOTsegment(3, 2081, 0, 1))
 
         # SOD:  start of data
         self.assertEqual(c.segment[68].marker_id, 'SOD')
@@ -1586,18 +1138,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 3)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1610,11 +1152,7 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[3].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[4].isot, 0)
-        self.assertEqual(c.segment[4].psot, 7331)
-        self.assertEqual(c.segment[4].tpsot, 0)
-        self.assertEqual(c.segment[4].tnsot, 1)
+        self.verifySOTsegment(c.segment[4], SOTsegment(0, 7331, 0, 1))
 
         # SOD:  start of data
         self.assertEqual(c.segment[5].marker_id, 'SOD')
@@ -1640,18 +1178,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 3)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertTrue(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertTrue(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertTrue(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, True, False, True, True])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1660,18 +1188,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[3].ccoc, 0)
         self.assertEqual(c.segment[3].spcoc[0], 3)  # level
         self.assertEqual(tuple(c.segment[3].code_block_size), (32, 32))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[3].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[3].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertTrue(c.segment[3].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[3].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertTrue(c.segment[3].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertTrue(c.segment[3].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[3].spcoc[3],
+                [False, False, True, False, True, True])
         self.assertEqual(c.segment[3].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -1686,11 +1204,7 @@ class TestSuite(TestSuiteBase):
         pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
         self.verifyCMEsegment(c.segment[5], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[6].isot, 0)
-        self.assertEqual(c.segment[6].psot, 4627)
-        self.assertEqual(c.segment[6].tpsot, 0)
-        self.assertEqual(c.segment[6].tnsot, 1)
+        self.verifySOTsegment(c.segment[6], SOTsegment(0, 4627, 0, 1))
 
         # SOD:  start of data
         self.assertEqual(c.segment[7].marker_id, 'SOD')
@@ -1723,18 +1237,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 6)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertTrue(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertTrue(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, True, False, True, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size,
@@ -1784,11 +1288,7 @@ class TestSuite(TestSuiteBase):
         pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
         self.verifyCMEsegment(c.segment[6], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[7].isot, 0)
-        self.assertEqual(c.segment[7].psot, 262838)
-        self.assertEqual(c.segment[7].tpsot, 0)
-        self.assertEqual(c.segment[7].tnsot, 1)
+        self.verifySOTsegment(c.segment[7], SOTsegment(0, 262838, 0, 1))
 
         # PPT:  packed packet headers, tile-part header
         self.assertEqual(c.segment[8].marker_id, 'PPT')
@@ -1819,18 +1319,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 6)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (32, 32))
-        # Selective arithmetic coding bypass
-        self.assertTrue(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertTrue(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [True, False, True, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1839,18 +1329,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[3].ccoc, 1)
         self.assertEqual(c.segment[3].spcoc[0], 3)  # level
         self.assertEqual(tuple(c.segment[3].code_block_size), (32, 32))
-        # Selective arithmetic coding bypass
-        self.assertTrue(c.segment[3].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[3].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertTrue(c.segment[3].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[3].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[3].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[3].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[3].spcoc[3],
+                [True, False, True, False, False, False])
         self.assertEqual(c.segment[3].spcoc[4],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
@@ -1858,18 +1338,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[4].ccoc, 3)
         self.assertEqual(c.segment[4].spcoc[0], 6)  # level
         self.assertEqual(tuple(c.segment[4].code_block_size), (32, 32))
-        # Selective arithmetic coding bypass
-        self.assertTrue(c.segment[4].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[4].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertTrue(c.segment[4].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[4].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[4].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[4].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[4].spcoc[3],
+                [True, False, True, False, False, False])
         self.assertEqual(c.segment[4].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -1917,11 +1387,7 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[10].ttlm, (0,))
         self.assertEqual(c.segment[10].ptlm, (1366780,))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[11].isot, 0)
-        self.assertEqual(c.segment[11].psot, 1366780)
-        self.assertEqual(c.segment[11].tpsot, 0)
-        self.assertEqual(c.segment[11].tnsot, 1)
+        self.verifySOTsegment(c.segment[11], SOTsegment(0, 1366780, 0, 1))
 
         # SOD:  start of data
         self.assertEqual(c.segment[12].marker_id, 'SOD')
@@ -1947,18 +1413,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 3)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1987,20 +1443,12 @@ class TestSuite(TestSuiteBase):
         pargs = (RCME_ISO_8859_1, "Created by Aware, Inc.".encode())
         self.verifyCMEsegment(c.segment[5], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[6].isot, 0)
-        self.assertEqual(c.segment[6].psot, 350)
-        self.assertEqual(c.segment[6].tpsot, 0)
-        self.assertEqual(c.segment[6].tnsot, 1)
+        self.verifySOTsegment(c.segment[6], SOTsegment(0, 350, 0, 1))
 
         # SOD:  start of data
         self.assertEqual(c.segment[7].marker_id, 'SOD')
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[8].isot, 1)
-        self.assertEqual(c.segment[8].psot, 356)
-        self.assertEqual(c.segment[8].tpsot, 0)
-        self.assertEqual(c.segment[8].tnsot, 1)
+        self.verifySOTsegment(c.segment[8], SOTsegment(1, 356, 0, 1))
 
         # QCD: Quantization default
         # quantization type
@@ -2015,11 +1463,7 @@ class TestSuite(TestSuiteBase):
         # SOD:  start of data
         self.assertEqual(c.segment[10].marker_id, 'SOD')
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[11].isot, 2)
-        self.assertEqual(c.segment[11].psot, 402)
-        self.assertEqual(c.segment[11].tpsot, 0)
-        self.assertEqual(c.segment[11].tnsot, 1)
+        self.verifySOTsegment(c.segment[11], SOTsegment(2, 402, 0, 1))
 
         # and so on
 
@@ -2056,18 +1500,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 7)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 8))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertTrue(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertTrue(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertTrue(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [True, False, False, True, True, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size, [(16, 16)] * 8)
@@ -2089,11 +1523,7 @@ class TestSuite(TestSuiteBase):
         zppm = [x.zppm for x in c.segment[5:230]]
         self.assertEqual(zppm, list(range(225)))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[230].isot, 0)
-        self.assertEqual(c.segment[230].psot, 580)
-        self.assertEqual(c.segment[230].tpsot, 0)
-        self.assertEqual(c.segment[230].tnsot, 1)
+        self.verifySOTsegment(c.segment[230], SOTsegment(0, 580, 0, 1))
 
         # 225 total SOT segments
         isot = [x.isot for x in c.segment if x.marker_id == 'SOT']
@@ -2126,18 +1556,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 4)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (32, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertTrue(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertTrue(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, True, False, True])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2156,11 +1576,7 @@ class TestSuite(TestSuiteBase):
         pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
         self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[5].isot, 0)
-        self.assertEqual(c.segment[5].psot, 349)
-        self.assertEqual(c.segment[5].tpsot, 0)
-        self.assertEqual(c.segment[5].tnsot, 1)
+        self.verifySOTsegment(c.segment[5], SOTsegment(0, 349, 0, 1))
 
         # PPT:  packed packet headers, tile-part header
         self.assertEqual(c.segment[6].marker_id, 'PPT')
@@ -2201,18 +1617,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 1)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size, [(1, 1), (2, 2)])
@@ -2221,18 +1627,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[3].ccoc, 1)
         self.assertEqual(c.segment[3].spcoc[0], 1)  # level
         self.assertEqual(tuple(c.segment[3].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[3].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[3].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[3].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[3].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[3].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[3].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[3].spcoc[3],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[3].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(c.segment[3].precinct_size, [(2, 2), (4, 4)])
@@ -2247,11 +1643,7 @@ class TestSuite(TestSuiteBase):
         pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
         self.verifyCMEsegment(c.segment[5], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[6].isot, 0)
-        self.assertEqual(c.segment[6].psot, 434)
-        self.assertEqual(c.segment[6].tpsot, 0)
-        self.assertEqual(c.segment[6].tnsot, 1)
+        self.verifySOTsegment(c.segment[6], SOTsegment(0, 434, 0, 1))
 
         # scads of SOP, EPH segments
 
@@ -2279,18 +1671,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (32, 32))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size[0], (128, 128))
@@ -2311,18 +1693,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[4].ccoc, 1)
         self.assertEqual(c.segment[4].spcoc[0], 5)  # level
         self.assertEqual(tuple(c.segment[4].code_block_size), (32, 32))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[4].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[4].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[4].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[4].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[4].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[4].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[4].spcoc[3],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[4].spcoc[4],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
@@ -2343,18 +1715,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[6].ccoc, 2)
         self.assertEqual(c.segment[6].spcoc[0], 5)  # level
         self.assertEqual(tuple(c.segment[6].code_block_size), (32, 32))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[6].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[6].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[6].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[6].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[6].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[6].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[6].spcoc[3],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[6].spcoc[4],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
@@ -2412,18 +1774,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (32, 32))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size,
@@ -2455,18 +1807,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2494,18 +1836,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2541,18 +1873,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 11)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2588,18 +1910,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2641,18 +1953,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2692,18 +1994,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 11)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2738,18 +2030,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2785,18 +2067,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 8)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2849,18 +2121,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 11)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2893,18 +2155,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2935,18 +2187,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2977,18 +2219,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -3023,18 +2255,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -3069,18 +2291,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -3115,18 +2327,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -3165,18 +2367,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -3216,18 +2408,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 11)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -3263,18 +2445,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 11)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -3310,18 +2482,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (32, 32))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size,
@@ -3349,13 +2511,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(ids, ['ihdr', 'colr', 'pclr', 'cmap'])
 
         self.verifySignatureBox(jp2.box[0])
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[0], 'jp2 ')
-        self.assertEqual(jp2.box[1].compatibility_list[1], 'jpxb')
-        self.assertEqual(jp2.box[1].compatibility_list[2], 'jpx ')
+        self.verify_filetype_box(jp2.box[1],
+                FileTypeBox(compatibility_list=['jp2 ', 'jpxb', 'jpx ']))
 
         # Reader requirements talk.
         # unrestricted jpeg 2000 part 1
@@ -3400,18 +2557,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (32, 32))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -3433,13 +2580,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         self.verifySignatureBox(jp2.box[0])
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[0], 'jp2 ')
-        self.assertEqual(jp2.box[1].compatibility_list[1], 'jpxb')
-        self.assertEqual(jp2.box[1].compatibility_list[2], 'jpx ')
+        self.verify_filetype_box(jp2.box[1],
+                FileTypeBox(compatibility_list=['jp2 ', 'jpxb', 'jpx ']))
 
         # Reader requirements talk.
         # unrestricted jpeg 2000 part 1
@@ -3475,18 +2617,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (32, 32))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -3511,11 +2643,7 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(ids, ['resd'])
 
         self.verifySignatureBox(jp2.box[0])
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[0], 'jp2 ')
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
 
         ihdr = glymur.jp2box.ImageHeaderBox(135, 135, num_components=2,
                 colorspace_unknown=True)
@@ -3552,18 +2680,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -3591,13 +2709,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(ids, ['ihdr', 'colr', 'pclr', 'cmap'])
 
         self.verifySignatureBox(jp2.box[0])
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[0], 'jp2 ')
-        self.assertEqual(jp2.box[1].compatibility_list[1], 'jpxb')
-        self.assertEqual(jp2.box[1].compatibility_list[2], 'jpx ')
+        self.verify_filetype_box(jp2.box[1],
+                FileTypeBox(compatibility_list=['jp2 ', 'jpxb', 'jpx ']))
 
         # Reader requirements talk.
         # unrestricted jpeg 2000 part 1
@@ -3645,18 +2758,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (32, 32))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -3678,11 +2781,7 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         self.verifySignatureBox(jp2.box[0])
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[0], 'jp2 ')
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
 
         ihdr = glymur.jp2box.ImageHeaderBox(576, 766, num_components=3)
         self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
@@ -3711,18 +2810,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (32, 128))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -3747,7 +2836,7 @@ class TestSuite(TestSuiteBase):
 @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
-class TestSuiteWarns(TestSuiteBase):
+class TestSuiteWarns(MetadataBase):
 
     @unittest.skipIf(re.match("1.5|2.0.0", glymur.version.openjpeg_version),
                      "Test not passing on 1.5, 2.0:  not introduced until 2.x")
@@ -3790,7 +2879,7 @@ class TestSuiteWarns(TestSuiteBase):
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         self.verifySignatureBox(jp2.box[0])
-        self.verifyFileTypeBox(jp2.box[1], 'jp2 ', ['jp2 '])
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
 
         ihdr = glymur.jp2box.ImageHeaderBox(152, 203, num_components=3)
         self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
@@ -3822,18 +2911,8 @@ class TestSuiteWarns(TestSuiteBase):
         self.assertEqual(c.segment[3].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[3].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[3].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[3].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[3].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[3].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[3].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[3].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[3].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[3].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[3].spcod), 9)
@@ -3891,7 +2970,7 @@ class TestSuiteWarns(TestSuiteBase):
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         self.verifySignatureBox(jp2.box[0])
-        self.verifyFileTypeBox(jp2.box[1], 'jp2 ', ['jp2 '])
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
 
         # XML box
         tags = [x.tag for x in jp2.box[2].xml.getroot()]
@@ -3924,7 +3003,7 @@ class TestSuiteWarns(TestSuiteBase):
         self.assertEqual(ids, ['ihdr', 'colr', 'cdef'])
 
         self.verifySignatureBox(jp2.box[0])
-        self.verifyFileTypeBox(jp2.box[1], 'jp2 ', ['jp2 '])
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
 
         ihdr = glymur.jp2box.ImageHeaderBox(640, 480, num_components=3)
         self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
@@ -3955,7 +3034,7 @@ class TestSuiteWarns(TestSuiteBase):
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         self.verifySignatureBox(jp2.box[0])
-        self.verifyFileTypeBox(jp2.box[1], 'jp2 ', ['jp2 '])
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
 
         ihdr = glymur.jp2box.ImageHeaderBox(640, 480, num_components=3)
         self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
@@ -3987,7 +3066,7 @@ class TestSuiteWarns(TestSuiteBase):
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         self.verifySignatureBox(jp2.box[0])
-        self.verifyFileTypeBox(jp2.box[1], 'jp2 ', ['jp2 '])
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
 
         ihdr = glymur.jp2box.ImageHeaderBox(512, 768)
         self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
@@ -4015,7 +3094,9 @@ class TestSuiteWarns(TestSuiteBase):
         self.assertEqual(ids, ['ihdr', 'colr', 'colr'])
 
         self.verifySignatureBox(jp2.box[0])
-        self.verifyFileTypeBox(jp2.box[1], 'jpx ', ['jp2 ', 'jpx ', 'jpxb'])
+        expected = FileTypeBox(
+                brand='jpx ', compatibility_list=['jp2 ', 'jpx ', 'jpxb'])
+        self.verify_filetype_box(jp2.box[1], expected)
 
         ihdr = glymur.jp2box.ImageHeaderBox(512, 768, num_components=3)
         self.verifyImageHeaderBox(jp2.box[3].box[0], ihdr)
@@ -4038,7 +3119,7 @@ class TestSuiteWarns(TestSuiteBase):
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         self.verifySignatureBox(jp2.box[0])
-        self.verifyFileTypeBox(jp2.box[1], 'jp2 ', ['jp2 '])
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
 
         ihdr = glymur.jp2box.ImageHeaderBox(512, 768, bits_per_component=12)
         self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
@@ -4096,11 +3177,7 @@ class TestSuiteWarns(TestSuiteBase):
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         self.verifySignatureBox(jp2.box[0])
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].compatibility_list[1], 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
 
         ihdr = glymur.jp2box.ImageHeaderBox(400, 700)
         self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
@@ -4138,11 +3215,7 @@ class TestSuiteWarns(TestSuiteBase):
         self.assertEqual(ids, ['ihdr', 'pclr', 'cmap', 'colr'])
 
         self.verifySignatureBox(jp2.box[0])
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].compatibility_list[1], 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
 
         ihdr = glymur.jp2box.ImageHeaderBox(512, 768)
         self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
@@ -4183,11 +3256,7 @@ class TestSuiteWarns(TestSuiteBase):
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         self.verifySignatureBox(jp2.box[0])
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[0], 'jp2 ')
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
 
         ihdr = glymur.jp2box.ImageHeaderBox(200, 200,
                 num_components=3, colorspace_unknown=True)
@@ -4219,18 +3288,8 @@ class TestSuiteWarns(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -4252,11 +3311,7 @@ class TestSuiteWarns(TestSuiteBase):
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         self.verifySignatureBox(jp2.box[0])
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[0], 'jp2 ')
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
 
         ihdr = glymur.jp2box.ImageHeaderBox(117, 117, num_components=4)
         self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
@@ -4291,18 +3346,8 @@ class TestSuiteWarns(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -4327,11 +3372,7 @@ class TestSuiteWarns(TestSuiteBase):
         self.assertEqual(ids, ['ihdr', 'colr'])
 
         self.verifySignatureBox(jp2.box[0])
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[0], 'jp2 ')
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
 
         ihdr = glymur.jp2box.ImageHeaderBox(117, 117, num_components=4)
         self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
@@ -4366,18 +3407,8 @@ class TestSuiteWarns(TestSuiteBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)

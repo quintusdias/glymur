@@ -33,12 +33,15 @@ import unittest
 
 import numpy as np
 
-from glymur import Jp2k
 import glymur
+from glymur import Jp2k
+from glymur.jp2box import FileTypeBox, ImageHeaderBox, ColourSpecificationBox
 
-from .fixtures import OPJ_DATA_ROOT
-from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
-from .fixtures import mse, peak_tolerance, read_pgx, opj_data_file
+from .fixtures import (
+        OPJ_DATA_ROOT, MetadataBase,
+        WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG,
+        mse, peak_tolerance, read_pgx, opj_data_file
+)
 
 
 @unittest.skipIf(OPJ_DATA_ROOT is None,
@@ -298,7 +301,7 @@ class TestSuite(unittest.TestCase):
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
-class TestSuiteWarns(unittest.TestCase):
+class TestSuiteWarns(MetadataBase):
     """
     Identical setup to above, but these tests issue warnings.
     """
@@ -394,30 +397,13 @@ class TestSuiteWarns(unittest.TestCase):
 
         # Signature box.  Check for corruption.
         self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
 
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[0], 'jp2 ')
+        expected = ImageHeaderBox(152, 203, num_components=3)
+        self.verifyImageHeaderBox(jp2.box[2].box[0], expected)
 
-        # Jp2 Header
-        # Image header
-        self.assertEqual(jp2.box[2].box[0].height, 152)
-        self.assertEqual(jp2.box[2].box[0].width, 203)
-        self.assertEqual(jp2.box[2].box[0].num_components, 3)
-        self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
-        self.assertEqual(jp2.box[2].box[0].signed, False)
-        self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
-        self.assertEqual(jp2.box[2].box[0].ip_provided, False)
-
-        # Jp2 Header
-        # Colour specification
-        self.assertEqual(jp2.box[2].box[1].method,
-                         glymur.core.ENUMERATED_COLORSPACE)
-        self.assertEqual(jp2.box[2].box[1].precedence, 0)
-        self.assertEqual(jp2.box[2].box[1].approximation, 0)  # not allowed?
-        self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.SRGB)
+        expected = ColourSpecificationBox(colorspace=glymur.core.SRGB)
+        self.verifyColourSpecificationBox(jp2.box[2].box[1], expected)
 
         c = jp2.box[3].main_header
 
@@ -425,32 +411,17 @@ class TestSuiteWarns(unittest.TestCase):
         expected = ['SOC', 'SIZ', 'CME', 'COD', 'QCD', 'QCC', 'QCC']
         self.assertEqual(ids, expected)
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 203)
-        self.assertEqual(c.segment[1].ysiz, 152)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (203, 152))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 3)
+        kwargs = {'rsiz': 0, 'xysiz': (203, 152), 'xyosiz': (0, 0),
+                'xytsiz': (203, 152), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
+                'signed': (False, False, False),
+                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                glymur.codestream.SIZsegment(**kwargs))
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[2].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[2].ccme.decode('latin-1'),
-                         "Creator: JasPer Version 1.701.0")
+        pargs = (glymur.core.RCME_ISO_8859_1,
+                "Creator: JasPer Version 1.701.0".encode())
+        self.verifyCMEsegment(c.segment[2],
+                glymur.codestream.CMEsegment(*pargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[3].scod & 2)  # no sop
@@ -461,18 +432,8 @@ class TestSuiteWarns(unittest.TestCase):
         self.assertEqual(c.segment[3].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[3].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[3].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[3].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[3].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[3].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[3].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[3].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[3].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[3].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[3].spcod), 9)
