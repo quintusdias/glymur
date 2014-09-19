@@ -1074,7 +1074,7 @@ class CMEsegment(Segment):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, rcme, ccme, length, offset):
+    def __init__(self, rcme, ccme, length=-1, offset=-1):
         Segment.__init__(self, marker_id='CME')
         self.rcme = rcme
         self.ccme = ccme

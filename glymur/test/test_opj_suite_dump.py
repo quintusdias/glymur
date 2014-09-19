@@ -33,8 +33,10 @@ import unittest
 
 import numpy as np
 
-from glymur import Jp2k
 import glymur
+from glymur import Jp2k
+from glymur.codestream import CMEsegment
+from glymur.core import RCME_ISO_8859_1, RCME_BINARY
 
 from .fixtures import OPJ_DATA_ROOT
 from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
@@ -65,6 +67,13 @@ class TestSuiteBase(unittest.TestCase):
         self.assertEqual(box.minor_version, 0)
         for cl in clist:
             self.assertIn(cl, box.compatibility_list)
+
+    def verifyCMEsegment(self, actual, expected):
+        """
+        verify the fields of a CME (comment) segment
+        """
+        self.assertEqual(actual.rcme, expected.rcme)
+        self.assertEqual(actual.ccme, expected.ccme)
 
     def verifySizSegment(self, actual, expected):
         """
@@ -289,12 +298,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[4].mantissa,
                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[5].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[5].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode()
+        self.verifyCMEsegment(c.segment[5], CMEsegment(*pargs))
 
         # One unknown marker
         self.assertEqual(c.segment[6].marker_id, '0xff30')
@@ -379,26 +384,15 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[6].xcrg, (65424,))
         self.assertEqual(c.segment[6].ycrg, (32558,))
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[7].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[7].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode()
+        self.verifyCMEsegment(c.segment[7], CMEsegment(*pargs))
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[8].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[8].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,"
-                         + "2001 Algo Vision Technology")
+        pargs = (RCME_ISO_8859_1,
+                "Creator: AV-J2K (c) 2000,2001 Algo Vision Technology".encode())
+        self.verifyCMEsegment(c.segment[8], CMEsegment(*pargs))
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[9].rcme, glymur.core.RCME_BINARY)
-        # Comment value
-        self.assertEqual(len(c.segment[9].ccme), 62)
+        pargs = (RCME_BINARY, c.segment[9].ccme)
+        self.verifyCMEsegment(c.segment[9], CMEsegment(*pargs))
 
         # TLM (tile-part length)
         self.assertEqual(c.segment[10].ztlm, 0)
@@ -497,12 +491,9 @@ class TestSuite(TestSuiteBase):
                           1845, 1868, 1925, 1925, 2007, 32, 32, 131, 2002,
                           2002, 1888])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[6].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[6].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1,
+                "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[6], CMEsegment(*pargs))
 
         # SOT: start of tile part
         self.assertEqual(c.segment[7].isot, 0)
@@ -622,12 +613,9 @@ class TestSuite(TestSuiteBase):
                           9, 9, 10])
         self.assertEqual(c.segment[7].mantissa, [0] * 19)
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[8].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[8].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1,
+                "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[8], CMEsegment(*pargs))
 
         # TLM (tile-part length)
         self.assertEqual(c.segment[9].ztlm, 0)
@@ -811,12 +799,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[3].exponent,
                          [14, 15, 15, 16, 15, 15, 16, 15, 15, 16])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'),
-                         "Kakadu-3.0.7")
+        pargs = (RCME_ISO_8859_1, "Kakadu-3.0.7".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
         # SOT: start of tile part
         self.assertEqual(c.segment[5].isot, 0)
@@ -965,12 +949,8 @@ class TestSuite(TestSuiteBase):
                          [11, 12, 12, 13, 12, 12, 13, 12, 12, 13, 12, 12, 13,
                           12, 12, 13, 12, 12, 13, 12, 12, 13, 12, 12, 13])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[9].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[9].ccme.decode('latin-1'),
-                         "Kakadu-3.0.7")
+        pargs = (RCME_ISO_8859_1, "Kakadu-3.0.7".encode())
+        self.verifyCMEsegment(c.segment[9], CMEsegment(*pargs))
 
         # SOT: start of tile part
         self.assertEqual(c.segment[10].isot, 0)
@@ -1023,12 +1003,8 @@ class TestSuite(TestSuiteBase):
                          [16, 16, 16, 16, 15, 15, 15, 14, 14, 14, 12, 12, 12,
                           11, 11, 12])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'),
-                         "Kakadu-3.0.7")
+        pargs = (RCME_ISO_8859_1, "Kakadu-3.0.7".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
         # SOT: start of tile part
         self.assertEqual(c.segment[5].isot, 0)
@@ -1211,12 +1187,9 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[3].mantissa, [0])
         self.assertEqual(c.segment[3].exponent, [8])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1,
+                "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
         # SOT: start of tile part
         self.assertEqual(c.segment[5].isot, 0)
@@ -1279,12 +1252,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[3].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
         # SOT: start of tile part
         self.assertEqual(c.segment[5].isot, 0)
@@ -1397,12 +1366,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[8].ppod,
                          (glymur.core.RLCP, glymur.core.CPRL))
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[9].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[9].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[9], CMEsegment(*pargs))
 
         # SOT: start of tile part
         self.assertEqual(c.segment[10].isot, 0)
@@ -1459,12 +1424,8 @@ class TestSuite(TestSuiteBase):
                          [10, 11, 11, 12, 11, 11, 12, 11, 11, 12, 11, 11, 12,
                           11, 11, 12])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'),
-                         "Kakadu-3.0.7")
+        pargs = (RCME_ISO_8859_1, "Kakadu-3.0.7".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
         # SOT: start of tile part
         self.assertEqual(c.segment[5].isot, 0)
@@ -1540,26 +1501,15 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[6].xcrg, (65424,))
         self.assertEqual(c.segment[6].ycrg, (32558,))
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[7].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[7].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[7], CMEsegment(*pargs))
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[8].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[8].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,"
-                         + "2001 Algo Vision Technology")
+        pargs = (RCME_ISO_8859_1,
+                "Creator: AV-J2K (c) 2000,2001 Algo Vision Technology".encode())
+        self.verifyCMEsegment(c.segment[8], CMEsegment(*pargs))
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[9].rcme, glymur.core.RCME_BINARY)
-        # Comment value
-        self.assertEqual(len(c.segment[9].ccme), 62)
+        pargs = (RCME_BINARY, c.segment[9].ccme)
+        self.verifyCMEsegment(c.segment[9], CMEsegment(*pargs))
 
         # TLM: tile-part length
         self.assertEqual(c.segment[10].ztlm, 0)
@@ -1733,12 +1683,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[4].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[5].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[5].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[5], CMEsegment(*pargs))
 
         # SOT: start of tile part
         self.assertEqual(c.segment[6].isot, 0)
@@ -1835,12 +1781,8 @@ class TestSuite(TestSuiteBase):
                          [14, 14, 14, 14, 13, 13, 13, 12, 12, 12, 11, 11, 11,
                           9, 9, 9, 9, 9, 9])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[6].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[6].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[6], CMEsegment(*pargs))
 
         # SOT: start of tile part
         self.assertEqual(c.segment[7].isot, 0)
@@ -1963,12 +1905,8 @@ class TestSuite(TestSuiteBase):
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10,
                           9, 9, 10])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[8].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[8].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[8], CMEsegment(*pargs))
 
         # PPM:  packed packet headers, main header
         self.assertEqual(c.segment[9].marker_id, 'PPM')
@@ -2046,12 +1984,8 @@ class TestSuite(TestSuiteBase):
                           554, 546, 542, 635, 826, 667, 617, 606, 813, 586,
                           641, 654, 669, 623))
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[5].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[5].ccme.decode('latin-1'),
-                         "Created by Aware, Inc.")
+        pargs = (RCME_ISO_8859_1, "Created by Aware, Inc.".encode())
+        self.verifyCMEsegment(c.segment[5], CMEsegment(*pargs))
 
         # SOT: start of tile part
         self.assertEqual(c.segment[6].isot, 0)
@@ -2148,12 +2082,8 @@ class TestSuite(TestSuiteBase):
                          [17, 17, 17, 17, 16, 16, 16, 15, 15, 15, 14, 14,
                           14, 13, 13, 13, 11, 11, 11, 11, 11, 11])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
         # 225 consecutive PPM segments.
         zppm = [x.zppm for x in c.segment[5:230]]
@@ -2223,12 +2153,8 @@ class TestSuite(TestSuiteBase):
                          [14, 14, 14, 14, 13, 13, 13, 11, 11, 11,
                           11, 11, 11])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
         # SOT: start of tile part
         self.assertEqual(c.segment[5].isot, 0)
@@ -2318,12 +2244,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[4].mantissa, [0] * 4)
         self.assertEqual(c.segment[4].exponent, [8, 9, 9, 10])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[5].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[5].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[5], CMEsegment(*pargs))
 
         # SOT: start of tile part
         self.assertEqual(c.segment[6].isot, 0)
@@ -2449,12 +2371,8 @@ class TestSuite(TestSuiteBase):
                          [18, 18, 18, 18, 17, 17, 17, 16, 16, 16, 14, 14,
                           14, 14, 14, 14])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[8].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[8].ccme.decode('latin-1'),
-                         "Created by OpenJPEG version 1.3.0")
+        pargs = (RCME_ISO_8859_1, "Created by OpenJPEG version 1.3.0".encode())
+        self.verifyCMEsegment(c.segment[8], CMEsegment(*pargs))
 
         # TLM (tile-part length)
         self.assertEqual(c.segment[9].ztlm, 0)
@@ -2697,11 +2615,8 @@ class TestSuite(TestSuiteBase):
                          [22, 22, 22, 22, 21, 21, 21, 20, 20, 20, 19, 19, 19,
                           18, 18, 18])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'), "Kakadu-3.2")
+        pargs = (RCME_ISO_8859_1, "Kakadu-3.2".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
     def test_NR_cthead1_dump(self):
         jfile = opj_data_file('input/nonregression/cthead1.j2k')
@@ -2751,17 +2666,8 @@ class TestSuite(TestSuiteBase):
                          [9, 10, 10, 11, 10, 10, 11, 10, 10, 11, 10, 10, 10,
                           9, 9, 10])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'), "Kakadu-v6.3.1")
-
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'), "Kakadu-v6.3.1")
+        pargs = (RCME_ISO_8859_1, "Kakadu-v6.3.1".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
     def test_NR_illegalcolortransform_dump(self):
         jfile = opj_data_file('input/nonregression/illegalcolortransform.j2k')
@@ -2856,11 +2762,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[3].exponent, [8, 9, 9, 10, 9, 9, 10, 9, 9,
                          10, 9, 9, 10, 9, 9, 10])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_BINARY)
-        # Comment value
-        self.assertEqual(len(c.segment[4].ccme), 36)
+        pargs = (RCME_BINARY, c.segment[4].ccme)
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
     def test_NR_kakadu_v4_4_openjpegv2_broken_dump(self):
         jfile = opj_data_file('input/nonregression/'
@@ -2906,31 +2809,26 @@ class TestSuite(TestSuiteBase):
                          [17, 18, 18, 19, 18, 18, 19, 18, 18, 19, 18, 18, 19,
                           18, 18, 19, 18, 18, 19, 18, 18, 19, 18, 18, 19])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'), "Kakadu-v4.4")
+        pargs = (RCME_ISO_8859_1, "Kakadu-v4.4".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[5].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        expected = "Kdu-Layer-Info: log_2{Delta-D(MSE)/[2^16*Delta-L(bytes)]},"
-        expected += " L(bytes)\n"
-        expected += " -65.4, 6.8e+004\n"
-        expected += " -66.3, 1.0e+005\n"
-        expected += " -67.3, 2.0e+005\n"
-        expected += " -68.5, 4.1e+005\n"
-        expected += " -69.0, 5.1e+005\n"
-        expected += " -69.5, 5.9e+005\n"
-        expected += " -69.7, 6.8e+005\n"
-        expected += " -70.3, 8.2e+005\n"
-        expected += " -70.8, 1.0e+006\n"
-        expected += " -71.9, 1.4e+006\n"
-        expected += " -73.8, 2.0e+006\n"
-        expected += "-256.0, 3.7e+006\n"
-        self.assertEqual(c.segment[5].ccme.decode('latin-1'), expected)
+        ccme = "Kdu-Layer-Info: log_2{Delta-D(MSE)/[2^16*Delta-L(bytes)]},"
+        ccme += " L(bytes)\n"
+        ccme += " -65.4, 6.8e+004\n"
+        ccme += " -66.3, 1.0e+005\n"
+        ccme += " -67.3, 2.0e+005\n"
+        ccme += " -68.5, 4.1e+005\n"
+        ccme += " -69.0, 5.1e+005\n"
+        ccme += " -69.5, 5.9e+005\n"
+        ccme += " -69.7, 6.8e+005\n"
+        ccme += " -70.3, 8.2e+005\n"
+        ccme += " -70.8, 1.0e+006\n"
+        ccme += " -71.9, 1.4e+006\n"
+        ccme += " -73.8, 2.0e+006\n"
+        ccme += "-256.0, 3.7e+006\n"
+        pargs = (RCME_ISO_8859_1, ccme.encode())
+        self.verifyCMEsegment(c.segment[5], CMEsegment(*pargs))
+
 
     def test_NR_MarkerIsNotCompliant_j2k_dump(self):
         jfile = opj_data_file('input/nonregression/MarkerIsNotCompliant.j2k')
@@ -3241,12 +3139,8 @@ class TestSuite(TestSuiteBase):
                          [18, 19, 19, 20, 19, 19, 20, 19, 19, 20, 19, 19, 20,
                           19, 19, 20])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'),
-                         "Kakadu-2.0.2")
+        pargs = (RCME_ISO_8859_1, "Kakadu-2.0.2".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
     def test_NR_test_lossless_j2k_dump(self):
         jfile = opj_data_file('input/nonregression/test_lossless.j2k')
@@ -3295,12 +3189,8 @@ class TestSuite(TestSuiteBase):
                          [12, 13, 13, 14, 13, 13, 14, 13, 13, 14, 13, 13, 14,
                           13, 13, 14])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'),
-                         "ClearCanvas DICOM OpenJPEG")
+        pargs = (RCME_ISO_8859_1, "ClearCanvas DICOM OpenJPEG".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
     def test_NR_123_j2c_dump(self):
         jfile = opj_data_file('input/nonregression/123.j2c')
@@ -3445,12 +3335,8 @@ class TestSuite(TestSuiteBase):
                          [13, 12, 12, 12, 12, 12, 12, 13, 13, 13, 13, 13, 13,
                           13, 13, 13])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'),
-                         "DCP-Werkstatt")
+        pargs = (RCME_ISO_8859_1, "DCP-Werkstatt".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
     def test_NR_issue104_jpxstream_dump(self):
         jfile = opj_data_file('input/nonregression/issue104_jpxstream.jp2')
@@ -3691,12 +3577,8 @@ class TestSuite(TestSuiteBase):
         self.assertEqual(c.segment[3].exponent,
                          [14] * 4 + [13] * 3 + [12] * 3 + [10] * 6)
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'),
-                         "Kakadu-v5.2.1")
+        pargs = (RCME_ISO_8859_1, "Kakadu-v5.2.1".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
     def test_NR_mem_b2b86b74_2753_dump(self):
         jfile = opj_data_file('input/nonregression/mem-b2b86b74-2753.jp2')
@@ -3928,12 +3810,8 @@ class TestSuiteWarns(TestSuiteBase):
                 'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
         self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[2].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[2].ccme.decode('latin-1'),
-                         "Creator: JasPer Vers)on 1.701.0")
+        pargs = RCME_ISO_8859_1, "Creator: JasPer Vers)on 1.701.0".encode()
+        self.verifyCMEsegment(c.segment[2], CMEsegment(*pargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[3].scod & 2)  # no sop
