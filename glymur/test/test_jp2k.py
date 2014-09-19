@@ -52,7 +52,7 @@ def load_tests(loader, tests, ignore):
     return tests
 
 
-class TestSliceProtocol(unittest.TestCase):
+class SliceProtocolBase(unittest.TestCase):
     """
     Test slice protocol, i.e. when using [ ] to read image data.
     """
@@ -64,6 +64,53 @@ class TestSliceProtocol(unittest.TestCase):
 
         self.j2k = Jp2k(glymur.data.goodstuff())
         self.j2k_data = self.j2k.read()
+
+
+@unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+class TestSliceProtocolBaseWrite(SliceProtocolBase):
+
+    def test_basic_write(self):
+        expected = self.j2k_data
+
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j[:] = self.j2k_data
+            expected = j.read()
+
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_cannot_write_a_row(self):
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(IOError):
+                j[5] = self.j2k_data
+
+    def test_cannot_write_a_pixel(self):
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(IOError):
+                j[25, 35] = self.j2k_data[25, 35]
+
+    def test_cannot_write_a_column(self):
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(IOError):
+                j[:, 25, :] = self.j2k_data[:, :25, :]
+
+    def test_cannot_write_a_band(self):
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(IOError):
+                j[:, :, 0] = self.j2k_data[:, :, 0]
+
+    def test_cannot_write_a_subarray(self):
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(IOError):
+                j[:25, :45, :] = self.j2k_data[:25, :25, :]
+
+
+class TestSliceProtocolRead(SliceProtocolBase):
 
     def test_resolution_strides_cannot_differ(self):
         with self.assertRaises(IndexError):
