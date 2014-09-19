@@ -347,7 +347,7 @@ image isn't square. ::
     >>> alpha[mask] = 0
     >>> rgba = np.concatenate((rgb, alpha), axis=2)
     >>> jp2 = Jp2k('tmp.jp2', 'wb')
-    >>> jp2.write(rgba)
+    >>> jp2[:] = rgba
 
 Next we need to specify what types of channels we have.
 The first three channels are color channels, but we identify the fourth as
@@ -447,7 +447,7 @@ http://photojournal.jpl.nasa.gov/tiff/PIA17145.tif info JPEG 2000::
     >>> image = skimage.io.imread('PIA17145.tif')
     >>> from glymur import Jp2k
     >>> jp2 = Jp2k('PIA17145.jp2', 'wb')
-    >>> jp2.write(image)
+    >>> jp2[:] = image
 
 Next you can extract the XMP metadata.
 

@@ -75,38 +75,50 @@ class TestSliceProtocolBaseWrite(SliceProtocolBase):
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
             j[:] = self.j2k_data
-            expected = j.read()
+            actual = j.read()
 
         np.testing.assert_array_equal(actual, expected)
+
+    def test_cannot_write_with_non_default_single_slice(self):
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(TypeError):
+                j[slice(None, 0)] = self.j2k_data
+            with self.assertRaises(TypeError):
+                j[slice(0, None)] = self.j2k_data
+            with self.assertRaises(TypeError):
+                j[slice(0, 0, None)] = self.j2k_data
+            with self.assertRaises(TypeError):
+                j[slice(0, 640)] = self.j2k_data
 
     def test_cannot_write_a_row(self):
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
-            with self.assertRaises(IOError):
+            with self.assertRaises(TypeError):
                 j[5] = self.j2k_data
 
     def test_cannot_write_a_pixel(self):
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
-            with self.assertRaises(IOError):
+            with self.assertRaises(TypeError):
                 j[25, 35] = self.j2k_data[25, 35]
 
     def test_cannot_write_a_column(self):
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
-            with self.assertRaises(IOError):
+            with self.assertRaises(TypeError):
                 j[:, 25, :] = self.j2k_data[:, :25, :]
 
     def test_cannot_write_a_band(self):
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
-            with self.assertRaises(IOError):
+            with self.assertRaises(TypeError):
                 j[:, :, 0] = self.j2k_data[:, :, 0]
 
     def test_cannot_write_a_subarray(self):
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
-            with self.assertRaises(IOError):
+            with self.assertRaises(TypeError):
                 j[:25, :45, :] = self.j2k_data[:25, :25, :]
 
 
