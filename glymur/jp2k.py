@@ -759,6 +759,22 @@ class Jp2k(Jp2kBox):
 
         return boxes
 
+    def __setitem__(self, index, data):
+        """
+        Slicing protocol.
+        """
+        if isinstance(index, slice) and (
+                index.start == None and
+                index.stop == None and
+                index.step == None):
+            # Case of jp2[:] = data, i.e. write the entire image.
+            #
+            # Should have a slice object where start = stop = step = None
+            self.write(data)
+        else:
+            msg = "Images currently must be written entirely at once."
+            raise TypeError(msg)
+
     def __getitem__(self, pargs):
         """
         Slicing protocol.

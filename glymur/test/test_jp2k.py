@@ -21,8 +21,6 @@ import unittest
 import uuid
 from xml.etree import cElementTree as ET
 
-import warnings
-
 import numpy as np
 import pkg_resources
 
@@ -30,6 +28,8 @@ import glymur
 from glymur import Jp2k
 
 from .fixtures import HAS_PYTHON_XMP_TOOLKIT
+from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
+
 if HAS_PYTHON_XMP_TOOLKIT:
     import libxmp
     from libxmp import XMPMeta
@@ -52,7 +52,7 @@ def load_tests(loader, tests, ignore):
     return tests
 
 
-class TestSliceProtocol(unittest.TestCase):
+class SliceProtocolBase(unittest.TestCase):
     """
     Test slice protocol, i.e. when using [ ] to read image data.
     """
@@ -64,6 +64,65 @@ class TestSliceProtocol(unittest.TestCase):
 
         self.j2k = Jp2k(glymur.data.goodstuff())
         self.j2k_data = self.j2k.read()
+
+
+@unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+class TestSliceProtocolBaseWrite(SliceProtocolBase):
+
+    def test_basic_write(self):
+        expected = self.j2k_data
+
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j[:] = self.j2k_data
+            actual = j.read()
+
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_cannot_write_with_non_default_single_slice(self):
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(TypeError):
+                j[slice(None, 0)] = self.j2k_data
+            with self.assertRaises(TypeError):
+                j[slice(0, None)] = self.j2k_data
+            with self.assertRaises(TypeError):
+                j[slice(0, 0, None)] = self.j2k_data
+            with self.assertRaises(TypeError):
+                j[slice(0, 640)] = self.j2k_data
+
+    def test_cannot_write_a_row(self):
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(TypeError):
+                j[5] = self.j2k_data
+
+    def test_cannot_write_a_pixel(self):
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(TypeError):
+                j[25, 35] = self.j2k_data[25, 35]
+
+    def test_cannot_write_a_column(self):
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(TypeError):
+                j[:, 25, :] = self.j2k_data[:, :25, :]
+
+    def test_cannot_write_a_band(self):
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(TypeError):
+                j[:, :, 0] = self.j2k_data[:, :, 0]
+
+    def test_cannot_write_a_subarray(self):
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(TypeError):
+                j[:25, :45, :] = self.j2k_data[:25, :25, :]
+
+
+class TestSliceProtocolRead(SliceProtocolBase):
 
     def test_resolution_strides_cannot_differ(self):
         with self.assertRaises(IndexError):
@@ -1020,6 +1079,7 @@ class TestJp2k_2_1(unittest.TestCase):
             self.assertEqual(j.box[2].box[0].num_components, 4)
             self.assertEqual(j.box[2].box[1].colorspace, glymur.core.SRGB)
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_openjpeg_library_message(self):
         """Verify the error message produced by the openjpeg library"""
@@ -1044,8 +1104,7 @@ class TestJp2k_2_1(unittest.TestCase):
                 tfile.write(data[offset+59:])
                 #tfile.write(data[3186:])
                 tfile.flush()
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
+                with self.assertWarns(UserWarning):
                     j = Jp2k(tfile.name)
                 regexp = re.compile(r'''OpenJPEG\slibrary\serror:\s+
                                         Invalid\svalues\sfor\scomp\s=\s0\s+
@@ -1069,21 +1128,16 @@ class TestParsing(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @unittest.skipIf(sys.platform.startswith('linux'), 'Failing on linux')
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_bad_rsiz(self):
         """Should not warn if RSIZ when parsing is turned off."""
-        # Actually there are three warning triggered by this codestream.
         filename = opj_data_file('input/nonregression/edf_c2_1002767.jp2')
         glymur.set_parseoptions(codestream=False)
-        with warnings.catch_warnings(record=True) as w:
-            j = Jp2k(filename)
-            self.assertEqual(len(w), 0)
+        j = Jp2k(filename)
 
         glymur.set_parseoptions(codestream=True)
-        with warnings.catch_warnings(record=True) as w:
+        with self.assertWarnsRegex(UserWarning, 'Invalid profile'):
             jp2 = Jp2k(filename)
-            self.assertTrue(issubclass(w[0].category, UserWarning))
-            self.assertTrue('Invalid profile' in str(w[0].message))
 
     def test_main_header(self):
         """Verify that the main header is not loaded when parsing turned off."""
@@ -1095,6 +1149,7 @@ class TestParsing(unittest.TestCase):
         main_header = jp2c.main_header
         self.assertIsNotNone(jp2c._main_header)
 
+@unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 class TestJp2kOpjDataRootWarnings(unittest.TestCase):
@@ -1103,11 +1158,8 @@ class TestJp2kOpjDataRootWarnings(unittest.TestCase):
     def test_undecodeable_box_id(self):
         """Should warn in case of undecodeable box ID but not error out."""
         filename = opj_data_file('input/nonregression/edf_c2_1013627.jp2')
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with self.assertWarnsRegex(UserWarning, 'Unrecognized box'):
             jp2 = Jp2k(filename)
-            self.assertTrue(issubclass(w[0].category, UserWarning))
-            self.assertTrue('Unrecognized box' in str(w[0].message))
 
         # Now make sure we got all of the boxes.  Ignore the last, which was
         # bad.
@@ -1117,37 +1169,30 @@ class TestJp2kOpjDataRootWarnings(unittest.TestCase):
     def test_bad_ftyp_brand(self):
         """Should warn in case of bad ftyp brand."""
         filename = opj_data_file('input/nonregression/edf_c2_1000290.jp2')
-        with warnings.catch_warnings(record=True) as w:
-           warnings.simplefilter('always')
+        with self.assertWarns(UserWarning):
            jp2 = Jp2k(filename)
-           self.assertTrue(issubclass(w[0].category, UserWarning))
 
     def test_invalid_approximation(self):
         """Should warn in case of invalid approximation."""
         filename = opj_data_file('input/nonregression/edf_c2_1015644.jp2')
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with self.assertWarnsRegex(UserWarning, 'Invalid approximation'):
             jp2 = Jp2k(filename)
-            self.assertTrue(issubclass(w[0].category, UserWarning))
-            self.assertTrue('Invalid approximation' in str(w[0].message))
 
-    @unittest.skipIf(sys.platform.startswith('linux'), 'Failing on linux')
     def test_invalid_colorspace(self):
-        """Should warn in case of invalid colorspace."""
+        """
+        Should warn in case of invalid colorspace.
+
+        There are multiple warnings, so there's no good way to regex them all.
+        """
         filename = opj_data_file('input/nonregression/edf_c2_1103421.jp2')
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with self.assertWarns(UserWarning):
             jp2 = Jp2k(filename)
-            self.assertTrue(issubclass(w[1].category, UserWarning))
-            self.assertTrue('Unrecognized colorspace' in str(w[1].message))
 
     def test_stupid_windows_eol_at_end(self):
         """Garbage characters at the end of the file."""
         filename = opj_data_file('input/nonregression/issue211.jp2')
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with self.assertWarns(UserWarning):
             jp2 = Jp2k(filename)
-            self.assertTrue(issubclass(w[1].category, UserWarning))
 
 
 @unittest.skipIf(OPJ_DATA_ROOT is None,
@@ -1172,10 +1217,12 @@ class TestJp2kOpjDataRoot(unittest.TestCase):
             actdata = j.read()
             self.assertTrue(fixtures.mse(actdata, expdata) < 250)
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_no_cxform_pclr_jp2(self):
         """Indices for pclr jpxfile if no color transform"""
         filename = opj_data_file('input/conformance/file9.jp2')
-        j = Jp2k(filename)
+        with self.assertWarns(UserWarning):
+            j = Jp2k(filename)
         rgb = j.read()
         idx = j.read(ignore_pclr_cmap_cdef=True)
         self.assertEqual(rgb.shape, (512, 768, 3))
@@ -1200,15 +1247,15 @@ class TestJp2kOpjDataRoot(unittest.TestCase):
         j = Jp2k(filename)
         with self.assertRaises(RuntimeError):
             j.read()
-
+        
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_no_cxform_cmap(self):
         """Bands as physically ordered, not as physically intended"""
         # This file has the components physically reversed.  The cmap box
         # tells the decoder how to order them, but this flag prevents that.
         filename = opj_data_file('input/conformance/file2.jp2')
-        with warnings.catch_warnings():
+        with self.assertWarns(UserWarning):
             # The file has a bad compatibility list entry.  Not important here.
-            warnings.simplefilter("ignore")
             j = Jp2k(filename)
         ycbcr = j.read()
         crcby = j.read(ignore_pclr_cmap_cdef=True)

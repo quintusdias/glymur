@@ -31,20 +31,19 @@ import re
 import sys
 import unittest
 
-import warnings
-
 import numpy as np
 
-from glymur import Jp2k
 import glymur
+from glymur import Jp2k
+from glymur.jp2box import FileTypeBox, ImageHeaderBox, ColourSpecificationBox
 
-from .fixtures import OPJ_DATA_ROOT
-from .fixtures import mse, peak_tolerance, read_pgx, opj_data_file
+from .fixtures import (
+        OPJ_DATA_ROOT, MetadataBase,
+        WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG,
+        mse, peak_tolerance, read_pgx, opj_data_file
+)
 
 
-@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None and
-                 glymur.lib.openjpeg.OPENJPEG is None,
-                 "Missing openjpeg libraries.")
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 class TestSuite(unittest.TestCase):
@@ -204,197 +203,6 @@ class TestSuite(unittest.TestCase):
         self.assertTrue(peak_tolerance(jpdata, pgxdata) < 624)
         self.assertTrue(mse(jpdata, pgxdata) < 3080)
 
-    def test_ETS_JP2_file1(self):
-        jfile = opj_data_file('input/conformance/file1.jp2')
-        with warnings.catch_warnings():
-            # Bad compatibility list item.
-            warnings.simplefilter("ignore")
-            jp2k = Jp2k(jfile)
-        jpdata = jp2k.read()
-        self.assertEqual(jpdata.shape, (512, 768, 3))
-
-    def test_ETS_JP2_file2(self):
-        jfile = opj_data_file('input/conformance/file2.jp2')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read()
-        self.assertEqual(jpdata.shape, (640, 480, 3))
-
-    @unittest.skipIf(glymur.version.openjpeg_version_tuple[0] < 2,
-                     "Functionality not implemented for 1.x")
-    def test_ETS_JP2_file3(self):
-        jfile = opj_data_file('input/conformance/file3.jp2')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read_bands()
-        self.assertEqual(jpdata[0].shape, (640, 480))
-        self.assertEqual(jpdata[1].shape, (320, 240))
-        self.assertEqual(jpdata[2].shape, (320, 240))
-
-    def test_ETS_JP2_file4(self):
-        jfile = opj_data_file('input/conformance/file4.jp2')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read()
-        self.assertEqual(jpdata.shape, (512, 768))
-
-    def test_ETS_JP2_file5(self):
-        jfile = opj_data_file('input/conformance/file5.jp2')
-        with warnings.catch_warnings():
-            # There's a warning for an unknown compatibility entry.
-            # Ignore it here.
-            warnings.simplefilter("ignore")
-            jp2k = Jp2k(jfile)
-        jpdata = jp2k.read()
-        self.assertEqual(jpdata.shape, (512, 768, 3))
-
-    def test_ETS_JP2_file6(self):
-        jfile = opj_data_file('input/conformance/file6.jp2')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read()
-        self.assertEqual(jpdata.shape, (512, 768))
-
-    def test_ETS_JP2_file7(self):
-        jfile = opj_data_file('input/conformance/file7.jp2')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read()
-        self.assertEqual(jpdata.shape, (640, 480, 3))
-
-    def test_ETS_JP2_file8(self):
-        jfile = opj_data_file('input/conformance/file8.jp2')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read()
-        self.assertEqual(jpdata.shape, (400, 700))
-
-    def test_ETS_JP2_file9(self):
-        jfile = opj_data_file('input/conformance/file9.jp2')
-        jp2k = Jp2k(jfile)
-        jpdata = jp2k.read()
-        self.assertEqual(jpdata.shape, (512, 768, 3))
-
-    def test_NR_broken_jp2_dump(self):
-        jfile = opj_data_file('input/nonregression/broken.jp2')
-
-        with warnings.catch_warnings():
-            # colr box has bad length.
-            warnings.simplefilter("ignore")
-            jp2 = Jp2k(jfile)
-
-        ids = [box.box_id for box in jp2.box]
-        self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
-
-        ids = [box.box_id for box in jp2.box[2].box]
-        self.assertEqual(ids, ['ihdr', 'colr'])
-
-        # Signature box.  Check for corruption.
-        self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[0], 'jp2 ')
-
-        # Jp2 Header
-        # Image header
-        self.assertEqual(jp2.box[2].box[0].height, 152)
-        self.assertEqual(jp2.box[2].box[0].width, 203)
-        self.assertEqual(jp2.box[2].box[0].num_components, 3)
-        self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
-        self.assertEqual(jp2.box[2].box[0].signed, False)
-        self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
-        self.assertEqual(jp2.box[2].box[0].ip_provided, False)
-
-        # Jp2 Header
-        # Colour specification
-        self.assertEqual(jp2.box[2].box[1].method,
-                         glymur.core.ENUMERATED_COLORSPACE)
-        self.assertEqual(jp2.box[2].box[1].precedence, 0)
-        self.assertEqual(jp2.box[2].box[1].approximation, 0)  # not allowed?
-        self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.SRGB)
-
-        c = jp2.box[3].main_header
-
-        ids = [x.marker_id for x in c.segment]
-        expected = ['SOC', 'SIZ', 'CME', 'COD', 'QCD', 'QCC', 'QCC']
-        self.assertEqual(ids, expected)
-
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 203)
-        self.assertEqual(c.segment[1].ysiz, 152)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (203, 152))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 3)
-
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[2].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[2].ccme.decode('latin-1'),
-                         "Creator: JasPer Version 1.701.0")
-
-        # COD: Coding style default
-        self.assertFalse(c.segment[3].scod & 2)  # no sop
-        self.assertFalse(c.segment[3].scod & 4)  # no eph
-        self.assertEqual(c.segment[3].spcod[0], glymur.core.LRCP)
-        self.assertEqual(c.segment[3].layers, 1)  # layers = 1
-        self.assertEqual(c.segment[3].spcod[3], 1)  # mct
-        self.assertEqual(c.segment[3].spcod[4], 5)  # level
-        self.assertEqual(tuple(c.segment[3].code_block_size),
-                         (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[3].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[3].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[3].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[3].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[3].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[3].spcod[7] & 0x0020)
-        self.assertEqual(c.segment[3].spcod[8],
-                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-        self.assertEqual(len(c.segment[3].spcod), 9)
-
-        # QCD: Quantization default
-        self.assertEqual(c.segment[4].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[4].guard_bits, 2)
-        self.assertEqual(c.segment[4].mantissa, [0] * 16)
-        self.assertEqual(c.segment[4].exponent,
-                         [8] + [9, 9, 10] * 5)
-
-        # QCC: Quantization component
-        # associated component
-        self.assertEqual(c.segment[5].cqcc, 1)
-        self.assertEqual(c.segment[5].guard_bits, 2)
-        # quantization type
-        self.assertEqual(c.segment[5].sqcc & 0x1f, 0)  # none
-        self.assertEqual(c.segment[5].mantissa, [0] * 16)
-        self.assertEqual(c.segment[5].exponent,
-                         [8] + [9, 9, 10] * 5)
-
-        # QCC: Quantization component
-        # associated component
-        self.assertEqual(c.segment[6].cqcc, 2)
-        self.assertEqual(c.segment[6].guard_bits, 2)
-        # quantization type
-        self.assertEqual(c.segment[6].sqcc & 0x1f, 0)  # none
-        self.assertEqual(c.segment[6].mantissa, [0] * 16)
-        self.assertEqual(c.segment[6].exponent,
-                         [8] + [9, 9, 10] * 5)
-
     def test_NR_DEC_Bretagne2_j2k_1_decode(self):
         jfile = opj_data_file('input/nonregression/Bretagne2.j2k')
         jp2 = Jp2k(jfile)
@@ -474,19 +282,6 @@ class TestSuite(unittest.TestCase):
         Jp2k(jfile).read()
         self.assertTrue(True)
 
-    def test_NR_DEC_orb_blue_lin_jp2_25_decode(self):
-        jfile = opj_data_file('input/nonregression/orb-blue10-lin-jp2.jp2')
-        with warnings.catch_warnings():
-            # This file has an invalid ICC profile
-            warnings.simplefilter("ignore")
-            Jp2k(jfile).read()
-        self.assertTrue(True)
-
-    def test_NR_DEC_orb_blue_win_jp2_26_decode(self):
-        jfile = opj_data_file('input/nonregression/orb-blue10-win-jp2.jp2')
-        Jp2k(jfile).read()
-        self.assertTrue(True)
-
     def test_NR_DEC_relax_jp2_27_decode(self):
         jfile = opj_data_file('input/nonregression/relax.jp2')
         Jp2k(jfile).read()
@@ -505,13 +300,192 @@ class TestSuite(unittest.TestCase):
 
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
+@unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
+class TestSuiteWarns(MetadataBase):
+    """
+    Identical setup to above, but these tests issue warnings.
+    """
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def test_ETS_JP2_file1(self):
+        jfile = opj_data_file('input/conformance/file1.jp2')
+        with self.assertWarns(UserWarning):
+            # Bad compatibility list item.
+            jp2k = Jp2k(jfile)
+        jpdata = jp2k.read()
+        self.assertEqual(jpdata.shape, (512, 768, 3))
+
+    def test_ETS_JP2_file2(self):
+        jfile = opj_data_file('input/conformance/file2.jp2')
+        with self.assertWarns(UserWarning):
+            jp2k = Jp2k(jfile)
+        jpdata = jp2k.read()
+        self.assertEqual(jpdata.shape, (640, 480, 3))
+
+    @unittest.skipIf(glymur.version.openjpeg_version_tuple[0] < 2,
+                     "Functionality not implemented for 1.x")
+    def test_ETS_JP2_file3(self):
+        jfile = opj_data_file('input/conformance/file3.jp2')
+        with self.assertWarns(UserWarning):
+            jp2k = Jp2k(jfile)
+        jpdata = jp2k.read_bands()
+        self.assertEqual(jpdata[0].shape, (640, 480))
+        self.assertEqual(jpdata[1].shape, (320, 240))
+        self.assertEqual(jpdata[2].shape, (320, 240))
+
+    def test_ETS_JP2_file4(self):
+        jfile = opj_data_file('input/conformance/file4.jp2')
+        with self.assertWarns(UserWarning):
+            jp2k = Jp2k(jfile)
+        jpdata = jp2k.read()
+        self.assertEqual(jpdata.shape, (512, 768))
+
+    def test_ETS_JP2_file5(self):
+        jfile = opj_data_file('input/conformance/file5.jp2')
+        with self.assertWarns(UserWarning):
+            # There's a warning for an unknown compatibility entry.
+            # Ignore it here.
+            jp2k = Jp2k(jfile)
+        jpdata = jp2k.read()
+        self.assertEqual(jpdata.shape, (512, 768, 3))
+
+    def test_ETS_JP2_file6(self):
+        jfile = opj_data_file('input/conformance/file6.jp2')
+        with self.assertWarns(UserWarning):
+            jp2k = Jp2k(jfile)
+        jpdata = jp2k.read()
+        self.assertEqual(jpdata.shape, (512, 768))
+
+    def test_ETS_JP2_file7(self):
+        jfile = opj_data_file('input/conformance/file7.jp2')
+        with self.assertWarns(UserWarning):
+            jp2k = Jp2k(jfile)
+        jpdata = jp2k.read()
+        self.assertEqual(jpdata.shape, (640, 480, 3))
+
+    def test_ETS_JP2_file8(self):
+        jfile = opj_data_file('input/conformance/file8.jp2')
+        with self.assertWarns(UserWarning):
+            jp2k = Jp2k(jfile)
+        jpdata = jp2k.read()
+        self.assertEqual(jpdata.shape, (400, 700))
+
+    def test_ETS_JP2_file9(self):
+        jfile = opj_data_file('input/conformance/file9.jp2')
+        with self.assertWarns(UserWarning):
+            jp2k = Jp2k(jfile)
+        jpdata = jp2k.read()
+        self.assertEqual(jpdata.shape, (512, 768, 3))
+
+    def test_NR_broken_jp2_dump(self):
+        jfile = opj_data_file('input/nonregression/broken.jp2')
+
+        with self.assertWarns(UserWarning):
+            # colr box has bad length.
+            jp2 = Jp2k(jfile)
+
+        ids = [box.box_id for box in jp2.box]
+        self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
+
+        ids = [box.box_id for box in jp2.box[2].box]
+        self.assertEqual(ids, ['ihdr', 'colr'])
+
+        # Signature box.  Check for corruption.
+        self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
+
+        expected = ImageHeaderBox(152, 203, num_components=3)
+        self.verifyImageHeaderBox(jp2.box[2].box[0], expected)
+
+        expected = ColourSpecificationBox(colorspace=glymur.core.SRGB)
+        self.verifyColourSpecificationBox(jp2.box[2].box[1], expected)
+
+        c = jp2.box[3].main_header
+
+        ids = [x.marker_id for x in c.segment]
+        expected = ['SOC', 'SIZ', 'CME', 'COD', 'QCD', 'QCC', 'QCC']
+        self.assertEqual(ids, expected)
+
+        kwargs = {'rsiz': 0, 'xysiz': (203, 152), 'xyosiz': (0, 0),
+                'xytsiz': (203, 152), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
+                'signed': (False, False, False),
+                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                glymur.codestream.SIZsegment(**kwargs))
+
+        pargs = (glymur.core.RCME_ISO_8859_1,
+                "Creator: JasPer Version 1.701.0".encode())
+        self.verifyCMEsegment(c.segment[2],
+                glymur.codestream.CMEsegment(*pargs))
+
+        # COD: Coding style default
+        self.assertFalse(c.segment[3].scod & 2)  # no sop
+        self.assertFalse(c.segment[3].scod & 4)  # no eph
+        self.assertEqual(c.segment[3].spcod[0], glymur.core.LRCP)
+        self.assertEqual(c.segment[3].layers, 1)  # layers = 1
+        self.assertEqual(c.segment[3].spcod[3], 1)  # mct
+        self.assertEqual(c.segment[3].spcod[4], 5)  # level
+        self.assertEqual(tuple(c.segment[3].code_block_size),
+                         (64, 64))  # cblk
+        self.verify_codeblock_style(c.segment[3].spcod[7],
+                [False, False, False, False, False, False])
+        self.assertEqual(c.segment[3].spcod[8],
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
+        self.assertEqual(len(c.segment[3].spcod), 9)
+
+        # QCD: Quantization default
+        self.assertEqual(c.segment[4].sqcd & 0x1f, 0)
+        self.assertEqual(c.segment[4].guard_bits, 2)
+        self.assertEqual(c.segment[4].mantissa, [0] * 16)
+        self.assertEqual(c.segment[4].exponent,
+                         [8] + [9, 9, 10] * 5)
+
+        # QCC: Quantization component
+        # associated component
+        self.assertEqual(c.segment[5].cqcc, 1)
+        self.assertEqual(c.segment[5].guard_bits, 2)
+        # quantization type
+        self.assertEqual(c.segment[5].sqcc & 0x1f, 0)  # none
+        self.assertEqual(c.segment[5].mantissa, [0] * 16)
+        self.assertEqual(c.segment[5].exponent,
+                         [8] + [9, 9, 10] * 5)
+
+        # QCC: Quantization component
+        # associated component
+        self.assertEqual(c.segment[6].cqcc, 2)
+        self.assertEqual(c.segment[6].guard_bits, 2)
+        # quantization type
+        self.assertEqual(c.segment[6].sqcc & 0x1f, 0)  # none
+        self.assertEqual(c.segment[6].mantissa, [0] * 16)
+        self.assertEqual(c.segment[6].exponent,
+                         [8] + [9, 9, 10] * 5)
+
+    def test_NR_DEC_orb_blue_lin_jp2_25_decode(self):
+        jfile = opj_data_file('input/nonregression/orb-blue10-lin-jp2.jp2')
+        with self.assertWarns(UserWarning):
+            # This file has an invalid ICC profile
+            Jp2k(jfile).read()
+        self.assertTrue(True)
+
+    def test_NR_DEC_orb_blue_win_jp2_26_decode(self):
+        jfile = opj_data_file('input/nonregression/orb-blue10-win-jp2.jp2')
+        with self.assertWarns(UserWarning):
+            Jp2k(jfile).read()
+        self.assertTrue(True)
+
+
+@unittest.skipIf(OPJ_DATA_ROOT is None,
+                 "OPJ_DATA_ROOT environment variable not set")
 @unittest.skipIf(glymur.version.openjpeg_version_tuple[0] == 1,
                  "Feature not supported in glymur until openjpeg 2.0")
-class TestSuite_bands(unittest.TestCase):
-    """Runs tests introduced in version 1.x but only pass in glymur with 2.0
-
-    The deal here is that the feature works with 1.x, but glymur only supports
-    it with version 2.0.
+class TestSuiteBands(unittest.TestCase):
+    """
+    Test the read_bands method.
     """
 
     def setUp(self):
@@ -630,34 +604,34 @@ class TestSuite2point0(unittest.TestCase):
         pgxdata = read_pgx(pgxfile)
         np.testing.assert_array_equal(jpdata[:, :, 2], pgxdata)
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_NR_DEC_broken2_jp2_5_decode(self):
         # Null pointer access
         jfile = opj_data_file('input/nonregression/broken2.jp2')
         with self.assertRaises(IOError):
-            with warnings.catch_warnings():
+            with self.assertWarns(UserWarning):
                 # Invalid marker ID.
-                warnings.simplefilter("ignore")
                 Jp2k(jfile).read()
         self.assertTrue(True)
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_NR_DEC_broken4_jp2_7_decode(self):
         jfile = opj_data_file('input/nonregression/broken4.jp2')
         with self.assertRaises(IOError):
-            with warnings.catch_warnings():
+            with self.assertWarns(UserWarning):
                 # invalid number of subbands, bad marker ID
-                warnings.simplefilter("ignore")
                 Jp2k(jfile).read()
         self.assertTrue(True)
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_NR_DEC_kakadu_v4_4_openjpegv2_broken_j2k_16_decode(self):
         # This test actually passes in 1.5, but produces unpleasant warning
         # messages that cannot be turned off?
         relpath = 'input/nonregression/kakadu_v4-4_openjpegv2_broken.j2k'
         jfile = opj_data_file(relpath)
         if glymur.version.openjpeg_version_tuple[0] < 2:
-            with warnings.catch_warnings():
+            with self.assertWarns(UserWarning):
                 # Incorrect warning issued about tile parts.
-                warnings.simplefilter("ignore")
                 Jp2k(jfile).read()
         else:
             Jp2k(jfile).read()

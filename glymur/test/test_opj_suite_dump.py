@@ -31,193 +31,30 @@ import re
 import sys
 import unittest
 
-import warnings
-
 import numpy as np
 
-from glymur import Jp2k
 import glymur
+from glymur import Jp2k
+from glymur.codestream import CMEsegment, SOTsegment, RGNsegment
+from glymur.core import RCME_ISO_8859_1, RCME_BINARY
+from glymur.jp2box import FileTypeBox
 
-from .fixtures import OPJ_DATA_ROOT
-from .fixtures import mse, peak_tolerance, read_pgx, opj_data_file
+from .fixtures import (
+        MetadataBase, OPJ_DATA_ROOT,
+        WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG,
+        mse, peak_tolerance, read_pgx, opj_data_file
+)
 
 
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
-class TestSuiteDump(unittest.TestCase):
+class TestSuite(MetadataBase):
 
     def setUp(self):
         pass
 
     def tearDown(self):
         pass
-
-    @unittest.skipIf(re.match("1.5|2.0.0", glymur.version.openjpeg_version),
-                     "Test not passing on 1.5, 2.0:  not introduced until 2.x")
-    def test_NR_DEC_issue188_beach_64bitsbox_jp2_41_decode(self):
-        """
-        Has an 'XML ' box instead of 'xml '.  Just verify we can read it.
-        """
-        relpath = 'input/nonregression/issue188_beach_64bitsbox.jp2'
-        jfile = opj_data_file(relpath)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            j = Jp2k(jfile)
-        d = j.read()
-        self.assertTrue(True)
-
-
-    def test_NR_broken4_jp2_dump(self):
-        jfile = opj_data_file('input/nonregression/broken4.jp2')
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            jp2 = Jp2k(jfile)
-
-        self.assertEqual(jp2.box[-1].main_header.segment[-1].marker_id, 'QCC')
-
-    @unittest.skipIf(sys.maxsize < 2**32, 'Do not run on 32-bit platforms')
-    def test_NR_broken3_jp2_dump(self):
-        """
-        NR_broken3_jp2_dump
-
-        The file in question here has a colr box with an erroneous box
-        length of over 1GB.  Don't run it on 32-bit platforms.
-        """
-        jfile = opj_data_file('input/nonregression/broken3.jp2')
-        with warnings.catch_warnings():
-            # Bad box length.
-            warnings.simplefilter("ignore")
-            jp2 = Jp2k(jfile)
-
-        ids = [box.box_id for box in jp2.box]
-        self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
-
-        ids = [box.box_id for box in jp2.box[2].box]
-        self.assertEqual(ids, ['ihdr', 'colr'])
-
-        # Signature box.  Check for corruption.
-        self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[0], 'jp2 ')
-
-        # Jp2 Header
-        # Image header
-        self.assertEqual(jp2.box[2].box[0].height, 152)
-        self.assertEqual(jp2.box[2].box[0].width, 203)
-        self.assertEqual(jp2.box[2].box[0].num_components, 3)
-        self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
-        self.assertEqual(jp2.box[2].box[0].signed, False)
-        self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
-        self.assertEqual(jp2.box[2].box[0].ip_provided, False)
-
-        # Jp2 Header
-        # Colour specification
-        self.assertEqual(jp2.box[2].box[1].method,
-                         glymur.core.ENUMERATED_COLORSPACE)
-        self.assertEqual(jp2.box[2].box[1].precedence, 0)
-        self.assertEqual(jp2.box[2].box[1].approximation, 0)  # JP2
-        self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.SRGB)
-
-        c = jp2.box[3].main_header
-
-        ids = [x.marker_id for x in c.segment]
-        expected = ['SOC', 'SIZ', 'CME', 'COD', 'QCD', 'QCC', 'QCC']
-        self.assertEqual(ids, expected)
-
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 203)
-        self.assertEqual(c.segment[1].ysiz, 152)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (203, 152))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 3)
-
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[2].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[2].ccme.decode('latin-1'),
-                         "Creator: JasPer Vers)on 1.701.0")
-
-        # COD: Coding style default
-        self.assertFalse(c.segment[3].scod & 2)  # no sop
-        self.assertFalse(c.segment[3].scod & 4)  # no eph
-        self.assertEqual(c.segment[3].spcod[0], glymur.core.LRCP)
-        self.assertEqual(c.segment[3].layers, 1)  # layers = 1
-        self.assertEqual(c.segment[3].spcod[3], 1)  # mct
-        self.assertEqual(c.segment[3].spcod[4], 5)  # level
-        self.assertEqual(tuple(c.segment[3].code_block_size),
-                         (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[3].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[3].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[3].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[3].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[3].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[3].spcod[7] & 0x0020)
-        self.assertEqual(c.segment[3].spcod[8],
-                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-        self.assertEqual(len(c.segment[3].spcod), 9)
-
-        # QCD: Quantization default
-        self.assertEqual(c.segment[4].sqcd & 0x1f, 0)
-        self.assertEqual(c.segment[4].guard_bits, 2)
-        self.assertEqual(c.segment[4].mantissa, [0] * 16)
-        self.assertEqual(c.segment[4].exponent,
-                         [8] + [9, 9, 10] * 5)
-
-        # QCC: Quantization component
-        # associated component
-        self.assertEqual(c.segment[5].cqcc, 1)
-        self.assertEqual(c.segment[5].guard_bits, 2)
-        # quantization type
-        self.assertEqual(c.segment[5].sqcc & 0x1f, 0)  # none
-        self.assertEqual(c.segment[5].mantissa, [0] * 16)
-        self.assertEqual(c.segment[5].exponent,
-                         [8] + [9, 9, 10] * 5)
-
-        # QCC: Quantization component
-        # associated component
-        self.assertEqual(c.segment[6].cqcc, 2)
-        self.assertEqual(c.segment[6].guard_bits, 2)
-        # quantization type
-        self.assertEqual(c.segment[6].sqcc & 0x1f, 0)  # none
-        self.assertEqual(c.segment[6].mantissa, [0] * 16)
-        self.assertEqual(c.segment[6].exponent,
-                         [8] + [9, 9, 10] * 5)
-
-    def test_NR_broken2_jp2_dump(self):
-        """
-        Invalid marker ID in the codestream.
-        """
-        jfile = opj_data_file('input/nonregression/broken2.jp2')
-        with warnings.catch_warnings():
-            # Invalid marker ID on codestream.
-            warnings.simplefilter("ignore")
-            jp2 = Jp2k(jfile)
-        
-        self.assertEqual(jp2.box[-1].main_header.segment[-1].marker_id, 'QCC')
 
     def test_NR_file409752(self):
         jfile = opj_data_file('input/nonregression/file409752.jp2')
@@ -229,32 +66,14 @@ class TestSuiteDump(unittest.TestCase):
         ids = [box.box_id for box in jp2.box[2].box]
         self.assertEqual(ids, ['ihdr', 'colr'])
 
-        # Signature box.  Check for corruption.
-        self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
+        self.verifySignatureBox(jp2.box[0])
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
 
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[0], 'jp2 ')
+        ihdr = glymur.jp2box.ImageHeaderBox(243, 720, num_components=3)
+        self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
 
-        # Jp2 Header
-        # Image header
-        self.assertEqual(jp2.box[2].box[0].height, 243)
-        self.assertEqual(jp2.box[2].box[0].width, 720)
-        self.assertEqual(jp2.box[2].box[0].num_components, 3)
-        self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
-        self.assertEqual(jp2.box[2].box[0].signed, False)
-        self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
-        self.assertEqual(jp2.box[2].box[0].ip_provided, False)
-
-        # Jp2 Header
-        # Colour specification
-        self.assertEqual(jp2.box[2].box[1].method,
-                         glymur.core.ENUMERATED_COLORSPACE)
-        self.assertEqual(jp2.box[2].box[1].precedence, 0)
-        self.assertEqual(jp2.box[2].box[1].approximation, 0)  # JP2
-        self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.YCC)
+        colr = glymur.jp2box.ColourSpecificationBox(colorspace=glymur.core.YCC)
+        self.verifyColourSpecificationBox(jp2.box[2].box[1], colr)
 
         c = jp2.box[3].main_header
 
@@ -262,25 +81,11 @@ class TestSuiteDump(unittest.TestCase):
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 720)
-        self.assertEqual(c.segment[1].ysiz, 243)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (720, 243))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1), (2, 1), (2, 1)])
+        kwargs = {'rsiz': 0, 'xysiz': (720, 243), 'xyosiz': (0, 0),
+                'xytsiz': (720, 243), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
+                'signed': (False, False, False),
+                'xyrsiz': [(1, 2, 2), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -291,18 +96,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (32, 128))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -325,25 +120,10 @@ class TestSuiteDump(unittest.TestCase):
         expected = ['SOC', 'SIZ', 'QCD', 'COD', 'SOT', 'SOD', 'EOC']
         self.assertEqual(actual, expected)
 
-        # SIZ: Image and tile size
-        # Profile:  "1" means profile 0
-        self.assertEqual(c.segment[1].rsiz, 1)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 128)
-        self.assertEqual(c.segment[1].ysiz, 128)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (128, 128))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)])
+        kwargs = {'rsiz': 1, 'xysiz': (128, 128), 'xyosiz': (0, 0),
+                'xytsiz': (128, 128), 'xytosiz': (0, 0), 'bitdepth': (8,),
+                'signed': (False,), 'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # QCD: Quantization default
         self.assertEqual(c.segment[2].sqcd & 0x1f, 0)
@@ -362,50 +142,21 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[3].spcod[4], 3)  # layers
         self.assertEqual(tuple(c.segment[3].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[3].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[3].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[3].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[3].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[3].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[3].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[3].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[3].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[4].isot, 0)
-        self.assertEqual(c.segment[4].psot, 7314)
-        self.assertEqual(c.segment[4].tpsot, 0)
-        self.assertEqual(c.segment[4].tnsot, 1)
+        self.verifySOTsegment(c.segment[4], SOTsegment(0, 7314, 0, 1))
 
     def test_NR_p0_02_dump(self):
         jfile = opj_data_file('input/conformance/p0_02.j2k')
         c = Jp2k(jfile).get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "1" means profile 0
-        self.assertEqual(c.segment[1].rsiz, 1)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 127)
-        self.assertEqual(c.segment[1].ysiz, 126)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (127, 126))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(2, 1)])
+        kwargs = {'rsiz': 1, 'xysiz': (127, 126), 'xyosiz': (0, 0),
+                'xytsiz': (127, 126), 'xytosiz': (0, 0), 'bitdepth': (8,),
+                'signed': (False,), 'xyrsiz': [(2,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertTrue(c.segment[2].scod & 2)  # sop
@@ -416,18 +167,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[4], 3)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertTrue(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertTrue(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertTrue(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, True, False, True, True])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
@@ -436,18 +177,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[3].spcoc[0], 3)  # levels
         self.assertEqual(tuple(c.segment[3].code_block_size),
                          (32, 32))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[3].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[3].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertTrue(c.segment[3].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[3].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertTrue(c.segment[3].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertTrue(c.segment[3].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[3].spcoc[3],
+                [False, False, True, False, True, True])
         self.assertEqual(c.segment[3].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -460,21 +191,13 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[4].mantissa,
                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[5].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[5].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode()
+        self.verifyCMEsegment(c.segment[5], CMEsegment(*pargs))
 
         # One unknown marker
         self.assertEqual(c.segment[6].marker_id, '0xff30')
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[7].isot, 0)
-        self.assertEqual(c.segment[7].psot, 6047)
-        self.assertEqual(c.segment[7].tpsot, 0)
-        self.assertEqual(c.segment[7].tnsot, 1)
+        self.verifySOTsegment(c.segment[7], SOTsegment(0, 6047, 0, 1))
 
         # SOD:  start of data
         # Just one.
@@ -493,25 +216,10 @@ class TestSuiteDump(unittest.TestCase):
         jfile = opj_data_file('input/conformance/p0_03.j2k')
         c = Jp2k(jfile).get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "1" means profile 0
-        self.assertEqual(c.segment[1].rsiz, 1)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 256)
-        self.assertEqual(c.segment[1].ysiz, 256)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (128, 128))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (4,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (True,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)])
+        kwargs = {'rsiz': 1, 'xysiz': (256, 256), 'xyosiz': (0, 0),
+                'xytsiz': (128, 128), 'xytosiz': (0, 0), 'bitdepth': (4,),
+                'signed': (True,), 'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertTrue(c.segment[2].scod & 2)
@@ -522,18 +230,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[4], 1)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -565,42 +263,23 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[6].xcrg, (65424,))
         self.assertEqual(c.segment[6].ycrg, (32558,))
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[7].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[7].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode()
+        self.verifyCMEsegment(c.segment[7], CMEsegment(*pargs))
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[8].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[8].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,"
-                         + "2001 Algo Vision Technology")
+        pargs = (RCME_ISO_8859_1,
+                "Creator: AV-J2K (c) 2000,2001 Algo Vision Technology".encode())
+        self.verifyCMEsegment(c.segment[8], CMEsegment(*pargs))
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[9].rcme, glymur.core.RCME_BINARY)
-        # Comment value
-        self.assertEqual(len(c.segment[9].ccme), 62)
+        pargs = (RCME_BINARY, c.segment[9].ccme)
+        self.verifyCMEsegment(c.segment[9], CMEsegment(*pargs))
 
         # TLM (tile-part length)
         self.assertEqual(c.segment[10].ztlm, 0)
         self.assertEqual(c.segment[10].ttlm, (0, 1, 2, 3))
         self.assertEqual(c.segment[10].ptlm, (4267, 2117, 4080, 2081))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[11].isot, 0)
-        self.assertEqual(c.segment[11].psot, 4267)
-        self.assertEqual(c.segment[11].tpsot, 0)
-        self.assertEqual(c.segment[11].tnsot, 1)
-
-        # RGN: region of interest
-        self.assertEqual(c.segment[12].crgn, 0)
-        self.assertEqual(c.segment[12].srgn, 0)
-        self.assertEqual(c.segment[12].sprgn, 7)
+        self.verifySOTsegment(c.segment[11], SOTsegment(0, 4267, 0, 1))
+        self.verifyRGNsegment(c.segment[12], RGNsegment(0, 0, 7))
 
         # SOD:  start of data
         # Just one.
@@ -610,25 +289,11 @@ class TestSuiteDump(unittest.TestCase):
         jfile = opj_data_file('input/conformance/p0_04.j2k')
         c = Jp2k(jfile).get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "1" means profile 0
-        self.assertEqual(c.segment[1].rsiz, 1)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 640)
-        self.assertEqual(c.segment[1].ysiz, 480)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (640, 480))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1), (1, 1), (1, 1)])
+        kwargs = {'rsiz': 1, 'xysiz': (640, 480), 'xyosiz': (0, 0),
+                'xytsiz': (640, 480), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
+                'signed': (False, False, False),
+                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)
@@ -639,18 +304,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[4], 6)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertTrue(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, True, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size,
@@ -697,18 +352,11 @@ class TestSuiteDump(unittest.TestCase):
                           1845, 1868, 1925, 1925, 2007, 32, 32, 131, 2002,
                           2002, 1888])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[6].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[6].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1,
+                "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[6], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[7].isot, 0)
-        self.assertEqual(c.segment[7].psot, 264383)
-        self.assertEqual(c.segment[7].tpsot, 0)
-        self.assertEqual(c.segment[7].tnsot, 1)
+        self.verifySOTsegment(c.segment[7], SOTsegment(0, 264383, 0, 1))
 
         # SOD:  start of data
         # Just one.
@@ -718,26 +366,12 @@ class TestSuiteDump(unittest.TestCase):
         jfile = opj_data_file('input/conformance/p0_05.j2k')
         c = Jp2k(jfile).get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "1" means profile 0
-        self.assertEqual(c.segment[1].rsiz, 1)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 1024)
-        self.assertEqual(c.segment[1].ysiz, 1024)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
-                         (1024, 1024))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1), (1, 1), (2, 2), (2, 2)])
+        kwargs = {'rsiz': 1, 'xysiz': (1024, 1024), 'xyosiz': (0, 0),
+                'xytsiz': (1024, 1024), 'xytosiz': (0, 0),
+                'bitdepth': (8, 8, 8, 8),
+                'signed': (False, False, False, False),
+                'xyrsiz': [(1, 1, 2, 2), (1, 1, 2, 2)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)
@@ -748,18 +382,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[4], 6)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (32, 32))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -769,18 +393,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[3].spcoc[0], 3)  # levels
         self.assertEqual(tuple(c.segment[3].code_block_size),
                          (32, 32))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[3].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[3].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[3].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[3].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[3].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[3].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[3].spcoc[3],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[3].spcoc[4],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
@@ -789,18 +403,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[4].spcoc[0], 6)  # levels
         self.assertEqual(tuple(c.segment[4].code_block_size),
                          (32, 32))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[4].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[4].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[4].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[4].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[4].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[4].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[4].spcoc[3],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[4].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -836,23 +440,16 @@ class TestSuiteDump(unittest.TestCase):
                           9, 9, 10])
         self.assertEqual(c.segment[7].mantissa, [0] * 19)
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[8].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[8].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1,
+                "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[8], CMEsegment(*pargs))
 
         # TLM (tile-part length)
         self.assertEqual(c.segment[9].ztlm, 0)
         self.assertEqual(c.segment[9].ttlm, (0,))
         self.assertEqual(c.segment[9].ptlm, (1310540,))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[10].isot, 0)
-        self.assertEqual(c.segment[10].psot, 1310540)
-        self.assertEqual(c.segment[10].tpsot, 0)
-        self.assertEqual(c.segment[10].tnsot, 1)
+        self.verifySOTsegment(c.segment[10], SOTsegment(0, 1310540, 0, 1))
 
         # SOD:  start of data
         # Just one.
@@ -862,25 +459,12 @@ class TestSuiteDump(unittest.TestCase):
         jfile = opj_data_file('input/conformance/p0_06.j2k')
         c = Jp2k(jfile).get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "1" means profile 0
-        self.assertEqual(c.segment[1].rsiz, 2)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 513)
-        self.assertEqual(c.segment[1].ysiz, 129)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (513, 129))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (12, 12, 12, 12))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1), (2, 1), (1, 2), (2, 2)])
+        kwargs = {'rsiz': 2, 'xysiz': (513, 129), 'xyosiz': (0, 0),
+                'xytsiz': (513, 129), 'xytosiz': (0, 0),
+                'bitdepth': (12, 12, 12, 12),
+                'signed': (False, False, False, False),
+                'xyrsiz': [(1, 2, 1, 2), (1, 1, 2, 2)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)
@@ -891,18 +475,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[4], 6)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -960,36 +534,14 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[7].spcoc[0], 6)  # levels
         self.assertEqual(tuple(c.segment[7].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[7].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[7].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[7].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[7].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[7].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[7].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[7].spcoc[3],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[7].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
-        # RGN: region of interest
-        self.assertEqual(c.segment[8].crgn, 0)  # component
-        self.assertEqual(c.segment[8].srgn, 0)  # implicit
-        self.assertEqual(c.segment[8].sprgn, 11)
-
-        # SOT: start of tile part
-        self.assertEqual(c.segment[9].isot, 0)
-        self.assertEqual(c.segment[9].psot, 33582)
-        self.assertEqual(c.segment[9].tpsot, 0)
-        self.assertEqual(c.segment[9].tnsot, 1)
-
-        # RGN: region of interest
-        self.assertEqual(c.segment[10].crgn, 0)  # component
-        self.assertEqual(c.segment[10].srgn, 0)  # implicit
-        self.assertEqual(c.segment[10].sprgn, 9)
+        self.verifyRGNsegment(c.segment[8], RGNsegment(0, 0, 11))
+        self.verifySOTsegment(c.segment[9], SOTsegment(0, 33582, 0, 1))
+        self.verifyRGNsegment(c.segment[10], RGNsegment(0, 0, 9))
 
         # SOD:  start of data
         # Just one.
@@ -999,25 +551,11 @@ class TestSuiteDump(unittest.TestCase):
         jfile = opj_data_file('input/conformance/p0_07.j2k')
         c = Jp2k(jfile).get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "1" means profile 0
-        self.assertEqual(c.segment[1].rsiz, 1)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 2048)
-        self.assertEqual(c.segment[1].ysiz, 2048)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (128, 128))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (12, 12, 12))
-        # signed
-        self.assertEqual(c.segment[1].signed, (True, True, True))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1), (1, 1), (1, 1)])
+        kwargs = {'rsiz': 1, 'xysiz': (2048, 2048), 'xyosiz': (0, 0),
+                'xytsiz': (128, 128), 'xytosiz': (0, 0), 'bitdepth': (12, 12, 12),
+                'signed': (True, True, True),
+                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertTrue(c.segment[2].scod & 2)
@@ -1028,18 +566,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[4], 3)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1052,18 +580,10 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[3].exponent,
                          [14, 15, 15, 16, 15, 15, 16, 15, 15, 16])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'),
-                         "Kakadu-3.0.7")
+        pargs = (RCME_ISO_8859_1, "Kakadu-3.0.7".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[5].isot, 0)
-        self.assertEqual(c.segment[5].psot, 9951)
-        self.assertEqual(c.segment[5].tpsot, 0)
-        self.assertEqual(c.segment[5].tnsot, 0)  # unknown
+        self.verifySOTsegment(c.segment[5], SOTsegment(0, 9951, 0, 0))
 
         # POD: progression order change
         self.assertEqual(c.segment[6].rspod, (0,))
@@ -1084,25 +604,11 @@ class TestSuiteDump(unittest.TestCase):
         jfile = opj_data_file('input/conformance/p0_08.j2k')
         c = Jp2k(jfile).get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "1" means profile 0
-        self.assertEqual(c.segment[1].rsiz, 1)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 513)
-        self.assertEqual(c.segment[1].ysiz, 3072)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (513, 3072))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (12, 12, 12))
-        # signed
-        self.assertEqual(c.segment[1].signed, (True, True, True))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1), (1, 1), (1, 1)])
+        kwargs = {'rsiz': 1, 'xysiz': (513, 3072), 'xyosiz': (0, 0),
+                'xytsiz': (513, 3072), 'xytosiz': (0, 0), 'bitdepth': (12, 12, 12),
+                'signed': (True, True, True),
+                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertTrue(c.segment[2].scod & 2)
@@ -1113,18 +619,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[4], 7)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1134,18 +630,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[3].spcoc[0], 6)  # levels
         self.assertEqual(tuple(c.segment[3].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[3].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[3].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[3].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[3].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[3].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[3].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[3].spcoc[3],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[3].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -1154,18 +640,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[4].spcoc[0], 7)  # levels
         self.assertEqual(tuple(c.segment[4].code_block_size),
                          (32, 32))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[4].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[4].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[4].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[4].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[4].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[4].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[4].spcoc[3],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[4].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -1174,18 +650,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[5].spcoc[0], 8)  # levels
         self.assertEqual(tuple(c.segment[5].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[5].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[5].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[5].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[5].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[5].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[5].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[5].spcoc[3],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[5].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -1220,42 +686,19 @@ class TestSuiteDump(unittest.TestCase):
                          [11, 12, 12, 13, 12, 12, 13, 12, 12, 13, 12, 12, 13,
                           12, 12, 13, 12, 12, 13, 12, 12, 13, 12, 12, 13])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[9].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[9].ccme.decode('latin-1'),
-                         "Kakadu-3.0.7")
+        pargs = (RCME_ISO_8859_1, "Kakadu-3.0.7".encode())
+        self.verifyCMEsegment(c.segment[9], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[10].isot, 0)
-        self.assertEqual(c.segment[10].psot, 3820593)
-        self.assertEqual(c.segment[10].tpsot, 0)
-        self.assertEqual(c.segment[10].tnsot, 1)  # unknown
+        self.verifySOTsegment(c.segment[10], SOTsegment(0, 3820593, 0, 1))
 
     def test_NR_p0_09_dump(self):
         jfile = opj_data_file('input/conformance/p0_09.j2k')
         c = Jp2k(jfile).get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "0" means profile 2, or full capabilities
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 17)
-        self.assertEqual(c.segment[1].ysiz, 37)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (17, 37))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)])
+        kwargs = {'rsiz': 0, 'xysiz': (17, 37), 'xyosiz': (0, 0),
+                'xytsiz': (17, 37), 'xytosiz': (0, 0), 'bitdepth': (8,),
+                'signed': (False,), 'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)
@@ -1266,18 +709,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1293,18 +726,10 @@ class TestSuiteDump(unittest.TestCase):
                          [16, 16, 16, 16, 15, 15, 15, 14, 14, 14, 12, 12, 12,
                           11, 11, 12])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'),
-                         "Kakadu-3.0.7")
+        pargs = (RCME_ISO_8859_1, "Kakadu-3.0.7".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[5].isot, 0)
-        self.assertEqual(c.segment[5].psot, 478)
-        self.assertEqual(c.segment[5].tpsot, 0)
-        self.assertEqual(c.segment[5].tnsot, 1)  # unknown
+        self.verifySOTsegment(c.segment[5], SOTsegment(0, 478, 0, 1))
 
         # SOD:  start of data
         # Just one.
@@ -1317,25 +742,11 @@ class TestSuiteDump(unittest.TestCase):
         jfile = opj_data_file('input/conformance/p0_10.j2k')
         c = Jp2k(jfile).get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "1" means profile 0
-        self.assertEqual(c.segment[1].rsiz, 1)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 256)
-        self.assertEqual(c.segment[1].ysiz, 256)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (128, 128))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(4, 4), (4, 4), (4, 4)])
+        kwargs = {'rsiz': 1, 'xysiz': (256, 256), 'xyosiz': (0, 0),
+                'xytsiz': (128, 128), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
+                'signed': (False, False, False),
+                'xyrsiz': [(4, 4, 4), (4, 4, 4)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)
@@ -1346,18 +757,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[4], 3)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1370,113 +771,43 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[3].exponent,
                          [11, 12, 12, 13, 12, 12, 13, 12, 12, 13])
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[4].isot, 0)
-        self.assertEqual(c.segment[4].psot, 2453)
-        self.assertEqual(c.segment[4].tpsot, 0)
-        self.assertEqual(c.segment[4].tnsot, 0)
+        self.verifySOTsegment(c.segment[4], SOTsegment(0, 2453, 0, 0))
 
-        # SOD:  start of data
         self.assertEqual(c.segment[5].marker_id, 'SOD')
+        self.verifySOTsegment(c.segment[6], SOTsegment(1, 2403, 0, 0))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[6].isot, 1)
-        self.assertEqual(c.segment[6].psot, 2403)
-        self.assertEqual(c.segment[6].tpsot, 0)
-        self.assertEqual(c.segment[6].tnsot, 0)
-
-        # SOD:  start of data
         self.assertEqual(c.segment[7].marker_id, 'SOD')
+        self.verifySOTsegment(c.segment[8], SOTsegment(2, 2420, 0, 0))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[8].isot, 2)
-        self.assertEqual(c.segment[8].psot, 2420)
-        self.assertEqual(c.segment[8].tpsot, 0)
-        self.assertEqual(c.segment[8].tnsot, 0)
-
-        # SOD:  start of data
         self.assertEqual(c.segment[9].marker_id, 'SOD')
+        self.verifySOTsegment(c.segment[10], SOTsegment(3, 2472, 0, 0))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[10].isot, 3)
-        self.assertEqual(c.segment[10].psot, 2472)
-        self.assertEqual(c.segment[10].tpsot, 0)
-        self.assertEqual(c.segment[10].tnsot, 0)
-
-        # SOD:  start of data
         self.assertEqual(c.segment[11].marker_id, 'SOD')
+        self.verifySOTsegment(c.segment[12], SOTsegment(0, 1043, 1, 2))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[12].isot, 0)
-        self.assertEqual(c.segment[12].psot, 1043)
-        self.assertEqual(c.segment[12].tpsot, 1)
-        self.assertEqual(c.segment[12].tnsot, 2)
-
-        # SOD:  start of data
         self.assertEqual(c.segment[13].marker_id, 'SOD')
+        self.verifySOTsegment(c.segment[14], SOTsegment(1, 1101, 1, 2))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[14].isot, 1)
-        self.assertEqual(c.segment[14].psot, 1101)
-        self.assertEqual(c.segment[14].tpsot, 1)
-        self.assertEqual(c.segment[14].tnsot, 2)
-
-        # SOD:  start of data
         self.assertEqual(c.segment[15].marker_id, 'SOD')
+        self.verifySOTsegment(c.segment[16], SOTsegment(3, 1054, 1, 2))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[16].isot, 3)
-        self.assertEqual(c.segment[16].psot, 1054)
-        self.assertEqual(c.segment[16].tpsot, 1)
-        self.assertEqual(c.segment[16].tnsot, 2)
-
-        # SOD:  start of data
         self.assertEqual(c.segment[17].marker_id, 'SOD')
+        self.verifySOTsegment(c.segment[18], SOTsegment(2, 14, 1, 0))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[18].isot, 2)
-        self.assertEqual(c.segment[18].psot, 14)
-        self.assertEqual(c.segment[18].tpsot, 1)
-        self.assertEqual(c.segment[18].tnsot, 0)
-
-        # SOD:  start of data
         self.assertEqual(c.segment[19].marker_id, 'SOD')
+        self.verifySOTsegment(c.segment[20], SOTsegment(2, 1089, 2, 0))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[20].isot, 2)
-        self.assertEqual(c.segment[20].psot, 1089)
-        self.assertEqual(c.segment[20].tpsot, 2)
-        self.assertEqual(c.segment[20].tnsot, 0)
-
-        # SOD:  start of data
         self.assertEqual(c.segment[21].marker_id, 'SOD')
-
-        # EOC:  end of codestream
         self.assertEqual(c.segment[22].marker_id, 'EOC')
 
     def test_NR_p0_11_dump(self):
         jfile = opj_data_file('input/conformance/p0_11.j2k')
         c = Jp2k(jfile).get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "1" means profile 0
-        self.assertEqual(c.segment[1].rsiz, 1)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 128)
-        self.assertEqual(c.segment[1].ysiz, 1)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (128, 128))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)])
+        kwargs = {'rsiz': 1, 'xysiz': (128, 1), 'xyosiz': (0, 0),
+                'xytsiz': (128, 128), 'xytosiz': (0, 0), 'bitdepth': (8,),
+                'signed': (False,), 'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)
@@ -1487,18 +818,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[4], 0)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertTrue(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, True])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size, [(128, 2)])
@@ -1510,18 +831,11 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[3].mantissa, [0])
         self.assertEqual(c.segment[3].exponent, [8])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1,
+                "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[5].isot, 0)
-        self.assertEqual(c.segment[5].psot, 118)
-        self.assertEqual(c.segment[5].tpsot, 0)
-        self.assertEqual(c.segment[5].tnsot, 1)
+        self.verifySOTsegment(c.segment[5], SOTsegment(0, 118, 0, 1))
 
         # SOD:  start of data
         self.assertEqual(c.segment[6].marker_id, 'SOD')
@@ -1539,25 +853,11 @@ class TestSuiteDump(unittest.TestCase):
         jfile = opj_data_file('input/conformance/p0_12.j2k')
         c = Jp2k(jfile).get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "1" means profile 0
-        self.assertEqual(c.segment[1].rsiz, 1)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 3)
-        self.assertEqual(c.segment[1].ysiz, 5)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (3, 5))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)])
+        kwargs = {'rsiz': 1, 'xysiz': (3, 5), 'xyosiz': (0, 0),
+                'xytsiz': (3, 5), 'xytosiz': (0, 0), 'bitdepth': (8,),
+                'signed': (False,),
+                'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertTrue(c.segment[2].scod & 2)
@@ -1568,18 +868,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[4], 3)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (32, 32))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertTrue(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, True, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1592,18 +882,10 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[3].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[5].isot, 0)
-        self.assertEqual(c.segment[5].psot, 162)
-        self.assertEqual(c.segment[5].tpsot, 0)
-        self.assertEqual(c.segment[5].tnsot, 1)
+        self.verifySOTsegment(c.segment[5], SOTsegment(0, 162, 0, 1))
 
         # SOD:  start of data
         self.assertEqual(c.segment[6].marker_id, 'SOD')
@@ -1621,25 +903,11 @@ class TestSuiteDump(unittest.TestCase):
         jfile = opj_data_file('input/conformance/p0_13.j2k')
         c = Jp2k(jfile).get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "1" means profile 0
-        self.assertEqual(c.segment[1].rsiz, 1)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 1)
-        self.assertEqual(c.segment[1].ysiz, 1)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (1, 1))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, tuple([8] * 257))
-        # signed
-        self.assertEqual(c.segment[1].signed, tuple([False] * 257))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 257)
+        kwargs = {'rsiz': 1, 'xysiz': (1, 1), 'xyosiz': (0, 0),
+                'xytsiz': (1, 1), 'xytosiz': (0, 0), 'bitdepth': tuple([8] * 257),
+                'signed': tuple([False] * 257),
+                'xyrsiz': [tuple([1] * 257), tuple([1] * 257)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -1649,18 +917,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 1)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size), (32, 32))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertTrue(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, True, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1669,18 +927,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[3].ccoc, 2)
         self.assertEqual(c.segment[3].spcoc[0], 1)  # levels
         self.assertEqual(tuple(c.segment[3].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[3].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[3].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[3].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[3].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[3].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[3].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[3].spcoc[3],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[3].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -1710,10 +958,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[6].exponent, [9, 10, 10, 11])
         self.assertEqual(c.segment[6].mantissa, [0, 0, 0, 0])
 
-        # RGN: region of interest
-        self.assertEqual(c.segment[7].crgn, 3)
-        self.assertEqual(c.segment[7].srgn, 0)
-        self.assertEqual(c.segment[7].sprgn, 11)
+        self.verifyRGNsegment(c.segment[7], RGNsegment(3, 0, 11))
 
         # POD:  progression order change
         self.assertEqual(c.segment[8].rspod, (0, 0))
@@ -1724,18 +969,10 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[8].ppod,
                          (glymur.core.RLCP, glymur.core.CPRL))
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[9].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[9].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[9], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[10].isot, 0)
-        self.assertEqual(c.segment[10].psot, 1537)
-        self.assertEqual(c.segment[10].tpsot, 0)
-        self.assertEqual(c.segment[10].tnsot, 1)
+        self.verifySOTsegment(c.segment[10], SOTsegment(0, 1537, 0, 1))
 
         # SOD:  start of data
         self.assertEqual(c.segment[11].marker_id, 'SOD')
@@ -1747,25 +984,11 @@ class TestSuiteDump(unittest.TestCase):
         jfile = opj_data_file('input/conformance/p0_14.j2k')
         c = Jp2k(jfile).get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "0" means profile 2
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 49)
-        self.assertEqual(c.segment[1].ysiz, 49)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (49, 49))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 3)
+        kwargs = {'rsiz': 0, 'xysiz': (49, 49), 'xyosiz': (0, 0),
+                'xytsiz': (49, 49), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
+                'signed': (False, False, False),
+                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)
@@ -1775,18 +998,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1800,48 +1013,22 @@ class TestSuiteDump(unittest.TestCase):
                          [10, 11, 11, 12, 11, 11, 12, 11, 11, 12, 11, 11, 12,
                           11, 11, 12])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'),
-                         "Kakadu-3.0.7")
+        pargs = (RCME_ISO_8859_1, "Kakadu-3.0.7".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[5].isot, 0)
-        self.assertEqual(c.segment[5].psot, 1528)
-        self.assertEqual(c.segment[5].tpsot, 0)
-        self.assertEqual(c.segment[5].tnsot, 1)
-
-        # SOD:  start of data
+        self.verifySOTsegment(c.segment[5], SOTsegment(0, 1528, 0, 1))
         self.assertEqual(c.segment[6].marker_id, 'SOD')
-
-        # EOC:  end of codestream
         self.assertEqual(c.segment[7].marker_id, 'EOC')
 
     def test_NR_p0_15_dump(self):
         jfile = opj_data_file('input/conformance/p0_15.j2k')
         c = Jp2k(jfile).get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "1" means profile 0
-        self.assertEqual(c.segment[1].rsiz, 1)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 256)
-        self.assertEqual(c.segment[1].ysiz, 256)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (128, 128))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (4,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (True,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)])
+        kwargs = {'rsiz': 1, 'xysiz': (256, 256), 'xyosiz': (0, 0),
+                'xytsiz': (128, 128), 'xytosiz': (0, 0), 'bitdepth': (4,),
+                'signed': (True,),
+                'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertTrue(c.segment[2].scod & 2)
@@ -1851,18 +1038,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 1)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1895,75 +1072,45 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[6].xcrg, (65424,))
         self.assertEqual(c.segment[6].ycrg, (32558,))
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[7].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[7].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[7], CMEsegment(*pargs))
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[8].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[8].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,"
-                         + "2001 Algo Vision Technology")
+        pargs = (RCME_ISO_8859_1,
+                "Creator: AV-J2K (c) 2000,2001 Algo Vision Technology".encode())
+        self.verifyCMEsegment(c.segment[8], CMEsegment(*pargs))
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[9].rcme, glymur.core.RCME_BINARY)
-        # Comment value
-        self.assertEqual(len(c.segment[9].ccme), 62)
+        pargs = (RCME_BINARY, c.segment[9].ccme)
+        self.verifyCMEsegment(c.segment[9], CMEsegment(*pargs))
 
         # TLM: tile-part length
         self.assertEqual(c.segment[10].ztlm, 0)
         self.assertEqual(c.segment[10].ttlm, (0, 1, 2, 3))
         self.assertEqual(c.segment[10].ptlm, (4267, 2117, 4080, 2081))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[11].isot, 0)
-        self.assertEqual(c.segment[11].psot, 4267)
-        self.assertEqual(c.segment[11].tpsot, 0)
-        self.assertEqual(c.segment[11].tnsot, 1)
+        self.verifySOTsegment(c.segment[11], SOTsegment(0, 4267, 0, 1))
 
-        # RGN: region of interest
-        self.assertEqual(c.segment[12].crgn, 0)
-        self.assertEqual(c.segment[12].srgn, 0)
-        self.assertEqual(c.segment[12].sprgn, 7)
+        self.verifyRGNsegment(c.segment[12], RGNsegment(0, 0, 7))
 
         # SOD:  start of data
         self.assertEqual(c.segment[13].marker_id, 'SOD')
 
         # 16 SOP markers would be here if we were looking for them
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[31].isot, 1)
-        self.assertEqual(c.segment[31].psot, 2117)
-        self.assertEqual(c.segment[31].tpsot, 0)
-        self.assertEqual(c.segment[31].tnsot, 1)
+        self.verifySOTsegment(c.segment[31], SOTsegment(1, 2117, 0, 1))
 
         # SOD:  start of data
         self.assertEqual(c.segment[32].marker_id, 'SOD')
 
         # 16 SOP markers would be here if we were looking for them
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[49].isot, 2)
-        self.assertEqual(c.segment[49].psot, 4080)
-        self.assertEqual(c.segment[49].tpsot, 0)
-        self.assertEqual(c.segment[49].tnsot, 1)
+        self.verifySOTsegment(c.segment[49], SOTsegment(2, 4080, 0, 1))
 
         # SOD:  start of data
         self.assertEqual(c.segment[50].marker_id, 'SOD')
 
         # 16 SOP markers would be here if we were looking for them
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[67].isot, 3)
-        self.assertEqual(c.segment[67].psot, 2081)
-        self.assertEqual(c.segment[67].tpsot, 0)
-        self.assertEqual(c.segment[67].tnsot, 1)
+        self.verifySOTsegment(c.segment[67], SOTsegment(3, 2081, 0, 1))
 
         # SOD:  start of data
         self.assertEqual(c.segment[68].marker_id, 'SOD')
@@ -1977,25 +1124,11 @@ class TestSuiteDump(unittest.TestCase):
         jfile = opj_data_file('input/conformance/p0_16.j2k')
         c = Jp2k(jfile).get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "0" means profile 2
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 128)
-        self.assertEqual(c.segment[1].ysiz, 128)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (128, 128))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)])
+        kwargs = {'rsiz': 0, 'xysiz': (128, 128), 'xyosiz': (0, 0),
+                'xytsiz': (128, 128), 'xytosiz': (0, 0), 'bitdepth': (8,),
+                'signed': (False,),
+                'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)
@@ -2005,18 +1138,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 3)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2029,11 +1152,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[3].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[4].isot, 0)
-        self.assertEqual(c.segment[4].psot, 7331)
-        self.assertEqual(c.segment[4].tpsot, 0)
-        self.assertEqual(c.segment[4].tnsot, 1)
+        self.verifySOTsegment(c.segment[4], SOTsegment(0, 7331, 0, 1))
 
         # SOD:  start of data
         self.assertEqual(c.segment[5].marker_id, 'SOD')
@@ -2045,25 +1164,11 @@ class TestSuiteDump(unittest.TestCase):
         jfile = opj_data_file('input/conformance/p1_01.j2k')
         c = Jp2k(jfile).get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "1" means profile 1
-        self.assertEqual(c.segment[1].rsiz, 2)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 127)
-        self.assertEqual(c.segment[1].ysiz, 227)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (5, 128))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (127, 126))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (1, 101))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(2, 1)])
+        kwargs = {'rsiz': 2, 'xysiz': (127, 227), 'xyosiz': (5, 128),
+                'xytsiz': (127, 126), 'xytosiz': (1, 101), 'bitdepth': (8,),
+                'signed': (False,),
+                'xyrsiz': [(2,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertTrue(c.segment[2].scod & 2)  # SOP
@@ -2073,18 +1178,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 3)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertTrue(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertTrue(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertTrue(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, True, False, True, True])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2093,18 +1188,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[3].ccoc, 0)
         self.assertEqual(c.segment[3].spcoc[0], 3)  # level
         self.assertEqual(tuple(c.segment[3].code_block_size), (32, 32))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[3].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[3].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertTrue(c.segment[3].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[3].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertTrue(c.segment[3].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertTrue(c.segment[3].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[3].spcoc[3],
+                [False, False, True, False, True, True])
         self.assertEqual(c.segment[3].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -2116,18 +1201,10 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[4].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[5].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[5].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[5], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[6].isot, 0)
-        self.assertEqual(c.segment[6].psot, 4627)
-        self.assertEqual(c.segment[6].tpsot, 0)
-        self.assertEqual(c.segment[6].tnsot, 1)
+        self.verifySOTsegment(c.segment[6], SOTsegment(0, 4627, 0, 1))
 
         # SOD:  start of data
         self.assertEqual(c.segment[7].marker_id, 'SOD')
@@ -2145,25 +1222,11 @@ class TestSuiteDump(unittest.TestCase):
         jfile = opj_data_file('input/conformance/p1_02.j2k')
         c = Jp2k(jfile).get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "1" means profile 1
-        self.assertEqual(c.segment[1].rsiz, 2)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 640)
-        self.assertEqual(c.segment[1].ysiz, 480)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (640, 480))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, tuple([8] * 3))
-        # signed
-        self.assertEqual(c.segment[1].signed, tuple([False] * 3))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 3)
+        kwargs = {'rsiz': 2, 'xysiz': (640, 480), 'xyosiz': (0, 0),
+                'xytsiz': (640, 480), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
+                'signed': (False, False, False),
+                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -2174,18 +1237,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[4], 6)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertTrue(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertTrue(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, True, False, True, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size,
@@ -2232,18 +1285,10 @@ class TestSuiteDump(unittest.TestCase):
                          [14, 14, 14, 14, 13, 13, 13, 12, 12, 12, 11, 11, 11,
                           9, 9, 9, 9, 9, 9])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[6].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[6].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[6], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[7].isot, 0)
-        self.assertEqual(c.segment[7].psot, 262838)
-        self.assertEqual(c.segment[7].tpsot, 0)
-        self.assertEqual(c.segment[7].tnsot, 1)
+        self.verifySOTsegment(c.segment[7], SOTsegment(0, 262838, 0, 1))
 
         # PPT:  packed packet headers, tile-part header
         self.assertEqual(c.segment[8].marker_id, 'PPT')
@@ -2259,26 +1304,12 @@ class TestSuiteDump(unittest.TestCase):
         jfile = opj_data_file('input/conformance/p1_03.j2k')
         c = Jp2k(jfile).get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "1" means profile 1
-        self.assertEqual(c.segment[1].rsiz, 2)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 1024)
-        self.assertEqual(c.segment[1].ysiz, 1024)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
-                         (1024, 1024))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, tuple([8] * 4))
-        # signed
-        self.assertEqual(c.segment[1].signed, tuple([False] * 4))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1), (1, 1), (2, 2), (2, 2)])
+        kwargs = {'rsiz': 2, 'xysiz': (1024, 1024), 'xyosiz': (0, 0),
+                'xytsiz': (1024, 1024), 'xytosiz': (0, 0),
+                'bitdepth': (8, 8, 8, 8),
+                'signed': (False, False, False, False),
+                'xyrsiz': [(1, 1, 2, 2), (1, 1, 2, 2)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -2288,18 +1319,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 6)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (32, 32))
-        # Selective arithmetic coding bypass
-        self.assertTrue(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertTrue(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [True, False, True, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2308,18 +1329,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[3].ccoc, 1)
         self.assertEqual(c.segment[3].spcoc[0], 3)  # level
         self.assertEqual(tuple(c.segment[3].code_block_size), (32, 32))
-        # Selective arithmetic coding bypass
-        self.assertTrue(c.segment[3].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[3].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertTrue(c.segment[3].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[3].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[3].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[3].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[3].spcoc[3],
+                [True, False, True, False, False, False])
         self.assertEqual(c.segment[3].spcoc[4],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
@@ -2327,18 +1338,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[4].ccoc, 3)
         self.assertEqual(c.segment[4].spcoc[0], 6)  # level
         self.assertEqual(tuple(c.segment[4].code_block_size), (32, 32))
-        # Selective arithmetic coding bypass
-        self.assertTrue(c.segment[4].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[4].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertTrue(c.segment[4].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[4].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[4].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[4].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[4].spcoc[3],
+                [True, False, True, False, False, False])
         self.assertEqual(c.segment[4].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -2374,12 +1375,8 @@ class TestSuiteDump(unittest.TestCase):
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10,
                           9, 9, 10])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[8].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[8].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[8], CMEsegment(*pargs))
 
         # PPM:  packed packet headers, main header
         self.assertEqual(c.segment[9].marker_id, 'PPM')
@@ -2390,11 +1387,7 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[10].ttlm, (0,))
         self.assertEqual(c.segment[10].ptlm, (1366780,))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[11].isot, 0)
-        self.assertEqual(c.segment[11].psot, 1366780)
-        self.assertEqual(c.segment[11].tpsot, 0)
-        self.assertEqual(c.segment[11].tnsot, 1)
+        self.verifySOTsegment(c.segment[11], SOTsegment(0, 1366780, 0, 1))
 
         # SOD:  start of data
         self.assertEqual(c.segment[12].marker_id, 'SOD')
@@ -2406,25 +1399,11 @@ class TestSuiteDump(unittest.TestCase):
         jfile = opj_data_file('input/conformance/p1_04.j2k')
         c = Jp2k(jfile).get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "1" means profile 1
-        self.assertEqual(c.segment[1].rsiz, 2)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 1024)
-        self.assertEqual(c.segment[1].ysiz, 1024)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (128, 128))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (12,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)])
+        kwargs = {'rsiz': 2, 'xysiz': (1024, 1024), 'xyosiz': (0, 0),
+                'xytsiz': (128, 128), 'xytosiz': (0, 0), 'bitdepth': (12,),
+                'signed': (False,),
+                'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -2434,18 +1413,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 3)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2471,27 +1440,15 @@ class TestSuiteDump(unittest.TestCase):
                           554, 546, 542, 635, 826, 667, 617, 606, 813, 586,
                           641, 654, 669, 623))
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[5].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[5].ccme.decode('latin-1'),
-                         "Created by Aware, Inc.")
+        pargs = (RCME_ISO_8859_1, "Created by Aware, Inc.".encode())
+        self.verifyCMEsegment(c.segment[5], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[6].isot, 0)
-        self.assertEqual(c.segment[6].psot, 350)
-        self.assertEqual(c.segment[6].tpsot, 0)
-        self.assertEqual(c.segment[6].tnsot, 1)
+        self.verifySOTsegment(c.segment[6], SOTsegment(0, 350, 0, 1))
 
         # SOD:  start of data
         self.assertEqual(c.segment[7].marker_id, 'SOD')
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[8].isot, 1)
-        self.assertEqual(c.segment[8].psot, 356)
-        self.assertEqual(c.segment[8].tpsot, 0)
-        self.assertEqual(c.segment[8].tnsot, 1)
+        self.verifySOTsegment(c.segment[8], SOTsegment(1, 356, 0, 1))
 
         # QCD: Quantization default
         # quantization type
@@ -2506,11 +1463,7 @@ class TestSuiteDump(unittest.TestCase):
         # SOD:  start of data
         self.assertEqual(c.segment[10].marker_id, 'SOD')
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[11].isot, 2)
-        self.assertEqual(c.segment[11].psot, 402)
-        self.assertEqual(c.segment[11].tpsot, 0)
-        self.assertEqual(c.segment[11].tnsot, 1)
+        self.verifySOTsegment(c.segment[11], SOTsegment(2, 402, 0, 1))
 
         # and so on
 
@@ -2533,25 +1486,11 @@ class TestSuiteDump(unittest.TestCase):
         jfile = opj_data_file('input/conformance/p1_05.j2k')
         c = Jp2k(jfile).get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "1" means profile 1
-        self.assertEqual(c.segment[1].rsiz, 2)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 529)
-        self.assertEqual(c.segment[1].ysiz, 524)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (17, 12))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (37, 37))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (8, 2))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 3)
+        kwargs = {'rsiz': 2, 'xysiz': (529, 524), 'xyosiz': (17, 12),
+                'xytsiz': (37, 37), 'xytosiz': (8, 2), 'bitdepth': (8, 8, 8),
+                'signed': (False, False, False),
+                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertTrue(c.segment[2].scod & 2)  # sop
@@ -2561,18 +1500,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 7)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 8))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertTrue(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertTrue(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertTrue(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [True, False, False, True, True, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size, [(16, 16)] * 8)
@@ -2587,22 +1516,14 @@ class TestSuiteDump(unittest.TestCase):
                          [17, 17, 17, 17, 16, 16, 16, 15, 15, 15, 14, 14,
                           14, 13, 13, 13, 11, 11, 11, 11, 11, 11])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
         # 225 consecutive PPM segments.
         zppm = [x.zppm for x in c.segment[5:230]]
         self.assertEqual(zppm, list(range(225)))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[230].isot, 0)
-        self.assertEqual(c.segment[230].psot, 580)
-        self.assertEqual(c.segment[230].tpsot, 0)
-        self.assertEqual(c.segment[230].tnsot, 1)
+        self.verifySOTsegment(c.segment[230], SOTsegment(0, 580, 0, 1))
 
         # 225 total SOT segments
         isot = [x.isot for x in c.segment if x.marker_id == 'SOT']
@@ -2621,25 +1542,11 @@ class TestSuiteDump(unittest.TestCase):
         jfile = opj_data_file('input/conformance/p1_06.j2k')
         c = Jp2k(jfile).get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "1" means profile 1
-        self.assertEqual(c.segment[1].rsiz, 2)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 12)
-        self.assertEqual(c.segment[1].ysiz, 12)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (3, 3))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 3)
+        kwargs = {'rsiz': 2, 'xysiz': (12, 12), 'xyosiz': (0, 0),
+                'xytsiz': (3, 3), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
+                'signed': (False, False, False),
+                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertTrue(c.segment[2].scod & 2)  # sop
@@ -2649,18 +1556,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 4)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (32, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertTrue(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertTrue(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, True, False, True])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2676,18 +1573,10 @@ class TestSuiteDump(unittest.TestCase):
                          [14, 14, 14, 14, 13, 13, 13, 11, 11, 11,
                           11, 11, 11])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[5].isot, 0)
-        self.assertEqual(c.segment[5].psot, 349)
-        self.assertEqual(c.segment[5].tpsot, 0)
-        self.assertEqual(c.segment[5].tnsot, 1)
+        self.verifySOTsegment(c.segment[5], SOTsegment(0, 349, 0, 1))
 
         # PPT:  packed packet headers, tile-part header
         self.assertEqual(c.segment[6].marker_id, 'PPT')
@@ -2714,25 +1603,11 @@ class TestSuiteDump(unittest.TestCase):
         jfile = opj_data_file('input/conformance/p1_07.j2k')
         c = Jp2k(jfile).get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "1" means profile 1
-        self.assertEqual(c.segment[1].rsiz, 2)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 12)
-        self.assertEqual(c.segment[1].ysiz, 12)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (4, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (12, 12))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (4, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(4, 1), (1, 1)])
+        kwargs = {'rsiz': 2, 'xysiz': (12, 12), 'xyosiz': (4, 0),
+                'xytsiz': (12, 12), 'xytosiz': (4, 0), 'bitdepth': (8, 8),
+                'signed': (False, False),
+                'xyrsiz': [(4, 1), (1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertTrue(c.segment[2].scod & 2)  # sop
@@ -2742,18 +1617,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 1)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size, [(1, 1), (2, 2)])
@@ -2762,18 +1627,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[3].ccoc, 1)
         self.assertEqual(c.segment[3].spcoc[0], 1)  # level
         self.assertEqual(tuple(c.segment[3].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[3].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[3].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[3].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[3].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[3].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[3].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[3].spcoc[3],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[3].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(c.segment[3].precinct_size, [(2, 2), (4, 4)])
@@ -2785,445 +1640,15 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[4].mantissa, [0] * 4)
         self.assertEqual(c.segment[4].exponent, [8, 9, 9, 10])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[5].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[5].ccme.decode('latin-1'),
-                         "Creator: AV-J2K (c) 2000,2001 Algo Vision")
+        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        self.verifyCMEsegment(c.segment[5], CMEsegment(*pargs))
 
-        # SOT: start of tile part
-        self.assertEqual(c.segment[6].isot, 0)
-        self.assertEqual(c.segment[6].psot, 434)
-        self.assertEqual(c.segment[6].tpsot, 0)
-        self.assertEqual(c.segment[6].tnsot, 1)
+        self.verifySOTsegment(c.segment[6], SOTsegment(0, 434, 0, 1))
 
         # scads of SOP, EPH segments
 
         # EOC:  end of codestream
         self.assertEqual(c.segment[-1].marker_id, 'EOC')
-
-    def test_NR_file1_dump(self):
-        jfile = opj_data_file('input/conformance/file1.jp2')
-        with warnings.catch_warnings():
-            # Bad compatibility list item.
-            warnings.simplefilter("ignore")
-            jp2 = Jp2k(jfile)
-
-        ids = [box.box_id for box in jp2.box]
-        self.assertEqual(ids, ['jP  ', 'ftyp', 'xml ', 'jp2h', 'xml ',
-                               'jp2c'])
-
-        ids = [box.box_id for box in jp2.box[3].box]
-        self.assertEqual(ids, ['ihdr', 'colr'])
-
-        # Signature box.  Check for corruption.
-        self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[1], 'jp2 ')
-
-        # XML box
-        tags = [x.tag for x in jp2.box[2].xml.getroot()]
-        self.assertEqual(tags,
-                         ['{http://www.jpeg.org/jpx/1.0/xml}'
-                          + 'GENERAL_CREATION_INFO'])
-
-        # Jp2 Header
-        # Image header
-        self.assertEqual(jp2.box[3].box[0].height, 512)
-        self.assertEqual(jp2.box[3].box[0].width, 768)
-        self.assertEqual(jp2.box[3].box[0].num_components, 3)
-        self.assertEqual(jp2.box[3].box[0].bits_per_component, 8)
-        self.assertEqual(jp2.box[3].box[0].signed, False)
-        self.assertEqual(jp2.box[3].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[3].box[0].colorspace_unknown, False)
-        self.assertEqual(jp2.box[3].box[0].ip_provided, False)
-
-        # Jp2 Header
-        # Colour specification
-        self.assertEqual(jp2.box[3].box[1].method,
-                         glymur.core.ENUMERATED_COLORSPACE)
-        self.assertEqual(jp2.box[3].box[1].precedence, 0)
-        self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact ??
-        self.assertEqual(jp2.box[3].box[1].colorspace, glymur.core.SRGB)
-
-        # XML box
-        tags = [x.tag for x in jp2.box[4].xml.getroot()]
-        self.assertEqual(tags, ['{http://www.jpeg.org/jpx/1.0/xml}CAPTION',
-                                '{http://www.jpeg.org/jpx/1.0/xml}LOCATION',
-                                '{http://www.jpeg.org/jpx/1.0/xml}EVENT'])
-
-    def test_NR_file2_dump(self):
-        jfile = opj_data_file('input/conformance/file2.jp2')
-        jp2 = Jp2k(jfile)
-
-        ids = [box.box_id for box in jp2.box]
-        self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
-
-        ids = [box.box_id for box in jp2.box[2].box]
-        self.assertEqual(ids, ['ihdr', 'colr', 'cdef'])
-
-        # Signature box.  Check for corruption.
-        self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[1], 'jp2 ')
-
-        # Jp2 Header
-        # Image header
-        self.assertEqual(jp2.box[2].box[0].height, 640)
-        self.assertEqual(jp2.box[2].box[0].width, 480)
-        self.assertEqual(jp2.box[2].box[0].num_components, 3)
-        self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
-        self.assertEqual(jp2.box[2].box[0].signed, False)
-        self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
-        self.assertEqual(jp2.box[2].box[0].ip_provided, False)
-
-        # Jp2 Header
-        # Colour specification
-        self.assertEqual(jp2.box[2].box[1].method,
-                         glymur.core.ENUMERATED_COLORSPACE)
-        self.assertEqual(jp2.box[2].box[1].precedence, 0)
-        self.assertEqual(jp2.box[2].box[1].approximation, 1)  # JPX exact??
-        self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.YCC)
-
-        # Jp2 Header
-        # Channel Definition
-        self.assertEqual(jp2.box[2].box[2].index, (0, 1, 2))
-        self.assertEqual(jp2.box[2].box[2].channel_type, (0, 0, 0))  # color
-        self.assertEqual(jp2.box[2].box[2].association, (3, 2, 1))  # reverse
-
-    def test_NR_file3_dump(self):
-        # Three 8-bit components in the sRGB-YCC colourspace, with the Cb and
-        # Cr components being subsampled 2x in both the horizontal and
-        # vertical directions. The components are stored in the standard
-        # order.
-        jfile = opj_data_file('input/conformance/file3.jp2')
-        jp2 = Jp2k(jfile)
-
-        ids = [box.box_id for box in jp2.box]
-        self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
-
-        ids = [box.box_id for box in jp2.box[2].box]
-        self.assertEqual(ids, ['ihdr', 'colr'])
-
-        # Signature box.  Check for corruption.
-        self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[1], 'jp2 ')
-
-        # Jp2 Header
-        # Image header
-        self.assertEqual(jp2.box[2].box[0].height, 640)
-        self.assertEqual(jp2.box[2].box[0].width, 480)
-        self.assertEqual(jp2.box[2].box[0].num_components, 3)
-        self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
-        self.assertEqual(jp2.box[2].box[0].signed, False)
-        self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
-        self.assertEqual(jp2.box[2].box[0].ip_provided, False)
-
-        # Jp2 Header
-        # Colour specification
-        self.assertEqual(jp2.box[2].box[1].method,
-                         glymur.core.ENUMERATED_COLORSPACE)
-        self.assertEqual(jp2.box[2].box[1].precedence, 0)
-        self.assertEqual(jp2.box[2].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.YCC)
-
-        # sub-sampling
-        codestream = jp2.get_codestream()
-        self.assertEqual(codestream.segment[1].xrsiz[0], 1)
-        self.assertEqual(codestream.segment[1].yrsiz[0], 1)
-        self.assertEqual(codestream.segment[1].xrsiz[1], 2)
-        self.assertEqual(codestream.segment[1].yrsiz[1], 2)
-        self.assertEqual(codestream.segment[1].xrsiz[2], 2)
-        self.assertEqual(codestream.segment[1].yrsiz[2], 2)
-
-    def test_NR_file4_dump(self):
-        # One 8-bit component in the sRGB-grey colourspace.
-        jfile = opj_data_file('input/conformance/file4.jp2')
-        jp2 = Jp2k(jfile)
-
-        ids = [box.box_id for box in jp2.box]
-        self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
-
-        ids = [box.box_id for box in jp2.box[2].box]
-        self.assertEqual(ids, ['ihdr', 'colr'])
-
-        # Signature box.  Check for corruption.
-        self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[1], 'jp2 ')
-
-        # Jp2 Header
-        # Image header
-        self.assertEqual(jp2.box[2].box[0].height, 512)
-        self.assertEqual(jp2.box[2].box[0].width, 768)
-        self.assertEqual(jp2.box[2].box[0].num_components, 1)
-        self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
-        self.assertEqual(jp2.box[2].box[0].signed, False)
-        self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
-        self.assertEqual(jp2.box[2].box[0].ip_provided, False)
-
-        # Jp2 Header
-        # Colour specification
-        self.assertEqual(jp2.box[2].box[1].method,
-                         glymur.core.ENUMERATED_COLORSPACE)
-        self.assertEqual(jp2.box[2].box[1].precedence, 0)
-        self.assertEqual(jp2.box[2].box[1].approximation, 1)  # JPX exact?
-        self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.GREYSCALE)
-
-    def test_NR_file5_dump(self):
-        # Three 8-bit components in the ROMM-RGB colourspace, encapsulated in a
-        # JPX file. The components have been transformed using
-        # the RCT. The colourspace is specified using both a Restricted ICC
-        # profile and using the JPX-defined enumerated code for the ROMM-RGB
-        # colourspace.
-        jfile = opj_data_file('input/conformance/file5.jp2')
-        with warnings.catch_warnings():
-            # There's a warning for an unknown compatibility entry.
-            # Ignore it here.
-            warnings.simplefilter("ignore")
-            jp2 = Jp2k(jfile)
-
-        ids = [box.box_id for box in jp2.box]
-        self.assertEqual(ids, ['jP  ', 'ftyp', 'rreq', 'jp2h', 'jp2c'])
-
-        ids = [box.box_id for box in jp2.box[3].box]
-        self.assertEqual(ids, ['ihdr', 'colr', 'colr'])
-
-        # Signature box.  Check for corruption.
-        self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jpx ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[1], 'jp2 ')
-
-        # Jp2 Header
-        # Image header
-        self.assertEqual(jp2.box[3].box[0].height, 512)
-        self.assertEqual(jp2.box[3].box[0].width, 768)
-        self.assertEqual(jp2.box[3].box[0].num_components, 3)
-        self.assertEqual(jp2.box[3].box[0].signed, False)
-        self.assertEqual(jp2.box[3].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[3].box[0].colorspace_unknown, False)
-        self.assertEqual(jp2.box[3].box[0].ip_provided, False)
-
-        # Jp2 Header
-        # Colour specification
-        self.assertEqual(jp2.box[3].box[1].method,
-                         glymur.core.RESTRICTED_ICC_PROFILE)  # enumerated
-        self.assertEqual(jp2.box[3].box[1].precedence, 0)
-        self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(jp2.box[3].box[1].icc_profile['Size'], 546)
-        self.assertIsNone(jp2.box[3].box[1].colorspace)
-
-    def test_NR_file6_dump(self):
-        jfile = opj_data_file('input/conformance/file6.jp2')
-        jp2 = Jp2k(jfile)
-
-        ids = [box.box_id for box in jp2.box]
-        self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
-
-        ids = [box.box_id for box in jp2.box[2].box]
-        self.assertEqual(ids, ['ihdr', 'colr'])
-
-        # Signature box.  Check for corruption.
-        self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[1], 'jp2 ')
-
-        # Jp2 Header
-        # Image header
-        self.assertEqual(jp2.box[2].box[0].height, 512)
-        self.assertEqual(jp2.box[2].box[0].width, 768)
-        self.assertEqual(jp2.box[2].box[0].num_components, 1)
-        self.assertEqual(jp2.box[2].box[0].bits_per_component, 12)
-        self.assertEqual(jp2.box[2].box[0].signed, False)
-        self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
-        self.assertEqual(jp2.box[2].box[0].ip_provided, False)
-
-        # Jp2 Header
-        # Colour specification
-        self.assertEqual(jp2.box[2].box[1].method,
-                         glymur.core.ENUMERATED_COLORSPACE)
-        self.assertEqual(jp2.box[2].box[1].precedence, 0)
-        self.assertEqual(jp2.box[2].box[1].approximation, 1)  # JPX exact
-        self.assertIsNone(jp2.box[2].box[1].icc_profile)
-        self.assertEqual(jp2.box[2].box[1].colorspace,
-                         glymur.core.GREYSCALE)
-
-    def test_NR_file7_dump(self):
-        # Three 16-bit components in the e-sRGB colourspace, encapsulated in a
-        # JP2 compatible JPX file. The components have been transformed using
-        # the RCT. The colourspace is specified using both a Restricted ICC
-        # profile and using the JPX-defined enumerated code for the e-sRGB
-        # colourspace.
-        jfile = opj_data_file('input/conformance/file7.jp2')
-        jp2 = Jp2k(jfile)
-
-        ids = [box.box_id for box in jp2.box]
-        self.assertEqual(ids, ['jP  ', 'ftyp', 'rreq', 'jp2h', 'jp2c'])
-
-        ids = [box.box_id for box in jp2.box[3].box]
-        self.assertEqual(ids, ['ihdr', 'colr', 'colr'])
-
-        # Signature box.  Check for corruption.
-        self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jpx ')
-        self.assertEqual(jp2.box[1].compatibility_list[1], 'jp2 ')
-
-        # Jp2 Header
-        # Image header
-        self.assertEqual(jp2.box[3].box[0].height, 640)
-        self.assertEqual(jp2.box[3].box[0].width, 480)
-        self.assertEqual(jp2.box[3].box[0].num_components, 3)
-        self.assertEqual(jp2.box[3].box[0].bits_per_component, 16)
-        self.assertEqual(jp2.box[3].box[0].signed, False)
-        self.assertEqual(jp2.box[3].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[3].box[0].colorspace_unknown, False)
-        self.assertEqual(jp2.box[3].box[0].ip_provided, False)
-
-        # Jp2 Header
-        # Colour specification
-        self.assertEqual(jp2.box[3].box[1].method,
-                         glymur.core.RESTRICTED_ICC_PROFILE)
-        self.assertEqual(jp2.box[3].box[1].precedence, 0)
-        self.assertEqual(jp2.box[3].box[1].approximation, 1)
-        self.assertEqual(jp2.box[3].box[1].icc_profile['Size'], 13332)
-        self.assertIsNone(jp2.box[3].box[1].colorspace)
-
-    def test_NR_file8_dump(self):
-        # One 8-bit component in a gamma 1.8 space. The colourspace is
-        # specified using a Restricted ICC profile.
-        jfile = opj_data_file('input/conformance/file8.jp2')
-        jp2 = Jp2k(jfile)
-
-        ids = [box.box_id for box in jp2.box]
-        self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'xml ', 'jp2c',
-                               'xml '])
-
-        ids = [box.box_id for box in jp2.box[2].box]
-        self.assertEqual(ids, ['ihdr', 'colr'])
-
-        # Signature box.  Check for corruption.
-        self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].compatibility_list[1], 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-
-        # Jp2 Header
-        # Image header
-        self.assertEqual(jp2.box[2].box[0].height, 400)
-        self.assertEqual(jp2.box[2].box[0].width, 700)
-        self.assertEqual(jp2.box[2].box[0].num_components, 1)
-        self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
-        self.assertEqual(jp2.box[2].box[0].signed, False)
-        self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
-        self.assertEqual(jp2.box[2].box[0].ip_provided, False)
-
-        # Jp2 Header
-        # Colour specification
-        self.assertEqual(jp2.box[2].box[1].method,
-                         glymur.core.RESTRICTED_ICC_PROFILE)  # enumerated
-        self.assertEqual(jp2.box[2].box[1].precedence, 0)
-        self.assertEqual(jp2.box[2].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(jp2.box[2].box[1].icc_profile['Size'], 414)
-        self.assertIsNone(jp2.box[2].box[1].colorspace)
-
-        # XML box
-        tags = [x.tag for x in jp2.box[3].xml.getroot()]
-        self.assertEqual(tags,
-                         ['{http://www.jpeg.org/jpx/1.0/xml}'
-                          + 'GENERAL_CREATION_INFO'])
-
-        # XML box
-        tags = [x.tag for x in jp2.box[5].xml.getroot()]
-        self.assertEqual(tags,
-                         ['{http://www.jpeg.org/jpx/1.0/xml}CAPTION',
-                          '{http://www.jpeg.org/jpx/1.0/xml}LOCATION',
-                          '{http://www.jpeg.org/jpx/1.0/xml}THING',
-                          '{http://www.jpeg.org/jpx/1.0/xml}EVENT'])
-
-    def test_NR_file9_dump(self):
-        # Colormap
-        jfile = opj_data_file('input/conformance/file9.jp2')
-        jp2 = Jp2k(jfile)
-
-        ids = [box.box_id for box in jp2.box]
-        self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
-
-        ids = [box.box_id for box in jp2.box[2].box]
-        self.assertEqual(ids, ['ihdr', 'pclr', 'cmap', 'colr'])
-
-        # Signature box.  Check for corruption.
-        self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].compatibility_list[1], 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-
-        # Jp2 Header
-        # Image header
-        self.assertEqual(jp2.box[2].box[0].height, 512)
-        self.assertEqual(jp2.box[2].box[0].width, 768)
-        self.assertEqual(jp2.box[2].box[0].num_components, 1)
-        self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
-        self.assertEqual(jp2.box[2].box[0].signed, False)
-        self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
-        self.assertEqual(jp2.box[2].box[0].ip_provided, False)
-
-        # Palette box.
-        self.assertEqual(jp2.box[2].box[1].palette.shape, (256, 3))
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[0, 0], 0)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[0, 1], 0)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[0, 2], 0)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[128, 0], 73)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[128, 1], 92)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[128, 2], 53)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[255, 0], 245)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[255, 1], 245)
-        np.testing.assert_array_equal(jp2.box[2].box[1].palette[255, 2], 245)
-
-        # Component mapping box
-        self.assertEqual(jp2.box[2].box[2].component_index, (0, 0, 0))
-        self.assertEqual(jp2.box[2].box[2].mapping_type, (1, 1, 1))
-        self.assertEqual(jp2.box[2].box[2].palette_index, (0, 1, 2))
-
-        # Jp2 Header
-        # Colour specification
-        self.assertEqual(jp2.box[2].box[3].method,
-                         glymur.core.ENUMERATED_COLORSPACE)
-        self.assertEqual(jp2.box[2].box[3].precedence, 0)
-        self.assertEqual(jp2.box[2].box[3].approximation, 1)  # JPX exact
-        self.assertIsNone(jp2.box[2].box[3].icc_profile)
-        self.assertEqual(jp2.box[2].box[3].colorspace, glymur.core.SRGB)
 
     def test_NR_00042_j2k_dump(self):
         # Profile 3.
@@ -3231,26 +1656,12 @@ class TestSuiteDump(unittest.TestCase):
         jp2k = Jp2k(jfile)
         c = jp2k.get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "3" means profile 3
-        self.assertEqual(c.segment[1].rsiz, 3)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 1920)
-        self.assertEqual(c.segment[1].ysiz, 1080)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
-                         (1920, 1080))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (12, 12, 12))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 3)
+        kwargs = {'rsiz': 3, 'xysiz': (1920, 1080), 'xyosiz': (0, 0),
+                'xytsiz': (1920, 1080), 'xytosiz': (0, 0),
+                'bitdepth': (12, 12, 12),
+                'signed': (False, False, False),
+                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -3260,18 +1671,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (32, 32))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size[0], (128, 128))
@@ -3292,18 +1693,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[4].ccoc, 1)
         self.assertEqual(c.segment[4].spcoc[0], 5)  # level
         self.assertEqual(tuple(c.segment[4].code_block_size), (32, 32))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[4].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[4].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[4].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[4].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[4].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[4].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[4].spcoc[3],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[4].spcoc[4],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
@@ -3324,18 +1715,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[6].ccoc, 2)
         self.assertEqual(c.segment[6].spcoc[0], 5)  # level
         self.assertEqual(tuple(c.segment[6].code_block_size), (32, 32))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[6].spcoc[3] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[6].spcoc[3] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[6].spcoc[3] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[6].spcoc[3] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[6].spcoc[3] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[6].spcoc[3] & 0x0020)
+        self.verify_codeblock_style(c.segment[6].spcoc[3],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[6].spcoc[4],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
@@ -3352,12 +1733,8 @@ class TestSuiteDump(unittest.TestCase):
                          [18, 18, 18, 18, 17, 17, 17, 16, 16, 16, 14, 14,
                           14, 14, 14, 14])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[8].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[8].ccme.decode('latin-1'),
-                         "Created by OpenJPEG version 1.3.0")
+        pargs = (RCME_ISO_8859_1, "Created by OpenJPEG version 1.3.0".encode())
+        self.verifyCMEsegment(c.segment[8], CMEsegment(*pargs))
 
         # TLM (tile-part length)
         self.assertEqual(c.segment[9].ztlm, 0)
@@ -3379,30 +1756,15 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[-1].marker_id, 'EOC')
 
     def test_Bretagne2_j2k_dump(self):
-        # Profile 3.
         jfile = opj_data_file('input/nonregression/Bretagne2.j2k')
         jp2k = Jp2k(jfile)
         c = jp2k.get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:  "3" means profile 3
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 2592)
-        self.assertEqual(c.segment[1].ysiz, 1944)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (640, 480))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 3)
+        kwargs = {'rsiz': 0, 'xysiz': (2592, 1944), 'xyosiz': (0, 0),
+                'xytsiz': (640, 480), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
+                'signed': (False, False, False),
+                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -3412,18 +1774,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (32, 32))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size,
@@ -3441,25 +1793,11 @@ class TestSuiteDump(unittest.TestCase):
         jp2k = Jp2k(jfile)
         c = jp2k.get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 512)
-        self.assertEqual(c.segment[1].ysiz, 512)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (512, 512))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (16,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 1)
+        kwargs = {'rsiz': 0, 'xysiz': (512, 512), 'xyosiz': (0, 0),
+                'xytsiz': (512, 512), 'xytosiz': (0, 0), 'bitdepth': (16,),
+                'signed': (False,),
+                'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -3469,18 +1807,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -3494,25 +1822,11 @@ class TestSuiteDump(unittest.TestCase):
         jp2k = Jp2k(jfile)
         c = jp2k.get_codestream(header_only=False)
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 512)
-        self.assertEqual(c.segment[1].ysiz, 512)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (512, 512))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (16,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 1)
+        kwargs = {'rsiz': 0, 'xysiz': (512, 512), 'xyosiz': (0, 0),
+                'xytsiz': (512, 512), 'xytosiz': (0, 0), 'bitdepth': (16,),
+                'signed': (False,),
+                'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -3522,18 +1836,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -3555,26 +1859,11 @@ class TestSuiteDump(unittest.TestCase):
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 1420)
-        self.assertEqual(c.segment[1].ysiz, 1416)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
-                         (1420, 1416))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (16,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 1)
+        kwargs = {'rsiz': 0, 'xysiz': (1420, 1416), 'xyosiz': (0, 0),
+                'xytsiz': (1420, 1416), 'xytosiz': (0, 0), 'bitdepth': (16,),
+                'signed': (False,),
+                'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -3584,18 +1873,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 11)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -3617,25 +1896,11 @@ class TestSuiteDump(unittest.TestCase):
         expected = ['SOC', 'SIZ', 'COD', 'QCD', 'CME']
         self.assertEqual(ids, expected)
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 512)
-        self.assertEqual(c.segment[1].ysiz, 614)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (512, 614))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (12,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 1)
+        kwargs = {'rsiz': 0, 'xysiz': (512, 614), 'xyosiz': (0, 0),
+                'xytsiz': (512, 614), 'xytosiz': (0, 0), 'bitdepth': (12,),
+                'signed': (False,),
+                'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -3645,18 +1910,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -3672,11 +1927,8 @@ class TestSuiteDump(unittest.TestCase):
                          [22, 22, 22, 22, 21, 21, 21, 20, 20, 20, 19, 19, 19,
                           18, 18, 18])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'), "Kakadu-3.2")
+        pargs = (RCME_ISO_8859_1, "Kakadu-3.2".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
     def test_NR_cthead1_dump(self):
         jfile = opj_data_file('input/nonregression/cthead1.j2k')
@@ -3687,25 +1939,11 @@ class TestSuiteDump(unittest.TestCase):
         expected = ['SOC', 'SIZ', 'COD', 'QCD', 'CME', 'CME']
         self.assertEqual(ids, expected)
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 256)
-        self.assertEqual(c.segment[1].ysiz, 256)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (256, 256))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 1)
+        kwargs = {'rsiz': 0, 'xysiz': (256, 256), 'xyosiz': (0, 0),
+                'xytsiz': (256, 256), 'xytosiz': (0, 0), 'bitdepth': (8,),
+                'signed': (False,),
+                'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -3715,18 +1953,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -3740,17 +1968,8 @@ class TestSuiteDump(unittest.TestCase):
                          [9, 10, 10, 11, 10, 10, 11, 10, 10, 11, 10, 10, 10,
                           9, 9, 10])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'), "Kakadu-v6.3.1")
-
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'), "Kakadu-v6.3.1")
+        pargs = (RCME_ISO_8859_1, "Kakadu-v6.3.1".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
     def test_NR_illegalcolortransform_dump(self):
         jfile = opj_data_file('input/nonregression/illegalcolortransform.j2k')
@@ -3761,26 +1980,11 @@ class TestSuiteDump(unittest.TestCase):
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 1420)
-        self.assertEqual(c.segment[1].ysiz, 1416)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
-                         (1420, 1416))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (16,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 1)
+        kwargs = {'rsiz': 0, 'xysiz': (1420, 1416), 'xyosiz': (0, 0),
+                'xytsiz': (1420, 1416), 'xytosiz': (0, 0), 'bitdepth': (16,),
+                'signed': (False,),
+                'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -3790,18 +1994,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 11)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -3822,25 +2016,11 @@ class TestSuiteDump(unittest.TestCase):
         expected = ['SOC', 'SIZ', 'COD', 'QCD', 'CME']
         self.assertEqual(ids, expected)
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 256)
-        self.assertEqual(c.segment[1].ysiz, 256)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (256, 256))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (True, True, True))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 3)
+        kwargs = {'rsiz': 0, 'xysiz': (256, 256), 'xyosiz': (0, 0),
+                'xytsiz': (256, 256), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
+                'signed': (True, True, True),
+                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -3850,18 +2030,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -3874,11 +2044,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[3].exponent, [8, 9, 9, 10, 9, 9, 10, 9, 9,
                          10, 9, 9, 10, 9, 9, 10])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_BINARY)
-        # Comment value
-        self.assertEqual(len(c.segment[4].ccme), 36)
+        pargs = (RCME_BINARY, c.segment[4].ccme)
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
     def test_NR_kakadu_v4_4_openjpegv2_broken_dump(self):
         jfile = opj_data_file('input/nonregression/'
@@ -3886,26 +2053,11 @@ class TestSuiteDump(unittest.TestCase):
         jp2k = Jp2k(jfile)
         c = jp2k.get_codestream()
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 2048)
-        self.assertEqual(c.segment[1].ysiz, 2500)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
-                         (2048, 2500))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (16,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 1)
+        kwargs = {'rsiz': 0, 'xysiz': (2048, 2500), 'xyosiz': (0, 0),
+                'xytsiz': (2048, 2500), 'xytosiz': (0, 0), 'bitdepth': (16,),
+                'signed': (False,),
+                'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -3915,18 +2067,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 8)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -3939,57 +2081,37 @@ class TestSuiteDump(unittest.TestCase):
                          [17, 18, 18, 19, 18, 18, 19, 18, 18, 19, 18, 18, 19,
                           18, 18, 19, 18, 18, 19, 18, 18, 19, 18, 18, 19])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'), "Kakadu-v4.4")
+        pargs = (RCME_ISO_8859_1, "Kakadu-v4.4".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[5].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        expected = "Kdu-Layer-Info: log_2{Delta-D(MSE)/[2^16*Delta-L(bytes)]},"
-        expected += " L(bytes)\n"
-        expected += " -65.4, 6.8e+004\n"
-        expected += " -66.3, 1.0e+005\n"
-        expected += " -67.3, 2.0e+005\n"
-        expected += " -68.5, 4.1e+005\n"
-        expected += " -69.0, 5.1e+005\n"
-        expected += " -69.5, 5.9e+005\n"
-        expected += " -69.7, 6.8e+005\n"
-        expected += " -70.3, 8.2e+005\n"
-        expected += " -70.8, 1.0e+006\n"
-        expected += " -71.9, 1.4e+006\n"
-        expected += " -73.8, 2.0e+006\n"
-        expected += "-256.0, 3.7e+006\n"
-        self.assertEqual(c.segment[5].ccme.decode('latin-1'), expected)
+        ccme = "Kdu-Layer-Info: log_2{Delta-D(MSE)/[2^16*Delta-L(bytes)]},"
+        ccme += " L(bytes)\n"
+        ccme += " -65.4, 6.8e+004\n"
+        ccme += " -66.3, 1.0e+005\n"
+        ccme += " -67.3, 2.0e+005\n"
+        ccme += " -68.5, 4.1e+005\n"
+        ccme += " -69.0, 5.1e+005\n"
+        ccme += " -69.5, 5.9e+005\n"
+        ccme += " -69.7, 6.8e+005\n"
+        ccme += " -70.3, 8.2e+005\n"
+        ccme += " -70.8, 1.0e+006\n"
+        ccme += " -71.9, 1.4e+006\n"
+        ccme += " -73.8, 2.0e+006\n"
+        ccme += "-256.0, 3.7e+006\n"
+        pargs = (RCME_ISO_8859_1, ccme.encode())
+        self.verifyCMEsegment(c.segment[5], CMEsegment(*pargs))
+
 
     def test_NR_MarkerIsNotCompliant_j2k_dump(self):
         jfile = opj_data_file('input/nonregression/MarkerIsNotCompliant.j2k')
         jp2k = Jp2k(jfile)
         c = jp2k.get_codestream()
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 1420)
-        self.assertEqual(c.segment[1].ysiz, 1416)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
-                         (1420, 1416))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (16,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 1)
+        kwargs = {'rsiz': 0, 'xysiz': (1420, 1416), 'xyosiz': (0, 0),
+                'xytsiz': (1420, 1416), 'xytosiz': (0, 0), 'bitdepth': (16,),
+                'signed': (False,),
+                'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -3999,18 +2121,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 11)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -4029,26 +2141,11 @@ class TestSuiteDump(unittest.TestCase):
         jp2k = Jp2k(jfile)
         c = jp2k.get_codestream()
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 1920)
-        self.assertEqual(c.segment[1].ysiz, 1080)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
-                         (1920, 1080))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 3)
+        kwargs = {'rsiz': 0, 'xysiz': (1920, 1080), 'xyosiz': (0, 0),
+                'xytsiz': (1920, 1080), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
+                'signed': (False, False, False),
+                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -4058,18 +2155,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -4086,26 +2173,11 @@ class TestSuiteDump(unittest.TestCase):
         jp2k = Jp2k(jfile)
         c = jp2k.get_codestream()
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 1920)
-        self.assertEqual(c.segment[1].ysiz, 1080)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
-                         (1920, 1080))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 3)
+        kwargs = {'rsiz': 0, 'xysiz': (1920, 1080), 'xyosiz': (0, 0),
+                'xytsiz': (1920, 1080), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
+                'signed': (False, False, False),
+                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -4115,18 +2187,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -4143,26 +2205,11 @@ class TestSuiteDump(unittest.TestCase):
         jp2k = Jp2k(jfile)
         c = jp2k.get_codestream()
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 1920)
-        self.assertEqual(c.segment[1].ysiz, 1080)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
-                         (1920, 1080))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 3)
+        kwargs = {'rsiz': 0, 'xysiz': (1920, 1080), 'xyosiz': (0, 0),
+                'xytsiz': (1920, 1080), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
+                'signed': (False, False, False),
+                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -4172,18 +2219,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -4204,25 +2241,11 @@ class TestSuiteDump(unittest.TestCase):
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 117)
-        self.assertEqual(c.segment[1].ysiz, 117)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (117, 117))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 4)
+        kwargs = {'rsiz': 0, 'xysiz': (117, 117), 'xyosiz': (0, 0),
+                'xytsiz': (117, 117), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8, 8),
+                'signed': (False, False, False, False),
+                'xyrsiz': [(1, 1, 1, 1), (1, 1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -4232,18 +2255,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -4264,25 +2277,11 @@ class TestSuiteDump(unittest.TestCase):
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 117)
-        self.assertEqual(c.segment[1].ysiz, 117)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (117, 117))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 4)
+        kwargs = {'rsiz': 0, 'xysiz': (117, 117), 'xyosiz': (0, 0),
+                'xytsiz': (117, 117), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8, 8),
+                'signed': (False, False, False, False),
+                'xyrsiz': [(1, 1, 1, 1), (1, 1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -4292,18 +2291,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -4324,25 +2313,11 @@ class TestSuiteDump(unittest.TestCase):
         expected = ['SOC', 'SIZ', 'COD', 'QCD', 'CME']
         self.assertEqual(ids, expected)
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 512)
-        self.assertEqual(c.segment[1].ysiz, 512)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (512, 512))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (16,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (True,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 1)
+        kwargs = {'rsiz': 0, 'xysiz': (512, 512), 'xyosiz': (0, 0),
+                'xytsiz': (512, 512), 'xytosiz': (0, 0), 'bitdepth': (16,),
+                'signed': (False,),
+                'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -4352,18 +2327,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -4376,12 +2341,8 @@ class TestSuiteDump(unittest.TestCase):
                          [18, 19, 19, 20, 19, 19, 20, 19, 19, 20, 19, 19, 20,
                           19, 19, 20])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'),
-                         "Kakadu-2.0.2")
+        pargs = (RCME_ISO_8859_1, "Kakadu-2.0.2".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
     def test_NR_test_lossless_j2k_dump(self):
         jfile = opj_data_file('input/nonregression/test_lossless.j2k')
@@ -4392,26 +2353,11 @@ class TestSuiteDump(unittest.TestCase):
         expected = ['SOC', 'SIZ', 'COD', 'QCD', 'CME']
         self.assertEqual(ids, expected)
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 1024)
-        self.assertEqual(c.segment[1].ysiz, 1024)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
-                         (1024, 1024))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (12,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 1)
+        kwargs = {'rsiz': 0, 'xysiz': (1024, 1024), 'xyosiz': (0, 0),
+                'xytsiz': (1024, 1024), 'xytosiz': (0, 0), 'bitdepth': (12,),
+                'signed': (False,),
+                'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -4421,18 +2367,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -4445,12 +2381,8 @@ class TestSuiteDump(unittest.TestCase):
                          [12, 13, 13, 14, 13, 13, 14, 13, 13, 14, 13, 13, 14,
                           13, 13, 14])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'),
-                         "ClearCanvas DICOM OpenJPEG")
+        pargs = (RCME_ISO_8859_1, "ClearCanvas DICOM OpenJPEG".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
     def test_NR_123_j2c_dump(self):
         jfile = opj_data_file('input/nonregression/123.j2c')
@@ -4461,26 +2393,11 @@ class TestSuiteDump(unittest.TestCase):
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 1800)
-        self.assertEqual(c.segment[1].ysiz, 1800)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
-                         (1800, 1800))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (16,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 1)
+        kwargs = {'rsiz': 0, 'xysiz': (1800, 1800), 'xyosiz': (0, 0),
+                'xytsiz': (1800, 1800), 'xytosiz': (0, 0), 'bitdepth': (16,),
+                'signed': (False,),
+                'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -4491,18 +2408,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[4], 11)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -4523,26 +2430,11 @@ class TestSuiteDump(unittest.TestCase):
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 1800)
-        self.assertEqual(c.segment[1].ysiz, 1800)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
-                         (1800, 1800))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (16,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 1)
+        kwargs = {'rsiz': 0, 'xysiz': (1800, 1800), 'xyosiz': (0, 0),
+                'xytsiz': (1800, 1800), 'xytosiz': (0, 0), 'bitdepth': (16,),
+                'signed': (False,),
+                'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -4553,18 +2445,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[4], 11)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -4585,26 +2467,11 @@ class TestSuiteDump(unittest.TestCase):
         expected = ['SOC', 'SIZ', 'COD', 'QCD', 'CME']
         self.assertEqual(ids, expected)
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 2048)
-        self.assertEqual(c.segment[1].ysiz, 1556)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz),
-                         (2048, 1556))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (12, 12, 12))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 3)
+        kwargs = {'rsiz': 0, 'xysiz': (2048, 1556), 'xyosiz': (0, 0),
+                'xytsiz': (2048, 1556), 'xytosiz': (0, 0), 'bitdepth': (12, 12, 12),
+                'signed': (False, False, False),
+                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -4615,18 +2482,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (32, 32))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size,
@@ -4640,12 +2497,8 @@ class TestSuiteDump(unittest.TestCase):
                          [13, 12, 12, 12, 12, 12, 12, 13, 13, 13, 13, 13, 13,
                           13, 13, 13])
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'),
-                         "DCP-Werkstatt")
+        pargs = (RCME_ISO_8859_1, "DCP-Werkstatt".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
     def test_NR_issue104_jpxstream_dump(self):
         jfile = opj_data_file('input/nonregression/issue104_jpxstream.jp2')
@@ -4657,38 +2510,21 @@ class TestSuiteDump(unittest.TestCase):
         ids = [box.box_id for box in jp2.box[3].box]
         self.assertEqual(ids, ['ihdr', 'colr', 'pclr', 'cmap'])
 
-        # Signature box.  Check for corruption.
-        self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[0], 'jp2 ')
-        self.assertEqual(jp2.box[1].compatibility_list[1], 'jpxb')
-        self.assertEqual(jp2.box[1].compatibility_list[2], 'jpx ')
+        self.verifySignatureBox(jp2.box[0])
+        self.verify_filetype_box(jp2.box[1],
+                FileTypeBox(compatibility_list=['jp2 ', 'jpxb', 'jpx ']))
 
         # Reader requirements talk.
         # unrestricted jpeg 2000 part 1
         self.assertTrue(5 in jp2.box[2].standard_flag)
 
-        # Jp2 Header
-        # Image header
-        self.assertEqual(jp2.box[3].box[0].height, 203)
-        self.assertEqual(jp2.box[3].box[0].width, 479)
-        self.assertEqual(jp2.box[3].box[0].num_components, 1)
-        self.assertEqual(jp2.box[3].box[0].bits_per_component, 8)
-        self.assertEqual(jp2.box[3].box[0].signed, False)
-        self.assertEqual(jp2.box[3].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[3].box[0].colorspace_unknown, True)
-        self.assertEqual(jp2.box[3].box[0].ip_provided, False)
+        ihdr = glymur.jp2box.ImageHeaderBox(203, 479, colorspace_unknown=True)
+        self.verifyImageHeaderBox(jp2.box[3].box[0], ihdr)
 
-        # Jp2 Header
-        # Colour specification
-        self.assertEqual(jp2.box[3].box[1].method,
-                         glymur.core.ENUMERATED_COLORSPACE)
-        self.assertEqual(jp2.box[3].box[1].precedence, 2)
-        self.assertEqual(jp2.box[3].box[1].approximation, 1)  # exact
-        self.assertEqual(jp2.box[3].box[1].colorspace, glymur.core.SRGB)
+        colr = glymur.jp2box.ColourSpecificationBox(
+                colorspace=glymur.core.SRGB,
+                approximation=1, precedence=2)
+        self.verifyColourSpecificationBox(jp2.box[3].box[1], colr)
 
         # Jp2 Header
         # Palette box.
@@ -4706,25 +2542,11 @@ class TestSuiteDump(unittest.TestCase):
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 479)
-        self.assertEqual(c.segment[1].ysiz, 203)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (256, 203))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)])
+        kwargs = {'rsiz': 0, 'xysiz': (479, 203), 'xyosiz': (0, 0),
+                'xytsiz': (256, 203), 'xytosiz': (0, 0), 'bitdepth': (8,),
+                'signed': (False,),
+                'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -4735,18 +2557,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (32, 32))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -4756,104 +2568,6 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[3].guard_bits, 2)
         self.assertEqual(c.segment[3].mantissa, [0] * 16)
         self.assertEqual(c.segment[3].exponent, [8] + [9, 9, 10] * 5)
-
-    def test_NR_issue188_beach_64bitsbox(self):
-        lst = ['input', 'nonregression', 'issue188_beach_64bitsbox.jp2']
-        jfile = opj_data_file('/'.join(lst))
-        with warnings.catch_warnings():
-            # There's a warning for an unknown box.  
-            warnings.simplefilter("ignore")
-            jp2 = Jp2k(jfile)
-
-        ids = [box.box_id for box in jp2.box]
-        self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', b'XML ', 'jp2c'])
-
-        ids = [box.box_id for box in jp2.box[2].box]
-        self.assertEqual(ids, ['ihdr', 'colr'])
-
-        # Signature box.  Check for corruption.
-        self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[0], 'jp2 ')
-
-        # Jp2 Header
-        # Image header
-        self.assertEqual(jp2.box[2].box[0].height, 200)
-        self.assertEqual(jp2.box[2].box[0].width, 200)
-        self.assertEqual(jp2.box[2].box[0].num_components, 3)
-        self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
-        self.assertEqual(jp2.box[2].box[0].signed, False)
-        self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, True)
-        self.assertEqual(jp2.box[2].box[0].ip_provided, False)
-
-        # Jp2 Header
-        # Colour specification
-        self.assertEqual(jp2.box[2].box[1].method,
-                         glymur.core.ENUMERATED_COLORSPACE)
-        self.assertEqual(jp2.box[2].box[1].precedence, 0)
-        self.assertEqual(jp2.box[2].box[1].approximation, 0)
-        self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.SRGB)
-
-        # Skip the 4th box, it is uknown.
-
-        c = jp2.box[4].main_header
-
-        ids = [x.marker_id for x in c.segment]
-        expected = ['SOC', 'SIZ', 'COD', 'QCD', 'CME', 'CME']
-        self.assertEqual(ids, expected)
-
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 200)
-        self.assertEqual(c.segment[1].ysiz, 200)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (200, 200))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 3)
-
-        # COD: Coding style default
-        self.assertFalse(c.segment[2].scod & 2)  # no sop
-        self.assertFalse(c.segment[2].scod & 4)  # no eph
-        self.assertEqual(c.segment[2].spcod[0], glymur.core.LRCP)
-        self.assertEqual(c.segment[2].layers, 1)  # layers = 1
-        self.assertEqual(c.segment[2].spcod[3], 1)  # mct
-        self.assertEqual(c.segment[2].spcod[4], 5)  # level
-        self.assertEqual(tuple(c.segment[2].code_block_size),
-                         (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
-        self.assertEqual(c.segment[2].spcod[8],
-                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
-        self.assertEqual(len(c.segment[2].spcod), 9)
-
-        # QCD: Quantization default
-        self.assertEqual(c.segment[3].sqcd & 0x1f, 2)
-        self.assertEqual(c.segment[3].guard_bits, 1)
 
     def test_NR_issue206_image_000_dump(self):
         jfile = opj_data_file('input/nonregression/issue206_image-000.jp2')
@@ -4865,38 +2579,22 @@ class TestSuiteDump(unittest.TestCase):
         ids = [box.box_id for box in jp2.box[3].box]
         self.assertEqual(ids, ['ihdr', 'colr'])
 
-        # Signature box.  Check for corruption.
-        self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[0], 'jp2 ')
-        self.assertEqual(jp2.box[1].compatibility_list[1], 'jpxb')
-        self.assertEqual(jp2.box[1].compatibility_list[2], 'jpx ')
+        self.verifySignatureBox(jp2.box[0])
+        self.verify_filetype_box(jp2.box[1],
+                FileTypeBox(compatibility_list=['jp2 ', 'jpxb', 'jpx ']))
 
         # Reader requirements talk.
         # unrestricted jpeg 2000 part 1
         self.assertTrue(5 in jp2.box[2].standard_flag)
 
-        # Jp2 Header
-        # Image header
-        self.assertEqual(jp2.box[3].box[0].height, 326)
-        self.assertEqual(jp2.box[3].box[0].width, 431)
-        self.assertEqual(jp2.box[3].box[0].num_components, 3)
-        self.assertEqual(jp2.box[3].box[0].bits_per_component, 8)
-        self.assertEqual(jp2.box[3].box[0].signed, False)
-        self.assertEqual(jp2.box[3].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[3].box[0].colorspace_unknown, True)
-        self.assertEqual(jp2.box[3].box[0].ip_provided, False)
+        ihdr = glymur.jp2box.ImageHeaderBox(326, 431,
+                num_components=3, colorspace_unknown=True)
+        self.verifyImageHeaderBox(jp2.box[3].box[0], ihdr)
 
-        # Jp2 Header
-        # Colour specification
-        self.assertEqual(jp2.box[3].box[1].method,
-                         glymur.core.ENUMERATED_COLORSPACE)
-        self.assertEqual(jp2.box[3].box[1].precedence, 2)
-        self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(jp2.box[3].box[1].colorspace, glymur.core.SRGB)
+        colr = glymur.jp2box.ColourSpecificationBox(
+                colorspace=glymur.core.SRGB,
+                approximation=1, precedence=2)
+        self.verifyColourSpecificationBox(jp2.box[3].box[1], colr)
 
         c = jp2.box[4].main_header
 
@@ -4904,25 +2602,11 @@ class TestSuiteDump(unittest.TestCase):
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 431)
-        self.assertEqual(c.segment[1].ysiz, 326)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (256, 256))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 3)
+        kwargs = {'rsiz': 0, 'xysiz': (431, 326), 'xyosiz': (0, 0),
+                'xytsiz': (256, 256), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
+                'signed': (False, False, False),
+                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -4933,18 +2617,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (32, 32))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -4968,32 +2642,16 @@ class TestSuiteDump(unittest.TestCase):
         ids = [box.box_id for box in jp2.box[2].box[3].box]
         self.assertEqual(ids, ['resd'])
 
-        # Signature box.  Check for corruption.
-        self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
+        self.verifySignatureBox(jp2.box[0])
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
 
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[0], 'jp2 ')
+        ihdr = glymur.jp2box.ImageHeaderBox(135, 135, num_components=2,
+                colorspace_unknown=True)
+        self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
 
-        # Jp2 Header
-        # Image header
-        self.assertEqual(jp2.box[2].box[0].height, 135)
-        self.assertEqual(jp2.box[2].box[0].width, 135)
-        self.assertEqual(jp2.box[2].box[0].num_components, 2)
-        self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
-        self.assertEqual(jp2.box[2].box[0].signed, False)
-        self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, True)
-        self.assertEqual(jp2.box[2].box[0].ip_provided, False)
-
-        # Jp2 Header
-        # Colour specification
-        self.assertEqual(jp2.box[2].box[1].method,
-                         glymur.core.ENUMERATED_COLORSPACE)
-        self.assertEqual(jp2.box[2].box[1].precedence, 0)
-        self.assertEqual(jp2.box[2].box[1].approximation, 0)  # JP2
-        self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.GREYSCALE)
+        colr = glymur.jp2box.ColourSpecificationBox(
+                colorspace=glymur.core.GREYSCALE)
+        self.verifyColourSpecificationBox(jp2.box[2].box[1], colr)
 
         # Jp2 Header
         # Channel Definition
@@ -5007,25 +2665,11 @@ class TestSuiteDump(unittest.TestCase):
         expected = ['SOC', 'SIZ', 'COD', 'QCD', 'CME']
         self.assertEqual(ids, expected)
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 135)
-        self.assertEqual(c.segment[1].ysiz, 135)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (135, 135))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 2)
+        kwargs = {'rsiz': 0, 'xysiz': (135, 135), 'xyosiz': (0, 0),
+                'xytsiz': (135, 135), 'xytosiz': (0, 0), 'bitdepth': (8, 8),
+                'signed': (False, False),
+                'xyrsiz': [(1, 1), (1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -5036,18 +2680,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -5061,12 +2695,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[3].exponent,
                          [14] * 4 + [13] * 3 + [12] * 3 + [10] * 6)
 
-        # COM: comment
-        # Registration
-        self.assertEqual(c.segment[4].rcme, glymur.core.RCME_ISO_8859_1)
-        # Comment value
-        self.assertEqual(c.segment[4].ccme.decode('latin-1'),
-                         "Kakadu-v5.2.1")
+        pargs = (RCME_ISO_8859_1, "Kakadu-v5.2.1".encode())
+        self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
     def test_NR_mem_b2b86b74_2753_dump(self):
         jfile = opj_data_file('input/nonregression/mem-b2b86b74-2753.jp2')
@@ -5078,38 +2708,23 @@ class TestSuiteDump(unittest.TestCase):
         ids = [box.box_id for box in jp2.box[3].box]
         self.assertEqual(ids, ['ihdr', 'colr', 'pclr', 'cmap'])
 
-        # Signature box.  Check for corruption.
-        self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
-
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[0], 'jp2 ')
-        self.assertEqual(jp2.box[1].compatibility_list[1], 'jpxb')
-        self.assertEqual(jp2.box[1].compatibility_list[2], 'jpx ')
+        self.verifySignatureBox(jp2.box[0])
+        self.verify_filetype_box(jp2.box[1],
+                FileTypeBox(compatibility_list=['jp2 ', 'jpxb', 'jpx ']))
 
         # Reader requirements talk.
         # unrestricted jpeg 2000 part 1
         self.assertTrue(5 in jp2.box[2].standard_flag)
 
-        # Jp2 Header
-        # Image header
-        self.assertEqual(jp2.box[3].box[0].height, 46)
-        self.assertEqual(jp2.box[3].box[0].width, 124)
-        self.assertEqual(jp2.box[3].box[0].num_components, 1)
-        self.assertEqual(jp2.box[3].box[0].bits_per_component, 4)
-        self.assertEqual(jp2.box[3].box[0].signed, False)
-        self.assertEqual(jp2.box[3].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[3].box[0].colorspace_unknown, True)
-        self.assertEqual(jp2.box[3].box[0].ip_provided, False)
+        ihdr = glymur.jp2box.ImageHeaderBox(46, 124, bits_per_component=4,
+                colorspace_unknown=True)
+        self.verifyImageHeaderBox(jp2.box[3].box[0], ihdr)
 
-        # Jp2 Header
-        # Colour specification
-        self.assertEqual(jp2.box[3].box[1].method,
-                         glymur.core.ENUMERATED_COLORSPACE)
-        self.assertEqual(jp2.box[3].box[1].precedence, 2)
-        self.assertEqual(jp2.box[3].box[1].approximation, 1)  # JPX exact
-        self.assertEqual(jp2.box[3].box[1].colorspace, glymur.core.SRGB)
+        colr = glymur.jp2box.ColourSpecificationBox(
+                colorspace=glymur.core.SRGB,
+                method=glymur.core.ENUMERATED_COLORSPACE,
+                approximation=1, precedence=2)
+        self.verifyColourSpecificationBox(jp2.box[3].box[1], colr)
 
         # Jp2 Header
         # Palette box.
@@ -5128,25 +2743,11 @@ class TestSuiteDump(unittest.TestCase):
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 124)
-        self.assertEqual(c.segment[1].ysiz, 46)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (124, 46))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (4,))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False,))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)])
+        kwargs = {'rsiz': 0, 'xysiz': (124, 46), 'xyosiz': (0, 0),
+                'xytsiz': (124, 46), 'xytosiz': (0, 0), 'bitdepth': (4,),
+                'signed': (False,),
+                'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -5157,18 +2758,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (32, 32))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -5189,32 +2780,14 @@ class TestSuiteDump(unittest.TestCase):
         ids = [box.box_id for box in jp2.box[2].box]
         self.assertEqual(ids, ['ihdr', 'colr'])
 
-        # Signature box.  Check for corruption.
-        self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
+        self.verifySignatureBox(jp2.box[0])
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
 
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[0], 'jp2 ')
+        ihdr = glymur.jp2box.ImageHeaderBox(576, 766, num_components=3)
+        self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
 
-        # Jp2 Header
-        # Image header
-        self.assertEqual(jp2.box[2].box[0].height, 576)
-        self.assertEqual(jp2.box[2].box[0].width, 766)
-        self.assertEqual(jp2.box[2].box[0].num_components, 3)
-        self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
-        self.assertEqual(jp2.box[2].box[0].signed, False)
-        self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
-        self.assertEqual(jp2.box[2].box[0].ip_provided, False)
-
-        # Jp2 Header
-        # Colour specification
-        self.assertEqual(jp2.box[2].box[1].method,
-                         glymur.core.ENUMERATED_COLORSPACE)
-        self.assertEqual(jp2.box[2].box[1].precedence, 0)
-        self.assertEqual(jp2.box[2].box[1].approximation, 0)  # JP2
-        self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.YCC)
+        colr = glymur.jp2box.ColourSpecificationBox(colorspace=glymur.core.YCC)
+        self.verifyColourSpecificationBox(jp2.box[2].box[1], colr)
 
         c = jp2.box[3].main_header
 
@@ -5222,25 +2795,11 @@ class TestSuiteDump(unittest.TestCase):
         expected = ['SOC', 'SIZ', 'COD', 'QCD', 'POD']
         self.assertEqual(ids, expected)
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 766)
-        self.assertEqual(c.segment[1].ysiz, 576)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (766, 576))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1), (2, 1), (2, 1)])
+        kwargs = {'rsiz': 0, 'xysiz': (766, 576), 'xyosiz': (0, 0),
+                'xytsiz': (766, 576), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
+                'signed': (False, False, False),
+                'xyrsiz': [(1, 2, 2), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -5251,18 +2810,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (32, 128))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -5283,11 +2832,44 @@ class TestSuiteDump(unittest.TestCase):
         podvals = (glymur.core.LRCP, glymur.core.LRCP)
         self.assertEqual(c.segment[4].ppod, podvals)
 
-    def test_NR_orb_blue10_lin_jp2_dump(self):
-        jfile = opj_data_file('input/nonregression/orb-blue10-lin-jp2.jp2')
-        with warnings.catch_warnings():
-            # This file has an invalid ICC profile
-            warnings.simplefilter("ignore")
+
+@unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
+@unittest.skipIf(OPJ_DATA_ROOT is None,
+                 "OPJ_DATA_ROOT environment variable not set")
+class TestSuiteWarns(MetadataBase):
+
+    @unittest.skipIf(re.match("1.5|2.0.0", glymur.version.openjpeg_version),
+                     "Test not passing on 1.5, 2.0:  not introduced until 2.x")
+    def test_NR_DEC_issue188_beach_64bitsbox_jp2_41_decode(self):
+        """
+        Has an 'XML ' box instead of 'xml '.  Just verify we can read it.
+        """
+        relpath = 'input/nonregression/issue188_beach_64bitsbox.jp2'
+        jfile = opj_data_file(relpath)
+        with self.assertWarns(UserWarning):
+            j = Jp2k(jfile)
+        d = j.read()
+        self.assertTrue(True)
+
+    @unittest.skip("unexplained failure")        
+    def test_NR_broken4_jp2_dump(self):
+        jfile = opj_data_file('input/nonregression/broken4.jp2')
+        with self.assertWarns(UserWarning):
+            jp2 = Jp2k(jfile)
+
+        self.assertEqual(jp2.box[-1].main_header.segment[-1].marker_id, 'QCC')
+
+    @unittest.skipIf(sys.maxsize < 2**32, 'Do not run on 32-bit platforms')
+    def test_NR_broken3_jp2_dump(self):
+        """
+        NR_broken3_jp2_dump
+
+        The file in question here has a colr box with an erroneous box
+        length of over 1GB.  Don't run it on 32-bit platforms.
+        """
+        jfile = opj_data_file('input/nonregression/broken3.jp2')
+        with self.assertWarns(UserWarning):
+            # Bad box length.
             jp2 = Jp2k(jfile)
 
         ids = [box.box_id for box in jp2.box]
@@ -5296,24 +2878,443 @@ class TestSuiteDump(unittest.TestCase):
         ids = [box.box_id for box in jp2.box[2].box]
         self.assertEqual(ids, ['ihdr', 'colr'])
 
-        # Signature box.  Check for corruption.
-        self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
+        self.verifySignatureBox(jp2.box[0])
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
 
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[0], 'jp2 ')
+        ihdr = glymur.jp2box.ImageHeaderBox(152, 203, num_components=3)
+        self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
+
+        colr = glymur.jp2box.ColourSpecificationBox(colorspace=glymur.core.SRGB)
+        self.verifyColourSpecificationBox(jp2.box[2].box[1], colr)
+
+        c = jp2.box[3].main_header
+
+        ids = [x.marker_id for x in c.segment]
+        expected = ['SOC', 'SIZ', 'CME', 'COD', 'QCD', 'QCC', 'QCC']
+        self.assertEqual(ids, expected)
+
+        kwargs = {'rsiz': 0, 'xysiz': (203, 152), 'xyosiz': (0, 0),
+                'xytsiz': (203, 152), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
+                'signed': (False, False, False),
+                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+
+        pargs = RCME_ISO_8859_1, "Creator: JasPer Vers)on 1.701.0".encode()
+        self.verifyCMEsegment(c.segment[2], CMEsegment(*pargs))
+
+        # COD: Coding style default
+        self.assertFalse(c.segment[3].scod & 2)  # no sop
+        self.assertFalse(c.segment[3].scod & 4)  # no eph
+        self.assertEqual(c.segment[3].spcod[0], glymur.core.LRCP)
+        self.assertEqual(c.segment[3].layers, 1)  # layers = 1
+        self.assertEqual(c.segment[3].spcod[3], 1)  # mct
+        self.assertEqual(c.segment[3].spcod[4], 5)  # level
+        self.assertEqual(tuple(c.segment[3].code_block_size),
+                         (64, 64))  # cblk
+        self.verify_codeblock_style(c.segment[3].spcod[7],
+                [False, False, False, False, False, False])
+        self.assertEqual(c.segment[3].spcod[8],
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
+        self.assertEqual(len(c.segment[3].spcod), 9)
+
+        # QCD: Quantization default
+        self.assertEqual(c.segment[4].sqcd & 0x1f, 0)
+        self.assertEqual(c.segment[4].guard_bits, 2)
+        self.assertEqual(c.segment[4].mantissa, [0] * 16)
+        self.assertEqual(c.segment[4].exponent,
+                         [8] + [9, 9, 10] * 5)
+
+        # QCC: Quantization component
+        # associated component
+        self.assertEqual(c.segment[5].cqcc, 1)
+        self.assertEqual(c.segment[5].guard_bits, 2)
+        # quantization type
+        self.assertEqual(c.segment[5].sqcc & 0x1f, 0)  # none
+        self.assertEqual(c.segment[5].mantissa, [0] * 16)
+        self.assertEqual(c.segment[5].exponent,
+                         [8] + [9, 9, 10] * 5)
+
+        # QCC: Quantization component
+        # associated component
+        self.assertEqual(c.segment[6].cqcc, 2)
+        self.assertEqual(c.segment[6].guard_bits, 2)
+        # quantization type
+        self.assertEqual(c.segment[6].sqcc & 0x1f, 0)  # none
+        self.assertEqual(c.segment[6].mantissa, [0] * 16)
+        self.assertEqual(c.segment[6].exponent,
+                         [8] + [9, 9, 10] * 5)
+
+    @unittest.skip("unexplained failure")        
+    def test_NR_broken2_jp2_dump(self):
+        """
+        Invalid marker ID in the codestream.
+        """
+        jfile = opj_data_file('input/nonregression/broken2.jp2')
+        with self.assertWarns(UserWarning):
+            # Invalid marker ID on codestream.
+            jp2 = Jp2k(jfile)
+        
+        self.assertEqual(jp2.box[-1].main_header.segment[-1].marker_id, 'QCC')
+
+    def test_NR_file1_dump(self):
+        jfile = opj_data_file('input/conformance/file1.jp2')
+        with self.assertWarns(UserWarning):
+            # Bad compatibility list item.
+            jp2 = Jp2k(jfile)
+
+        ids = [box.box_id for box in jp2.box]
+        self.assertEqual(ids, ['jP  ', 'ftyp', 'xml ', 'jp2h', 'xml ',
+                               'jp2c'])
+
+        ids = [box.box_id for box in jp2.box[3].box]
+        self.assertEqual(ids, ['ihdr', 'colr'])
+
+        self.verifySignatureBox(jp2.box[0])
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
+
+        # XML box
+        tags = [x.tag for x in jp2.box[2].xml.getroot()]
+        self.assertEqual(tags,
+                         ['{http://www.jpeg.org/jpx/1.0/xml}'
+                          + 'GENERAL_CREATION_INFO'])
+
+        ihdr = glymur.jp2box.ImageHeaderBox(512, 768, num_components=3)
+        self.verifyImageHeaderBox(jp2.box[3].box[0], ihdr)
+
+        colr = glymur.jp2box.ColourSpecificationBox(colorspace=glymur.core.SRGB,
+                approximation=1)
+        self.verifyColourSpecificationBox(jp2.box[3].box[1], colr)
+
+        # XML box
+        tags = [x.tag for x in jp2.box[4].xml.getroot()]
+        self.assertEqual(tags, ['{http://www.jpeg.org/jpx/1.0/xml}CAPTION',
+                                '{http://www.jpeg.org/jpx/1.0/xml}LOCATION',
+                                '{http://www.jpeg.org/jpx/1.0/xml}EVENT'])
+
+    def test_NR_file2_dump(self):
+        jfile = opj_data_file('input/conformance/file2.jp2')
+        with self.assertWarns(UserWarning):
+            jp2 = Jp2k(jfile)
+
+        ids = [box.box_id for box in jp2.box]
+        self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
+
+        ids = [box.box_id for box in jp2.box[2].box]
+        self.assertEqual(ids, ['ihdr', 'colr', 'cdef'])
+
+        self.verifySignatureBox(jp2.box[0])
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
+
+        ihdr = glymur.jp2box.ImageHeaderBox(640, 480, num_components=3)
+        self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
+
+        colr = glymur.jp2box.ColourSpecificationBox(colorspace=glymur.core.YCC,
+                approximation=1)
+        self.verifyColourSpecificationBox(jp2.box[2].box[1], colr)
 
         # Jp2 Header
-        # Image header
-        self.assertEqual(jp2.box[2].box[0].height, 117)
-        self.assertEqual(jp2.box[2].box[0].width, 117)
-        self.assertEqual(jp2.box[2].box[0].num_components, 4)
-        self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
-        self.assertEqual(jp2.box[2].box[0].signed, False)
-        self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
-        self.assertEqual(jp2.box[2].box[0].ip_provided, False)
+        # Channel Definition
+        self.assertEqual(jp2.box[2].box[2].index, (0, 1, 2))
+        self.assertEqual(jp2.box[2].box[2].channel_type, (0, 0, 0))  # color
+        self.assertEqual(jp2.box[2].box[2].association, (3, 2, 1))  # reverse
+
+    def test_NR_file3_dump(self):
+        # Three 8-bit components in the sRGB-YCC colourspace, with the Cb and
+        # Cr components being subsampled 2x in both the horizontal and
+        # vertical directions. The components are stored in the standard
+        # order.
+        jfile = opj_data_file('input/conformance/file3.jp2')
+        with self.assertWarns(UserWarning):
+            jp2 = Jp2k(jfile)
+
+        ids = [box.box_id for box in jp2.box]
+        self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
+
+        ids = [box.box_id for box in jp2.box[2].box]
+        self.assertEqual(ids, ['ihdr', 'colr'])
+
+        self.verifySignatureBox(jp2.box[0])
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
+
+        ihdr = glymur.jp2box.ImageHeaderBox(640, 480, num_components=3)
+        self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
+
+        colr = glymur.jp2box.ColourSpecificationBox(
+                colorspace=glymur.core.YCC,
+                approximation=1)
+        self.verifyColourSpecificationBox(jp2.box[2].box[1], colr)
+
+        # sub-sampling
+        codestream = jp2.get_codestream()
+        self.assertEqual(codestream.segment[1].xrsiz[0], 1)
+        self.assertEqual(codestream.segment[1].yrsiz[0], 1)
+        self.assertEqual(codestream.segment[1].xrsiz[1], 2)
+        self.assertEqual(codestream.segment[1].yrsiz[1], 2)
+        self.assertEqual(codestream.segment[1].xrsiz[2], 2)
+        self.assertEqual(codestream.segment[1].yrsiz[2], 2)
+
+    def test_NR_file4_dump(self):
+        # One 8-bit component in the sRGB-grey colourspace.
+        jfile = opj_data_file('input/conformance/file4.jp2')
+        with self.assertWarns(UserWarning):
+            jp2 = Jp2k(jfile)
+
+        ids = [box.box_id for box in jp2.box]
+        self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
+
+        ids = [box.box_id for box in jp2.box[2].box]
+        self.assertEqual(ids, ['ihdr', 'colr'])
+
+        self.verifySignatureBox(jp2.box[0])
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
+
+        ihdr = glymur.jp2box.ImageHeaderBox(512, 768)
+        self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
+
+        colr = glymur.jp2box.ColourSpecificationBox(
+                colorspace=glymur.core.GREYSCALE, approximation=1)
+        self.verifyColourSpecificationBox(jp2.box[2].box[1], colr)
+
+    def test_NR_file5_dump(self):
+        # Three 8-bit components in the ROMM-RGB colourspace, encapsulated in a
+        # JPX file. The components have been transformed using
+        # the RCT. The colourspace is specified using both a Restricted ICC
+        # profile and using the JPX-defined enumerated code for the ROMM-RGB
+        # colourspace.
+        jfile = opj_data_file('input/conformance/file5.jp2')
+        with self.assertWarns(UserWarning):
+            # There's a warning for an unknown compatibility entry.
+            # Ignore it here.
+            jp2 = Jp2k(jfile)
+
+        ids = [box.box_id for box in jp2.box]
+        self.assertEqual(ids, ['jP  ', 'ftyp', 'rreq', 'jp2h', 'jp2c'])
+
+        ids = [box.box_id for box in jp2.box[3].box]
+        self.assertEqual(ids, ['ihdr', 'colr', 'colr'])
+
+        self.verifySignatureBox(jp2.box[0])
+        expected = FileTypeBox(
+                brand='jpx ', compatibility_list=['jp2 ', 'jpx ', 'jpxb'])
+        self.verify_filetype_box(jp2.box[1], expected)
+
+        ihdr = glymur.jp2box.ImageHeaderBox(512, 768, num_components=3)
+        self.verifyImageHeaderBox(jp2.box[3].box[0], ihdr)
+
+        colr = glymur.jp2box.ColourSpecificationBox(
+                method=glymur.core.RESTRICTED_ICC_PROFILE,
+                approximation=1, icc_profile=bytes([0] * 546))
+        self.verifyColourSpecificationBox(jp2.box[3].box[1], colr)
+        self.assertEqual(jp2.box[3].box[1].icc_profile['Size'], 546)
+
+    def test_NR_file6_dump(self):
+        jfile = opj_data_file('input/conformance/file6.jp2')
+        with self.assertWarns(UserWarning):
+            jp2 = Jp2k(jfile)
+
+        ids = [box.box_id for box in jp2.box]
+        self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
+
+        ids = [box.box_id for box in jp2.box[2].box]
+        self.assertEqual(ids, ['ihdr', 'colr'])
+
+        self.verifySignatureBox(jp2.box[0])
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
+
+        ihdr = glymur.jp2box.ImageHeaderBox(512, 768, bits_per_component=12)
+        self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
+
+        colr = glymur.jp2box.ColourSpecificationBox(
+                colorspace=glymur.core.GREYSCALE,
+                method=glymur.core.ENUMERATED_COLORSPACE,
+                approximation=1)
+        self.verifyColourSpecificationBox(jp2.box[2].box[1], colr)
+
+    def test_NR_file7_dump(self):
+        # Three 16-bit components in the e-sRGB colourspace, encapsulated in a
+        # JP2 compatible JPX file. The components have been transformed using
+        # the RCT. The colourspace is specified using both a Restricted ICC
+        # profile and using the JPX-defined enumerated code for the e-sRGB
+        # colourspace.
+        jfile = opj_data_file('input/conformance/file7.jp2')
+        with self.assertWarns(UserWarning):
+            jp2 = Jp2k(jfile)
+
+        ids = [box.box_id for box in jp2.box]
+        self.assertEqual(ids, ['jP  ', 'ftyp', 'rreq', 'jp2h', 'jp2c'])
+
+        ids = [box.box_id for box in jp2.box[3].box]
+        self.assertEqual(ids, ['ihdr', 'colr', 'colr'])
+
+        self.verifySignatureBox(jp2.box[0])
+
+        # File type box.
+        self.assertEqual(jp2.box[1].brand, 'jpx ')
+        self.assertEqual(jp2.box[1].compatibility_list[1], 'jp2 ')
+
+        ihdr = glymur.jp2box.ImageHeaderBox(640, 480,
+                num_components=3, bits_per_component=16)
+        self.verifyImageHeaderBox(jp2.box[3].box[0], ihdr)
+
+        colr = glymur.jp2box.ColourSpecificationBox(
+                method=glymur.core.RESTRICTED_ICC_PROFILE,
+                approximation=1)
+        self.verifyColourSpecificationBox(jp2.box[3].box[1], colr)
+        self.assertEqual(jp2.box[3].box[1].icc_profile['Size'], 13332)
+
+    def test_NR_file8_dump(self):
+        # One 8-bit component in a gamma 1.8 space. The colourspace is
+        # specified using a Restricted ICC profile.
+        jfile = opj_data_file('input/conformance/file8.jp2')
+        with self.assertWarns(UserWarning):
+            jp2 = Jp2k(jfile)
+
+        ids = [box.box_id for box in jp2.box]
+        self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'xml ', 'jp2c',
+                               'xml '])
+
+        ids = [box.box_id for box in jp2.box[2].box]
+        self.assertEqual(ids, ['ihdr', 'colr'])
+
+        self.verifySignatureBox(jp2.box[0])
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
+
+        ihdr = glymur.jp2box.ImageHeaderBox(400, 700)
+        self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
+
+        colr = glymur.jp2box.ColourSpecificationBox(
+                method=glymur.core.RESTRICTED_ICC_PROFILE,
+                approximation=1)
+        self.verifyColourSpecificationBox(jp2.box[2].box[1], colr)
+        self.assertEqual(jp2.box[2].box[1].icc_profile['Size'], 414)
+
+        # XML box
+        tags = [x.tag for x in jp2.box[3].xml.getroot()]
+        self.assertEqual(tags,
+                         ['{http://www.jpeg.org/jpx/1.0/xml}'
+                          + 'GENERAL_CREATION_INFO'])
+
+        # XML box
+        tags = [x.tag for x in jp2.box[5].xml.getroot()]
+        self.assertEqual(tags,
+                         ['{http://www.jpeg.org/jpx/1.0/xml}CAPTION',
+                          '{http://www.jpeg.org/jpx/1.0/xml}LOCATION',
+                          '{http://www.jpeg.org/jpx/1.0/xml}THING',
+                          '{http://www.jpeg.org/jpx/1.0/xml}EVENT'])
+
+    def test_NR_file9_dump(self):
+        # Colormap
+        jfile = opj_data_file('input/conformance/file9.jp2')
+        with self.assertWarns(UserWarning):
+            jp2 = Jp2k(jfile)
+
+        ids = [box.box_id for box in jp2.box]
+        self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
+
+        ids = [box.box_id for box in jp2.box[2].box]
+        self.assertEqual(ids, ['ihdr', 'pclr', 'cmap', 'colr'])
+
+        self.verifySignatureBox(jp2.box[0])
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
+
+        ihdr = glymur.jp2box.ImageHeaderBox(512, 768)
+        self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
+
+        # Palette box.
+        self.assertEqual(jp2.box[2].box[1].palette.shape, (256, 3))
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[0, 0], 0)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[0, 1], 0)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[0, 2], 0)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[128, 0], 73)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[128, 1], 92)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[128, 2], 53)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[255, 0], 245)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[255, 1], 245)
+        np.testing.assert_array_equal(jp2.box[2].box[1].palette[255, 2], 245)
+
+        # Component mapping box
+        self.assertEqual(jp2.box[2].box[2].component_index, (0, 0, 0))
+        self.assertEqual(jp2.box[2].box[2].mapping_type, (1, 1, 1))
+        self.assertEqual(jp2.box[2].box[2].palette_index, (0, 1, 2))
+
+        colr = glymur.jp2box.ColourSpecificationBox(
+                colorspace=glymur.core.SRGB,
+                approximation=1)
+        self.verifyColourSpecificationBox(jp2.box[2].box[3], colr)
+
+    def test_NR_issue188_beach_64bitsbox(self):
+        lst = ['input', 'nonregression', 'issue188_beach_64bitsbox.jp2']
+        jfile = opj_data_file('/'.join(lst))
+        with self.assertWarns(UserWarning):
+            # There's a warning for an unknown box.  
+            jp2 = Jp2k(jfile)
+
+        ids = [box.box_id for box in jp2.box]
+        self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', b'XML ', 'jp2c'])
+
+        ids = [box.box_id for box in jp2.box[2].box]
+        self.assertEqual(ids, ['ihdr', 'colr'])
+
+        self.verifySignatureBox(jp2.box[0])
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
+
+        ihdr = glymur.jp2box.ImageHeaderBox(200, 200,
+                num_components=3, colorspace_unknown=True)
+        self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
+
+        colr = glymur.jp2box.ColourSpecificationBox(colorspace=glymur.core.SRGB)
+        self.verifyColourSpecificationBox(jp2.box[2].box[1], colr)
+
+        # Skip the 4th box, it is uknown.
+
+        c = jp2.box[4].main_header
+
+        ids = [x.marker_id for x in c.segment]
+        expected = ['SOC', 'SIZ', 'COD', 'QCD', 'CME', 'CME']
+        self.assertEqual(ids, expected)
+
+        kwargs = {'rsiz': 0, 'xysiz': (200, 200), 'xyosiz': (0, 0),
+                'xytsiz': (200, 200), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
+                'signed': (False, False, False),
+                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+
+        # COD: Coding style default
+        self.assertFalse(c.segment[2].scod & 2)  # no sop
+        self.assertFalse(c.segment[2].scod & 4)  # no eph
+        self.assertEqual(c.segment[2].spcod[0], glymur.core.LRCP)
+        self.assertEqual(c.segment[2].layers, 1)  # layers = 1
+        self.assertEqual(c.segment[2].spcod[3], 1)  # mct
+        self.assertEqual(c.segment[2].spcod[4], 5)  # level
+        self.assertEqual(tuple(c.segment[2].code_block_size),
+                         (64, 64))  # cblk
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
+        self.assertEqual(c.segment[2].spcod[8],
+                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
+        self.assertEqual(len(c.segment[2].spcod), 9)
+
+        # QCD: Quantization default
+        self.assertEqual(c.segment[3].sqcd & 0x1f, 2)
+        self.assertEqual(c.segment[3].guard_bits, 1)
+
+    def test_NR_orb_blue10_lin_jp2_dump(self):
+        jfile = opj_data_file('input/nonregression/orb-blue10-lin-jp2.jp2')
+        with self.assertWarns(UserWarning):
+            # This file has an invalid ICC profile
+            jp2 = Jp2k(jfile)
+
+        ids = [box.box_id for box in jp2.box]
+        self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
+
+        ids = [box.box_id for box in jp2.box[2].box]
+        self.assertEqual(ids, ['ihdr', 'colr'])
+
+        self.verifySignatureBox(jp2.box[0])
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
+
+        ihdr = glymur.jp2box.ImageHeaderBox(117, 117, num_components=4)
+        self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
 
         # Jp2 Header
         # Colour specification
@@ -5330,25 +3331,11 @@ class TestSuiteDump(unittest.TestCase):
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 117)
-        self.assertEqual(c.segment[1].ysiz, 117)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (117, 117))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 4)
+        kwargs = {'rsiz': 0, 'xysiz': (117, 117), 'xyosiz': (0, 0),
+                'xytsiz': (117, 117), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8, 8),
+                'signed': (False, False, False, False),
+                'xyrsiz': [(1, 1, 1, 1), (1, 1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -5359,18 +3346,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -5384,9 +3361,8 @@ class TestSuiteDump(unittest.TestCase):
 
     def test_NR_orb_blue10_win_jp2_dump(self):
         jfile = opj_data_file('input/nonregression/orb-blue10-win-jp2.jp2')
-        with warnings.catch_warnings():
+        with self.assertWarns(UserWarning):
             # This file has an invalid ICC profile
-            warnings.simplefilter("ignore")
             jp2 = Jp2k(jfile)
 
         ids = [box.box_id for box in jp2.box]
@@ -5395,24 +3371,11 @@ class TestSuiteDump(unittest.TestCase):
         ids = [box.box_id for box in jp2.box[2].box]
         self.assertEqual(ids, ['ihdr', 'colr'])
 
-        # Signature box.  Check for corruption.
-        self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
+        self.verifySignatureBox(jp2.box[0])
+        self.verify_filetype_box(jp2.box[1], FileTypeBox())
 
-        # File type box.
-        self.assertEqual(jp2.box[1].brand, 'jp2 ')
-        self.assertEqual(jp2.box[1].minor_version, 0)
-        self.assertEqual(jp2.box[1].compatibility_list[0], 'jp2 ')
-
-        # Jp2 Header
-        # Image header
-        self.assertEqual(jp2.box[2].box[0].height, 117)
-        self.assertEqual(jp2.box[2].box[0].width, 117)
-        self.assertEqual(jp2.box[2].box[0].num_components, 4)
-        self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
-        self.assertEqual(jp2.box[2].box[0].signed, False)
-        self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
-        self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
-        self.assertEqual(jp2.box[2].box[0].ip_provided, False)
+        ihdr = glymur.jp2box.ImageHeaderBox(117, 117, num_components=4)
+        self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
 
         # Jp2 Header
         # Colour specification
@@ -5429,25 +3392,11 @@ class TestSuiteDump(unittest.TestCase):
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
         self.assertEqual(ids, expected)
 
-        # SIZ: Image and tile size
-        # Profile:
-        self.assertEqual(c.segment[1].rsiz, 0)
-        # Reference grid size
-        self.assertEqual(c.segment[1].xsiz, 117)
-        self.assertEqual(c.segment[1].ysiz, 117)
-        # Reference grid offset
-        self.assertEqual((c.segment[1].xosiz, c.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((c.segment[1].xtsiz, c.segment[1].ytsiz), (117, 117))
-        # Tile offset
-        self.assertEqual((c.segment[1].xtosiz, c.segment[1].ytosiz), (0, 0))
-        # bitdepth
-        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8, 8))
-        # signed
-        self.assertEqual(c.segment[1].signed, (False, False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(c.segment[1].xrsiz, c.segment[1].yrsiz)),
-                         [(1, 1)] * 4)
+        kwargs = {'rsiz': 0, 'xysiz': (117, 117), 'xyosiz': (0, 0),
+                'xytsiz': (117, 117), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8, 8),
+                'signed': (False, False, False, False),
+                'xyrsiz': [(1, 1, 1, 1), (1, 1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -5458,18 +3407,8 @@ class TestSuiteDump(unittest.TestCase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
-        # Selective arithmetic coding bypass
-        self.assertFalse(c.segment[2].spcod[7] & 0x01)
-        # Reset context probabilities
-        self.assertFalse(c.segment[2].spcod[7] & 0x02)
-        # Termination on each coding pass
-        self.assertFalse(c.segment[2].spcod[7] & 0x04)
-        # Vertically causal context
-        self.assertFalse(c.segment[2].spcod[7] & 0x08)
-        # Predictable termination
-        self.assertFalse(c.segment[2].spcod[7] & 0x0010)
-        # Segmentation symbols
-        self.assertFalse(c.segment[2].spcod[7] & 0x0020)
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
