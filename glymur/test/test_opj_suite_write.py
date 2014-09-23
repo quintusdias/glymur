@@ -11,25 +11,57 @@ import re
 import sys
 import tempfile
 import unittest
-import warnings
 
 import numpy as np
-
 try:
     import skimage.io
-    skimage.io.use_plugin('freeimage', 'imread')
-    _HAS_SKIMAGE_FREEIMAGE_SUPPORT = True
-except ((ImportError, RuntimeError)):
-    _HAS_SKIMAGE_FREEIMAGE_SUPPORT = False
+except ImportError:
+    pass
 
 from .fixtures import read_image, NO_READ_BACKEND, NO_READ_BACKEND_MSG
-from .fixtures import OPJ_DATA_ROOT, opj_data_file
+from .fixtures import OPJ_DATA_ROOT, NO_SKIMAGE_FREEIMAGE_SUPPORT
+from .fixtures import opj_data_file
+from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
 from . import fixtures
 
-from glymur import Jp2k
 import glymur
+from glymur import Jp2k
+from glymur.codestream import SIZsegment
 
-@unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+class CinemaBase(fixtures.MetadataBase):
+
+    def verify_cinema_cod(self, cod_segment):
+
+        self.assertFalse(cod_segment.scod & 2)  # no sop
+        self.assertFalse(cod_segment.scod & 4)  # no eph
+        self.assertEqual(cod_segment.spcod[0], glymur.core.CPRL)
+        self.assertEqual(cod_segment.layers, 1)
+        self.assertEqual(cod_segment.spcod[3], 1)  # mct
+        self.assertEqual(cod_segment.spcod[4], 5)  # levels
+        self.assertEqual(tuple(cod_segment.code_block_size), (32, 32))  # cblksz
+
+    def check_cinema4k_codestream(self, codestream, image_size):
+
+        kwargs = {'rsiz': 4, 'xysiz': image_size, 'xyosiz': (0, 0),
+                'xytsiz': image_size, 'xytosiz': (0, 0),
+                'bitdepth': (12, 12, 12), 'signed': (False, False, False),
+                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(codestream.segment[1], SIZsegment(**kwargs))
+
+        self.verify_cinema_cod(codestream.segment[2])
+
+    def check_cinema2k_codestream(self, codestream, image_size):
+
+        kwargs = {'rsiz': 3, 'xysiz': image_size, 'xyosiz': (0, 0),
+                'xytsiz': image_size, 'xytosiz': (0, 0),
+                'bitdepth': (12, 12, 12), 'signed': (False, False, False),
+                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(codestream.segment[1], SIZsegment(**kwargs))
+
+        self.verify_cinema_cod(codestream.segment[2])
+
+
+@unittest.skipIf(NO_SKIMAGE_FREEIMAGE_SUPPORT,
                  "Cannot read input image without scikit-image/freeimage")
 @unittest.skipIf(os.name == "nt", "no write support on windows, period")
 @unittest.skipIf(re.match(r'''(1|2.0.0)''',
@@ -37,18 +69,12 @@ import glymur
                  "Uses features not supported until 2.0.1")
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
-class TestSuiteWriteCinema(unittest.TestCase):
+class WriteCinema(CinemaBase):
     """Tests for writing with openjp2 backend.
 
     These tests either roughly correspond with those tests with similar names
     in the OpenJPEG test suite or are closely associated.
     """
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
     def test_cinema2K_with_others(self):
         """Can't specify cinema2k with any other options."""
         relfile = 'input/nonregression/X_5_2K_24_235_CBR_STEM24_000.tif'
@@ -69,104 +95,35 @@ class TestSuiteWriteCinema(unittest.TestCase):
             with self.assertRaises(IOError):
                 j.write(data, cinema4k=True, cratios=[200, 100, 50])
 
-    def check_cinema4k_codestream(self, codestream, image_size):
-        """Common out for cinema2k tests."""
-        # SIZ: Image and tile size
-        # Profile:  "3" means cinema2K
-        self.assertEqual(codestream.segment[1].rsiz, 4)
-        # Reference grid size
-        self.assertEqual((codestream.segment[1].xsiz,
-                          codestream.segment[1].ysiz),
-                         image_size)
-        # Reference grid offset
-        self.assertEqual((codestream.segment[1].xosiz,
-                          codestream.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((codestream.segment[1].xtsiz,
-                          codestream.segment[1].ytsiz),
-                         image_size)
-        # Tile offset
-        self.assertEqual((codestream.segment[1].xtosiz,
-                          codestream.segment[1].ytosiz),
-                         (0, 0))
-        # bitdepth
-        self.assertEqual(codestream.segment[1].bitdepth, (12, 12, 12))
-        # signed
-        self.assertEqual(codestream.segment[1].signed,
-                         (False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(codestream.segment[1].xrsiz,
-                                  codestream.segment[1].yrsiz)),
-                         [(1, 1)] * 3)
 
-        # COD: Coding style default
-        self.assertFalse(codestream.segment[2].scod & 2)  # no sop
-        self.assertFalse(codestream.segment[2].scod & 4)  # no eph
-        self.assertEqual(codestream.segment[2].spcod[0], glymur.core.CPRL)
-        self.assertEqual(codestream.segment[2].layers, 1)
-        self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
-        self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
-        self.assertEqual(tuple(codestream.segment[2].code_block_size),
-                         (32, 32))  # cblksz
+@unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
+@unittest.skipIf(NO_SKIMAGE_FREEIMAGE_SUPPORT,
+                 "Cannot read input image without scikit-image/freeimage")
+@unittest.skipIf(os.name == "nt", "no write support on windows, period")
+@unittest.skipIf(re.match(r'''(1|2.0.0)''',
+                          glymur.version.openjpeg_version) is not None,
+                 "Uses features not supported until 2.0.1")
+@unittest.skipIf(OPJ_DATA_ROOT is None,
+                 "OPJ_DATA_ROOT environment variable not set")
+class WriteCinemaWarns(CinemaBase):
+    """Tests for writing with openjp2 backend.
 
-
-
-    def check_cinema2k_codestream(self, codestream, image_size):
-        """Common out for cinema2k tests."""
-        # SIZ: Image and tile size
-        # Profile:  "3" means cinema2K
-        self.assertEqual(codestream.segment[1].rsiz, 3)
-        # Reference grid size
-        self.assertEqual((codestream.segment[1].xsiz,
-                          codestream.segment[1].ysiz),
-                         image_size)
-        # Reference grid offset
-        self.assertEqual((codestream.segment[1].xosiz,
-                          codestream.segment[1].yosiz), (0, 0))
-        # Tile size
-        self.assertEqual((codestream.segment[1].xtsiz,
-                          codestream.segment[1].ytsiz),
-                         image_size)
-        # Tile offset
-        self.assertEqual((codestream.segment[1].xtosiz,
-                          codestream.segment[1].ytosiz),
-                         (0, 0))
-        # bitdepth
-        self.assertEqual(codestream.segment[1].bitdepth, (12, 12, 12))
-        # signed
-        self.assertEqual(codestream.segment[1].signed,
-                         (False, False, False))
-        # subsampling
-        self.assertEqual(list(zip(codestream.segment[1].xrsiz,
-                                  codestream.segment[1].yrsiz)),
-                         [(1, 1)] * 3)
-
-        # COD: Coding style default
-        self.assertFalse(codestream.segment[2].scod & 2)  # no sop
-        self.assertFalse(codestream.segment[2].scod & 4)  # no eph
-        self.assertEqual(codestream.segment[2].spcod[0], glymur.core.CPRL)
-        self.assertEqual(codestream.segment[2].layers, 1)
-        self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
-        self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
-        self.assertEqual(tuple(codestream.segment[2].code_block_size),
-                         (32, 32))  # cblksz
-
-
-
+    These tests either roughly correspond with those tests with similar names
+    in the OpenJPEG test suite or are closely associated.  These tests issue
+    warnings.
+    """
     def test_NR_ENC_ElephantDream_4K_tif_21_encode(self):
         relfile = 'input/nonregression/ElephantDream_4K.tif'
         infile = opj_data_file(relfile)
         data = skimage.io.imread(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
-            with warnings.catch_warnings():
-                # Just turn off warnings.
-                warnings.simplefilter("ignore")
+            regex = 'OpenJPEG library warning:.*'
+            with self.assertWarnsRegex(UserWarning, re.compile(regex)):
                 j.write(data, cinema4k=True)
 
             codestream = j.get_codestream()
             self.check_cinema4k_codestream(codestream, (4096, 2160))
-
 
     def test_NR_ENC_X_5_2K_24_235_CBR_STEM24_000_tif_19_encode(self):
         relfile = 'input/nonregression/X_5_2K_24_235_CBR_STEM24_000.tif'
@@ -174,11 +131,11 @@ class TestSuiteWriteCinema(unittest.TestCase):
         data = skimage.io.imread(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
-            j.write(data, cinema2k=48)
+            with self.assertWarnsRegex(UserWarning, 'OpenJPEG library warning'):
+                j.write(data, cinema2k=48)
 
             codestream = j.get_codestream()
             self.check_cinema2k_codestream(codestream, (2048, 857))
-
 
     def test_NR_ENC_X_6_2K_24_FULL_CBR_CIRCLE_000_tif_20_encode(self):
         relfile = 'input/nonregression/X_6_2K_24_FULL_CBR_CIRCLE_000.tif'
@@ -186,11 +143,11 @@ class TestSuiteWriteCinema(unittest.TestCase):
         data = skimage.io.imread(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
-            j.write(data, cinema2k=48)
+            with self.assertWarnsRegex(UserWarning, 'OpenJPEG library warning'):
+                j.write(data, cinema2k=48)
 
             codestream = j.get_codestream()
             self.check_cinema2k_codestream(codestream, (2048, 1080))
-
 
     def test_NR_ENC_X_6_2K_24_FULL_CBR_CIRCLE_000_tif_17_encode(self):
         relfile = 'input/nonregression/X_6_2K_24_FULL_CBR_CIRCLE_000.tif'
@@ -198,11 +155,11 @@ class TestSuiteWriteCinema(unittest.TestCase):
         data = skimage.io.imread(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
-            j.write(data, cinema2k=24)
+            with self.assertWarnsRegex(UserWarning, 'OpenJPEG library warning'):
+                j.write(data, cinema2k=24)
 
             codestream = j.get_codestream()
             self.check_cinema2k_codestream(codestream, (2048, 1080))
-
 
     def test_NR_ENC_X_5_2K_24_235_CBR_STEM24_000_tif_16_encode(self):
         relfile = 'input/nonregression/X_5_2K_24_235_CBR_STEM24_000.tif'
@@ -210,11 +167,13 @@ class TestSuiteWriteCinema(unittest.TestCase):
         data = skimage.io.imread(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
-            j.write(data, cinema2k=24)
+            with self.assertWarnsRegex(UserWarning, 'OpenJPEG library warning'):
+                # OpenJPEG library warning:  The desired maximum codestream
+                # size has limited at least one of the desired quality layers
+                j.write(data, cinema2k=24)
 
             codestream = j.get_codestream()
             self.check_cinema2k_codestream(codestream, (2048, 857))
-
 
     def test_NR_ENC_X_4_2K_24_185_CBR_WB_000_tif_18_encode(self):
         relfile = 'input/nonregression/X_4_2K_24_185_CBR_WB_000.tif'
@@ -222,15 +181,17 @@ class TestSuiteWriteCinema(unittest.TestCase):
         data = skimage.io.imread(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             j = Jp2k(tfile.name, 'wb')
-            with warnings.catch_warnings():
-                # Just turn off warnings.
-                warnings.simplefilter("ignore")
+            regex = 'OpenJPEG library warning'
+            with self.assertWarnsRegex(UserWarning, regex):
+                # OpenJPEG library warning:  The desired maximum codestream
+                # size has limited at least one of the desired quality layers
                 j.write(data, cinema2k=48)
 
             codestream = j.get_codestream()
             self.check_cinema2k_codestream(codestream, (1998, 1080))
 
-@unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+
+@unittest.skipIf(NO_SKIMAGE_FREEIMAGE_SUPPORT,
                  "Cannot read input image without scikit-image/freeimage")
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
 @unittest.skipIf(not re.match("(1.5|2.0.0)", glymur.version.openjpeg_version),
@@ -261,7 +222,7 @@ class TestSuiteNegative2pointzero(unittest.TestCase):
 @unittest.skipIf(NO_READ_BACKEND, NO_READ_BACKEND_MSG)
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
-class TestSuiteWrite(unittest.TestCase):
+class TestSuiteWrite(fixtures.MetadataBase):
     """Tests for writing with openjp2 backend.
 
     These tests either roughly correspond with those tests with similar names
@@ -295,60 +256,28 @@ class TestSuiteWrite(unittest.TestCase):
             j.write(data, cratios=[200, 100, 50])
 
             # Should be three layers.
-            codestream = j.get_codestream()
+            c = j.get_codestream()
 
-            # SIZ: Image and tile size
-            # Profile:  "0" means profile 2
-            self.assertEqual(codestream.segment[1].rsiz, 0)
-            # Reference grid size
-            self.assertEqual((codestream.segment[1].xsiz,
-                              codestream.segment[1].ysiz),
-                             (640, 480))
-            # Reference grid offset
-            self.assertEqual((codestream.segment[1].xosiz,
-                              codestream.segment[1].yosiz), (0, 0))
-            # Tile size
-            self.assertEqual((codestream.segment[1].xtsiz,
-                              codestream.segment[1].ytsiz),
-                             (640, 480))
-            # Tile offset
-            self.assertEqual((codestream.segment[1].xtosiz,
-                              codestream.segment[1].ytosiz),
-                             (0, 0))
-            # bitdepth
-            self.assertEqual(codestream.segment[1].bitdepth, (8, 8, 8))
-            # signed
-            self.assertEqual(codestream.segment[1].signed,
-                             (False, False, False))
-            # subsampling
-            self.assertEqual(list(zip(codestream.segment[1].xrsiz,
-                                      codestream.segment[1].yrsiz)),
-                             [(1, 1)] * 3)
+        kwargs = {'rsiz': 0, 'xysiz': (640, 480), 'xyosiz': (0, 0),
+                'xytsiz': (640, 480), 'xytosiz': (0, 0),
+                'bitdepth': (8, 8, 8), 'signed': (False, False, False),
+                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
-            # COD: Coding style default
-            self.assertFalse(codestream.segment[2].scod & 2)  # no sop
-            self.assertFalse(codestream.segment[2].scod & 4)  # no eph
-            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.LRCP)
-            self.assertEqual(codestream.segment[2].layers, 3)  # layers = 3
-            self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
-            self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
-            self.assertEqual(tuple(codestream.segment[2].code_block_size),
-                             (64, 64))  # cblksz
-            # Selective arithmetic coding bypass
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x01)
-            # Reset context probabilities
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x02)
-            # Termination on each coding pass
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x04)
-            # Vertically causal context
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x08)
-            # Predictable termination
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x0010)
-            # Segmentation symbols
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x0020)
-            self.assertEqual(codestream.segment[2].spcod[8],
-                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-            self.assertEqual(len(codestream.segment[2].spcod), 9)
+        # COD: Coding style default
+        self.assertFalse(c.segment[2].scod & 2)  # no sop
+        self.assertFalse(c.segment[2].scod & 4)  # no eph
+        self.assertEqual(c.segment[2].spcod[0], glymur.core.LRCP)
+        self.assertEqual(c.segment[2].layers, 3)  # layers = 3
+        self.assertEqual(c.segment[2].spcod[3], 1)  # mct
+        self.assertEqual(c.segment[2].spcod[4], 5)  # levels
+        self.assertEqual(tuple(c.segment[2].code_block_size),
+                         (64, 64))  # cblksz
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                [False, False, False, False, False, False])
+        self.assertEqual(c.segment[2].spcod[8],
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
+        self.assertEqual(len(c.segment[2].spcod), 9)
 
     def test_NR_ENC_Bretagne1_ppm_2_encode(self):
         """NR-ENC-Bretagne1.ppm-2-encode"""
@@ -361,34 +290,11 @@ class TestSuiteWrite(unittest.TestCase):
             # Should be three layers.
             codestream = j.get_codestream()
 
-            # SIZ: Image and tile size
-            # Profile:  "0" means profile 2
-            self.assertEqual(codestream.segment[1].rsiz, 0)
-            # Reference grid size
-            self.assertEqual((codestream.segment[1].xsiz,
-                              codestream.segment[1].ysiz),
-                             (640, 480))
-            # Reference grid offset
-            self.assertEqual((codestream.segment[1].xosiz,
-                              codestream.segment[1].yosiz), (0, 0))
-            # Tile size
-            self.assertEqual((codestream.segment[1].xtsiz,
-                              codestream.segment[1].ytsiz),
-                             (640, 480))
-            # Tile offset
-            self.assertEqual((codestream.segment[1].xtosiz,
-                              codestream.segment[1].ytosiz),
-                             (0, 0))
-            # bitdepth
-            self.assertEqual(codestream.segment[1].bitdepth,
-                             (8, 8, 8))
-            # signed
-            self.assertEqual(codestream.segment[1].signed,
-                             (False, False, False))
-            # subsampling
-            self.assertEqual(list(zip(codestream.segment[1].xrsiz,
-                                      codestream.segment[1].yrsiz)),
-                             [(1, 1)] * 3)
+            kwargs = {'rsiz': 0, 'xysiz': (640, 480), 'xyosiz': (0, 0),
+                    'xytsiz': (640, 480), 'xytosiz': (0, 0),
+                    'bitdepth': (8, 8, 8), 'signed': (False, False, False),
+                    'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+            self.verifySizSegment(codestream.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
@@ -399,18 +305,8 @@ class TestSuiteWrite(unittest.TestCase):
             self.assertEqual(codestream.segment[2].spcod[4], 1)  # levels
             self.assertEqual(tuple(codestream.segment[2].code_block_size),
                              (64, 64))  # cblksz
-            # Selective arithmetic coding bypass
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x01)
-            # Reset context probabilities
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x02)
-            # Termination on each coding pass
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x04)
-            # Vertically causal context
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x08)
-            # Predictable termination
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x0010)
-            # Segmentation symbols
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x0020)
+            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+                    [False, False, False, False, False, False])
             self.assertEqual(codestream.segment[2].spcod[8],
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(len(codestream.segment[2].spcod), 9)
@@ -427,33 +323,11 @@ class TestSuiteWrite(unittest.TestCase):
             # Should be three layers.
             codestream = j.get_codestream()
 
-            # SIZ: Image and tile size
-            # Profile:  "0" means profile 2
-            self.assertEqual(codestream.segment[1].rsiz, 0)
-            # Reference grid size
-            self.assertEqual((codestream.segment[1].xsiz,
-                              codestream.segment[1].ysiz),
-                             (640, 480))
-            # Reference grid offset
-            self.assertEqual((codestream.segment[1].xosiz,
-                              codestream.segment[1].yosiz), (0, 0))
-            # Tile size
-            self.assertEqual((codestream.segment[1].xtsiz,
-                              codestream.segment[1].ytsiz),
-                             (640, 480))
-            # Tile offset
-            self.assertEqual((codestream.segment[1].xtosiz,
-                              codestream.segment[1].ytosiz),
-                             (0, 0))
-            # bitdepth
-            self.assertEqual(codestream.segment[1].bitdepth, (8, 8, 8))
-            # signed
-            self.assertEqual(codestream.segment[1].signed,
-                             (False, False, False))
-            # subsampling
-            self.assertEqual(list(zip(codestream.segment[1].xrsiz,
-                                      codestream.segment[1].yrsiz)),
-                             [(1, 1)] * 3)
+            kwargs = {'rsiz': 0, 'xysiz': (640, 480), 'xyosiz': (0, 0),
+                    'xytsiz': (640, 480), 'xytosiz': (0, 0),
+                    'bitdepth': (8, 8, 8), 'signed': (False, False, False),
+                    'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+            self.verifySizSegment(codestream.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
@@ -464,18 +338,8 @@ class TestSuiteWrite(unittest.TestCase):
             self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
             self.assertEqual(tuple(codestream.segment[2].code_block_size),
                              (16, 16))  # cblksz
-            # Selective arithmetic coding bypass
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x01)
-            # Reset context probabilities
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x02)
-            # Termination on each coding pass
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x04)
-            # Vertically causal context
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x08)
-            # Predictable termination
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x0010)
-            # Segmentation symbols
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x0020)
+            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+                    [False, False, False, False, False, False])
             self.assertEqual(codestream.segment[2].spcod[8],
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(codestream.segment[2].precinct_size,
@@ -497,33 +361,11 @@ class TestSuiteWrite(unittest.TestCase):
             # Should be three layers.
             codestream = j.get_codestream()
 
-            # SIZ: Image and tile size
-            # Profile:  "0" means profile 2
-            self.assertEqual(codestream.segment[1].rsiz, 0)
-            # Reference grid size
-            self.assertEqual((codestream.segment[1].xsiz,
-                              codestream.segment[1].ysiz),
-                             (data.shape[1], data.shape[0]))
-            # Reference grid offset
-            self.assertEqual((codestream.segment[1].xosiz,
-                              codestream.segment[1].yosiz), (0, 0))
-            # Tile size.  Reported as XY, not RC.
-            self.assertEqual((codestream.segment[1].xtsiz,
-                              codestream.segment[1].ytsiz),
-                             (640, 480))
-            # Tile offset
-            self.assertEqual((codestream.segment[1].xtosiz,
-                              codestream.segment[1].ytosiz),
-                             (0, 0))
-            # bitdepth
-            self.assertEqual(codestream.segment[1].bitdepth, (8, 8, 8))
-            # signed
-            self.assertEqual(codestream.segment[1].signed,
-                             (False, False, False))
-            # subsampling
-            self.assertEqual(list(zip(codestream.segment[1].xrsiz,
-                                      codestream.segment[1].yrsiz)),
-                             [(1, 1)] * 3)
+            kwargs = {'rsiz': 0, 'xysiz': (2592, 1944), 'xyosiz': (0, 0),
+                    'xytsiz': (640, 480), 'xytosiz': (0, 0),
+                    'bitdepth': (8, 8, 8), 'signed': (False, False, False),
+                    'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+            self.verifySizSegment(codestream.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
@@ -534,18 +376,8 @@ class TestSuiteWrite(unittest.TestCase):
             self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
             self.assertEqual(tuple(codestream.segment[2].code_block_size),
                              (32, 32))  # cblksz
-            # Selective arithmetic coding bypass
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x01)
-            # Reset context probabilities
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x02)
-            # Termination on each coding pass
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x04)
-            # Vertically causal context
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x08)
-            # Predictable termination
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x0010)
-            # Segmentation symbols
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x0020)
+            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+                    [False, False, False, False, False, False])
             self.assertEqual(codestream.segment[2].spcod[8],
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(codestream.segment[2].precinct_size,
@@ -561,33 +393,11 @@ class TestSuiteWrite(unittest.TestCase):
 
             codestream = j.get_codestream()
 
-            # SIZ: Image and tile size
-            # Profile:  "0" means profile 2
-            self.assertEqual(codestream.segment[1].rsiz, 0)
-            # Reference grid size
-            self.assertEqual((codestream.segment[1].xsiz,
-                              codestream.segment[1].ysiz),
-                             (data.shape[1], data.shape[0]))
-            # Reference grid offset
-            self.assertEqual((codestream.segment[1].xosiz,
-                              codestream.segment[1].yosiz), (0, 0))
-            # Tile size
-            self.assertEqual((codestream.segment[1].xtsiz,
-                              codestream.segment[1].ytsiz),
-                             (127, 127))
-            # Tile offset
-            self.assertEqual((codestream.segment[1].xtosiz,
-                              codestream.segment[1].ytosiz),
-                             (0, 0))
-            # bitdepth
-            self.assertEqual(codestream.segment[1].bitdepth, (8, 8, 8))
-            # signed
-            self.assertEqual(codestream.segment[1].signed,
-                             (False, False, False))
-            # subsampling
-            self.assertEqual(list(zip(codestream.segment[1].xrsiz,
-                                      codestream.segment[1].yrsiz)),
-                             [(1, 1)] * 3)
+            kwargs = {'rsiz': 0, 'xysiz': (2592, 1944), 'xyosiz': (0, 0),
+                    'xytsiz': (127, 127), 'xytosiz': (0, 0),
+                    'bitdepth': (8, 8, 8), 'signed': (False, False, False),
+                    'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+            self.verifySizSegment(codestream.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
@@ -598,18 +408,8 @@ class TestSuiteWrite(unittest.TestCase):
             self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
             self.assertEqual(tuple(codestream.segment[2].code_block_size),
                              (64, 64))  # cblksz
-            # Selective arithmetic coding bypass
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x01)
-            # Reset context probabilities
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x02)
-            # Termination on each coding pass
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x04)
-            # Vertically causal context
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x08)
-            # Predictable termination
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x0010)
-            # Segmentation symbols
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x0020)
+            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+                    [False, False, False, False, False, False])
             self.assertEqual(codestream.segment[2].spcod[8],
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(len(codestream.segment[2].spcod), 9)
@@ -624,33 +424,11 @@ class TestSuiteWrite(unittest.TestCase):
 
             codestream = j.get_codestream(header_only=False)
 
-            # SIZ: Image and tile size
-            # Profile:  "0" means profile 2
-            self.assertEqual(codestream.segment[1].rsiz, 0)
-            # Reference grid size
-            self.assertEqual((codestream.segment[1].xsiz,
-                              codestream.segment[1].ysiz),
-                             (5183, 3887))
-            # Reference grid offset
-            self.assertEqual((codestream.segment[1].xosiz,
-                              codestream.segment[1].yosiz), (0, 0))
-            # Tile size
-            self.assertEqual((codestream.segment[1].xtsiz,
-                              codestream.segment[1].ytsiz),
-                             (5183, 3887))
-            # Tile offset
-            self.assertEqual((codestream.segment[1].xtosiz,
-                              codestream.segment[1].ytosiz),
-                             (0, 0))
-            # bitdepth
-            self.assertEqual(codestream.segment[1].bitdepth, (8, 8, 8))
-            # signed
-            self.assertEqual(codestream.segment[1].signed,
-                             (False, False, False))
-            # subsampling
-            self.assertEqual(list(zip(codestream.segment[1].xrsiz,
-                                      codestream.segment[1].yrsiz)),
-                             [(2, 2)] * 3)
+            kwargs = {'rsiz': 0, 'xysiz': (5183, 3887), 'xyosiz': (0, 0),
+                    'xytsiz': (5183, 3887), 'xytosiz': (0, 0),
+                    'bitdepth': (8, 8, 8), 'signed': (False, False, False),
+                    'xyrsiz': [(2, 2, 2), (2, 2, 2)]}
+            self.verifySizSegment(codestream.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
             # COD: Coding style default
             self.assertTrue(codestream.segment[2].scod & 2)  # sop
@@ -661,18 +439,8 @@ class TestSuiteWrite(unittest.TestCase):
             self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
             self.assertEqual(tuple(codestream.segment[2].code_block_size),
                              (64, 64))  # cblksz
-            # Selective arithmetic coding bypass
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x01)
-            # Reset context probabilities
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x02)
-            # Termination on each coding pass
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x04)
-            # Vertically causal context
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x08)
-            # Predictable termination
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x0010)
-            # Segmentation symbols
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x0020)
+            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+                    [False, False, False, False, False, False])
             self.assertEqual(codestream.segment[2].spcod[8],
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(len(codestream.segment[2].spcod), 9)
@@ -692,33 +460,11 @@ class TestSuiteWrite(unittest.TestCase):
 
             codestream = j.get_codestream(header_only=False)
 
-            # SIZ: Image and tile size
-            # Profile:  "0" means profile 2
-            self.assertEqual(codestream.segment[1].rsiz, 0)
-            # Reference grid size
-            self.assertEqual((codestream.segment[1].xsiz,
-                              codestream.segment[1].ysiz),
-                             (2592, 1944))
-            # Reference grid offset
-            self.assertEqual((codestream.segment[1].xosiz,
-                              codestream.segment[1].yosiz), (0, 0))
-            # Tile size
-            self.assertEqual((codestream.segment[1].xtsiz,
-                              codestream.segment[1].ytsiz),
-                             (2592, 1944))
-            # Tile offset
-            self.assertEqual((codestream.segment[1].xtosiz,
-                              codestream.segment[1].ytosiz),
-                             (0, 0))
-            # bitdepth
-            self.assertEqual(codestream.segment[1].bitdepth, (8, 8, 8))
-            # signed
-            self.assertEqual(codestream.segment[1].signed,
-                             (False, False, False))
-            # subsampling
-            self.assertEqual(list(zip(codestream.segment[1].xrsiz,
-                                      codestream.segment[1].yrsiz)),
-                             [(1, 1)] * 3)
+            kwargs = {'rsiz': 0, 'xysiz': (2592, 1944), 'xyosiz': (0, 0),
+                    'xytsiz': (2592, 1944), 'xytosiz': (0, 0),
+                    'bitdepth': (8, 8, 8), 'signed': (False, False, False),
+                    'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+            self.verifySizSegment(codestream.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
@@ -729,18 +475,8 @@ class TestSuiteWrite(unittest.TestCase):
             self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
             self.assertEqual(tuple(codestream.segment[2].code_block_size),
                             (64, 64))  # cblksz
-            # Selective arithmetic coding BYPASS
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x01)
-            # RESET context probabilities (RESET)
-            self.assertTrue(codestream.segment[2].spcod[7] & 0x02)
-            # Termination on each coding pass, RESTART(TERMALL)
-            self.assertTrue(codestream.segment[2].spcod[7] & 0x04)
-            # Vertically causal context (VSC)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x08)
-            # Predictable termination, ERTERM(SEGTERM)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x0010)
-            # Segmentation symbols, SEGMARK(SEGSYSM)
-            self.assertTrue(codestream.segment[2].spcod[7] & 0x0020)
+            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+                    [False, True, True, False, False, True])
             self.assertEqual(codestream.segment[2].spcod[8],
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(len(codestream.segment[2].spcod), 9)
@@ -759,34 +495,11 @@ class TestSuiteWrite(unittest.TestCase):
 
             codestream = j.get_codestream(header_only=False)
 
-            # SIZ: Image and tile size
-            # Profile:  "0" means profile 2
-            self.assertEqual(codestream.segment[1].rsiz, 0)
-            # Reference grid size
-            self.assertEqual((codestream.segment[1].xsiz,
-                              codestream.segment[1].ysiz),
-                             (2742, 2244))
-            # Reference grid offset
-            self.assertEqual((codestream.segment[1].xosiz,
-                              codestream.segment[1].yosiz),
-                             (150, 300))
-            # Tile size
-            self.assertEqual((codestream.segment[1].xtsiz,
-                              codestream.segment[1].ytsiz),
-                             (2742, 2244))
-            # Tile offset
-            self.assertEqual((codestream.segment[1].xtosiz,
-                              codestream.segment[1].ytosiz),
-                             (0, 0))
-            # bitdepth
-            self.assertEqual(codestream.segment[1].bitdepth, (8, 8, 8))
-            # signed
-            self.assertEqual(codestream.segment[1].signed,
-                             (False, False, False))
-            # subsampling
-            self.assertEqual(list(zip(codestream.segment[1].xrsiz,
-                                      codestream.segment[1].yrsiz)),
-                             [(1, 1)] * 3)
+            kwargs = {'rsiz': 0, 'xysiz': (2742, 2244), 'xyosiz': (150, 300),
+                    'xytsiz': (2742, 2244), 'xytosiz': (0, 0),
+                    'bitdepth': (8, 8, 8), 'signed': (False, False, False),
+                    'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+            self.verifySizSegment(codestream.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
@@ -797,18 +510,8 @@ class TestSuiteWrite(unittest.TestCase):
             self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
             self.assertEqual(tuple(codestream.segment[2].code_block_size),
                              (64, 64))  # cblksz
-            # Selective arithmetic coding BYPASS
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x01)
-            # RESET context probabilities (RESET)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x02)
-            # Termination on each coding pass, RESTART(TERMALL)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x04)
-            # Vertically causal context (VSC)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x08)
-            # Predictable termination, ERTERM(SEGTERM)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x0010)
-            # Segmentation symbols, SEGMARK(SEGSYSM)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x0020)
+            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+                    [False, False, False, False, False, False])
             self.assertEqual(codestream.segment[2].spcod[8],
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(len(codestream.segment[2].spcod), 9)
@@ -823,33 +526,11 @@ class TestSuiteWrite(unittest.TestCase):
 
             codestream = j.get_codestream(header_only=False)
 
-            # SIZ: Image and tile size
-            # Profile:  "0" means profile 2
-            self.assertEqual(codestream.segment[1].rsiz, 0)
-            # Reference grid size
-            self.assertEqual((codestream.segment[1].xsiz,
-                              codestream.segment[1].ysiz),
-                             (2592, 1944))
-            # Reference grid offset
-            self.assertEqual((codestream.segment[1].xosiz,
-                              codestream.segment[1].yosiz), (0, 0))
-            # Tile size
-            self.assertEqual((codestream.segment[1].xtsiz,
-                              codestream.segment[1].ytsiz),
-                             (2592, 1944))
-            # Tile offset
-            self.assertEqual((codestream.segment[1].xtosiz,
-                              codestream.segment[1].ytosiz),
-                             (0, 0))
-            # bitdepth
-            self.assertEqual(codestream.segment[1].bitdepth, (8, 8, 8))
-            # signed
-            self.assertEqual(codestream.segment[1].signed,
-                             (False, False, False))
-            # subsampling
-            self.assertEqual(list(zip(codestream.segment[1].xrsiz,
-                                      codestream.segment[1].yrsiz)),
-                             [(1, 1)] * 3)
+            kwargs = {'rsiz': 0, 'xysiz': (2592, 1944), 'xyosiz': (0, 0),
+                    'xytsiz': (2592, 1944), 'xytosiz': (0, 0),
+                    'bitdepth': (8, 8, 8), 'signed': (False, False, False),
+                    'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+            self.verifySizSegment(codestream.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
@@ -860,18 +541,8 @@ class TestSuiteWrite(unittest.TestCase):
             self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
             self.assertEqual(tuple(codestream.segment[2].code_block_size),
                              (64, 64))  # cblksz
-            # Selective arithmetic coding BYPASS
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x01)
-            # RESET context probabilities (RESET)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x02)
-            # Termination on each coding pass, RESTART(TERMALL)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x04)
-            # Vertically causal context (VSC)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x08)
-            # Predictable termination, ERTERM(SEGTERM)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x0010)
-            # Segmentation symbols, SEGMARK(SEGSYSM)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x0020)
+            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+                    [False, False, False, False, False, False])
             self.assertEqual(codestream.segment[2].spcod[8],
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(len(codestream.segment[2].spcod), 9)
@@ -886,33 +557,11 @@ class TestSuiteWrite(unittest.TestCase):
 
             codestream = j.get_codestream(header_only=False)
 
-            # SIZ: Image and tile size
-            # Profile:  "0" means profile 2
-            self.assertEqual(codestream.segment[1].rsiz, 0)
-            # Reference grid size
-            self.assertEqual((codestream.segment[1].xsiz,
-                              codestream.segment[1].ysiz),
-                             (640, 480))
-            # Reference grid offset
-            self.assertEqual((codestream.segment[1].xosiz,
-                              codestream.segment[1].yosiz), (0, 0))
-            # Tile size
-            self.assertEqual((codestream.segment[1].xtsiz,
-                              codestream.segment[1].ytsiz),
-                             (640, 480))
-            # Tile offset
-            self.assertEqual((codestream.segment[1].xtosiz,
-                              codestream.segment[1].ytosiz),
-                             (0, 0))
-            # bitdepth
-            self.assertEqual(codestream.segment[1].bitdepth, (8, 8, 8))
-            # signed
-            self.assertEqual(codestream.segment[1].signed,
-                             (False, False, False))
-            # subsampling
-            self.assertEqual(list(zip(codestream.segment[1].xrsiz,
-                                      codestream.segment[1].yrsiz)),
-                             [(1, 1)] * 3)
+            kwargs = {'rsiz': 0, 'xysiz': (640, 480), 'xyosiz': (0, 0),
+                    'xytsiz': (640, 480), 'xytosiz': (0, 0),
+                    'bitdepth': (8, 8, 8), 'signed': (False, False, False),
+                    'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+            self.verifySizSegment(codestream.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
@@ -923,18 +572,8 @@ class TestSuiteWrite(unittest.TestCase):
             self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
             self.assertEqual(tuple(codestream.segment[2].code_block_size),
                              (64, 64))  # cblksz
-            # Selective arithmetic coding BYPASS
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x01)
-            # RESET context probabilities (RESET)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x02)
-            # Termination on each coding pass, RESTART(TERMALL)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x04)
-            # Vertically causal context (VSC)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x08)
-            # Predictable termination, ERTERM(SEGTERM)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x0010)
-            # Segmentation symbols, SEGMARK(SEGSYSM)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x0020)
+            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+                    [False, False, False, False, False, False])
             self.assertEqual(codestream.segment[2].spcod[8],
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(len(codestream.segment[2].spcod), 9)
@@ -981,34 +620,11 @@ class TestSuiteWrite(unittest.TestCase):
 
             codestream = jp2.box[3].main_header
 
-            # SIZ: Image and tile size
-            # Profile:  "0" means profile 2
-            self.assertEqual(codestream.segment[1].rsiz, 0)
-            # Reference grid size
-            self.assertEqual((codestream.segment[1].xsiz,
-                              codestream.segment[1].ysiz),
-                             (640, 480))
-            # Reference grid offset
-            self.assertEqual((codestream.segment[1].xosiz,
-                              codestream.segment[1].yosiz),
-                             (0, 0))
-            # Tile size
-            self.assertEqual((codestream.segment[1].xtsiz,
-                              codestream.segment[1].ytsiz),
-                             (640, 480))
-            # Tile offset
-            self.assertEqual((codestream.segment[1].xtosiz,
-                              codestream.segment[1].ytosiz),
-                             (0, 0))
-            # bitdepth
-            self.assertEqual(codestream.segment[1].bitdepth, (8, 8, 8))
-            # signed
-            self.assertEqual(codestream.segment[1].signed,
-                             (False, False, False))
-            # subsampling
-            self.assertEqual(list(zip(codestream.segment[1].xrsiz,
-                                      codestream.segment[1].yrsiz)),
-                             [(1, 1)] * 3)
+            kwargs = {'rsiz': 0, 'xysiz': (640, 480), 'xyosiz': (0, 0),
+                    'xytsiz': (640, 480), 'xytosiz': (0, 0),
+                    'bitdepth': (8, 8, 8), 'signed': (False, False, False),
+                    'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+            self.verifySizSegment(codestream.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
@@ -1019,18 +635,8 @@ class TestSuiteWrite(unittest.TestCase):
             self.assertEqual(codestream.segment[2].spcod[4], 2)  # levels
             self.assertEqual(tuple(codestream.segment[2].code_block_size),
                              (64, 64))  # cblksz
-            # Selective arithmetic coding BYPASS
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x01)
-            # RESET context probabilities (RESET)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x02)
-            # Termination on each coding pass, RESTART(TERMALL)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x04)
-            # Vertically causal context (VSC)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x08)
-            # Predictable termination, ERTERM(SEGTERM)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x0010)
-            # Segmentation symbols, SEGMARK(SEGSYSM)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x0020)
+            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+                    [False, False, False, False, False, False])
             self.assertEqual(codestream.segment[2].spcod[8],
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(len(codestream.segment[2].spcod), 9)
@@ -1047,32 +653,11 @@ class TestSuiteWrite(unittest.TestCase):
 
             codestream = j.get_codestream(header_only=False)
 
-            # SIZ: Image and tile size
-            # Profile:  "0" means profile 2
-            self.assertEqual(codestream.segment[1].rsiz, 0)
-            # Reference grid size
-            self.assertEqual((codestream.segment[1].xsiz,
-                              codestream.segment[1].ysiz),
-                             (1024, 1024))
-            # Reference grid offset
-            self.assertEqual((codestream.segment[1].xosiz,
-                              codestream.segment[1].yosiz), (0, 0))
-            # Tile size
-            self.assertEqual((codestream.segment[1].xtsiz,
-                              codestream.segment[1].ytsiz),
-                             (1024, 1024))
-            # Tile offset
-            self.assertEqual((codestream.segment[1].xtosiz,
-                              codestream.segment[1].ytosiz),
-                             (0, 0))
-            # bitdepth
-            self.assertEqual(codestream.segment[1].bitdepth, (16,))
-            # signed
-            self.assertEqual(codestream.segment[1].signed, (False,))
-            # subsampling
-            self.assertEqual(list(zip(codestream.segment[1].xrsiz,
-                                      codestream.segment[1].yrsiz)),
-                             [(1, 1)])
+            kwargs = {'rsiz': 0, 'xysiz': (1024, 1024), 'xyosiz': (0, 0),
+                    'xytsiz': (1024, 1024), 'xytosiz': (0, 0),
+                    'bitdepth': (16,), 'signed': (False,),
+                    'xyrsiz': [(1,), (1,)]}
+            self.verifySizSegment(codestream.segment[1], glymur.codestream.SIZsegment(**kwargs))
 
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
@@ -1083,18 +668,8 @@ class TestSuiteWrite(unittest.TestCase):
             self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
             self.assertEqual(tuple(codestream.segment[2].code_block_size),
                              (64, 64))  # cblksz
-            # Selective arithmetic coding BYPASS
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x01)
-            # RESET context probabilities (RESET)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x02)
-            # Termination on each coding pass, RESTART(TERMALL)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x04)
-            # Vertically causal context (VSC)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x08)
-            # Predictable termination, ERTERM(SEGTERM)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x0010)
-            # Segmentation symbols, SEGMARK(SEGSYSM)
-            self.assertFalse(codestream.segment[2].spcod[7] & 0x0020)
+            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+                    [False, False, False, False, False, False])
             self.assertEqual(codestream.segment[2].spcod[8],
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(len(codestream.segment[2].spcod), 9)

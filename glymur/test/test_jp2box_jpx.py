@@ -9,7 +9,6 @@ import struct
 import sys
 import tempfile
 import unittest
-import warnings
 
 import lxml.etree as ET
 
@@ -18,6 +17,8 @@ from glymur import Jp2k
 from glymur.jp2box import DataEntryURLBox, FileTypeBox, JPEG2000SignatureBox
 from glymur.jp2box import DataReferenceBox, FragmentListBox, FragmentTableBox
 from glymur.jp2box import ColourSpecificationBox
+
+from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
 class TestJPXWrap(unittest.TestCase):
@@ -305,17 +306,15 @@ class TestJPXWrap(unittest.TestCase):
             with self.assertRaises(IOError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_deurl_child_of_dtbl(self):
         """Data reference boxes can only contain data entry url boxes."""
         jp2 = Jp2k(self.jp2file)
         boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
 
         ftyp = glymur.jp2box.FileTypeBox()
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with self.assertWarns(UserWarning):
             dref = glymur.jp2box.DataReferenceBox([ftyp])
-            self.assertEqual(len(w), 1)
-            self.assertTrue(issubclass(w[0].category, UserWarning))
 
         # Try to get around it by appending the ftyp box after creation.
         dref = glymur.jp2box.DataReferenceBox()
@@ -433,37 +432,37 @@ class TestJPX(unittest.TestCase):
     def tearDown(self):
         pass
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_flst_lens_not_the_same(self):
         """A fragment list box items must be the same length."""
         offset = [89]
         length = [1132288]
         reference = [0, 0]
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+        with self.assertWarns(UserWarning):
             flst = glymur.jp2box.FragmentListBox(offset, length, reference)
         with self.assertRaises(IOError):
             with tempfile.TemporaryFile() as tfile:
                 flst.write(tfile)
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_flst_offsets_not_positive(self):
         """A fragment list box offsets must be positive."""
         offset = [0]
         length = [1132288]
         reference = [0]
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+        with self.assertWarns(UserWarning):
             flst = glymur.jp2box.FragmentListBox(offset, length, reference)
         with self.assertRaises((IOError, OSError)):
             with tempfile.TemporaryFile() as tfile:
                 flst.write(tfile)
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_flst_lengths_not_positive(self):
         """A fragment list box lengths must be positive."""
         offset = [89]
         length = [0]
         reference = [0]
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+        with self.assertWarns(UserWarning):
             flst = glymur.jp2box.FragmentListBox(offset, length, reference)
         with self.assertRaises(IOError):
             with tempfile.TemporaryFile() as tfile:
@@ -471,9 +470,7 @@ class TestJPX(unittest.TestCase):
 
     def test_ftbl_boxes_empty(self):
         """A fragment table box must have at least one child box."""
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            ftbl = glymur.jp2box.FragmentTableBox()
+        ftbl = glymur.jp2box.FragmentTableBox()
         with self.assertRaises(IOError):
             with tempfile.TemporaryFile() as tfile:
                 ftbl.write(tfile)

@@ -23,7 +23,6 @@ import tempfile
 import uuid
 from uuid import UUID
 import unittest
-import warnings
 
 import lxml.etree as ET
 import numpy as np
@@ -36,7 +35,10 @@ from glymur.jp2box import JPEG2000SignatureBox
 from glymur.core import COLOR, OPACITY
 from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE
 
-from .fixtures import opj_data_file
+from .fixtures import (
+        WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG,
+        MetadataBase
+)
 
 try:
     FORMAT_CORPUS_DATA_ROOT = os.environ['FORMAT_CORPUS_DATA_ROOT']
@@ -357,6 +359,7 @@ class TestChannelDefinition(unittest.TestCase):
             with self.assertRaises((IOError, OSError)):
                 j2k.wrap(tfile.name, boxes=boxes)
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_bad_type(self):
         """Channel types are limited to 0, 1, 2, 65535
         Should reject if not all of index, channel_type, association the
@@ -365,25 +368,20 @@ class TestChannelDefinition(unittest.TestCase):
         channel_type = (COLOR, COLOR, 3)
         association = (RED, GREEN, BLUE)
 
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with self.assertWarns(UserWarning):
             glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
                                                association=association)
-            self.assertEqual(len(w), 1)
-            self.assertTrue(issubclass(w[0].category, UserWarning))
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_wrong_lengths(self):
         """Should reject if not all of index, channel_type, association the
         same length.
         """
         channel_type = (COLOR, COLOR)
         association = (RED, GREEN, BLUE)
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with self.assertWarns(UserWarning):
             glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
                                                association=association)
-            self.assertEqual(len(w), 1)
-            self.assertTrue(issubclass(w[0].category, UserWarning))
 
 
 class TestFileTypeBox(unittest.TestCase):
@@ -395,20 +393,20 @@ class TestFileTypeBox(unittest.TestCase):
     def tearDown(self):
         pass
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_brand_unknown(self):
         """A ftyp box brand must be 'jp2 ' or 'jpx '."""
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+        with self.assertWarns(UserWarning):
             ftyp = glymur.jp2box.FileTypeBox(brand='jp3')
         with self.assertRaises(IOError):
             with tempfile.TemporaryFile() as tfile:
                 ftyp.write(tfile) 
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_cl_entry_unknown(self):
         """A ftyp box cl list can only contain 'jp2 ', 'jpx ', or 'jpxb'."""
-        with warnings.catch_warnings():
+        with self.assertWarns(UserWarning):
             # Bad compatibility list item.
-            warnings.simplefilter("ignore")
             ftyp = glymur.jp2box.FileTypeBox(compatibility_list=['jp3'])
         with self.assertRaises(IOError):
             with tempfile.TemporaryFile() as tfile:
@@ -479,41 +477,34 @@ class TestColourSpecificationBox(unittest.TestCase):
         self.assertEqual(colr.colorspace, glymur.core.SRGB)
         self.assertIsNone(colr.icc_profile)
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_colr_with_cspace_and_icc(self):
         """Colour specification boxes can't have both."""
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        regex = 'Colorspace and icc_profile cannot both be set'
+        with self.assertWarnsRegex(UserWarning, regex):
             colorspace = glymur.core.SRGB
             rawb = b'\x01\x02\x03\x04'
             glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
                                                  icc_profile=rawb)
-            self.assertTrue(issubclass(w[0].category,UserWarning))
-            msg = 'Colorspace and icc_profile cannot both be set'
-            self.assertTrue(msg in str(w[0].message))
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_colr_with_bad_method(self):
         """colr must have a valid method field"""
         colorspace = glymur.core.SRGB
         method = -1
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        regex = 'Invalid method'
+        with self.assertWarnsRegex(UserWarning, regex):
             glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
                                                  method=method)
-            self.assertTrue(issubclass(w[0].category,UserWarning))
-            msg = 'Invalid method'
-            self.assertTrue(msg in str(w[0].message))
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_colr_with_bad_approx(self):
         """colr should have a valid approximation field"""
         colorspace = glymur.core.SRGB
         approx = -1
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with self.assertWarnsRegex(UserWarning, 'Invalid approximation'):
             glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
                                                  approximation=approx)
-            self.assertTrue(issubclass(w[0].category,UserWarning))
-            msg = 'Invalid approximation'
-            self.assertTrue(msg in str(w[0].message))
 
     def test_colr_with_bad_color(self):
         """colr must have a valid color, strange as though that may sound."""
@@ -537,29 +528,25 @@ class TestPaletteBox(unittest.TestCase):
     def tearDown(self):
         pass
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_mismatched_bitdepth_signed(self):
         """bitdepth and signed arguments must have equal length"""
         palette = np.array([[255, 0, 255], [0, 255, 0]], dtype=np.uint8)
         bps = (8, 8, 8)
         signed = (False, False)
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with self.assertWarns(UserWarning):
             pclr = glymur.jp2box.PaletteBox(palette, bits_per_component=bps,
                                             signed=signed)
-            self.assertEqual(len(w), 1)
-            self.assertTrue(issubclass(w[0].category, UserWarning))
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_mismatched_signed_palette(self):
         """bitdepth and signed arguments must have equal length"""
         palette = np.array([[255, 0, 255], [0, 255, 0]], dtype=np.uint8)
         bps = (8, 8, 8, 8)
         signed = (False, False, False, False)
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with self.assertWarns(UserWarning):
             pclr = glymur.jp2box.PaletteBox(palette, bits_per_component=bps,
                                             signed=signed)
-            self.assertEqual(len(w), 1)
-            self.assertTrue(issubclass(w[0].category, UserWarning))
 
     def test_writing_with_different_bitdepths(self):
         """Bitdepths must be the same when writing."""
@@ -1054,7 +1041,7 @@ class TestJp2Boxes(unittest.TestCase):
                          j.box[5].offset + 8)
 
 
-class TestRepr(unittest.TestCase):
+class TestRepr(MetadataBase):
     """Tests for __repr__ methods."""
     def test_default_jp2k(self):
         """Should be able to eval a JPEG2000SignatureBox"""
@@ -1124,10 +1111,7 @@ class TestRepr(unittest.TestCase):
 
         # Test the representation instantiation.
         newbox = eval(repr(ftyp))
-        self.assertTrue(isinstance(newbox, glymur.jp2box.FileTypeBox))
-        self.assertEqual(newbox.brand, 'jp2 ')
-        self.assertEqual(newbox.minor_version, 0)
-        self.assertEqual(newbox.compatibility_list, ['jp2 '])
+        self.verify_filetype_box(newbox, FileTypeBox())
 
     def test_colourspecification_box(self):
         """Verify __repr__ method on colr box."""

@@ -5,12 +5,143 @@ import os
 import re
 import sys
 import textwrap
+import unittest
 import warnings
 
 import numpy as np
+import six
 
 import glymur
 
+# Some versions of "six" on python3 cause problems when verifying warnings.
+# Only use when the version is 1.7 or higher.
+# And moreover, we only test using the 3.x infrastructure, never on 2.x.
+WARNING_INFRASTRUCTURE_ISSUE = False
+WARNING_INFRASTRUCTURE_MSG = ""
+if sys.hexversion < 0x03000000:
+    WARNING_INFRASTRUCTURE_ISSUE = True
+    WARNING_INFRASTRUCTURE_MSG = "3.x warning infrastructure only"
+elif re.match('1.[0-6]', six.__version__) is not None:
+    WARNING_INFRASTRUCTURE_ISSUE = True
+    WARNING_INFRASTRUCTURE_MSG = "Cannot use with this version of six"
+
+class MetadataBase(unittest.TestCase):
+    """
+    Base class for testing metadata.
+
+    This class has helper routines defined for testing metadata so that it can
+    be subclassed and used easily.
+    """
+
+    def setUp(self):
+        pass
+
+    def tearDown(self):
+        pass
+
+    def verify_codeblock_style(self, actual, style):
+        """
+        Verify the code-block style for SPcod and SPcoc parameters.
+
+        This information is stored in a single byte.  Please reference
+        Table A-17 in FCD15444-1
+        """
+        expected = 0
+        if style[0]:
+            # Selective arithmetic coding bypass
+            expected |= 0x01
+        if style[1]:
+            # Reset context probabilities
+            expected |= 0x02
+        if style[2]:
+            # Termination on each coding pass
+            expected |= 0x04
+        if style[3]:
+            # Vertically causal context
+            expected |= 0x08
+        if style[4]:
+            # Predictable termination
+            expected |= 0x10
+        if style[5]:
+            # Segmentation symbols
+            expected |= 0x20
+        self.assertEqual(actual, expected)
+
+    def verifySignatureBox(self, box):
+        """
+        The signature box is a constant.
+        """
+        self.assertEqual(box.signature, (13, 10, 135, 10))
+
+    def verify_filetype_box(self, actual, expected):
+        """
+        All JP2 files should have a brand reading 'jp2 ' and just a single
+        entry in the compatibility list, also 'jp2 '.  JPX files can have more
+        compatibility items.
+        """
+        self.assertEqual(actual.brand, expected.brand)
+        self.assertEqual(actual.minor_version, expected.minor_version)
+        self.assertEqual(actual.minor_version, 0)
+        for cl in expected.compatibility_list:
+            self.assertIn(cl, actual.compatibility_list)
+
+    def verifyRGNsegment(self, actual, expected):
+        """
+        verify the fields of a RGN segment
+        """
+        self.assertEqual(actual.crgn, expected.crgn) # 0 = component
+        self.assertEqual(actual.srgn, expected.srgn) # 0 = implicit
+        self.assertEqual(actual.sprgn, expected.sprgn)
+
+    def verifySOTsegment(self, actual, expected):
+        """
+        verify the fields of a SOT (start of tile) segment
+        """
+        self.assertEqual(actual.isot, expected.isot)
+        self.assertEqual(actual.psot, expected.psot)
+        self.assertEqual(actual.tpsot, expected.tpsot)
+        self.assertEqual(actual.tnsot, expected.tnsot)
+
+    def verifyCMEsegment(self, actual, expected):
+        """
+        verify the fields of a CME (comment) segment
+        """
+        self.assertEqual(actual.rcme, expected.rcme)
+        self.assertEqual(actual.ccme, expected.ccme)
+
+    def verifySizSegment(self, actual, expected):
+        """
+        Verify the fields of the SIZ segment.
+        """
+        for field in ['rsiz', 'xsiz', 'ysiz', 'xosiz', 'yosiz', 'xtsiz', 
+                'ytsiz', 'xtosiz', 'ytosiz', 'bitdepth', 'xrsiz', 'yrsiz']:
+            self.assertEqual(getattr(actual, field), getattr(expected, field))
+
+    def verifyImageHeaderBox(self, box1, box2):
+        self.assertEqual(box1.height,             box2.height)
+        self.assertEqual(box1.width,              box2.width)
+        self.assertEqual(box1.num_components,     box2.num_components)
+        self.assertEqual(box1.bits_per_component, box2.bits_per_component)
+        self.assertEqual(box1.signed,             box2.signed)
+        self.assertEqual(box1.compression,        box2.compression)
+        self.assertEqual(box1.colorspace_unknown, box2.colorspace_unknown)
+        self.assertEqual(box1.ip_provided,        box2.ip_provided)
+
+    def verifyColourSpecificationBox(self, actual, expected):
+        """
+        Does not currently check icc profiles.
+        """
+        self.assertEqual(actual.method,        expected.method)
+        self.assertEqual(actual.precedence,    expected.precedence)
+        self.assertEqual(actual.approximation, expected.approximation)
+
+        if expected.colorspace is None:
+            self.assertIsNone(actual.colorspace)
+            self.assertIsNotNone(actual.icc_profile)
+        else:
+            self.assertEqual(actual.colorspace, expected.colorspace)
+            self.assertIsNone(actual.icc_profile)
+        
 
 # The Python XMP Toolkit may be used for XMP UUIDs, but only if available and
 # if the version is at least 2.0.0.
@@ -35,6 +166,24 @@ except KeyError:
     OPJ_DATA_ROOT = None
 except:
     raise
+
+
+# The Cinema2K/4K tests seem to need the freeimage backend to skimage.io
+# in order to work.  Unfortunately, scikit-image/freeimage is about as wonky as
+# it gets.  Anaconda can get totally weirded out on versions up through 3.6.4
+# on Python3 with scikit-image up through version 0.10.0.  
+NO_SKIMAGE_FREEIMAGE_SUPPORT = False
+try:
+    import skimage
+    import skimage.io
+    if (((sys.hexversion >= 0x03000000) and
+         ('Anaconda' in sys.version) and
+         (re.match('0.10', skimage.__version__)))):
+        NO_SKIMAGE_FREEIMAGE_SUPPORT = True
+    else:
+        skimage.io.use_plugin('freeimage', 'imread')
+except ((ImportError, RuntimeError)):
+    NO_SKIMAGE_FREEIMAGE_SUPPORT = True
 
 
 def _indent(textstr):
@@ -437,7 +586,9 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)
             Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]
         CME marker segment @ (3305, 37)
             "Created by OpenJPEG version 2.0.0"'''
-nemo_dump_full = dump.format(_indent(nemo_xmp))
+
+nemo_with_codestream_header = dump.format(_indent(nemo_xmp))
+#nemo_dump_full = dump.format(_indent(nemo_xmp))
 
 nemo_dump_short = r"""JPEG 2000 Signature Box (jP  ) @ (0, 12)
 File Type Box (ftyp) @ (12, 20)
@@ -633,7 +784,7 @@ number_list_box = r"""Number List Box (nlst) @ (-1, 0)
     Association[2]:  compositing layer 0"""
 
 
-goodstuff = r"""Codestream:
+goodstuff_codestream_header = r"""Codestream:
     SOC marker segment @ (0, 0)
     SIZ marker segment @ (2, 47)
         Profile:  no profile
@@ -668,3 +819,80 @@ goodstuff = r"""Codestream:
         Quantization style:  no quantization, 2 guard bits
         Step size:  [(0, 8), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10)]"""
 
+goodstuff_with_full_header = r"""Codestream:
+    SOC marker segment @ (0, 0)
+    SIZ marker segment @ (2, 47)
+        Profile:  no profile
+        Reference Grid Height, Width:  (800 x 480)
+        Vertical, Horizontal Reference Grid Offset:  (0 x 0)
+        Reference Tile Height, Width:  (800 x 480)
+        Vertical, Horizontal Reference Tile Offset:  (0 x 0)
+        Bitdepth:  (8, 8, 8)
+        Signed:  (False, False, False)
+        Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))
+    COD marker segment @ (51, 12)
+        Coding style:
+            Entropy coder, without partitions
+            SOP marker segments:  False
+            EPH marker segments:  False
+        Coding style parameters:
+            Progression order:  LRCP
+            Number of layers:  1
+            Multiple component transformation usage:  reversible
+            Number of resolutions:  6
+            Code block height, width:  (64 x 64)
+            Wavelet transform:  5-3 reversible
+            Precinct size:  default, 2^15 x 2^15
+            Code block context:
+                Selective arithmetic coding bypass:  False
+                Reset context probabilities on coding pass boundaries:  False
+                Termination on each coding pass:  False
+                Vertically stripe causal context:  False
+                Predictable termination:  False
+                Segmentation symbols:  False
+    QCD marker segment @ (65, 19)
+        Quantization style:  no quantization, 2 guard bits
+        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10)]
+    SOT marker segment @ (86, 10)
+        Tile part index:  0
+        Tile part length:  115132
+        Tile part instance:  0
+        Number of tile parts:  1
+    COC marker segment @ (98, 9)
+        Associated component:  1
+        Coding style for this component:  Entropy coder, PARTITION = 0
+        Coding style parameters:
+            Number of resolutions:  6
+            Code block height, width:  (64 x 64)
+            Wavelet transform:  5-3 reversible
+            Code block context:
+                Selective arithmetic coding bypass:  False
+                Reset context probabilities on coding pass boundaries:  False
+                Termination on each coding pass:  False
+                Vertically stripe causal context:  False
+                Predictable termination:  False
+                Segmentation symbols:  False
+    QCC marker segment @ (109, 20)
+        Associated Component:  1
+        Quantization style:  no quantization, 2 guard bits
+        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10)]
+    COC marker segment @ (131, 9)
+        Associated component:  2
+        Coding style for this component:  Entropy coder, PARTITION = 0
+        Coding style parameters:
+            Number of resolutions:  6
+            Code block height, width:  (64 x 64)
+            Wavelet transform:  5-3 reversible
+            Code block context:
+                Selective arithmetic coding bypass:  False
+                Reset context probabilities on coding pass boundaries:  False
+                Termination on each coding pass:  False
+                Vertically stripe causal context:  False
+                Predictable termination:  False
+                Segmentation symbols:  False
+    QCC marker segment @ (142, 20)
+        Associated Component:  2
+        Quantization style:  no quantization, 2 guard bits
+        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10)]
+    SOD marker segment @ (164, 0)
+    EOC marker segment @ (115218, 0)"""

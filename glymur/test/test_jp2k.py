@@ -21,8 +21,6 @@ import unittest
 import uuid
 from xml.etree import cElementTree as ET
 
-import warnings
-
 import numpy as np
 import pkg_resources
 
@@ -30,6 +28,8 @@ import glymur
 from glymur import Jp2k
 
 from .fixtures import HAS_PYTHON_XMP_TOOLKIT
+from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
+
 if HAS_PYTHON_XMP_TOOLKIT:
     import libxmp
     from libxmp import XMPMeta
@@ -52,6 +52,366 @@ def load_tests(loader, tests, ignore):
     return tests
 
 
+class SliceProtocolBase(unittest.TestCase):
+    """
+    Test slice protocol, i.e. when using [ ] to read image data.
+    """
+    @classmethod
+    def setUpClass(self):
+
+        self.jp2 = Jp2k(glymur.data.nemo())
+        self.jp2_data = self.jp2.read()
+
+        self.j2k = Jp2k(glymur.data.goodstuff())
+        self.j2k_data = self.j2k.read()
+
+
+@unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+class TestSliceProtocolBaseWrite(SliceProtocolBase):
+
+    def test_basic_write(self):
+        expected = self.j2k_data
+
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j[:] = self.j2k_data
+            actual = j.read()
+
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_cannot_write_with_non_default_single_slice(self):
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(TypeError):
+                j[slice(None, 0)] = self.j2k_data
+            with self.assertRaises(TypeError):
+                j[slice(0, None)] = self.j2k_data
+            with self.assertRaises(TypeError):
+                j[slice(0, 0, None)] = self.j2k_data
+            with self.assertRaises(TypeError):
+                j[slice(0, 640)] = self.j2k_data
+
+    def test_cannot_write_a_row(self):
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(TypeError):
+                j[5] = self.j2k_data
+
+    def test_cannot_write_a_pixel(self):
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(TypeError):
+                j[25, 35] = self.j2k_data[25, 35]
+
+    def test_cannot_write_a_column(self):
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(TypeError):
+                j[:, 25, :] = self.j2k_data[:, :25, :]
+
+    def test_cannot_write_a_band(self):
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(TypeError):
+                j[:, :, 0] = self.j2k_data[:, :, 0]
+
+    def test_cannot_write_a_subarray(self):
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            with self.assertRaises(TypeError):
+                j[:25, :45, :] = self.j2k_data[:25, :25, :]
+
+
+class TestSliceProtocolRead(SliceProtocolBase):
+
+    def test_resolution_strides_cannot_differ(self):
+        with self.assertRaises(IndexError):
+            # Strides in x/y directions cannot differ.
+            self.j2k[::2, ::3]
+
+    def test_resolution_strides_cannot_differ(self):
+        with self.assertRaises(IndexError):
+            # Strides in x/y directions cannot differ.
+            self.j2k[::2, ::3]
+
+    def test_resolution_strides_must_be_powers_of_two(self):
+        with self.assertRaises(IndexError):
+            self.j2k[::3, ::3]
+
+    def test_integer_index_in_3d(self):
+
+        for j in [0, 1, 2]:
+            band = self.j2k[:, :, j]
+            np.testing.assert_array_equal(self.j2k_data[:, :, j], band)
+
+    def test_slice_in_third_dimension(self):
+        actual = self.j2k[:,:,1:3]
+        expected = self.j2k_data[:,:,1:3]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_reduce_resolution_and_slice_in_third_dimension(self):
+        d = self.j2k[::2, ::2, 1:3]
+        all = self.j2k.read(rlevel=1)
+        np.testing.assert_array_equal(all[:,:,1:3], d)
+
+    def test_retrieve_single_row(self):
+        actual = self.jp2[0]
+        expected = self.jp2_data[0]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_retrieve_single_pixel(self):
+        actual = self.jp2[0,0]
+        expected = self.jp2_data[0, 0]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_retrieve_single_component(self):
+        actual = self.jp2[20,20,2]
+        expected = self.jp2_data[20, 20, 2]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_full_resolution_slicing_by_quarters_upper_left(self):
+        actual = self.jp2[:728, :1296]
+        expected = self.jp2_data[:728, :1296]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_full_resolution_slicing_by_quarters_lower_left(self):
+        actual = self.jp2[728:, :1296]
+        expected = self.jp2_data[728:, :1296]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_full_resolution_slicing_by_quarters_upper_right(self):
+        actual = self.jp2[:728, 1296:]
+        expected = self.jp2_data[:728, 1296:]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_full_resolution_slicing_by_quarters_lower_right(self):
+        actual = self.jp2[728:, 1296:]
+        expected = self.jp2_data[728:, 1296:]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_full_resolution_slicing_by_quarters_center(self):
+        actual = self.jp2[364:1092, 648:1942]
+        expected = self.jp2_data[364:1092, 648:1942]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_full_resolution_slicing_by_halves_left(self):
+        actual = self.jp2[:, :1296]
+        expected = self.jp2_data[:, :1296]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_full_resolution_slicing_by_right_half(self):
+        actual = self.jp2[:, 1296:]
+        expected = self.jp2_data[:, 1296:]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_full_resolution_slicing_by_top_half(self):
+        actual = self.jp2[:728, :]
+        expected = self.jp2_data[:728, :]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_full_resolution_slicing_by_bottom_half(self):
+        actual = self.jp2[728:, :]
+        expected = self.jp2_data[728:, :]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_region_rlevel1(self):
+        actual = self.jp2[0:201:2, 0:201:2]
+        expected = self.jp2.read(area=(0, 0, 201, 201), rlevel=1)
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_region_rlevel1_slice_start_is_none(self):
+        actual = self.jp2[:201:2, :201:2]
+        expected = self.jp2.read(area=(0, 0, 201, 201), rlevel=1)
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_region_rlevel1_slice_stop_is_none(self):
+        actual = self.jp2[201::2, 201::2]
+        expected = self.jp2.read(area=(201, 201, 1456, 2592), rlevel=1)
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_region_rlevel1(self):
+        actual = self.jp2[0:202:2, 0:202:2]
+        expected = self.jp2.read(area=(0, 0, 202, 202), rlevel=1)
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_slice_protocol_2d_reduce_resolution(self):
+        d = self.j2k[:]
+        self.assertEqual(d.shape, (800, 480, 3))
+
+        d = self.j2k[::1, ::1]
+        self.assertEqual(d.shape, (800, 480, 3))
+
+        d = self.j2k[::2, ::2]
+        self.assertEqual(d.shape, (400, 240, 3))
+
+        d = self.j2k[::4, ::4]
+        self.assertEqual(d.shape, (200, 120, 3))
+
+        d = self.j2k[::8, ::8]
+        self.assertEqual(d.shape, (100, 60, 3))
+
+        d = self.j2k[::16, ::16]
+        self.assertEqual(d.shape, (50, 30, 3))
+
+        d = self.j2k[::32, ::32]
+        self.assertEqual(d.shape, (25, 15, 3))
+
+    def test_region_rlevel5(self):
+        actual = self.j2k[5:533:32, 27:423:32]
+        expected = self.j2k.read(area=(5, 27, 533, 423), rlevel=5)
+        np.testing.assert_array_equal(actual, expected)
+
+@unittest.skipIf(OPJ_DATA_ROOT is None,
+                 "OPJ_DATA_ROOT environment variable not set")
+class TestSliceProtocolOpjData(unittest.TestCase):
+    """
+    Test slice protocol, i.e. when using [ ] to read image data.
+    These correspond to tests for the read method with the area parameter.
+    """
+    @classmethod
+    def setUpClass(self):
+
+        jfile = opj_data_file('input/conformance/p1_04.j2k')
+        self.j2k = Jp2k(jfile)
+        self.j2k_data = self.j2k.read()
+        self.j2k_half_data = self.j2k.read(rlevel=1)
+        self.j2k_quarter_data = self.j2k.read(rlevel=2)
+
+    def test_NR_DEC_p1_04_j2k_43_decode(self):
+        actual = self.j2k[:1024, :1024]
+        expected = self.j2k_data
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_44_decode(self):
+        actual = self.j2k[640:768, 512:640]
+        expected = self.j2k_data[640:768, 512:640]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_45_decode(self):
+        actual = self.j2k[896:1024, 896:1024]
+        expected = self.j2k_data[896:1024, 896:1024]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_46_decode(self):
+        actual = self.j2k[500:800, 100:300]
+        expected = self.j2k_data[500:800, 100:300]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_47_decode(self):
+        actual = self.j2k[520:600, 260:360]
+        expected = self.j2k_data[520:600, 260:360]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_48_decode(self):
+        actual = self.j2k[520:660, 260:360]
+        expected = self.j2k_data[520:660, 260:360]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_49_decode(self):
+        actual = self.j2k[520:600, 360:400]
+        expected = self.j2k_data[520:600, 360:400]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_50_decode(self):
+        actual = self.j2k[:1024:4, :1024:4]
+        expected = self.j2k_quarter_data[:256, :256]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_51_decode(self):
+        actual = self.j2k[640:768:4, 512:640:4]
+        expected = self.j2k_quarter_data[160:192, 128:160]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_52_decode(self):
+        actual = self.j2k[896:1024:4, 896:1024:4]
+        expected = self.j2k_quarter_data[224:352, 224:352]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_53_decode(self):
+        actual = self.j2k[500:800:4, 100:300:4]
+        expected = self.j2k_quarter_data[125:200, 25:75]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_54_decode(self):
+        actual = self.j2k[520:600:4, 260:360:4]
+        expected = self.j2k_quarter_data[130:150, 65:90]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_55_decode(self):
+        actual = self.j2k[520:660:4, 260:360:4]
+        expected = self.j2k_quarter_data[130:165, 65:90]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_56_decode(self):
+        actual = self.j2k[520:600:4, 360:400:4]
+        expected = self.j2k_quarter_data[130:150, 90:100]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_06_j2k_75_decode(self):
+        # Image size would be 0 x 0.
+        with self.assertRaises((IOError, OSError)):
+            self.j2k[9:12:4, 9:12:4]
+
+    def test_NR_DEC_p0_04_j2k_85_decode(self):
+        actual = self.j2k[:256, :256]
+        expected = self.j2k_data[:256, :256]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p0_04_j2k_86_decode(self):
+        actual = self.j2k[:128, 128:256]
+        expected = self.j2k_data[:128, 128:256]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p0_04_j2k_87_decode(self):
+        actual = self.j2k[10:200, 50:120]
+        expected = self.j2k_data[10:200, 50:120]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p0_04_j2k_88_decode(self):
+        actual = self.j2k[150:210, 10:190]
+        expected = self.j2k_data[150:210, 10:190]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p0_04_j2k_89_decode(self):
+        actual = self.j2k[80:150, 100:200]
+        expected = self.j2k_data[80:150, 100:200]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p0_04_j2k_90_decode(self):
+        actual = self.j2k[20:50, 150:200]
+        expected = self.j2k_data[20:50, 150:200]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p0_04_j2k_91_decode(self):
+        actual = self.j2k[:256:4, :256:4]
+        expected = self.j2k_quarter_data[0:64, 0:64]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p0_04_j2k_92_decode(self):
+        actual = self.j2k[:128:4, 128:256:4]
+        expected = self.j2k_quarter_data[:32, 32:64]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p0_04_j2k_93_decode(self):
+        actual = self.j2k[10:200:4, 50:120:4]
+        expected = self.j2k_quarter_data[3:50, 13:30]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p0_04_j2k_94_decode(self):
+        actual = self.j2k[150:210:4, 10:190:4]
+        expected = self.j2k_quarter_data[38:53, 3:48]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p0_04_j2k_95_decode(self):
+        actual = self.j2k[80:150:4, 100:200:4]
+        expected = self.j2k_quarter_data[20:38, 25:50]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p0_04_j2k_96_decode(self):
+        actual = self.j2k[20:50:4, 150:200:4]
+        expected = self.j2k_quarter_data[5:13, 38:50]
+        np.testing.assert_array_equal(actual, expected)
+
 class TestJp2k(unittest.TestCase):
     """These tests should be run by just about all configuration."""
 
@@ -62,6 +422,7 @@ class TestJp2k(unittest.TestCase):
 
     def tearDown(self):
         pass
+
 
     @unittest.skipIf(os.name == "nt", "Unexplained failure on windows")
     def test_irreversible(self):
@@ -566,13 +927,6 @@ class TestJp2k_1_x(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_area(self):
-        """Area option not allowed for 1.x.
-        """
-        j2k = Jp2k(self.j2kfile)
-        with self.assertRaises(TypeError):
-            j2k.read(area=(0, 0, 100, 100))
-
     def test_tile(self):
         """tile option not allowed for 1.x.
         """
@@ -725,6 +1079,7 @@ class TestJp2k_2_1(unittest.TestCase):
             self.assertEqual(j.box[2].box[0].num_components, 4)
             self.assertEqual(j.box[2].box[1].colorspace, glymur.core.SRGB)
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
     def test_openjpeg_library_message(self):
         """Verify the error message produced by the openjpeg library"""
@@ -749,8 +1104,7 @@ class TestJp2k_2_1(unittest.TestCase):
                 tfile.write(data[offset+59:])
                 #tfile.write(data[3186:])
                 tfile.flush()
-                with warnings.catch_warnings():
-                    warnings.simplefilter("ignore")
+                with self.assertWarns(UserWarning):
                     j = Jp2k(tfile.name)
                 regexp = re.compile(r'''OpenJPEG\slibrary\serror:\s+
                                         Invalid\svalues\sfor\scomp\s=\s0\s+
@@ -774,21 +1128,16 @@ class TestParsing(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @unittest.skipIf(sys.platform.startswith('linux'), 'Failing on linux')
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_bad_rsiz(self):
         """Should not warn if RSIZ when parsing is turned off."""
-        # Actually there are three warning triggered by this codestream.
         filename = opj_data_file('input/nonregression/edf_c2_1002767.jp2')
         glymur.set_parseoptions(codestream=False)
-        with warnings.catch_warnings(record=True) as w:
-            j = Jp2k(filename)
-            self.assertEqual(len(w), 0)
+        j = Jp2k(filename)
 
         glymur.set_parseoptions(codestream=True)
-        with warnings.catch_warnings(record=True) as w:
+        with self.assertWarnsRegex(UserWarning, 'Invalid profile'):
             jp2 = Jp2k(filename)
-            self.assertTrue(issubclass(w[0].category, UserWarning))
-            self.assertTrue('Invalid profile' in str(w[0].message))
 
     def test_main_header(self):
         """Verify that the main header is not loaded when parsing turned off."""
@@ -800,6 +1149,7 @@ class TestParsing(unittest.TestCase):
         main_header = jp2c.main_header
         self.assertIsNotNone(jp2c._main_header)
 
+@unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 class TestJp2kOpjDataRootWarnings(unittest.TestCase):
@@ -808,11 +1158,8 @@ class TestJp2kOpjDataRootWarnings(unittest.TestCase):
     def test_undecodeable_box_id(self):
         """Should warn in case of undecodeable box ID but not error out."""
         filename = opj_data_file('input/nonregression/edf_c2_1013627.jp2')
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with self.assertWarnsRegex(UserWarning, 'Unrecognized box'):
             jp2 = Jp2k(filename)
-            self.assertTrue(issubclass(w[0].category, UserWarning))
-            self.assertTrue('Unrecognized box' in str(w[0].message))
 
         # Now make sure we got all of the boxes.  Ignore the last, which was
         # bad.
@@ -822,37 +1169,30 @@ class TestJp2kOpjDataRootWarnings(unittest.TestCase):
     def test_bad_ftyp_brand(self):
         """Should warn in case of bad ftyp brand."""
         filename = opj_data_file('input/nonregression/edf_c2_1000290.jp2')
-        with warnings.catch_warnings(record=True) as w:
-           warnings.simplefilter('always')
+        with self.assertWarns(UserWarning):
            jp2 = Jp2k(filename)
-           self.assertTrue(issubclass(w[0].category, UserWarning))
 
     def test_invalid_approximation(self):
         """Should warn in case of invalid approximation."""
         filename = opj_data_file('input/nonregression/edf_c2_1015644.jp2')
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with self.assertWarnsRegex(UserWarning, 'Invalid approximation'):
             jp2 = Jp2k(filename)
-            self.assertTrue(issubclass(w[0].category, UserWarning))
-            self.assertTrue('Invalid approximation' in str(w[0].message))
 
-    @unittest.skipIf(sys.platform.startswith('linux'), 'Failing on linux')
     def test_invalid_colorspace(self):
-        """Should warn in case of invalid colorspace."""
+        """
+        Should warn in case of invalid colorspace.
+
+        There are multiple warnings, so there's no good way to regex them all.
+        """
         filename = opj_data_file('input/nonregression/edf_c2_1103421.jp2')
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with self.assertWarns(UserWarning):
             jp2 = Jp2k(filename)
-            self.assertTrue(issubclass(w[1].category, UserWarning))
-            self.assertTrue('Unrecognized colorspace' in str(w[1].message))
 
     def test_stupid_windows_eol_at_end(self):
         """Garbage characters at the end of the file."""
         filename = opj_data_file('input/nonregression/issue211.jp2')
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        with self.assertWarns(UserWarning):
             jp2 = Jp2k(filename)
-            self.assertTrue(issubclass(w[1].category, UserWarning))
 
 
 @unittest.skipIf(OPJ_DATA_ROOT is None,
@@ -877,10 +1217,12 @@ class TestJp2kOpjDataRoot(unittest.TestCase):
             actdata = j.read()
             self.assertTrue(fixtures.mse(actdata, expdata) < 250)
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_no_cxform_pclr_jp2(self):
         """Indices for pclr jpxfile if no color transform"""
         filename = opj_data_file('input/conformance/file9.jp2')
-        j = Jp2k(filename)
+        with self.assertWarns(UserWarning):
+            j = Jp2k(filename)
         rgb = j.read()
         idx = j.read(ignore_pclr_cmap_cdef=True)
         self.assertEqual(rgb.shape, (512, 768, 3))
@@ -905,15 +1247,15 @@ class TestJp2kOpjDataRoot(unittest.TestCase):
         j = Jp2k(filename)
         with self.assertRaises(RuntimeError):
             j.read()
-
+        
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_no_cxform_cmap(self):
         """Bands as physically ordered, not as physically intended"""
         # This file has the components physically reversed.  The cmap box
         # tells the decoder how to order them, but this flag prevents that.
         filename = opj_data_file('input/conformance/file2.jp2')
-        with warnings.catch_warnings():
+        with self.assertWarns(UserWarning):
             # The file has a bad compatibility list entry.  Not important here.
-            warnings.simplefilter("ignore")
             j = Jp2k(filename)
         ycbcr = j.read()
         crcby = j.read(ignore_pclr_cmap_cdef=True)

@@ -759,6 +759,112 @@ class Jp2k(Jp2kBox):
 
         return boxes
 
+    def __setitem__(self, index, data):
+        """
+        Slicing protocol.
+        """
+        if isinstance(index, slice) and (
+                index.start == None and
+                index.stop == None and
+                index.step == None):
+            # Case of jp2[:] = data, i.e. write the entire image.
+            #
+            # Should have a slice object where start = stop = step = None
+            self.write(data)
+        else:
+            msg = "Images currently must be written entirely at once."
+            raise TypeError(msg)
+
+    def __getitem__(self, pargs):
+        """
+        Slicing protocol.
+        """
+        codestream = self.get_codestream(header_only=True)
+        if isinstance(pargs, int):
+            # Not a very good use of this protocol, but technically legal.
+            # This retrieves a single row.
+            row = pargs
+            area = (row, 0, row + 1, codestream.segment[1].xsiz)
+            return self.read(area=area).squeeze()
+
+        if isinstance(pargs, slice):
+            # Case of jp2[:], i.e. retrieve the entire image.
+            #
+            # Should have a slice object where start = stop = step = None
+            return self.read()
+
+        if isinstance(pargs, tuple) and all(isinstance(x, int) for x in pargs):
+            # Retrieve a single pixel.
+            # Something like jp2[r, c]
+            row = pargs[0]
+            col = pargs[1]
+            area = (row, col, row + 1, col + 1)
+            pixel = self.read(area=area).squeeze()
+            
+            if len(pargs) == 2:
+                return pixel
+            elif len(pargs) == 3:
+                return pixel[pargs[2]]
+
+        # Assuming pargs is a tuple of slices from now on.  
+        rows = pargs[0]
+        cols = pargs[1]
+        if len(pargs) == 2:
+            bands = slice(None, None, None)
+        else:
+            bands = pargs[2]
+
+        if rows.step is None:
+            rows_step = 1
+        else:
+            rows_step = rows.step
+
+        if cols.step is None:
+            cols_step = 1
+        else:
+            cols_step = cols.step
+
+        if rows_step != cols_step:
+            msg = "Row and column strides must be the same."
+            raise IndexError(msg)
+
+        # Ok, reduce layer step is the same in both xy directions, so just take
+        # one of them.
+        step = rows_step
+    
+        if np.log2(step) != np.floor(np.log2(step)):
+            msg = "Row and column strides must be powers of 2."
+            raise IndexError(msg)
+
+        if rows.start is None:
+            rows_start = 0
+        else:
+            rows_start = rows.start
+
+        if rows.stop is None:
+            rows_stop = codestream.segment[1].ysiz
+        else:
+            rows_stop = rows.stop
+        
+        if cols.start is None:
+            cols_start = 0
+        else:
+            cols_start = cols.start
+
+        if cols.stop is None:
+            cols_stop = codestream.segment[1].xsiz
+        else:
+            cols_stop = cols.stop
+        
+        area = (rows_start, cols_start, rows_stop, cols_stop)
+        data = self.read(area=area, rlevel=np.int(np.log2(step)))
+        if len(pargs) == 2:
+            return data
+
+        # Ok, 3 arguments in pargs.
+        return data[:, :, bands]
+
+
     def read(self, **kwargs):
         """Read a JPEG 2000 image.
 
@@ -833,7 +939,7 @@ class Jp2k(Jp2kBox):
             raise RuntimeError(msg)
 
     def _read_openjpeg(self, rlevel=0, ignore_pclr_cmap_cdef=False,
-                       verbose=False):
+                       verbose=False, area=None):
         """Read a JPEG 2000 image using libopenjpeg.
 
         Parameters
@@ -846,6 +952,9 @@ class Jp2k(Jp2kBox):
             color transformation.  Defaults to False.
         verbose : bool, optional
             Print informational messages produced by the OpenJPEG library.
+        area : tuple, optional
+            Specifies decoding image area,
+            (first_row, first_col, last_row, last_col)
 
         Returns
         -------
@@ -897,6 +1006,18 @@ class Jp2k(Jp2kBox):
             # The third dimension has just a single layer.  Make the image
             # data 2D instead of 3D.
             data.shape = data.shape[0:2]
+
+        if area is not None:
+            x0, y0, x1, y1 = area
+            extent = 2 ** rlevel
+            if x1 - x0 < extent or y1 - y0 < extent:
+                msg = "Decoded area is too small."
+                raise IOError(msg)
+
+            area = [int(round(float(x)/extent + 2 ** -20)) for x in area]
+            rows = slice(area[0], area[2], None)
+            cols = slice(area[1], area[3], None)
+            data = data[rows, cols]
 
         return data
 

@@ -11,7 +11,6 @@ import os
 import re
 import sys
 import tempfile
-import warnings
 
 import unittest
 
@@ -24,6 +23,7 @@ else:
 
 import glymur
 
+from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
 
 @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
@@ -37,12 +37,12 @@ class TestCallbacks(unittest.TestCase):
     def tearDown(self):
         pass
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_info_callback_on_write(self):
         """Verify messages printed when writing an image in verbose mode."""
         j = glymur.Jp2k(self.jp2file)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
+        with self.assertWarns(UserWarning):
             tiledata = j.read(tile=0)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             j = glymur.Jp2k(tfile.name, 'wb')

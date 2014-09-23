@@ -9,14 +9,15 @@ import datetime
 import os
 import sys
 import unittest
-import warnings
 
 import numpy as np
 
 from glymur import Jp2k
 from .fixtures import OPJ_DATA_ROOT, opj_data_file
+from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
 
 
+@unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 class TestICC(unittest.TestCase):
@@ -31,9 +32,8 @@ class TestICC(unittest.TestCase):
     def test_file5(self):
         """basic ICC profile"""
         filename = opj_data_file('input/conformance/file5.jp2')
-        with warnings.catch_warnings():
+        with self.assertWarns(UserWarning):
             # The file has a bad compatibility list entry.  Not important here.
-            warnings.simplefilter("ignore")
             j = Jp2k(filename)
         profile = j.box[3].box[1].icc_profile
         self.assertEqual(profile['Size'], 546)
@@ -62,18 +62,15 @@ class TestICC(unittest.TestCase):
 
         self.assertEqual(profile['Creator'], 'JPEG')
 
-    @unittest.skipIf(sys.platform.startswith('linux'), 'Failing on linux')
     def test_invalid_profile_header(self):
         """invalid ICC header data should cause UserWarning"""
         jfile = opj_data_file('input/nonregression/orb-blue10-lin-jp2.jp2')
 
         # assertWarns in Python 3.3 (python2.7/pylint issue)
         # pylint: disable=E1101
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('always')
+        regex = 'ICC profile header is corrupt'
+        with self.assertWarnsRegex(UserWarning, regex):
             Jp2k(jfile)
-            self.assertTrue(issubclass(w[0].category,UserWarning))
-            self.assertTrue('ICC profile header is corrupt' in str(w[0].message))
 
 if __name__ == "__main__":
     unittest.main()

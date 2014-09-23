@@ -16,7 +16,6 @@ import os
 import sys
 import tempfile
 import unittest
-import warnings
 
 if sys.hexversion <= 0x03030000:
     from mock import patch
@@ -26,6 +25,7 @@ else:
 import glymur
 from glymur import Jp2k
 
+from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
 
 @unittest.skipIf(sys.hexversion < 0x03020000,
                  "TemporaryDirectory introduced in 3.2.")
@@ -70,6 +70,7 @@ class TestSuite(unittest.TestCase):
                     imp.reload(glymur.lib.openjp2)
                     Jp2k(self.jp2file)
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_xdg_env_config_file_is_bad(self):
         """A non-existant library location should be rejected."""
         with tempfile.TemporaryDirectory() as tdir:
@@ -84,11 +85,9 @@ class TestSuite(unittest.TestCase):
                     with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
                         # Misconfigured new configuration file should
                         # be rejected.
-                        with warnings.catch_warnings(record=True) as w:
-                            warnings.simplefilter('always')
+                        regex = 'could not be loaded'
+                        with self.assertWarnsRegex(UserWarning, regex):
                             imp.reload(glymur.lib.openjp2)
-                            self.assertTrue(issubclass(w[0].category,UserWarning))
-                            self.assertTrue('could not be loaded' in str(w[0].message))
 
 
 @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None and
