@@ -24,8 +24,9 @@ from .fixtures import opj_data_file
 from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
 from . import fixtures
 
-from glymur import Jp2k
 import glymur
+from glymur import Jp2k
+from glymur.codestream import SIZsegment
 
 class CinemaBase(fixtures.MetadataBase):
 
@@ -45,7 +46,7 @@ class CinemaBase(fixtures.MetadataBase):
                 'xytsiz': image_size, 'xytosiz': (0, 0),
                 'bitdepth': (12, 12, 12), 'signed': (False, False, False),
                 'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+        self.verifySizSegment(codestream.segment[1], SIZsegment(**kwargs))
 
         self.verify_cinema_cod(codestream.segment[2])
 
@@ -55,7 +56,7 @@ class CinemaBase(fixtures.MetadataBase):
                 'xytsiz': image_size, 'xytosiz': (0, 0),
                 'bitdepth': (12, 12, 12), 'signed': (False, False, False),
                 'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+        self.verifySizSegment(codestream.segment[1], SIZsegment(**kwargs))
 
         self.verify_cinema_cod(codestream.segment[2])
 
