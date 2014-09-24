@@ -40,9 +40,9 @@ class TestWarnings(unittest.TestCase):
         infile = os.path.join(OPJ_DATA_ROOT,
                               'input/nonregression/mem-b2ace68c-1381.jp2')
         regex = re.compile(r'''Encountered\san\sunrecoverable\sValueError\s
-                               while\sparsing\sa\spclr\sbox\sat\sbyte\soffset\s
-                               \d+\.\s+The\soriginal\serror\smessage\swas\s
-                               "total\ssize\sof\snew\sarray\smust\sbe\s
+                               while\sparsing\sa\sPalette\sbox\sat\sbyte\s
+                               offset\s\d+\.\s+The\soriginal\serror\smessage\s
+                               was\s"total\ssize\sof\snew\sarray\smust\sbe\s
                                unchanged"''',
                            re.VERBOSE)
         with self.assertWarnsRegex(UserWarning, regex):

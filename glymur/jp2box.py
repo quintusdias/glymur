@@ -62,17 +62,13 @@ class Jp2kBox(object):
         length of the box in bytes.
     offset : int
         offset of the box from the start of the file.
-    longname : str
-        more verbose description of the box.
     box : list
         List of JPEG 2000 boxes.
     """
 
-    def __init__(self, box_id='', offset=0, length=0, longname=''):
-        self.box_id = box_id
+    def __init__(self, offset=0, length=0):
         self.length = length
         self.offset = offset
-        self.longname = longname
         self.box = []
 
     def __repr__(self):
@@ -197,7 +193,7 @@ class Jp2kBox(object):
             msg = "Encountered an unrecoverable ValueError while parsing a {0} "
             msg += "box at byte offset {1}.  The original error message was "
             msg += "\"{2}\""
-            msg = msg.format(box_id.decode('utf-8'), start, str(err))
+            msg = msg.format(_BOX_WITH_ID[box_id].longname, start, str(err))
             warnings.warn(msg, UserWarning)
             box = UnknownBox(box_id.decode('utf-8'),
                              length=num_bytes, offset=start, longname='Unknown')
@@ -300,11 +296,12 @@ class ColourSpecificationBox(Jp2kBox):
         ICC profile header according to ICC profile specification.  If
         colorspace is not None, then icc_profile must be empty.
     """
-
+    longname = 'Colour Specification'
+    box_id = 'colr'
     def __init__(self, method=ENUMERATED_COLORSPACE, precedence=0,
                  approximation=0, colorspace=None, icc_profile=None,
                  length=0, offset=-1):
-        Jp2kBox.__init__(self, box_id='colr', longname='Colour Specification')
+        Jp2kBox.__init__(self)
 
         self.method = method
         self.precedence = precedence
@@ -588,8 +585,11 @@ class ChannelDefinitionBox(Jp2kBox):
     association : list
         index of the associated color
     """
+    box_id = 'cdef'
+    longname = 'Channel Definition'
+
     def __init__(self, channel_type, association, index=None, **kwargs):
-        Jp2kBox.__init__(self, box_id='cdef', longname='Channel Definition')
+        Jp2kBox.__init__(self)
 
         if index is None:
             self.index = tuple(range(len(channel_type)))
@@ -704,8 +704,11 @@ class CodestreamHeaderBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
+    box_id = 'jpch'
+    longname = 'Codestream Header'
+
     def __init__(self, box=None, length=0, offset=-1):
-        Jp2kBox.__init__(self, box_id='jpch', longname='Codestream Header')
+        Jp2kBox.__init__(self)
         self.length = length
         self.offset = offset
         self.box = box if box is not None else []
@@ -765,8 +768,11 @@ class ColourGroupBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
+    box_id = 'cgrp'
+    longname = 'Colour Group'
+
     def __init__(self, box=None, length=0, offset=-1):
-        Jp2kBox.__init__(self, box_id='cgrp', longname='Colour Group')
+        Jp2kBox.__init__(self)
         self.length = length
         self.offset = offset
         self.box = box if box is not None else []
@@ -834,9 +840,11 @@ class CompositingLayerHeaderBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
+    box_id = 'jplh'
+    longname='Compositing Layer Header'
+
     def __init__(self, box=None, length=0, offset=-1):
-        Jp2kBox.__init__(self, box_id='jplh',
-                         longname='Compositing Layer Header')
+        Jp2kBox.__init__(self)
         self.length = length
         self.offset = offset
         self.box = box if box is not None else []
@@ -900,9 +908,12 @@ class ComponentMappingBox(Jp2kBox):
     palette_index : tuple
         Index component from palette
     """
+    box_id = 'cmap'
+    longname = 'Component Mapping'
+
     def __init__(self, component_index, mapping_type, palette_index,
                  length=0, offset=-1):
-        Jp2kBox.__init__(self, box_id='cmap', longname='Component Mapping')
+        Jp2kBox.__init__(self)
         self.component_index = component_index
         self.mapping_type = mapping_type
         self.palette_index = palette_index
@@ -995,9 +1006,12 @@ class ContiguousCodestreamBox(Jp2kBox):
     main_header_offset : int
         offset of main header from start of file
     """
+    box_id = 'jp2c'
+    longname = 'Contiguous Codestream'
+
     def __init__(self, main_header=None, main_header_offset=None, length=0,
                  offset=-1):
-        Jp2kBox.__init__(self, box_id='jp2c', longname='Contiguous Codestream')
+        Jp2kBox.__init__(self)
         self._main_header = main_header
         self.length = length
         self.offset = offset
@@ -1078,8 +1092,11 @@ class DataReferenceBox(Jp2kBox):
     DR : list
         Data Entry URL boxes.
     """
+    box_id = 'dtbl'
+    longname = 'Data Reference'
+
     def __init__(self, data_entry_url_boxes=None, length=0, offset=-1):
-        Jp2kBox.__init__(self, box_id='dtbl', longname='Data Reference')
+        Jp2kBox.__init__(self)
         if data_entry_url_boxes is None:
             self.DR = []
         else:
@@ -1205,9 +1222,12 @@ class FileTypeBox(Jp2kBox):
     compatibility_list: list
         List of file conformance profiles.
     """
+    box_id = 'ftyp'
+    longname = 'File Type'
+
     def __init__(self, brand='jp2 ', minor_version=0,
                  compatibility_list=None, length=0, offset=-1):
-        Jp2kBox.__init__(self, box_id='ftyp', longname='File Type')
+        Jp2kBox.__init__(self)
         self.brand = brand
         self.minor_version = minor_version
         if compatibility_list is None:
@@ -1317,9 +1337,12 @@ class FragmentListBox(Jp2kBox):
     longname : str
         more verbose description of the box.
     """
+    box_id = 'flst'
+    longname = 'Fragment List'
+
     def __init__(self, fragment_offset, fragment_length, data_reference,
                  length=0, offset=-1):
-        Jp2kBox.__init__(self, box_id='flst', longname='Fragment List')
+        Jp2kBox.__init__(self)
         self.fragment_offset = fragment_offset
         self.fragment_length = fragment_length
         self.data_reference = data_reference
@@ -1423,8 +1446,11 @@ class FragmentTableBox(Jp2kBox):
     longname : str
         more verbose description of the box.
     """
+    box_id = 'ftbl'
+    longname = 'Fragment Table'
+
     def __init__(self, box=None, length=0, offset=-1):
-        Jp2kBox.__init__(self, box_id='ftbl', longname='Fragment Table')
+        Jp2kBox.__init__(self)
         self.length = length
         self.offset = offset
         self.box = box if box is not None else []
@@ -1493,8 +1519,11 @@ class FreeBox(Jp2kBox):
     longname : str
         more verbose description of the box.
     """
+    box_id = 'free'
+    longname = 'Free'
+
     def __init__(self, length=0, offset=-1):
-        Jp2kBox.__init__(self, box_id='free', longname='Free')
+        Jp2kBox.__init__(self)
         self.length = length
         self.offset = offset
 
@@ -1558,6 +1587,9 @@ class ImageHeaderBox(Jp2kBox):
         False if the file does not contain intellectual propery rights
         information.
     """
+    box_id = 'ihdr'
+    longname = 'Image Header'
+
     def __init__(self, height, width, num_components=1, signed=False,
                  bits_per_component=8, compression=7, colorspace_unknown=False,
                  ip_provided=False, length=0, offset=-1):
@@ -1567,7 +1599,7 @@ class ImageHeaderBox(Jp2kBox):
         >>> import glymur
         >>> box = glymur.jp2box.ImageHeaderBox(height=512, width=256)
         """
-        Jp2kBox.__init__(self, box_id='ihdr', longname='Image Header')
+        Jp2kBox.__init__(self)
         self.height = height
         self.width = width
         self.num_components = num_components
@@ -1686,8 +1718,11 @@ class AssociationBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
+    box_id = 'asoc'
+    longname = 'Association'
+
     def __init__(self, box=None, length=0, offset=-1):
-        Jp2kBox.__init__(self, box_id='asoc', longname='Association')
+        Jp2kBox.__init__(self)
         self.length = length
         self.offset = offset
         self.box = box if box is not None else []
@@ -1747,8 +1782,11 @@ class JP2HeaderBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
+    box_id = 'jp2h'
+    longname = 'JP2 Header'
+
     def __init__(self, box=None, length=0, offset=-1):
-        Jp2kBox.__init__(self, box_id='jp2h', longname='JP2 Header')
+        Jp2kBox.__init__(self)
         self.length = length
         self.offset = offset
         self.box = box if box is not None else []
@@ -1808,8 +1846,11 @@ class JPEG2000SignatureBox(Jp2kBox):
     signature : tuple
         Four-byte tuple identifying the file as JPEG 2000.
     """
+    box_id = 'jP  '
+    longname = 'JPEG 2000 Signature'
+
     def __init__(self, signature=(13, 10, 135, 10), length=0, offset=-1):
-        Jp2kBox.__init__(self, box_id='jP  ', longname='JPEG 2000 Signature')
+        Jp2kBox.__init__(self)
         self.signature = signature
         self.length = length
         self.offset = offset
@@ -1872,9 +1913,12 @@ class PaletteBox(Jp2kBox):
     palette : ndarray
         Colormap array.
     """
+    longname = 'Palette'
+    box_id = 'pclr'
+
     def __init__(self, palette, bits_per_component, signed, length=0,
                  offset=-1):
-        Jp2kBox.__init__(self, box_id='pclr', longname='Palette')
+        Jp2kBox.__init__(self)
         self.palette = palette
         self.bits_per_component = bits_per_component
         self.signed = signed
@@ -2129,9 +2173,12 @@ class ReaderRequirementsBox(Jp2kBox):
         Specifies the compatibility mask for each corresponding vendor
         feature.
     """
+    box_id = 'rreq'
+    longname = 'Reader Requirements'
+
     def __init__(self, fuam, dcm, standard_flag, standard_mask, vendor_feature,
                  vendor_mask, length=0, offset=-1):
-        Jp2kBox.__init__(self, box_id='rreq', longname='Reader Requirements')
+        Jp2kBox.__init__(self)
         self.fuam = fuam
         self.dcm = dcm
         self.standard_flag = tuple(standard_flag)
@@ -2368,8 +2415,11 @@ class ResolutionBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
+    box_id = 'res '
+    longname = 'Resolution'
+
     def __init__(self, box=None, length=0, offset=-1):
-        Jp2kBox.__init__(self, box_id='res ', longname='Resolution')
+        Jp2kBox.__init__(self)
         self.length = length
         self.offset = offset
         self.box = box if box is not None else []
@@ -2425,9 +2475,12 @@ class CaptureResolutionBox(Jp2kBox):
     vertical_resolution, horizontal_resolution : float
         Vertical, horizontal resolution.
     """
+    box_id = 'resc'
+    longname = 'Capture Resolution'
+
     def __init__(self, vertical_resolution, horizontal_resolution, length=0,
                  offset=-1):
-        Jp2kBox.__init__(self, box_id='resc', longname='Capture Resolution')
+        Jp2kBox.__init__(self)
         self.vertical_resolution = vertical_resolution
         self.horizontal_resolution = horizontal_resolution
         self.length = length
@@ -2488,9 +2541,12 @@ class DisplayResolutionBox(Jp2kBox):
     vertical_resolution, horizontal_resolution : float
         Vertical, horizontal resolution.
     """
+    box_id = 'resd'
+    longname = 'Display Resolution'
+
     def __init__(self, vertical_resolution, horizontal_resolution,
                  length=0, offset=-1):
-        Jp2kBox.__init__(self, box_id='resd', longname='Display Resolution')
+        Jp2kBox.__init__(self)
         self.vertical_resolution = vertical_resolution
         self.horizontal_resolution = horizontal_resolution
         self.length = length
@@ -2552,8 +2608,11 @@ class LabelBox(Jp2kBox):
     label : str
         Textual label.
     """
+    box_id = 'lbl '
+    longname = 'Label'
+
     def __init__(self, label, length=0, offset=-1):
-        Jp2kBox.__init__(self, box_id='lbl ', longname='Label')
+        Jp2kBox.__init__(self)
         self.label = label
         self.length = length
         self.offset = offset
@@ -2617,8 +2676,11 @@ class NumberListBox(Jp2kBox):
         Descriptors of an entity with which the data contained within the same
         Association box is associated.
     """
+    box_id = 'nlst'
+    longname = 'Number List'
+
     def __init__(self, associations, length=0, offset=-1):
-        Jp2kBox.__init__(self, box_id='nlst', longname='Number List')
+        Jp2kBox.__init__(self)
         self.associations = associations
         self.length = length
         self.offset = offset
@@ -2698,6 +2760,9 @@ class XMLBox(Jp2kBox):
     xml : ElementTree object
         XML section.
     """
+    box_id = 'xml '
+    longname = 'XML'
+
     def __init__(self, xml=None, filename=None, length=0, offset=-1):
         """
         Parameters
@@ -2708,7 +2773,7 @@ class XMLBox(Jp2kBox):
             File from which to read XML.  If filename is not None, then the xml
             keyword argument must be None.
         """
-        Jp2kBox.__init__(self, box_id='xml ', longname='XML')
+        Jp2kBox.__init__(self)
         if filename is not None and xml is not None:
             msg = "Only one of either filename or xml should be provided."
             raise IOError(msg)
@@ -2830,8 +2895,11 @@ class UUIDListBox(Jp2kBox):
     ulst : list
         List of UUIDs.
     """
+    box_id = 'ulst'
+    longname = 'UUID List'
+
     def __init__(self, ulst, length=0, offset=-1):
-        Jp2kBox.__init__(self, box_id='ulst', longname='UUID List')
+        Jp2kBox.__init__(self)
         self.ulst = ulst
         self.length = length
         self.offset = offset
@@ -2895,8 +2963,11 @@ class UUIDInfoBox(Jp2kBox):
     box : list
         List of boxes contained in this superbox.
     """
+    box_id = 'uinf'
+    longname = 'UUIDInfo'
+
     def __init__(self, box=None, length=0, offset=-1):
-        Jp2kBox.__init__(self, box_id='uinf', longname='UUIDInfo')
+        Jp2kBox.__init__(self)
         self.length = length
         self.offset = offset
         self.box = box if box is not None else []
@@ -2956,8 +3027,11 @@ class DataEntryURLBox(Jp2kBox):
     URL : str
         Associated URL.
     """
+    box_id = 'url '
+    longname = 'Data Entry URL'
+
     def __init__(self, version, flag, url, length=0, offset=-1):
-        Jp2kBox.__init__(self, box_id='url ', longname='Data Entry URL')
+        Jp2kBox.__init__(self)
         self.version = version
         self.flag = flag
         self.url = url
@@ -3045,7 +3119,9 @@ class UnknownBox(Jp2kBox):
         more verbose description of the box.
     """
     def __init__(self, box_id, length=0, offset=-1, longname=''):
-        Jp2kBox.__init__(self, box_id=box_id, longname=longname)
+        Jp2kBox.__init__(self)
+        self.longname = longname
+        self.box_id = box_id
         self.length = length
         self.offset = offset
 
@@ -3089,6 +3165,9 @@ class UUIDBox(Jp2kBox):
        16684-1:2012 - Graphic technology -- Extensible metadata platform (XMP)
        specification -- Part 1:  Data model, serialization and core properties
     """
+    box_id = 'uuid'
+    longname = 'UUID'
+
     def __init__(self, the_uuid, raw_data, length=0, offset=-1):
         """
         Parameters
@@ -3102,7 +3181,7 @@ class UUIDBox(Jp2kBox):
         offset : int
             offset of the box from the start of the file.
         """
-        Jp2kBox.__init__(self, box_id='uuid', longname='UUID')
+        Jp2kBox.__init__(self)
         self.uuid = the_uuid
         self.raw_data = raw_data
         self.length = length
