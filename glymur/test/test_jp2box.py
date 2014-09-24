@@ -1246,16 +1246,6 @@ class TestRepr(MetadataBase):
         self.assertEqual(newbox.ulst[0], uuid1)
         self.assertEqual(newbox.ulst[1], uuid2)
 
-    def test_jp2k_box(self):
-        """Verify Superclass repr."""
-        box = glymur.jp2box.Jp2kBox(box_id='one', offset=2, length=3, 
-                                    longname='four')
-        newbox = eval(repr(box))
-        self.assertEqual(newbox.box_id, 'one')
-        self.assertEqual(newbox.offset, 2) 
-        self.assertEqual(newbox.length, 3)
-        self.assertEqual(newbox.longname, 'four')
-
     def test_palette_box(self):
         """Verify Palette box repr."""
         palette = np.array([[255, 0, 1000], [0, 255, 0]], dtype=np.int32)
