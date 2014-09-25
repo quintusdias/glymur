@@ -27,6 +27,7 @@ from . import fixtures
 import glymur
 from glymur import Jp2k
 from glymur.codestream import SIZsegment
+from glymur.version import openjpeg_version
 
 class CinemaBase(fixtures.MetadataBase):
 
@@ -218,6 +219,8 @@ class TestSuiteNegative2pointzero(unittest.TestCase):
                 j.write(data, cinema2k=48)
 
 
+@unittest.skipIf(re.match(r'''1.[0-4]''', openjpeg_version) is not None,
+                 "Writing not supported until OpenJPEG 1.5")
 @unittest.skipIf(os.name == "nt", "no write support on windows, period")
 @unittest.skipIf(NO_READ_BACKEND, NO_READ_BACKEND_MSG)
 @unittest.skipIf(OPJ_DATA_ROOT is None,
