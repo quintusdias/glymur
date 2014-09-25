@@ -23,7 +23,8 @@ if sys.hexversion < 0x03000000:
     WARNING_INFRASTRUCTURE_MSG = "3.x warning infrastructure only"
 elif re.match('1.[0-6]', six.__version__) is not None:
     WARNING_INFRASTRUCTURE_ISSUE = True
-    WARNING_INFRASTRUCTURE_MSG = "Cannot use with this version of six"
+    msg = "Cannot run test with version {0} of python-six"
+    WARNING_INFRASTRUCTURE_MSG = msg.format(six.__version__)
 
 class MetadataBase(unittest.TestCase):
     """

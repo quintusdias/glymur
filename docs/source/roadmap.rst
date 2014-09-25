@@ -1,3 +1,10 @@
+-------------------------------------
+Platforms Tested (0.7.0 release only)
+-------------------------------------
+    * Linux Mint 17 / Python 3.4.0
+    * Linux Mint 17 / Python 2.7.6
+    * MacOS 10.6.8 / MacPorts / Python 3.4.1
+
 ------------
 Known Issues
 ------------

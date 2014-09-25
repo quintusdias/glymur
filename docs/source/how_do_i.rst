@@ -3,11 +3,12 @@ How do I...?
 ------------
 
 
-... read the lower resolution images?
-=====================================
-Jp2k implements slicing via the :py:meth:`__getitem__` method so
-any lower resolution images in a JPEG 2000 file can easily be
-accessed, for example here's how to retrieve the first sub-image ::
+... read images?
+================
+Jp2k implements slicing via the :py:meth:`__getitem__` method, meaning that 
+multiple resolution imagery in a JPEG 2000 file can
+easily be accessed.  For example here's how to retrieve a full resolution and
+first lower-resolution image ::
 
     >>> import glymur
     >>> jp2file = glymur.data.nemo()
@@ -24,15 +25,16 @@ such as quality layers.
 
 ... display metadata?
 =====================
-There are two ways.  From the command line, the script **jp2dump** is
+There are two ways.  From the command line, the console script **jp2dump** is
 available. ::
 
     $ jp2dump /path/to/glymur/installation/data/nemo.jp2
 
-From within Python, it is as simple as printing the Jp2k object, i.e. ::
+From within Python, the same result is obtained simply by printing the Jp2k
+object, i.e. ::
 
     >>> import glymur
-    >>> jp2file = glymur.data.nemo()
+    >>> jp2file = glymur.data.nemo() # just a path to a JP2 file
     >>> jp2 = glymur.Jp2k(jp2file)
     >>> print(jp2)
     File:  nemo.jp2

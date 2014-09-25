@@ -10,3 +10,4 @@ These document the changes between minor (or major) versions of glymur.
 
     0.5
     0.6
+    0.7

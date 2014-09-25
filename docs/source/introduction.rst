@@ -27,5 +27,6 @@ but you should also be able to install Glymur via pip ::
 
     $ pip install glymur
 
-In addition to the package, this also gives you a script **jp2dump** that can
-be used from the command line line to print JPEG 2000 metadata.
+In addition to the package, this also gives you a command line script
+**jp2dump** that can be used from the command line line to print JPEG 2000
+metadata.
