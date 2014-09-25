@@ -873,7 +873,7 @@ class Jp2k(Jp2kBox):
         rlevel : int, optional
             Factor by which to rlevel output resolution.  Use -1 to get the
             lowest resolution thumbnail.  This is the only keyword option
-            available to use when only the OpenJPEG version 1.5.1 is present.
+            available to use when the OpenJPEG version is 1.5 or earlier.
         layer : int, optional
             Number of quality layer to decode.
         area : tuple, optional
