@@ -854,7 +854,6 @@ class TestPrintingOpjDataRootWarns(unittest.TestCase):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(jp2)
 
-    @unittest.skip("unexplained failure")        
     def test_bad_rsiz(self):
         """Should still be able to print if rsiz is bad, issue196"""
         filename = opj_data_file('input/nonregression/edf_c2_1002767.jp2')

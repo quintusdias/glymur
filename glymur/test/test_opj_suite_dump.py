@@ -2851,7 +2851,6 @@ class TestSuiteWarns(MetadataBase):
         d = j.read()
         self.assertTrue(True)
 
-    @unittest.skip("unexplained failure")        
     def test_NR_broken4_jp2_dump(self):
         jfile = opj_data_file('input/nonregression/broken4.jp2')
         with self.assertWarns(UserWarning):
@@ -2944,7 +2943,6 @@ class TestSuiteWarns(MetadataBase):
         self.assertEqual(c.segment[6].exponent,
                          [8] + [9, 9, 10] * 5)
 
-    @unittest.skip("unexplained failure")        
     def test_NR_broken2_jp2_dump(self):
         """
         Invalid marker ID in the codestream.
