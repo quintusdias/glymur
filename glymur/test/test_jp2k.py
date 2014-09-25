@@ -19,6 +19,7 @@ import sys
 import tempfile
 import unittest
 import uuid
+import warnings
 from xml.etree import cElementTree as ET
 
 import numpy as np
@@ -1104,7 +1105,8 @@ class TestJp2k_2_1(unittest.TestCase):
                 tfile.write(data[offset+59:])
                 #tfile.write(data[3186:])
                 tfile.flush()
-                with self.assertWarns(UserWarning):
+                with warnings.catch_warnings():
+                    warnings.simplefilter('ignore')
                     j = Jp2k(tfile.name)
                 regexp = re.compile(r'''OpenJPEG\slibrary\serror:\s+
                                         Invalid\svalues\sfor\scomp\s=\s0\s+
@@ -1126,7 +1128,7 @@ class TestParsing(unittest.TestCase):
         glymur.set_parseoptions(codestream=True)
 
     def tearDown(self):
-        pass
+        glymur.set_parseoptions(codestream=True)
 
     @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_bad_rsiz(self):
@@ -1139,6 +1141,7 @@ class TestParsing(unittest.TestCase):
         with self.assertWarnsRegex(UserWarning, 'Invalid profile'):
             jp2 = Jp2k(filename)
 
+    #@unittest.skip('trouble is a brewing...')
     def test_main_header(self):
         """Verify that the main header is not loaded when parsing turned off."""
         # The hidden _main_header attribute should show up after accessing it.
