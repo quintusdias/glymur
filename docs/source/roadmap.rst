@@ -1,9 +1,10 @@
 -------------------------------------
 Platforms Tested (0.7.0 release only)
 -------------------------------------
-    * Linux Mint 17 / Python 3.4.0
-    * Linux Mint 17 / Python 2.7.6
+    * Linux Mint 17 / Python 3.4.0 and 2.7.6 / OpenJPEG 2.1.0
     * MacOS 10.6.8 / MacPorts / Python 3.4.1
+    * CentOS 6.5 / Anaconda Python 3.4.1 / OpenJPEG 1.3
+      (please use OpenJPEG 2.1.0 instead, though)
 
 ------------
 Known Issues
