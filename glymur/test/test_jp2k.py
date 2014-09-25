@@ -774,6 +774,8 @@ class TestJp2k(unittest.TestCase):
         self.assertEqual(data.shape, (1024, 1024, 3))
 
 
+@unittest.skipIf(re.match('1.[0-4]', openjpeg_version) is not None,
+                 "Not supported with OpenJPEG {0}".format(openjpeg_version))
 @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
 class TestJp2k_write(unittest.TestCase):
     """Write tests, can be run by versions 1.5+"""
