@@ -10,12 +10,11 @@ JPEG 2000 images is currently limited to images that can fit in memory.
 but it is strongly recommended to use version 2.1.0, which is the most recently 
 released version of OpenJPEG at this time.
 
-
 In regards to metadata, most JP2 boxes are properly interpreted.
 Certain optional JP2 boxes can also be written, including XML boxes and
 XMP UUIDs.  There is incomplete support for reading JPX metadata.
 
-Glymur 0.6 works on Python versions 2.7, 3.3 and 3.4.  If you have Python 2.6,
+Glymur works on Python versions 2.7, 3.3 and 3.4.  If you have Python 2.6,
 you should use the 0.5 series of Glymur.
 
 For more information about OpenJPEG, please consult http://www.openjpeg.org.

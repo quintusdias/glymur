@@ -24,11 +24,11 @@ configuration format is the same as used by Python’s configparser
 module, i.e. ::
 
     [library]
-    openjp2: /opt/openjp2-svn/lib/libopenjp2.so
+    openjp2: /somewhere/lib/libopenjp2.so
 
 This assumes, of course, that you've installed OpenJPEG into
-/opt/openjp2-svn on a linux system.  The location of the configuration file
-can vary as well (of course).  If you use either linux or mac, the path
+/opt/openjpeg on a linux system.  The location of the configuration file
+can vary as well.  If you use either linux or mac, the path
 to the configuration file would normally be ::
 
     $HOME/.config/glymur/glymurrc 
@@ -48,7 +48,7 @@ You may also include a line for the version 1.x openjpeg library if you have it
 installed in a non-standard place, i.e. ::
 
     [library]
-    openjpeg: /not/the/usual/location/lib/libopenjpeg.so
+    openjpeg: /somewhere/lib/libopenjpeg.so
 
 '''''''
 Testing
