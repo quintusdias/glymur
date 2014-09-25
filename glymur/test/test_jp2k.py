@@ -27,6 +27,7 @@ import pkg_resources
 
 import glymur
 from glymur import Jp2k
+from glymur.version import openjpeg_version
 
 from .fixtures import HAS_PYTHON_XMP_TOOLKIT
 from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
@@ -441,8 +442,9 @@ class TestJp2k(unittest.TestCase):
             actdata = j2.read()
             self.assertTrue(fixtures.mse(actdata[0], expdata[0]) < 0.38)
 
-    @unittest.skipIf(re.match('1.5.(1|2)',
-                              glymur.version.openjpeg_version) is not None,
+    @unittest.skipIf(re.match('1.[0-4]', openjpeg_version) is not None,
+                     "Not supported with OpenJPEG {0}".format(openjpeg_version))
+    @unittest.skipIf(re.match('1.5.(1|2)', openjpeg_version) is not None,
                      "Mysteriously fails in 1.5.1 and 1.5.2")
     def test_no_cxform_pclr_jpx(self):
         """Indices for pclr jpxfile if no color transform"""
