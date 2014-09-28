@@ -71,6 +71,7 @@ class TestSuite(unittest.TestCase):
                     Jp2k(self.jp2file)
 
     @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
+    @unittest.skipIf(os.name == "nt", 'named temporary file issue on windows')
     def test_xdg_env_config_file_is_bad(self):
         """A non-existant library location should be rejected."""
         with tempfile.TemporaryDirectory() as tdir:
