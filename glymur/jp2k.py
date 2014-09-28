@@ -833,7 +833,7 @@ class Jp2k(Jp2kBox):
         step = rows_step
     
         # Check if the step size is a power of 2.
-        if np.abs(np.log2(step) - np.floor(np.log2(step))) > 1e-6:
+        if np.abs(np.log2(step) - np.round(np.log2(step))) > 1e-6:
             msg = "Row and column strides must be powers of 2."
             raise IndexError(msg)
         rlevel = np.int(np.round(np.log2(step)))
