@@ -772,7 +772,7 @@ class Jp2k(Jp2kBox):
             # Should have a slice object where start = stop = step = None
             self.write(data)
         else:
-            msg = "Images currently must be written entirely at once."
+            msg = "Partial write operations are currently not allowed."
             raise TypeError(msg)
 
     def __getitem__(self, pargs):
