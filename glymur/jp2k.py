@@ -772,7 +772,7 @@ class Jp2k(Jp2kBox):
             # Should have a slice object where start = stop = step = None
             self.write(data)
         else:
-            msg = "Images currently must be written entirely at once."
+            msg = "Partial write operations are currently not allowed."
             raise TypeError(msg)
 
     def __getitem__(self, pargs):
@@ -832,9 +832,11 @@ class Jp2k(Jp2kBox):
         # one of them.
         step = rows_step
     
-        if np.log2(step) != np.floor(np.log2(step)):
+        # Check if the step size is a power of 2.
+        if np.abs(np.log2(step) - np.round(np.log2(step))) > 1e-6:
             msg = "Row and column strides must be powers of 2."
             raise IndexError(msg)
+        rlevel = np.int(np.round(np.log2(step)))
 
         if rows.start is None:
             rows_start = 0
@@ -857,7 +859,7 @@ class Jp2k(Jp2kBox):
             cols_stop = cols.stop
         
         area = (rows_start, cols_start, rows_stop, cols_stop)
-        data = self.read(area=area, rlevel=np.int(np.log2(step)))
+        data = self.read(area=area, rlevel=rlevel)
         if len(pargs) == 2:
             return data
 

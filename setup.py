@@ -3,7 +3,7 @@ import os
 import re
 import sys
 
-kwargs = {'name': 'glymur',
+kwargs = {'name': 'Glymur',
           'description': 'Tools for accessing JPEG2000 files',
           'long_description': open('README.md').read(),
           'author': 'John Evans',
