@@ -1,4 +1,6 @@
-Mar 06, 2014 - Added Cinema2K, Cinema4K write support.
+Oct 01, 2014 - v0.7.0  Added array-style slicing.
+
+August 03, 2014 - v0.6.0  Added Cinema2K, Cinema4K write support.
     Changed constructor for ChannelDefinition box.  Removed support
     for Python 2.6.  Added write support for JP2 UUID, DataEntryURL,
     Palette and Component Mapping boxes, JPX Association, NumberList

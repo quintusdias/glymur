@@ -13,19 +13,17 @@ import re
 import sys
 import tempfile
 import unittest
-import warnings
 
 import numpy as np
-
 try:
     import skimage.io
-    skimage.io.use_plugin('freeimage', 'imread')
-    _HAS_SKIMAGE_FREEIMAGE_SUPPORT = True
-except ((ImportError, RuntimeError)):
-    _HAS_SKIMAGE_FREEIMAGE_SUPPORT = False
+except ImportError:
+    pass
 
 from .fixtures import OPJ_DATA_ROOT, opj_data_file, read_image
 from .fixtures import NO_READ_BACKEND, NO_READ_BACKEND_MSG
+from .fixtures import NO_SKIMAGE_FREEIMAGE_SUPPORT
+from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
 
 from glymur import Jp2k
 import glymur
@@ -44,7 +42,7 @@ class TestSuiteNegative(unittest.TestCase):
         pass
 
 
-    @unittest.skipIf(not _HAS_SKIMAGE_FREEIMAGE_SUPPORT,
+    @unittest.skipIf(NO_SKIMAGE_FREEIMAGE_SUPPORT,
                      "Cannot read input image without scikit-image/freeimage")
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_cinema2K_bad_frame_rate(self):
@@ -78,13 +76,13 @@ class TestSuiteNegative(unittest.TestCase):
         jp2k.get_codestream(header_only=False)
         self.assertTrue(True)
 
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_nr_illegalclrtransform(self):
         """EOC marker is bad"""
         relpath = 'input/nonregression/illegalcolortransform.j2k'
         jfile = opj_data_file(relpath)
         jp2k = Jp2k(jfile)
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('ignore')
+        with self.assertWarns(UserWarning):
             codestream = jp2k.get_codestream(header_only=False)
 
         # Verify that the last segment returned in the codestream is SOD,
@@ -118,17 +116,6 @@ class TestSuiteNegative(unittest.TestCase):
                 j.write(data, cbsize=(2048, 2))
             with self.assertRaises(IOError):
                 j.write(data, cbsize=(2, 2048))
-
-    def test_exceeded_box(self):
-        """should warn if reading past end of a box"""
-        # Verify that a warning is issued if we read past the end of a box
-        # This file has a palette (pclr) box whose length is impossibly
-        # short.
-        infile = os.path.join(OPJ_DATA_ROOT,
-                              'input/nonregression/mem-b2ace68c-1381.jp2')
-        with warnings.catch_warnings(record=True) as w:
-            warnings.simplefilter('ignore')
-            Jp2k(infile)
 
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_precinct_size_not_p2(self):

@@ -202,7 +202,7 @@ class Codestream(object):
                 msg = 'Invalid marker id encountered at byte {0:d} '
                 msg += 'in codestream:  "0x{1:x}"'
                 msg = msg.format(self._offset, self._marker_id)
-                warnings.warn(msg)
+                warnings.warn(msg, UserWarning)
                 break
 
             self.segment.append(segment)
@@ -642,7 +642,7 @@ class Codestream(object):
         srgn = data[1]
         sprgn = data[2]
 
-        return RGNsegment(length, offset, crgn, srgn, sprgn)
+        return RGNsegment(crgn, srgn, sprgn, length, offset)
 
     def _parse_siz_segment(self, fptr):
         """Parse the SIZ segment.
@@ -1074,7 +1074,7 @@ class CMEsegment(Segment):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, rcme, ccme, length, offset):
+    def __init__(self, rcme, ccme, length=-1, offset=-1):
         Segment.__init__(self, marker_id='CME')
         self.rcme = rcme
         self.ccme = ccme
@@ -1463,7 +1463,7 @@ class RGNsegment(Segment):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, length, offset, crgn, srgn, sprgn):
+    def __init__(self, crgn, srgn, sprgn, length=-1, offset=-1):
         Segment.__init__(self, marker_id='RGN')
         self.length = length
         self.offset = offset
@@ -1726,7 +1726,7 @@ class SOTsegment(Segment):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, isot, psot, tpsot, tnsot, length, offset):
+    def __init__(self, isot, psot, tpsot, tnsot, length=-1, offset=-1):
         Segment.__init__(self, marker_id='SOT')
         self.isot = isot
         self.psot = psot

@@ -3,29 +3,51 @@ How do I...?
 ------------
 
 
-... read the lowest resolution thumbnail?
-=========================================
-Printing the Jp2k object should reveal the number of resolutions
-(look in the COD segment section of the codestream), but you can
-take a shortcut by supplying -1 as the
-resolution level. ::
+... read images?
+================
+Jp2k implements slicing via the :py:meth:`__getitem__` method, meaning that 
+multiple resolution imagery in a JPEG 2000 file can
+easily be accessed via array-style slicing.  For example here's how to
+retrieve a full resolution and first lower-resolution image ::
 
     >>> import glymur
-    >>> jp2file = glymur.data.nemo()
+    >>> jp2file = glymur.data.nemo() # just a path to a JPEG2000 file
     >>> jp2 = glymur.Jp2k(jp2file)
-    >>> thumbnail = jp2.read(rlevel=-1)
+    >>> fullres = jp2[:]
+    >>> print(fullres.shape)
+    (1456, 2592, 3)
+    >>> thumbnail = jp2[::2, ::2]
+    >>> print(thumbnail.shape)
+    (728, 1296, 3)
+
+The :py:meth:`read` method exposes many more options for other JPEG 2000
+features such as quality layers.
+
+... write images?
+=================
+So long as the image data can fit entirely into memory, array-style slicing may
+also be used to write JPEG 2000 files.
+    
+    >>> import glymur, numpy as np
+    >>> jp2 = glymur.Jp2k('zeros.jp2', mode='wb')
+    >>> jp2[:] = np.zeros((640, 480), dtype=np.uint8)
+
+The :py:meth:`write` method exposes many more options for other JPEG 2000
+features.  You should have OpenJPEG version 1.5 or more recent before writing
+JPEG 2000 images.
 
 ... display metadata?
 =====================
-There are two ways.  From the unix command line, the script **jp2dump** is
+There are two ways.  From the command line, the console script **jp2dump** is
 available. ::
 
     $ jp2dump /path/to/glymur/installation/data/nemo.jp2
 
-From within Python, it is as simple as printing the Jp2k object, i.e. ::
+From within Python, the same result is obtained simply by printing the Jp2k
+object, i.e. ::
 
     >>> import glymur
-    >>> jp2file = glymur.data.nemo()
+    >>> jp2file = glymur.data.nemo() # just a path to a JP2 file
     >>> jp2 = glymur.Jp2k(jp2file)
     >>> print(jp2)
     File:  nemo.jp2
@@ -319,10 +341,10 @@ is currently limited to XML and UUID boxes.
 ... create an image with an alpha layer?
 ========================================
 
-OpenJPEG can create JP2 files with more than 3 components (requires
-the development version of OpenJPEG), but by default, any extra components are
-not described as such.  In order to do so, we need to rewrap such
-an image in a set of boxes that includes a channel definition box.
+OpenJPEG can create JP2 files with more than 3 components (use version 2.1.0+ 
+for this), but by default, any extra components are not described
+as such.  In order to do so, we need to rewrap such an image in a
+set of boxes that includes a channel definition box.
 
 This example is based on SciPy example code found at 
 http://scipy-lectures.github.io/advanced/image_processing/#basic-manipulations . 
@@ -340,7 +362,7 @@ image isn't square. ::
     >>> alpha[mask] = 0
     >>> rgba = np.concatenate((rgb, alpha), axis=2)
     >>> jp2 = Jp2k('tmp.jp2', 'wb')
-    >>> jp2.write(rgba)
+    >>> jp2[:] = rgba
 
 Next we need to specify what types of channels we have.
 The first three channels are color channels, but we identify the fourth as
@@ -380,7 +402,11 @@ Here's how the Preview application on the mac shows the RGBA image.
     
 ... work with XMP UUIDs?
 ========================
-XMP is metadata on steroids.  
+`Wikipedia <http://en.wikipedia.org/wiki/Extensible_Metadata_Platform>`_ states
+that "The Extensible Metadata Platform (XMP) is an ISO standard,
+originally created by Adobe Systems Inc., for the creation, processing
+and interchange of standardized and custom metadata for all kinds
+of resources."
 
 The example JP2 file shipped with glymur has an XMP UUID. ::
 
@@ -440,7 +466,7 @@ http://photojournal.jpl.nasa.gov/tiff/PIA17145.tif info JPEG 2000::
     >>> image = skimage.io.imread('PIA17145.tif')
     >>> from glymur import Jp2k
     >>> jp2 = Jp2k('PIA17145.jp2', 'wb')
-    >>> jp2.write(image)
+    >>> jp2[:] = image
 
 Next you can extract the XMP metadata.
 

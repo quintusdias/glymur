@@ -17,7 +17,6 @@ import struct
 import sys
 import tempfile
 import uuid
-import warnings
 
 if sys.hexversion < 0x02070000:
     import unittest2 as unittest
@@ -37,6 +36,8 @@ else:
 import lxml.etree
 
 from .fixtures import HAS_PYTHON_XMP_TOOLKIT, OPJ_DATA_ROOT
+from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
+
 if HAS_PYTHON_XMP_TOOLKIT:
     from libxmp import XMPMeta
 
@@ -46,8 +47,8 @@ from .fixtures import OPJ_DATA_ROOT, opj_data_file, SimpleRDF
 
 
 @unittest.skipIf(os.name == "nt", "Unexplained failure on windows")
-class TestUUIDXMP(unittest.TestCase):
-    """Tests for UUIDs of XMP type."""
+class TestSuite(unittest.TestCase):
+    """Tests for XMP, Exif UUIDs."""
 
     def setUp(self):
         self.jp2file = glymur.data.nemo()
@@ -55,7 +56,7 @@ class TestUUIDXMP(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_append(self):
+    def test_append_xmp_uuid(self):
         """Should be able to append an XMP UUID box."""
         the_uuid = uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
         raw_data = SimpleRDF.encode('utf-8')
@@ -75,16 +76,42 @@ class TestUUIDXMP(unittest.TestCase):
             self.assertTrue(isinstance(jp2.box[-1].data,
                                        lxml.etree._ElementTree))
 
+    def test_big_endian_exif(self):
+        """Verify read of Exif big-endian IFD."""
+        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
+
+            with open(self.jp2file, 'rb') as ifptr:
+                tfile.write(ifptr.read())
+
+            # Write L, T, UUID identifier.
+            tfile.write(struct.pack('>I4s', 52, b'uuid'))
+            tfile.write(b'JpgTiffExif->JP2')
+
+            tfile.write(b'Exif\x00\x00')
+            xbuffer = struct.pack('>BBHI', 77, 77, 42, 8)
+            tfile.write(xbuffer)
+
+            # We will write just a single tag.
+            tfile.write(struct.pack('>H', 1))
+
+            # The "Make" tag is tag no. 271.
+            tfile.write(struct.pack('>HHI4s', 271, 2, 3, b'HTC\x00'))
+            tfile.flush()
+
+            jp2 = glymur.Jp2k(tfile.name)
+            self.assertEqual(jp2.box[-1].data['Make'], "HTC")
+
+@unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
 @unittest.skipIf(os.name == "nt", "Unexplained failure on windows")
-class TestUUIDExif(unittest.TestCase):
-    """Tests for UUIDs of Exif type."""
+class TestSuiteWarns(unittest.TestCase):
+    """Tests for XMP, Exif UUIDs, issues warnings."""
 
     def setUp(self):
         self.jp2file = glymur.data.nemo()
 
     def tearDown(self):
         pass
-
+        
     def test_unrecognized_exif_tag(self):
         """Verify warning in case of unrecognized tag."""
         with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
@@ -107,12 +134,8 @@ class TestUUIDExif(unittest.TestCase):
             tfile.write(struct.pack('<HHI4s', 171, 2, 3, b'HTC\x00'))
             tfile.flush()
 
-            with warnings.catch_warnings(record=True) as w:
-                warnings.simplefilter('always')
+            with self.assertWarnsRegex(UserWarning, 'Unrecognized Exif tag'):
                 j = glymur.Jp2k(tfile.name)
-                self.assertTrue(issubclass(w[0].category, UserWarning))
-                msg = 'Unrecognized Exif tag'
-                self.assertTrue(msg in str(w[0].message))
 
     def test_bad_tag_datatype(self):
         """Only certain datatypes are allowable"""
@@ -136,12 +159,8 @@ class TestUUIDExif(unittest.TestCase):
             tfile.write(struct.pack('<HHI4s', 271, 2000, 3, b'HTC\x00'))
             tfile.flush()
 
-            with warnings.catch_warnings(record=True) as w:
-                warnings.simplefilter('always')
+            with self.assertWarnsRegex(UserWarning, 'Invalid TIFF tag'):
                 j = glymur.Jp2k(tfile.name)
-                self.assertTrue(issubclass(w[0].category, UserWarning))
-                msg = 'Invalid TIFF tag'
-                self.assertTrue(msg in str(w[0].message))
 
             self.assertEqual(j.box[-1].box_id, 'uuid')
 
@@ -167,45 +186,11 @@ class TestUUIDExif(unittest.TestCase):
             tfile.write(struct.pack('<HHI4s', 271, 2, 3, b'HTC\x00'))
             tfile.flush()
 
-            with warnings.catch_warnings(record=True) as w:
-                warnings.simplefilter('always')
-                j = glymur.Jp2k(tfile.name)
-                self.assertTrue(issubclass(w[0].category, UserWarning))
-                msg = 'The byte order indication in the TIFF header '
-                if sys.hexversion < 0x03000000:
-                    msg += "(JI) is invalid.  "
-                    msg += "It should be either [73, 73] or [77, 77]."
-                else:
-                    msg += "(b'JI') is invalid.  "
-                    msg += "It should be either b'II' or b'MM'."
-                self.assertTrue(msg in str(w[0].message))
+            regex = 'The byte order indication in the TIFF header '
+            with self.assertWarnsRegex(UserWarning, regex):
+                jp2 = glymur.Jp2k(tfile.name)
 
-            self.assertEqual(j.box[-1].box_id, 'uuid')
-
-    def test_big_endian(self):
-        """Verify read of big-endian IFD."""
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
-
-            with open(self.jp2file, 'rb') as ifptr:
-                tfile.write(ifptr.read())
-
-            # Write L, T, UUID identifier.
-            tfile.write(struct.pack('>I4s', 52, b'uuid'))
-            tfile.write(b'JpgTiffExif->JP2')
-
-            tfile.write(b'Exif\x00\x00')
-            xbuffer = struct.pack('>BBHI', 77, 77, 42, 8)
-            tfile.write(xbuffer)
-
-            # We will write just a single tag.
-            tfile.write(struct.pack('>H', 1))
-
-            # The "Make" tag is tag no. 271.
-            tfile.write(struct.pack('>HHI4s', 271, 2, 3, b'HTC\x00'))
-            tfile.flush()
-
-            jp2 = glymur.Jp2k(tfile.name)
-            self.assertEqual(jp2.box[-1].data['Make'], "HTC")
+            self.assertEqual(jp2.box[-1].box_id, 'uuid')
 
 if __name__ == "__main__":
     unittest.main()

@@ -73,7 +73,6 @@ def load_openjpeg(path):
 
     return load_library_handle(path)
 
-
 def load_openjp2(path):
     """Load the openjp2 library, falling back on defaults if necessary.
     """
@@ -100,7 +99,7 @@ def load_openjp2(path):
 def load_library_handle(path):
     """Load the library, return the ctypes handle."""
 
-    if path is None:
+    if path is None or path in ['None', 'none']:
         # Either could not find a library via ctypes or user-configuration-file,
         # or we could not find it in any of the default locations.
         # This is probably a very old linux.
@@ -130,14 +129,11 @@ def read_config_file():
         # Read the configuration file for the library location.
         parser = ConfigParser()
         parser.read(filename)
-        try:
-            lib['openjp2'] = parser.get('library', 'openjp2')
-        except NoOptionError:
-            pass
-        try:
-            lib['openjpeg'] = parser.get('library', 'openjpeg')
-        except NoOptionError:
-            pass
+        for name in ['openjp2', 'openjpeg']:
+            try:
+                lib[name] = parser.get('library', name)
+            except NoOptionError:
+                pass
 
     return lib
 
@@ -150,8 +146,7 @@ def glymur_config():
     libopenjpeg_handle = load_openjpeg(libs['openjpeg'])
     if libopenjp2_handle is None and libopenjpeg_handle is None:
         msg = "Neither the openjp2 nor the openjpeg library could be loaded.  "
-        msg += "Operating in severely degraded mode."
-        warnings.warn(msg, UserWarning)
+        raise IOError(msg)
     return libopenjp2_handle, libopenjpeg_handle
 
 
