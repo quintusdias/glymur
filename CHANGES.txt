@@ -1,3 +1,5 @@
+Oct 02, 2014 - v0.7.1  Fixed README to mention Python 3.4
+
 Oct 01, 2014 - v0.7.0  Added array-style slicing.
 
 August 03, 2014 - v0.6.0  Added Cinema2K, Cinema4K write support.
