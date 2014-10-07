@@ -71,6 +71,16 @@ class SliceProtocolBase(unittest.TestCase):
 @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
 class TestSliceProtocolBaseWrite(SliceProtocolBase):
 
+    def test_write_ellipsis(self):
+        expected = self.j2k_data
+
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, 'wb')
+            j[...] = self.j2k_data
+            actual = j.read()
+
+        np.testing.assert_array_equal(actual, expected)
+
     def test_basic_write(self):
         expected = self.j2k_data
 
@@ -234,6 +244,42 @@ class TestSliceProtocolRead(SliceProtocolBase):
     def test_region_rlevel1(self):
         actual = self.jp2[0:202:2, 0:202:2]
         expected = self.jp2.read(area=(0, 0, 202, 202), rlevel=1)
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_ellipsis_full_read(self):
+        actual = self.j2k[...]
+        expected = self.j2k_data
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_ellipsis_band_select(self):
+        actual = self.j2k[..., 0]
+        expected = self.j2k_data[..., 0]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_ellipsis_row_select(self):
+        actual = self.j2k[0, ...]
+        expected = self.j2k_data[0, ...]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_two_ellipsis_band_select(self):
+        actual = self.j2k[..., ..., 1]
+        expected = self.j2k_data[:, :, 1]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_two_ellipsis_row_select(self):
+        actual = self.j2k[1, ..., ...]
+        expected = self.j2k_data[1, :, :]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_two_ellipsis_and_full_slice(self):
+        actual = self.j2k[..., ..., :]
+        expected = self.j2k_data[:]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_single_slice(self):
+        rows = slice(3, 8)
+        actual = self.j2k[rows]
+        expected = self.j2k_data[3:8, :,:]
         np.testing.assert_array_equal(actual, expected)
 
     def test_slice_protocol_2d_reduce_resolution(self):
