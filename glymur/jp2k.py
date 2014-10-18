@@ -412,8 +412,8 @@ class Jp2k(Jp2kBox):
 
         Raises
         ------
-        glymur.LibraryNotFoundError
-            If glymur is unable to load the openjp2 library.
+        glymur.jp2k.LibraryNotFoundError
+            if glymur is unable to load an openjpeg library suitable for writing
         """
         if opj2.OPENJP2 is None and opj.OPENJPEG is None:
             raise LibraryNotFoundError("You must have at least version 1.5 of "
@@ -963,9 +963,8 @@ class Jp2k(Jp2kBox):
 
         Raises
         ------
-        glymur.LibraryNotFoundError
-            If glymur is unable to load either the openjpeg or openjp2
-            libraries.
+        glymur.jp2k.LibraryNotFoundError
+            if glymur is unable to load an openjpeg library suitable for reading
         IOError
             If the image has differing subsample factors.
 
@@ -984,15 +983,13 @@ class Jp2k(Jp2kBox):
         >>> thumbnail.shape
         (728, 1296, 3)
         """
+        if opj2.OPENJP2 is None and opj.OPENJPEG is None:
+            raise LibraryNotFoundError("Cannot load the OpenJPEG library.")
+
         if opj2.OPENJP2 is not None:
             img = self._read_openjp2(**kwargs)
-        elif opj.OPENJPEG is not None:
-            img = self._read_openjpeg(**kwargs)
         else:
-            raise LibraryNotFoundError("You must have either a recent version "
-                                       "of OpenJPEG or the development "
-                                       "version of OpenJP2 installed before "
-                                       "using this functionality.")
+            img = self._read_openjpeg(**kwargs)
         return img
 
     def _subsampling_sanity_check(self):
@@ -1282,12 +1279,12 @@ class Jp2k(Jp2kBox):
 
         Raises
         ------
-        glymur.LibraryNotFoundError
-            If glymur is unable to load the openjp2 library.
+        glymur.jp2k.LibraryNotFoundError
+            if glymur is unable to load an openjpeg library suitable for reading
         """
         if version.openjpeg_version_tuple[0] < 2:
             raise LibraryNotFoundError("You must have at least version 2.0.0 "
-                                       "of OpenJP2 installed before using "
+                                       "of OpenJPEG installed before using "
                                        "this functionality.")
 
         dparam = self._populate_dparam(rlevel, ignore_pclr_cmap_cdef,
