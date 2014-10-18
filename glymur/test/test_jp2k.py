@@ -22,6 +22,11 @@ import uuid
 import warnings
 from xml.etree import cElementTree as ET
 
+if sys.hexversion <= 0x03030000:
+    from mock import patch
+else:
+    from unittest.mock import patch
+
 import numpy as np
 import pkg_resources
 
@@ -833,6 +838,17 @@ class TestJp2k_write(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_write_with_version_too_early(self):
+        """Should raise a runtime error if trying to write with version 1.3"""
+        data = np.zeros((128, 128), dtype=np.uint8)
+        versions = ["1.0.0", "1.1.0", "1.2.0", "1.3.0"]
+        for version in versions:
+            with patch('glymur.version.openjpeg_version', new=version):
+                with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+                    with self.assertRaises(RuntimeError):
+                        j = Jp2k(tfile.name, 'wb')
+                        j.write(data)
+
     def test_cblkh_different_than_width(self):
         """Verify that we can set a code block size where height does not equal
         width.
@@ -1158,15 +1174,15 @@ class TestJp2k_2_1(unittest.TestCase):
                 with warnings.catch_warnings():
                     warnings.simplefilter('ignore')
                     j = Jp2k(tfile.name)
-                regexp = re.compile(r'''OpenJPEG\slibrary\serror:\s+
-                                        Invalid\svalues\sfor\scomp\s=\s0\s+
-                                        :\sdx=1\sdy=0''', re.VERBOSE)
-                if sys.hexversion < 0x03020000:
-                    with self.assertRaisesRegexp((IOError, OSError), regexp):
-                        j.read(rlevel=1)
-                else:
-                    with self.assertRaisesRegex((IOError, OSError), regexp):
-                        j.read(rlevel=1)
+                    regexp = re.compile(r'''OpenJPEG\slibrary\serror:\s+
+                                            Invalid\svalues\sfor\scomp\s=\s0\s+
+                                            :\sdx=1\sdy=0''', re.VERBOSE)
+                    if sys.hexversion < 0x03020000:
+                        with self.assertRaisesRegexp((IOError, OSError), regexp):
+                            j.read(rlevel=1)
+                    else:
+                        with self.assertRaisesRegex((IOError, OSError), regexp):
+                            j.read(rlevel=1)
 
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
