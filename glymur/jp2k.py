@@ -415,10 +415,12 @@ class Jp2k(Jp2kBox):
         glymur.jp2k.LibraryNotFoundError
             if glymur is unable to load an openjpeg library suitable for writing
         """
+        if re.match("1.[0-4]", version.openjpeg_version) is not None:
+            raise RuntimeError("You must have at least version 1.5 of OpenJPEG "
+                               "in order to write images.")
+
         if opj2.OPENJP2 is None and opj.OPENJPEG is None:
-            raise LibraryNotFoundError("You must have at least version 1.5 of "
-                                       "OpenJPEG before using this "
-                                       "functionality.")
+            raise LibraryNotFoundError("Cannot load the OpenJPEG library.")
 
         self._determine_colorspace(img_array, **kwargs)
         cparams = self._populate_cparams(img_array, **kwargs)
