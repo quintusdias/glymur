@@ -406,18 +406,10 @@ class Jp2k(Jp2kBox):
         >>> tfile = NamedTemporaryFile(suffix='.jp2', delete=False)
         >>> j = Jp2k(tfile.name, mode='wb')
         >>> j.write(data.astype(np.uint8))
-
-        Raises
-        ------
-        glymur.jp2k.LibraryNotFoundError
-            if glymur is unable to load an openjpeg library suitable for writing
         """
         if re.match("1.[0-4]", version.openjpeg_version) is not None:
             raise RuntimeError("You must have at least version 1.5 of OpenJPEG "
                                "in order to write images.")
-
-        if opj2.OPENJP2 is None and opj.OPENJPEG is None:
-            raise LibraryNotFoundError("Cannot load the OpenJPEG library.")
 
         self._determine_colorspace(img_array, **kwargs)
         cparams = self._populate_cparams(img_array, **kwargs)
@@ -962,8 +954,6 @@ class Jp2k(Jp2kBox):
 
         Raises
         ------
-        glymur.jp2k.LibraryNotFoundError
-            if glymur is unable to load an openjpeg library suitable for reading
         IOError
             If the image has differing subsample factors.
 
@@ -982,9 +972,6 @@ class Jp2k(Jp2kBox):
         >>> thumbnail.shape
         (728, 1296, 3)
         """
-        if opj2.OPENJP2 is None and opj.OPENJPEG is None:
-            raise LibraryNotFoundError("Cannot load the OpenJPEG library.")
-
         if opj2.OPENJP2 is not None:
             img = self._read_openjp2(**kwargs)
         else:
@@ -1275,16 +1262,11 @@ class Jp2k(Jp2kBox):
         >>> jfile = glymur.data.nemo()
         >>> jp = glymur.Jp2k(jfile)
         >>> components_lst = jp.read_bands(rlevel=1)
-
-        Raises
-        ------
-        glymur.jp2k.LibraryNotFoundError
-            if glymur is unable to load an openjpeg library suitable for reading
         """
         if version.openjpeg_version_tuple[0] < 2:
-            raise LibraryNotFoundError("You must have at least version 2.0.0 "
-                                       "of OpenJPEG installed before using "
-                                       "this functionality.")
+            raise RuntimeError("You must have at least version 2.0.0 of "
+                               "OpenJPEG installed before using this "
+                               "functionality.")
 
         dparam = self._populate_dparam(rlevel, ignore_pclr_cmap_cdef,
                                        layer=layer, tile=tile, area=area)
@@ -1835,10 +1817,3 @@ def _default_warning_handler(library_msg, _):
 _ERROR_CALLBACK = _CMPFUNC(_default_error_handler)
 _INFO_CALLBACK = _CMPFUNC(_default_info_handler)
 _WARNING_CALLBACK = _CMPFUNC(_default_warning_handler)
-
-
-class LibraryNotFoundError(IOError):
-    """Raised if functionality is requested without the necessary library.
-    """
-    def __init__(self, msg):
-        IOError.__init__(self, msg)

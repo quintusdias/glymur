@@ -824,6 +824,11 @@ class TestJp2k(unittest.TestCase):
         data = jpx.read()
         self.assertEqual(data.shape, (1024, 1024, 3))
 
+    def test_read_bands_without_openjp2(self):
+        """Don't have openjp2 library?  Must error out."""
+        with patch('glymur.version.openjpeg_version_tuple', new=(1, 5, 0)):
+            with self.assertRaises(RuntimeError):
+                glymur.Jp2k(self.jp2file).read_bands()
 
 @unittest.skipIf(re.match('1.[0-4]', openjpeg_version) is not None,
                  "Not supported with OpenJPEG {0}".format(openjpeg_version))
