@@ -64,7 +64,7 @@ class CinemaBase(fixtures.MetadataBase):
 
 @unittest.skipIf(NO_SKIMAGE_FREEIMAGE_SUPPORT,
                  "Cannot read input image without scikit-image/freeimage")
-@unittest.skipIf(os.name == "nt", "no write support on windows, period")
+@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
 @unittest.skipIf(re.match(r'''(1|2.0.0)''',
                           glymur.version.openjpeg_version) is not None,
                  "Uses features not supported until 2.0.1")
@@ -100,7 +100,7 @@ class WriteCinema(CinemaBase):
 @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
 @unittest.skipIf(NO_SKIMAGE_FREEIMAGE_SUPPORT,
                  "Cannot read input image without scikit-image/freeimage")
-@unittest.skipIf(os.name == "nt", "no write support on windows, period")
+@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
 @unittest.skipIf(re.match(r'''(1|2.0.0)''',
                           glymur.version.openjpeg_version) is not None,
                  "Uses features not supported until 2.0.1")
@@ -194,7 +194,7 @@ class WriteCinemaWarns(CinemaBase):
 
 @unittest.skipIf(NO_SKIMAGE_FREEIMAGE_SUPPORT,
                  "Cannot read input image without scikit-image/freeimage")
-@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
 @unittest.skipIf(not re.match("(1.5|2.0.0)", glymur.version.openjpeg_version),
                  "Functionality implemented for 2.0.1")
 @unittest.skipIf(OPJ_DATA_ROOT is None,
@@ -221,7 +221,7 @@ class TestSuiteNegative2pointzero(unittest.TestCase):
 
 @unittest.skipIf(re.match(r'''1.[0-4]''', openjpeg_version) is not None,
                  "Writing not supported until OpenJPEG 1.5")
-@unittest.skipIf(os.name == "nt", "no write support on windows, period")
+@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
 @unittest.skipIf(NO_READ_BACKEND, NO_READ_BACKEND_MSG)
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")

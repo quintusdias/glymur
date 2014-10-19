@@ -25,7 +25,11 @@ else:
 import glymur
 from glymur import Jp2k
 
-from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
+from .fixtures import (
+        WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG,
+        WINDOWS_TMP_FILE_MSG
+)
+
 
 @unittest.skipIf(sys.hexversion < 0x03020000,
                  "TemporaryDirectory introduced in 3.2.")
@@ -71,7 +75,7 @@ class TestSuite(unittest.TestCase):
                     Jp2k(self.jp2file)
 
     @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
-    @unittest.skipIf(os.name == "nt", 'named temporary file issue on windows')
+    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
     def test_xdg_env_config_file_is_bad(self):
         """A non-existant library location should be rejected."""
         with tempfile.TemporaryDirectory() as tdir:
@@ -122,7 +126,7 @@ class TestConfig(unittest.TestCase):
                     with self.assertRaises(glymur.jp2k.LibraryNotFoundError):
                         glymur.Jp2k(self.jp2file).read_bands()
 
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
     def test_write_without_library(self):
         """Don't have openjpeg libraries?  Must error out.
         """

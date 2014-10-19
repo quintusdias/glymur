@@ -37,7 +37,7 @@ from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE
 
 from .fixtures import (
         WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG,
-        MetadataBase
+        WINDOWS_TMP_FILE_MSG, MetadataBase
 )
 
 try:
@@ -54,7 +54,7 @@ def load_tests(loader, tests, ignore):
     tests.addTests(doctest.DocTestSuite('glymur.jp2box'))
     return tests
 
-@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
 class TestDataEntryURL(unittest.TestCase):
     """Test suite for DataEntryURL boxes."""
     def setUp(self):
@@ -122,7 +122,7 @@ class TestDataEntryURL(unittest.TestCase):
 @unittest.skipIf(re.match(r'''(1|2.0.0)''',
                           glymur.version.openjpeg_version) is not None,
                  "Not supported until 2.1")
-@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
 class TestChannelDefinition(unittest.TestCase):
     """Test suite for channel definition boxes."""
 
@@ -434,8 +434,7 @@ class TestColourSpecificationBox(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @unittest.skipIf(os.name == "nt",
-                     "Problems using NamedTemporaryFile on windows.")
+    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
     def test_colr_with_out_enum_cspace(self):
         """must supply an enumerated colorspace when writing"""
         j2k = Jp2k(self.j2kfile)
@@ -446,7 +445,7 @@ class TestColourSpecificationBox(unittest.TestCase):
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
     def test_missing_colr_box(self):
         """jp2h must have a colr box"""
         j2k = Jp2k(self.j2kfile)
@@ -456,7 +455,7 @@ class TestColourSpecificationBox(unittest.TestCase):
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
     def test_bad_approx_jp2_field(self):
         """JP2 has requirements for approx field"""
         j2k = Jp2k(self.j2kfile)
@@ -517,8 +516,7 @@ class TestColourSpecificationBox(unittest.TestCase):
                 colr.write(tfile)
 
 
-@unittest.skipIf(os.name == "nt",
-                 "Problems using NamedTemporaryFile on windows.")
+@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
 class TestPaletteBox(unittest.TestCase):
     """Test suite for pclr box instantiation."""
 
@@ -560,7 +558,7 @@ class TestPaletteBox(unittest.TestCase):
                 pclr.write(tfile)
 
 
-@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
 class TestAppend(unittest.TestCase):
     """Tests for append method."""
 
@@ -653,7 +651,7 @@ class TestAppend(unittest.TestCase):
                 jp2.append(uuidbox)
 
 
-@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
 class TestWrap(unittest.TestCase):
     """Tests for wrap method."""
 
