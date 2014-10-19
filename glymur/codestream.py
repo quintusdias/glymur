@@ -24,10 +24,11 @@ import warnings
 
 import numpy as np
 
-from .core import LRCP, RLCP, RPCL, PCRL, CPRL
-from .core import WAVELET_XFORM_9X7_IRREVERSIBLE
-from .core import WAVELET_XFORM_5X3_REVERSIBLE
-from .core import _Keydefaultdict
+from .core import (
+        LRCP, RLCP, RPCL, PCRL, CPRL,
+        WAVELET_XFORM_9X7_IRREVERSIBLE, WAVELET_XFORM_5X3_REVERSIBLE,
+        _Keydefaultdict
+)
 from .lib import openjp2 as opj2
 
 _factory = lambda x:  '{0} (invalid)'.format(x)

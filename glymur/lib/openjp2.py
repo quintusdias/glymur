@@ -9,6 +9,7 @@ import re
 import sys
 
 from .config import glymur_config
+
 OPENJP2, OPENJPEG = glymur_config()
 
 def version():

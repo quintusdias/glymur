@@ -9,6 +9,7 @@ import sys
 import numpy as np
 
 from .config import glymur_config
+
 _, OPENJPEG = glymur_config()
 
 # Maximum number of tile parts expected by JPWL: increase at your will
