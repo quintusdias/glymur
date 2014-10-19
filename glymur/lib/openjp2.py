@@ -7,6 +7,7 @@ Wraps individual functions in openjp2 library.
 import ctypes
 import re
 import sys
+import textwrap
 
 from .config import glymur_config
 
@@ -138,6 +139,13 @@ class PocType(ctypes.Structure):
         ("tx0_t",      ctypes.c_uint32),
         ("ty0_t",      ctypes.c_uint32)]
 
+    def __str__(self):
+        msg = "{0}:\n".format(self.__class__)
+        for field_name, _ in self._fields_:
+            msg += "    {0}: {1}\n".format(
+                field_name, getattr(self, field_name))
+        return msg
+
 
 class DecompressionParametersType(ctypes.Structure):
     """Decompression parameters.
@@ -200,6 +208,13 @@ class DecompressionParametersType(ctypes.Structure):
 
         # maximum number of tiles
         ("flags",             ctypes.c_uint32)]
+
+    def __str__(self):
+        msg = "{0}:\n".format(self.__class__)
+        for field_name, _ in self._fields_:
+            msg += "    {0}: {1}\n".format(
+                field_name, getattr(self, field_name))
+        return msg
 
 
 class CompressionParametersType(ctypes.Structure):
@@ -392,6 +407,47 @@ class CompressionParametersType(ctypes.Structure):
         # values.
         _fields_.append(("rsiz",                      ctypes.c_uint16))
 
+    def __str__(self):
+        msg = "{0}:\n".format(self.__class__)
+        for field_name, _ in self._fields_:
+
+            if field_name == 'poc':
+                msg += "    numpocs: {0}\n".format(self.numpocs)
+                for j in range(self.numpocs):
+                    msg += "        [#{0}]:".format(j)
+                    msg += "            {0}".format(str(self.poc[j]))
+                    msg += textwrap.indent(textstr, ' ' * 12)
+
+            elif field_name in ['tcp_rates', 'tcp_distoratio']:
+                lst = []
+                arr = getattr(self, field_name)
+                lst = [arr[j] for j in range(self.tcp_numlayers)]
+                msg += "    {0}: {1}\n".format(field_name, lst)
+
+            elif field_name in ['prcw_init', 'prch_init']:
+                pass
+
+            elif field_name == 'res_spec':
+                prcw_init = [self.prcw_init[j] for j in range(self.res_spec)]
+                prch_init = [self.prch_init[j] for j in range(self.res_spec)]
+                msg += "    res_spec: {0}\n".format(self.res_spec)
+                msg += "    prch_init: {0}\n".format(prch_init)
+                msg += "    prcw_init: {0}\n".format(prcw_init)
+
+            elif field_name in [
+                    'jpwl_hprot_tph_tileno', 'jpwl_hprot_tph',
+                    'jpwl_pprot_tileno', 'jpwl_pprot_packno', 'jpwl_pprot',
+                    'jpwl_sens_tph_tileno', 'jpwl_sens_tph']:
+                arr = getattr(self, field_name)
+                lst = [arr[j] for j in range(JPWL_MAX_NO_TILESPECS)]
+                msg += "    {0}: {1}\n".format(field_name, lst)
+
+            else:
+                msg += "    {0}: {1}\n".format(
+                    field_name, getattr(self, field_name))
+        return msg
+
+
 class ImageCompType(ctypes.Structure):
     """Defines a single image component.
 
@@ -433,6 +489,14 @@ class ImageCompType(ctypes.Structure):
     if _MINOR == '1':
         _fields_.append(("alpha",               ctypes.c_uint16))
 
+    def __str__(self):
+        msg = "{0}:\n".format(self.__class__)
+        for field_name, _ in self._fields_:
+            msg += "    {0}: {1}\n".format(
+                field_name, getattr(self, field_name))
+        return msg
+
+
 class ImageType(ctypes.Structure):
     """Defines image data and characteristics.
 
@@ -463,6 +527,27 @@ class ImageType(ctypes.Structure):
         # restricted ICC profile buffer length
         ("icc_profile_len",     ctypes.c_uint32)]
 
+    def __str__(self):
+        msg = "{0}:\n".format(self.__class__)
+        for field_name, _ in self._fields_:
+
+            if field_name == "numcomps":
+                msg += "    numcomps: {0}\n".format(self.numcomps)
+                for j in range(self.numcomps):
+                    msg += "        comps[#{0}]:\n".format(j)
+                    msg += textwrap.indent(str(self.comps[j]), ' ' * 12)
+
+            elif field_name == "comps":
+                # handled above
+                pass
+
+            else:
+                msg += "    {0}: {1}\n".format(
+                    field_name, getattr(self, field_name))
+
+        return msg
+
+
 
 class ImageComptParmType(ctypes.Structure):
     """Component parameters structure used by image_create function.
@@ -491,6 +576,13 @@ class ImageComptParmType(ctypes.Structure):
 
         # signed (1) / unsigned (0)
         ("sgnd",            ctypes.c_uint32)]
+
+    def __str__(self):
+        msg = "{0}:\n".format(self.__class__)
+        for field_name, _ in self._fields_:
+            msg += "    {0}: {1}\n".format(
+                field_name, getattr(self, field_name))
+        return msg
 
 
 class TccpInfo(ctypes.Structure):

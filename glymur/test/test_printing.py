@@ -32,12 +32,13 @@ import lxml.etree as ET
 import glymur
 from glymur import Jp2k, command_line
 from . import fixtures
-from .fixtures import OPJ_DATA_ROOT, opj_data_file
-from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
-from .fixtures import text_gbr_27, text_gbr_33, text_gbr_34
+from .fixtures import (
+        OPJ_DATA_ROOT, opj_data_file,
+        WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG,
+        WINDOWS_TMP_FILE_MSG, text_gbr_27, text_gbr_33, text_gbr_34
+)
 
-
-@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
 class TestPrinting(unittest.TestCase):
     """Tests for verifying how printing works."""
     def setUp(self):
@@ -616,7 +617,6 @@ class TestPrinting(unittest.TestCase):
         expected = '\n'.join(lines)
 
         self.assertEqual(actual, expected)
-
 
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")

@@ -157,7 +157,7 @@ class Jp2k(Jp2kBox):
                     msg += "profile if the file type box brand is 'jp2 '."
                     warnings.warn(msg)
 
-    def _set_cinema_params(self, cparams, cinema_mode, fps):
+    def _set_cinema_params(self, cinema_mode, fps):
         """Populate compression parameters structure for cinema2K.
 
         Parameters
@@ -176,7 +176,7 @@ class Jp2k(Jp2kBox):
             raise IOError(msg)
 
         # Cinema modes imply MCT.
-        cparams.tcp_mct = 1
+        self._cparams.tcp_mct = 1
 
         if cinema_mode == 'cinema2k':
             if fps not in [24, 48]:
@@ -185,30 +185,28 @@ class Jp2k(Jp2kBox):
             if re.match("2.0", version.openjpeg_version) is not None:
                 # 2.0 API
                 if fps == 24:
-                    cparams.cp_cinema = core.OPJ_CINEMA2K_24
+                    self._cparams.cp_cinema = core.OPJ_CINEMA2K_24
                 else:
-                    cparams.cp_cinema = core.OPJ_CINEMA2K_48
+                    self._cparams.cp_cinema = core.OPJ_CINEMA2K_48
             else:
                 # 2.1 API
                 if fps == 24:
-                    cparams.rsiz = core.OPJ_PROFILE_CINEMA_2K
-                    cparams.max_comp_size = core.OPJ_CINEMA_24_COMP
-                    cparams.max_cs_size = core.OPJ_CINEMA_24_CS
+                    self._cparams.rsiz = core.OPJ_PROFILE_CINEMA_2K
+                    self._cparams.max_comp_size = core.OPJ_CINEMA_24_COMP
+                    self._cparams.max_cs_size = core.OPJ_CINEMA_24_CS
                 else:
-                    cparams.rsiz = core.OPJ_PROFILE_CINEMA_2K
-                    cparams.max_comp_size = core.OPJ_CINEMA_48_COMP
-                    cparams.max_cs_size = core.OPJ_CINEMA_48_CS
+                    self._cparams.rsiz = core.OPJ_PROFILE_CINEMA_2K
+                    self._cparams.max_comp_size = core.OPJ_CINEMA_48_COMP
+                    self._cparams.max_cs_size = core.OPJ_CINEMA_48_CS
 
         else:
             # cinema4k
             if re.match("2.0", version.openjpeg_version) is not None:
                 # 2.0 API
-                cparams.cp_cinema = core.OPJ_CINEMA4K_24
+                self._cparams.cp_cinema = core.OPJ_CINEMA4K_24
             else:
                 # 2.1 API
-                cparams.rsiz = core.OPJ_PROFILE_CINEMA_4K
-
-        return
+                self._cparams.rsiz = core.OPJ_PROFILE_CINEMA_4K
 
     def _populate_cparams(self, img_array, **kwargs):
         """Directs processing of write method arguments.
@@ -219,11 +217,6 @@ class Jp2k(Jp2kBox):
             image data to be written to file
         kwargs : dictionary
             non-image keyword inputs provided to write method
-
-        Returns
-        -------
-        cparams : CompressionParametersType(ctypes.Structure)
-            corresponds to cparameters_t openjpeg datatype
         """
         if (('cinema2k' in kwargs or 'cinema4k' in kwargs)  and
                 (len(set(kwargs)) > 1)):
@@ -258,12 +251,14 @@ class Jp2k(Jp2kBox):
             cparams.irreversible = 1
 
         if 'cinema2k' in kwargs:
-            self._set_cinema_params(cparams, 'cinema2k', kwargs['cinema2k'])
-            return cparams
+            self._cparams = cparams
+            self._set_cinema_params('cinema2k', kwargs['cinema2k'])
+            return
 
         if 'cinema4k' in kwargs:
-            self._set_cinema_params(cparams, 'cinema4k', kwargs['cinema4k'])
-            return cparams
+            self._cparams = cparams
+            self._set_cinema_params('cinema4k', kwargs['cinema4k'])
+            return
 
         if 'cbsize' in kwargs:
             cparams.cblockw_init = kwargs['cbsize'][1]
@@ -337,7 +332,7 @@ class Jp2k(Jp2kBox):
 
         self._validate_compression_params(img_array, cparams, **kwargs)
 
-        return cparams
+        self._cparams = cparams
 
     def write(self, img_array, verbose=False, **kwargs):
         """Write image data to a JP2/JPX/J2k file.  Intended usage of the
@@ -412,14 +407,14 @@ class Jp2k(Jp2kBox):
                                "in order to write images.")
 
         self._determine_colorspace(img_array, **kwargs)
-        cparams = self._populate_cparams(img_array, **kwargs)
+        self._populate_cparams(img_array, **kwargs)
 
         if opj2.OPENJP2 is not None:
-            self._write_openjp2(img_array, cparams, verbose=verbose)
+            self._write_openjp2(img_array, verbose=verbose)
         else:
-            self._write_openjpeg(img_array, cparams, verbose=verbose)
+            self._write_openjpeg(img_array, verbose=verbose)
 
-    def _write_openjpeg(self, img_array, cparams, verbose=False):
+    def _write_openjpeg(self, img_array, verbose=False):
         """
         Write JPEG 2000 file using OpenJPEG 1.5 interface.
         """
@@ -429,21 +424,21 @@ class Jp2k(Jp2kBox):
                                           img_array.shape[1],
                                           1)
 
-        comptparms = _populate_comptparms(img_array, cparams)
+        self._populate_comptparms(img_array)
 
         with ExitStack() as stack:
-            image = opj.image_create(comptparms, self._colorspace)
+            image = opj.image_create(self._comptparms, self._colorspace)
             stack.callback(opj.image_destroy, image)
 
             numrows, numcols, numlayers = img_array.shape
 
             # set image offset and reference grid
-            image.contents.x0 = cparams.image_offset_x0
-            image.contents.y0 = cparams.image_offset_y0
+            image.contents.x0 = self._cparams.image_offset_x0
+            image.contents.y0 = self._cparams.image_offset_y0
             image.contents.x1 = image.contents.x0 \
-                              + (numcols - 1) * cparams.subsampling_dx + 1
+                              + (numcols - 1) * self._cparams.subsampling_dx + 1
             image.contents.y1 = image.contents.y0 \
-                              + (numrows - 1) * cparams.subsampling_dy + 1
+                              + (numrows - 1) * self._cparams.subsampling_dy + 1
 
             # Stage the image data to the openjpeg data structure.
             for k in range(0, numlayers):
@@ -453,7 +448,7 @@ class Jp2k(Jp2kBox):
                 src = layer.ctypes.data
                 ctypes.memmove(dest, src, layer.nbytes)
 
-            cinfo = opj.create_compress(cparams.codec_fmt)
+            cinfo = opj.create_compress(self._cparams.codec_fmt)
             stack.callback(opj.destroy_compress, cinfo)
 
             # Setup the info, warning, and error handlers.
@@ -467,7 +462,7 @@ class Jp2k(Jp2kBox):
             event_mgr.error_handler = ctypes.cast(_ERROR_CALLBACK,
                                                   ctypes.c_void_p)
 
-            opj.setup_encoder(cinfo, ctypes.byref(cparams), image)
+            opj.setup_encoder(cinfo, ctypes.byref(self._cparams), image)
 
             cio = opj.cio_open(cinfo)
             stack.callback(opj.cio_close, cio)
@@ -588,7 +583,7 @@ class Jp2k(Jp2kBox):
             self._colorspace = _COLORSPACE_MAP[colorspace.lower()]
     
     
-    def _write_openjp2(self, img_array, cparams, verbose=False):
+    def _write_openjp2(self, img_array, verbose=False):
         """
         Write JPEG 2000 file using OpenJPEG 2.x interface.
         """
@@ -597,15 +592,15 @@ class Jp2k(Jp2kBox):
             numrows, numcols = img_array.shape
             img_array = img_array.reshape(numrows, numcols, 1)
 
-        comptparms = _populate_comptparms(img_array, cparams)
+        self._populate_comptparms(img_array)
 
         with ExitStack() as stack:
-            image = opj2.image_create(comptparms, self._colorspace)
+            image = opj2.image_create(self._comptparms, self._colorspace)
             stack.callback(opj2.image_destroy, image)
 
-            _populate_image_struct(cparams, image, img_array)
+            self._populate_image_struct(image, img_array)
 
-            codec = opj2.create_compress(cparams.codec_fmt)
+            codec = opj2.create_compress(self._cparams.codec_fmt)
             stack.callback(opj2.destroy_codec, codec)
 
             info_handler = _INFO_CALLBACK if verbose else None
@@ -613,7 +608,7 @@ class Jp2k(Jp2kBox):
             opj2.set_warning_handler(codec, _WARNING_CALLBACK)
             opj2.set_error_handler(codec, _ERROR_CALLBACK)
 
-            opj2.setup_encoder(codec, cparams, image)
+            opj2.setup_encoder(codec, self._cparams, image)
 
             if re.match("2.0", version.openjpeg_version) is not None:
                 fptr = libc.fopen(self.filename, 'wb')
@@ -1020,13 +1015,13 @@ class Jp2k(Jp2kBox):
         """
         self._subsampling_sanity_check()
 
-        dparameters = self._populate_dparam(rlevel, ignore_pclr_cmap_cdef)
+        self._populate_dparams(rlevel, ignore_pclr_cmap_cdef)
 
         with ExitStack() as stack:
             try:
-                dparameters.decod_format = self._codec_format
+                self._dparams.decod_format = self._codec_format
 
-                dinfo = opj.create_decompress(dparameters.decod_format)
+                dinfo = opj.create_decompress(self._dparams.decod_format)
 
                 event_mgr = opj.EventMgrType()
                 info_handler = ctypes.cast(_INFO_CALLBACK, ctypes.c_void_p)
@@ -1037,7 +1032,7 @@ class Jp2k(Jp2kBox):
                                                       ctypes.c_void_p)
                 opj.set_event_mgr(dinfo, ctypes.byref(event_mgr))
 
-                opj.setup_decoder(dinfo, dparameters)
+                opj.setup_decoder(dinfo, self._dparams)
 
                 with open(self.filename, 'rb') as fptr:
                     src = fptr.read()
@@ -1104,8 +1099,8 @@ class Jp2k(Jp2kBox):
         """
         self._subsampling_sanity_check()
 
-        dparam = self._populate_dparam(rlevel, ignore_pclr_cmap_cdef,
-                                       layer=layer, tile=tile, area=area)
+        self._populate_dparams(rlevel, ignore_pclr_cmap_cdef,
+                               layer=layer, tile=tile, area=area)
 
         with ExitStack() as stack:
             if re.match("2.1", version.openjpeg_version):
@@ -1127,16 +1122,17 @@ class Jp2k(Jp2kBox):
             else:
                 opj2.set_info_handler(codec, None)
 
-            opj2.setup_decoder(codec, dparam)
+            opj2.setup_decoder(codec, self._dparams)
             image = opj2.read_header(stream, codec)
             stack.callback(opj2.image_destroy, image)
 
-            if dparam.nb_tile_to_decode:
-                opj2.get_decoded_tile(codec, stream, image, dparam.tile_index)
+            if self._dparams.nb_tile_to_decode:
+                opj2.get_decoded_tile(codec, stream, image,
+                                      self._dparams.tile_index)
             else:
                 opj2.set_decode_area(codec, image,
-                                     dparam.DA_x0, dparam.DA_y0,
-                                     dparam.DA_x1, dparam.DA_y1)
+                                     self._dparams.DA_x0, self._dparams.DA_y0,
+                                     self._dparams.DA_x1, self._dparams.DA_y1)
                 opj2.decode(codec, stream, image)
                 opj2.end_decompress(codec, stream)
 
@@ -1147,8 +1143,8 @@ class Jp2k(Jp2kBox):
 
         return img_array
 
-    def _populate_dparam(self, rlevel, ignore_pclr_cmap_cdef, tile=None,
-                         layer=None, area=None):
+    def _populate_dparams(self, rlevel, ignore_pclr_cmap_cdef, tile=None,
+                          layer=None, area=None):
         """Populate decompression structure with appropriate input parameters.
 
         Parameters
@@ -1165,11 +1161,6 @@ class Jp2k(Jp2kBox):
         ignore_pclr_cmap_cdef : bool
             Whether or not to ignore the pclr, cmap, or cdef boxes during any
             color transformation.  Defaults to False.
-
-        Returns
-        -------
-        dparam : DecompressionParametersType (ctypes)
-            Corresponds to openjp2 decompression parameters structure.
         """
         if opj2.OPENJP2 is not None:
             dparam = opj2.set_default_decoder_parameters()
@@ -1220,7 +1211,7 @@ class Jp2k(Jp2kBox):
             # Return raw codestream components.
             dparam.flags |= 1
 
-        return dparam
+        self._dparams = dparam
 
     def read_bands(self, rlevel=0, layer=0, area=None, tile=None,
                    verbose=False, ignore_pclr_cmap_cdef=False):
@@ -1268,8 +1259,8 @@ class Jp2k(Jp2kBox):
                                "OpenJPEG installed before using this "
                                "functionality.")
 
-        dparam = self._populate_dparam(rlevel, ignore_pclr_cmap_cdef,
-                                       layer=layer, tile=tile, area=area)
+        self._populate_dparams(rlevel, ignore_pclr_cmap_cdef,
+                               layer=layer, tile=tile, area=area)
 
         with ExitStack() as stack:
             if re.match("2.1", version.openjpeg_version):
@@ -1292,16 +1283,17 @@ class Jp2k(Jp2kBox):
             else:
                 opj2.set_info_handler(codec, None)
 
-            opj2.setup_decoder(codec, dparam)
+            opj2.setup_decoder(codec, self._dparams)
             image = opj2.read_header(stream, codec)
             stack.callback(opj2.image_destroy, image)
 
-            if dparam.nb_tile_to_decode:
-                opj2.get_decoded_tile(codec, stream, image, dparam.tile_index)
+            if self._dparams.nb_tile_to_decode:
+                opj2.get_decoded_tile(codec, stream, image,
+                                      self._dparams.tile_index)
             else:
                 opj2.set_decode_area(codec, image,
-                                     dparam.DA_x0, dparam.DA_y0,
-                                     dparam.DA_x1, dparam.DA_y1)
+                                     self._dparams.DA_x0, self._dparams.DA_y0,
+                                     self._dparams.DA_x1, self._dparams.DA_y1)
                 opj2.decode(codec, stream, image)
                 opj2.end_decompress(codec, stream)
 
@@ -1362,7 +1354,83 @@ class Jp2k(Jp2kBox):
 
             return codestream
 
+    def _populate_image_struct(self, image, imgdata):
+        """Populates image struct needed for compression.
+    
+        Parameters
+        ----------
+        image : ImageType(ctypes.Structure)
+            Corresponds to image_t type in openjp2 headers.
+        img_array : ndarray
+            Image data to be written to file.
+        """
+    
+        numrows, numcols, num_comps = imgdata.shape
+    
+        # set image offset and reference grid
+        image.contents.x0 = self._cparams.image_offset_x0
+        image.contents.y0 = self._cparams.image_offset_y0
+        image.contents.x1 = (image.contents.x0 +
+                             (numcols - 1) * self._cparams.subsampling_dx + 1)
+        image.contents.y1 = (image.contents.y0 +
+                             (numrows - 1) * self._cparams.subsampling_dy + 1)
+    
+        # Stage the image data to the openjpeg data structure.
+        for k in range(0, num_comps):
+            if re.match("2.0", version.openjpeg_version) is not None:
+                # 2.0 API
+                if self._cparams.cp_cinema:
+                    image.contents.comps[k].prec = 12
+                    image.contents.comps[k].bpp = 12
+            else:
+                # 2.1 API
+                if self._cparams.rsiz in (core.OPJ_PROFILE_CINEMA_2K,
+                                          core.OPJ_PROFILE_CINEMA_4K):
+                    image.contents.comps[k].prec = 12
+                    image.contents.comps[k].bpp = 12
+    
+            layer = np.ascontiguousarray(imgdata[:, :, k], dtype=np.int32)
+            dest = image.contents.comps[k].data
+            src = layer.ctypes.data
+            ctypes.memmove(dest, src, layer.nbytes)
+    
+        return image
+    
+    def _populate_comptparms(self, img_array):
+        """Instantiate and populate comptparms structure.
+    
+        This structure defines the image components.
+    
+        Parameters
+        ----------
+        img_array : ndarray
+            Image data to be written to file.
+        """
+        # Only two precisions are possible.
+        if img_array.dtype == np.uint8:
+            comp_prec = 8
+        else:
+            comp_prec = 16
 
+        numrows, numcols, num_comps = img_array.shape
+        if version.openjpeg_version_tuple[0] == 1:
+            comptparms = (opj.ImageComptParmType * num_comps)()
+        else:
+            comptparms = (opj2.ImageComptParmType * num_comps)()
+        for j in range(num_comps):
+            comptparms[j].dx = self._cparams.subsampling_dx
+            comptparms[j].dy = self._cparams.subsampling_dy
+            comptparms[j].w = numcols
+            comptparms[j].h = numrows
+            comptparms[j].x0 = self._cparams.image_offset_x0
+            comptparms[j].y0 = self._cparams.image_offset_y0
+            comptparms[j].prec = comp_prec
+            comptparms[j].bpp = comp_prec
+            comptparms[j].sgnd = 0
+
+        self._comptparms = comptparms
+    
+    
 def _component2dtype(component):
     """Take an OpenJPEG component structure and determine the numpy datatype.
 
@@ -1703,92 +1771,6 @@ def extract_image_bands(image):
 
     return data
 
-
-def _populate_comptparms(img_array, cparams):
-    """Instantiate and populate comptparms structure.
-
-    This structure defines the image components.
-
-    Parameters
-    ----------
-    img_array : ndarray
-        Image data to be written to file.
-    cparams : CompressionParametersType(ctypes.Structure)
-        Corresponds to cparameters_t type in openjp2 headers.
-
-    Returns
-    -------
-    comptparms : ImageCompType(ctypes.Structure)
-        Corresponds to image_comp_t type in openjp2 headers.
-    """
-    # Only two precisions are possible.
-    if img_array.dtype == np.uint8:
-        comp_prec = 8
-    else:
-        comp_prec = 16
-
-    numrows, numcols, num_comps = img_array.shape
-    if version.openjpeg_version_tuple[0] == 1:
-        comptparms = (opj.ImageComptParmType * num_comps)()
-    else:
-        comptparms = (opj2.ImageComptParmType * num_comps)()
-    for j in range(num_comps):
-        comptparms[j].dx = cparams.subsampling_dx
-        comptparms[j].dy = cparams.subsampling_dy
-        comptparms[j].w = numcols
-        comptparms[j].h = numrows
-        comptparms[j].x0 = cparams.image_offset_x0
-        comptparms[j].y0 = cparams.image_offset_y0
-        comptparms[j].prec = comp_prec
-        comptparms[j].bpp = comp_prec
-        comptparms[j].sgnd = 0
-
-    return comptparms
-
-
-def _populate_image_struct(cparams, image, imgdata):
-    """Populates image struct needed for compression.
-
-    Parameters
-    ----------
-    cparams : CompressionParametersType(ctypes.Structure)
-        Corresponds to cparameters_t type in openjp2 headers.
-    image : ImageType(ctypes.Structure)
-        Corresponds to image_t type in openjp2 headers.
-    imgarray : ndarray
-        Image data to be written to file.
-    """
-
-    numrows, numcols, num_comps = imgdata.shape
-
-    # set image offset and reference grid
-    image.contents.x0 = cparams.image_offset_x0
-    image.contents.y0 = cparams.image_offset_y0
-    image.contents.x1 = (image.contents.x0 +
-                         (numcols - 1) * cparams.subsampling_dx + 1)
-    image.contents.y1 = (image.contents.y0 +
-                         (numrows - 1) * cparams.subsampling_dy + 1)
-
-    # Stage the image data to the openjpeg data structure.
-    for k in range(0, num_comps):
-        if re.match("2.0", version.openjpeg_version) is not None:
-            # 2.0 API
-            if cparams.cp_cinema:
-                image.contents.comps[k].prec = 12
-                image.contents.comps[k].bpp = 12
-        else:
-            # 2.1 API
-            if cparams.rsiz in (core.OPJ_PROFILE_CINEMA_2K,
-                                core.OPJ_PROFILE_CINEMA_4K):
-                image.contents.comps[k].prec = 12
-                image.contents.comps[k].bpp = 12
-
-        layer = np.ascontiguousarray(imgdata[:, :, k], dtype=np.int32)
-        dest = image.contents.comps[k].data
-        src = layer.ctypes.data
-        ctypes.memmove(dest, src, layer.nbytes)
-
-    return image
 
 
 # Setup the default callback handlers.  See the callback functions subsection
