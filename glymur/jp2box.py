@@ -29,12 +29,13 @@ import lxml.etree as ET
 import numpy as np
 
 from .codestream import Codestream
-from .core import _COLORSPACE_MAP_DISPLAY
-from .core import _COLOR_TYPE_MAP_DISPLAY
-from .core import SRGB, GREYSCALE, YCC
-from .core import ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE
-from .core import ANY_ICC_PROFILE, VENDOR_COLOR_METHOD
-from .core import _Keydefaultdict
+from .core import (
+        _COLORSPACE_MAP_DISPLAY, _COLOR_TYPE_MAP_DISPLAY,
+        SRGB, GREYSCALE, YCC,
+        ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE,
+        ANY_ICC_PROFILE, VENDOR_COLOR_METHOD,
+        _Keydefaultdict
+)
 
 from . import _uuid_io
 

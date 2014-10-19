@@ -30,15 +30,12 @@ import warnings
 import numpy as np
 
 from .codestream import Codestream
-from . import core
-from .jp2box import Jp2kBox
-from .jp2box import JPEG2000SignatureBox, FileTypeBox, JP2HeaderBox
-from .jp2box import ColourSpecificationBox, ContiguousCodestreamBox
-from .jp2box import ImageHeaderBox
-from .lib import openjpeg as opj
-from .lib import openjp2 as opj2
-from . import version
-from .lib import c as libc
+from . import core, version
+from .jp2box import (
+        Jp2kBox, JPEG2000SignatureBox, FileTypeBox, JP2HeaderBox,
+        ColourSpecificationBox, ContiguousCodestreamBox, ImageHeaderBox
+)
+from .lib import openjpeg as opj, openjp2 as opj2, c as libc
 
 JP2_IDS = ['colr', 'cdef', 'cmap', 'jp2c', 'ftyp', 'ihdr', 'jp2h', 'jP  ',
            'pclr', 'res ', 'resc', 'resd', 'xml ', 'ulst', 'uinf', 'url ',
