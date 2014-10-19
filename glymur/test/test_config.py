@@ -108,36 +108,3 @@ class TestConfig(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def test_read_without_library(self):
-        """Don't have either openjp2 or openjpeg libraries?  Must error out.
-        """
-        with patch('glymur.lib.openjp2.OPENJP2', new=None):
-            with patch('glymur.lib.openjpeg.OPENJPEG', new=None):
-                with self.assertRaises(glymur.jp2k.LibraryNotFoundError):
-                    glymur.Jp2k(self.jp2file).read()
-
-    def test_read_bands_without_library(self):
-        """Don't have openjp2 library?  Must error out.
-        """
-        with patch('glymur.lib.openjp2.OPENJP2', new=None):
-            with patch('glymur.lib.openjpeg.OPENJPEG', new=None):
-                with patch('glymur.version.openjpeg_version_tuple',
-                           new=(0, 0, 0)):
-                    with self.assertRaises(glymur.jp2k.LibraryNotFoundError):
-                        glymur.Jp2k(self.jp2file).read_bands()
-
-    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
-    def test_write_without_library(self):
-        """Don't have openjpeg libraries?  Must error out.
-        """
-        data = glymur.Jp2k(self.j2kfile).read()
-        with patch('glymur.lib.openjp2.OPENJP2', new=None):
-            with patch('glymur.lib.openjpeg.OPENJPEG', new=None):
-                with self.assertRaises(glymur.jp2k.LibraryNotFoundError):
-                    with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-                        ofile = Jp2k(tfile.name, 'wb')
-                        ofile.write(data)
-
-
-if __name__ == "__main__":
-    unittest.main()
