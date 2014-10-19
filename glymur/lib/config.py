@@ -117,15 +117,17 @@ def read_config_file(libname):
         None if no location is specified, otherwise a path to the library
     """
     filename = glymurrc_fname()
-    if filename is not None:
-        # Read the configuration file for the library location.
-        parser = ConfigParser()
-        parser.read(filename)
-        try:
-            path = parser.get('library', libname)
-        except NoOptionError:
-            path = None
+    if filename is None:
+        # There's no library file path to return in this case.
+        return None
 
+    # Read the configuration file for the library location.
+    parser = ConfigParser()
+    parser.read(filename)
+    try:
+        path = parser.get('library', libname)
+    except NoOptionError:
+        path = None
     return path
 
 def glymur_config():
