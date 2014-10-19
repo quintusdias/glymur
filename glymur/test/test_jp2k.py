@@ -73,7 +73,7 @@ class SliceProtocolBase(unittest.TestCase):
         self.j2k_data = self.j2k.read()
 
 
-@unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
 class TestSliceProtocolBaseWrite(SliceProtocolBase):
 
     def test_write_ellipsis(self):
@@ -614,7 +614,7 @@ class TestJp2k(unittest.TestCase):
         jp2k = Jp2k(self.j2kfile)
         self.assertEqual(len(jp2k.box), 0)
 
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_64bit_xl_field(self):
         """XL field should be supported"""
         # Verify that boxes with the XL field are properly read.
@@ -648,7 +648,7 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(jp2k.box[4].offset, 3223)
             self.assertEqual(jp2k.box[4].length, 1133427 + 8)
 
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_length_field_is_zero(self):
         """L=0 (length field in box header) is allowed"""
         # Verify that boxes with the L field as zero are correctly read.
@@ -705,7 +705,7 @@ class TestJp2k(unittest.TestCase):
         j = Jp2k(self.j2kfile)
         self.assertEqual(j.box, [])
 
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_uinf_ulst_url_boxes(self):
         """Verify that we can read UINF, ULST, and URL boxes"""
         # Verify that we can read UINF, ULST, and URL boxes.  I don't have
@@ -764,7 +764,7 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(jp2k.box[3].box[1].flag, (0, 0, 0))
             self.assertEqual(jp2k.box[3].box[1].url, 'abcd')
 
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_xml_with_trailing_nulls(self):
         """ElementTree doesn't like trailing null chars after valid XML text"""
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
@@ -827,7 +827,7 @@ class TestJp2k(unittest.TestCase):
 
 @unittest.skipIf(re.match('1.[0-4]', openjpeg_version) is not None,
                  "Not supported with OpenJPEG {0}".format(openjpeg_version))
-@unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
 class TestJp2k_write(unittest.TestCase):
     """Write tests, can be run by versions 1.5+"""
 
@@ -1015,7 +1015,7 @@ class TestJp2k_1_x(unittest.TestCase):
 class TestJp2k_2_0_official(unittest.TestCase):
     """Test suite to only be run on v2.0 official."""
 
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_extra_components_on_v2(self):
         """Can only write 4 components on 2.0+, should error out otherwise."""
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
@@ -1050,7 +1050,7 @@ class TestJp2k_2_0(unittest.TestCase):
             # End corner must be >= start corner
             j.read(area=(10, 10, 8, 8))
 
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_unrecognized_jp2_clrspace(self):
         """We only allow RGB and GRAYSCALE.  Should error out with others"""
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
@@ -1059,7 +1059,7 @@ class TestJp2k_2_0(unittest.TestCase):
                 data = np.zeros((128, 128, 3), dtype=np.uint8)
                 j.write(data, colorspace='cmyk')
 
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_asoc_label_box(self):
         """Test asoc and label box"""
         # Construct a fake file with an asoc and a label box, as
@@ -1121,7 +1121,7 @@ class TestJp2k_2_1(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_grey_with_extra_component(self):
         """version 2.0 cannot write gray + extra"""
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
@@ -1134,7 +1134,7 @@ class TestJp2k_2_1(unittest.TestCase):
             self.assertEqual(j.box[2].box[1].colorspace,
                              glymur.core.GREYSCALE)
 
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_rgb_with_extra_component(self):
         """v2.0+ should be able to write extra components"""
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
@@ -1147,7 +1147,7 @@ class TestJp2k_2_1(unittest.TestCase):
             self.assertEqual(j.box[2].box[1].colorspace, glymur.core.SRGB)
 
     @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_openjpeg_library_message(self):
         """Verify the error message produced by the openjpeg library"""
         # This will confirm that the error callback mechanism is working.
@@ -1269,7 +1269,7 @@ class TestJp2kOpjDataRootWarnings(unittest.TestCase):
 class TestJp2kOpjDataRoot(unittest.TestCase):
     """These tests should be run by just about all configuration."""
 
-    @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_irreversible(self):
         """Irreversible"""
         filename = opj_data_file('input/nonregression/issue141.rawl')

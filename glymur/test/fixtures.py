@@ -26,6 +26,9 @@ elif re.match('1.[0-6]', six.__version__) is not None:
     msg = "Cannot run test with version {0} of python-six"
     WARNING_INFRASTRUCTURE_MSG = msg.format(six.__version__)
 
+# Cannot reopen a named temporary file in windows.
+WINDOWS_TMP_FILE_MSG = "cannot use NamedTemporaryFile like this in windows"
+
 class MetadataBase(unittest.TestCase):
     """
     Base class for testing metadata.

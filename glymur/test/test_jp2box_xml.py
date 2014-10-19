@@ -41,8 +41,9 @@ from glymur.jp2box import JPEG2000SignatureBox
 
 from .fixtures import OPJ_DATA_ROOT, opj_data_file
 from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
+from . import fixtures
 
-@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
 class TestXML(unittest.TestCase):
     """Test suite for XML boxes."""
 
@@ -219,7 +220,7 @@ class TestJp2kBadXmlFile(unittest.TestCase):
         self.assertIsNone(jp2k.box[3].xml)
 
 
-@unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
 class TestBadButRecoverableXmlFile(unittest.TestCase):
     """Test suite for XML box that is bad, but we can still recover the XML."""
 
