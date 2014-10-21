@@ -967,10 +967,10 @@ class Jp2k(Jp2kBox):
         >>> thumbnail.shape
         (728, 1296, 3)
         """
-        if opj2.OPENJP2 is not None:
-            img = self._read_openjp2(**kwargs)
-        else:
+        if version.openjpeg_version_tuple[0] < 2:
             img = self._read_openjpeg(**kwargs)
+        else:
+            img = self._read_openjp2(**kwargs)
         return img
 
     def _subsampling_sanity_check(self):

@@ -12,6 +12,11 @@ import sys
 import tempfile
 import unittest
 
+if sys.hexversion <= 0x03030000:
+    from mock import patch
+else:
+    from unittest.mock import patch
+
 import numpy as np
 try:
     import skimage.io
@@ -195,12 +200,10 @@ class WriteCinemaWarns(CinemaBase):
 @unittest.skipIf(NO_SKIMAGE_FREEIMAGE_SUPPORT,
                  "Cannot read input image without scikit-image/freeimage")
 @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
-@unittest.skipIf(not re.match("(1.5|2.0.0)", glymur.version.openjpeg_version),
-                 "Functionality implemented for 2.0.1")
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_OPJ_DATA_ROOT environment variable not set")
-class TestSuiteNegative2pointzero(unittest.TestCase):
-    """Feature set not supported for versions less than 2.0"""
+class TestNegative2pointzero(unittest.TestCase):
+    """Feature set not supported for versions less than 2.0.1"""
 
     def setUp(self):
         self.jp2file = glymur.data.nemo()
@@ -210,13 +213,17 @@ class TestSuiteNegative2pointzero(unittest.TestCase):
         pass
 
     def test_cinema_mode(self):
+        """Cinema mode not allowed for anything less than 2.0.1"""
         relfile = 'input/nonregression/X_4_2K_24_185_CBR_WB_000.tif'
         infile = opj_data_file(relfile)
         data = skimage.io.imread(infile)
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, 'wb')
-            with self.assertRaises(IOError):
-                j.write(data, cinema2k=48)
+        versions = ["1.5.0", "2.0.0"]
+        for version in versions:
+            with patch('glymur.version.openjpeg_version', new=version):
+                with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+                    j = Jp2k(tfile.name, 'wb')
+                    with self.assertRaises(IOError):
+                        j.write(data, cinema2k=48)
 
 
 @unittest.skipIf(re.match(r'''1.[0-4]''', openjpeg_version) is not None,

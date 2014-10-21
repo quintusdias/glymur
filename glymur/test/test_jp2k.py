@@ -987,8 +987,6 @@ class TestJp2k_write(unittest.TestCase):
             self.assertEqual(codestream.segment[2].spcod[0], glymur.core.CPRL)
 
 
-@unittest.skipIf(glymur.version.openjpeg_version_tuple[0] >= 2,
-                 "Negative tests only for version 1.x")
 class TestJp2k_1_x(unittest.TestCase):
     """Test suite for openjpeg 1.x, not appropriate for 2.x"""
 
@@ -1002,32 +1000,32 @@ class TestJp2k_1_x(unittest.TestCase):
     def test_tile(self):
         """tile option not allowed for 1.x.
         """
-        j2k = Jp2k(self.j2kfile)
-        with self.assertRaises(TypeError):
-            j2k.read(tile=0)
+        with patch('glymur.version.openjpeg_version_tuple', new=(1, 5, 0)):
+            j2k = Jp2k(self.j2kfile)
+            with self.assertRaises(TypeError):
+                j2k.read(tile=0)
 
     def test_layer(self):
         """layer option not allowed for 1.x.
         """
-        j2k = Jp2k(self.j2kfile)
-        with self.assertRaises(TypeError):
-            j2k.read(layer=1)
+        with patch('glymur.version.openjpeg_version_tuple', new=(1, 5, 0)):
+            j2k = Jp2k(self.j2kfile)
+            with self.assertRaises(TypeError):
+                j2k.read(layer=1)
 
 
-@unittest.skipIf(re.match(r'''2.0.0''',
-                          glymur.version.openjpeg_version) is None,
-                 "Tests only to be run on 2.0 official.")
-class TestJp2k_2_0_official(unittest.TestCase):
-    """Test suite to only be run on v2.0 official."""
+@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
+class Test_2p0_official(unittest.TestCase):
+    """Tests specific to v2.0.0"""
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_extra_components_on_v2(self):
         """Can only write 4 components on 2.0+, should error out otherwise."""
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-            j = Jp2k(tfile.name, 'wb')
-            data = np.zeros((128, 128, 4), dtype=np.uint8)
-            with self.assertRaises(IOError):
-                j.write(data)
+        with patch('glymur.version.openjpeg_version', new="2.0.0"):
+            with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+                j = Jp2k(tfile.name, 'wb')
+                data = np.zeros((128, 128, 4), dtype=np.uint8)
+                with self.assertRaises(IOError):
+                    j.write(data)
 
 
 @unittest.skipIf(glymur.version.openjpeg_version_tuple[0] < 2,
