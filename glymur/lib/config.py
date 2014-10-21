@@ -94,9 +94,9 @@ def load_library_handle(path):
         else:
             opj_lib = ctypes.CDLL(path)
     except (TypeError, OSError):
-       msg = '"Library {0}" could not be loaded.  Operating in degraded mode.'
-       msg = msg.format(path)
-       warnings.warn(msg, UserWarning)
+       msg = 'The library specified by configuration file at {0} could not be '
+       msg += 'loaded.'
+       warnings.warn(msg.format(path), UserWarning)
        opj_lib = None
 
     return opj_lib
