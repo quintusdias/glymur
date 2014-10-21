@@ -1134,7 +1134,8 @@ class Jp2k(Jp2kBox):
                                      self._dparams.DA_x0, self._dparams.DA_y0,
                                      self._dparams.DA_x1, self._dparams.DA_y1)
                 opj2.decode(codec, stream, image)
-                opj2.end_decompress(codec, stream)
+
+            opj2.end_decompress(codec, stream)
 
             img_array = extract_image_cube(image)
 
