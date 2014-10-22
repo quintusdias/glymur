@@ -545,7 +545,8 @@ class Jp2k(Jp2kBox):
                 raise IOError(msg)
 
         if img_array.dtype != np.uint8 and img_array.dtype != np.uint16:
-            msg = "Only uint8 and uint16 images are currently supported."
+            msg = "Only uint8 and uint16 datatypes are currently supported "
+            msg += "when writing."
             raise RuntimeError(msg)
 
     def _determine_colorspace(self, img_array, colorspace=None, **kwargs):
