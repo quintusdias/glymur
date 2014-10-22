@@ -843,6 +843,22 @@ class TestJp2k_write(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_precinct_size_too_small(self):
+        """first precinct size must be >= 2x that of the code block size"""
+        data = np.zeros((640, 480), dtype=np.uint8)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            with self.assertRaises(IOError):
+                j = Jp2k(tfile.name, 'wb')
+                j.write(data, cbsize=(16, 16), psizes=[(16, 16)])
+
+    def test_precinct_size_not_power_of_two(self):
+        """must be power of two"""
+        data = np.zeros((640, 480), dtype=np.uint8)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            with self.assertRaises(IOError):
+                j = Jp2k(tfile.name, 'wb')
+                j.write(data, cbsize=(16, 16), psizes=[(48, 48)])
+
     def test_unsupported_datatype(self):
         """Should raise a runtime error if trying to write uint32"""
         data = np.zeros((128, 128), dtype=np.uint32)
