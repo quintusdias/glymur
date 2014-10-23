@@ -84,8 +84,8 @@ def load_library_handle(path):
 
     if path is None or path in ['None', 'none']:
         # Either could not find a library via ctypes or user-configuration-file,
-        # or we could not find it in any of the default locations.
-        # This is probably a very old linux.
+        # or we could not find it in any of the default locations, or possibly
+        # the user intentionally does not want one of the libraries to load.
         return None
 
     try:

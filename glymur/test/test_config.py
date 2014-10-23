@@ -94,17 +94,23 @@ class TestSuite(unittest.TestCase):
                         with self.assertWarnsRegex(UserWarning, regex):
                             imp.reload(glymur.lib.openjp2)
 
-
-@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None and
-                 glymur.lib.openjpeg.OPENJPEG is None,
-                 "Missing openjp2 library.")
-class TestConfig(unittest.TestCase):
-    """Test suite for reading without proper library in place."""
-
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
-        self.j2kfile = glymur.data.goodstuff()
-
-    def tearDown(self):
-        pass
-
+    @unittest.skipIf(glymur.lib.openjp2.OPENJPEG is None,
+                     "Needs openjp2 and openjpeg before this test make sense.")
+    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
+    def test_library_specified_as_None(self):
+        """Verify that we can stop a library from being loaded by using None."""
+        with tempfile.TemporaryDirectory() as tdir:
+            configdir = os.path.join(tdir, 'glymur')
+            os.mkdir(configdir)
+            fname = os.path.join(configdir, 'glymurrc')
+            with open(fname, 'w') as fptr:
+                # Essentially comment out openjp2 and preferentially load
+                # openjpeg instead.
+                fptr.write('[library]\n')
+                fptr.write('openjp2: None\n')
+                fptr.write('openjpeg: {0}\n'.format(glymur.lib.openjp2.OPENJPEG._name))
+                fptr.flush()
+                with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
+                    imp.reload(glymur.lib.openjp2)
+                    self.assertIsNone(glymur.lib.openjp2.OPENJP2)
+                    self.assertIsNotNone(glymur.lib.openjp2.OPENJPEG)
