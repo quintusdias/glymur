@@ -40,12 +40,6 @@ from .fixtures import (
         WINDOWS_TMP_FILE_MSG, MetadataBase
 )
 
-try:
-    FORMAT_CORPUS_DATA_ROOT = os.environ['FORMAT_CORPUS_DATA_ROOT']
-except KeyError:
-    FORMAT_CORPUS_DATA_ROOT = None
-
-
 def load_tests(loader, tests, ignore):
     """Run doc tests as well."""
     if os.name == "nt":
@@ -1338,42 +1332,3 @@ class TestRepr(MetadataBase):
             self.assertRegexpMatches(repr(box), regexp)
         else:
             self.assertRegex(repr(box), regexp)
-
-
-
-class TestJpxBoxes(unittest.TestCase):
-    """Tests for JPX boxes."""
-
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
-
-    @unittest.skipIf(FORMAT_CORPUS_DATA_ROOT is None,
-                     "FORMAT_CORPUS_DATA_ROOT environment variable not set")
-    def test_codestream_header(self):
-        """Should recognize codestream header box."""
-        jfile = os.path.join(FORMAT_CORPUS_DATA_ROOT,
-                             'jp2k-formats/balloon.jpf')
-        jpx = Jp2k(jfile)
-
-        # This superbox just happens to be empty.
-        self.assertEqual(jpx.box[4].box_id, 'jpch')
-        self.assertEqual(len(jpx.box[4].box), 0)
-
-    @unittest.skipIf(FORMAT_CORPUS_DATA_ROOT is None,
-                     "FORMAT_CORPUS_DATA_ROOT environment variable not set")
-    def test_compositing_layer_header(self):
-        """Should recognize compositing layer header box."""
-        jfile = os.path.join(FORMAT_CORPUS_DATA_ROOT,
-                             'jp2k-formats/balloon.jpf')
-        jpx = Jp2k(jfile)
-
-        # This superbox just happens to be empty.
-        self.assertEqual(jpx.box[5].box_id, 'jplh')
-        self.assertEqual(len(jpx.box[5].box), 0)
-
-
-if __name__ == "__main__":
-    unittest.main()
