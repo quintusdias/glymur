@@ -859,7 +859,15 @@ class TestJp2k_write(unittest.TestCase):
                 j = Jp2k(tfile.name, 'wb')
                 j.write(data, cbsize=(16, 16), psizes=[(48, 48)])
 
-    def test_unsupported_datatype(self):
+    def test_unsupported_int32(self):
+        """Should raise a runtime error if trying to write int32"""
+        data = np.zeros((128, 128), dtype=np.int32)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            with self.assertRaises(RuntimeError):
+                j = Jp2k(tfile.name, 'wb')
+                j.write(data)
+
+    def test_unsupported_uint32(self):
         """Should raise a runtime error if trying to write uint32"""
         data = np.zeros((128, 128), dtype=np.uint32)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
