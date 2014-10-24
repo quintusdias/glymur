@@ -35,10 +35,11 @@ def openjpeg_not_found_by_ctypes():
     Need to know if openjpeg library can be picked right up by ctypes for one
     of the tests.
     """
-    if ctypes.util.find_library('openjpeg') is None:
-        return True
-    else:
-        return False
+    with patch.dict('os.environ', {'DYLD_FALLBACK_LIBRARY_PATH': '/opt/local/lib'}):
+        if ctypes.util.find_library('openjpeg') is None:
+            return True
+        else:
+            return False
 
 
 @unittest.skipIf(sys.hexversion < 0x03020000,
