@@ -10,7 +10,7 @@ OPENJP2 may be present in some form or other.
 # unittest.mock only in Python 3.3 (python2.7/pylint import issue)
 # pylint:  disable=E0611,F0401
 
-
+import ctypes
 import imp
 import os
 import sys
@@ -29,6 +29,16 @@ from .fixtures import (
         WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG,
         WINDOWS_TMP_FILE_MSG
 )
+
+def openjpeg_not_found_by_ctypes():
+    """
+    Need to know if openjpeg library can be picked right up by ctypes for one
+    of the tests.
+    """
+    if ctypes.util.find_library('openjpeg') is None:
+        return True
+    else:
+        return False
 
 
 @unittest.skipIf(sys.hexversion < 0x03020000,
@@ -114,3 +124,20 @@ class TestSuite(unittest.TestCase):
                     imp.reload(glymur.lib.openjp2)
                     self.assertIsNone(glymur.lib.openjp2.OPENJP2)
                     self.assertIsNotNone(glymur.lib.openjp2.OPENJPEG)
+
+    @unittest.skipIf(glymur.lib.openjp2.OPENJPEG is None,
+                     "Needs openjpeg before this test make sense.")
+    @unittest.skipIf(openjpeg_not_found_by_ctypes(), 
+                     "OpenJPEG must be easily found before this test can work.")
+    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
+    def test_config_dir_but_no_config_file(self):
+
+        with tempfile.TemporaryDirectory() as tdir:
+            configdir = os.path.join(tdir, 'glymur')
+            os.mkdir(configdir)
+            fname = os.path.join(configdir, 'glymurrc')
+            with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
+                # Should still be able to load openjpeg, despite the
+                # configuration file being empty.
+                imp.reload(glymur.lib.openjpeg)
+                self.assertIsNotNone(glymur.lib.openjp2.OPENJPEG)
