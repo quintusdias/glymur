@@ -1103,6 +1103,7 @@ class TestJp2dump(unittest.TestCase):
 
         self.assertEqual(actual, fixtures.nemo_dump_no_codestream_no_xml)
 
+    @unittest.skipIf(sys.hexversion < 0x03000000, "assertRegex not in 2.7")
     def test_codestream_0_with_j2k_file(self):
         """-c 0 should print just a single line when used on a codestream."""
         sys.argv = ['', '-c', '0', self.j2kfile]
