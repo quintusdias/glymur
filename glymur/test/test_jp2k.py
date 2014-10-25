@@ -476,6 +476,44 @@ class TestJp2k(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_shape_jp2(self):
+        """verify shape attribute for JP2 file
+        """
+        jp2 = Jp2k(self.jp2file)
+        self.assertEqual(jp2.shape, (1456, 2592, 3))
+
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
+                     "OPJ_DATA_ROOT environment variable not set")
+    def test_shape_greyscale_jp2(self):
+        """verify shape attribute for greyscale JP2 file
+        """
+        with warnings.catch_warnings():
+            # Suppress a warning due to bad compatibility list entry.
+            warnings.simplefilter("ignore")
+            jfile = opj_data_file('input/conformance/file4.jp2')
+            jp2 = Jp2k(jfile)
+        self.assertEqual(jp2.shape, (512, 768))
+
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
+                     "OPJ_DATA_ROOT environment variable not set")
+    def test_shape_single_channel_j2k(self):
+        """verify shape attribute for single channel J2K file
+        """
+        jfile = opj_data_file('input/conformance/p0_01.j2k')
+        jp2 = Jp2k(jfile)
+        self.assertEqual(jp2.shape, (128, 128))
+
+    def test_shape_j2k(self):
+        """verify shape attribute for J2K file
+        """
+        j2k = Jp2k(self.j2kfile)
+        self.assertEqual(j2k.shape, (800, 480, 3))
+
+    def test_shape_jpx_jp2(self):
+        """verify shape attribute for JPX file with JP2 compatibility
+        """
+        jpx = Jp2k(self.jpxfile)
+        self.assertEqual(jpx.shape, (1024, 1024, 3))
 
     @unittest.skipIf(os.name == "nt", "Unexplained failure on windows")
     def test_irreversible(self):

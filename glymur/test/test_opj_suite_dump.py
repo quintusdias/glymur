@@ -3052,7 +3052,7 @@ class TestSuiteWarns(MetadataBase):
         self.assertEqual(codestream.segment[1].yrsiz[2], 2)
 
     def test_NR_file4_dump(self):
-        # One 8-bit component in the sRGB-grey colourspace.
+        # One 8-bit component in the grey colourspace.
         jfile = opj_data_file('input/conformance/file4.jp2')
         with self.assertWarns(UserWarning):
             jp2 = Jp2k(jfile)
