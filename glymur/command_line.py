@@ -2,9 +2,11 @@
 Entry point for console script jp2dump.
 """
 import argparse
+import os
 import sys
 import warnings
-from . import Jp2k, set_printoptions
+
+from . import Jp2k, set_printoptions, lib
 
 def main():
     """
@@ -55,11 +57,13 @@ def main():
 
         # JP2 metadata can be extensive, so don't print any warnings until we
         # are done with the metadata.
-        j = Jp2k(filename)
-        if print_full_codestream:
-            print(j.get_codestream(header_only=False))
+        jp2 = Jp2k(filename)
+        if jp2._codec_format == lib.openjp2.CODEC_J2K and codestream_level == 0:
+            print('File:  {0}'.format(os.path.basename(filename)))
+        elif print_full_codestream:
+            print(jp2.get_codestream(header_only=False))
         else:
-            print(j)
+            print(jp2)
 
         # Re-emit any warnings that may have been suppressed.
         if len(wctx) > 0:
