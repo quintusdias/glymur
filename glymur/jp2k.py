@@ -77,10 +77,47 @@ class Jp2k(Jp2kBox):
         self.box = []
         self._codec_format = None
         self._colorspace = None
+        self._shape = None
 
         # Parse the file for JP2/JPX contents only if we are reading it.
         if mode == 'rb':
             self.parse()
+
+    @property
+    def shape(self):
+        if self._shape is not None:
+            return self._shape
+
+        cstr = self.get_codestream(header_only=True)
+        height = cstr.segment[1].ysiz
+        width = cstr.segment[1].xsiz
+        num_components = len(cstr.segment[1].xrsiz)
+
+        # If JP2 and a palette box is present, then determine the shape from
+        # that.
+        if num_components == 1:
+            if self._codec_format == opj2.CODEC_J2K:
+                # There's no palette box or component mapping in a J2K file.
+                # The 3rd component in the shape would then be 1, but we'll
+                # ignore that.
+                self.shape = (height, width)
+            else:
+                jp2h = [box for box in self.box if box.box_id == 'jp2h'][0]
+                pclr = [box for box in jp2h.box if box.box_id == 'pclr']
+                if len(pclr) == 0:
+                    # No palette box, so just one component, which we will
+                    # ignore.
+                    self.shape = (height, width)
+                else:
+                    self.shape = (height, width, len(pclr[0].signed))
+        else:
+            self.shape = (height, width, num_components)
+
+        return self._shape
+
+    @shape.setter
+    def shape(self, shape):
+        self._shape = shape
 
     def __repr__(self):
         msg = "glymur.Jp2k('{0}')".format(self.filename)
