@@ -1102,3 +1102,12 @@ class TestJp2dump(unittest.TestCase):
         actual = self.run_jp2dump(['', '-x', self.jp2file])
 
         self.assertEqual(actual, fixtures.nemo_dump_no_codestream_no_xml)
+
+    def test_codestream_0_with_j2k_file(self):
+        """-c 0 should print just a single line when used on a codestream."""
+        sys.argv = ['', '-c', '0', self.j2kfile]
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            command_line.main()
+            actual = fake_out.getvalue().strip()
+        self.assertRegex(actual, "File:  .*")
+
