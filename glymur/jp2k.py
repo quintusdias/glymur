@@ -443,7 +443,8 @@ class Jp2k(Jp2kBox):
             raise RuntimeError("You must have at least version 1.5 of OpenJPEG "
                                "in order to write images.")
 
-        self._determine_colorspace(img_array, **kwargs)
+        self._shape = img_array.shape
+        self._determine_colorspace(**kwargs)
         self._populate_cparams(img_array, **kwargs)
 
         if opj2.OPENJP2 is not None:
@@ -586,22 +587,20 @@ class Jp2k(Jp2kBox):
             msg += "when writing."
             raise RuntimeError(msg)
 
-    def _determine_colorspace(self, img_array, colorspace=None, **kwargs):
+    def _determine_colorspace(self, colorspace=None, **kwargs):
         """Determine the colorspace from the supplied inputs.
     
         Parameters
         ----------
-        img_array : ndarray
-            Image data to be written to file.
         colorspace : str, optional
             Either 'rgb' or 'gray'.
         """
         if colorspace is None:
             # Must infer the colorspace from the image dimensions.
-            if img_array.ndim < 3:
+            if len(self.shape) < 3:
                 # A single channel image is grayscale.
                 self._colorspace = opj2.CLRSPC_GRAY
-            elif img_array.shape[2] == 1 or img_array.shape[2] == 2:
+            elif self.shape[2] == 1 or self.shape[2] == 2:
                 # A single channel image or an image with two channels is going
                 # to be greyscale.
                 self._colorspace = opj2.CLRSPC_GRAY
@@ -612,7 +611,7 @@ class Jp2k(Jp2kBox):
             if colorspace.lower() not in ('rgb', 'grey', 'gray'):
                 msg = 'Invalid colorspace "{0}"'.format(colorspace)
                 raise IOError(msg)
-            elif colorspace.lower() == 'rgb' and img_array.shape[2] < 3:
+            elif colorspace.lower() == 'rgb' and self.shape[2] < 3:
                 msg = 'RGB colorspace requires at least 3 components.'
                 raise IOError(msg)
     
