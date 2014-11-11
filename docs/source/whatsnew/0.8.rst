@@ -1,0 +1,10 @@
+=====================
+Changes in glymur 0.8
+=====================
+
+Changes in 0.8.0
+=================
+
+    * Simplified writing images by moving data and options into the
+      constructor.  This is backwards-incompatible with 0.7.x.
+    * Deprecated :py:meth:`read` method in favor of array-style slicing.

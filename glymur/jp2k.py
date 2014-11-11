@@ -37,16 +37,6 @@ from .jp2box import (
 )
 from .lib import openjpeg as opj, openjp2 as opj2, c as libc
 
-JP2_IDS = ['colr', 'cdef', 'cmap', 'jp2c', 'ftyp', 'ihdr', 'jp2h', 'jP  ',
-           'pclr', 'res ', 'resc', 'resd', 'xml ', 'ulst', 'uinf', 'url ',
-           'uuid']
-JPX_IDS = ['asoc', 'nlst']
-
-_COLORSPACE_MAP = {'rgb': opj2.CLRSPC_SRGB,
-                   'gray': opj2.CLRSPC_GRAY,
-                   'grey': opj2.CLRSPC_GRAY,
-                   'ycc': opj2.CLRSPC_YCC}
-
 class Jp2k(Jp2kBox):
     """JPEG 2000 file.
 
@@ -54,34 +44,150 @@ class Jp2k(Jp2kBox):
     ----------
     filename : str
         The path to the JPEG 2000 file.
-    mode : str
-        The mode used to open the file.
     box : sequence
         List of top-level boxes in the file.  Each box may in turn contain
         its own list of boxes.  Will be empty if the file consists only of a
         raw codestream.
+    shape : tuple
+        Size of the image.
+
+    Properties
+    ----------
+    ignore_pclr_cmap_cdef : bool
+        whether or not to ignore the pclr, cmap, or cdef boxes during any
+        color transformation, defaults to False.
+    layer : int
+        zero-based number of quality layer to decode
+    verbose : bool
+        whether or not to print informational messages produced by the
+        OpenJPEG library, defaults to false
+
+    Examples
+    --------
+    >>> import glymur
+    >>> jfile = glymur.data.nemo()
+    >>> jp2 = glymur.Jp2k(jfile)
+    >>> jp2.shape
+    (1456, 2592, 3)
+    >>> image = jp2[:]
+    >>> image.shape
+    (1456, 2592, 3)
+
+    Read a lower resolution thumbnail.
+
+    >>> thumbnail = jp2[::2, ::2]
+    >>> thumbnail.shape
+    (728, 1296, 3)
     """
 
-    def __init__(self, filename, mode='rb'):
+    def __init__(self, filename, data=None, shape=None, **kwargs):
         """
+        Only the filename parameter is required in order to read a JPEG 2000
+        file.
+
         Parameters
         ----------
         filename : str or file
-            The path to JPEG 2000 file.
-        mode : str, optional
-            The mode used to open the file.
+            the path to JPEG 2000 file
+        image_data : ndarray, optional
+            image data to be written
+        shape : tuple
+            size of image data, only required when image_data is not provided
+        cbsize : tuple, optional
+            code block size (DY, DX)
+        cinema2k : int, optional
+            frames per second, either 24 or 48
+        cinema4k : bool, optional
+            set to True to specify Cinema4K mode, defaults to false
+        colorspace : str, optional
+            either 'rgb' or 'gray'
+        cratios : iterable
+            compression ratios for successive layers
+        eph : bool, optional
+            if true, write SOP marker after each header packet
+        grid_offset : tuple, optional
+            offset (DY, DX) of the origin of the image in the reference grid
+        irreversible : bool, optional
+            if true, use the irreversible DWT 9-7 transform
+        mct : bool, optional
+            specifies usage of the multi component transform, if not
+            specified, defaults to True if the colorspace is RGB
+        modesw : int, optional
+            mode switch
+                1 = BYPASS(LAZY)
+                2 = RESET
+                4 = RESTART(TERMALL)
+                8 = VSC
+                16 = ERTERM(SEGTERM)
+                32 = SEGMARK(SEGSYM)
+        numres : int, optional
+            number of resolutions
+        prog : str, optional
+            progression order, one of "LRCP" "RLCP", "RPCL", "PCRL", "CPRL"
+        psnr : iterable, optional
+            different PSNR for successive layers
+        psizes : list, optional
+            list of precinct sizes, each precinct size tuple is defined in
+            (height x width)
+        sop : bool, optional
+            if true, write SOP marker before each packet
+        subsam : tuple, optional
+            subsampling factors (dy, dx)
+        tilesize : tuple, optional
+            numeric tuple specifying tile size in terms of (numrows, numcols),
+            not (X, Y)
+        verbose : bool, optional
+            print informational messages produced by the OpenJPEG library
+            
         """
         Jp2kBox.__init__(self)
         self.filename = filename
-        self.mode = mode
+
         self.box = []
         self._codec_format = None
         self._colorspace = None
-        self._shape = None
+        self._layer = 0
+        if data is not None:
+            self._shape = data.shape
+        else:
+            self._shape = shape
+
+        self._ignore_pclr_cmap_cdef = False
+        self._verbose = False
 
         # Parse the file for JP2/JPX contents only if we are reading it.
-        if mode == 'rb':
+        if data is None and shape is None:
             self.parse()
+        elif data is not None:
+            self._write(data, **kwargs)
+
+    @property
+    def ignore_pclr_cmap_cdef(self):
+        return self._ignore_pclr_cmap_cdef
+
+    @ignore_pclr_cmap_cdef.setter
+    def ignore_pclr_cmap_cdef(self, ignore_pclr_cmap_cdef):
+        self._ignore_pclr_cmap_cdef = ignore_pclr_cmap_cdef
+
+    @property
+    def layer(self):
+        return self._layer
+
+    @layer.setter
+    def layer(self, layer):
+        if version.openjpeg_version_tuple[0] < 2:
+            msg = "Layer property not supported unless the version of OpenJPEG "
+            msg += "is 2.0 or higher."
+            raise RuntimeError(msg)
+        self._layer = layer
+
+    @property
+    def verbose(self):
+        return self._verbose
+
+    @verbose.setter
+    def verbose(self, verbose):
+        self._verbose = verbose
 
     @property
     def shape(self):
@@ -371,79 +477,17 @@ class Jp2k(Jp2kBox):
 
         self._cparams = cparams
 
-    def write(self, img_array, verbose=False, **kwargs):
+    def _write(self, img_array, verbose=False, **kwargs):
         """Write image data to a JP2/JPX/J2k file.  Intended usage of the
         various parameters follows that of OpenJPEG's opj_compress utility.
 
         This method can only be used to create JPEG 2000 images that can fit
         in memory.
-
-        Parameters
-        ----------
-        img_array : ndarray
-            Image data to be written to file.
-        cbsize : tuple, optional
-            Code block size (DY, DX).
-        cinema2k : int, optional
-            frames per second, either 24 or 48
-        cinema4k : bool, optional
-            Set to True to specify Cinema4K mode, defaults to false.
-        colorspace : str, optional
-            Either 'rgb' or 'gray'.
-        cratios : iterable
-            Compression ratios for successive layers.
-        eph : bool, optional
-            If true, write SOP marker after each header packet.
-        grid_offset : tuple, optional
-            Offset (DY, DX) of the origin of the image in the reference grid.
-        irreversible : bool, optional
-            If true, use the irreversible DWT 9-7 transform. 
-        mct : bool, optional
-            Specifies usage of the multi component transform.  If not
-            specified, defaults to True if the colorspace is RGB.
-        modesw : int, optional
-            Mode switch.
-                1 = BYPASS(LAZY)
-                2 = RESET
-                4 = RESTART(TERMALL)
-                8 = VSC
-                16 = ERTERM(SEGTERM)
-                32 = SEGMARK(SEGSYM)
-        numres : int, optional
-            Number of resolutions.
-        prog : str, optional
-            Progression order, one of "LRCP" "RLCP", "RPCL", "PCRL", "CPRL".
-        psnr : iterable, optional
-            Different PSNR for successive layers.
-        psizes : list, optional
-            List of precinct sizes.  Each precinct size tuple is defined in
-            (height x width).
-        sop : bool, optional
-            If true, write SOP marker before each packet.
-        subsam : tuple, optional
-            Subsampling factors (dy, dx).
-        tilesize : tuple, optional
-            Numeric tuple specifying tile size in terms of (numrows, numcols),
-            not (X, Y).
-        verbose : bool, optional
-            Print informational messages produced by the OpenJPEG library.
-
-        Examples
-        --------
-        >>> import glymur
-        >>> jfile = glymur.data.nemo()
-        >>> jp2 = glymur.Jp2k(jfile)
-        >>> data = jp2.read(rlevel=1)
-        >>> from tempfile import NamedTemporaryFile
-        >>> tfile = NamedTemporaryFile(suffix='.jp2', delete=False)
-        >>> j = Jp2k(tfile.name, mode='wb')
-        >>> j.write(data.astype(np.uint8))
         """
         if re.match("1.[0-4]", version.openjpeg_version) is not None:
             raise RuntimeError("You must have at least version 1.5 of OpenJPEG "
                                "in order to write images.")
 
-        self._shape = img_array.shape
         self._determine_colorspace(**kwargs)
         self._populate_cparams(img_array, **kwargs)
 
@@ -617,7 +661,12 @@ class Jp2k(Jp2kBox):
     
             # Turn the colorspace from a string to the enumerated value that
             # the library expects.
-            self._colorspace = _COLORSPACE_MAP[colorspace.lower()]
+            COLORSPACE_MAP = {'rgb': opj2.CLRSPC_SRGB,
+                              'gray': opj2.CLRSPC_GRAY,
+                              'grey': opj2.CLRSPC_GRAY,
+                              'ycc': opj2.CLRSPC_YCC}
+
+            self._colorspace = COLORSPACE_MAP[colorspace.lower()]
     
     
     def _write_openjp2(self, img_array, verbose=False):
@@ -640,7 +689,11 @@ class Jp2k(Jp2kBox):
             codec = opj2.create_compress(self._cparams.codec_fmt)
             stack.callback(opj2.destroy_codec, codec)
 
-            info_handler = _INFO_CALLBACK if verbose else None
+            if self._verbose or verbose:
+                info_handler = _INFO_CALLBACK
+            else:
+                info_handler = None
+
             opj2.set_info_handler(codec, info_handler)
             opj2.set_warning_handler(codec, _WARNING_CALLBACK)
             opj2.set_error_handler(codec, _ERROR_CALLBACK)
@@ -844,7 +897,7 @@ class Jp2k(Jp2kBox):
             # Case of jp2[:] = data, i.e. write the entire image.
             #
             # Should have a slice object where start = stop = step = None
-            self.write(data)
+            self._write(data)
         else:
             msg = "Partial write operations are currently not allowed."
             raise TypeError(msg)
@@ -863,16 +916,16 @@ class Jp2k(Jp2kBox):
             # This retrieves a single row.
             row = pargs
             area = (row, 0, row + 1, numcols)
-            return self.read(area=area).squeeze()
+            return self._read(area=area).squeeze()
 
         if pargs is Ellipsis:
             # Case of jp2[...]
-            return self.read()
+            return self._read()
 
         if isinstance(pargs, slice):
             if pargs.start is None and pargs.stop is None and pargs.step is None:
                 # Case of jp2[:]
-                return self.read()
+                return self._read()
 
             # Corner case of jp2[x] where x is a slice object with non-null
             # members.  Just augment it with an ellipsis and let the code 
@@ -949,7 +1002,7 @@ class Jp2k(Jp2kBox):
                 numrows if rows.stop is None else rows.stop,
                 numcols if cols.stop is None else cols.stop
                 )
-        data = self.read(area=area, rlevel=rlevel)
+        data = self._read(area=area, rlevel=rlevel)
         if len(pargs) == 2:
             return data
 
@@ -957,27 +1010,8 @@ class Jp2k(Jp2kBox):
         return data[:, :, bands]
 
 
-    def read(self, **kwargs):
+    def _read(self, **kwargs):
         """Read a JPEG 2000 image.
-
-        Parameters
-        ----------
-        rlevel : int, optional
-            Factor by which to rlevel output resolution.  Use -1 to get the
-            lowest resolution thumbnail.  This is the only keyword option
-            available to use when the OpenJPEG version is 1.5 or earlier.
-        layer : int, optional
-            Number of quality layer to decode.
-        area : tuple, optional
-            Specifies decoding image area,
-            (first_row, first_col, last_row, last_col)
-        tile : int, optional
-            Number of tile to decode.
-        ignore_pclr_cmap_cdef : bool
-            Whether or not to ignore the pclr, cmap, or cdef boxes during any
-            color transformation.  Defaults to False.
-        verbose : bool, optional
-            Print informational messages produced by the OpenJPEG library.
 
         Returns
         -------
@@ -988,22 +1022,47 @@ class Jp2k(Jp2kBox):
         ------
         IOError
             If the image has differing subsample factors.
-
-        Examples
-        --------
-        >>> import glymur
-        >>> jfile = glymur.data.nemo()
-        >>> jp = glymur.Jp2k(jfile)
-        >>> image = jp.read()
-        >>> image.shape
-        (1456, 2592, 3)
-
-        Read the lowest resolution thumbnail.
-
-        >>> thumbnail = jp.read(rlevel=-1)
-        >>> thumbnail.shape
-        (728, 1296, 3)
         """
+        if version.openjpeg_version_tuple[0] < 2:
+            img = self._read_openjpeg(**kwargs)
+        else:
+            img = self._read_openjp2(**kwargs)
+        return img
+
+    def read(self, **kwargs):
+        """
+        """
+        #Read a JPEG 2000 image.
+        #
+        #Parameters
+        #----------
+        #rlevel : int, optional
+        #    Factor by which to rlevel output resolution.  Use -1 to get the
+        #    lowest resolution thumbnail.  This is the only keyword option
+        #    available to use when the OpenJPEG version is 1.5 or earlier.
+        #layer : int, optional
+        #    Number of quality layer to decode.
+        #area : tuple, optional
+        #    Specifies decoding image area,
+        #    (first_row, first_col, last_row, last_col)
+        #tile : int, optional
+        #    Number of tile to decode.
+        #verbose : bool, optional
+        #    Print informational messages produced by the OpenJPEG library.
+        #
+        #Returns
+        #-------
+        #img_array : ndarray
+        #    The image data.
+        #
+        #Raises
+        #------
+        #IOError
+        #    If the image has differing subsample factors.
+        
+        if 'ignore_pclr_cmap_cdef' in kwargs:
+            self.ignore_pclr_cmap_cdef = kwargs['ignore_pclr_cmap_cdef']
+        warnings.warn("Use array-style slicing instead.", DeprecationWarning)
         if version.openjpeg_version_tuple[0] < 2:
             img = self._read_openjpeg(**kwargs)
         else:
@@ -1022,8 +1081,7 @@ class Jp2k(Jp2kBox):
             msg += "the read_bands method instead."
             raise RuntimeError(msg)
 
-    def _read_openjpeg(self, rlevel=0, ignore_pclr_cmap_cdef=False,
-                       verbose=False, area=None):
+    def _read_openjpeg(self, rlevel=0, verbose=False, area=None):
         """Read a JPEG 2000 image using libopenjpeg.
 
         Parameters
@@ -1031,9 +1089,6 @@ class Jp2k(Jp2kBox):
         rlevel : int, optional
             Factor by which to rlevel output resolution.  Use -1 to get the
             lowest resolution thumbnail.
-        ignore_pclr_cmap_cdef : bool
-            Whether or not to ignore the pclr, cmap, or cdef boxes during any
-            color transformation.  Defaults to False.
         verbose : bool, optional
             Print informational messages produced by the OpenJPEG library.
         area : tuple, optional
@@ -1052,7 +1107,7 @@ class Jp2k(Jp2kBox):
         """
         self._subsampling_sanity_check()
 
-        self._populate_dparams(rlevel, ignore_pclr_cmap_cdef)
+        self._populate_dparams(rlevel)
 
         with ExitStack() as stack:
             try:
@@ -1062,7 +1117,10 @@ class Jp2k(Jp2kBox):
 
                 event_mgr = opj.EventMgrType()
                 info_handler = ctypes.cast(_INFO_CALLBACK, ctypes.c_void_p)
-                event_mgr.info_handler = info_handler if verbose else None
+                if verbose or self._verbose:
+                    event_mgr.info_handler = info_handler
+                else:
+                    event_mgr.info_handler = None
                 event_mgr.warning_handler = ctypes.cast(_WARNING_CALLBACK,
                                                         ctypes.c_void_p)
                 event_mgr.error_handler = ctypes.cast(_ERROR_CALLBACK,
@@ -1105,8 +1163,7 @@ class Jp2k(Jp2kBox):
 
         return data
 
-    def _read_openjp2(self, rlevel=0, layer=0, area=None, tile=None,
-                      verbose=False, ignore_pclr_cmap_cdef=False):
+    def _read_openjp2(self, rlevel=0, layer=None, area=None, tile=None, verbose=False):
         """Read a JPEG 2000 image using libopenjp2.
 
         Parameters
@@ -1134,10 +1191,12 @@ class Jp2k(Jp2kBox):
         RuntimeError
             If the image has differing subsample factors.
         """
+        if layer is not None:
+            self._layer = layer
+
         self._subsampling_sanity_check()
 
-        self._populate_dparams(rlevel, ignore_pclr_cmap_cdef,
-                               layer=layer, tile=tile, area=area)
+        self._populate_dparams(rlevel, tile=tile, area=area)
 
         with ExitStack() as stack:
             if re.match("2.1", version.openjpeg_version):
@@ -1154,7 +1213,8 @@ class Jp2k(Jp2kBox):
 
             opj2.set_error_handler(codec, _ERROR_CALLBACK)
             opj2.set_warning_handler(codec, _WARNING_CALLBACK)
-            if verbose:
+
+            if self._verbose or verbose:
                 opj2.set_info_handler(codec, _INFO_CALLBACK)
             else:
                 opj2.set_info_handler(codec, None)
@@ -1181,14 +1241,11 @@ class Jp2k(Jp2kBox):
 
         return img_array
 
-    def _populate_dparams(self, rlevel, ignore_pclr_cmap_cdef, tile=None,
-                          layer=None, area=None):
+    def _populate_dparams(self, rlevel, tile=None, area=None):
         """Populate decompression structure with appropriate input parameters.
 
         Parameters
         ----------
-        layer : int
-            Number of quality layer to decode.
         rlevel : int
             Factor by which to rlevel output resolution.
         area : tuple
@@ -1196,9 +1253,6 @@ class Jp2k(Jp2kBox):
             (first_row, first_col, last_row, last_col)
         tile : int
             Number of tile to decode.
-        ignore_pclr_cmap_cdef : bool
-            Whether or not to ignore the pclr, cmap, or cdef boxes during any
-            color transformation.  Defaults to False.
         """
         if opj2.OPENJP2 is not None:
             dparam = opj2.set_default_decoder_parameters()
@@ -1211,10 +1265,13 @@ class Jp2k(Jp2kBox):
         infile += b'0' * nelts
         dparam.infile = infile
 
+        if self.ignore_pclr_cmap_cdef:
+            # Return raw codestream components.
+            dparam.flags |= 1
+
         dparam.decod_format = self._codec_format
 
-        if layer is not None:
-            dparam.cp_layer = layer
+        dparam.cp_layer = self._layer
 
         # Must check the specified rlevel against the maximum.
         if rlevel != 0:
@@ -1245,13 +1302,13 @@ class Jp2k(Jp2kBox):
             dparam.tile_index = tile
             dparam.nb_tile_to_decode = 1
 
-        if ignore_pclr_cmap_cdef is True:
+        if self.ignore_pclr_cmap_cdef:
             # Return raw codestream components.
             dparam.flags |= 1
 
         self._dparams = dparam
 
-    def read_bands(self, rlevel=0, layer=0, area=None, tile=None,
+    def read_bands(self, rlevel=0, layer=None, area=None, tile=None,
                    verbose=False, ignore_pclr_cmap_cdef=False):
         """Read a JPEG 2000 image.
 
@@ -1297,8 +1354,10 @@ class Jp2k(Jp2kBox):
                                "OpenJPEG installed before using this "
                                "functionality.")
 
-        self._populate_dparams(rlevel, ignore_pclr_cmap_cdef,
-                               layer=layer, tile=tile, area=area)
+        self.ignore_pclr_cmap_cdef = ignore_pclr_cmap_cdef
+        if layer is not None:
+            self._layer = layer
+        self._populate_dparams(rlevel, tile=tile, area=area)
 
         with ExitStack() as stack:
             if re.match("2.1", version.openjpeg_version):
@@ -1709,6 +1768,8 @@ def _validate_singletons(boxes):
     multiples = [box_id for box_id, bcount in count.items() if bcount > 1]
     if 'dtbl' in multiples:
         raise IOError('There can only be one dtbl box in a file.')
+
+JPX_IDS = ['asoc', 'nlst']
 
 def _validate_jpx_brand(boxes, brand):
     """

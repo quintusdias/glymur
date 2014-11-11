@@ -39,15 +39,28 @@ class TestCallbacks(unittest.TestCase):
                      "Missing openjp2 library.")
     @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-    def test_info_callback_on_write(self):
+    def test_info_callback_on_write_backwards_compatibility(self):
         """Verify messages printed when writing an image in verbose mode."""
         j = glymur.Jp2k(self.jp2file)
         with self.assertWarns(UserWarning):
             tiledata = j.read(tile=0)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-            j = glymur.Jp2k(tfile.name, 'wb')
             with patch('sys.stdout', new=StringIO()) as fake_out:
-                j.write(tiledata, verbose=True)
+            	j = glymur.Jp2k(tfile.name, data=tiledata, verbose=True)
+            actual = fake_out.getvalue().strip()
+        expected = '[INFO] tile number 1 / 1'
+        self.assertEqual(actual, expected)
+
+    @unittest.skipIf(glymur.version.openjpeg_version[0] != '2',
+                     "Missing openjp2 library.")
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+    def test_info_callback_on_write(self):
+        """Verify messages printed when writing an image in verbose mode."""
+        j = glymur.Jp2k(self.jp2file)
+        tiledata = j[:]
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            with patch('sys.stdout', new=StringIO()) as fake_out:
+                jp2 = glymur.Jp2k(tfile.name, data=tiledata, verbose=True)
                 actual = fake_out.getvalue().strip()
         expected = '[INFO] tile number 1 / 1'
         self.assertEqual(actual, expected)
@@ -57,15 +70,16 @@ class TestCallbacks(unittest.TestCase):
 
         # Verify that we get the expected stdio output when our internal info
         # callback handler is enabled.
-        j = glymur.Jp2k(self.j2kfile)
+        jp2 = glymur.Jp2k(self.j2kfile)
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            j.read(rlevel=1, verbose=True)
+            jp2.verbose = True
+            jp2[::2, ::2]
             actual = fake_out.getvalue().strip()
 
         if glymur.version.openjpeg_version[0] == '2':
             lines = ['[INFO] Start to read j2k main header (0).',
                      '[INFO] Main header has been correctly decoded.',
-                     '[INFO] No decoded area parameters, set the decoded area to the whole image',
+                     '[INFO] Setting decoding area to 0,0,480,800',
                      '[INFO] Header of tile 0 / 0 has been read.',
                      '[INFO] Tile 1/1 has been decoded.',
                      '[INFO] Image data has been updated with tile 1.']

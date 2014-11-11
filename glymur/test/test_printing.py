@@ -107,14 +107,15 @@ class TestPrinting(unittest.TestCase):
         with self.assertRaises(TypeError):
             glymur.set_printoptions(hi='low')
 
+    @unittest.skipIf(re.match("1.5|2", glymur.version.openjpeg_version) is None,
+                     "Must have openjpeg 1.5 or higher to run")
     def test_asoc_label_box(self):
         """verify printing of asoc, label boxes"""
         # Construct a fake file with an asoc and a label box, as
         # OpenJPEG doesn't have such a file.
-        data = glymur.Jp2k(self.jp2file).read(rlevel=1)
+        data = glymur.Jp2k(self.jp2file)[::2, ::2]
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-            j = glymur.Jp2k(tfile.name, 'wb')
-            j.write(data)
+            j = glymur.Jp2k(tfile.name, data=data)
 
             with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile2:
 
