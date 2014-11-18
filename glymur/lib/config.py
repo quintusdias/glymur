@@ -146,7 +146,7 @@ def glymur_config():
     libopenjpeg_handle = load_openjpeg(libs['openjpeg'])
     if libopenjp2_handle is None and libopenjpeg_handle is None:
         msg = "Neither the openjp2 nor the openjpeg library could be loaded.  "
-        raise IOError(msg)
+        warnings.warn(msg, UserWarning)
     return libopenjp2_handle, libopenjpeg_handle
 
 

@@ -6,7 +6,7 @@ Advanced Installation Instructions
 Glymur Configuration
 ''''''''''''''''''''''
 
-The default glymur installation process relies upon OpenJPEG being
+The default glymur installation process expects OpenJPEG to be
 properly installed on your system as a shared library. If you have
 OpenJPEG installed through your system’s package manager on linux
 or if you use MacPorts on the mac, you are probably already set to
@@ -49,6 +49,9 @@ installed in a non-standard place, i.e. ::
 
     [library]
     openjpeg: /somewhere/lib/libopenjpeg.so
+
+If your platform is windows, it is strongly recommended that you compile the
+2.1.0 version of the openjpeg library from source.
 
 '''''''
 Testing

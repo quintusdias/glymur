@@ -34,6 +34,7 @@ from glymur.jp2box import FileTypeBox, ImageHeaderBox, JP2HeaderBox
 from glymur.jp2box import JPEG2000SignatureBox
 from glymur.core import COLOR, OPACITY
 from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE
+from glymur.version import openjpeg_version
 
 from .fixtures import (
         WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG,
@@ -54,6 +55,8 @@ def load_tests(loader, tests, ignore):
     tests.addTests(doctest.DocTestSuite('glymur.jp2box'))
     return tests
 
+@unittest.skipIf(re.match('0|1.[0-2]', openjpeg_version) is not None,
+                 "Not supported with OpenJPEG {0}".format(openjpeg_version))
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
 class TestDataEntryURL(unittest.TestCase):
     """Test suite for DataEntryURL boxes."""
@@ -119,7 +122,7 @@ class TestDataEntryURL(unittest.TestCase):
                 self.assertEqual(url + chr(0), read_url)
 
 
-@unittest.skipIf(re.match(r'''(1|2.0.0)''',
+@unittest.skipIf(re.match(r'''0|1|2.0.0''',
                           glymur.version.openjpeg_version) is not None,
                  "Not supported until 2.1")
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")

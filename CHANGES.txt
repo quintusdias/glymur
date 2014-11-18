@@ -1,3 +1,6 @@
+Nov 18, 2014 - v0.7.3  Added read support back for metadata when the 
+    library is not installed.
+
 Oct 06, 2014 - v0.7.2  Added ellipsis support in array-style slicing.
 
 Oct 02, 2014 - v0.7.1  Fixed README to mention Python 3.4
