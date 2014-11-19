@@ -31,6 +31,8 @@ import lxml.etree as ET
 
 import glymur
 from glymur import Jp2k, command_line
+from glymur.version import openjpeg_version
+
 from . import fixtures
 from .fixtures import OPJ_DATA_ROOT, opj_data_file
 from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
@@ -106,6 +108,8 @@ class TestPrinting(unittest.TestCase):
         with self.assertRaises(TypeError):
             glymur.set_printoptions(hi='low')
 
+    @unittest.skipIf(re.match('0|1.[0-4]', openjpeg_version) is not None,
+                     "Not supported with OpenJPEG {0}".format(openjpeg_version))
     def test_asoc_label_box(self):
         """verify printing of asoc, label boxes"""
         # Construct a fake file with an asoc and a label box, as

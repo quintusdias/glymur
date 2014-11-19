@@ -37,6 +37,7 @@ import glymur
 from glymur import Jp2k
 from glymur.jp2box import FileTypeBox, ImageHeaderBox, ColourSpecificationBox
 
+from . import fixtures
 from .fixtures import (
         OPJ_DATA_ROOT, MetadataBase,
         WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG,
@@ -44,6 +45,8 @@ from .fixtures import (
 )
 
 
+@unittest.skipIf(fixtures.OPENJPEG_NOT_AVAILABLE,
+                 fixtures.OPENJPEG_NOT_AVAILABLE_MSG)
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 class TestSuite(unittest.TestCase):
@@ -479,6 +482,8 @@ class TestSuiteWarns(MetadataBase):
         self.assertTrue(True)
 
 
+@unittest.skipIf(fixtures.OPENJPEG_NOT_AVAILABLE,
+                 fixtures.OPENJPEG_NOT_AVAILABLE_MSG)
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 @unittest.skipIf(glymur.version.openjpeg_version_tuple[0] == 1,
@@ -574,6 +579,8 @@ class TestSuiteBands(unittest.TestCase):
         self.assertTrue(True)
 
 
+@unittest.skipIf(fixtures.OPENJPEG_NOT_AVAILABLE,
+                 fixtures.OPENJPEG_NOT_AVAILABLE_MSG)
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 @unittest.skipIf(glymur.version.openjpeg_version_tuple[0] == 1,

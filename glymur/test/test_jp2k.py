@@ -54,6 +54,8 @@ def load_tests(loader, tests, ignore):
     return tests
 
 
+@unittest.skipIf(fixtures.OPENJPEG_NOT_AVAILABLE,
+                 fixtures.OPENJPEG_NOT_AVAILABLE_MSG)
 class SliceProtocolBase(unittest.TestCase):
     """
     Test slice protocol, i.e. when using [ ] to read image data.
@@ -309,6 +311,8 @@ class TestSliceProtocolRead(SliceProtocolBase):
         expected = self.j2k.read(area=(5, 27, 533, 423), rlevel=5)
         np.testing.assert_array_equal(actual, expected)
 
+@unittest.skipIf(fixtures.OPENJPEG_NOT_AVAILABLE,
+                 fixtures.OPENJPEG_NOT_AVAILABLE_MSG)
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 class TestSliceProtocolOpjData(unittest.TestCase):
@@ -460,6 +464,8 @@ class TestSliceProtocolOpjData(unittest.TestCase):
         expected = self.j2k_quarter_data[5:13, 38:50]
         np.testing.assert_array_equal(actual, expected)
 
+@unittest.skipIf(fixtures.OPENJPEG_NOT_AVAILABLE,
+                 fixtures.OPENJPEG_NOT_AVAILABLE_MSG)
 class TestJp2k(unittest.TestCase):
     """These tests should be run by just about all configuration."""
 
@@ -488,7 +494,7 @@ class TestJp2k(unittest.TestCase):
             actdata = j2.read()
             self.assertTrue(fixtures.mse(actdata[0], expdata[0]) < 0.38)
 
-    @unittest.skipIf(re.match('1.[0-4]', openjpeg_version) is not None,
+    @unittest.skipIf(re.match('0|1.[0-4]', openjpeg_version) is not None,
                      "Not supported with OpenJPEG {0}".format(openjpeg_version))
     @unittest.skipIf(re.match('1.5.(1|2)', openjpeg_version) is not None,
                      "Mysteriously fails in 1.5.1 and 1.5.2")
@@ -820,7 +826,7 @@ class TestJp2k(unittest.TestCase):
         self.assertEqual(data.shape, (1024, 1024, 3))
 
 
-@unittest.skipIf(re.match('1.[0-4]', openjpeg_version) is not None,
+@unittest.skipIf(re.match('0|1.[0-4]', openjpeg_version) is not None,
                  "Not supported with OpenJPEG {0}".format(openjpeg_version))
 @unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
 class TestJp2k_write(unittest.TestCase):
@@ -966,6 +972,8 @@ class TestJp2k_write(unittest.TestCase):
             self.assertEqual(codestream.segment[2].spcod[0], glymur.core.CPRL)
 
 
+@unittest.skipIf(fixtures.OPENJPEG_NOT_AVAILABLE,
+                 fixtures.OPENJPEG_NOT_AVAILABLE_MSG)
 @unittest.skipIf(glymur.version.openjpeg_version_tuple[0] >= 2,
                  "Negative tests only for version 1.x")
 class TestJp2k_1_x(unittest.TestCase):
@@ -1092,7 +1100,7 @@ class TestJp2k_2_0(unittest.TestCase):
                 self.assertEqual(jasoc.box[3].box[1].box_id, 'xml ')
 
 
-@unittest.skipIf(re.match(r'''(1|2.0.0)''',
+@unittest.skipIf(re.match(r'''0|1|2.0.0''',
                           glymur.version.openjpeg_version) is not None,
                  "Not to be run until unless 2.0.1 or higher is present")
 class TestJp2k_2_1(unittest.TestCase):
@@ -1290,6 +1298,8 @@ class TestJp2kOpjDataRoot(unittest.TestCase):
                 rgb_from_idx[r, c] = palette[idx[r, c]]
         np.testing.assert_array_equal(rgb, rgb_from_idx)
 
+    @unittest.skipIf(fixtures.OPENJPEG_NOT_AVAILABLE,
+                     fixtures.OPENJPEG_NOT_AVAILABLE_MSG)
     def test_read_differing_subsamples(self):
         """should error out with read used on differently subsampled images"""
         # Verify that we error out appropriately if we use the read method

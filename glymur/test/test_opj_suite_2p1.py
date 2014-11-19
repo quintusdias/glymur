@@ -36,11 +36,14 @@ import numpy as np
 from glymur import Jp2k
 import glymur
 
+from . import fixtures
 from .fixtures import OPJ_DATA_ROOT
 from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
 from .fixtures import mse, peak_tolerance, read_pgx, opj_data_file
 
 
+@unittest.skipIf(fixtures.OPENJPEG_NOT_AVAILABLE,
+                 fixtures.OPENJPEG_NOT_AVAILABLE_MSG)
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 @unittest.skipIf(re.match(r'''(1|2.0.0)''',
@@ -163,6 +166,8 @@ class TestSuite2point1(unittest.TestCase):
             with self.assertRaises(IOError):
                 j.read()
 
+@unittest.skipIf(fixtures.OPENJPEG_NOT_AVAILABLE,
+                 fixtures.OPENJPEG_NOT_AVAILABLE_MSG)
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 @unittest.skipIf(re.match(r'''(1|2.0.0)''',
