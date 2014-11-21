@@ -484,7 +484,7 @@ class Jp2k(Jp2kBox):
         This method can only be used to create JPEG 2000 images that can fit
         in memory.
         """
-        if re.match("1.[0-4]", version.openjpeg_version) is not None:
+        if re.match("0|1.[0-4]", version.openjpeg_version) is not None:
             raise RuntimeError("You must have at least version 1.5 of OpenJPEG "
                                "in order to write images.")
 

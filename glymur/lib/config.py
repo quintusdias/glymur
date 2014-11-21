@@ -144,7 +144,7 @@ def glymur_config():
         lst.append(load_openjpeg_library(libname))
     if all(handle is None for handle in lst):
         msg = "Neither the openjp2 nor the openjpeg library could be loaded.  "
-        raise IOError(msg)
+        warnings.warn(msg)
     return tuple(lst)
 
 def get_configdir():

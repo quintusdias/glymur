@@ -41,10 +41,12 @@ from glymur.jp2box import FileTypeBox, ImageHeaderBox, ColourSpecificationBox
 from .fixtures import (
         OPJ_DATA_ROOT, MetadataBase,
         WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG,
-        mse, peak_tolerance, read_pgx, opj_data_file
+        mse, peak_tolerance, read_pgx, opj_data_file,
+        OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 )
 
 
+@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 class TestSuite(unittest.TestCase):
@@ -482,7 +484,7 @@ class TestSuiteWarns(MetadataBase):
 
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
-@unittest.skipIf(glymur.version.openjpeg_version_tuple[0] == 1,
+@unittest.skipIf(glymur.version.openjpeg_version_tuple[0] != 2,
                  "Feature not supported in glymur until openjpeg 2.0")
 class TestSuiteBands(unittest.TestCase):
     """
@@ -577,7 +579,7 @@ class TestSuiteBands(unittest.TestCase):
 
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
-@unittest.skipIf(glymur.version.openjpeg_version_tuple[0] == 1,
+@unittest.skipIf(glymur.version.openjpeg_version_tuple[0] < 2,
                  "Tests not passing until 2.0")
 class TestSuite2point0(unittest.TestCase):
     """Runs tests introduced in version 2.0 or that pass only in 2.0"""
@@ -641,7 +643,7 @@ class TestSuite2point0(unittest.TestCase):
 
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
-@unittest.skipIf(re.match(r'''(1|2.0.0)''',
+@unittest.skipIf(re.match(r'''0|1|2.0.0''',
                           glymur.version.openjpeg_version) is not None,
                  "Only supported in 2.0.1 or higher")
 class TestSuite2point1(unittest.TestCase):
@@ -798,7 +800,7 @@ class TestSuite2point1(unittest.TestCase):
 
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
-@unittest.skipIf(re.match(r'''(1|2.0.0)''',
+@unittest.skipIf(re.match(r'''0|1|2.0.0''',
                           glymur.version.openjpeg_version) is not None,
                  "Only supported in 2.0.1 or higher")
 class TestReadArea(unittest.TestCase):
