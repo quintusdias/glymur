@@ -54,16 +54,17 @@ class TestDataEntryURL(unittest.TestCase):
     def setUp(self):
         self.jp2file = glymur.data.nemo()
 
+    @unittest.skipIf(re.match("1.5|2", glymur.version.openjpeg_version) is None,
+                     "Must have openjpeg 1.5 or higher to run")
     def test_wrap_greyscale(self):
         """A single component should be wrapped as GREYSCALE."""
         j = Jp2k(self.jp2file)
-        data = j.read()
+        data = j[:]
         red = data[:, :, 0]
 
         # Write it back out as a raw codestream.
         with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile1:
-            j2k = glymur.Jp2k(tfile1.name, 'wb')
-            j2k.write(data[:, :, 0])
+            j2k = glymur.Jp2k(tfile1.name, data=red)
 
             # Ok, now rewrap it as JP2.  The colorspace should be GREYSCALE.
             with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile2:
@@ -124,24 +125,21 @@ class TestChannelDefinition(unittest.TestCase):
     def setUpClass(cls):
         """Need a one_plane plane image for greyscale testing."""
         j2k = Jp2k(glymur.data.goodstuff())
-        data = j2k.read()
+        data = j2k[:]
         # Write the first component back out to file.
         with tempfile.NamedTemporaryFile(suffix=".j2k", delete=False) as tfile:
-            grey_j2k = Jp2k(tfile.name, 'wb')
-            grey_j2k.write(data[:, :, 0])
+            grey_j2k = Jp2k(tfile.name, data=data[:, :, 0])
             cls.one_plane = tfile.name
         # Write the first two components back out to file.
         with tempfile.NamedTemporaryFile(suffix=".j2k", delete=False) as tfile:
-            grey_j2k = Jp2k(tfile.name, 'wb')
-            grey_j2k.write(data[:, :, 0:1])
+            grey_j2k = Jp2k(tfile.name, data=data[:, :, 0:1])
             cls.two_planes = tfile.name
         # Write four components back out to file.
         with tempfile.NamedTemporaryFile(suffix=".j2k", delete=False) as tfile:
-            rgba_jp2 = Jp2k(tfile.name, 'wb')
             shape = (data.shape[0], data.shape[1], 1)
             alpha = np.zeros((shape), dtype=data.dtype)
             data4 = np.concatenate((data, alpha), axis=2)
-            rgba_jp2.write(data4)
+            rgba_jp2 = Jp2k(tfile.name, data=data4)
             cls.four_planes = tfile.name
 
     @classmethod

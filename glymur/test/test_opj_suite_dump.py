@@ -2847,8 +2847,7 @@ class TestSuiteWarns(MetadataBase):
         relpath = 'input/nonregression/issue188_beach_64bitsbox.jp2'
         jfile = opj_data_file(relpath)
         with self.assertWarns(UserWarning):
-            j = Jp2k(jfile)
-        d = j.read()
+            d = Jp2k(jfile)[:]
         self.assertTrue(True)
 
     def test_NR_broken4_jp2_dump(self):

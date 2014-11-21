@@ -87,9 +87,9 @@ class WriteCinema(CinemaBase):
         infile = opj_data_file(relfile)
         data = skimage.io.imread(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, 'wb')
             with self.assertRaises(IOError):
-                j.write(data, cinema2k=48, cratios=[200, 100, 50])
+                j = Jp2k(tfile.name, data=data,
+                        cinema2k=48, cratios=[200, 100, 50])
 
     def test_cinema4K_with_others(self):
         """Can't specify cinema4k with any other options."""
@@ -97,9 +97,9 @@ class WriteCinema(CinemaBase):
         infile = opj_data_file(relfile)
         data = skimage.io.imread(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, 'wb')
             with self.assertRaises(IOError):
-                j.write(data, cinema4k=True, cratios=[200, 100, 50])
+                j = Jp2k(tfile.name, data=data,
+                        cinema4k=True, cratios=[200, 100, 50])
 
 
 @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
@@ -123,10 +123,9 @@ class WriteCinemaWarns(CinemaBase):
         infile = opj_data_file(relfile)
         data = skimage.io.imread(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, 'wb')
             regex = 'OpenJPEG library warning:.*'
             with self.assertWarnsRegex(UserWarning, re.compile(regex)):
-                j.write(data, cinema4k=True)
+                j = Jp2k(tfile.name, data=data, cinema4k=True)
 
             codestream = j.get_codestream()
             self.check_cinema4k_codestream(codestream, (4096, 2160))
@@ -136,9 +135,8 @@ class WriteCinemaWarns(CinemaBase):
         infile = opj_data_file(relfile)
         data = skimage.io.imread(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, 'wb')
             with self.assertWarnsRegex(UserWarning, 'OpenJPEG library warning'):
-                j.write(data, cinema2k=48)
+                j = Jp2k(tfile.name, data=data, cinema2k=48)
 
             codestream = j.get_codestream()
             self.check_cinema2k_codestream(codestream, (2048, 857))
@@ -148,9 +146,8 @@ class WriteCinemaWarns(CinemaBase):
         infile = opj_data_file(relfile)
         data = skimage.io.imread(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, 'wb')
             with self.assertWarnsRegex(UserWarning, 'OpenJPEG library warning'):
-                j.write(data, cinema2k=48)
+                j = Jp2k(tfile.name, data=data, cinema2k=48)
 
             codestream = j.get_codestream()
             self.check_cinema2k_codestream(codestream, (2048, 1080))
@@ -160,9 +157,8 @@ class WriteCinemaWarns(CinemaBase):
         infile = opj_data_file(relfile)
         data = skimage.io.imread(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, 'wb')
             with self.assertWarnsRegex(UserWarning, 'OpenJPEG library warning'):
-                j.write(data, cinema2k=24)
+                j = Jp2k(tfile.name, data=data, cinema2k=24)
 
             codestream = j.get_codestream()
             self.check_cinema2k_codestream(codestream, (2048, 1080))
@@ -172,11 +168,10 @@ class WriteCinemaWarns(CinemaBase):
         infile = opj_data_file(relfile)
         data = skimage.io.imread(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, 'wb')
             with self.assertWarnsRegex(UserWarning, 'OpenJPEG library warning'):
                 # OpenJPEG library warning:  The desired maximum codestream
                 # size has limited at least one of the desired quality layers
-                j.write(data, cinema2k=24)
+                j = Jp2k(tfile.name, data=data, cinema2k=24)
 
             codestream = j.get_codestream()
             self.check_cinema2k_codestream(codestream, (2048, 857))
@@ -186,12 +181,11 @@ class WriteCinemaWarns(CinemaBase):
         infile = opj_data_file(relfile)
         data = skimage.io.imread(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, 'wb')
             regex = 'OpenJPEG library warning'
             with self.assertWarnsRegex(UserWarning, regex):
                 # OpenJPEG library warning:  The desired maximum codestream
                 # size has limited at least one of the desired quality layers
-                j.write(data, cinema2k=48)
+                j = Jp2k(tfile.name, data=data, cinema2k=48)
 
             codestream = j.get_codestream()
             self.check_cinema2k_codestream(codestream, (1998, 1080))
@@ -221,9 +215,8 @@ class TestNegative2pointzero(unittest.TestCase):
         for version in versions:
             with patch('glymur.version.openjpeg_version', new=version):
                 with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-                    j = Jp2k(tfile.name, 'wb')
                     with self.assertRaises(IOError):
-                        j.write(data, cinema2k=48)
+                        j = Jp2k(tfile.name, data=data, cinema2k=48)
 
 
 @unittest.skipIf(re.match(r'''1.[0-4]''', openjpeg_version) is not None,
@@ -249,8 +242,7 @@ class TestSuiteWrite(fixtures.MetadataBase):
         expdata = np.fromfile(filename, dtype=np.uint16)
         expdata.resize((2816, 2048))
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, 'wb')
-            j.write(expdata, irreversible=True)
+            j = Jp2k(tfile.name, data=expdata, irreversible=True)
 
             codestream = j.get_codestream()
             self.assertEqual(codestream.segment[2].spcod[8],
@@ -262,8 +254,7 @@ class TestSuiteWrite(fixtures.MetadataBase):
         infile = opj_data_file('input/nonregression/Bretagne1.ppm')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, 'wb')
-            j.write(data, cratios=[200, 100, 50])
+            j = Jp2k(tfile.name, data=data, cratios=[200, 100, 50])
 
             # Should be three layers.
             c = j.get_codestream()
@@ -294,8 +285,7 @@ class TestSuiteWrite(fixtures.MetadataBase):
         infile = opj_data_file('input/nonregression/Bretagne1.ppm')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, 'wb')
-            j.write(data, psnr=[30, 35, 40], numres=2)
+            j = Jp2k(tfile.name, data=data, psnr=[30, 35, 40], numres=2)
 
             # Should be three layers.
             codestream = j.get_codestream()
@@ -326,9 +316,9 @@ class TestSuiteWrite(fixtures.MetadataBase):
         infile = opj_data_file('input/nonregression/Bretagne1.ppm')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, 'wb')
-            j.write(data, psnr=[30, 35, 40], cbsize=(16, 16),
-                    psizes=[(64, 64)])
+            j = Jp2k(tfile.name, 
+                    data=data,
+                    psnr=[30, 35, 40], cbsize=(16, 16), psizes=[(64, 64)])
 
             # Should be three layers.
             codestream = j.get_codestream()
@@ -361,8 +351,8 @@ class TestSuiteWrite(fixtures.MetadataBase):
         infile = opj_data_file('input/nonregression/Bretagne2.ppm')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, 'wb')
-            j.write(data,
+            j = Jp2k(tfile.name,
+                    data=data,
                     psizes=[(128, 128)] * 3,
                     cratios=[100, 20, 2],
                     tilesize=(480, 640),
@@ -398,8 +388,7 @@ class TestSuiteWrite(fixtures.MetadataBase):
         infile = opj_data_file('input/nonregression/Bretagne2.ppm')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, 'wb')
-            j.write(data, tilesize=(127, 127), prog="PCRL")
+            j = Jp2k(tfile.name, data=data, tilesize=(127, 127), prog="PCRL")
 
             codestream = j.get_codestream()
 
@@ -429,8 +418,7 @@ class TestSuiteWrite(fixtures.MetadataBase):
         infile = opj_data_file('input/nonregression/Bretagne2.ppm')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, 'wb')
-            j.write(data, subsam=(2, 2), sop=True)
+            j = Jp2k(tfile.name, data=data, subsam=(2, 2), sop=True)
 
             codestream = j.get_codestream(header_only=False)
 
@@ -465,8 +453,7 @@ class TestSuiteWrite(fixtures.MetadataBase):
         infile = opj_data_file('input/nonregression/Bretagne2.ppm')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, 'wb')
-            j.write(data, modesw=38, eph=True)
+            j = Jp2k(tfile.name, data=data, modesw=38, eph=True)
 
             codestream = j.get_codestream(header_only=False)
 
@@ -500,8 +487,8 @@ class TestSuiteWrite(fixtures.MetadataBase):
         infile = opj_data_file('input/nonregression/Bretagne2.ppm')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, 'wb')
-            j.write(data, grid_offset=[300, 150], cratios=[800])
+            j = Jp2k(tfile.name,
+                    data=data, grid_offset=[300, 150], cratios=[800])
 
             codestream = j.get_codestream(header_only=False)
 
@@ -531,8 +518,7 @@ class TestSuiteWrite(fixtures.MetadataBase):
         infile = opj_data_file('input/nonregression/Cevennes1.bmp')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, 'wb')
-            j.write(data, cratios=[800])
+            j = Jp2k(tfile.name, data=data, cratios=[800])
 
             codestream = j.get_codestream(header_only=False)
 
@@ -562,8 +548,7 @@ class TestSuiteWrite(fixtures.MetadataBase):
         infile = opj_data_file('input/nonregression/Cevennes2.ppm')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, 'wb')
-            j.write(data, cratios=[50])
+            j = Jp2k(tfile.name, data=data, cratios=[50])
 
             codestream = j.get_codestream(header_only=False)
 
@@ -592,8 +577,8 @@ class TestSuiteWrite(fixtures.MetadataBase):
         """NR-ENC-Rome.bmp-11-encode"""
         data = read_image(opj_data_file('input/nonregression/Rome.bmp'))
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-            jp2 = Jp2k(tfile.name, 'wb')
-            jp2.write(data, psnr=[30, 35, 50], prog='LRCP', numres=3)
+            jp2 = Jp2k(tfile.name,
+                    data=data, psnr=[30, 35, 50], prog='LRCP', numres=3)
 
             ids = [box.box_id for box in jp2.box]
             self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
@@ -658,8 +643,7 @@ class TestSuiteWrite(fixtures.MetadataBase):
         infile = opj_data_file('input/nonregression/random-issue-0005.tif')
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, 'wb')
-            j.write(data)
+            j = Jp2k(tfile.name, data=data)
 
             codestream = j.get_codestream(header_only=False)
 
