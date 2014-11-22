@@ -24,11 +24,10 @@ import warnings
 
 import numpy as np
 
-from .core import (
-        LRCP, RLCP, RPCL, PCRL, CPRL,
-        WAVELET_XFORM_9X7_IRREVERSIBLE, WAVELET_XFORM_5X3_REVERSIBLE,
-        _Keydefaultdict
-)
+from .core import (LRCP, RLCP, RPCL, PCRL, CPRL,
+                   WAVELET_XFORM_9X7_IRREVERSIBLE,
+                   WAVELET_XFORM_5X3_REVERSIBLE,
+                   _Keydefaultdict)
 from .lib import openjp2 as opj2
 
 _factory = lambda x:  '{0} (invalid)'.format(x)
@@ -57,7 +56,7 @@ _CAPABILITIES_DISPLAY = _Keydefaultdict(_factory,
           _PROFILE_0: '0',
           _PROFILE_1: '1',
           _PROFILE_3: 'Cinema 2K',
-          _PROFILE_4: 'Cinema 4K'} )
+          _PROFILE_4: 'Cinema 4K'})
 
 # Need a catch-all list of valid markers.
 # See table A-1 in ISO/IEC FCD15444-1.
@@ -702,7 +701,6 @@ class Codestream(object):
             if numtiles > 65535:
                 msg = "Invalid number of tiles ({0}).".format(numtiles)
                 warnings.warn(msg)
-
 
         kwargs = {'rsiz': rsiz,
                   'xysiz': xysiz,
@@ -1613,6 +1611,7 @@ class SOCsegment(Segment):
     def __repr__(self):
         msg = "glymur.codestream.SOCsegment()"
         return msg
+
 
 class SODsegment(Segment):
     """Container for Start of Data (SOD) segment information.

@@ -29,13 +29,11 @@ import lxml.etree as ET
 import numpy as np
 
 from .codestream import Codestream
-from .core import (
-        _COLORSPACE_MAP_DISPLAY, _COLOR_TYPE_MAP_DISPLAY,
-        SRGB, GREYSCALE, YCC,
-        ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE,
-        ANY_ICC_PROFILE, VENDOR_COLOR_METHOD,
-        _Keydefaultdict
-)
+from .core import (_COLORSPACE_MAP_DISPLAY, _COLOR_TYPE_MAP_DISPLAY,
+                   SRGB, GREYSCALE, YCC,
+                   ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE,
+                   ANY_ICC_PROFILE, VENDOR_COLOR_METHOD,
+                   _Keydefaultdict)
 
 from . import _uuid_io
 
@@ -51,6 +49,7 @@ _APPROX_DISPLAY = _Keydefaultdict(_factory,
          2: 'approximates correct colorspace definition, exceptional quality',
          3: 'approximates correct colorspace definition, reasonable quality',
          4: 'approximates correct colorspace definition, poor quality'})
+
 
 class Jp2kBox(object):
     """Superclass for JPEG 2000 boxes.
@@ -109,7 +108,6 @@ class Jp2kBox(object):
             msg += '\n' + self._indent(boxstr)
         return msg
 
-
     def _indent(self, textstr, indent_level=4):
         """
         Indent a string.
@@ -134,7 +132,6 @@ class Jp2kBox(object):
         else:
             lst = [(' ' * indent_level + x) for x in textstr.split('\n')]
             return '\n'.join(lst)
-
 
     def _write_superbox(self, fptr, box_id):
         """Write a superbox.
@@ -191,13 +188,14 @@ class Jp2kBox(object):
         try:
             box = parser(fptr, start, num_bytes)
         except ValueError as err:
-            msg = "Encountered an unrecoverable ValueError while parsing a {0} "
-            msg += "box at byte offset {1}.  The original error message was "
-            msg += "\"{2}\""
+            msg = "Encountered an unrecoverable ValueError while parsing a "
+            msg += "{0} box at byte offset {1}.  The original error message "
+            msg += "was \"{2}\""
             msg = msg.format(_BOX_WITH_ID[box_id].longname, start, str(err))
             warnings.warn(msg, UserWarning)
             box = UnknownBox(box_id.decode('utf-8'),
-                             length=num_bytes, offset=start, longname='Unknown')
+                             length=num_bytes,
+                             offset=start, longname='Unknown')
 
         return box
 
@@ -299,6 +297,7 @@ class ColourSpecificationBox(Jp2kBox):
     """
     longname = 'Colour Specification'
     box_id = 'colr'
+
     def __init__(self, method=ENUMERATED_COLORSPACE, precedence=0,
                  approximation=0, colorspace=None, icc_profile=None,
                  length=0, offset=-1):
@@ -337,16 +336,16 @@ class ColourSpecificationBox(Jp2kBox):
 
         if self.icc_profile is None:
             if self.colorspace not in [SRGB, GREYSCALE, YCC]:
-                msg = "Colorspace should correspond to one of SRGB, GREYSCALE, "
-                msg += "or YCC."
+                msg = "Colorspace should correspond to one of SRGB, "
+                msg += "GREYSCALE, or YCC."
                 self._dispatch_validation_error(msg, writing=True)
 
         self._validate(writing=True)
 
-
     def __repr__(self):
         msg = "glymur.jp2box.ColourSpecificationBox("
-        msg += "method={0}, precedence={1}, approximation={2}, colorspace={3}, "
+        msg += "method={0}, precedence={1}, approximation={2}, "
+        msg += "colorspace={3}, "
         msg += "icc_profile={4})"
         msg = msg.format(self.method,
                          self.precedence,
@@ -357,7 +356,7 @@ class ColourSpecificationBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         msg += '\n    Method:  {0}'.format(_METHOD_DISPLAY[self.method])
@@ -619,10 +618,9 @@ class ChannelDefinitionBox(Jp2kBox):
             msg += "    65535 - unspecified"
             self._dispatch_validation_error(msg, writing=writing)
 
-
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         for j in range(len(self.association)):
@@ -842,7 +840,7 @@ class CompositingLayerHeaderBox(Jp2kBox):
         List of boxes contained in this superbox.
     """
     box_id = 'jplh'
-    longname='Compositing Layer Header'
+    longname = 'Compositing Layer Header'
 
     def __init__(self, box=None, length=0, offset=-1):
         Jp2kBox.__init__(self)
@@ -931,7 +929,7 @@ class ComponentMappingBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         for k in range(len(self.component_index)):
@@ -1027,7 +1025,9 @@ class ContiguousCodestreamBox(Jp2kBox):
             if self._filename is not None:
                 with open(self._filename, 'rb') as fptr:
                     fptr.seek(self.main_header_offset)
-                    main_header = Codestream(fptr, self._length, header_only=True)
+                    main_header = Codestream(fptr,
+                                             self._length,
+                                             header_only=True)
                     self._main_header = main_header
         return self._main_header
 
@@ -1037,9 +1037,9 @@ class ContiguousCodestreamBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
-        if _printoptions['codestream'] == False:
+        if _printoptions['codestream'] is False:
             return msg
 
         msg += '\n    Main header:'
@@ -1118,7 +1118,8 @@ class DataReferenceBox(Jp2kBox):
         """Verify that the box obeys the specifications for writing.
         """
         if len(self.DR) == 0:
-            msg = "A data reference box cannot be empty when written to a file."
+            msg = "A data reference box cannot be empty when written to a "
+            msg += "file."
             self._dispatch_validation_error(msg, writing=True)
         self._validate(writing=True)
 
@@ -1145,7 +1146,7 @@ class DataReferenceBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         for box in self.DR:
@@ -1248,7 +1249,7 @@ class FileTypeBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         lst = [msg,
@@ -1311,7 +1312,7 @@ class FileTypeBox(Jp2kBox):
             brand = brand.decode('utf-8')
 
         # Extract the compatibility list.  Each entry has 4 bytes.
-        num_entries = int((length - 16)/ 4)
+        num_entries = int((length - 16) / 4)
         compatibility_list = []
         for j in range(int(num_entries)):
             entry, = struct.unpack_from('>4s', read_buffer, 8 + j * 4)
@@ -1374,7 +1375,7 @@ class FragmentListBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         for j in range(len(self.fragment_offset)):
@@ -1458,7 +1459,10 @@ class FragmentTableBox(Jp2kBox):
 
     def __repr__(self):
         msg = "glymur.jp2box.FragmentTableBox(box={0})"
-        msg = msg.format(None) if (len(self.box) == 0) else msg.format(self.box)
+        if len(self.box) == 0:
+            msg = msg.format(None)
+        else:
+            msg = msg.format(self.box)
         return msg
 
     def __str__(self):
@@ -1505,7 +1509,6 @@ class FragmentTableBox(Jp2kBox):
         self._write_superbox(fptr, b'ftbl')
 
 
-
 class FreeBox(Jp2kBox):
     """Container for JPX free box information.
 
@@ -1534,7 +1537,7 @@ class FreeBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         return msg
@@ -1630,7 +1633,7 @@ class ImageHeaderBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         msg = "{0}"
@@ -1861,7 +1864,7 @@ class JPEG2000SignatureBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         msg += '\n    Signature:  {0:02x}{1:02x}{2:02x}{3:02x}'
@@ -1950,7 +1953,7 @@ class PaletteBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         msg += '\n    Size:  ({0} x {1})'.format(*self.palette.shape)
@@ -2203,7 +2206,7 @@ class ReaderRequirementsBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         msg += '\n    Fully Understands Aspect Mask:  0x{0:x}'.format(self.fuam)
@@ -2262,7 +2265,8 @@ class ReaderRequirementsBox(Jp2kBox):
             standard_flag, standard_mask = data
 
             nflags = len(standard_flag)
-            vendor_offset = 1 + 2 * mask_length + 2 + (2 + mask_length) * nflags
+            vendor_offset = 1 + 2 * mask_length + 2 \
+                          + (2 + mask_length) * nflags
             data = _parse_vendor_features(read_buffer[vendor_offset:],
                                           mask_length)
             vendor_feature, vendor_mask = data
@@ -2348,14 +2352,11 @@ def _parse_standard_flag(read_buffer, mask_length):
     # from the buffer read from file.
     mask_format = {1: 'B', 2: 'H', 4: 'I'}[mask_length]
 
-    #read_buffer = fptr.read(2)
     num_standard_flags, = struct.unpack_from('>H', read_buffer, offset=0)
 
     # Read in standard flags and standard masks.  Each standard flag should
     # be two bytes, but the standard mask flag is as long as specified by
     # the mask length.
-    #read_buffer = fptr.read(num_standard_flags * (2 + mask_length))
-
     fmt = '>' + ('H' + mask_format) * num_standard_flags
     data = struct.unpack_from(fmt, read_buffer, offset=2)
 
@@ -2386,7 +2387,6 @@ def _parse_vendor_features(read_buffer, mask_length):
     # Each vendor feature consists of a 16-byte UUID plus a mask whose
     # length is specified by, you guessed it, "mask_length".
     entry_length = 16 + mask_length
-    #read_buffer = fptr.read(num_vendor_features * entry_length)
     vendor_feature = []
     vendor_mask = []
     for j in range(num_vendor_features):
@@ -2494,7 +2494,7 @@ class CaptureResolutionBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         msg += '\n    VCR:  {0}'.format(self.vertical_resolution)
@@ -2560,7 +2560,7 @@ class DisplayResolutionBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         msg += '\n    VDR:  {0}'.format(self.vertical_resolution)
@@ -2620,7 +2620,7 @@ class LabelBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         msg += '\n    Label:  {0}'.format(self.label)
@@ -2688,7 +2688,7 @@ class NumberListBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         for j, association in enumerate(self.associations):
@@ -2738,7 +2738,8 @@ class NumberListBox(Jp2kBox):
     def write(self, fptr):
         """Write a NumberList box to file.
         """
-        fptr.write(struct.pack('>I4s', len(self.associations) * 4 + 8, b'nlst'))
+        fptr.write(struct.pack('>I4s',
+                               len(self.associations) * 4 + 8, b'nlst'))
 
         fmt = '>' + 'I' * len(self.associations)
         write_buffer = struct.pack(fmt, *self.associations)
@@ -2790,9 +2791,9 @@ class XMLBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
-        if _printoptions['xml'] == False:
+        if _printoptions['xml'] is False:
             return msg
 
         msg += '\n'
@@ -2911,7 +2912,7 @@ class UUIDListBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         for j, uuid_item in enumerate(self.ulst):
@@ -2942,7 +2943,7 @@ class UUIDListBox(Jp2kBox):
 
         ulst = []
         for j in range(num_uuids):
-            uuid_buffer = read_buffer[2 + j * 16 : 2 + (j + 1) * 16]
+            uuid_buffer = read_buffer[2 + j * 16:2 + (j + 1) * 16]
             ulst.append(uuid.UUID(bytes=uuid_buffer))
 
         return cls(ulst, length=length, offset=offset)
@@ -3056,7 +3057,6 @@ class DataEntryURLBox(Jp2kBox):
         fptr.write(write_buffer)
         fptr.write(url)
 
-
     def __repr__(self):
         msg = "glymur.jp2box.DataEntryURLBox({0}, {1}, '{2}')"
         msg = msg.format(self.version, self.flag, self.url)
@@ -3064,7 +3064,7 @@ class DataEntryURLBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         msg += '\n    '
@@ -3216,7 +3216,7 @@ class UUIDBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         msg = '{0}\n    UUID:  {1}'.format(msg, self.uuid)
@@ -3227,7 +3227,7 @@ class UUIDBox(Jp2kBox):
         else:
             msg += ' (unknown)'
 
-        if (((_printoptions['xml'] == False) and
+        if (((_printoptions['xml'] is False) and
              (self.uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')))):
             # If it's an XMP UUID, don't print the XML contents.
             return msg
@@ -3312,6 +3312,7 @@ _BOX_WITH_ID = {
 
 _parseoptions = {'codestream': True}
 
+
 def set_parseoptions(codestream=True):
     """Set parsing options.
 
@@ -3336,6 +3337,7 @@ def set_parseoptions(codestream=True):
     """
     _parseoptions['codestream'] = codestream
 
+
 def get_parseoptions():
     """Return the current parsing options.
 
@@ -3356,6 +3358,7 @@ def get_parseoptions():
 
 _printoptions = {'short': False, 'xml': True, 'codestream': True}
 
+
 def set_printoptions(**kwargs):
     """Set printing options.
 
@@ -3365,7 +3368,8 @@ def set_printoptions(**kwargs):
     ----------
     short : bool, optional
         When True, only the box ID, offset, and length are displayed.  Useful
-        for displaying only the basic structure or skeleton of a JPEG 2000 file.
+        for displaying only the basic structure or skeleton of a JPEG 2000
+        file.
     xml : bool, optional
         When False, printing of the XML contents of any XML boxes or UUID XMP
         boxes is suppressed.
@@ -3388,6 +3392,7 @@ def set_printoptions(**kwargs):
             raise TypeError('"{0}" not a valid keyword parameter.'.format(key))
         _printoptions[key] = value
 
+
 def get_printoptions():
     """Return the current print options.
 
@@ -3407,5 +3412,3 @@ def get_printoptions():
     set_printoptions
     """
     return _printoptions
-
-

@@ -11,6 +11,7 @@ import warnings
 
 import lxml.etree as ET
 
+
 def xml(raw_data):
     """
     XMP data to be parsed as XML.
@@ -22,6 +23,7 @@ def xml(raw_data):
         elt = ET.fromstring(text)
 
     return ET.ElementTree(elt)
+
 
 def tiff_header(read_buffer):
     """
@@ -37,8 +39,8 @@ def tiff_header(read_buffer):
         # big endian
         endian = '>'
     else:
-        msg = "The byte order indication in the TIFF header ({0}) is invalid.  "
-        msg += "It should be either {1} or {2}."
+        msg = "The byte order indication in the TIFF header ({0}) is "
+        msg += "invalid.  It should be either {1} or {2}."
         msg = msg.format(read_buffer[6:8], bytes([73, 73]), bytes([77, 77]))
         raise IOError(msg)
 
@@ -503,6 +505,3 @@ class _ExifInteroperabilityIfd(_Ifd):
     def __init__(self, endian, read_buffer, offset):
         _Ifd.__init__(self, endian, read_buffer, offset)
         self.post_process(self.tagnum2name)
-
-
-

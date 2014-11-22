@@ -4,6 +4,7 @@ import collections
 import copy
 import lxml.etree as ET
 
+
 class _Keydefaultdict(collections.defaultdict):
     """Unlisted keys help form their own error message.
 
@@ -121,12 +122,12 @@ ROMM_RGB = 21
 
 _factory = lambda x:  '{0} (unrecognized)'.format(x)
 _COLORSPACE_MAP_DISPLAY = _Keydefaultdict(_factory,
-        { CMYK:  'CMYK',
-          SRGB:  'sRGB',
-          GREYSCALE:  'greyscale',
-          YCC:  'YCC',
-          E_SRGB:  'e-sRGB',
-          ROMM_RGB:  'ROMM-RGB'} )
+                                          {CMYK:  'CMYK',
+                                           SRGB:  'sRGB',
+                                           GREYSCALE:  'greyscale',
+                                           YCC:  'YCC',
+                                           E_SRGB:  'e-sRGB',
+                                           ROMM_RGB:  'ROMM-RGB'})
 
 # enumerated color channel types
 COLOR = 0
@@ -134,11 +135,11 @@ OPACITY = 1
 PRE_MULTIPLIED_OPACITY = 2
 _UNSPECIFIED = 65535
 _factory = lambda x:  '{0} (invalid)'.format(x)
-_COLOR_TYPE_MAP_DISPLAY = _Keydefaultdict(_factory,
-        { COLOR:  'color',
-          OPACITY:  'opacity',
-          PRE_MULTIPLIED_OPACITY:  'pre-multiplied opacity',
-          _UNSPECIFIED:  'unspecified'})
+_dict = {COLOR:  'color',
+         OPACITY:  'opacity',
+         PRE_MULTIPLIED_OPACITY: 'pre-multiplied opacity',
+         _UNSPECIFIED:  'unspecified'}
+_COLOR_TYPE_MAP_DISPLAY = _Keydefaultdict(_factory, _dict)
 
 # color channel definitions.
 RED = 1
@@ -153,4 +154,3 @@ _COLORSPACE = {SRGB: {"R": 1, "G": 2, "B": 3},
                YCC: {"Y": 1, "Cb": 2, "Cr": 3},
                E_SRGB: {"R": 1, "G": 2, "B": 3},
                ROMM_RGB: {"R": 1, "G": 2, "B": 3}}
-

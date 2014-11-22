@@ -31,11 +31,11 @@ import numpy as np
 
 from .codestream import Codestream
 from . import core, version
-from .jp2box import (
-        Jp2kBox, JPEG2000SignatureBox, FileTypeBox, JP2HeaderBox,
-        ColourSpecificationBox, ContiguousCodestreamBox, ImageHeaderBox
-)
+from .jp2box import (Jp2kBox, JPEG2000SignatureBox, FileTypeBox,
+                     JP2HeaderBox, ColourSpecificationBox,
+                     ContiguousCodestreamBox, ImageHeaderBox)
 from .lib import openjpeg as opj, openjp2 as opj2, c as libc
+
 
 class Jp2k(Jp2kBox):
     """JPEG 2000 file.
@@ -138,7 +138,6 @@ class Jp2k(Jp2kBox):
             not (X, Y)
         verbose : bool, optional
             print informational messages produced by the OpenJPEG library
-            
         """
         Jp2kBox.__init__(self)
         self.filename = filename
@@ -176,8 +175,8 @@ class Jp2k(Jp2kBox):
     @layer.setter
     def layer(self, layer):
         if version.openjpeg_version_tuple[0] < 2:
-            msg = "Layer property not supported unless the version of OpenJPEG "
-            msg += "is 2.0 or higher."
+            msg = "Layer property not supported unless the version of "
+            msg += "OpenJPEG is 2.0 or higher."
             raise RuntimeError(msg)
         self._layer = layer
 
@@ -361,8 +360,8 @@ class Jp2k(Jp2kBox):
         kwargs : dictionary
             non-image keyword inputs provided to write method
         """
-        if (('cinema2k' in kwargs or 'cinema4k' in kwargs)  and
-                (len(set(kwargs)) > 1)):
+        if ((('cinema2k' in kwargs or 'cinema4k' in kwargs) and
+             (len(set(kwargs)) > 1))):
             msg = "Cannot specify cinema2k/cinema4k along with other options."
             raise IOError(msg)
 
@@ -485,8 +484,9 @@ class Jp2k(Jp2kBox):
         in memory.
         """
         if re.match("0|1.[0-4]", version.openjpeg_version) is not None:
-            raise RuntimeError("You must have at least version 1.5 of OpenJPEG "
-                               "in order to write images.")
+            msg = "You must have at least version 1.5 of OpenJPEG "
+            msg += "in order to write images."
+            raise RuntimeError(msg)
 
         self._determine_colorspace(**kwargs)
         self._populate_cparams(img_array, **kwargs)
@@ -518,9 +518,11 @@ class Jp2k(Jp2kBox):
             image.contents.x0 = self._cparams.image_offset_x0
             image.contents.y0 = self._cparams.image_offset_y0
             image.contents.x1 = image.contents.x0 \
-                              + (numcols - 1) * self._cparams.subsampling_dx + 1
+                                + (numcols - 1) * self._cparams.subsampling_dx \
+                                + 1
             image.contents.y1 = image.contents.y0 \
-                              + (numrows - 1) * self._cparams.subsampling_dy + 1
+                                + (numrows - 1) * self._cparams.subsampling_dy \
+                                + 1
 
             # Stage the image data to the openjpeg data structure.
             for k in range(0, numlayers):
@@ -633,7 +635,7 @@ class Jp2k(Jp2kBox):
 
     def _determine_colorspace(self, colorspace=None, **kwargs):
         """Determine the colorspace from the supplied inputs.
-    
+
         Parameters
         ----------
         colorspace : str, optional
@@ -658,7 +660,7 @@ class Jp2k(Jp2kBox):
             elif colorspace.lower() == 'rgb' and self.shape[2] < 3:
                 msg = 'RGB colorspace requires at least 3 components.'
                 raise IOError(msg)
-    
+
             # Turn the colorspace from a string to the enumerated value that
             # the library expects.
             COLORSPACE_MAP = {'rgb': opj2.CLRSPC_SRGB,
@@ -667,8 +669,7 @@ class Jp2k(Jp2kBox):
                               'ycc': opj2.CLRSPC_YCC}
 
             self._colorspace = COLORSPACE_MAP[colorspace.lower()]
-    
-    
+
     def _write_openjp2(self, img_array, verbose=False):
         """
         Write JPEG 2000 file using OpenJPEG 2.x interface.
@@ -734,7 +735,8 @@ class Jp2k(Jp2kBox):
         if not ((box.box_id == 'xml ') or
                 (box.box_id == 'uuid' and
                  box.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'))):
-            msg = "Only XML boxes and XMP UUID boxes can currently be appended."
+            msg = "Only XML boxes and XMP UUID boxes can currently be "
+            msg += "appended."
             raise IOError(msg)
 
         # Check the last box.  If the length field is zero, then rewrite
@@ -891,9 +893,9 @@ class Jp2k(Jp2kBox):
         Slicing protocol.
         """
         if ((isinstance(index, slice) and
-            (index.start == None and
-                index.stop == None and
-                index.step == None)) or (index is Ellipsis)):
+            (index.start is None and
+                index.stop is None and
+                index.step is None)) or (index is Ellipsis)):
             # Case of jp2[:] = data, i.e. write the entire image.
             #
             # Should have a slice object where start = stop = step = None
@@ -923,12 +925,14 @@ class Jp2k(Jp2kBox):
             return self._read()
 
         if isinstance(pargs, slice):
-            if pargs.start is None and pargs.stop is None and pargs.step is None:
+            if (((pargs.start is None) and
+                 (pargs.stop is None) and
+                 (pargs.step is None))):
                 # Case of jp2[:]
                 return self._read()
 
             # Corner case of jp2[x] where x is a slice object with non-null
-            # members.  Just augment it with an ellipsis and let the code 
+            # members.  Just augment it with an ellipsis and let the code
             # below handle it.
             pargs = (pargs, Ellipsis)
 
@@ -971,8 +975,7 @@ class Jp2k(Jp2kBox):
             # Reduce dimensionality in the scalar dimension.
             return np.squeeze(data, axis=idx)
 
-
-        # Assuming pargs is a tuple of slices from now on.  
+        # Assuming pargs is a tuple of slices from now on.
         rows = pargs[0]
         cols = pargs[1]
         if len(pargs) == 2:
@@ -989,15 +992,14 @@ class Jp2k(Jp2kBox):
         # Ok, reduce layer step is the same in both xy directions, so just take
         # one of them.
         step = rows_step
-    
+
         # Check if the step size is a power of 2.
         if np.abs(np.log2(step) - np.round(np.log2(step))) > 1e-6:
             msg = "Row and column strides must be powers of 2."
             raise IndexError(msg)
         rlevel = np.int(np.round(np.log2(step)))
 
-        area = (
-                0 if rows.start is None else rows.start,
+        area = (0 if rows.start is None else rows.start,
                 0 if cols.start is None else cols.start,
                 numrows if rows.stop is None else rows.stop,
                 numcols if cols.stop is None else cols.stop
@@ -1008,7 +1010,6 @@ class Jp2k(Jp2kBox):
 
         # Ok, 3 arguments in pargs.
         return data[:, :, bands]
-
 
     def _read(self, **kwargs):
         """Read a JPEG 2000 image.
@@ -1032,34 +1033,34 @@ class Jp2k(Jp2kBox):
     def read(self, **kwargs):
         """
         """
-        #Read a JPEG 2000 image.
+        # Read a JPEG 2000 image.
         #
-        #Parameters
-        #----------
-        #rlevel : int, optional
-        #    Factor by which to rlevel output resolution.  Use -1 to get the
-        #    lowest resolution thumbnail.  This is the only keyword option
-        #    available to use when the OpenJPEG version is 1.5 or earlier.
-        #layer : int, optional
-        #    Number of quality layer to decode.
-        #area : tuple, optional
-        #    Specifies decoding image area,
-        #    (first_row, first_col, last_row, last_col)
-        #tile : int, optional
-        #    Number of tile to decode.
-        #verbose : bool, optional
-        #    Print informational messages produced by the OpenJPEG library.
+        # Parameters
+        # ----------
+        # rlevel : int, optional
+        #     Factor by which to rlevel output resolution.  Use -1 to get the
+        #     lowest resolution thumbnail.  This is the only keyword option
+        #     available to use when the OpenJPEG version is 1.5 or earlier.
+        # layer : int, optional
+        #     Number of quality layer to decode.
+        # area : tuple, optional
+        #     Specifies decoding image area,
+        #     (first_row, first_col, last_row, last_col)
+        # tile : int, optional
+        #     Number of tile to decode.
+        # verbose : bool, optional
+        #     Print informational messages produced by the OpenJPEG library.
         #
-        #Returns
-        #-------
-        #img_array : ndarray
-        #    The image data.
+        # Returns
+        # -------
+        # img_array : ndarray
+        #     The image data.
         #
-        #Raises
-        #------
-        #IOError
-        #    If the image has differing subsample factors.
-        
+        # Raises
+        # ------
+        # IOError
+        #     If the image has differing subsample factors.
+
         if 'ignore_pclr_cmap_cdef' in kwargs:
             self.ignore_pclr_cmap_cdef = kwargs['ignore_pclr_cmap_cdef']
         warnings.warn("Use array-style slicing instead.", DeprecationWarning)
@@ -1163,7 +1164,8 @@ class Jp2k(Jp2kBox):
 
         return data
 
-    def _read_openjp2(self, rlevel=0, layer=None, area=None, tile=None, verbose=False):
+    def _read_openjp2(self, rlevel=0, layer=None, area=None, tile=None,
+                      verbose=False):
         """Read a JPEG 2000 image using libopenjp2.
 
         Parameters
@@ -1453,7 +1455,7 @@ class Jp2k(Jp2kBox):
 
     def _populate_image_struct(self, image, imgdata):
         """Populates image struct needed for compression.
-    
+
         Parameters
         ----------
         image : ImageType(ctypes.Structure)
@@ -1461,9 +1463,9 @@ class Jp2k(Jp2kBox):
         img_array : ndarray
             Image data to be written to file.
         """
-    
+
         numrows, numcols, num_comps = imgdata.shape
-    
+
         # set image offset and reference grid
         image.contents.x0 = self._cparams.image_offset_x0
         image.contents.y0 = self._cparams.image_offset_y0
@@ -1471,7 +1473,7 @@ class Jp2k(Jp2kBox):
                              (numcols - 1) * self._cparams.subsampling_dx + 1)
         image.contents.y1 = (image.contents.y0 +
                              (numrows - 1) * self._cparams.subsampling_dy + 1)
-    
+
         # Stage the image data to the openjpeg data structure.
         for k in range(0, num_comps):
             if re.match("2.0", version.openjpeg_version) is not None:
@@ -1485,19 +1487,19 @@ class Jp2k(Jp2kBox):
                                           core.OPJ_PROFILE_CINEMA_4K):
                     image.contents.comps[k].prec = 12
                     image.contents.comps[k].bpp = 12
-    
+
             layer = np.ascontiguousarray(imgdata[:, :, k], dtype=np.int32)
             dest = image.contents.comps[k].data
             src = layer.ctypes.data
             ctypes.memmove(dest, src, layer.nbytes)
-    
+
         return image
-    
+
     def _populate_comptparms(self, img_array):
         """Instantiate and populate comptparms structure.
-    
+
         This structure defines the image components.
-    
+
         Parameters
         ----------
         img_array : ndarray
@@ -1526,8 +1528,8 @@ class Jp2k(Jp2kBox):
             comptparms[j].sgnd = 0
 
         self._comptparms = comptparms
-    
-    
+
+
 def _component2dtype(component):
     """Take an OpenJPEG component structure and determine the numpy datatype.
 
@@ -1573,6 +1575,7 @@ JP2_IDS = ['colr', 'cdef', 'cmap', 'jp2c', 'ftyp', 'ihdr', 'jp2h', 'jP  ',
            'pclr', 'res ', 'resc', 'resd', 'xml ', 'ulst', 'uinf', 'url ',
            'uuid']
 
+
 def _validate_jp2_box_sequence(boxes):
     """Run through series of tests for JP2 box legality.
 
@@ -1588,11 +1591,12 @@ def _validate_jp2_box_sequence(boxes):
         count = _collect_box_count(boxes)
         for box_id in count.keys():
             if box_id not in JP2_IDS:
-                msg = "The presence of a '{0}' box requires that the file type "
-                msg += "brand be set to 'jpx '."
+                msg = "The presence of a '{0}' box requires that the file "
+                msg += "type brand be set to 'jpx '."
                 raise IOError(msg.format(box_id))
 
         _validate_jp2_colr(boxes)
+
 
 def _validate_jp2_colr(boxes):
     """
@@ -1605,6 +1609,7 @@ def _validate_jp2_colr(boxes):
             msg = "A JP2 colr box cannot have a non-zero approximation field."
             raise IOError(msg)
 
+
 def _validate_jpx_box_sequence(boxes):
     """Run through series of tests for JPX box legality."""
     _validate_label(boxes)
@@ -1612,6 +1617,7 @@ def _validate_jpx_box_sequence(boxes):
     _validate_jpx_compatibility(boxes, boxes[1].compatibility_list)
     _validate_singletons(boxes)
     _validate_top_level(boxes)
+
 
 def _validate_signature_compatibility(boxes):
     """Validate the file signature and compatibility status."""
@@ -1700,6 +1706,8 @@ def _validate_channel_definition(jp2h, colr):
 
 
 JP2H_CHILDREN = set(['bpcc', 'cdef', 'cmap', 'ihdr', 'pclr'])
+
+
 def _check_jp2h_child_boxes(boxes, parent_box_name):
     """Certain boxes can only reside in the JP2 header."""
     box_ids = set([box.box_id for box in boxes])
@@ -1727,6 +1735,7 @@ def _collect_box_count(boxes):
 
 TOP_LEVEL_ONLY_BOXES = set(['dtbl'])
 
+
 def _check_superbox_for_top_levels(boxes):
     """Several boxes can only occur at the top level."""
     # We are only looking at the boxes contained in a superbox, so if any of
@@ -1741,6 +1750,7 @@ def _check_superbox_for_top_levels(boxes):
     for box in boxes:
         if hasattr(box, 'box'):
             _check_superbox_for_top_levels(box.box)
+
 
 def _validate_top_level(boxes):
     """Several boxes can only occur at the top level."""
@@ -1761,6 +1771,7 @@ def _validate_top_level(boxes):
         msg += 'a fragment table box as well.'
         raise IOError(msg)
 
+
 def _validate_singletons(boxes):
     """Several boxes can only occur once."""
     count = _collect_box_count(boxes)
@@ -1770,6 +1781,7 @@ def _validate_singletons(boxes):
         raise IOError('There can only be one dtbl box in a file.')
 
 JPX_IDS = ['asoc', 'nlst']
+
 
 def _validate_jpx_brand(boxes, brand):
     """
@@ -1784,6 +1796,7 @@ def _validate_jpx_brand(boxes, brand):
         if hasattr(box, 'box') != 0:
             # Same set of checks on any child boxes.
             _validate_jpx_brand(box.box, brand)
+
 
 def _validate_jpx_compatibility(boxes, compatibility_list):
     """
@@ -1800,6 +1813,7 @@ def _validate_jpx_compatibility(boxes, compatibility_list):
             # Same set of checks on any child boxes.
             _validate_jpx_compatibility(box.box, compatibility_list)
 
+
 def _validate_label(boxes):
     """
     Label boxes can only be inside association, codestream headers, or
@@ -1815,6 +1829,7 @@ def _validate_label(boxes):
                         raise IOError(msg)
                 # Same set of checks on any child boxes.
                 _validate_label(box.box)
+
 
 def extract_image_cube(image):
     """Extract 3D image from openjpeg data structure.
@@ -1869,7 +1884,6 @@ def extract_image_bands(image):
         data.append(np.reshape(band.astype(dtype), (nrows, ncols)))
 
     return data
-
 
 
 # Setup the default callback handlers.  See the callback functions subsection
