@@ -17,7 +17,7 @@ import glymur
 from . import fixtures
 
 @unittest.skipIf(sys.hexversion < 0x03000000, "do not care about 2.7 here")
-@unittest.skipIf(re.match('1|2.0', glymur.version.openjpeg_version),
+@unittest.skipIf(re.match('0|1|2.0', glymur.version.openjpeg_version),
                  "Requires openjpeg 2.1.0 or higher")
 class TestPrintingOpenjp2(unittest.TestCase):
     """Tests for verifying how printing works on openjp2 library structures."""

@@ -65,6 +65,8 @@ class TestCallbacks(unittest.TestCase):
         expected = '[INFO] tile number 1 / 1'
         self.assertEqual(actual, expected)
 
+    @unittest.skipIf(glymur.version.openjpeg_version[0] == '0',
+                     "Missing openjpeg/openjp2 library.")
     def test_info_callbacks_on_read(self):
         """stdio output when info callback handler is enabled"""
 

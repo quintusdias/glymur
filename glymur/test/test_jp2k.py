@@ -36,6 +36,7 @@ from glymur.version import openjpeg_version
 
 from .fixtures import HAS_PYTHON_XMP_TOOLKIT
 from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
+from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 if HAS_PYTHON_XMP_TOOLKIT:
     import libxmp
@@ -76,6 +77,7 @@ class SliceProtocolBase(unittest.TestCase):
         self.j2k_data_r1 = self.j2k[::2, ::2]
         self.j2k_data_r5 = self.j2k[::32, ::32]
 
+@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 @unittest.skipIf(re.match("1.5|2", glymur.version.openjpeg_version) is None,
                  "Must have openjpeg 1.5 or higher to run")
 @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
@@ -143,6 +145,7 @@ class TestSliceProtocolBaseWrite(SliceProtocolBase):
                 j[:25, :45, :] = self.j2k_data[:25, :25, :]
 
 
+@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 class TestSliceProtocolRead(SliceProtocolBase):
 
     def test_resolution_strides_cannot_differ(self):
@@ -251,6 +254,7 @@ class TestJp2k(unittest.TestCase):
     def tearDown(self):
         pass
 
+    @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
     @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_warn_if_using_read_method(self):
         """Should warn if deprecated read method is called"""
@@ -313,6 +317,7 @@ class TestJp2k(unittest.TestCase):
             actdata = j2[:]
             self.assertTrue(fixtures.mse(actdata[0], expdata[0]) < 0.38)
 
+    @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
     @unittest.skipIf(re.match('1.[0-4]', openjpeg_version) is not None,
                      "Not supported with OpenJPEG {0}".format(openjpeg_version))
     @unittest.skipIf(re.match('1.5.(1|2)', openjpeg_version) is not None,
@@ -345,6 +350,7 @@ class TestJp2k(unittest.TestCase):
         self.assertEqual(newjp2.filename, self.j2kfile)
         self.assertEqual(len(newjp2.box), 0)
 
+    @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
     @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_rlevel_max_backwards_compatibility(self):
         """
@@ -367,6 +373,7 @@ class TestJp2k(unittest.TestCase):
         np.testing.assert_array_equal(thumbnail1, thumbnail2)
         self.assertEqual(thumbnail1.shape, (25, 15, 3))
 
+    @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
     def test_rlevel_too_high(self):
         """Should error out appropriately if reduce level too high"""
         j = Jp2k(self.jp2file)
@@ -518,12 +525,14 @@ class TestJp2k(unittest.TestCase):
                 self.assertEqual(new_jp2.box[j].length,
                                  baseline_jp2.box[j].length)
 
+    @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
     def test_basic_jp2(self):
         """Just a very basic test that reading a JP2 file does not error out.
         """
         j2k = Jp2k(self.jp2file)
         j2k[::2, ::2]
 
+    @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
     def test_basic_j2k(self):
         """This test is only useful when openjp2 is not available
         and OPJ_DATA_ROOT is not set.  We need at least one
@@ -648,6 +657,7 @@ class TestJp2k(unittest.TestCase):
         creator_tool = xmp.get_property(libxmp.consts.XMP_NS_XMP, 'CreatorTool')
         self.assertEqual(creator_tool, 'Google') 
 
+    @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
     @unittest.skipIf(re.match(r'''(1|2.0.0)''',
                               glymur.version.openjpeg_version) is not None,
                      "Not supported until 2.0.1")
@@ -664,6 +674,7 @@ class TestJp2k(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 glymur.Jp2k(self.jp2file).read_bands()
 
+@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 @unittest.skipIf(re.match('1.[0-4]', openjpeg_version) is not None,
                  "Not supported with OpenJPEG {0}".format(openjpeg_version))
 @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
@@ -869,6 +880,7 @@ class TestJp2k_1_x(unittest.TestCase):
 
 
 @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
+@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 class Test_2p0_official(unittest.TestCase):
     """Tests specific to v2.0.0"""
 
@@ -962,6 +974,7 @@ class TestJp2k_2_0(unittest.TestCase):
                 self.assertEqual(jasoc.box[3].box[1].box_id, 'xml ')
 
 
+@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 @unittest.skipIf(re.match(r'''(1|2.0.0)''',
                           glymur.version.openjpeg_version) is not None,
                  "Not to be run until unless 2.0.1 or higher is present")
@@ -1135,7 +1148,7 @@ class TestJp2kOpjDataRoot(unittest.TestCase):
 
             actdata = j[:]
             self.assertTrue(fixtures.mse(actdata, expdata) < 250)
-
+	
     @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_no_cxform_pclr_jp2(self):
         """Indices for pclr jpxfile if no color transform"""
