@@ -35,8 +35,10 @@ else:
 
 import lxml.etree
 
-from .fixtures import HAS_PYTHON_XMP_TOOLKIT, OPJ_DATA_ROOT
-from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
+from .fixtures import (HAS_PYTHON_XMP_TOOLKIT, OPJ_DATA_ROOT,
+                       WARNING_INFRASTRUCTURE_ISSUE,
+                       WARNING_INFRASTRUCTURE_MSG,
+                       WINDOWS_TMP_FILE_MSG)
 
 if HAS_PYTHON_XMP_TOOLKIT:
     from libxmp import XMPMeta
@@ -46,7 +48,7 @@ from glymur import Jp2k
 from .fixtures import OPJ_DATA_ROOT, opj_data_file, SimpleRDF
 
 
-@unittest.skipIf(os.name == "nt", "Unexplained failure on windows")
+@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
 class TestSuite(unittest.TestCase):
     """Tests for XMP, Exif UUIDs."""
 
@@ -102,7 +104,7 @@ class TestSuite(unittest.TestCase):
             self.assertEqual(jp2.box[-1].data['Make'], "HTC")
 
 @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
-@unittest.skipIf(os.name == "nt", "Unexplained failure on windows")
+@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
 class TestSuiteWarns(unittest.TestCase):
     """Tests for XMP, Exif UUIDs, issues warnings."""
 
@@ -191,6 +193,3 @@ class TestSuiteWarns(unittest.TestCase):
                 jp2 = glymur.Jp2k(tfile.name)
 
             self.assertEqual(jp2.box[-1].box_id, 'uuid')
-
-if __name__ == "__main__":
-    unittest.main()
