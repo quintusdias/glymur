@@ -13,6 +13,7 @@ from .config import glymur_config
 
 OPENJP2, OPENJPEG = glymur_config()
 
+
 def version():
     """Wrapper for opj_version library routine."""
     try:
@@ -49,13 +50,6 @@ JPWL_MAX_NO_TILESPECS = 16
 
 TRUE = 1
 FALSE = 0
-
-#PROFILE = {'none': 0,        # No profile
-#        0: 1,                # Profile 0
-#        1: 2,                # Profile 1
-#        'part2': 0x8000,     # At least one extension
-#        'Cinema2K': 0x0003,  # 2K cinema profile
-#        'Cinema4K': 0x0004,  # 4K cinema profile
 
 # supported color spaces
 CLRSPC_UNKNOWN = -1
@@ -548,7 +542,6 @@ class ImageType(ctypes.Structure):
         return msg
 
 
-
 class ImageComptParmType(ctypes.Structure):
     """Component parameters structure used by image_create function.
 
@@ -958,7 +951,7 @@ def read_header(stream, codec):
     ARGTYPES = [STREAM_TYPE_P, CODEC_TYPE,
                 ctypes.POINTER(ctypes.POINTER(ImageType))]
     OPENJP2.opj_read_header.argtypes = ARGTYPES
-    OPENJP2.opj_read_header.restype = check_error 
+    OPENJP2.opj_read_header.restype = check_error
 
     imagep = ctypes.POINTER(ImageType)()
     OPENJP2.opj_read_header(stream, codec, ctypes.byref(imagep))
@@ -1317,6 +1310,7 @@ def _stream_create_default_file_stream_2p0(fptr, isa_read_stream):
     stream = OPENJP2.opj_stream_create_default_file_stream(fptr, read_stream)
     return stream
 
+
 def _stream_create_default_file_stream_2p1(fname, isa_read_stream):
     """Wraps openjp2 library function opj_stream_create_default_vile_stream.
 
@@ -1343,7 +1337,7 @@ def _stream_create_default_file_stream_2p1(fname, isa_read_stream):
     stream = OPENJP2.opj_stream_create_default_file_stream(file_argument,
                                                            read_stream)
     return stream
-    
+
 if re.match(r'''2.0''', version()):
     stream_create_default_file_stream = _stream_create_default_file_stream_2p0
 else:

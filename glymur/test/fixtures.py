@@ -13,6 +13,14 @@ import six
 
 import glymur
 
+# If openjpeg is not installed, many tests cannot be run.
+if glymur.version.openjpeg_version == '0.0.0':
+    OPENJPEG_NOT_AVAILABLE = True
+    OPENJPEG_NOT_AVAILABLE_MSG = 'OpenJPEG library not installed'
+else:
+    OPENJPEG_NOT_AVAILABLE = False
+    OPENJPEG_NOT_AVAILABLE_MSG = None
+
 # Some versions of "six" on python3 cause problems when verifying warnings.
 # Only use when the version is 1.7 or higher.
 # And moreover, we only test using the 3.x infrastructure, never on 2.x.

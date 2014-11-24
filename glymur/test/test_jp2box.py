@@ -114,7 +114,7 @@ class TestDataEntryURL(unittest.TestCase):
                 self.assertEqual(url + chr(0), read_url)
 
 
-@unittest.skipIf(re.match(r'''(1|2.0.0)''',
+@unittest.skipIf(re.match(r'''0|1|2.0.0''',
                           glymur.version.openjpeg_version) is not None,
                  "Not supported until 2.1")
 @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
