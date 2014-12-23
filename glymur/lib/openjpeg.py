@@ -6,8 +6,6 @@
 import ctypes
 import sys
 
-import numpy as np
-
 from .config import glymur_config
 
 _, OPENJPEG = glymur_config()
@@ -364,9 +362,9 @@ class DecompressionParametersType(ctypes.Structure):
 class ImageComptParmType(ctypes.Structure):
     """Component parameters structure used by the opj_image_create function.
     """
-    _fields_ = [# XRsiz: horizontal separation of a sample of ith component
+    _fields_ = [("dx", ctypes.c_int),
+                # XRsiz: horizontal separation of a sample of ith component
                 # with respect to the reference grid
-                ("dx", ctypes.c_int),
 
                 # YRsiz: vertical separation of a sample of ith component with
                 # respect to the reference grid */
@@ -525,50 +523,6 @@ def destroy_decompress(dinfo):
     argtypes = [ctypes.POINTER(DecompressionInfoType)]
     OPENJPEG.opj_destroy_decompress.argtypes = argtypes
     OPENJPEG.opj_destroy_decompress(dinfo)
-
-
-def image_cmptparm_t_from_np(np_image):
-    """Return appropriate image_cmptparm_t based on given numpy array.
-    """
-    try:
-        num_comps = np_image.shape[2]
-    except IndexError:
-        num_comps = 1
-
-    cmpt_parm_array_t = ImageCmptparmType * num_comps
-    tarr = cmpt_parm_array_t()
-
-    if np_image.dtype == np.uint8:
-        prec = 8
-        bpp = 8
-        sgnd = 0
-    elif np_image.dtype == np.int8:
-        prec = 8
-        bpp = 8
-        sgnd = 1
-    elif np_image.dtype == np.uint16:
-        prec = 16
-        bpp = 16
-        sgnd = 0
-    elif np_image.dtype == np.int16:
-        prec = 16
-        bpp = 16
-        sgnd = 1
-    else:
-        raise(TypeError("unhandled"))
-
-    for j in range(0, num_comps):
-        tarr[j].dx = 1
-        tarr[j].dy = 1
-        tarr[j].w = np_image.shape[1]
-        tarr[j].h = np_image.shape[0]
-        tarr[j].x0 = 0
-        tarr[j].y0 = 0
-        tarr[j].prec = prec
-        tarr[j].bpp = bpp
-        tarr[j].sgnd = sgnd
-
-    return(tarr)
 
 
 def image_create(cmptparms, cspace):

@@ -10,7 +10,6 @@ seem like logical negative tests to add.
 
 import os
 import re
-import sys
 import tempfile
 import unittest
 
@@ -88,7 +87,6 @@ class TestSuiteNegativeWrite(unittest.TestCase):
     def tearDown(self):
         pass
 
-
     @unittest.skipIf(NO_SKIMAGE_FREEIMAGE_SUPPORT,
                      "Cannot read input image without scikit-image/freeimage")
     def test_cinema2K_bad_frame_rate(self):
@@ -98,8 +96,7 @@ class TestSuiteNegativeWrite(unittest.TestCase):
         data = skimage.io.imread(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             with self.assertRaises(IOError):
-                j = Jp2k(tfile.name, data=data, cinema2k=36)
-
+                Jp2k(tfile.name, data=data, cinema2k=36)
 
     @unittest.skipIf(NO_READ_BACKEND, NO_READ_BACKEND_MSG)
     def test_psnr_with_cratios(self):
@@ -109,8 +106,8 @@ class TestSuiteNegativeWrite(unittest.TestCase):
         data = read_image(infile)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             with self.assertRaises(IOError):
-                j = Jp2k(tfile.name, 
-                        data=data, psnr=[30, 35, 40], cratios=[2, 3, 4])
+                Jp2k(tfile.name,
+                     data=data, psnr=[30, 35, 40], cratios=[2, 3, 4])
 
     def test_code_block_dimensions(self):
         """don't allow extreme codeblock sizes"""
@@ -120,13 +117,13 @@ class TestSuiteNegativeWrite(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             # opj_compress doesn't allow code block area to exceed 4096.
             with self.assertRaises(IOError):
-                j = Jp2k(tfile.name, data=data, cbsize=(256, 256))
+                Jp2k(tfile.name, data=data, cbsize=(256, 256))
 
             # opj_compress doesn't allow either dimension to be less than 4.
             with self.assertRaises(IOError):
-                j = Jp2k(tfile.name, data=data, cbsize=(2048, 2))
+                Jp2k(tfile.name, data=data, cbsize=(2048, 2))
             with self.assertRaises(IOError):
-                j = Jp2k(tfile.name, data=data, cbsize=(2, 2048))
+                Jp2k(tfile.name, data=data, cbsize=(2, 2048))
 
     def test_precinct_size_not_p2(self):
         """precinct sizes should be powers of two."""
@@ -134,7 +131,7 @@ class TestSuiteNegativeWrite(unittest.TestCase):
         data = ifile[::4, ::4]
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             with self.assertRaises(IOError):
-                ofile = Jp2k(tfile.name, data=data, psizes=[(13, 13)])
+                Jp2k(tfile.name, data=data, psizes=[(13, 13)])
 
     def test_cblk_size_not_power_of_two(self):
         """code block sizes should be powers of two."""
@@ -142,7 +139,7 @@ class TestSuiteNegativeWrite(unittest.TestCase):
         data = ifile[::4, ::4]
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             with self.assertRaises(IOError):
-                ofile = Jp2k(tfile.name, data=data, cbsize=(13, 12))
+                Jp2k(tfile.name, data=data, cbsize=(13, 12))
 
     def test_cblk_size_precinct_size(self):
         """code block sizes should never exceed half that of precinct size."""
@@ -150,6 +147,4 @@ class TestSuiteNegativeWrite(unittest.TestCase):
         data = ifile[::4, ::4]
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             with self.assertRaises(IOError):
-                ofile = Jp2k(tfile.name, 
-                        data=data, cbsize=(64, 64), psizes=[(64, 64)])
-
+                Jp2k(tfile.name, data=data, cbsize=(64, 64), psizes=[(64, 64)])

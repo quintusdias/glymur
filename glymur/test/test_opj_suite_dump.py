@@ -36,14 +36,17 @@ import numpy as np
 import glymur
 from glymur import Jp2k
 from glymur.codestream import CMEsegment, SOTsegment, RGNsegment
-from glymur.core import RCME_ISO_8859_1, RCME_BINARY
+from glymur.core import (RCME_ISO_8859_1, RCME_BINARY, SRGB,
+                         GREYSCALE, RESTRICTED_ICC_PROFILE,
+                         ENUMERATED_COLORSPACE)
 from glymur.jp2box import FileTypeBox
 
-from .fixtures import (
-        MetadataBase, OPJ_DATA_ROOT,
-        WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG,
-        mse, peak_tolerance, read_pgx, opj_data_file
-)
+from .fixtures import (MetadataBase, OPJ_DATA_ROOT,
+                       WARNING_INFRASTRUCTURE_ISSUE,
+                       WARNING_INFRASTRUCTURE_MSG,
+                       opj_data_file)
+
+comment1 = "Creator: AV-J2K (c) 2000,2001 Algo Vision Technology"
 
 
 @unittest.skipIf(OPJ_DATA_ROOT is None,
@@ -82,10 +85,12 @@ class TestSuite(MetadataBase):
         self.assertEqual(ids, expected)
 
         kwargs = {'rsiz': 0, 'xysiz': (720, 243), 'xyosiz': (0, 0),
-                'xytsiz': (720, 243), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
-                'signed': (False, False, False),
-                'xyrsiz': [(1, 2, 2), (1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (720, 243), 'xytosiz': (0, 0),
+                  'bitdepth': (8, 8, 8),
+                  'signed': (False, False, False),
+                  'xyrsiz': [(1, 2, 2), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -97,7 +102,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (32, 128))  # cblk
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -121,9 +126,10 @@ class TestSuite(MetadataBase):
         self.assertEqual(actual, expected)
 
         kwargs = {'rsiz': 1, 'xysiz': (128, 128), 'xyosiz': (0, 0),
-                'xytsiz': (128, 128), 'xytosiz': (0, 0), 'bitdepth': (8,),
-                'signed': (False,), 'xyrsiz': [(1,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (128, 128), 'xytosiz': (0, 0), 'bitdepth': (8,),
+                  'signed': (False,), 'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # QCD: Quantization default
         self.assertEqual(c.segment[2].sqcd & 0x1f, 0)
@@ -143,7 +149,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[3].code_block_size),
                          (64, 64))  # cblk
         self.verify_codeblock_style(c.segment[3].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[3].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -154,9 +160,10 @@ class TestSuite(MetadataBase):
         c = Jp2k(jfile).get_codestream(header_only=False)
 
         kwargs = {'rsiz': 1, 'xysiz': (127, 126), 'xyosiz': (0, 0),
-                'xytsiz': (127, 126), 'xytosiz': (0, 0), 'bitdepth': (8,),
-                'signed': (False,), 'xyrsiz': [(2,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (127, 126), 'xytosiz': (0, 0), 'bitdepth': (8,),
+                  'signed': (False,), 'xyrsiz': [(2,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertTrue(c.segment[2].scod & 2)  # sop
@@ -168,7 +175,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, True, False, True, True])
+                                    [False, False, True, False, True, True])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
@@ -178,7 +185,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[3].code_block_size),
                          (32, 32))  # cblk
         self.verify_codeblock_style(c.segment[3].spcoc[3],
-                [False, False, True, False, True, True])
+                                    [False, False, True, False, True, True])
         self.assertEqual(c.segment[3].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -191,7 +198,8 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[4].mantissa,
                          [0, 0, 0, 0, 0, 0, 0, 0, 0, 0])
 
-        pargs = RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode()
+        pargs = (RCME_ISO_8859_1,
+                 "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
         self.verifyCMEsegment(c.segment[5], CMEsegment(*pargs))
 
         # One unknown marker
@@ -217,9 +225,10 @@ class TestSuite(MetadataBase):
         c = Jp2k(jfile).get_codestream(header_only=False)
 
         kwargs = {'rsiz': 1, 'xysiz': (256, 256), 'xyosiz': (0, 0),
-                'xytsiz': (128, 128), 'xytosiz': (0, 0), 'bitdepth': (4,),
-                'signed': (True,), 'xyrsiz': [(1,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (128, 128), 'xytosiz': (0, 0), 'bitdepth': (4,),
+                  'signed': (True,), 'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertTrue(c.segment[2].scod & 2)
@@ -231,7 +240,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -263,11 +272,11 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[6].xcrg, (65424,))
         self.assertEqual(c.segment[6].ycrg, (32558,))
 
-        pargs = RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode()
+        pargs = (RCME_ISO_8859_1,
+                 "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
         self.verifyCMEsegment(c.segment[7], CMEsegment(*pargs))
 
-        pargs = (RCME_ISO_8859_1,
-                "Creator: AV-J2K (c) 2000,2001 Algo Vision Technology".encode())
+        pargs = (RCME_ISO_8859_1, comment1.encode())
         self.verifyCMEsegment(c.segment[8], CMEsegment(*pargs))
 
         pargs = (RCME_BINARY, c.segment[9].ccme)
@@ -290,10 +299,12 @@ class TestSuite(MetadataBase):
         c = Jp2k(jfile).get_codestream(header_only=False)
 
         kwargs = {'rsiz': 1, 'xysiz': (640, 480), 'xyosiz': (0, 0),
-                'xytsiz': (640, 480), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
-                'signed': (False, False, False),
-                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (640, 480), 'xytosiz': (0, 0),
+                  'bitdepth': (8, 8, 8),
+                  'signed': (False, False, False),
+                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)
@@ -305,7 +316,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, True, False, False, False])
+                                    [False, False, True, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size,
@@ -353,7 +364,7 @@ class TestSuite(MetadataBase):
                           2002, 1888])
 
         pargs = (RCME_ISO_8859_1,
-                "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+                 "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
         self.verifyCMEsegment(c.segment[6], CMEsegment(*pargs))
 
         self.verifySOTsegment(c.segment[7], SOTsegment(0, 264383, 0, 1))
@@ -367,11 +378,12 @@ class TestSuite(MetadataBase):
         c = Jp2k(jfile).get_codestream(header_only=False)
 
         kwargs = {'rsiz': 1, 'xysiz': (1024, 1024), 'xyosiz': (0, 0),
-                'xytsiz': (1024, 1024), 'xytosiz': (0, 0),
-                'bitdepth': (8, 8, 8, 8),
-                'signed': (False, False, False, False),
-                'xyrsiz': [(1, 1, 2, 2), (1, 1, 2, 2)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (1024, 1024), 'xytosiz': (0, 0),
+                  'bitdepth': (8, 8, 8, 8),
+                  'signed': (False, False, False, False),
+                  'xyrsiz': [(1, 1, 2, 2), (1, 1, 2, 2)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)
@@ -383,7 +395,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (32, 32))  # cblk
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -394,7 +406,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[3].code_block_size),
                          (32, 32))  # cblk
         self.verify_codeblock_style(c.segment[3].spcoc[3],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[3].spcoc[4],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
@@ -404,7 +416,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[4].code_block_size),
                          (32, 32))  # cblk
         self.verify_codeblock_style(c.segment[4].spcoc[3],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[4].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -441,7 +453,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[7].mantissa, [0] * 19)
 
         pargs = (RCME_ISO_8859_1,
-                "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+                 "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
         self.verifyCMEsegment(c.segment[8], CMEsegment(*pargs))
 
         # TLM (tile-part length)
@@ -460,11 +472,12 @@ class TestSuite(MetadataBase):
         c = Jp2k(jfile).get_codestream(header_only=False)
 
         kwargs = {'rsiz': 2, 'xysiz': (513, 129), 'xyosiz': (0, 0),
-                'xytsiz': (513, 129), 'xytosiz': (0, 0),
-                'bitdepth': (12, 12, 12, 12),
-                'signed': (False, False, False, False),
-                'xyrsiz': [(1, 2, 1, 2), (1, 1, 2, 2)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (513, 129), 'xytosiz': (0, 0),
+                  'bitdepth': (12, 12, 12, 12),
+                  'signed': (False, False, False, False),
+                  'xyrsiz': [(1, 2, 1, 2), (1, 1, 2, 2)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)
@@ -476,7 +489,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -535,7 +548,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[7].code_block_size),
                          (64, 64))  # cblk
         self.verify_codeblock_style(c.segment[7].spcoc[3],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[7].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -552,10 +565,12 @@ class TestSuite(MetadataBase):
         c = Jp2k(jfile).get_codestream(header_only=False)
 
         kwargs = {'rsiz': 1, 'xysiz': (2048, 2048), 'xyosiz': (0, 0),
-                'xytsiz': (128, 128), 'xytosiz': (0, 0), 'bitdepth': (12, 12, 12),
-                'signed': (True, True, True),
-                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (128, 128), 'xytosiz': (0, 0),
+                  'bitdepth': (12, 12, 12),
+                  'signed': (True, True, True),
+                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertTrue(c.segment[2].scod & 2)
@@ -567,7 +582,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -595,7 +610,6 @@ class TestSuite(MetadataBase):
 
         # PLT: packet length, tile part
         self.assertEqual(c.segment[7].zplt, 0)
-        #self.assertEqual(c.segment[7].iplt), 99)
 
         # SOD:  start of data
         self.assertEqual(c.segment[8].marker_id, 'SOD')
@@ -605,10 +619,12 @@ class TestSuite(MetadataBase):
         c = Jp2k(jfile).get_codestream(header_only=False)
 
         kwargs = {'rsiz': 1, 'xysiz': (513, 3072), 'xyosiz': (0, 0),
-                'xytsiz': (513, 3072), 'xytosiz': (0, 0), 'bitdepth': (12, 12, 12),
-                'signed': (True, True, True),
-                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (513, 3072), 'xytosiz': (0, 0),
+                  'bitdepth': (12, 12, 12),
+                  'signed': (True, True, True),
+                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertTrue(c.segment[2].scod & 2)
@@ -620,7 +636,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -631,7 +647,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[3].code_block_size),
                          (64, 64))  # cblk
         self.verify_codeblock_style(c.segment[3].spcoc[3],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[3].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -641,7 +657,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[4].code_block_size),
                          (32, 32))  # cblk
         self.verify_codeblock_style(c.segment[4].spcoc[3],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[4].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -651,7 +667,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[5].code_block_size),
                          (64, 64))  # cblk
         self.verify_codeblock_style(c.segment[5].spcoc[3],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[5].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -696,9 +712,10 @@ class TestSuite(MetadataBase):
         c = Jp2k(jfile).get_codestream(header_only=False)
 
         kwargs = {'rsiz': 0, 'xysiz': (17, 37), 'xyosiz': (0, 0),
-                'xytsiz': (17, 37), 'xytosiz': (0, 0), 'bitdepth': (8,),
-                'signed': (False,), 'xyrsiz': [(1,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (17, 37), 'xytosiz': (0, 0), 'bitdepth': (8,),
+                  'signed': (False,), 'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)
@@ -710,7 +727,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -743,10 +760,12 @@ class TestSuite(MetadataBase):
         c = Jp2k(jfile).get_codestream(header_only=False)
 
         kwargs = {'rsiz': 1, 'xysiz': (256, 256), 'xyosiz': (0, 0),
-                'xytsiz': (128, 128), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
-                'signed': (False, False, False),
-                'xyrsiz': [(4, 4, 4), (4, 4, 4)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (128, 128), 'xytosiz': (0, 0),
+                  'bitdepth': (8, 8, 8),
+                  'signed': (False, False, False),
+                  'xyrsiz': [(4, 4, 4), (4, 4, 4)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)
@@ -758,7 +777,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -805,9 +824,10 @@ class TestSuite(MetadataBase):
         c = Jp2k(jfile).get_codestream(header_only=False)
 
         kwargs = {'rsiz': 1, 'xysiz': (128, 1), 'xyosiz': (0, 0),
-                'xytsiz': (128, 128), 'xytosiz': (0, 0), 'bitdepth': (8,),
-                'signed': (False,), 'xyrsiz': [(1,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (128, 128), 'xytosiz': (0, 0), 'bitdepth': (8,),
+                  'signed': (False,), 'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)
@@ -819,7 +839,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, True])
+                                    [False, False, False, False, False, True])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size, [(128, 2)])
@@ -832,7 +852,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[3].exponent, [8])
 
         pargs = (RCME_ISO_8859_1,
-                "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+                 "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
         self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
         self.verifySOTsegment(c.segment[5], SOTsegment(0, 118, 0, 1))
@@ -854,10 +874,11 @@ class TestSuite(MetadataBase):
         c = Jp2k(jfile).get_codestream(header_only=False)
 
         kwargs = {'rsiz': 1, 'xysiz': (3, 5), 'xyosiz': (0, 0),
-                'xytsiz': (3, 5), 'xytosiz': (0, 0), 'bitdepth': (8,),
-                'signed': (False,),
-                'xyrsiz': [(1,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (3, 5), 'xytosiz': (0, 0), 'bitdepth': (8,),
+                  'signed': (False,),
+                  'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertTrue(c.segment[2].scod & 2)
@@ -869,7 +890,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (32, 32))  # cblk
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, True, False, False, False])
+                                    [False, False, True, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -882,7 +903,8 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[3].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
-        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        pargs = (RCME_ISO_8859_1,
+                 "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
         self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
         self.verifySOTsegment(c.segment[5], SOTsegment(0, 162, 0, 1))
@@ -904,10 +926,12 @@ class TestSuite(MetadataBase):
         c = Jp2k(jfile).get_codestream(header_only=False)
 
         kwargs = {'rsiz': 1, 'xysiz': (1, 1), 'xyosiz': (0, 0),
-                'xytsiz': (1, 1), 'xytosiz': (0, 0), 'bitdepth': tuple([8] * 257),
-                'signed': tuple([False] * 257),
-                'xyrsiz': [tuple([1] * 257), tuple([1] * 257)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (1, 1), 'xytosiz': (0, 0),
+                  'bitdepth': tuple([8] * 257),
+                  'signed': tuple([False] * 257),
+                  'xyrsiz': [tuple([1] * 257), tuple([1] * 257)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -918,7 +942,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 1)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size), (32, 32))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, True, False])
+                                    [False, False, False, False, True, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -928,7 +952,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[3].spcoc[0], 1)  # levels
         self.assertEqual(tuple(c.segment[3].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[3].spcoc[3],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[3].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -969,7 +993,8 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[8].ppod,
                          (glymur.core.RLCP, glymur.core.CPRL))
 
-        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        pargs = (RCME_ISO_8859_1,
+                 "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
         self.verifyCMEsegment(c.segment[9], CMEsegment(*pargs))
 
         self.verifySOTsegment(c.segment[10], SOTsegment(0, 1537, 0, 1))
@@ -985,10 +1010,11 @@ class TestSuite(MetadataBase):
         c = Jp2k(jfile).get_codestream(header_only=False)
 
         kwargs = {'rsiz': 0, 'xysiz': (49, 49), 'xyosiz': (0, 0),
-                'xytsiz': (49, 49), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
-                'signed': (False, False, False),
-                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (49, 49), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
+                  'signed': (False, False, False),
+                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)
@@ -999,7 +1025,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1025,10 +1051,11 @@ class TestSuite(MetadataBase):
         c = Jp2k(jfile).get_codestream(header_only=False)
 
         kwargs = {'rsiz': 1, 'xysiz': (256, 256), 'xyosiz': (0, 0),
-                'xytsiz': (128, 128), 'xytosiz': (0, 0), 'bitdepth': (4,),
-                'signed': (True,),
-                'xyrsiz': [(1,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (128, 128), 'xytosiz': (0, 0), 'bitdepth': (4,),
+                  'signed': (True,),
+                  'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertTrue(c.segment[2].scod & 2)
@@ -1039,7 +1066,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 1)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1072,11 +1099,11 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[6].xcrg, (65424,))
         self.assertEqual(c.segment[6].ycrg, (32558,))
 
-        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        pargs = (RCME_ISO_8859_1,
+                 "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
         self.verifyCMEsegment(c.segment[7], CMEsegment(*pargs))
 
-        pargs = (RCME_ISO_8859_1,
-                "Creator: AV-J2K (c) 2000,2001 Algo Vision Technology".encode())
+        pargs = (RCME_ISO_8859_1, comment1.encode())
         self.verifyCMEsegment(c.segment[8], CMEsegment(*pargs))
 
         pargs = (RCME_BINARY, c.segment[9].ccme)
@@ -1125,10 +1152,11 @@ class TestSuite(MetadataBase):
         c = Jp2k(jfile).get_codestream(header_only=False)
 
         kwargs = {'rsiz': 0, 'xysiz': (128, 128), 'xyosiz': (0, 0),
-                'xytsiz': (128, 128), 'xytosiz': (0, 0), 'bitdepth': (8,),
-                'signed': (False,),
-                'xyrsiz': [(1,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (128, 128), 'xytosiz': (0, 0), 'bitdepth': (8,),
+                  'signed': (False,),
+                  'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)
@@ -1139,7 +1167,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 3)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1165,10 +1193,11 @@ class TestSuite(MetadataBase):
         c = Jp2k(jfile).get_codestream(header_only=False)
 
         kwargs = {'rsiz': 2, 'xysiz': (127, 227), 'xyosiz': (5, 128),
-                'xytsiz': (127, 126), 'xytosiz': (1, 101), 'bitdepth': (8,),
-                'signed': (False,),
-                'xyrsiz': [(2,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (127, 126), 'xytosiz': (1, 101), 'bitdepth': (8,),
+                  'signed': (False,),
+                  'xyrsiz': [(2,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertTrue(c.segment[2].scod & 2)  # SOP
@@ -1179,7 +1208,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 3)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, True, False, True, True])
+                                    [False, False, True, False, True, True])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1189,7 +1218,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[3].spcoc[0], 3)  # level
         self.assertEqual(tuple(c.segment[3].code_block_size), (32, 32))
         self.verify_codeblock_style(c.segment[3].spcoc[3],
-                [False, False, True, False, True, True])
+                                    [False, False, True, False, True, True])
         self.assertEqual(c.segment[3].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -1201,7 +1230,8 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[4].exponent,
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10])
 
-        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        pargs = (RCME_ISO_8859_1,
+                 "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
         self.verifyCMEsegment(c.segment[5], CMEsegment(*pargs))
 
         self.verifySOTsegment(c.segment[6], SOTsegment(0, 4627, 0, 1))
@@ -1223,10 +1253,12 @@ class TestSuite(MetadataBase):
         c = Jp2k(jfile).get_codestream(header_only=False)
 
         kwargs = {'rsiz': 2, 'xysiz': (640, 480), 'xyosiz': (0, 0),
-                'xytsiz': (640, 480), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
-                'signed': (False, False, False),
-                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (640, 480), 'xytosiz': (0, 0),
+                  'bitdepth': (8, 8, 8),
+                  'signed': (False, False, False),
+                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -1238,7 +1270,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, True, False, True, False, False])
+                                    [False, True, False, True, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size,
@@ -1285,7 +1317,8 @@ class TestSuite(MetadataBase):
                          [14, 14, 14, 14, 13, 13, 13, 12, 12, 12, 11, 11, 11,
                           9, 9, 9, 9, 9, 9])
 
-        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        pargs = (RCME_ISO_8859_1,
+                 "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
         self.verifyCMEsegment(c.segment[6], CMEsegment(*pargs))
 
         self.verifySOTsegment(c.segment[7], SOTsegment(0, 262838, 0, 1))
@@ -1305,11 +1338,12 @@ class TestSuite(MetadataBase):
         c = Jp2k(jfile).get_codestream(header_only=False)
 
         kwargs = {'rsiz': 2, 'xysiz': (1024, 1024), 'xyosiz': (0, 0),
-                'xytsiz': (1024, 1024), 'xytosiz': (0, 0),
-                'bitdepth': (8, 8, 8, 8),
-                'signed': (False, False, False, False),
-                'xyrsiz': [(1, 1, 2, 2), (1, 1, 2, 2)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (1024, 1024), 'xytosiz': (0, 0),
+                  'bitdepth': (8, 8, 8, 8),
+                  'signed': (False, False, False, False),
+                  'xyrsiz': [(1, 1, 2, 2), (1, 1, 2, 2)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -1320,7 +1354,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 6)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (32, 32))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [True, False, True, False, False, False])
+                                    [True, False, True, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1330,7 +1364,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[3].spcoc[0], 3)  # level
         self.assertEqual(tuple(c.segment[3].code_block_size), (32, 32))
         self.verify_codeblock_style(c.segment[3].spcoc[3],
-                [True, False, True, False, False, False])
+                                    [True, False, True, False, False, False])
         self.assertEqual(c.segment[3].spcoc[4],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
@@ -1339,7 +1373,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[4].spcoc[0], 6)  # level
         self.assertEqual(tuple(c.segment[4].code_block_size), (32, 32))
         self.verify_codeblock_style(c.segment[4].spcoc[3],
-                [True, False, True, False, False, False])
+                                    [True, False, True, False, False, False])
         self.assertEqual(c.segment[4].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
 
@@ -1375,7 +1409,8 @@ class TestSuite(MetadataBase):
                          [8, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10, 9, 9, 10,
                           9, 9, 10])
 
-        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        pargs = (RCME_ISO_8859_1,
+                 "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
         self.verifyCMEsegment(c.segment[8], CMEsegment(*pargs))
 
         # PPM:  packed packet headers, main header
@@ -1400,10 +1435,11 @@ class TestSuite(MetadataBase):
         c = Jp2k(jfile).get_codestream(header_only=False)
 
         kwargs = {'rsiz': 2, 'xysiz': (1024, 1024), 'xyosiz': (0, 0),
-                'xytsiz': (128, 128), 'xytosiz': (0, 0), 'bitdepth': (12,),
-                'signed': (False,),
-                'xyrsiz': [(1,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (128, 128), 'xytosiz': (0, 0), 'bitdepth': (12,),
+                  'signed': (False,),
+                  'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -1414,7 +1450,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 3)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1487,10 +1523,12 @@ class TestSuite(MetadataBase):
         c = Jp2k(jfile).get_codestream(header_only=False)
 
         kwargs = {'rsiz': 2, 'xysiz': (529, 524), 'xyosiz': (17, 12),
-                'xytsiz': (37, 37), 'xytosiz': (8, 2), 'bitdepth': (8, 8, 8),
-                'signed': (False, False, False),
-                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (37, 37), 'xytosiz': (8, 2),
+                  'bitdepth': (8, 8, 8),
+                  'signed': (False, False, False),
+                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertTrue(c.segment[2].scod & 2)  # sop
@@ -1501,7 +1539,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 7)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 8))  # cblk
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [True, False, False, True, True, False])
+                                    [True, False, False, True, True, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size, [(16, 16)] * 8)
@@ -1516,7 +1554,8 @@ class TestSuite(MetadataBase):
                          [17, 17, 17, 17, 16, 16, 16, 15, 15, 15, 14, 14,
                           14, 13, 13, 13, 11, 11, 11, 11, 11, 11])
 
-        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        pargs = (RCME_ISO_8859_1,
+                 "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
         self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
         # 225 consecutive PPM segments.
@@ -1543,10 +1582,11 @@ class TestSuite(MetadataBase):
         c = Jp2k(jfile).get_codestream(header_only=False)
 
         kwargs = {'rsiz': 2, 'xysiz': (12, 12), 'xyosiz': (0, 0),
-                'xytsiz': (3, 3), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
-                'signed': (False, False, False),
-                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (3, 3), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
+                  'signed': (False, False, False),
+                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertTrue(c.segment[2].scod & 2)  # sop
@@ -1557,7 +1597,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 4)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (32, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, True, False, True])
+                                    [False, False, False, True, False, True])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1573,7 +1613,8 @@ class TestSuite(MetadataBase):
                          [14, 14, 14, 14, 13, 13, 13, 11, 11, 11,
                           11, 11, 11])
 
-        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        pargs = (RCME_ISO_8859_1,
+                 "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
         self.verifyCMEsegment(c.segment[4], CMEsegment(*pargs))
 
         self.verifySOTsegment(c.segment[5], SOTsegment(0, 349, 0, 1))
@@ -1604,10 +1645,11 @@ class TestSuite(MetadataBase):
         c = Jp2k(jfile).get_codestream(header_only=False)
 
         kwargs = {'rsiz': 2, 'xysiz': (12, 12), 'xyosiz': (4, 0),
-                'xytsiz': (12, 12), 'xytosiz': (4, 0), 'bitdepth': (8, 8),
-                'signed': (False, False),
-                'xyrsiz': [(4, 1), (1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (12, 12), 'xytosiz': (4, 0), 'bitdepth': (8, 8),
+                  'signed': (False, False),
+                  'xyrsiz': [(4, 1), (1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertTrue(c.segment[2].scod & 2)  # sop
@@ -1618,7 +1660,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 1)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size, [(1, 1), (2, 2)])
@@ -1628,7 +1670,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[3].spcoc[0], 1)  # level
         self.assertEqual(tuple(c.segment[3].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[3].spcoc[3],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[3].spcoc[4],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(c.segment[3].precinct_size, [(2, 2), (4, 4)])
@@ -1640,7 +1682,8 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[4].mantissa, [0] * 4)
         self.assertEqual(c.segment[4].exponent, [8, 9, 9, 10])
 
-        pargs = (RCME_ISO_8859_1, "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
+        pargs = (RCME_ISO_8859_1,
+                 "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode())
         self.verifyCMEsegment(c.segment[5], CMEsegment(*pargs))
 
         self.verifySOTsegment(c.segment[6], SOTsegment(0, 434, 0, 1))
@@ -1657,11 +1700,12 @@ class TestSuite(MetadataBase):
         c = jp2k.get_codestream(header_only=False)
 
         kwargs = {'rsiz': 3, 'xysiz': (1920, 1080), 'xyosiz': (0, 0),
-                'xytsiz': (1920, 1080), 'xytosiz': (0, 0),
-                'bitdepth': (12, 12, 12),
-                'signed': (False, False, False),
-                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (1920, 1080), 'xytosiz': (0, 0),
+                  'bitdepth': (12, 12, 12),
+                  'signed': (False, False, False),
+                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -1672,7 +1716,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (32, 32))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size[0], (128, 128))
@@ -1694,7 +1738,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[4].spcoc[0], 5)  # level
         self.assertEqual(tuple(c.segment[4].code_block_size), (32, 32))
         self.verify_codeblock_style(c.segment[4].spcoc[3],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[4].spcoc[4],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
@@ -1716,7 +1760,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[6].spcoc[0], 5)  # level
         self.assertEqual(tuple(c.segment[6].code_block_size), (32, 32))
         self.verify_codeblock_style(c.segment[6].spcoc[3],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[6].spcoc[4],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
@@ -1761,10 +1805,12 @@ class TestSuite(MetadataBase):
         c = jp2k.get_codestream(header_only=False)
 
         kwargs = {'rsiz': 0, 'xysiz': (2592, 1944), 'xyosiz': (0, 0),
-                'xytsiz': (640, 480), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
-                'signed': (False, False, False),
-                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (640, 480), 'xytosiz': (0, 0),
+                  'bitdepth': (8, 8, 8),
+                  'signed': (False, False, False),
+                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -1775,7 +1821,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (32, 32))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size,
@@ -1794,10 +1840,11 @@ class TestSuite(MetadataBase):
         c = jp2k.get_codestream(header_only=False)
 
         kwargs = {'rsiz': 0, 'xysiz': (512, 512), 'xyosiz': (0, 0),
-                'xytsiz': (512, 512), 'xytosiz': (0, 0), 'bitdepth': (16,),
-                'signed': (False,),
-                'xyrsiz': [(1,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (512, 512), 'xytosiz': (0, 0), 'bitdepth': (16,),
+                  'signed': (False,),
+                  'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -1808,7 +1855,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1823,10 +1870,11 @@ class TestSuite(MetadataBase):
         c = jp2k.get_codestream(header_only=False)
 
         kwargs = {'rsiz': 0, 'xysiz': (512, 512), 'xyosiz': (0, 0),
-                'xytsiz': (512, 512), 'xytosiz': (0, 0), 'bitdepth': (16,),
-                'signed': (False,),
-                'xyrsiz': [(1,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (512, 512), 'xytosiz': (0, 0), 'bitdepth': (16,),
+                  'signed': (False,),
+                  'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -1837,7 +1885,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1860,10 +1908,11 @@ class TestSuite(MetadataBase):
         self.assertEqual(ids, expected)
 
         kwargs = {'rsiz': 0, 'xysiz': (1420, 1416), 'xyosiz': (0, 0),
-                'xytsiz': (1420, 1416), 'xytosiz': (0, 0), 'bitdepth': (16,),
-                'signed': (False,),
-                'xyrsiz': [(1,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (1420, 1416), 'xytosiz': (0, 0), 'bitdepth': (16,),
+                  'signed': (False,),
+                  'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -1874,7 +1923,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 11)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1897,10 +1946,11 @@ class TestSuite(MetadataBase):
         self.assertEqual(ids, expected)
 
         kwargs = {'rsiz': 0, 'xysiz': (512, 614), 'xyosiz': (0, 0),
-                'xytsiz': (512, 614), 'xytosiz': (0, 0), 'bitdepth': (12,),
-                'signed': (False,),
-                'xyrsiz': [(1,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (512, 614), 'xytosiz': (0, 0), 'bitdepth': (12,),
+                  'signed': (False,),
+                  'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -1911,7 +1961,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1940,10 +1990,11 @@ class TestSuite(MetadataBase):
         self.assertEqual(ids, expected)
 
         kwargs = {'rsiz': 0, 'xysiz': (256, 256), 'xyosiz': (0, 0),
-                'xytsiz': (256, 256), 'xytosiz': (0, 0), 'bitdepth': (8,),
-                'signed': (False,),
-                'xyrsiz': [(1,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (256, 256), 'xytosiz': (0, 0), 'bitdepth': (8,),
+                  'signed': (False,),
+                  'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -1954,7 +2005,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -1981,10 +2032,11 @@ class TestSuite(MetadataBase):
         self.assertEqual(ids, expected)
 
         kwargs = {'rsiz': 0, 'xysiz': (1420, 1416), 'xyosiz': (0, 0),
-                'xytsiz': (1420, 1416), 'xytosiz': (0, 0), 'bitdepth': (16,),
-                'signed': (False,),
-                'xyrsiz': [(1,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (1420, 1416), 'xytosiz': (0, 0), 'bitdepth': (16,),
+                  'signed': (False,),
+                  'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -1995,7 +2047,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 11)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2017,10 +2069,12 @@ class TestSuite(MetadataBase):
         self.assertEqual(ids, expected)
 
         kwargs = {'rsiz': 0, 'xysiz': (256, 256), 'xyosiz': (0, 0),
-                'xytsiz': (256, 256), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
-                'signed': (True, True, True),
-                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (256, 256), 'xytosiz': (0, 0),
+                  'bitdepth': (8, 8, 8),
+                  'signed': (True, True, True),
+                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -2031,7 +2085,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2054,10 +2108,11 @@ class TestSuite(MetadataBase):
         c = jp2k.get_codestream()
 
         kwargs = {'rsiz': 0, 'xysiz': (2048, 2500), 'xyosiz': (0, 0),
-                'xytsiz': (2048, 2500), 'xytosiz': (0, 0), 'bitdepth': (16,),
-                'signed': (False,),
-                'xyrsiz': [(1,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (2048, 2500), 'xytosiz': (0, 0), 'bitdepth': (16,),
+                  'signed': (False,),
+                  'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -2068,7 +2123,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 8)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2101,17 +2156,17 @@ class TestSuite(MetadataBase):
         pargs = (RCME_ISO_8859_1, ccme.encode())
         self.verifyCMEsegment(c.segment[5], CMEsegment(*pargs))
 
-
     def test_NR_MarkerIsNotCompliant_j2k_dump(self):
         jfile = opj_data_file('input/nonregression/MarkerIsNotCompliant.j2k')
         jp2k = Jp2k(jfile)
         c = jp2k.get_codestream()
 
         kwargs = {'rsiz': 0, 'xysiz': (1420, 1416), 'xyosiz': (0, 0),
-                'xytsiz': (1420, 1416), 'xytosiz': (0, 0), 'bitdepth': (16,),
-                'signed': (False,),
-                'xyrsiz': [(1,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (1420, 1416), 'xytosiz': (0, 0), 'bitdepth': (16,),
+                  'signed': (False,),
+                  'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -2122,7 +2177,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 11)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2142,10 +2197,12 @@ class TestSuite(MetadataBase):
         c = jp2k.get_codestream()
 
         kwargs = {'rsiz': 0, 'xysiz': (1920, 1080), 'xyosiz': (0, 0),
-                'xytsiz': (1920, 1080), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
-                'signed': (False, False, False),
-                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (1920, 1080), 'xytosiz': (0, 0),
+                  'bitdepth': (8, 8, 8),
+                  'signed': (False, False, False),
+                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -2156,7 +2213,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2174,10 +2231,12 @@ class TestSuite(MetadataBase):
         c = jp2k.get_codestream()
 
         kwargs = {'rsiz': 0, 'xysiz': (1920, 1080), 'xyosiz': (0, 0),
-                'xytsiz': (1920, 1080), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
-                'signed': (False, False, False),
-                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (1920, 1080), 'xytosiz': (0, 0),
+                  'bitdepth': (8, 8, 8),
+                  'signed': (False, False, False),
+                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -2188,7 +2247,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2206,10 +2265,12 @@ class TestSuite(MetadataBase):
         c = jp2k.get_codestream()
 
         kwargs = {'rsiz': 0, 'xysiz': (1920, 1080), 'xyosiz': (0, 0),
-                'xytsiz': (1920, 1080), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
-                'signed': (False, False, False),
-                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (1920, 1080), 'xytosiz': (0, 0),
+                  'bitdepth': (8, 8, 8),
+                  'signed': (False, False, False),
+                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -2220,7 +2281,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2242,10 +2303,12 @@ class TestSuite(MetadataBase):
         self.assertEqual(ids, expected)
 
         kwargs = {'rsiz': 0, 'xysiz': (117, 117), 'xyosiz': (0, 0),
-                'xytsiz': (117, 117), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8, 8),
-                'signed': (False, False, False, False),
-                'xyrsiz': [(1, 1, 1, 1), (1, 1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (117, 117), 'xytosiz': (0, 0),
+                  'bitdepth': (8, 8, 8, 8),
+                  'signed': (False, False, False, False),
+                  'xyrsiz': [(1, 1, 1, 1), (1, 1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -2256,7 +2319,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2278,10 +2341,12 @@ class TestSuite(MetadataBase):
         self.assertEqual(ids, expected)
 
         kwargs = {'rsiz': 0, 'xysiz': (117, 117), 'xyosiz': (0, 0),
-                'xytsiz': (117, 117), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8, 8),
-                'signed': (False, False, False, False),
-                'xyrsiz': [(1, 1, 1, 1), (1, 1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (117, 117), 'xytosiz': (0, 0),
+                  'bitdepth': (8, 8, 8, 8),
+                  'signed': (False, False, False, False),
+                  'xyrsiz': [(1, 1, 1, 1), (1, 1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -2292,7 +2357,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2314,10 +2379,12 @@ class TestSuite(MetadataBase):
         self.assertEqual(ids, expected)
 
         kwargs = {'rsiz': 0, 'xysiz': (512, 512), 'xyosiz': (0, 0),
-                'xytsiz': (512, 512), 'xytosiz': (0, 0), 'bitdepth': (16,),
-                'signed': (False,),
-                'xyrsiz': [(1,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (512, 512), 'xytosiz': (0, 0),
+                  'bitdepth': (16,),
+                  'signed': (False,),
+                  'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -2328,7 +2395,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2354,10 +2421,12 @@ class TestSuite(MetadataBase):
         self.assertEqual(ids, expected)
 
         kwargs = {'rsiz': 0, 'xysiz': (1024, 1024), 'xyosiz': (0, 0),
-                'xytsiz': (1024, 1024), 'xytosiz': (0, 0), 'bitdepth': (12,),
-                'signed': (False,),
-                'xyrsiz': [(1,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (1024, 1024), 'xytosiz': (0, 0),
+                  'bitdepth': (12,),
+                  'signed': (False,),
+                  'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -2368,7 +2437,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
         self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2394,10 +2463,12 @@ class TestSuite(MetadataBase):
         self.assertEqual(ids, expected)
 
         kwargs = {'rsiz': 0, 'xysiz': (1800, 1800), 'xyosiz': (0, 0),
-                'xytsiz': (1800, 1800), 'xytosiz': (0, 0), 'bitdepth': (16,),
-                'signed': (False,),
-                'xyrsiz': [(1,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (1800, 1800), 'xytosiz': (0, 0),
+                  'bitdepth': (16,),
+                  'signed': (False,),
+                  'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -2406,10 +2477,9 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].layers, 1)  # layers = 1
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 11)  # level
-        self.assertEqual(tuple(c.segment[2].code_block_size),
-                         (64, 64))  # cblk
+        self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2431,10 +2501,12 @@ class TestSuite(MetadataBase):
         self.assertEqual(ids, expected)
 
         kwargs = {'rsiz': 0, 'xysiz': (1800, 1800), 'xyosiz': (0, 0),
-                'xytsiz': (1800, 1800), 'xytosiz': (0, 0), 'bitdepth': (16,),
-                'signed': (False,),
-                'xyrsiz': [(1,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (1800, 1800), 'xytosiz': (0, 0),
+                  'bitdepth': (16,),
+                  'signed': (False,),
+                  'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -2443,10 +2515,9 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].layers, 1)  # layers = 1
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 11)  # level
-        self.assertEqual(tuple(c.segment[2].code_block_size),
-                         (64, 64))  # cblk
+        self.assertEqual(tuple(c.segment[2].code_block_size), (64, 64))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2468,10 +2539,12 @@ class TestSuite(MetadataBase):
         self.assertEqual(ids, expected)
 
         kwargs = {'rsiz': 0, 'xysiz': (2048, 1556), 'xyosiz': (0, 0),
-                'xytsiz': (2048, 1556), 'xytosiz': (0, 0), 'bitdepth': (12, 12, 12),
-                'signed': (False, False, False),
-                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (2048, 1556), 'xytosiz': (0, 0),
+                  'bitdepth': (12, 12, 12),
+                  'signed': (False, False, False),
+                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -2480,10 +2553,9 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].layers, 2)  # layers = 2
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
-        self.assertEqual(tuple(c.segment[2].code_block_size),
-                         (32, 32))  # cblk
+        self.assertEqual(tuple(c.segment[2].code_block_size), (32, 32))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size,
@@ -2512,7 +2584,9 @@ class TestSuite(MetadataBase):
 
         self.verifySignatureBox(jp2.box[0])
         self.verify_filetype_box(jp2.box[1],
-                FileTypeBox(compatibility_list=['jp2 ', 'jpxb', 'jpx ']))
+                                 FileTypeBox(compatibility_list=['jp2 ',
+                                                                 'jpxb',
+                                                                 'jpx ']))
 
         # Reader requirements talk.
         # unrestricted jpeg 2000 part 1
@@ -2521,9 +2595,9 @@ class TestSuite(MetadataBase):
         ihdr = glymur.jp2box.ImageHeaderBox(203, 479, colorspace_unknown=True)
         self.verifyImageHeaderBox(jp2.box[3].box[0], ihdr)
 
-        colr = glymur.jp2box.ColourSpecificationBox(
-                colorspace=glymur.core.SRGB,
-                approximation=1, precedence=2)
+        colr = glymur.jp2box.ColourSpecificationBox(colorspace=SRGB,
+                                                    approximation=1,
+                                                    precedence=2)
         self.verifyColourSpecificationBox(jp2.box[3].box[1], colr)
 
         # Jp2 Header
@@ -2543,10 +2617,12 @@ class TestSuite(MetadataBase):
         self.assertEqual(ids, expected)
 
         kwargs = {'rsiz': 0, 'xysiz': (479, 203), 'xyosiz': (0, 0),
-                'xytsiz': (256, 203), 'xytosiz': (0, 0), 'bitdepth': (8,),
-                'signed': (False,),
-                'xyrsiz': [(1,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (256, 203), 'xytosiz': (0, 0),
+                  'bitdepth': (8,),
+                  'signed': (False,),
+                  'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -2555,10 +2631,9 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].layers, 1)  # layers = 1
         self.assertEqual(c.segment[2].spcod[3], 0)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
-        self.assertEqual(tuple(c.segment[2].code_block_size),
-                         (32, 32))  # cblk
+        self.assertEqual(tuple(c.segment[2].code_block_size), (32, 32))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2581,19 +2656,22 @@ class TestSuite(MetadataBase):
 
         self.verifySignatureBox(jp2.box[0])
         self.verify_filetype_box(jp2.box[1],
-                FileTypeBox(compatibility_list=['jp2 ', 'jpxb', 'jpx ']))
+                                 FileTypeBox(compatibility_list=['jp2 ',
+                                                                 'jpxb',
+                                                                 'jpx ']))
 
         # Reader requirements talk.
         # unrestricted jpeg 2000 part 1
         self.assertTrue(5 in jp2.box[2].standard_flag)
 
         ihdr = glymur.jp2box.ImageHeaderBox(326, 431,
-                num_components=3, colorspace_unknown=True)
+                                            num_components=3,
+                                            colorspace_unknown=True)
         self.verifyImageHeaderBox(jp2.box[3].box[0], ihdr)
 
-        colr = glymur.jp2box.ColourSpecificationBox(
-                colorspace=glymur.core.SRGB,
-                approximation=1, precedence=2)
+        colr = glymur.jp2box.ColourSpecificationBox(colorspace=SRGB,
+                                                    approximation=1,
+                                                    precedence=2)
         self.verifyColourSpecificationBox(jp2.box[3].box[1], colr)
 
         c = jp2.box[4].main_header
@@ -2603,10 +2681,12 @@ class TestSuite(MetadataBase):
         self.assertEqual(ids, expected)
 
         kwargs = {'rsiz': 0, 'xysiz': (431, 326), 'xyosiz': (0, 0),
-                'xytsiz': (256, 256), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
-                'signed': (False, False, False),
-                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (256, 256), 'xytosiz': (0, 0),
+                  'bitdepth': (8, 8, 8),
+                  'signed': (False, False, False),
+                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -2615,10 +2695,9 @@ class TestSuite(MetadataBase):
         self.assertEqual(c.segment[2].layers, 1)  # layers = 1
         self.assertEqual(c.segment[2].spcod[3], 1)  # mct
         self.assertEqual(c.segment[2].spcod[4], 5)  # level
-        self.assertEqual(tuple(c.segment[2].code_block_size),
-                         (32, 32))  # cblk
+        self.assertEqual(tuple(c.segment[2].code_block_size), (32, 32))
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2646,11 +2725,10 @@ class TestSuite(MetadataBase):
         self.verify_filetype_box(jp2.box[1], FileTypeBox())
 
         ihdr = glymur.jp2box.ImageHeaderBox(135, 135, num_components=2,
-                colorspace_unknown=True)
+                                            colorspace_unknown=True)
         self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
 
-        colr = glymur.jp2box.ColourSpecificationBox(
-                colorspace=glymur.core.GREYSCALE)
+        colr = glymur.jp2box.ColourSpecificationBox(colorspace=GREYSCALE)
         self.verifyColourSpecificationBox(jp2.box[2].box[1], colr)
 
         # Jp2 Header
@@ -2666,10 +2744,12 @@ class TestSuite(MetadataBase):
         self.assertEqual(ids, expected)
 
         kwargs = {'rsiz': 0, 'xysiz': (135, 135), 'xyosiz': (0, 0),
-                'xytsiz': (135, 135), 'xytosiz': (0, 0), 'bitdepth': (8, 8),
-                'signed': (False, False),
-                'xyrsiz': [(1, 1), (1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (135, 135), 'xytosiz': (0, 0),
+                  'bitdepth': (8, 8),
+                  'signed': (False, False),
+                  'xyrsiz': [(1, 1), (1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -2681,7 +2761,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2710,20 +2790,23 @@ class TestSuite(MetadataBase):
 
         self.verifySignatureBox(jp2.box[0])
         self.verify_filetype_box(jp2.box[1],
-                FileTypeBox(compatibility_list=['jp2 ', 'jpxb', 'jpx ']))
+                                 FileTypeBox(compatibility_list=['jp2 ',
+                                                                 'jpxb',
+                                                                 'jpx ']))
 
         # Reader requirements talk.
         # unrestricted jpeg 2000 part 1
         self.assertTrue(5 in jp2.box[2].standard_flag)
 
         ihdr = glymur.jp2box.ImageHeaderBox(46, 124, bits_per_component=4,
-                colorspace_unknown=True)
+                                            colorspace_unknown=True)
         self.verifyImageHeaderBox(jp2.box[3].box[0], ihdr)
 
-        colr = glymur.jp2box.ColourSpecificationBox(
-                colorspace=glymur.core.SRGB,
-                method=glymur.core.ENUMERATED_COLORSPACE,
-                approximation=1, precedence=2)
+        method = ENUMERATED_COLORSPACE
+        colr = glymur.jp2box.ColourSpecificationBox(colorspace=SRGB,
+                                                    method=method,
+                                                    approximation=1,
+                                                    precedence=2)
         self.verifyColourSpecificationBox(jp2.box[3].box[1], colr)
 
         # Jp2 Header
@@ -2744,10 +2827,12 @@ class TestSuite(MetadataBase):
         self.assertEqual(ids, expected)
 
         kwargs = {'rsiz': 0, 'xysiz': (124, 46), 'xyosiz': (0, 0),
-                'xytsiz': (124, 46), 'xytosiz': (0, 0), 'bitdepth': (4,),
-                'signed': (False,),
-                'xyrsiz': [(1,), (1,)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (124, 46), 'xytosiz': (0, 0),
+                  'bitdepth': (4,),
+                  'signed': (False,),
+                  'xyrsiz': [(1,), (1,)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -2759,7 +2844,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (32, 32))  # cblk
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2796,10 +2881,12 @@ class TestSuite(MetadataBase):
         self.assertEqual(ids, expected)
 
         kwargs = {'rsiz': 0, 'xysiz': (766, 576), 'xyosiz': (0, 0),
-                'xytsiz': (766, 576), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
-                'signed': (False, False, False),
-                'xyrsiz': [(1, 2, 2), (1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (766, 576), 'xytosiz': (0, 0),
+                  'bitdepth': (8, 8, 8),
+                  'signed': (False, False, False),
+                  'xyrsiz': [(1, 2, 2), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -2811,7 +2898,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (32, 128))  # cblk
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -2847,7 +2934,7 @@ class TestSuiteWarns(MetadataBase):
         relpath = 'input/nonregression/issue188_beach_64bitsbox.jp2'
         jfile = opj_data_file(relpath)
         with self.assertWarns(UserWarning):
-            d = Jp2k(jfile)[:]
+            Jp2k(jfile)[:]
         self.assertTrue(True)
 
     def test_NR_broken4_jp2_dump(self):
@@ -2882,7 +2969,7 @@ class TestSuiteWarns(MetadataBase):
         ihdr = glymur.jp2box.ImageHeaderBox(152, 203, num_components=3)
         self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
 
-        colr = glymur.jp2box.ColourSpecificationBox(colorspace=glymur.core.SRGB)
+        colr = glymur.jp2box.ColourSpecificationBox(colorspace=SRGB)
         self.verifyColourSpecificationBox(jp2.box[2].box[1], colr)
 
         c = jp2.box[3].main_header
@@ -2892,10 +2979,12 @@ class TestSuiteWarns(MetadataBase):
         self.assertEqual(ids, expected)
 
         kwargs = {'rsiz': 0, 'xysiz': (203, 152), 'xyosiz': (0, 0),
-                'xytsiz': (203, 152), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
-                'signed': (False, False, False),
-                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (203, 152), 'xytosiz': (0, 0),
+                  'bitdepth': (8, 8, 8),
+                  'signed': (False, False, False),
+                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         pargs = RCME_ISO_8859_1, "Creator: JasPer Vers)on 1.701.0".encode()
         self.verifyCMEsegment(c.segment[2], CMEsegment(*pargs))
@@ -2910,7 +2999,7 @@ class TestSuiteWarns(MetadataBase):
         self.assertEqual(tuple(c.segment[3].code_block_size),
                          (64, 64))  # cblk
         self.verify_codeblock_style(c.segment[3].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[3].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[3].spcod), 9)
@@ -2950,7 +3039,7 @@ class TestSuiteWarns(MetadataBase):
         with self.assertWarns(UserWarning):
             # Invalid marker ID on codestream.
             jp2 = Jp2k(jfile)
-        
+
         self.assertEqual(jp2.box[-1].main_header.segment[-1].marker_id, 'QCC')
 
     def test_NR_file1_dump(self):
@@ -2978,8 +3067,8 @@ class TestSuiteWarns(MetadataBase):
         ihdr = glymur.jp2box.ImageHeaderBox(512, 768, num_components=3)
         self.verifyImageHeaderBox(jp2.box[3].box[0], ihdr)
 
-        colr = glymur.jp2box.ColourSpecificationBox(colorspace=glymur.core.SRGB,
-                approximation=1)
+        colr = glymur.jp2box.ColourSpecificationBox(colorspace=SRGB,
+                                                    approximation=1)
         self.verifyColourSpecificationBox(jp2.box[3].box[1], colr)
 
         # XML box
@@ -3006,7 +3095,7 @@ class TestSuiteWarns(MetadataBase):
         self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
 
         colr = glymur.jp2box.ColourSpecificationBox(colorspace=glymur.core.YCC,
-                approximation=1)
+                                                    approximation=1)
         self.verifyColourSpecificationBox(jp2.box[2].box[1], colr)
 
         # Jp2 Header
@@ -3036,9 +3125,8 @@ class TestSuiteWarns(MetadataBase):
         ihdr = glymur.jp2box.ImageHeaderBox(640, 480, num_components=3)
         self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
 
-        colr = glymur.jp2box.ColourSpecificationBox(
-                colorspace=glymur.core.YCC,
-                approximation=1)
+        colr = glymur.jp2box.ColourSpecificationBox(colorspace=glymur.core.YCC,
+                                                    approximation=1)
         self.verifyColourSpecificationBox(jp2.box[2].box[1], colr)
 
         # sub-sampling
@@ -3068,8 +3156,8 @@ class TestSuiteWarns(MetadataBase):
         ihdr = glymur.jp2box.ImageHeaderBox(512, 768)
         self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
 
-        colr = glymur.jp2box.ColourSpecificationBox(
-                colorspace=glymur.core.GREYSCALE, approximation=1)
+        colr = glymur.jp2box.ColourSpecificationBox(colorspace=GREYSCALE,
+                                                    approximation=1)
         self.verifyColourSpecificationBox(jp2.box[2].box[1], colr)
 
     def test_NR_file5_dump(self):
@@ -3091,16 +3179,18 @@ class TestSuiteWarns(MetadataBase):
         self.assertEqual(ids, ['ihdr', 'colr', 'colr'])
 
         self.verifySignatureBox(jp2.box[0])
-        expected = FileTypeBox(
-                brand='jpx ', compatibility_list=['jp2 ', 'jpx ', 'jpxb'])
+        expected = FileTypeBox(brand='jpx ',
+                               compatibility_list=['jp2 ', 'jpx ', 'jpxb'])
         self.verify_filetype_box(jp2.box[1], expected)
 
         ihdr = glymur.jp2box.ImageHeaderBox(512, 768, num_components=3)
         self.verifyImageHeaderBox(jp2.box[3].box[0], ihdr)
 
-        colr = glymur.jp2box.ColourSpecificationBox(
-                method=glymur.core.RESTRICTED_ICC_PROFILE,
-                approximation=1, icc_profile=bytes([0] * 546))
+        method = RESTRICTED_ICC_PROFILE
+        icc_profile = bytes([0] * 546)
+        colr = glymur.jp2box.ColourSpecificationBox(method=method,
+                                                    approximation=1,
+                                                    icc_profile=icc_profile)
         self.verifyColourSpecificationBox(jp2.box[3].box[1], colr)
         self.assertEqual(jp2.box[3].box[1].icc_profile['Size'], 546)
 
@@ -3121,10 +3211,10 @@ class TestSuiteWarns(MetadataBase):
         ihdr = glymur.jp2box.ImageHeaderBox(512, 768, bits_per_component=12)
         self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
 
-        colr = glymur.jp2box.ColourSpecificationBox(
-                colorspace=glymur.core.GREYSCALE,
-                method=glymur.core.ENUMERATED_COLORSPACE,
-                approximation=1)
+        method = ENUMERATED_COLORSPACE
+        colr = glymur.jp2box.ColourSpecificationBox(colorspace=GREYSCALE,
+                                                    method=method,
+                                                    approximation=1)
         self.verifyColourSpecificationBox(jp2.box[2].box[1], colr)
 
     def test_NR_file7_dump(self):
@@ -3150,12 +3240,13 @@ class TestSuiteWarns(MetadataBase):
         self.assertEqual(jp2.box[1].compatibility_list[1], 'jp2 ')
 
         ihdr = glymur.jp2box.ImageHeaderBox(640, 480,
-                num_components=3, bits_per_component=16)
+                                            num_components=3,
+                                            bits_per_component=16)
         self.verifyImageHeaderBox(jp2.box[3].box[0], ihdr)
 
-        colr = glymur.jp2box.ColourSpecificationBox(
-                method=glymur.core.RESTRICTED_ICC_PROFILE,
-                approximation=1)
+        method = RESTRICTED_ICC_PROFILE
+        colr = glymur.jp2box.ColourSpecificationBox(method=method,
+                                                    approximation=1)
         self.verifyColourSpecificationBox(jp2.box[3].box[1], colr)
         self.assertEqual(jp2.box[3].box[1].icc_profile['Size'], 13332)
 
@@ -3179,9 +3270,9 @@ class TestSuiteWarns(MetadataBase):
         ihdr = glymur.jp2box.ImageHeaderBox(400, 700)
         self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
 
-        colr = glymur.jp2box.ColourSpecificationBox(
-                method=glymur.core.RESTRICTED_ICC_PROFILE,
-                approximation=1)
+        method = RESTRICTED_ICC_PROFILE
+        colr = glymur.jp2box.ColourSpecificationBox(method=method,
+                                                    approximation=1)
         self.verifyColourSpecificationBox(jp2.box[2].box[1], colr)
         self.assertEqual(jp2.box[2].box[1].icc_profile['Size'], 414)
 
@@ -3234,16 +3325,15 @@ class TestSuiteWarns(MetadataBase):
         self.assertEqual(jp2.box[2].box[2].mapping_type, (1, 1, 1))
         self.assertEqual(jp2.box[2].box[2].palette_index, (0, 1, 2))
 
-        colr = glymur.jp2box.ColourSpecificationBox(
-                colorspace=glymur.core.SRGB,
-                approximation=1)
+        colr = glymur.jp2box.ColourSpecificationBox(colorspace=SRGB,
+                                                    approximation=1)
         self.verifyColourSpecificationBox(jp2.box[2].box[3], colr)
 
     def test_NR_issue188_beach_64bitsbox(self):
         lst = ['input', 'nonregression', 'issue188_beach_64bitsbox.jp2']
         jfile = opj_data_file('/'.join(lst))
         with self.assertWarns(UserWarning):
-            # There's a warning for an unknown box.  
+            # There's a warning for an unknown box.
             jp2 = Jp2k(jfile)
 
         ids = [box.box_id for box in jp2.box]
@@ -3256,10 +3346,12 @@ class TestSuiteWarns(MetadataBase):
         self.verify_filetype_box(jp2.box[1], FileTypeBox())
 
         ihdr = glymur.jp2box.ImageHeaderBox(200, 200,
-                num_components=3, colorspace_unknown=True)
+                                            num_components=3,
+                                            colorspace_unknown=True)
         self.verifyImageHeaderBox(jp2.box[2].box[0], ihdr)
 
-        colr = glymur.jp2box.ColourSpecificationBox(colorspace=glymur.core.SRGB)
+        cspace = glymur.core.SRGB
+        colr = glymur.jp2box.ColourSpecificationBox(colorspace=cspace)
         self.verifyColourSpecificationBox(jp2.box[2].box[1], colr)
 
         # Skip the 4th box, it is uknown.
@@ -3271,10 +3363,12 @@ class TestSuiteWarns(MetadataBase):
         self.assertEqual(ids, expected)
 
         kwargs = {'rsiz': 0, 'xysiz': (200, 200), 'xyosiz': (0, 0),
-                'xytsiz': (200, 200), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
-                'signed': (False, False, False),
-                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (200, 200), 'xytosiz': (0, 0),
+                  'bitdepth': (8, 8, 8),
+                  'signed': (False, False, False),
+                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -3286,7 +3380,7 @@ class TestSuiteWarns(MetadataBase):
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -3329,10 +3423,12 @@ class TestSuiteWarns(MetadataBase):
         self.assertEqual(ids, expected)
 
         kwargs = {'rsiz': 0, 'xysiz': (117, 117), 'xyosiz': (0, 0),
-                'xytsiz': (117, 117), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8, 8),
-                'signed': (False, False, False, False),
-                'xyrsiz': [(1, 1, 1, 1), (1, 1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (117, 117), 'xytosiz': (0, 0),
+                  'bitdepth': (8, 8, 8, 8),
+                  'signed': (False, False, False, False),
+                  'xyrsiz': [(1, 1, 1, 1), (1, 1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -3344,7 +3440,7 @@ class TestSuiteWarns(MetadataBase):
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)
@@ -3390,10 +3486,12 @@ class TestSuiteWarns(MetadataBase):
         self.assertEqual(ids, expected)
 
         kwargs = {'rsiz': 0, 'xysiz': (117, 117), 'xyosiz': (0, 0),
-                'xytsiz': (117, 117), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8, 8),
-                'signed': (False, False, False, False),
-                'xyrsiz': [(1, 1, 1, 1), (1, 1, 1, 1)]}
-        self.verifySizSegment(c.segment[1], glymur.codestream.SIZsegment(**kwargs))
+                  'xytsiz': (117, 117), 'xytosiz': (0, 0),
+                  'bitdepth': (8, 8, 8, 8),
+                  'signed': (False, False, False, False),
+                  'xyrsiz': [(1, 1, 1, 1), (1, 1, 1, 1)]}
+        self.verifySizSegment(c.segment[1],
+                              glymur.codestream.SIZsegment(**kwargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
@@ -3405,7 +3503,7 @@ class TestSuiteWarns(MetadataBase):
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblk
         self.verify_codeblock_style(c.segment[2].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[2].spcod), 9)

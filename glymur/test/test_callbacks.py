@@ -25,6 +25,7 @@ import glymur
 
 from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
 
+
 class TestCallbacks(unittest.TestCase):
     """Test suite for callbacks."""
 
@@ -46,7 +47,7 @@ class TestCallbacks(unittest.TestCase):
             tiledata = j.read(tile=0)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             with patch('sys.stdout', new=StringIO()) as fake_out:
-            	j = glymur.Jp2k(tfile.name, data=tiledata, verbose=True)
+                glymur.Jp2k(tfile.name, data=tiledata, verbose=True)
             actual = fake_out.getvalue().strip()
         expected = '[INFO] tile number 1 / 1'
         self.assertEqual(actual, expected)
@@ -60,7 +61,7 @@ class TestCallbacks(unittest.TestCase):
         tiledata = j[:]
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             with patch('sys.stdout', new=StringIO()) as fake_out:
-                jp2 = glymur.Jp2k(tfile.name, data=tiledata, verbose=True)
+                glymur.Jp2k(tfile.name, data=tiledata, verbose=True)
                 actual = fake_out.getvalue().strip()
         expected = '[INFO] tile number 1 / 1'
         self.assertEqual(actual, expected)
