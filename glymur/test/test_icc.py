@@ -6,8 +6,6 @@ ICC profile tests.
 # pylint: disable=R0904
 
 import datetime
-import os
-import sys
 import unittest
 
 import numpy as np

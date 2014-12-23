@@ -37,6 +37,7 @@ elif re.match('1.[0-6]', six.__version__) is not None:
 # Cannot reopen a named temporary file in windows.
 WINDOWS_TMP_FILE_MSG = "cannot use NamedTemporaryFile like this in windows"
 
+
 class MetadataBase(unittest.TestCase):
     """
     Base class for testing metadata.
@@ -101,8 +102,8 @@ class MetadataBase(unittest.TestCase):
         """
         verify the fields of a RGN segment
         """
-        self.assertEqual(actual.crgn, expected.crgn) # 0 = component
-        self.assertEqual(actual.srgn, expected.srgn) # 0 = implicit
+        self.assertEqual(actual.crgn, expected.crgn)  # 0 = component
+        self.assertEqual(actual.srgn, expected.srgn)  # 0 = implicit
         self.assertEqual(actual.sprgn, expected.sprgn)
 
     def verifySOTsegment(self, actual, expected):
@@ -125,8 +126,9 @@ class MetadataBase(unittest.TestCase):
         """
         Verify the fields of the SIZ segment.
         """
-        for field in ['rsiz', 'xsiz', 'ysiz', 'xosiz', 'yosiz', 'xtsiz', 
-                'ytsiz', 'xtosiz', 'ytosiz', 'bitdepth', 'xrsiz', 'yrsiz']:
+        for field in ['rsiz', 'xsiz', 'ysiz', 'xosiz', 'yosiz', 'xtsiz',
+                      'ytsiz', 'xtosiz', 'ytosiz', 'bitdepth',
+                      'xrsiz', 'yrsiz']:
             self.assertEqual(getattr(actual, field), getattr(expected, field))
 
     def verifyImageHeaderBox(self, box1, box2):
@@ -153,7 +155,7 @@ class MetadataBase(unittest.TestCase):
         else:
             self.assertEqual(actual.colorspace, expected.colorspace)
             self.assertIsNone(actual.icc_profile)
-        
+
 
 # The Python XMP Toolkit may be used for XMP UUIDs, but only if available and
 # if the version is at least 2.0.0.
@@ -183,7 +185,7 @@ except:
 # The Cinema2K/4K tests seem to need the freeimage backend to skimage.io
 # in order to work.  Unfortunately, scikit-image/freeimage is about as wonky as
 # it gets.  Anaconda can get totally weirded out on versions up through 3.6.4
-# on Python3 with scikit-image up through version 0.10.0.  
+# on Python3 with scikit-image up through version 0.10.0.
 NO_SKIMAGE_FREEIMAGE_SUPPORT = False
 try:
     import skimage
@@ -211,7 +213,7 @@ def _indent(textstr):
         String to be indented.
     indent_level : str
         Number of spaces of indentation to add.
-    
+
     Returns
     -------
     indented_string : str
@@ -544,7 +546,7 @@ text_gbr_34 = """Colour Specification Box (colr) @ (179, 1339)
 dump = r'''JPEG 2000 Signature Box (jP  ) @ (0, 12)
     Signature:  0d0a870a
 File Type Box (ftyp) @ (12, 20)
-    Brand:  jp2 
+    Brand:  jp2
     Compatibility:  ['jp2 ']
 JP2 Header Box (jp2h) @ (32, 45)
     Image Header Box (ihdr) @ (40, 22)
@@ -600,7 +602,6 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)
             "Created by OpenJPEG version 2.0.0"'''
 
 nemo_with_codestream_header = dump.format(_indent(nemo_xmp))
-#nemo_dump_full = dump.format(_indent(nemo_xmp))
 
 nemo_dump_short = r"""JPEG 2000 Signature Box (jP  ) @ (0, 12)
 File Type Box (ftyp) @ (12, 20)
@@ -613,7 +614,7 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)"""
 nemo_dump_no_xml = '''JPEG 2000 Signature Box (jP  ) @ (0, 12)
     Signature:  0d0a870a
 File Type Box (ftyp) @ (12, 20)
-    Brand:  jp2 
+    Brand:  jp2
     Compatibility:  ['jp2 ']
 JP2 Header Box (jp2h) @ (32, 45)
     Image Header Box (ihdr) @ (40, 22)
@@ -669,7 +670,7 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)
 dump = r"""JPEG 2000 Signature Box (jP  ) @ (0, 12)
     Signature:  0d0a870a
 File Type Box (ftyp) @ (12, 20)
-    Brand:  jp2 
+    Brand:  jp2
     Compatibility:  ['jp2 ']
 JP2 Header Box (jp2h) @ (32, 45)
     Image Header Box (ihdr) @ (40, 22)
@@ -692,7 +693,7 @@ nemo_dump_no_codestream = dump.format(_indent(nemo_xmp))
 nemo_dump_no_codestream_no_xml = r"""JPEG 2000 Signature Box (jP  ) @ (0, 12)
     Signature:  0d0a870a
 File Type Box (ftyp) @ (12, 20)
-    Brand:  jp2 
+    Brand:  jp2
     Compatibility:  ['jp2 ']
 JP2 Header Box (jp2h) @ (32, 45)
     Image Header Box (ihdr) @ (40, 22)
@@ -743,7 +744,7 @@ issue_183_colr = """Colour Specification Box (colr) @ (62, 12)
     Method:  restricted ICC profile
     Precedence:  0
     ICC Profile:  None"""
-        
+
 
 # Progression order is invalid.
 issue_186_progression_order = """COD marker segment @ (174, 12)
@@ -908,4 +909,3 @@ goodstuff_with_full_header = r"""Codestream:
         Step size:  [(0, 8), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10)]
     SOD marker segment @ (164, 0)
     EOC marker segment @ (115218, 0)"""
-

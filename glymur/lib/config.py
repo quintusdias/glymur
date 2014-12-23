@@ -19,18 +19,21 @@ else:
     from configparser import NoOptionError
 
 # default library locations for MacPorts
-_macports_default_location = {
-        'openjp2': '/opt/local/lib/libopenjp2.dylib',
-        'openjpeg': '/opt/local/lib/libopenjpeg.dylib'
-}
+_macports_default_location = {'openjp2': '/opt/local/lib/libopenjp2.dylib',
+                              'openjpeg': '/opt/local/lib/libopenjpeg.dylib'}
 
 # default library locations on Windows
-_windows_default_location = {
-        'openjp2': os.path.join('C:\\', 'Program files', 'OpenJPEG 2.0',
-                                'bin', 'openjp2.dll'),
-        'openjpeg': os.path.join('C:\\', 'Program files', 'OpenJPEG 1.5',
-                                 'bin', 'openjpeg.dll')
-}
+_windows_default_location = {'openjp2': os.path.join('C:\\',
+                                                     'Program files',
+                                                     'OpenJPEG 2.0',
+                                                     'bin',
+                                                     'openjp2.dll'),
+                             'openjpeg': os.path.join('C:\\',
+                                                      'Program files',
+                                                      'OpenJPEG 1.5',
+                                                      'bin',
+                                                      'openjpeg.dll')}
+
 
 def glymurrc_fname():
     """Return the path to the configuration file.
@@ -55,8 +58,9 @@ def glymurrc_fname():
     # didn't find a configuration file.
     return None
 
+
 def load_openjpeg_library(libname):
-    
+
     path = read_config_file(libname)
     if path is not None:
         return load_library_handle(path)
@@ -79,13 +83,15 @@ def load_openjpeg_library(libname):
 
     return load_library_handle(path)
 
+
 def load_library_handle(path):
     """Load the library, return the ctypes handle."""
 
     if path is None or path in ['None', 'none']:
-        # Either could not find a library via ctypes or user-configuration-file,
-        # or we could not find it in any of the default locations, or possibly
-        # the user intentionally does not want one of the libraries to load.
+        # Either could not find a library via ctypes or
+        # user-configuration-file, or we could not find it in any of the
+        # default locations, or possibly the user intentionally does not want
+        # one of the libraries to load.
         return None
 
     try:
@@ -94,10 +100,10 @@ def load_library_handle(path):
         else:
             opj_lib = ctypes.CDLL(path)
     except (TypeError, OSError):
-       msg = 'The library specified by configuration file at {0} could not be '
-       msg += 'loaded.'
-       warnings.warn(msg.format(path), UserWarning)
-       opj_lib = None
+        msg = 'The library specified by configuration file at {0} could not '
+        msg += 'be loaded.'
+        warnings.warn(msg.format(path), UserWarning)
+        opj_lib = None
 
     return opj_lib
 
@@ -130,6 +136,7 @@ def read_config_file(libname):
         path = None
     return path
 
+
 def glymur_config():
     """
     Try to ascertain locations of openjp2, openjpeg libraries.
@@ -146,6 +153,7 @@ def glymur_config():
         msg = "Neither the openjp2 nor the openjpeg library could be loaded.  "
         warnings.warn(msg)
     return tuple(lst)
+
 
 def get_configdir():
     """Return string representing the configuration directory.

@@ -410,7 +410,6 @@ class CompressionParametersType(ctypes.Structure):
                 for j in range(self.numpocs):
                     msg += "        [#{0}]:".format(j)
                     msg += "            {0}".format(str(self.poc[j]))
-                    msg += textwrap.indent(textstr, ' ' * 12)
 
             elif field_name in ['tcp_rates', 'tcp_distoratio']:
                 lst = []
@@ -740,28 +739,6 @@ def encode(codec, stream):
     OPENJP2.opj_encode(codec, stream)
 
 
-def get_cstr_info(codec):
-    """get the codestream information from the codec
-
-    Wraps the openjp2 library function opj_get_cstr_info.
-
-    Parameters
-    ----------
-    codec : CODEC_TYPE
-        The jpeg2000 codec.
-
-    Returns
-    -------
-    cstr_info_p : CodestreamInfoV2
-        Reference to codestream information.
-    """
-    OPENJP2.opj_get_cstr_info.argtypes = [CODEC_TYPE]
-    OPENJP2.opj_get_cstr_info.restype = ctypes.POINTER(CodestreamInfoV2)
-
-    cstr_info_p = OPENJP2.opj_get_cstr_info(codec)
-    return cstr_info_p
-
-
 def get_decoded_tile(codec, stream, imagep, tile_index):
     """get the decoded tile from the codec
 
@@ -790,23 +767,6 @@ def get_decoded_tile(codec, stream, imagep, tile_index):
     OPENJP2.opj_get_decoded_tile.restype = check_error
 
     OPENJP2.opj_get_decoded_tile(codec, stream, imagep, tile_index)
-
-
-def destroy_cstr_info(cstr_info_p):
-    """destroy codestream information after compression or decompression
-
-    Wraps the openjp2 library function opj_destroy_cstr_info.
-
-    Parameters
-    ----------
-    cstr_info_p : CodestreamInfoV2 pointer
-        Pointer to codestream info structure.
-    """
-    ARGTYPES = [ctypes.POINTER(ctypes.POINTER(CodestreamInfoV2))]
-    OPENJP2.opj_destroy_cstr_info.argtypes = ARGTYPES
-    OPENJP2.opj_destroy_cstr_info.restype = ctypes.c_void_p
-
-    OPENJP2.opj_destroy_cstr_info(ctypes.byref(cstr_info_p))
 
 
 def end_compress(codec, stream):

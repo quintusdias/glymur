@@ -5,21 +5,18 @@ Test suite for warnings issued by glymur.
 # unittest doesn't work well with R0904.
 # pylint: disable=R0904
 
-import platform
 import os
 import re
 import struct
-import sys
 import tempfile
 import unittest
-
-import six
 
 from glymur import Jp2k
 import glymur
 
 from .fixtures import opj_data_file, OPJ_DATA_ROOT
 from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
+
 
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
@@ -53,11 +50,10 @@ class TestWarnings(unittest.TestCase):
         """
         relpath = 'input/nonregression/issue188_beach_64bitsbox.jp2'
         jfile = opj_data_file(relpath)
-        regex = re.compile(r"""Unrecognized\sbox\s\(b'XML\s'\)\sencountered.""",
-                           re.VERBOSE)
+        pattern = r"""Unrecognized\sbox\s\(b'XML\s'\)\sencountered."""
+        regex = re.compile(pattern, re.VERBOSE)
         with self.assertWarnsRegex(UserWarning, regex):
             Jp2k(jfile)
-
 
     def test_NR_gdal_fuzzer_unchecked_numresolutions_dump(self):
         """
@@ -119,7 +115,7 @@ class TestWarnings(unittest.TestCase):
                                \(\d+\)''',
                            re.VERBOSE)
         with self.assertWarnsRegex(UserWarning, regex):
-            jp2 = Jp2k(jfile)
+            Jp2k(jfile)
 
     def test_NR_broken2_jp2_dump(self):
         """
@@ -127,7 +123,7 @@ class TestWarnings(unittest.TestCase):
         """
         jfile = opj_data_file('input/nonregression/broken2.jp2')
         regex = re.compile(r'''Invalid\smarker\sid\sencountered\sat\sbyte\s
-                               \d+\sin\scodestream:\s*"0x[a-fA-F0-9]{4}"''', 
+                               \d+\sin\scodestream:\s*"0x[a-fA-F0-9]{4}"''',
                            re.VERBOSE)
         with self.assertWarnsRegex(UserWarning, regex):
             Jp2k(jfile)
@@ -152,7 +148,8 @@ class TestWarnings(unittest.TestCase):
 
     def test_tile_height_is_zero(self):
         """Zero tile height should not cause an exception."""
-        filename = opj_data_file('input/nonregression/2539.pdf.SIGFPE.706.1712.jp2')
+        filename = 'input/nonregression/2539.pdf.SIGFPE.706.1712.jp2'
+        filename = opj_data_file(filename)
         with self.assertWarnsRegex(UserWarning, 'Invalid tile dimensions'):
             Jp2k(filename)
 
@@ -177,9 +174,9 @@ class TestWarnings(unittest.TestCase):
                 read_buffer = ifile.read()
                 tfile.write(read_buffer)
                 tfile.flush()
- 
+
                 with self.assertWarnsRegex(UserWarning, 'Unrecognized marker'):
-                    codestream = Jp2k(tfile.name).get_codestream()
+                    Jp2k(tfile.name).get_codestream()
 
 
 if __name__ == "__main__":

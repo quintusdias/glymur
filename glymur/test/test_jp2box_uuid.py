@@ -11,7 +11,6 @@
 # pylint: disable=R0904
 
 import os
-import re
 import shutil
 import struct
 import sys
@@ -23,29 +22,15 @@ if sys.hexversion < 0x02070000:
 else:
     import unittest
 
-if sys.hexversion < 0x03000000:
-    from StringIO import StringIO
-else:
-    from io import StringIO
-
-if sys.hexversion <= 0x03030000:
-    from mock import patch
-else:
-    from unittest.mock import patch
-
 import lxml.etree
 
-from .fixtures import (HAS_PYTHON_XMP_TOOLKIT, OPJ_DATA_ROOT,
-                       WARNING_INFRASTRUCTURE_ISSUE,
+from .fixtures import (WARNING_INFRASTRUCTURE_ISSUE,
                        WARNING_INFRASTRUCTURE_MSG,
                        WINDOWS_TMP_FILE_MSG)
 
-if HAS_PYTHON_XMP_TOOLKIT:
-    from libxmp import XMPMeta
-
 import glymur
 from glymur import Jp2k
-from .fixtures import OPJ_DATA_ROOT, opj_data_file, SimpleRDF
+from .fixtures import SimpleRDF
 
 
 @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
@@ -103,6 +88,7 @@ class TestSuite(unittest.TestCase):
             jp2 = glymur.Jp2k(tfile.name)
             self.assertEqual(jp2.box[-1].data['Make'], "HTC")
 
+
 @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
 @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
 class TestSuiteWarns(unittest.TestCase):
@@ -113,7 +99,7 @@ class TestSuiteWarns(unittest.TestCase):
 
     def tearDown(self):
         pass
-        
+
     def test_unrecognized_exif_tag(self):
         """Verify warning in case of unrecognized tag."""
         with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
@@ -137,7 +123,7 @@ class TestSuiteWarns(unittest.TestCase):
             tfile.flush()
 
             with self.assertWarnsRegex(UserWarning, 'Unrecognized Exif tag'):
-                j = glymur.Jp2k(tfile.name)
+                glymur.Jp2k(tfile.name)
 
     def test_bad_tag_datatype(self):
         """Only certain datatypes are allowable"""

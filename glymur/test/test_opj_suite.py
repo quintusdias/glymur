@@ -38,12 +38,11 @@ import glymur
 from glymur import Jp2k
 from glymur.jp2box import FileTypeBox, ImageHeaderBox, ColourSpecificationBox
 
-from .fixtures import (
-        OPJ_DATA_ROOT, MetadataBase,
-        WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG,
-        mse, peak_tolerance, read_pgx, opj_data_file,
-        OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
-)
+from .fixtures import (OPJ_DATA_ROOT, MetadataBase,
+                       WARNING_INFRASTRUCTURE_ISSUE,
+                       WARNING_INFRASTRUCTURE_MSG,
+                       mse, peak_tolerance, read_pgx, opj_data_file,
+                       OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
@@ -415,16 +414,17 @@ class TestSuiteWarns(MetadataBase):
         self.assertEqual(ids, expected)
 
         kwargs = {'rsiz': 0, 'xysiz': (203, 152), 'xyosiz': (0, 0),
-                'xytsiz': (203, 152), 'xytosiz': (0, 0), 'bitdepth': (8, 8, 8),
-                'signed': (False, False, False),
-                'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+                  'xytsiz': (203, 152), 'xytosiz': (0, 0),
+                  'bitdepth': (8, 8, 8),
+                  'signed': (False, False, False),
+                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
         self.verifySizSegment(c.segment[1],
-                glymur.codestream.SIZsegment(**kwargs))
+                              glymur.codestream.SIZsegment(**kwargs))
 
         pargs = (glymur.core.RCME_ISO_8859_1,
-                "Creator: JasPer Version 1.701.0".encode())
+                 "Creator: JasPer Version 1.701.0".encode())
         self.verifyCMEsegment(c.segment[2],
-                glymur.codestream.CMEsegment(*pargs))
+                              glymur.codestream.CMEsegment(*pargs))
 
         # COD: Coding style default
         self.assertFalse(c.segment[3].scod & 2)  # no sop
@@ -436,7 +436,7 @@ class TestSuiteWarns(MetadataBase):
         self.assertEqual(tuple(c.segment[3].code_block_size),
                          (64, 64))  # cblk
         self.verify_codeblock_style(c.segment[3].spcod[7],
-                [False, False, False, False, False, False])
+                                    [False, False, False, False, False, False])
         self.assertEqual(c.segment[3].spcod[8],
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(len(c.segment[3].spcod), 9)
@@ -726,7 +726,7 @@ class TestSuite2point1(unittest.TestCase):
     def test_NR_DEC_p1_04_j2k_57_decode(self):
         jfile = opj_data_file('input/conformance/p1_04.j2k')
         jp2k = Jp2k(jfile)
-        tdata = jp2k[896:1024, 896:1024] # last tile
+        tdata = jp2k[896:1024, 896:1024]  # last tile
         odata = jp2k[:]
         np.testing.assert_array_equal(tdata, odata[896:1024, 896:1024])
 
@@ -798,6 +798,7 @@ class TestSuite2point1(unittest.TestCase):
             with self.assertRaises(IOError):
                 j[:]
 
+
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 @unittest.skipIf(re.match(r'''0|1|2.0.0''',
@@ -806,7 +807,7 @@ class TestSuite2point1(unittest.TestCase):
 class TestReadArea(unittest.TestCase):
     """
     Runs tests introduced in version 2.0+ or that pass only in 2.0+
-    
+
     Specifically for read method with area parameter.
     """
     @classmethod

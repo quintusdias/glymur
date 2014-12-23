@@ -6,7 +6,6 @@ Test suite specifically targeting JPX box layout.
 import ctypes
 import os
 import struct
-import sys
 import tempfile
 import unittest
 
@@ -19,6 +18,7 @@ from glymur.jp2box import DataReferenceBox, FragmentListBox, FragmentTableBox
 from glymur.jp2box import ColourSpecificationBox
 
 from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
+
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
 class TestJPXWrap(unittest.TestCase):
@@ -184,7 +184,7 @@ class TestJPXWrap(unittest.TestCase):
 
         with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
             with self.assertRaises(IOError):
-                jpx = jp2.wrap(tfile.name, boxes=boxes)
+                jp2.wrap(tfile.name, boxes=boxes)
 
     def test_cgrp_neg(self):
         """Can't write a cgrp with anything but colr sub boxes"""
@@ -204,7 +204,7 @@ class TestJPXWrap(unittest.TestCase):
 
         with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
             with self.assertRaises(IOError):
-                jpx = jp2.wrap(tfile.name, boxes=boxes)
+                jp2.wrap(tfile.name, boxes=boxes)
 
     def test_ftbl(self):
         """Write a fragment table box."""
@@ -484,7 +484,7 @@ class TestJPX(unittest.TestCase):
                 ftbl.write(tfile)
 
     def test_data_reference_requires_dtbl(self):
-        """The existance of a data reference box requires a ftbl box as well."""
+        """The existance of data reference box requires a ftbl box as well."""
         flag = 0
         version = (0, 0, 0)
         url1 = 'file:////usr/local/bin'
@@ -574,7 +574,7 @@ class TestJPX(unittest.TestCase):
                           131072, 65536, 32768, 16384, 8192]
         for j in range(len(standard_flags)):
             mask = (standard_masks[j] >> 16,
-                    standard_masks[j] & 0x0000ffff>> 8,
+                    standard_masks[j] & 0x0000ffff >> 8,
                     standard_masks[j] & 0x000000ff)
             struct.pack_into('>HBBB', rreq_buffer, 17 + j * 5,
                              standard_flags[j], *mask)
@@ -598,7 +598,6 @@ class TestJPX(unittest.TestCase):
                          glymur.jp2box.ReaderRequirementsBox)
         self.assertEqual(jpx.box[2].standard_flag,
                          (5, 42, 45, 2, 18, 19, 1, 8, 12, 31, 20))
-
 
     def test_nlst(self):
         """Verify that we can handle a number list box."""
