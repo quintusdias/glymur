@@ -102,28 +102,6 @@ class TestWarnings(unittest.TestCase):
         with self.assertWarnsRegex(UserWarning, regex):
             Jp2k(jfile)
 
-    def test_NR_broken_jp2_dump(self):
-        """
-        The colr box has a ridiculously incorrect box length.
-        """
-        jfile = opj_data_file('input/nonregression/broken.jp2')
-        regex = re.compile(r'''b'colr'\sbox\shas\sincorrect\sbox\slength\s
-                               \(\d+\)''',
-                           re.VERBOSE)
-        with self.assertWarnsRegex(UserWarning, regex):
-            Jp2k(jfile)
-
-    def test_NR_broken2_jp2_dump(self):
-        """
-        Invalid marker ID on codestream.
-        """
-        jfile = opj_data_file('input/nonregression/broken2.jp2')
-        regex = re.compile(r'''Invalid\smarker\sid\sencountered\sat\sbyte\s
-                               \d+\sin\scodestream:\s*"0x[a-fA-F0-9]{4}"''',
-                           re.VERBOSE)
-        with self.assertWarnsRegex(UserWarning, regex):
-            Jp2k(jfile)
-
     def test_bad_rsiz(self):
         """Should warn if RSIZ is bad.  Issue196"""
         filename = opj_data_file('input/nonregression/edf_c2_1002767.jp2')
