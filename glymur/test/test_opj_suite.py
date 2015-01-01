@@ -360,7 +360,7 @@ class TestSuiteWarns(MetadataBase):
         self.assertEqual(jpdata.shape, (512, 768, 3))
 
     def test_NR_broken_jp2_dump(self):
-        jfile = opj_data_file('input/nonregression/broken.jp2')
+        jfile = opj_data_file('input/nonregression/broken1.jp2')
 
         with self.assertWarns(UserWarning):
             # colr box has bad length.
