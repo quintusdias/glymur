@@ -1119,7 +1119,7 @@ class TestJp2kOpjDataRootWarnings(unittest.TestCase):
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 class TestJp2kOpjDataRoot(unittest.TestCase):
-    """These tests should be run by just about all configuration."""
+    """These tests should be run by just about all configurations."""
 
     @unittest.skipIf(re.match("0|1.[0-4]", glymur.version.openjpeg_version),
                      "Must have openjpeg 1.5 or higher to run")
@@ -1128,9 +1128,9 @@ class TestJp2kOpjDataRoot(unittest.TestCase):
         """Irreversible"""
         filename = opj_data_file('input/nonregression/issue141.rawl')
         expdata = np.fromfile(filename, dtype=np.uint16)
-        expdata.resize((2816, 2048))
+        expdata.resize((32, 2048))
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, data=expdata, irreversible=True)
+            j = Jp2k(tfile.name, data=expdata, irreversible=True, numres=5)
 
             codestream = j.get_codestream()
             self.assertEqual(codestream.segment[2].spcod[8],
