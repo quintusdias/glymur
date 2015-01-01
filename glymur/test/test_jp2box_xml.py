@@ -2,18 +2,6 @@
 """
 Test suite specifically targeting JP2 box layout.
 """
-# E1103:  return value from read may be list or np array
-# pylint: disable=E1103
-
-# R0902:  More than 7 instance attributes are just fine for testing.
-# pylint: disable=R0902
-
-# R0904:  Seems like pylint is fooled in this situation
-# pylint: disable=R0904
-
-# W0613:  load_tests doesn't need to use ignore or loader arguments.
-# pylint: disable=W0613
-
 import os
 import re
 import struct

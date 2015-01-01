@@ -1,15 +1,6 @@
 """These tests are for edge cases where OPENJPEG does not exist, but
 OPENJP2 may be present in some form or other.
 """
-# unittest doesn't work well with R0904.
-# pylint: disable=R0904
-
-# tempfile.TemporaryDirectory, unittest.assertWarns introduced in 3.2
-# pylint: disable=E1101
-
-# unittest.mock only in Python 3.3 (python2.7/pylint import issue)
-# pylint:  disable=E0611,F0401
-
 import contextlib
 import ctypes
 import imp
@@ -98,7 +89,6 @@ class TestSuite(unittest.TestCase):
 
                 # Need to reliably recover the location of the openjp2 library,
                 # so using '_name' appears to be the only way to do it.
-                # pylint:  disable=W0212
                 libloc = glymur.lib.openjp2.OPENJP2._name
                 line = 'openjp2: {0}\n'.format(libloc)
                 tfile.write(line)

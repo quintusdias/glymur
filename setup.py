@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 import os
 import re
 import sys
@@ -11,7 +11,9 @@ kwargs = {'name': 'Glymur',
           'url': 'https://github.com/quintusdias/glymur',
           'packages': ['glymur', 'glymur.data', 'glymur.test', 'glymur.lib',
                        'glymur.lib.test'],
-          'package_data': {'glymur': ['data/*.jp2', 'data/*.j2k', 'data/*.jpx']},
+          'package_data': {'glymur': ['data/*.jp2',
+                                      'data/*.j2k',
+                                      'data/*.jpx']},
           'entry_points': {
               'console_scripts': ['jp2dump=glymur.command_line:main'],
               },

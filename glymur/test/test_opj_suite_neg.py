@@ -2,12 +2,6 @@
 The tests here do not correspond directly to the OpenJPEG test suite, but
 seem like logical negative tests to add.
 """
-# E1101:  assertWarns introduced in python 3.2
-# pylint: disable=E1101
-
-# R0904:  Not too many methods in unittest.
-# pylint: disable=R0904
-
 import os
 import re
 import tempfile

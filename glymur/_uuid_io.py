@@ -3,8 +3,6 @@
 Part of glymur.
 """
 from collections import OrderedDict
-import pprint
-import re
 import struct
 import sys
 import warnings

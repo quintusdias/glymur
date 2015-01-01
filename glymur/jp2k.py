@@ -10,13 +10,12 @@ License:  MIT
 import sys
 
 # Exitstack not found in contextlib in 2.7
-# pylint: disable=E0611
 if sys.hexversion >= 0x03030000:
     from contextlib import ExitStack
-    from itertools import compress, filterfalse
+    from itertools import filterfalse
 else:
     from contextlib2 import ExitStack
-    from itertools import compress, ifilterfalse as filterfalse
+    from itertools import ifilterfalse as filterfalse
 
 from collections import Counter
 import ctypes
@@ -517,12 +516,12 @@ class Jp2k(Jp2kBox):
             # set image offset and reference grid
             image.contents.x0 = self._cparams.image_offset_x0
             image.contents.y0 = self._cparams.image_offset_y0
-            image.contents.x1 = image.contents.x0 \
-                                + (numcols - 1) * self._cparams.subsampling_dx \
-                                + 1
-            image.contents.y1 = image.contents.y0 \
-                                + (numrows - 1) * self._cparams.subsampling_dy \
-                                + 1
+            image.contents.x1 = (image.contents.x0
+                                 + (numcols - 1) * self._cparams.subsampling_dx
+                                 + 1)
+            image.contents.y1 = (image.contents.y0
+                                 + (numrows - 1) * self._cparams.subsampling_dy
+                                 + 1)
 
             # Stage the image data to the openjpeg data structure.
             for k in range(0, numlayers):
@@ -832,7 +831,7 @@ class Jp2k(Jp2kBox):
                 raise IOError(msg)
 
             # Find the first codestream in the file.
-            jp2c = [box for box in self.box if box.box_id == 'jp2c']
+            jp2c = [_box for _box in self.box if _box.box_id == 'jp2c']
             offset = jp2c[0].offset
 
         # Ready to write the codestream.
@@ -1435,7 +1434,6 @@ class Jp2k(Jp2kBox):
                 codestream = Codestream(fptr, self.length,
                                         header_only=header_only)
             else:
-                ftyp = self.box[1]
                 box = [x for x in self.box if x.box_id == 'jp2c']
                 fptr.seek(box[0].offset)
                 read_buffer = fptr.read(8)

@@ -2,31 +2,6 @@
 The tests defined here roughly correspond to what is in the OpenJPEG test
 suite.
 """
-
-# Some test names correspond with openjpeg tests.  Long names are ok in this
-# case.
-# pylint: disable=C0103
-
-# All of these tests correspond to tests in openjpeg, so no docstring is really
-# needed.
-# pylint: disable=C0111
-
-# This module is very long, cannot be helped.
-# pylint: disable=C0302
-
-# unittest fools pylint with "too many public methods"
-# pylint: disable=R0904
-
-# Some tests use numpy test infrastructure, which means the tests never
-# reference "self", so pylint claims it should be a function.  No, no, no.
-# pylint: disable=R0201
-
-# Many tests are pretty long and that can't be helped.
-# pylint:  disable=R0915
-
-# asserWarns introduced in python 3.2 (python2.7/pylint issue)
-# pylint: disable=E1101
-
 import re
 import sys
 import unittest

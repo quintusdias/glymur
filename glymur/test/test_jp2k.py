@@ -1,15 +1,6 @@
 """
 Tests for general glymur functionality.
 """
-# E1101:  assertWarns introduced in python 3.2
-# pylint: disable=E1101
-
-# R0904:  Not too many methods in unittest.
-# pylint: disable=R0904
-
-# E0611:  unittest.mock is unknown to python2.7/pylint
-# pylint: disable=E0611,F0401
-
 import doctest
 import os
 import re
@@ -47,10 +38,6 @@ from . import fixtures
 
 # Doc tests should be run as well.
 def load_tests(loader, tests, ignore):
-    # W0613:  "loader" and "ignore" are necessary for the protocol
-    # They are unused here, however.
-    # pylint: disable=W0613
-
     """Should run doc tests as well"""
     if os.name == "nt":
         # Can't do it on windows, temporary file issue.

@@ -1,8 +1,6 @@
 """Core definitions to be shared amongst the modules.
 """
 import collections
-import copy
-import lxml.etree as ET
 
 
 class _Keydefaultdict(collections.defaultdict):

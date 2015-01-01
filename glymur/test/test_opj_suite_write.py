@@ -2,10 +2,6 @@
 The tests defined here roughly correspond to what is in the OpenJPEG test
 suite.
 """
-# C0103:  method names longer that 30 chars are ok in tests, IMHO
-# R0904:  Seems like pylint is fooled in this situation
-# pylint: disable=R0904,C0103
-
 import os
 import re
 import sys

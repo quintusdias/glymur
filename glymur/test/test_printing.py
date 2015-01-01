@@ -1,15 +1,6 @@
 # -*- coding:  utf-8 -*-
 """Test suite for printing.
 """
-# C0302:  don't care too much about having too many lines in a test module
-# pylint: disable=C0302
-
-# E061:  unittest.mock introduced in 3.3 (python-2.7/pylint issue)
-# pylint: disable=E0611,F0401
-
-# R0904:  Not too many methods in unittest.
-# pylint: disable=R0904
-
 import os
 import re
 import struct
@@ -106,7 +97,7 @@ class TestPrinting(unittest.TestCase):
         data = glymur.Jp2k(self.jp2file)[::2, ::2]
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile2:
-                j = glymur.Jp2k(tfile.name, data=data)
+                glymur.Jp2k(tfile.name, data=data)
 
                 # Offset of the codestream is where we start.
                 wbuffer = tfile.read(77)

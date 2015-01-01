@@ -11,8 +11,6 @@ References
    Extensions
 """
 
-# pylint: disable=C0302,R0903,R0913,W0142
-
 from collections import OrderedDict
 import datetime
 import io
@@ -22,7 +20,7 @@ import pprint
 import struct
 import sys
 import textwrap
-import uuid
+from uuid import UUID
 import warnings
 
 import lxml.etree as ET
@@ -44,11 +42,13 @@ _METHOD_DISPLAY = {
     VENDOR_COLOR_METHOD: 'vendor color method'}
 
 _factory = lambda x: '{0} (invalid)'.format(x)
-_APPROX_DISPLAY = _Keydefaultdict(_factory,
-        {1: 'accurately represents correct colorspace definition',
-         2: 'approximates correct colorspace definition, exceptional quality',
-         3: 'approximates correct colorspace definition, reasonable quality',
-         4: 'approximates correct colorspace definition, poor quality'})
+_keysvalues = {1: 'accurately represents correct colorspace definition',
+               2: ('approximates correct colorspace definition, '
+                   'exceptional quality'),
+               3: ('approximates correct colorspace definition, '
+                   'reasonable quality'),
+               4: 'approximates correct colorspace definition, poor quality'}
+_APPROX_DISPLAY = _Keydefaultdict(_factory, _keysvalues)
 
 
 class Jp2kBox(object):
@@ -1983,7 +1983,6 @@ class PaletteBox(Jp2kBox):
                                    *bps_signed)
         fptr.write(write_buffer)
 
-        bps = self.bits_per_component
         # All components are the same.  Writing is straightforward.
         if self.bits_per_component[0] <= 8:
             write_buffer = memoryview(self.palette.astype(np.uint8))
@@ -2023,13 +2022,10 @@ class PaletteBox(Jp2kBox):
             # Ok the palette has the same datatype for all columns.  We should
             # be able to efficiently read it.
             if bps[0] <= 8:
-                nbytes_per_row = ncols
                 dtype = np.uint8
             elif bps[0] <= 16:
-                nbytes_per_row = 2 * ncols
                 dtype = np.uint16
             elif bps[0] <= 32:
-                nbytes_per_row = 3 * ncols
                 dtype = np.uint32
 
             palette = np.frombuffer(read_buffer[3 + ncols:], dtype=dtype)
@@ -2073,80 +2069,80 @@ _READER_REQUIREMENTS_DISPLAY = {
     7:  'JPEG codestream as defined in ISO/IEC 10918-1',
     8:  'Deprecated - does not contain opacity',
     9:  'Non-premultiplied opacity channel',
-    10:  'Premultiplied opacity channel',
-    11:  'Chroma-key based opacity',
-    12:  'Deprecated - codestream is contiguous',
-    13:  'Fragmented codestream where all fragments are in file and in order',
-    14:  'Fragmented codestream where all fragments are in file '
-         + 'but are out of order',
-    15:  'Fragmented codestream where not all fragments are within the file '
-         + 'but are all in locally accessible files',
-    16:  'Fragmented codestream where some fragments may be accessible '
-         + 'only through a URL specified network connection',
-    17:  'Compositing required to produce rendered result from multiple '
-         + 'compositing layers',
-    18:  'Deprecated - support for compositing is not required',
-    19:  'Deprecated - contains multiple, discrete layers that should not '
-         + 'be combined through either animation or compositing',
-    20:  'Deprecated - compositing layers each contain only a single '
-         + 'codestream',
-    21:  'At least one compositing layer consists of multiple codestreams',
-    22:  'Deprecated - all compositing layers are in the same colourspace',
-    23:  'Colourspace transformations are required to combine compositing '
-         + 'layers; not all compositing layers are in the same colourspace',
-    24:  'Deprecated - rendered result created without using animation',
-    25:  'Deprecated - animated, but first layer covers entire area and is '
-         + 'opaque',
-    26:  'First animation layer does not cover entire rendered result',
-    27:  'Deprecated - animated, and no layer is reused',
-    28:  'Reuse of animation layers',
-    29:  'Deprecated - animated, but layers are reused',
-    30:  'Some animated frames are non-persistent',
-    31:  'Deprecated - rendered result created without using scaling',
-    32:  'Rendered result involves scaling within a layer',
-    33:  'Rendered result involves scaling between layers',
-    34:  'ROI metadata',
-    35:  'IPR metadata',
-    36:  'Content metadata',
-    37:  'History metadata',
-    38:  'Creation metadata',
-    39:  'JPX digital signatures',
-    40:  'JPX checksums',
-    41:  'Desires Graphics Arts Reproduction specified',
-    42:  'Deprecated - compositing layer uses palettized colour',
-    43:  'Deprecated - compositing layer uses restricted ICC profile',
-    44:  'Compositing layer uses Any ICC profile',
-    45:  'Deprecated - compositing layer uses sRGB enumerated colourspace',
-    46:  'Deprecated - compositing layer uses sRGB-grey enumerated colourspace',
-    47:  'BiLevel 1 enumerated colourspace',
-    48:  'BiLevel 2 enumerated colourspace',
-    49:  'YCbCr 1 enumerated colourspace',
-    50:  'YCbCr 2 enumerated colourspace',
-    51:  'YCbCr 3 enumerated colourspace',
-    52:  'PhotoYCC enumerated colourspace',
-    53:  'YCCK enumerated colourspace',
-    54:  'CMY enumerated colourspace',
-    55:  'CMYK enumerated colorspace',
-    56:  'CIELab enumerated colourspace with default parameters',
-    57:  'CIELab enumerated colourspace with non-default parameters',
-    58:  'CIEJab enumerated colourspace with default parameters',
-    59:  'CIEJab enumerated colourspace with non-default parameters',
-    60:  'e-sRGB enumerated colorspace',
-    61:  'ROMM_RGB enumerated colorspace',
-    62:  'Non-square samples',
-    63:  'Deprecated - compositing layers have labels',
-    64:  'Deprecated - codestreams have labels',
-    65:  'Deprecated - compositing layers have different colour spaces',
-    66:  'Deprecated - compositing layers have different metadata',
-    67:  'GIS metadata XML box',
-    68:  'JPSEC extensions in codestream as specified by ISO/IEC 15444-8',
-    69:  'JP3D extensions in codestream as specified by ISO/IEC 15444-10',
-    70:  'Deprecated - compositing layer uses sYCC enumerated colour space',
-    71:  'e-sYCC enumerated colourspace',
-    72:  'JPEG 2000 Part 2 codestream as restricted by baseline conformance '
-         + 'requirements in M.9.2.3',
-    73:  'YPbPr(1125/60) enumerated colourspace',
-    74:  'YPbPr(1250/50) enumerated colourspace'}
+    10: 'Premultiplied opacity channel',
+    11: 'Chroma-key based opacity',
+    12: 'Deprecated - codestream is contiguous',
+    13: 'Fragmented codestream where all fragments are in file and in order',
+    14: ('Fragmented codestream where all fragments are in file '
+         'but are out of order'),
+    15: ('Fragmented codestream where not all fragments are within the file '
+         'but are all in locally accessible files'),
+    16: ('Fragmented codestream where some fragments may be accessible '
+         'only through a URL specified network connection'),
+    17: ('Compositing required to produce rendered result from multiple '
+         'compositing layers'),
+    18: 'Deprecated - support for compositing is not required',
+    19: ('Deprecated - contains multiple, discrete layers that should not '
+         'be combined through either animation or compositing'),
+    20: ('Deprecated - compositing layers each contain only a single '
+         'codestream'),
+    21: 'At least one compositing layer consists of multiple codestreams',
+    22: 'Deprecated - all compositing layers are in the same colourspace',
+    23: ('Colourspace transformations are required to combine compositing '
+         'layers; not all compositing layers are in the same colourspace'),
+    24: 'Deprecated - rendered result created without using animation',
+    25: ('Deprecated - animated, but first layer covers entire area and is '
+         'opaque'),
+    26: 'First animation layer does not cover entire rendered result',
+    27: 'Deprecated - animated, and no layer is reused',
+    28: 'Reuse of animation layers',
+    29: 'Deprecated - animated, but layers are reused',
+    30: 'Some animated frames are non-persistent',
+    31: 'Deprecated - rendered result created without using scaling',
+    32: 'Rendered result involves scaling within a layer',
+    33: 'Rendered result involves scaling between layers',
+    34: 'ROI metadata',
+    35: 'IPR metadata',
+    36: 'Content metadata',
+    37: 'History metadata',
+    38: 'Creation metadata',
+    39: 'JPX digital signatures',
+    40: 'JPX checksums',
+    41: 'Desires Graphics Arts Reproduction specified',
+    42: 'Deprecated - compositing layer uses palettized colour',
+    43: 'Deprecated - compositing layer uses restricted ICC profile',
+    44: 'Compositing layer uses Any ICC profile',
+    45: 'Deprecated - compositing layer uses sRGB enumerated colourspace',
+    46: 'Deprecated - compositing layer uses sRGB-grey enumerated colourspace',
+    47: 'BiLevel 1 enumerated colourspace',
+    48: 'BiLevel 2 enumerated colourspace',
+    49: 'YCbCr 1 enumerated colourspace',
+    50: 'YCbCr 2 enumerated colourspace',
+    51: 'YCbCr 3 enumerated colourspace',
+    52: 'PhotoYCC enumerated colourspace',
+    53: 'YCCK enumerated colourspace',
+    54: 'CMY enumerated colourspace',
+    55: 'CMYK enumerated colorspace',
+    56: 'CIELab enumerated colourspace with default parameters',
+    57: 'CIELab enumerated colourspace with non-default parameters',
+    58: 'CIEJab enumerated colourspace with default parameters',
+    59: 'CIEJab enumerated colourspace with non-default parameters',
+    60: 'e-sRGB enumerated colorspace',
+    61: 'ROMM_RGB enumerated colorspace',
+    62: 'Non-square samples',
+    63: 'Deprecated - compositing layers have labels',
+    64: 'Deprecated - codestreams have labels',
+    65: 'Deprecated - compositing layers have different colour spaces',
+    66: 'Deprecated - compositing layers have different metadata',
+    67: 'GIS metadata XML box',
+    68: 'JPSEC extensions in codestream as specified by ISO/IEC 15444-8',
+    69: 'JP3D extensions in codestream as specified by ISO/IEC 15444-10',
+    70: 'Deprecated - compositing layer uses sYCC enumerated colour space',
+    71: 'e-sYCC enumerated colourspace',
+    72: ('JPEG 2000 Part 2 codestream as restricted by baseline conformance '
+         'requirements in M.9.2.3'),
+    73: 'YPbPr(1125/60) enumerated colourspace',
+    74: 'YPbPr(1250/50) enumerated colourspace'}
 
 
 class ReaderRequirementsBox(Jp2kBox):
@@ -2209,7 +2205,8 @@ class ReaderRequirementsBox(Jp2kBox):
         if _printoptions['short'] is True:
             return msg
 
-        msg += '\n    Fully Understands Aspect Mask:  0x{0:x}'.format(self.fuam)
+        msg += '\n    Fully Understands Aspect Mask:  0x{0:x}'
+        msg = msg.format(self.fuam)
         msg += '\n    Display Completely Mask:  0x{0:x}'.format(self.dcm)
 
         msg += '\n    Standard Features and Masks:'
@@ -2265,8 +2262,8 @@ class ReaderRequirementsBox(Jp2kBox):
             standard_flag, standard_mask = data
 
             nflags = len(standard_flag)
-            vendor_offset = 1 + 2 * mask_length + 2 \
-                          + (2 + mask_length) * nflags
+            vendor_offset = (1 + 2 * mask_length + 2
+                             + (2 + mask_length) * nflags)
             data = _parse_vendor_features(read_buffer[vendor_offset:],
                                           mask_length)
             vendor_feature, vendor_mask = data
@@ -2323,8 +2320,8 @@ def _parse_rreq3(read_buffer, length, offset):
     read_buffer = read_buffer[9 + num_standard_features * 10:]
     for j in range(num_vendor_features):
         uslice = slice(j * entry_length, (j + 1) * entry_length)
-        ubuffer = read_buffer[slice]
-        vendor_feature.append(uuid.UUID(bytes=ubuffer[0:16]))
+        ubuffer = read_buffer[uslice]
+        vendor_feature.append(UUID(bytes=ubuffer[0:16]))
 
         lst = struct.unpack('>BBB', ubuffer[16:])
         vmask = lst[0] << 16 | lst[1] << 8 | lst[2]
@@ -2392,7 +2389,7 @@ def _parse_vendor_features(read_buffer, mask_length):
     for j in range(num_vendor_features):
         uslice = slice(2 + j * entry_length, 2 + (j + 1) * entry_length)
         ubuffer = read_buffer[uslice]
-        vendor_feature.append(uuid.UUID(bytes=ubuffer[0:16]))
+        vendor_feature.append(UUID(bytes=ubuffer[0:16]))
 
         vmask = struct.unpack('>' + mask_format, ubuffer[16:])
         vendor_mask.append(vmask)
@@ -2944,7 +2941,7 @@ class UUIDListBox(Jp2kBox):
         ulst = []
         for j in range(num_uuids):
             uuid_buffer = read_buffer[2 + j * 16:2 + (j + 1) * 16]
-            ulst.append(uuid.UUID(bytes=uuid_buffer))
+            ulst.append(UUID(bytes=uuid_buffer))
 
         return cls(ulst, length=length, offset=offset)
 
@@ -3202,7 +3199,7 @@ class UUIDBox(Jp2kBox):
         """
         Private function for parsing UUID payloads if possible.
         """
-        if self.uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
+        if self.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
             self.data = _uuid_io.xml(self.raw_data)
         elif self.uuid.bytes == b'JpgTiffExif->JP2':
             self.data = _uuid_io.tiff_header(self.raw_data)
@@ -3220,7 +3217,7 @@ class UUIDBox(Jp2kBox):
             return msg
 
         msg = '{0}\n    UUID:  {1}'.format(msg, self.uuid)
-        if self.uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
+        if self.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
             msg += ' (XMP)'
         elif self.uuid.bytes == b'JpgTiffExif->JP2':
             msg += ' (EXIF)'
@@ -3228,11 +3225,11 @@ class UUIDBox(Jp2kBox):
             msg += ' (unknown)'
 
         if (((_printoptions['xml'] is False) and
-             (self.uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')))):
+             (self.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')))):
             # If it's an XMP UUID, don't print the XML contents.
             return msg
 
-        if self.uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
+        if self.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
             line = '\n    UUID Data:\n{0}'
             xmlstring = ET.tostring(self.data,
                                     encoding='utf-8',
@@ -3275,7 +3272,7 @@ class UUIDBox(Jp2kBox):
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
-        the_uuid = uuid.UUID(bytes=read_buffer[0:16])
+        the_uuid = UUID(bytes=read_buffer[0:16])
         return cls(the_uuid, read_buffer[16:], length=length, offset=offset)
 
 

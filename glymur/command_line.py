@@ -3,7 +3,6 @@ Entry point for console script jp2dump.
 """
 import argparse
 import os
-import sys
 import warnings
 
 from . import Jp2k, set_printoptions, lib

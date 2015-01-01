@@ -1,15 +1,6 @@
 # -*- coding:  utf-8 -*-
 """Test suite for printing.
 """
-# C0302:  don't care too much about having too many lines in a test module
-# pylint: disable=C0302
-
-# E061:  unittest.mock introduced in 3.3 (python-2.7/pylint issue)
-# pylint: disable=E0611,F0401
-
-# R0904:  Not too many methods in unittest.
-# pylint: disable=R0904
-
 import os
 import shutil
 import struct

@@ -1,10 +1,6 @@
 """
 Test suite for warnings issued by glymur.
 """
-
-# unittest doesn't work well with R0904.
-# pylint: disable=R0904
-
 import os
 import re
 import struct
