@@ -1,8 +1,6 @@
 """Wraps library calls to openjpeg.
 """
 
-# pylint: disable=R0903
-
 import ctypes
 import sys
 

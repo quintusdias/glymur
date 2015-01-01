@@ -236,7 +236,6 @@ try:
 
     # The whole point of trying to import PIL is to determine if it's there
     # or not.  We won't use it directly.
-    # pylint:  disable=F0401,W0611
     import PIL
 
     NO_READ_BACKEND = False

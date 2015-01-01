@@ -1,12 +1,6 @@
 """
 Test suite for openjpeg's callback functions.
 """
-# R0904:  Seems like pylint is fooled in this situation
-# pylint: disable=R0904
-
-# 'mock' most certainly is in unittest (Python 3.3)
-# pylint: disable=E0611,F0401
-
 import os
 import re
 import sys
@@ -99,8 +93,6 @@ class TestCallbacks(unittest.TestCase):
                                            [0-9]+\.[0-9]+\ss""",
                                re.VERBOSE)
 
-            # assertRegex in Python 3.3 (python2.7/pylint issue)
-            # pylint: disable=E1101
             if sys.hexversion <= 0x03020000:
                 self.assertRegexpMatches(actual, regex)
             else:
