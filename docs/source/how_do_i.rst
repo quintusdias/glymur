@@ -214,9 +214,9 @@ making use of the :py:meth:`set_printoptions` function::
         UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
     Contiguous Codestream Box (jp2c) @ (3223, 1132296)
 
-It is possible to print all the gory codestream details as well, i.e. ::
+It is possible to easily print the codestream header details as well, i.e. ::
 
-    >>> print(j.get_codestream())   # details not shown
+    >>> print(j.codestream)   # details not show
 
 ... add XML metadata?
 =====================

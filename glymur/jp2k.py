@@ -60,6 +60,8 @@ class Jp2k(Jp2kBox):
     verbose : bool
         whether or not to print informational messages produced by the
         OpenJPEG library, defaults to false
+    codestream : object
+        JP2 or J2K codestream object
 
     Examples
     --------
@@ -145,6 +147,7 @@ class Jp2k(Jp2kBox):
         self._codec_format = None
         self._colorspace = None
         self._layer = 0
+        self._codestream = None
         if data is not None:
             self._shape = data.shape
         else:
@@ -180,6 +183,16 @@ class Jp2k(Jp2kBox):
         self._layer = layer
 
     @property
+    def codestream(self):
+        if self._codestream is None:
+            self._codestream = self.get_codestream(header_only=True)
+        return self._codestream
+
+    @codestream.setter
+    def codestream(self, the_codestream):
+        self._codestream = the_codestream
+
+    @property
     def verbose(self):
         return self._verbose
 
@@ -192,7 +205,7 @@ class Jp2k(Jp2kBox):
         if self._shape is not None:
             return self._shape
 
-        cstr = self.get_codestream(header_only=True)
+        cstr = self.codestream
         height = cstr.segment[1].ysiz
         width = cstr.segment[1].xsiz
         num_components = len(cstr.segment[1].xrsiz)
@@ -233,8 +246,7 @@ class Jp2k(Jp2kBox):
             for box in self.box:
                 metadata.append(str(box))
         else:
-            codestream = self.get_codestream()
-            metadata.append(str(codestream))
+            metadata.append(str(self.codestream))
         return '\n'.join(metadata)
 
     def parse(self):
@@ -865,10 +877,9 @@ class Jp2k(Jp2kBox):
                  FileTypeBox(),
                  JP2HeaderBox(),
                  ContiguousCodestreamBox()]
-        codestream = self.get_codestream()
-        height = codestream.segment[1].ysiz
-        width = codestream.segment[1].xsiz
-        num_components = len(codestream.segment[1].xrsiz)
+        height = self.codestream.segment[1].ysiz
+        width = self.codestream.segment[1].xsiz
+        num_components = len(self.codestream.segment[1].xrsiz)
         if num_components < 3:
             colorspace = core.GREYSCALE
         else:
@@ -907,10 +918,9 @@ class Jp2k(Jp2kBox):
         """
         Slicing protocol.
         """
-        codestream = self.get_codestream(header_only=True)
-        numrows = codestream.segment[1].ysiz
-        numcols = codestream.segment[1].xsiz
-        numbands = codestream.segment[1].Csiz
+        numrows = self.codestream.segment[1].ysiz
+        numcols = self.codestream.segment[1].xsiz
+        numbands = self.codestream.segment[1].Csiz
 
         if isinstance(pargs, int):
             # Not a very good use of this protocol, but technically legal.
@@ -1072,9 +1082,8 @@ class Jp2k(Jp2kBox):
     def _subsampling_sanity_check(self):
         """Check for differing subsample factors.
         """
-        codestream = self.get_codestream(header_only=True)
-        dxs = np.array(codestream.segment[1].xrsiz)
-        dys = np.array(codestream.segment[1].yrsiz)
+        dxs = np.array(self.codestream.segment[1].xrsiz)
+        dys = np.array(self.codestream.segment[1].yrsiz)
         if np.any(dxs - dxs[0]) or np.any(dys - dys[0]):
             msg = "Components must all have the same subsampling factors "
             msg += "to use this method.  Please consider using OPENJP2 and "
@@ -1277,8 +1286,7 @@ class Jp2k(Jp2kBox):
         # Must check the specified rlevel against the maximum.
         if rlevel != 0:
             # Must check the specified rlevel against the maximum.
-            codestream = self.get_codestream()
-            max_rlevel = codestream.segment[2].spcod[4]
+            max_rlevel = self.codestream.segment[2].spcod[4]
             if rlevel == -1:
                 # -1 is shorthand for the largest rlevel
                 rlevel = max_rlevel
