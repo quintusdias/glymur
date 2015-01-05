@@ -831,6 +831,17 @@ class TestPrintingOpjDataRootWarns(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_invalid_colour_specification_method(self):
+        """should not error out with invalid colour specification method"""
+        # Don't care so much about what the output looks like, just that we
+        # do not error out.
+        filename = opj_data_file('input/nonregression/issue397.jp2')
+        with self.assertWarns(UserWarning):
+            jp2 = Jp2k(filename)
+        with patch('sys.stdout', new=StringIO()):
+            print(jp2)
+        self.assertTrue(True)
+
     def test_invalid_colorspace(self):
         """An invalid colorspace shouldn't cause an error."""
         filename = opj_data_file('input/nonregression/edf_c2_1103421.jp2')

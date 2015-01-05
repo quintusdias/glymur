@@ -272,6 +272,15 @@ class TestJp2k(unittest.TestCase):
         jp2 = Jp2k(jfile)
         self.assertEqual(jp2.shape, (128, 128))
 
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
+                     "OPJ_DATA_ROOT environment variable not set")
+    def test_invalid_compatibility_list_entry(self):
+        """should not error out with invalid compatibility list entry"""
+        filename = opj_data_file('input/nonregression/issue397.jp2')
+        with self.assertWarns(UserWarning):
+            Jp2k(filename)
+        self.assertTrue(True)
+
     def test_shape_j2k(self):
         """verify shape attribute for J2K file
         """
