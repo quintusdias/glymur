@@ -3,7 +3,6 @@ The tests defined here roughly correspond to what is in the OpenJPEG test
 suite.
 """
 import re
-import sys
 import unittest
 
 import numpy as np

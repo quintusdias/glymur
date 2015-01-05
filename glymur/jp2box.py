@@ -35,11 +35,12 @@ from .core import (_COLORSPACE_MAP_DISPLAY, _COLOR_TYPE_MAP_DISPLAY,
 
 from . import _uuid_io
 
-_METHOD_DISPLAY = {
-    ENUMERATED_COLORSPACE: 'enumerated colorspace',
-    RESTRICTED_ICC_PROFILE: 'restricted ICC profile',
-    ANY_ICC_PROFILE: 'any ICC profile',
-    VENDOR_COLOR_METHOD: 'vendor color method'}
+_factory = lambda x: '{0} (invalid)'.format(x)
+_keysvalues = {ENUMERATED_COLORSPACE: 'enumerated colorspace',
+               RESTRICTED_ICC_PROFILE: 'restricted ICC profile',
+               ANY_ICC_PROFILE: 'any ICC profile',
+               VENDOR_COLOR_METHOD: 'vendor color method'}
+_METHOD_DISPLAY = _Keydefaultdict(_factory, _keysvalues)
 
 _factory = lambda x: '{0} (invalid)'.format(x)
 _keysvalues = {1: 'accurately represents correct colorspace definition',
@@ -1317,7 +1318,13 @@ class FileTypeBox(Jp2kBox):
         for j in range(int(num_entries)):
             entry, = struct.unpack_from('>4s', read_buffer, 8 + j * 4)
             if sys.hexversion >= 0x03000000:
-                entry = entry.decode('utf-8')
+                try:
+                    entry = entry.decode('utf-8')
+                except UnicodeDecodeError as err:
+                    # The entry is invalid, but we've got code to catch this
+                    # later on.
+                    pass
+
             compatibility_list.append(entry)
 
         return cls(brand=brand, minor_version=minor_version,
