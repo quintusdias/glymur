@@ -1040,10 +1040,11 @@ class ContiguousCodestreamBox(Jp2kBox):
         msg = Jp2kBox.__str__(self)
         if _printoptions['short'] is True:
             return msg
-        if _printoptions['codestream'] is False:
+        if _printoptions['siz']:
+            msg += '\n' + self._indent(str(self.main_header.segment[1]),
+                                       indent_level=4)
             return msg
 
-        msg += '\n    Main header:'
         for segment in self.main_header.segment:
             msg += '\n' + self._indent(str(segment), indent_level=8)
 
@@ -3360,7 +3361,7 @@ def get_parseoptions():
     """
     return _parseoptions
 
-_printoptions = {'short': False, 'xml': True, 'codestream': True}
+_printoptions = {'short': False, 'xml': True, 'siz': True}
 
 
 def set_printoptions(**kwargs):
@@ -3377,8 +3378,10 @@ def set_printoptions(**kwargs):
     xml : bool, optional
         When False, printing of the XML contents of any XML boxes or UUID XMP
         boxes is suppressed.
-    codestream : bool, optional
-        When False, printing of the codestream contents is suppressed.
+    siz : bool, optional
+        When True, only the SIZ segment is printed.  When False, the entire
+        codestream is printed.  This option has no effect when the 'short'
+        option is set to True.
 
     See also
     --------

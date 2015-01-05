@@ -13,23 +13,25 @@ def main():
     Entry point for console script jp2dump.
     """
 
-    description = 'Print JPEG2000 metadata.'
-    parser = argparse.ArgumentParser(description=description)
+    kwargs = {'description': 'Print JPEG2000 metadata.',
+              'formatter_class': argparse.ArgumentDefaultsHelpFormatter}
+    parser = argparse.ArgumentParser(**kwargs)
 
     parser.add_argument('-x', '--noxml',
-                        help='Suppress XML.',
+                        help='suppress XML',
                         action='store_true')
     parser.add_argument('-s', '--short',
-                        help='Only print box id, offset, and length.',
+                        help='only print box id, offset, and length',
                         action='store_true')
 
-    chelp = 'Level of codestream information.  0 suppressed all details, '
-    chelp += '1 prints headers, 2 prints the full codestream'
+    chelp = 'Level of codestream information.  0 suppresses all details, '
+    chelp += '1 prints the main header, 2 prints the full codestream.'
     parser.add_argument('-c', '--codestream',
                         help=chelp,
+                        metavar='LEVEL',
                         nargs=1,
                         type=int,
-                        default=[0])
+                        default=[1])
 
     parser.add_argument('filename')
 
