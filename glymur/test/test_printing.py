@@ -1098,7 +1098,12 @@ class TestJp2dump(unittest.TestCase):
         """Verify dumping with -x, suppress XML."""
         actual = self.run_jp2dump(['', '-x', self.jp2file])
 
-        self.assertEqual(actual, fixtures.nemo_dump_no_codestream_no_xml)
+        # shave off the XML and non-main-header segments
+        lines = fixtures.nemo.split('\n')
+        expected = lines[0:18]
+        expected.extend(lines[104:140])
+        expected = '\n'.join(expected)
+        self.assertEqual(actual, expected)
 
     @unittest.skipIf(sys.hexversion < 0x03000000, "assertRegex not in 2.7")
     def test_codestream_0_with_j2k_file(self):

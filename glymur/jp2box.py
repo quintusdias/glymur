@@ -1040,13 +1040,11 @@ class ContiguousCodestreamBox(Jp2kBox):
         msg = Jp2kBox.__str__(self)
         if _printoptions['short'] is True:
             return msg
-        if _printoptions['siz']:
-            msg += '\n' + self._indent(str(self.main_header.segment[1]),
-                                       indent_level=4)
+        if _printoptions['codestream'] is False:
             return msg
 
         for segment in self.main_header.segment:
-            msg += '\n' + self._indent(str(segment), indent_level=8)
+            msg += '\n' + self._indent(str(segment), indent_level=4)
 
         return msg
 
@@ -1321,7 +1319,7 @@ class FileTypeBox(Jp2kBox):
             if sys.hexversion >= 0x03000000:
                 try:
                     entry = entry.decode('utf-8')
-                except UnicodeDecodeError as err:
+                except UnicodeDecodeError:
                     # The entry is invalid, but we've got code to catch this
                     # later on.
                     pass
@@ -3361,7 +3359,7 @@ def get_parseoptions():
     """
     return _parseoptions
 
-_printoptions = {'short': False, 'xml': True, 'siz': True}
+_printoptions = {'short': False, 'xml': True, 'codestream': True}
 
 
 def set_printoptions(**kwargs):
