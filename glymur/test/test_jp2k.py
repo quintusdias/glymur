@@ -1053,7 +1053,7 @@ class TestParsing(unittest.TestCase):
         """Should not warn if RSIZ when parsing is turned off."""
         filename = opj_data_file('input/nonregression/edf_c2_1002767.jp2')
         glymur.set_parseoptions(full_codestream=False)
-        jp2 = Jp2k(filename)
+        Jp2k(filename)
 
         glymur.set_parseoptions(full_codestream=True)
         with self.assertWarnsRegex(UserWarning, 'Invalid profile'):
