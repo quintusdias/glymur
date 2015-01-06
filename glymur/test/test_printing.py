@@ -1055,10 +1055,15 @@ class TestJp2dump(unittest.TestCase):
         return actual
 
     def test_default_nemo(self):
-        """Should be able to dump a JP2 file's metadata with no codestream."""
+        """should dump everything but non-main-header codestream segments"""
         actual = self.run_jp2dump(['', self.jp2file])
 
-        self.assertEqual(actual, fixtures.nemo_dump_no_codestream)
+        # shave off the  non-main-header segments
+        lines = fixtures.nemo.split('\n')
+        expected = lines[0:140]
+        expected = '\n'.join(expected)
+
+        self.assertEqual(actual, expected)
 
     def test_codestream_0(self):
         """Verify dumping with -c 0, supressing all codestream details."""
@@ -1068,10 +1073,15 @@ class TestJp2dump(unittest.TestCase):
         self.assertEqual(actual, expected)
 
     def test_codestream_1(self):
-        """Verify dumping with -c 1, print just the header."""
+        """Verify dumping with -c 1, same as default"""
         actual = self.run_jp2dump(['', '-c', '1', self.jp2file])
 
-        self.assertEqual(actual, fixtures.nemo_with_codestream_header)
+        # shave off the  non-main-header segments
+        lines = fixtures.nemo.split('\n')
+        expected = lines[0:140]
+        expected = '\n'.join(expected)
+
+        self.assertEqual(actual, expected)
 
     def test_codestream_2(self):
         """Verify dumping with -c 2, full details."""
