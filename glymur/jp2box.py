@@ -1034,8 +1034,8 @@ class ContiguousCodestreamBox(Jp2kBox):
         return self._codestream
 
     def __repr__(self):
-        msg = "glymur.jp2box.ContiguousCodeStreamBox(main_header={0})"
-        return msg.format(repr(self.main_header))
+        msg = "glymur.jp2box.ContiguousCodeStreamBox(codestream={0})"
+        return msg.format(repr(self.codestream))
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)

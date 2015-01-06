@@ -632,7 +632,7 @@ class TestSuiteWrite(fixtures.MetadataBase):
             self.assertIsNone(jp2.box[2].box[1].icc_profile)
             self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.SRGB)
 
-            codestream = jp2.box[3].main_header
+            codestream = jp2.box[3].codestream
 
             kwargs = {'rsiz': 0, 'xysiz': (640, 480), 'xyosiz': (0, 0),
                       'xytsiz': (640, 480), 'xytosiz': (0, 0),

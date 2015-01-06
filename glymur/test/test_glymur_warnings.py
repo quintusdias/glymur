@@ -20,6 +20,13 @@ from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
 class TestWarnings(unittest.TestCase):
     """Test suite for warnings issued by glymur."""
 
+    def test_invalid_compatibility_list_entry(self):
+        """should not error out with invalid compatibility list entry"""
+        filename = opj_data_file('input/nonregression/issue397.jp2')
+        with self.assertWarns(UserWarning):
+            Jp2k(filename)
+        self.assertTrue(True)
+
     def test_exceeded_box_length(self):
         """
         should warn if reading past end of a box
