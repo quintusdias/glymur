@@ -1,9 +1,6 @@
 """
 Configure glymur to use installed libraries if possible.
 """
-# configparser is new in python3 (pylint/python-2.7)
-# pylint: disable=F0401
-
 import ctypes
 from ctypes.util import find_library
 import os

@@ -10,13 +10,12 @@ License:  MIT
 import sys
 
 # Exitstack not found in contextlib in 2.7
-# pylint: disable=E0611
 if sys.hexversion >= 0x03030000:
     from contextlib import ExitStack
-    from itertools import compress, filterfalse
+    from itertools import filterfalse
 else:
     from contextlib2 import ExitStack
-    from itertools import compress, ifilterfalse as filterfalse
+    from itertools import ifilterfalse as filterfalse
 
 from collections import Counter
 import ctypes
@@ -61,6 +60,8 @@ class Jp2k(Jp2kBox):
     verbose : bool
         whether or not to print informational messages produced by the
         OpenJPEG library, defaults to false
+    codestream : object
+        JP2 or J2K codestream object
 
     Examples
     --------
@@ -146,6 +147,7 @@ class Jp2k(Jp2kBox):
         self._codec_format = None
         self._colorspace = None
         self._layer = 0
+        self._codestream = None
         if data is not None:
             self._shape = data.shape
         else:
@@ -181,6 +183,16 @@ class Jp2k(Jp2kBox):
         self._layer = layer
 
     @property
+    def codestream(self):
+        if self._codestream is None:
+            self._codestream = self.get_codestream(header_only=True)
+        return self._codestream
+
+    @codestream.setter
+    def codestream(self, the_codestream):
+        self._codestream = the_codestream
+
+    @property
     def verbose(self):
         return self._verbose
 
@@ -193,7 +205,7 @@ class Jp2k(Jp2kBox):
         if self._shape is not None:
             return self._shape
 
-        cstr = self.get_codestream(header_only=True)
+        cstr = self.codestream
         height = cstr.segment[1].ysiz
         width = cstr.segment[1].xsiz
         num_components = len(cstr.segment[1].xrsiz)
@@ -234,8 +246,7 @@ class Jp2k(Jp2kBox):
             for box in self.box:
                 metadata.append(str(box))
         else:
-            codestream = self.get_codestream()
-            metadata.append(str(codestream))
+            metadata.append(str(self.codestream))
         return '\n'.join(metadata)
 
     def parse(self):
@@ -517,12 +528,12 @@ class Jp2k(Jp2kBox):
             # set image offset and reference grid
             image.contents.x0 = self._cparams.image_offset_x0
             image.contents.y0 = self._cparams.image_offset_y0
-            image.contents.x1 = image.contents.x0 \
-                                + (numcols - 1) * self._cparams.subsampling_dx \
-                                + 1
-            image.contents.y1 = image.contents.y0 \
-                                + (numrows - 1) * self._cparams.subsampling_dy \
-                                + 1
+            image.contents.x1 = (image.contents.x0
+                                 + (numcols - 1) * self._cparams.subsampling_dx
+                                 + 1)
+            image.contents.y1 = (image.contents.y0
+                                 + (numrows - 1) * self._cparams.subsampling_dy
+                                 + 1)
 
             # Stage the image data to the openjpeg data structure.
             for k in range(0, numlayers):
@@ -832,7 +843,7 @@ class Jp2k(Jp2kBox):
                 raise IOError(msg)
 
             # Find the first codestream in the file.
-            jp2c = [box for box in self.box if box.box_id == 'jp2c']
+            jp2c = [_box for _box in self.box if _box.box_id == 'jp2c']
             offset = jp2c[0].offset
 
         # Ready to write the codestream.
@@ -866,10 +877,9 @@ class Jp2k(Jp2kBox):
                  FileTypeBox(),
                  JP2HeaderBox(),
                  ContiguousCodestreamBox()]
-        codestream = self.get_codestream()
-        height = codestream.segment[1].ysiz
-        width = codestream.segment[1].xsiz
-        num_components = len(codestream.segment[1].xrsiz)
+        height = self.codestream.segment[1].ysiz
+        width = self.codestream.segment[1].xsiz
+        num_components = len(self.codestream.segment[1].xrsiz)
         if num_components < 3:
             colorspace = core.GREYSCALE
         else:
@@ -908,10 +918,9 @@ class Jp2k(Jp2kBox):
         """
         Slicing protocol.
         """
-        codestream = self.get_codestream(header_only=True)
-        numrows = codestream.segment[1].ysiz
-        numcols = codestream.segment[1].xsiz
-        numbands = codestream.segment[1].Csiz
+        numrows = self.codestream.segment[1].ysiz
+        numcols = self.codestream.segment[1].xsiz
+        numbands = self.codestream.segment[1].Csiz
 
         if isinstance(pargs, int):
             # Not a very good use of this protocol, but technically legal.
@@ -1073,9 +1082,8 @@ class Jp2k(Jp2kBox):
     def _subsampling_sanity_check(self):
         """Check for differing subsample factors.
         """
-        codestream = self.get_codestream(header_only=True)
-        dxs = np.array(codestream.segment[1].xrsiz)
-        dys = np.array(codestream.segment[1].yrsiz)
+        dxs = np.array(self.codestream.segment[1].xrsiz)
+        dys = np.array(self.codestream.segment[1].yrsiz)
         if np.any(dxs - dxs[0]) or np.any(dys - dys[0]):
             msg = "Components must all have the same subsampling factors "
             msg += "to use this method.  Please consider using OPENJP2 and "
@@ -1278,8 +1286,7 @@ class Jp2k(Jp2kBox):
         # Must check the specified rlevel against the maximum.
         if rlevel != 0:
             # Must check the specified rlevel against the maximum.
-            codestream = self.get_codestream()
-            max_rlevel = codestream.segment[2].spcod[4]
+            max_rlevel = self.codestream.segment[2].spcod[4]
             if rlevel == -1:
                 # -1 is shorthand for the largest rlevel
                 rlevel = max_rlevel
@@ -1435,7 +1442,6 @@ class Jp2k(Jp2kBox):
                 codestream = Codestream(fptr, self.length,
                                         header_only=header_only)
             else:
-                ftyp = self.box[1]
                 box = [x for x in self.box if x.box_id == 'jp2c']
                 fptr.seek(box[0].offset)
                 read_buffer = fptr.read(8)

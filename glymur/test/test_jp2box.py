@@ -1,18 +1,6 @@
 """
 Test suite specifically targeting JP2 box layout.
 """
-# E1103:  return value from read may be list or np array
-# pylint: disable=E1103
-
-# R0902:  More than 7 instance attributes are just fine for testing.
-# pylint: disable=R0902
-
-# R0904:  Seems like pylint is fooled in this situation
-# pylint: disable=R0904
-
-# W0613:  load_tests doesn't need to use ignore or loader arguments.
-# pylint: disable=W0613
-
 import doctest
 import os
 import re
@@ -20,7 +8,6 @@ import shutil
 import struct
 import sys
 import tempfile
-import uuid
 from uuid import UUID
 import unittest
 
@@ -642,7 +629,7 @@ class TestAppend(unittest.TestCase):
             jp2 = Jp2k(tfile.name)
 
             # Make a UUID box.  Only XMP UUID boxes can currently be appended.
-            uuid_instance = uuid.UUID('00000000-0000-0000-0000-000000000000')
+            uuid_instance = UUID('00000000-0000-0000-0000-000000000000')
             data = b'0123456789'
             uuidbox = glymur.jp2box.UUIDBox(uuid_instance, data)
             with self.assertRaises(IOError):
@@ -1234,8 +1221,8 @@ class TestRepr(MetadataBase):
 
     def test_uuidlist_box(self):
         """Verify __repr__ method on ulst box."""
-        uuid1 = uuid.UUID('00000000-0000-0000-0000-000000000001')
-        uuid2 = uuid.UUID('00000000-0000-0000-0000-000000000002')
+        uuid1 = UUID('00000000-0000-0000-0000-000000000001')
+        uuid2 = UUID('00000000-0000-0000-0000-000000000002')
         uuids = [uuid1, uuid2]
         ulst = glymur.jp2box.UUIDListBox(ulst=uuids)
         newbox = eval(repr(ulst))
@@ -1289,7 +1276,7 @@ class TestRepr(MetadataBase):
 
     def test_uuid_box_generic(self):
         """Verify uuid repr method."""
-        uuid_instance = uuid.UUID('00000000-0000-0000-0000-000000000000')
+        uuid_instance = UUID('00000000-0000-0000-0000-000000000000')
         data = b'0123456789'
         box = glymur.jp2box.UUIDBox(the_uuid=uuid_instance, raw_data=data)
 

@@ -2,31 +2,6 @@
 The tests defined here roughly correspond to what is in the OpenJPEG test
 suite.
 """
-
-# Some test names correspond with openjpeg tests.  Long names are ok in this
-# case.
-# pylint: disable=C0103
-
-# All of these tests correspond to tests in openjpeg, so no docstring is really
-# needed.
-# pylint: disable=C0111
-
-# This module is very long, cannot be helped.
-# pylint: disable=C0302
-
-# unittest fools pylint with "too many public methods"
-# pylint: disable=R0904
-
-# Some tests use numpy test infrastructure, which means the tests never
-# reference "self", so pylint claims it should be a function.  No, no, no.
-# pylint: disable=R0201
-
-# Many tests are pretty long and that can't be helped.
-# pylint:  disable=R0915
-
-# asserWarns introduced in python 3.2 (python2.7/pylint issue)
-# pylint: disable=E1101
-
 import re
 import sys
 import unittest
@@ -384,11 +359,14 @@ class TestSuiteWarns(MetadataBase):
         jpdata = jp2k[:]
         self.assertEqual(jpdata.shape, (512, 768, 3))
 
-    def test_NR_broken_jp2_dump(self):
-        jfile = opj_data_file('input/nonregression/broken.jp2')
+    def test_NR_broken1_jp2_dump(self):
+        jfile = opj_data_file('input/nonregression/broken1.jp2')
 
-        with self.assertWarns(UserWarning):
-            # colr box has bad length.
+        # The colr box has a ridiculously incorrect box length.
+        regex = re.compile(r'''b'colr'\sbox\shas\sincorrect\sbox\slength\s
+                               \(\d+\)''',
+                           re.VERBOSE)
+        with self.assertWarnsRegex(UserWarning, regex):
             jp2 = Jp2k(jfile)
 
         ids = [box.box_id for box in jp2.box]
@@ -609,13 +587,16 @@ class TestSuite2point0(unittest.TestCase):
 
     @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_NR_DEC_broken2_jp2_5_decode(self):
-        # Null pointer access
+        """
+        Invalid marker ID on codestream, Null pointer access upon read.
+        """
         jfile = opj_data_file('input/nonregression/broken2.jp2')
+        regex = re.compile(r'''Invalid\smarker\sid\sencountered\sat\sbyte\s
+                               \d+\sin\scodestream:\s*"0x[a-fA-F0-9]{4}"''',
+                           re.VERBOSE)
         with self.assertRaises(IOError):
-            with self.assertWarns(UserWarning):
-                # Invalid marker ID.
+            with self.assertWarnsRegex(UserWarning, regex):
                 Jp2k(jfile)[:]
-        self.assertTrue(True)
 
     @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_NR_DEC_broken4_jp2_7_decode(self):

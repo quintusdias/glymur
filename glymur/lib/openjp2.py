@@ -2,8 +2,6 @@
 Wraps individual functions in openjp2 library.
 """
 
-# pylint: disable=C0302,R0903,W0201
-
 import ctypes
 import re
 import sys

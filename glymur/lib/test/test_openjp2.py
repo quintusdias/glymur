@@ -1,13 +1,8 @@
 """
 Tests for libopenjp2 wrapping functions.
 """
-# R0904:  Seems like pylint is fooled in this situation
-# W0142:  using kwargs is ok in this context
-# pylint: disable=R0904,W0142
-
 import os
 import re
-import sys
 import tempfile
 import unittest
 
@@ -21,8 +16,8 @@ from glymur.lib import openjp2
 @unittest.skipIf(openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
 @unittest.skipIf(re.match(r'''(1|2.0)''',
-                              glymur.version.openjpeg_version) is not None,
-                     "Not to be run until 2.1.0")
+                          glymur.version.openjpeg_version) is not None,
+                 "Not to be run until 2.1.0")
 class TestOpenJP2(unittest.TestCase):
     """Test openjp2 library functionality.
 
@@ -152,6 +147,7 @@ class TestOpenJP2(unittest.TestCase):
             xtx5_setup(tfile.name)
         self.assertTrue(True)
 
+
 def tile_encoder(**kwargs):
     """Fixture used by many tests."""
     num_tiles = ((kwargs['image_width'] / kwargs['tile_width']) *
@@ -215,7 +211,7 @@ def tile_encoder(**kwargs):
     openjp2.setup_encoder(codec, l_param, l_image)
 
     stream = openjp2.stream_create_default_file_stream(kwargs['filename'],
-                                                          False)
+                                                       False)
     openjp2.start_compress(codec, l_image, stream)
 
     for j in np.arange(num_tiles):
@@ -226,13 +222,14 @@ def tile_encoder(**kwargs):
     openjp2.destroy_codec(codec)
     openjp2.image_destroy(l_image)
 
+
 def tile_decoder(**kwargs):
     """Fixture called with various configurations by many tests.
 
     Reads a tile.  That's all it does.
     """
     stream = openjp2.stream_create_default_file_stream(kwargs['filename'],
-                                                          True)
+                                                       True)
     dparam = openjp2.set_default_decoder_parameters()
 
     dparam.decod_format = kwargs['codec_format']
@@ -270,6 +267,7 @@ def tile_decoder(**kwargs):
     openjp2.stream_destroy(stream)
     openjp2.image_destroy(image)
 
+
 def ttx0_setup(filename):
     """Runs tests tte0, tte0."""
     kwargs = {'filename': filename,
@@ -282,6 +280,7 @@ def ttx0_setup(filename):
               'tile_height': 100,
               'tile_width': 100}
     tile_encoder(**kwargs)
+
 
 def xtx2_setup(filename):
     """Runs tests rta2, tte2, ttd2."""
@@ -296,6 +295,7 @@ def xtx2_setup(filename):
               'tile_width': 128}
     tile_encoder(**kwargs)
 
+
 def xtx3_setup(filename):
     """Runs tests tte3, rta3."""
     kwargs = {'filename': filename,
@@ -308,6 +308,7 @@ def xtx3_setup(filename):
               'tile_height': 128,
               'tile_width': 128}
     tile_encoder(**kwargs)
+
 
 def xtx4_setup(filename):
     """Runs tests rta4, tte4."""
@@ -322,6 +323,7 @@ def xtx4_setup(filename):
               'tile_width': 128}
     tile_encoder(**kwargs)
 
+
 def xtx5_setup(filename):
     """Runs tests rta5, tte5."""
     kwargs = {'filename': filename,
@@ -334,6 +336,3 @@ def xtx5_setup(filename):
               'tile_height': 256,
               'tile_width': 256}
     tile_encoder(**kwargs)
-
-if __name__ == "__main__":
-    unittest.main()

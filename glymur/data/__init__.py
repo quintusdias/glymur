@@ -43,4 +43,3 @@ def jpxfile():
     """
     filename = pkg_resources.resource_filename(__name__, "heliov.jpx")
     return filename
-

@@ -1,15 +1,6 @@
 # -*- coding:  utf-8 -*-
 """Test suite for printing.
 """
-# C0302:  don't care too much about having too many lines in a test module
-# pylint: disable=C0302
-
-# E061:  unittest.mock introduced in 3.3 (python-2.7/pylint issue)
-# pylint: disable=E0611,F0401
-
-# R0904:  Not too many methods in unittest.
-# pylint: disable=R0904
-
 import os
 import re
 import struct
@@ -106,7 +97,7 @@ class TestPrinting(unittest.TestCase):
         data = glymur.Jp2k(self.jp2file)[::2, ::2]
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile2:
-                j = glymur.Jp2k(tfile.name, data=data)
+                glymur.Jp2k(tfile.name, data=data)
 
                 # Offset of the codestream is where we start.
                 wbuffer = tfile.read(77)
@@ -840,6 +831,17 @@ class TestPrintingOpjDataRootWarns(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_invalid_colour_specification_method(self):
+        """should not error out with invalid colour specification method"""
+        # Don't care so much about what the output looks like, just that we
+        # do not error out.
+        filename = opj_data_file('input/nonregression/issue397.jp2')
+        with self.assertWarns(UserWarning):
+            jp2 = Jp2k(filename)
+        with patch('sys.stdout', new=StringIO()):
+            print(jp2)
+        self.assertTrue(True)
+
     def test_invalid_colorspace(self):
         """An invalid colorspace shouldn't cause an error."""
         filename = opj_data_file('input/nonregression/edf_c2_1103421.jp2')
@@ -1062,7 +1064,8 @@ class TestJp2dump(unittest.TestCase):
         """Verify dumping with -c 0, supressing all codestream details."""
         actual = self.run_jp2dump(['', '-c', '0', self.jp2file])
 
-        self.assertEqual(actual, fixtures.nemo_dump_no_codestream)
+        expected = fixtures.nemo_dump_no_codestream
+        self.assertEqual(actual, expected)
 
     def test_codestream_1(self):
         """Verify dumping with -c 1, print just the header."""

@@ -1,10 +1,6 @@
 """
 Test suite for warnings issued by glymur.
 """
-
-# unittest doesn't work well with R0904.
-# pylint: disable=R0904
-
 import os
 import re
 import struct
@@ -102,28 +98,6 @@ class TestWarnings(unittest.TestCase):
         jfile = opj_data_file('/'.join(lst))
         regex = re.compile(r"""Invalid\scomponent\snumber\s\(\d+\),\s
                                number\sof\scomponents\sis\sonly\s\d+""",
-                           re.VERBOSE)
-        with self.assertWarnsRegex(UserWarning, regex):
-            Jp2k(jfile)
-
-    def test_NR_broken_jp2_dump(self):
-        """
-        The colr box has a ridiculously incorrect box length.
-        """
-        jfile = opj_data_file('input/nonregression/broken.jp2')
-        regex = re.compile(r'''b'colr'\sbox\shas\sincorrect\sbox\slength\s
-                               \(\d+\)''',
-                           re.VERBOSE)
-        with self.assertWarnsRegex(UserWarning, regex):
-            Jp2k(jfile)
-
-    def test_NR_broken2_jp2_dump(self):
-        """
-        Invalid marker ID on codestream.
-        """
-        jfile = opj_data_file('input/nonregression/broken2.jp2')
-        regex = re.compile(r'''Invalid\smarker\sid\sencountered\sat\sbyte\s
-                               \d+\sin\scodestream:\s*"0x[a-fA-F0-9]{4}"''',
                            re.VERBOSE)
         with self.assertWarnsRegex(UserWarning, regex):
             Jp2k(jfile)

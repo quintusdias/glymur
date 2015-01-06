@@ -1,15 +1,6 @@
 """
 Tests for general glymur functionality.
 """
-# E1101:  assertWarns introduced in python 3.2
-# pylint: disable=E1101
-
-# R0904:  Not too many methods in unittest.
-# pylint: disable=R0904
-
-# E0611:  unittest.mock is unknown to python2.7/pylint
-# pylint: disable=E0611,F0401
-
 import doctest
 import os
 import re
@@ -47,10 +38,6 @@ from . import fixtures
 
 # Doc tests should be run as well.
 def load_tests(loader, tests, ignore):
-    # W0613:  "loader" and "ignore" are necessary for the protocol
-    # They are unused here, however.
-    # pylint: disable=W0613
-
     """Should run doc tests as well"""
     if os.name == "nt":
         # Can't do it on windows, temporary file issue.
@@ -284,6 +271,15 @@ class TestJp2k(unittest.TestCase):
         jfile = opj_data_file('input/conformance/p0_01.j2k')
         jp2 = Jp2k(jfile)
         self.assertEqual(jp2.shape, (128, 128))
+
+    @unittest.skipIf(OPJ_DATA_ROOT is None,
+                     "OPJ_DATA_ROOT environment variable not set")
+    def test_invalid_compatibility_list_entry(self):
+        """should not error out with invalid compatibility list entry"""
+        filename = opj_data_file('input/nonregression/issue397.jp2')
+        with self.assertWarns(UserWarning):
+            Jp2k(filename)
+        self.assertTrue(True)
 
     def test_shape_j2k(self):
         """verify shape attribute for J2K file
@@ -1132,7 +1128,7 @@ class TestJp2kOpjDataRootWarnings(unittest.TestCase):
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 class TestJp2kOpjDataRoot(unittest.TestCase):
-    """These tests should be run by just about all configuration."""
+    """These tests should be run by just about all configurations."""
 
     @unittest.skipIf(re.match("0|1.[0-4]", glymur.version.openjpeg_version),
                      "Must have openjpeg 1.5 or higher to run")
@@ -1141,9 +1137,9 @@ class TestJp2kOpjDataRoot(unittest.TestCase):
         """Irreversible"""
         filename = opj_data_file('input/nonregression/issue141.rawl')
         expdata = np.fromfile(filename, dtype=np.uint16)
-        expdata.resize((2816, 2048))
+        expdata.resize((32, 2048))
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, data=expdata, irreversible=True)
+            j = Jp2k(tfile.name, data=expdata, irreversible=True, numres=5)
 
             codestream = j.get_codestream()
             self.assertEqual(codestream.segment[2].spcod[8],
