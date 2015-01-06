@@ -6,5 +6,7 @@ Changes in 0.8.0
 =================
 
     * Simplified writing images by moving data and options into the
-      constructor.  This is backwards-incompatible with 0.7.x.
+      constructor.
+    * The main_header attribute of the ContiguousCodestream class is now called
+      codestream.
     * Deprecated :py:meth:`read` method in favor of array-style slicing.

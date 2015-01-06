@@ -60,11 +60,19 @@ def main():
         # JP2 metadata can be extensive, so don't print any warnings until we
         # are done with the metadata.
         jp2 = Jp2k(filename)
-        if (((jp2._codec_format == lib.openjp2.CODEC_J2K) and
-             (codestream_level == 0))):
-            print('File:  {0}'.format(os.path.basename(filename)))
+        if jp2._codec_format == lib.openjp2.CODEC_J2K:
+            if codestream_level == 0:
+                print('File:  {0}'.format(os.path.basename(filename)))
+            elif codestream_level == 1:
+                print(jp2)
+            elif codestream_level == 2:
+                print('File:  {0}'.format(os.path.basename(filename)))
+                print(jp2.get_codestream(header_only=False))
         elif print_full_codestream:
-            print(jp2.get_codestream(header_only=False))
+            for box in jp2.box:
+                if box.box_id == 'jp2c':
+                    box._get_codestream(header_only=False)
+            print(jp2)
         else:
             print(jp2)
 

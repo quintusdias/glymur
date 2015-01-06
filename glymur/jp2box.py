@@ -1001,18 +1001,19 @@ class ContiguousCodestreamBox(Jp2kBox):
         offset of the box from the start of the file.
     longname : str
         more verbose description of the box.
-    main_header : Codestream object
-        contains list of main header marker/segments
+    codestream : Codestream object
+        Contains list of codestream marker/segments.  By default, only the main
+        header is retrieved.
     main_header_offset : int
         offset of main header from start of file
     """
     box_id = 'jp2c'
     longname = 'Contiguous Codestream'
 
-    def __init__(self, main_header=None, main_header_offset=None, length=0,
+    def __init__(self, codestream=None, main_header_offset=None, length=0,
                  offset=-1):
         Jp2kBox.__init__(self)
-        self._main_header = main_header
+        self._codestream = codestream
         self.length = length
         self.offset = offset
         self.main_header_offset = main_header_offset
@@ -1021,16 +1022,16 @@ class ContiguousCodestreamBox(Jp2kBox):
         self._filename = None
 
     @property
-    def main_header(self):
-        if self._main_header is None:
+    def codestream(self):
+        if self._codestream is None:
             if self._filename is not None:
                 with open(self._filename, 'rb') as fptr:
                     fptr.seek(self.main_header_offset)
-                    main_header = Codestream(fptr,
+                    codestream = Codestream(fptr,
                                              self._length,
                                              header_only=True)
-                    self._main_header = main_header
-        return self._main_header
+                    self._codestream = codestream
+        return self._codestream
 
     def __repr__(self):
         msg = "glymur.jp2box.ContiguousCodeStreamBox(main_header={0})"
@@ -1043,7 +1044,7 @@ class ContiguousCodestreamBox(Jp2kBox):
         if _printoptions['codestream'] is False:
             return msg
 
-        for segment in self.main_header.segment:
+        for segment in self.codestream.segment:
             msg += '\n' + self._indent(str(segment), indent_level=4)
 
         return msg
@@ -1075,6 +1076,30 @@ class ContiguousCodestreamBox(Jp2kBox):
         box._filename = fptr.name
         box._length = length
         return box
+
+    def _get_codestream(self, header_only=True):
+        """retrieve codestream
+
+        Parameters
+        ----------
+        header_only : bool, optional
+            If True, only marker segments in the main header are parsed.
+            Supplying False may impose a large performance penalty.
+        """
+        with open(self.filename, 'rb') as fptr:
+            fptr.seek(self.offset)
+            read_buffer = fptr.read(8)
+            (box_length, _) = struct.unpack('>I4s', read_buffer)
+            if box_length == 0:
+                # The length of the box is presumed to last until the end
+                # of the file.  Compute the effective length of the box.
+                box_length = os.path.getsize(fptr.name) - fptr.tell() + 8
+            elif box_length == 1:
+                # Seek past the XL field.
+                read_buffer = fptr.read(8)
+                box_length, = struct.unpack('>Q', read_buffer)
+            self._codestream = Codestream(fptr, box_length - 8,
+                                          header_only=header_only)
 
 
 class DataReferenceBox(Jp2kBox):
