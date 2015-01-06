@@ -1040,9 +1040,10 @@ class TestJp2dump(unittest.TestCase):
 
         # Reset printoptions for every test.
         glymur.set_printoptions(short=False, xml=True, codestream=True)
+        glymur.set_parseoptions(full_codestream=False)
 
     def tearDown(self):
-        pass
+        glymur.set_parseoptions(full_codestream=False)
 
     def run_jp2dump(self, args):
         sys.argv = args
@@ -1081,6 +1082,14 @@ class TestJp2dump(unittest.TestCase):
         lines = fixtures.nemo.split('\n')
         expected = lines[0:140]
         expected = '\n'.join(expected)
+        self.assertEqual(actual, expected)
+
+    def test_jp2_codestream_2(self):
+        """Verify dumping with -c 2, print entire jp2 jacket, codestream."""
+        actual = self.run_jp2dump(['', '-c', '2', self.jp2file])
+
+        # shave off the  non-main-header segments
+        expected = fixtures.nemo
         self.assertEqual(actual, expected)
 
     @unittest.skipIf(sys.hexversion < 0x03000000, "assertRegex not in 2.7")

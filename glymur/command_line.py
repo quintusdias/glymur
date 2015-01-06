@@ -5,7 +5,7 @@ import argparse
 import os
 import warnings
 
-from . import Jp2k, set_printoptions, lib
+from . import Jp2k, set_printoptions, set_parseoptions, lib
 
 
 def main():
@@ -47,11 +47,8 @@ def main():
 
     if codestream_level == 0:
         set_printoptions(codestream=False)
-        print_full_codestream = False
-    elif codestream_level == 1:
-        print_full_codestream = False
-    else:
-        print_full_codestream = True
+    elif codestream_level == 2:
+        set_parseoptions(full_codestream=True)
 
     filename = args.filename
 
@@ -68,11 +65,6 @@ def main():
             elif codestream_level == 2:
                 print('File:  {0}'.format(os.path.basename(filename)))
                 print(jp2.get_codestream(header_only=False))
-        elif print_full_codestream:
-            for box in jp2.box:
-                if box.box_id == 'jp2c':
-                    box._get_codestream(header_only=False)
-            print(jp2)
         else:
             print(jp2)
 

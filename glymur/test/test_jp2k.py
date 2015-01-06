@@ -1043,26 +1043,25 @@ class TestParsing(unittest.TestCase):
     def setUp(self):
         self.jp2file = glymur.data.nemo()
         # Reset parseoptions for every test.
-        glymur.set_parseoptions(codestream=True)
+        glymur.set_parseoptions(full_codestream=False)
 
     def tearDown(self):
-        glymur.set_parseoptions(codestream=True)
+        glymur.set_parseoptions(full_codestream=False)
 
     @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_bad_rsiz(self):
         """Should not warn if RSIZ when parsing is turned off."""
         filename = opj_data_file('input/nonregression/edf_c2_1002767.jp2')
-        glymur.set_parseoptions(codestream=False)
-        Jp2k(filename)
+        glymur.set_parseoptions(full_codestream=False)
+        jp2 = Jp2k(filename)
 
-        glymur.set_parseoptions(codestream=True)
+        glymur.set_parseoptions(full_codestream=True)
         with self.assertWarnsRegex(UserWarning, 'Invalid profile'):
             Jp2k(filename)
 
     def test_main_header(self):
-        """Verify that the main header isn't loaded when parsing turned off."""
+        """verify that the main header isn't loaded during normal parsing"""
         # The hidden _main_header attribute should show up after accessing it.
-        glymur.set_parseoptions(codestream=False)
         jp2 = Jp2k(self.jp2file)
         jp2c = jp2.box[4]
         self.assertIsNone(jp2c._codestream)

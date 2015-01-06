@@ -1023,13 +1023,17 @@ class ContiguousCodestreamBox(Jp2kBox):
 
     @property
     def codestream(self):
+        if _parseoptions['full_codestream'] is True:
+            header_only = False
+        else:
+            header_only = True
         if self._codestream is None:
             if self._filename is not None:
                 with open(self._filename, 'rb') as fptr:
                     fptr.seek(self.main_header_offset)
                     codestream = Codestream(fptr,
                                              self._length,
-                                             header_only=True)
+                                             header_only=header_only)
                     self._codestream = codestream
         return self._codestream
 
@@ -1067,39 +1071,15 @@ class ContiguousCodestreamBox(Jp2kBox):
         ContiguousCodestreamBox instance
         """
         main_header_offset = fptr.tell()
-        if _parseoptions['codestream'] is True:
-            main_header = Codestream(fptr, length, header_only=True)
+        if _parseoptions['full_codestream'] is True:
+            codestream = Codestream(fptr, length, header_only=False)
         else:
-            main_header = None
-        box = cls(main_header, main_header_offset=main_header_offset,
+            codestream = None
+        box = cls(codestream, main_header_offset=main_header_offset,
                   length=length, offset=offset)
         box._filename = fptr.name
         box._length = length
         return box
-
-    def _get_codestream(self, header_only=True):
-        """retrieve codestream
-
-        Parameters
-        ----------
-        header_only : bool, optional
-            If True, only marker segments in the main header are parsed.
-            Supplying False may impose a large performance penalty.
-        """
-        with open(self.filename, 'rb') as fptr:
-            fptr.seek(self.offset)
-            read_buffer = fptr.read(8)
-            (box_length, _) = struct.unpack('>I4s', read_buffer)
-            if box_length == 0:
-                # The length of the box is presumed to last until the end
-                # of the file.  Compute the effective length of the box.
-                box_length = os.path.getsize(fptr.name) - fptr.tell() + 8
-            elif box_length == 1:
-                # Seek past the XL field.
-                read_buffer = fptr.read(8)
-                box_length, = struct.unpack('>Q', read_buffer)
-            self._codestream = Codestream(fptr, box_length - 8,
-                                          header_only=header_only)
 
 
 class DataReferenceBox(Jp2kBox):
@@ -3338,19 +3318,20 @@ _BOX_WITH_ID = {
     b'uuid': UUIDBox,
     b'xml ': XMLBox}
 
-_parseoptions = {'codestream': True}
+_parseoptions = {'full_codestream': False}
 
 
-def set_parseoptions(codestream=True):
+def set_parseoptions(full_codestream=True):
     """Set parsing options.
 
     These options determine the way JPEG 2000 boxes are parsed.
 
     Parameters
     ----------
-    codestream : bool, defaults to True
-        When False, the codestream header is only parsed when accessed.  This
-        can results in faster JP2/JPX parsing.
+    full_codestream : bool, defaults to True
+        When False, only the codestream header is parsed for metadata.  This
+        can results in faster JP2/JPX parsing.  When True, the entire
+        codestream is parsed for metadata.
 
     See also
     --------
@@ -3361,9 +3342,9 @@ def set_parseoptions(codestream=True):
     To put back the default options, you can use:
 
     >>> import glymur
-    >>> glymur.set_parseoptions(codestream=True)
+    >>> glymur.set_parseoptions(full_codestream=True)
     """
-    _parseoptions['codestream'] = codestream
+    _parseoptions['full_codestream'] = full_codestream
 
 
 def get_parseoptions():
@@ -3401,10 +3382,10 @@ def set_printoptions(**kwargs):
     xml : bool, optional
         When False, printing of the XML contents of any XML boxes or UUID XMP
         boxes is suppressed.
-    siz : bool, optional
-        When True, only the SIZ segment is printed.  When False, the entire
-        codestream is printed.  This option has no effect when the 'short'
-        option is set to True.
+    codestream : bool, optional
+        When False, only the codestream header is printed.  When True, the
+        entire codestream is printed.  This option has no effect when the
+        'short' option is set to True.
 
     See also
     --------
