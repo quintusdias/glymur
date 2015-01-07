@@ -1001,18 +1001,19 @@ class ContiguousCodestreamBox(Jp2kBox):
         offset of the box from the start of the file.
     longname : str
         more verbose description of the box.
-    main_header : Codestream object
-        contains list of main header marker/segments
+    codestream : Codestream object
+        Contains list of codestream marker/segments.  By default, only the main
+        header is retrieved.
     main_header_offset : int
         offset of main header from start of file
     """
     box_id = 'jp2c'
     longname = 'Contiguous Codestream'
 
-    def __init__(self, main_header=None, main_header_offset=None, length=0,
+    def __init__(self, codestream=None, main_header_offset=None, length=0,
                  offset=-1):
         Jp2kBox.__init__(self)
-        self._main_header = main_header
+        self._codestream = codestream
         self.length = length
         self.offset = offset
         self.main_header_offset = main_header_offset
@@ -1021,20 +1022,23 @@ class ContiguousCodestreamBox(Jp2kBox):
         self._filename = None
 
     @property
-    def main_header(self):
-        if self._main_header is None:
+    def codestream(self):
+        if _parseoptions['full_codestream'] is True:
+            header_only = False
+        else:
+            header_only = True
+        if self._codestream is None:
             if self._filename is not None:
                 with open(self._filename, 'rb') as fptr:
                     fptr.seek(self.main_header_offset)
-                    main_header = Codestream(fptr,
-                                             self._length,
-                                             header_only=True)
-                    self._main_header = main_header
-        return self._main_header
+                    codestream = Codestream(fptr, self._length,
+                                             header_only=header_only)
+                    self._codestream = codestream
+        return self._codestream
 
     def __repr__(self):
-        msg = "glymur.jp2box.ContiguousCodeStreamBox(main_header={0})"
-        return msg.format(repr(self.main_header))
+        msg = "glymur.jp2box.ContiguousCodeStreamBox(codestream={0})"
+        return msg.format(repr(self.codestream))
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
@@ -1043,9 +1047,8 @@ class ContiguousCodestreamBox(Jp2kBox):
         if _printoptions['codestream'] is False:
             return msg
 
-        msg += '\n    Main header:'
-        for segment in self.main_header.segment:
-            msg += '\n' + self._indent(str(segment), indent_level=8)
+        for segment in self.codestream.segment:
+            msg += '\n' + self._indent(str(segment), indent_level=4)
 
         return msg
 
@@ -1067,11 +1070,11 @@ class ContiguousCodestreamBox(Jp2kBox):
         ContiguousCodestreamBox instance
         """
         main_header_offset = fptr.tell()
-        if _parseoptions['codestream'] is True:
-            main_header = Codestream(fptr, length, header_only=True)
+        if _parseoptions['full_codestream'] is True:
+            codestream = Codestream(fptr, length, header_only=False)
         else:
-            main_header = None
-        box = cls(main_header, main_header_offset=main_header_offset,
+            codestream = None
+        box = cls(codestream, main_header_offset=main_header_offset,
                   length=length, offset=offset)
         box._filename = fptr.name
         box._length = length
@@ -1320,7 +1323,7 @@ class FileTypeBox(Jp2kBox):
             if sys.hexversion >= 0x03000000:
                 try:
                     entry = entry.decode('utf-8')
-                except UnicodeDecodeError as err:
+                except UnicodeDecodeError:
                     # The entry is invalid, but we've got code to catch this
                     # later on.
                     pass
@@ -3314,19 +3317,20 @@ _BOX_WITH_ID = {
     b'uuid': UUIDBox,
     b'xml ': XMLBox}
 
-_parseoptions = {'codestream': True}
+_parseoptions = {'full_codestream': False}
 
 
-def set_parseoptions(codestream=True):
+def set_parseoptions(full_codestream=True):
     """Set parsing options.
 
     These options determine the way JPEG 2000 boxes are parsed.
 
     Parameters
     ----------
-    codestream : bool, defaults to True
-        When False, the codestream header is only parsed when accessed.  This
-        can results in faster JP2/JPX parsing.
+    full_codestream : bool, defaults to True
+        When False, only the codestream header is parsed for metadata.  This
+        can results in faster JP2/JPX parsing.  When True, the entire
+        codestream is parsed for metadata.
 
     See also
     --------
@@ -3337,9 +3341,9 @@ def set_parseoptions(codestream=True):
     To put back the default options, you can use:
 
     >>> import glymur
-    >>> glymur.set_parseoptions(codestream=True)
+    >>> glymur.set_parseoptions(full_codestream=True)
     """
-    _parseoptions['codestream'] = codestream
+    _parseoptions['full_codestream'] = full_codestream
 
 
 def get_parseoptions():
@@ -3378,7 +3382,9 @@ def set_printoptions(**kwargs):
         When False, printing of the XML contents of any XML boxes or UUID XMP
         boxes is suppressed.
     codestream : bool, optional
-        When False, printing of the codestream contents is suppressed.
+        When False, only the codestream header is printed.  When True, the
+        entire codestream is printed.  This option has no effect when the
+        'short' option is set to True.
 
     See also
     --------

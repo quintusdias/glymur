@@ -42,7 +42,7 @@ class TestPrinting(unittest.TestCase):
         glymur.set_printoptions(short=False, xml=True, codestream=True)
 
     def tearDown(self):
-        pass
+        glymur.set_parseoptions(full_codestream=False)
 
     def test_version_info(self):
         """Should be able to print(glymur.version.info)"""
@@ -854,7 +854,7 @@ class TestPrintingOpjDataRootWarns(unittest.TestCase):
         """Should still be able to print if rsiz is bad, issue196"""
         filename = opj_data_file('input/nonregression/edf_c2_1002767.jp2')
         with self.assertWarns(UserWarning):
-            j = Jp2k(filename)
+            j = Jp2k(filename).get_codestream()
         with patch('sys.stdout', new=StringIO()):
             print(j)
 
@@ -1040,9 +1040,10 @@ class TestJp2dump(unittest.TestCase):
 
         # Reset printoptions for every test.
         glymur.set_printoptions(short=False, xml=True, codestream=True)
+        glymur.set_parseoptions(full_codestream=False)
 
     def tearDown(self):
-        pass
+        glymur.set_parseoptions(full_codestream=False)
 
     def run_jp2dump(self, args):
         sys.argv = args
@@ -1055,25 +1056,51 @@ class TestJp2dump(unittest.TestCase):
         return actual
 
     def test_default_nemo(self):
-        """Should be able to dump a JP2 file's metadata with no codestream."""
+        """by default one should get the main header"""
         actual = self.run_jp2dump(['', self.jp2file])
 
-        self.assertEqual(actual, fixtures.nemo_dump_no_codestream)
+        # shave off the  non-main-header segments
+        lines = fixtures.nemo.split('\n')
+        expected = lines[0:140]
+        expected = '\n'.join(expected)
+        self.assertEqual(actual, expected)
 
-    def test_codestream_0(self):
+    @unittest.skipIf(sys.hexversion < 0x03000000, "assertRegex not in 2.7")
+    def test_jp2_codestream_0(self):
         """Verify dumping with -c 0, supressing all codestream details."""
         actual = self.run_jp2dump(['', '-c', '0', self.jp2file])
 
         expected = fixtures.nemo_dump_no_codestream
         self.assertEqual(actual, expected)
 
-    def test_codestream_1(self):
+    def test_jp2_codestream_1(self):
         """Verify dumping with -c 1, print just the header."""
         actual = self.run_jp2dump(['', '-c', '1', self.jp2file])
 
-        self.assertEqual(actual, fixtures.nemo_with_codestream_header)
+        # shave off the  non-main-header segments
+        lines = fixtures.nemo.split('\n')
+        expected = lines[0:140]
+        expected = '\n'.join(expected)
+        self.assertEqual(actual, expected)
 
-    def test_codestream_2(self):
+    def test_jp2_codestream_2(self):
+        """Verify dumping with -c 2, print entire jp2 jacket, codestream."""
+        actual = self.run_jp2dump(['', '-c', '2', self.jp2file])
+
+        # shave off the  non-main-header segments
+        expected = fixtures.nemo
+        self.assertEqual(actual, expected)
+
+    @unittest.skipIf(sys.hexversion < 0x03000000, "assertRegex not in 2.7")
+    def test_j2k_codestream_0(self):
+        """-c 0 should print just a single line when used on a codestream."""
+        sys.argv = ['', '-c', '0', self.j2kfile]
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            command_line.main()
+            actual = fake_out.getvalue().strip()
+        self.assertRegex(actual, "File:  .*")
+
+    def test_j2k_codestream_2(self):
         """Verify dumping with -c 2, full details."""
         with patch('sys.stdout', new=StringIO()) as fake_out:
             sys.argv = ['', '-c', '2', self.j2kfile]
@@ -1098,13 +1125,9 @@ class TestJp2dump(unittest.TestCase):
         """Verify dumping with -x, suppress XML."""
         actual = self.run_jp2dump(['', '-x', self.jp2file])
 
-        self.assertEqual(actual, fixtures.nemo_dump_no_codestream_no_xml)
-
-    @unittest.skipIf(sys.hexversion < 0x03000000, "assertRegex not in 2.7")
-    def test_codestream_0_with_j2k_file(self):
-        """-c 0 should print just a single line when used on a codestream."""
-        sys.argv = ['', '-c', '0', self.j2kfile]
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            command_line.main()
-            actual = fake_out.getvalue().strip()
-        self.assertRegex(actual, "File:  .*")
+        # shave off the XML and non-main-header segments
+        lines = fixtures.nemo.split('\n')
+        expected = lines[0:18]
+        expected.extend(lines[104:140])
+        expected = '\n'.join(expected)
+        self.assertEqual(actual, expected)

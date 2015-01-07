@@ -1016,7 +1016,7 @@ class TestJp2Boxes(unittest.TestCase):
         """Raw instantiation should not produce a main_header."""
         box = ContiguousCodestreamBox()
         self.assertEqual(box.box_id, 'jp2c')
-        self.assertIsNone(box.main_header)
+        self.assertIsNone(box.codestream)
 
     def test_codestream_main_header_offset(self):
         """main_header_offset is an attribute of the CCS box"""
@@ -1318,7 +1318,7 @@ class TestRepr(MetadataBase):
 
         # Difficult to eval(repr()) this, so just match the general pattern.
         regexp = "glymur.jp2box.ContiguousCodeStreamBox"
-        regexp += "[(]main_header=<glymur.codestream.Codestream\sobject\s"
+        regexp += "[(]codestream=<glymur.codestream.Codestream\sobject\s"
         regexp += "at\s0x([a-fA-F0-9]*)>[)]"
 
         if sys.hexversion < 0x03000000:
