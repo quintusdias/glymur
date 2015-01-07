@@ -36,6 +36,9 @@ from .fixtures import OPJ_DATA_ROOT, opj_data_file
 from . import fixtures
 
 
+def docTearDown(doctest_obj):
+    glymur.set_parseoptions(full_codestream=False)
+
 # Doc tests should be run as well.
 def load_tests(loader, tests, ignore):
     """Should run doc tests as well"""
@@ -43,7 +46,8 @@ def load_tests(loader, tests, ignore):
         # Can't do it on windows, temporary file issue.
         return tests
     if glymur.lib.openjp2.OPENJP2 is not None:
-        tests.addTests(doctest.DocTestSuite('glymur.jp2k'))
+        tests.addTests(doctest.DocTestSuite('glymur.jp2k',
+                                            tearDown=docTearDown))
     return tests
 
 
@@ -1074,6 +1078,9 @@ class TestParsing(unittest.TestCase):
                  "OPJ_DATA_ROOT environment variable not set")
 class TestJp2kOpjDataRootWarnings(unittest.TestCase):
     """These tests should be run by just about all configuration."""
+
+    def tearDown(self):
+        glymur.set_parseoptions(full_codestream=False)
 
     def test_undecodeable_box_id(self):
         """Should warn in case of undecodeable box ID but not error out."""

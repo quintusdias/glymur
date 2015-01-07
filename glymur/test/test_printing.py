@@ -42,7 +42,7 @@ class TestPrinting(unittest.TestCase):
         glymur.set_printoptions(short=False, xml=True, codestream=True)
 
     def tearDown(self):
-        pass
+        glymur.set_parseoptions(full_codestream=False)
 
     def test_version_info(self):
         """Should be able to print(glymur.version.info)"""
@@ -854,7 +854,7 @@ class TestPrintingOpjDataRootWarns(unittest.TestCase):
         """Should still be able to print if rsiz is bad, issue196"""
         filename = opj_data_file('input/nonregression/edf_c2_1002767.jp2')
         with self.assertWarns(UserWarning):
-            j = Jp2k(filename)
+            j = Jp2k(filename).get_codestream()
         with patch('sys.stdout', new=StringIO()):
             print(j)
 
