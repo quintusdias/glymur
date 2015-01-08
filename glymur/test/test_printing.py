@@ -1065,12 +1065,14 @@ class TestJp2dump(unittest.TestCase):
         expected = '\n'.join(expected)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(sys.hexversion < 0x03000000, "assertRegex not in 2.7")
     def test_jp2_codestream_0(self):
         """Verify dumping with -c 0, supressing all codestream details."""
         actual = self.run_jp2dump(['', '-c', '0', self.jp2file])
 
-        expected = fixtures.nemo_dump_no_codestream
+        # shave off the codestream details
+        lines = fixtures.nemo.split('\n')
+        expected = lines[0:105]
+        expected = '\n'.join(expected)
         self.assertEqual(actual, expected)
 
     def test_jp2_codestream_1(self):

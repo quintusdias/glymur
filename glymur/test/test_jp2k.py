@@ -39,6 +39,7 @@ from . import fixtures
 def docTearDown(doctest_obj):
     glymur.set_parseoptions(full_codestream=False)
 
+
 # Doc tests should be run as well.
 def load_tests(loader, tests, ignore):
     """Should run doc tests as well"""
@@ -1078,9 +1079,6 @@ class TestParsing(unittest.TestCase):
                  "OPJ_DATA_ROOT environment variable not set")
 class TestJp2kOpjDataRootWarnings(unittest.TestCase):
     """These tests should be run by just about all configuration."""
-
-    def tearDown(self):
-        glymur.set_parseoptions(full_codestream=False)
 
     def test_undecodeable_box_id(self):
         """Should warn in case of undecodeable box ID but not error out."""
