@@ -205,28 +205,30 @@ class Jp2k(Jp2kBox):
         if self._shape is not None:
             return self._shape
 
-        cstr = self.codestream
-        height = cstr.segment[1].ysiz
-        width = cstr.segment[1].xsiz
-        num_components = len(cstr.segment[1].xrsiz)
+        if self._codec_format == opj2.CODEC_J2K:
+            # get the image size from the codestream
+            cstr = self.codestream
+            height = cstr.segment[1].ysiz
+            width = cstr.segment[1].xsiz
+            num_components = len(cstr.segment[1].xrsiz)
+        else:
+            # try to get the image size from the IHDR box
+           jp2h = [box for box in self.box if box.box_id == 'jp2h'][0]
+           ihdr = [box for box in jp2h.box if box.box_id == 'ihdr'][0]
 
-        # If JP2 and a palette box is present, then determine the shape from
-        # that.
+           height, width = ihdr.height, ihdr.width
+           num_components = ihdr.num_components
+
+           if num_components == 1:
+               # but if there is a PCLR box, then we need to check that as
+               # well, as that turns a single-channel image into a
+               # multi-channel image
+               pclr = [box for box in jp2h.box if box.box_id == 'pclr']
+               if len(pclr) > 0:
+                   num_components = len(pclr[0].signed)
+
         if num_components == 1:
-            if self._codec_format == opj2.CODEC_J2K:
-                # There's no palette box or component mapping in a J2K file.
-                # The 3rd component in the shape would then be 1, but we'll
-                # ignore that.
-                self.shape = (height, width)
-            else:
-                jp2h = [box for box in self.box if box.box_id == 'jp2h'][0]
-                pclr = [box for box in jp2h.box if box.box_id == 'pclr']
-                if len(pclr) == 0:
-                    # No palette box, so just one component, which we will
-                    # ignore.
-                    self.shape = (height, width)
-                else:
-                    self.shape = (height, width, len(pclr[0].signed))
+            self.shape = (height, width)
         else:
             self.shape = (height, width, num_components)
 
@@ -918,9 +920,11 @@ class Jp2k(Jp2kBox):
         """
         Slicing protocol.
         """
-        numrows = self.codestream.segment[1].ysiz
-        numcols = self.codestream.segment[1].xsiz
-        numbands = self.codestream.segment[1].Csiz
+        if len(self.shape) == 2:
+            numrows, numcols = self.shape
+            numbands = 1
+        else:
+            numrows, numcols, numbands = self.shape
 
         if isinstance(pargs, int):
             # Not a very good use of this protocol, but technically legal.

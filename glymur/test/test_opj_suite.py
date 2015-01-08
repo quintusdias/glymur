@@ -385,7 +385,7 @@ class TestSuiteWarns(MetadataBase):
         expected = ColourSpecificationBox(colorspace=glymur.core.SRGB)
         self.verifyColourSpecificationBox(jp2.box[2].box[1], expected)
 
-        c = jp2.box[3].main_header
+        c = jp2.box[3].codestream
 
         ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'CME', 'COD', 'QCD', 'QCC', 'QCC']

@@ -4,6 +4,7 @@ suite.
 """
 import re
 import unittest
+import warnings
 
 import numpy as np
 
@@ -52,7 +53,7 @@ class TestSuite(MetadataBase):
         colr = glymur.jp2box.ColourSpecificationBox(colorspace=glymur.core.YCC)
         self.verifyColourSpecificationBox(jp2.box[2].box[1], colr)
 
-        c = jp2.box[3].main_header
+        c = jp2.box[3].codestream
 
         ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
@@ -2584,7 +2585,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(jp2.box[3].box[3].mapping_type, (1, 1, 1))
         self.assertEqual(jp2.box[3].box[3].palette_index, (0, 1, 2))
 
-        c = jp2.box[4].main_header
+        c = jp2.box[4].codestream
 
         ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
@@ -2648,7 +2649,7 @@ class TestSuite(MetadataBase):
                                                     precedence=2)
         self.verifyColourSpecificationBox(jp2.box[3].box[1], colr)
 
-        c = jp2.box[4].main_header
+        c = jp2.box[4].codestream
 
         ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
@@ -2711,7 +2712,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(jp2.box[2].box[2].channel_type, (0, 1))   # opacity
         self.assertEqual(jp2.box[2].box[2].association, (0, 0))  # both main
 
-        c = jp2.box[3].main_header
+        c = jp2.box[3].codestream
 
         ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD', 'CME']
@@ -2794,7 +2795,7 @@ class TestSuite(MetadataBase):
         self.assertEqual(jp2.box[3].box[3].mapping_type, (1, 1, 1))
         self.assertEqual(jp2.box[3].box[3].palette_index, (0, 1, 2))
 
-        c = jp2.box[4].main_header
+        c = jp2.box[4].codestream
 
         ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
@@ -2848,7 +2849,7 @@ class TestSuite(MetadataBase):
         colr = glymur.jp2box.ColourSpecificationBox(colorspace=glymur.core.YCC)
         self.verifyColourSpecificationBox(jp2.box[2].box[1], colr)
 
-        c = jp2.box[3].main_header
+        c = jp2.box[3].codestream
 
         ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD', 'POD']
@@ -2913,21 +2914,29 @@ class TestSuiteWarns(MetadataBase):
 
     def test_NR_broken4_jp2_dump(self):
         jfile = opj_data_file('input/nonregression/broken4.jp2')
-        with self.assertWarns(UserWarning):
-            jp2 = Jp2k(jfile)
-
-        self.assertEqual(jp2.box[-1].main_header.segment[-1].marker_id, 'QCC')
+        with warnings.catch_warnings():
+            # Suppress a warning, all we really care is parsing the entire
+            # file.
+            warnings.simplefilter("ignore")
+            with self.assertWarns(UserWarning):
+                jp2 = Jp2k(jfile)
+                self.assertEqual(jp2.box[-1].codestream.segment[-1].marker_id,
+                                 'QCC')
 
     def test_NR_broken2_jp2_dump(self):
         """
         Invalid marker ID in the codestream.
         """
         jfile = opj_data_file('input/nonregression/broken2.jp2')
-        with self.assertWarns(UserWarning):
-            # Invalid marker ID on codestream.
-            jp2 = Jp2k(jfile)
-
-        self.assertEqual(jp2.box[-1].main_header.segment[-1].marker_id, 'QCC')
+        with warnings.catch_warnings():
+            # Suppress a warning, all we really care is parsing the entire
+            # file.
+            warnings.simplefilter("ignore")
+            with self.assertWarns(UserWarning):
+                # Invalid marker ID on codestream.
+                jp2 = Jp2k(jfile)
+                self.assertEqual(jp2.box[-1].codestream.segment[-1].marker_id,
+                                 'QCC')
 
     def test_NR_file1_dump(self):
         jfile = opj_data_file('input/conformance/file1.jp2')
@@ -3243,7 +3252,7 @@ class TestSuiteWarns(MetadataBase):
 
         # Skip the 4th box, it is uknown.
 
-        c = jp2.box[4].main_header
+        c = jp2.box[4].codestream
 
         ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD', 'CME', 'CME']
@@ -3303,7 +3312,7 @@ class TestSuiteWarns(MetadataBase):
         self.assertIsNone(jp2.box[2].box[1].icc_profile)
         self.assertIsNone(jp2.box[2].box[1].colorspace)
 
-        c = jp2.box[3].main_header
+        c = jp2.box[3].codestream
 
         ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD']
@@ -3366,7 +3375,7 @@ class TestSuiteWarns(MetadataBase):
         self.assertIsNone(jp2.box[2].box[1].icc_profile)
         self.assertIsNone(jp2.box[2].box[1].colorspace)
 
-        c = jp2.box[3].main_header
+        c = jp2.box[3].codestream
 
         ids = [x.marker_id for x in c.segment]
         expected = ['SOC', 'SIZ', 'COD', 'QCD']

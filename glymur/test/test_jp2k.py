@@ -36,6 +36,9 @@ from .fixtures import OPJ_DATA_ROOT, opj_data_file
 from . import fixtures
 
 
+def docTearDown(doctest_obj):
+    glymur.set_parseoptions(full_codestream=False)
+
 # Doc tests should be run as well.
 def load_tests(loader, tests, ignore):
     """Should run doc tests as well"""
@@ -43,7 +46,8 @@ def load_tests(loader, tests, ignore):
         # Can't do it on windows, temporary file issue.
         return tests
     if glymur.lib.openjp2.OPENJP2 is not None:
-        tests.addTests(doctest.DocTestSuite('glymur.jp2k'))
+        tests.addTests(doctest.DocTestSuite('glymur.jp2k',
+                                            tearDown=docTearDown))
     return tests
 
 
@@ -271,15 +275,6 @@ class TestJp2k(unittest.TestCase):
         jfile = opj_data_file('input/conformance/p0_01.j2k')
         jp2 = Jp2k(jfile)
         self.assertEqual(jp2.shape, (128, 128))
-
-    @unittest.skipIf(OPJ_DATA_ROOT is None,
-                     "OPJ_DATA_ROOT environment variable not set")
-    def test_invalid_compatibility_list_entry(self):
-        """should not error out with invalid compatibility list entry"""
-        filename = opj_data_file('input/nonregression/issue397.jp2')
-        with self.assertWarns(UserWarning):
-            Jp2k(filename)
-        self.assertTrue(True)
 
     def test_shape_j2k(self):
         """verify shape attribute for J2K file
@@ -1052,31 +1047,30 @@ class TestParsing(unittest.TestCase):
     def setUp(self):
         self.jp2file = glymur.data.nemo()
         # Reset parseoptions for every test.
-        glymur.set_parseoptions(codestream=True)
+        glymur.set_parseoptions(full_codestream=False)
 
     def tearDown(self):
-        glymur.set_parseoptions(codestream=True)
+        glymur.set_parseoptions(full_codestream=False)
 
     @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_bad_rsiz(self):
         """Should not warn if RSIZ when parsing is turned off."""
         filename = opj_data_file('input/nonregression/edf_c2_1002767.jp2')
-        glymur.set_parseoptions(codestream=False)
+        glymur.set_parseoptions(full_codestream=False)
         Jp2k(filename)
 
-        glymur.set_parseoptions(codestream=True)
+        glymur.set_parseoptions(full_codestream=True)
         with self.assertWarnsRegex(UserWarning, 'Invalid profile'):
             Jp2k(filename)
 
     def test_main_header(self):
-        """Verify that the main header isn't loaded when parsing turned off."""
+        """verify that the main header isn't loaded during normal parsing"""
         # The hidden _main_header attribute should show up after accessing it.
-        glymur.set_parseoptions(codestream=False)
         jp2 = Jp2k(self.jp2file)
         jp2c = jp2.box[4]
-        self.assertIsNone(jp2c._main_header)
-        jp2c.main_header
-        self.assertIsNotNone(jp2c._main_header)
+        self.assertIsNone(jp2c._codestream)
+        jp2c.codestream
+        self.assertIsNotNone(jp2c._codestream)
 
 
 @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
@@ -1084,6 +1078,9 @@ class TestParsing(unittest.TestCase):
                  "OPJ_DATA_ROOT environment variable not set")
 class TestJp2kOpjDataRootWarnings(unittest.TestCase):
     """These tests should be run by just about all configuration."""
+
+    def tearDown(self):
+        glymur.set_parseoptions(full_codestream=False)
 
     def test_undecodeable_box_id(self):
         """Should warn in case of undecodeable box ID but not error out."""
