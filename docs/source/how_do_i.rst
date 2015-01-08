@@ -26,10 +26,10 @@ It's pretty simple, just supply the image data as the 2nd argument to the Jp2k
 constructor.
     
     >>> import glymur, numpy as np
-    >>> data = np.zeros((640, 480), dtype=np.uint8)
-    >>> jp2 = glymur.Jp2k('zeros.jp2', data=data)
+    >>> jp2 = glymur.Jp2k('zeros.jp2', data=np.zeros((640, 480), dtype=np.uint8)
 
-You should have OpenJPEG version 1.5 or more recent before writing JPEG 2000 images.
+You must have OpenJPEG version 1.5 or more recent in order to write JPEG 2000
+images with glymur.
 
 ... display metadata?
 =====================
@@ -442,7 +442,7 @@ following
     'Google'
 
 But that would be painful.  A better solution is to install the Python XMP
-Toolkit (make sure it is version 2.0)::
+Toolkit (make sure it is at least version 2.0)::
 
     >>> from libxmp import XMPMeta
     >>> from libxmp.consts import XMP_NS_XMP as NS_XAP
