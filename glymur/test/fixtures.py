@@ -34,8 +34,8 @@ elif re.match('1.[0-6]', six.__version__) is not None:
     WARNING_INFRASTRUCTURE_ISSUE = True
     msg = "Cannot run test with version {0} of python-six"
     WARNING_INFRASTRUCTURE_MSG = msg.format(six.__version__)
-elif ((re.match('1.8', six.__version__) is not None) and 
-      (sys.platform.startswith('linux')) and 
+elif ((re.match('1.8', six.__version__) is not None) and
+      (sys.platform.startswith('linux')) and
       (platform.linux_distribution() == ('LinuxMint', '17', 'qiana'))):
     WARNING_INFRASTRUCTURE_ISSUE = True
     linux_distribution = platform.linux_distribution()
