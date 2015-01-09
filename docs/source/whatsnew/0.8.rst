@@ -7,6 +7,18 @@ Changes in 0.8.0
 
     * Simplified writing images by moving data and options into the
       constructor.
-    * The main_header attribute of the ContiguousCodestream class is now called
-      codestream.
     * Deprecated :py:meth:`read` method in favor of array-style slicing.
+      In order to retain certain functionality, the following parameters 
+      to the :py:meth:`read` method have become top-level properties
+
+      * verbose
+      * layer
+      * ignore_pclr_cmap_cdef
+
+    * Two additional properties were introduced.
+
+      * codestream
+      * shape
+
+      
+ 
