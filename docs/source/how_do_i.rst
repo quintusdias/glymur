@@ -14,27 +14,22 @@ retrieve a full resolution and first lower-resolution image ::
     >>> jp2file = glymur.data.nemo() # just a path to a JPEG2000 file
     >>> jp2 = glymur.Jp2k(jp2file)
     >>> fullres = jp2[:]
-    >>> print(fullres.shape)
+    >>> fullres.shape
     (1456, 2592, 3)
     >>> thumbnail = jp2[::2, ::2]
-    >>> print(thumbnail.shape)
+    >>> thumbnail.shape
     (728, 1296, 3)
-
-The :py:meth:`read` method exposes many more options for other JPEG 2000
-features such as quality layers.
 
 ... write images?
 =================
-So long as the image data can fit entirely into memory, array-style slicing may
-also be used to write JPEG 2000 files.
+It's pretty simple, just supply the image data as the 2nd argument to the Jp2k
+constructor.
     
     >>> import glymur, numpy as np
-    >>> jp2 = glymur.Jp2k('zeros.jp2', mode='wb')
-    >>> jp2[:] = np.zeros((640, 480), dtype=np.uint8)
+    >>> jp2 = glymur.Jp2k('zeros.jp2', data=np.zeros((640, 480), dtype=np.uint8)
 
-The :py:meth:`write` method exposes many more options for other JPEG 2000
-features.  You should have OpenJPEG version 1.5 or more recent before writing
-JPEG 2000 images.
+You must have OpenJPEG version 1.5 or more recent in order to write JPEG 2000
+images with glymur.
 
 ... display metadata?
 =====================
@@ -219,9 +214,9 @@ making use of the :py:meth:`set_printoptions` function::
         UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
     Contiguous Codestream Box (jp2c) @ (3223, 1132296)
 
-It is possible to print all the gory codestream details as well, i.e. ::
+It is possible to easily print the codestream header details as well, i.e. ::
 
-    >>> print(j.get_codestream())   # details not shown
+    >>> print(j.codestream)   # details not show
 
 ... add XML metadata?
 =====================
@@ -354,15 +349,14 @@ image isn't square. ::
     >>> import numpy as np
     >>> import glymur
     >>> from glymur import Jp2k
-    >>> rgb = Jp2k(glymur.data.goodstuff()).read()
+    >>> rgb = Jp2k(glymur.data.goodstuff())[:]
     >>> lx, ly = rgb.shape[0:2]
     >>> X, Y = np.ogrid[0:lx, 0:ly]
     >>> mask = ly**2*(X - lx / 2) ** 2 + lx**2*(Y - ly / 2) ** 2 > (lx * ly / 2)**2
     >>> alpha = 255 * np.ones((lx, ly, 1), dtype=np.uint8)
     >>> alpha[mask] = 0
     >>> rgba = np.concatenate((rgb, alpha), axis=2)
-    >>> jp2 = Jp2k('tmp.jp2', 'wb')
-    >>> jp2[:] = rgba
+    >>> jp2 = Jp2k('tmp.jp2', data=rgba)
 
 Next we need to specify what types of channels we have.
 The first three channels are color channels, but we identify the fourth as
@@ -448,7 +442,7 @@ following
     'Google'
 
 But that would be painful.  A better solution is to install the Python XMP
-Toolkit (make sure it is version 2.0)::
+Toolkit (make sure it is at least version 2.0)::
 
     >>> from libxmp import XMPMeta
     >>> from libxmp.consts import XMP_NS_XMP as NS_XAP
@@ -465,8 +459,7 @@ http://photojournal.jpl.nasa.gov/tiff/PIA17145.tif info JPEG 2000::
     >>> import skimage.io
     >>> image = skimage.io.imread('PIA17145.tif')
     >>> from glymur import Jp2k
-    >>> jp2 = Jp2k('PIA17145.jp2', 'wb')
-    >>> jp2[:] = image
+    >>> jp2 = Jp2k('PIA17145.jp2', data=image)
 
 Next you can extract the XMP metadata.
 

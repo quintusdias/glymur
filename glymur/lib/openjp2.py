@@ -2,14 +2,15 @@
 Wraps individual functions in openjp2 library.
 """
 
-# pylint: disable=C0302,R0903,W0201
-
 import ctypes
 import re
 import sys
+import textwrap
 
 from .config import glymur_config
+
 OPENJP2, OPENJPEG = glymur_config()
+
 
 def version():
     """Wrapper for opj_version library routine."""
@@ -47,13 +48,6 @@ JPWL_MAX_NO_TILESPECS = 16
 
 TRUE = 1
 FALSE = 0
-
-#PROFILE = {'none': 0,        # No profile
-#        0: 1,                # Profile 0
-#        1: 2,                # Profile 1
-#        'part2': 0x8000,     # At least one extension
-#        'Cinema2K': 0x0003,  # 2K cinema profile
-#        'Cinema4K': 0x0004,  # 4K cinema profile
 
 # supported color spaces
 CLRSPC_UNKNOWN = -1
@@ -137,6 +131,13 @@ class PocType(ctypes.Structure):
         ("tx0_t",      ctypes.c_uint32),
         ("ty0_t",      ctypes.c_uint32)]
 
+    def __str__(self):
+        msg = "{0}:\n".format(self.__class__)
+        for field_name, _ in self._fields_:
+            msg += "    {0}: {1}\n".format(
+                field_name, getattr(self, field_name))
+        return msg
+
 
 class DecompressionParametersType(ctypes.Structure):
     """Decompression parameters.
@@ -199,6 +200,13 @@ class DecompressionParametersType(ctypes.Structure):
 
         # maximum number of tiles
         ("flags",             ctypes.c_uint32)]
+
+    def __str__(self):
+        msg = "{0}:\n".format(self.__class__)
+        for field_name, _ in self._fields_:
+            msg += "    {0}: {1}\n".format(
+                field_name, getattr(self, field_name))
+        return msg
 
 
 class CompressionParametersType(ctypes.Structure):
@@ -391,6 +399,46 @@ class CompressionParametersType(ctypes.Structure):
         # values.
         _fields_.append(("rsiz",                      ctypes.c_uint16))
 
+    def __str__(self):
+        msg = "{0}:\n".format(self.__class__)
+        for field_name, _ in self._fields_:
+
+            if field_name == 'poc':
+                msg += "    numpocs: {0}\n".format(self.numpocs)
+                for j in range(self.numpocs):
+                    msg += "        [#{0}]:".format(j)
+                    msg += "            {0}".format(str(self.poc[j]))
+
+            elif field_name in ['tcp_rates', 'tcp_distoratio']:
+                lst = []
+                arr = getattr(self, field_name)
+                lst = [arr[j] for j in range(self.tcp_numlayers)]
+                msg += "    {0}: {1}\n".format(field_name, lst)
+
+            elif field_name in ['prcw_init', 'prch_init']:
+                pass
+
+            elif field_name == 'res_spec':
+                prcw_init = [self.prcw_init[j] for j in range(self.res_spec)]
+                prch_init = [self.prch_init[j] for j in range(self.res_spec)]
+                msg += "    res_spec: {0}\n".format(self.res_spec)
+                msg += "    prch_init: {0}\n".format(prch_init)
+                msg += "    prcw_init: {0}\n".format(prcw_init)
+
+            elif field_name in [
+                    'jpwl_hprot_tph_tileno', 'jpwl_hprot_tph',
+                    'jpwl_pprot_tileno', 'jpwl_pprot_packno', 'jpwl_pprot',
+                    'jpwl_sens_tph_tileno', 'jpwl_sens_tph']:
+                arr = getattr(self, field_name)
+                lst = [arr[j] for j in range(JPWL_MAX_NO_TILESPECS)]
+                msg += "    {0}: {1}\n".format(field_name, lst)
+
+            else:
+                msg += "    {0}: {1}\n".format(
+                    field_name, getattr(self, field_name))
+        return msg
+
+
 class ImageCompType(ctypes.Structure):
     """Defines a single image component.
 
@@ -432,6 +480,14 @@ class ImageCompType(ctypes.Structure):
     if _MINOR == '1':
         _fields_.append(("alpha",               ctypes.c_uint16))
 
+    def __str__(self):
+        msg = "{0}:\n".format(self.__class__)
+        for field_name, _ in self._fields_:
+            msg += "    {0}: {1}\n".format(
+                field_name, getattr(self, field_name))
+        return msg
+
+
 class ImageType(ctypes.Structure):
     """Defines image data and characteristics.
 
@@ -462,6 +518,26 @@ class ImageType(ctypes.Structure):
         # restricted ICC profile buffer length
         ("icc_profile_len",     ctypes.c_uint32)]
 
+    def __str__(self):
+        msg = "{0}:\n".format(self.__class__)
+        for field_name, _ in self._fields_:
+
+            if field_name == "numcomps":
+                msg += "    numcomps: {0}\n".format(self.numcomps)
+                for j in range(self.numcomps):
+                    msg += "        comps[#{0}]:\n".format(j)
+                    msg += textwrap.indent(str(self.comps[j]), ' ' * 12)
+
+            elif field_name == "comps":
+                # handled above
+                pass
+
+            else:
+                msg += "    {0}: {1}\n".format(
+                    field_name, getattr(self, field_name))
+
+        return msg
+
 
 class ImageComptParmType(ctypes.Structure):
     """Component parameters structure used by image_create function.
@@ -491,106 +567,12 @@ class ImageComptParmType(ctypes.Structure):
         # signed (1) / unsigned (0)
         ("sgnd",            ctypes.c_uint32)]
 
-
-class TccpInfo(ctypes.Structure):
-    """Tile-component coding parameters information.
-
-    Corresponds to tccp_info_t type in openjp2 header file.
-    """
-    _fields_ = [
-        # component index
-        ("compno",          ctypes.c_uint32),
-
-        # coding style
-        ("csty",            ctypes.c_uint32),
-
-        # number of resolutions
-        ("numresolutions",  ctypes.c_uint32),
-
-        # code-blocks width
-        ("cblkw",           ctypes.c_uint32),
-
-        # code-blocks height
-        ("cblkh",           ctypes.c_uint32),
-
-        # code-block coding style
-        ("cblksty",         ctypes.c_uint32),
-
-        # discrete wavelet transform identifier
-        ("qmfbid",          ctypes.c_uint32),
-
-        # quantization style
-        ("qntsty",          ctypes.c_uint32),
-
-        # stepsizes used for quantization
-        ("stepsizes_mant",  ctypes.c_uint32 * J2K_MAXBANDS),
-        ("stepsizes_expn",  ctypes.c_uint32 * J2K_MAXBANDS),
-
-        # stepsizes used for quantization
-        ("numgbits",        ctypes.c_uint32),
-
-        # region of interest shift
-        ("roishift",        ctypes.c_int32),
-
-        # precinct width
-        ("prcw",            ctypes.c_uint32 * J2K_MAXRLVLS),
-
-        # precinct width
-        ("prch",            ctypes.c_uint32 * J2K_MAXRLVLS)]
-
-
-class TileInfoV2(ctypes.Structure):
-    """Tile coding parameters information
-
-    Corresponds to tile_info_v2_t type in openjp2 headers.
-    """
-    _fields_ = [
-        # number (index) of tile
-        ("tileno",          ctypes.c_int32),
-
-        # coding style
-        ("csty",            ctypes.c_uint32),
-
-        # progression order
-        ("prg",             PROG_ORDER_TYPE),
-
-        # number of layers
-        ("numlayers",       ctypes.c_uint32),
-
-        # multi-component transform identifier
-        ("mct",             ctypes.c_uint32),
-
-        # information concerning tile component parameters
-        ("tccp_info",       ctypes.POINTER(TccpInfo))]
-
-
-class CodestreamInfoV2(ctypes.Structure):
-    """information about the codestream.
-
-    Corresponds to codestream_info_v2_t type in openjp2 header files.
-    """
-    _fields_ = [
-        # tile info
-        # tile origin in x, y (XTOsiz, YTOsiz)
-        ("tx0",       ctypes.c_uint32),
-        ("ty0",       ctypes.c_uint32),
-
-        # tile size in x, y = XTsiz, YTsiz
-        ("tdx",       ctypes.c_uint32),
-        ("tdy",       ctypes.c_uint32),
-
-        # number of tiles in X, Y
-        ("tw",        ctypes.c_uint32),
-        ("th",        ctypes.c_uint32),
-
-        # number of components
-        ("nbcomps",   ctypes.c_uint32),
-
-        # default information regarding tiles inside of image
-        ("m_default_tile_info",   TileInfoV2),
-
-        # information regarding tiles inside of image
-        ("tile_info",             ctypes.POINTER(TileInfoV2))]
+    def __str__(self):
+        msg = "{0}:\n".format(self.__class__)
+        for field_name, _ in self._fields_:
+            msg += "    {0}: {1}\n".format(
+                field_name, getattr(self, field_name))
+        return msg
 
 
 def check_error(status):
@@ -755,28 +737,6 @@ def encode(codec, stream):
     OPENJP2.opj_encode(codec, stream)
 
 
-def get_cstr_info(codec):
-    """get the codestream information from the codec
-
-    Wraps the openjp2 library function opj_get_cstr_info.
-
-    Parameters
-    ----------
-    codec : CODEC_TYPE
-        The jpeg2000 codec.
-
-    Returns
-    -------
-    cstr_info_p : CodestreamInfoV2
-        Reference to codestream information.
-    """
-    OPENJP2.opj_get_cstr_info.argtypes = [CODEC_TYPE]
-    OPENJP2.opj_get_cstr_info.restype = ctypes.POINTER(CodestreamInfoV2)
-
-    cstr_info_p = OPENJP2.opj_get_cstr_info(codec)
-    return cstr_info_p
-
-
 def get_decoded_tile(codec, stream, imagep, tile_index):
     """get the decoded tile from the codec
 
@@ -805,23 +765,6 @@ def get_decoded_tile(codec, stream, imagep, tile_index):
     OPENJP2.opj_get_decoded_tile.restype = check_error
 
     OPENJP2.opj_get_decoded_tile(codec, stream, imagep, tile_index)
-
-
-def destroy_cstr_info(cstr_info_p):
-    """destroy codestream information after compression or decompression
-
-    Wraps the openjp2 library function opj_destroy_cstr_info.
-
-    Parameters
-    ----------
-    cstr_info_p : CodestreamInfoV2 pointer
-        Pointer to codestream info structure.
-    """
-    ARGTYPES = [ctypes.POINTER(ctypes.POINTER(CodestreamInfoV2))]
-    OPENJP2.opj_destroy_cstr_info.argtypes = ARGTYPES
-    OPENJP2.opj_destroy_cstr_info.restype = ctypes.c_void_p
-
-    OPENJP2.opj_destroy_cstr_info(ctypes.byref(cstr_info_p))
 
 
 def end_compress(codec, stream):
@@ -966,7 +909,7 @@ def read_header(stream, codec):
     ARGTYPES = [STREAM_TYPE_P, CODEC_TYPE,
                 ctypes.POINTER(ctypes.POINTER(ImageType))]
     OPENJP2.opj_read_header.argtypes = ARGTYPES
-    OPENJP2.opj_read_header.restype = check_error 
+    OPENJP2.opj_read_header.restype = check_error
 
     imagep = ctypes.POINTER(ImageType)()
     OPENJP2.opj_read_header(stream, codec, ctypes.byref(imagep))
@@ -1325,6 +1268,7 @@ def _stream_create_default_file_stream_2p0(fptr, isa_read_stream):
     stream = OPENJP2.opj_stream_create_default_file_stream(fptr, read_stream)
     return stream
 
+
 def _stream_create_default_file_stream_2p1(fname, isa_read_stream):
     """Wraps openjp2 library function opj_stream_create_default_vile_stream.
 
@@ -1351,7 +1295,7 @@ def _stream_create_default_file_stream_2p1(fname, isa_read_stream):
     stream = OPENJP2.opj_stream_create_default_file_stream(file_argument,
                                                            read_stream)
     return stream
-    
+
 if re.match(r'''2.0''', version()):
     stream_create_default_file_stream = _stream_create_default_file_stream_2p0
 else:

@@ -1,9 +1,6 @@
 """
 Configure glymur to use installed libraries if possible.
 """
-# configparser is new in python3 (pylint/python-2.7)
-# pylint: disable=F0401
-
 import ctypes
 from ctypes.util import find_library
 import os
@@ -17,6 +14,22 @@ if sys.hexversion <= 0x03000000:
 else:
     from configparser import ConfigParser
     from configparser import NoOptionError
+
+# default library locations for MacPorts
+_macports_default_location = {'openjp2': '/opt/local/lib/libopenjp2.dylib',
+                              'openjpeg': '/opt/local/lib/libopenjpeg.dylib'}
+
+# default library locations on Windows
+_windows_default_location = {'openjp2': os.path.join('C:\\',
+                                                     'Program files',
+                                                     'OpenJPEG 2.0',
+                                                     'bin',
+                                                     'openjp2.dll'),
+                             'openjpeg': os.path.join('C:\\',
+                                                      'Program files',
+                                                      'OpenJPEG 1.5',
+                                                      'bin',
+                                                      'openjpeg.dll')}
 
 
 def glymurrc_fname():
@@ -43,51 +56,23 @@ def glymurrc_fname():
     return None
 
 
-def load_openjpeg(path):
-    """Load the openjpeg library, falling back on defaults if necessary.
+def load_openjpeg_library(libname):
 
-    Parameters
-    ----------
-    path : str
-        Path to openjpeg 1.5 library as specified by configuration file.  Will
-        be None if no configuration file specified.
-    """
-    if path is None:
-        # Let ctypes try to find it.
-        path = find_library('openjpeg')
+    path = read_config_file(libname)
+    if path is not None:
+        return load_library_handle(path)
 
-    # If we could not find it, then look in some likely locations on mac
-    # and win.
-    if path is None:
-        # Could not find a library via ctypes
-        if platform.system() == 'Darwin':
-            # MacPorts
-            path = '/opt/local/lib/libopenjpeg.dylib'
-        elif os.name == 'nt':
-            path = os.path.join('C:\\', 'Program files', 'OpenJPEG 1.5',
-                                'bin', 'openjpeg.dll')
-
-        if path is not None and not os.path.exists(path):
-            # the mac/win default location does not exist.
-            return None
-
-    return load_library_handle(path)
-
-def load_openjp2(path):
-    """Load the openjp2 library, falling back on defaults if necessary.
-    """
-    if path is None:
-        # No help from the config file, try to find it via ctypes.
-        path = find_library('openjp2')
+    # No location specified by the configuration file, must look for it
+    # elsewhere.
+    path = find_library(libname)
 
     if path is None:
         # Could not find a library via ctypes
         if platform.system() == 'Darwin':
             # MacPorts
-            path = '/opt/local/lib/libopenjp2.dylib'
+            path = _macports_default_location[libname]
         elif os.name == 'nt':
-            path = os.path.join('C:\\', 'Program files', 'OpenJPEG 2.0',
-                                'bin', 'openjp2.dll')
+            path = _windows_default_location[libname]
 
         if path is not None and not os.path.exists(path):
             # the mac/win default location does not exist.
@@ -100,9 +85,10 @@ def load_library_handle(path):
     """Load the library, return the ctypes handle."""
 
     if path is None or path in ['None', 'none']:
-        # Either could not find a library via ctypes or user-configuration-file,
-        # or we could not find it in any of the default locations.
-        # This is probably a very old linux.
+        # Either could not find a library via ctypes or
+        # user-configuration-file, or we could not find it in any of the
+        # default locations, or possibly the user intentionally does not want
+        # one of the libraries to load.
         return None
 
     try:
@@ -111,43 +97,59 @@ def load_library_handle(path):
         else:
             opj_lib = ctypes.CDLL(path)
     except (TypeError, OSError):
-       msg = '"Library {0}" could not be loaded.  Operating in degraded mode.'
-       msg = msg.format(path)
-       warnings.warn(msg, UserWarning)
-       opj_lib = None
+        msg = 'The library specified by configuration file at {0} could not '
+        msg += 'be loaded.'
+        warnings.warn(msg.format(path), UserWarning)
+        opj_lib = None
 
     return opj_lib
 
 
-def read_config_file():
+def read_config_file(libname):
     """
-    We must use a configuration file that the user must write.
-    """
-    lib = {'openjp2':  None, 'openjpeg':  None}
-    filename = glymurrc_fname()
-    if filename is not None:
-        # Read the configuration file for the library location.
-        parser = ConfigParser()
-        parser.read(filename)
-        for name in ['openjp2', 'openjpeg']:
-            try:
-                lib[name] = parser.get('library', name)
-            except NoOptionError:
-                pass
+    Extract library locations from a configuration file.
 
-    return lib
+    Parameters
+    ----------
+    libname : str
+        One of either 'openjp2' or 'openjpeg'
+
+    Returns
+    -------
+    path : None or str
+        None if no location is specified, otherwise a path to the library
+    """
+    filename = glymurrc_fname()
+    if filename is None:
+        # There's no library file path to return in this case.
+        return None
+
+    # Read the configuration file for the library location.
+    parser = ConfigParser()
+    parser.read(filename)
+    try:
+        path = parser.get('library', libname)
+    except NoOptionError:
+        path = None
+    return path
 
 
 def glymur_config():
-    """Try to ascertain locations of openjp2, openjpeg libraries.
     """
-    libs = read_config_file()
-    libopenjp2_handle = load_openjp2(libs['openjp2'])
-    libopenjpeg_handle = load_openjpeg(libs['openjpeg'])
-    if libopenjp2_handle is None and libopenjpeg_handle is None:
+    Try to ascertain locations of openjp2, openjpeg libraries.
+
+    Returns
+    -------
+    tpl : tuple
+        tuple of library handles
+    """
+    lst = []
+    for libname in ['openjp2', 'openjpeg']:
+        lst.append(load_openjpeg_library(libname))
+    if all(handle is None for handle in lst):
         msg = "Neither the openjp2 nor the openjpeg library could be loaded.  "
-        raise IOError(msg)
-    return libopenjp2_handle, libopenjpeg_handle
+        warnings.warn(msg)
+    return tuple(lst)
 
 
 def get_configdir():

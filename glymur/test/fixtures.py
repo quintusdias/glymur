@@ -13,6 +13,14 @@ import six
 
 import glymur
 
+# If openjpeg is not installed, many tests cannot be run.
+if glymur.version.openjpeg_version == '0.0.0':
+    OPENJPEG_NOT_AVAILABLE = True
+    OPENJPEG_NOT_AVAILABLE_MSG = 'OpenJPEG library not installed'
+else:
+    OPENJPEG_NOT_AVAILABLE = False
+    OPENJPEG_NOT_AVAILABLE_MSG = None
+
 # Some versions of "six" on python3 cause problems when verifying warnings.
 # Only use when the version is 1.7 or higher.
 # And moreover, we only test using the 3.x infrastructure, never on 2.x.
@@ -25,6 +33,10 @@ elif re.match('1.[0-6]', six.__version__) is not None:
     WARNING_INFRASTRUCTURE_ISSUE = True
     msg = "Cannot run test with version {0} of python-six"
     WARNING_INFRASTRUCTURE_MSG = msg.format(six.__version__)
+
+# Cannot reopen a named temporary file in windows.
+WINDOWS_TMP_FILE_MSG = "cannot use NamedTemporaryFile like this in windows"
+
 
 class MetadataBase(unittest.TestCase):
     """
@@ -90,8 +102,8 @@ class MetadataBase(unittest.TestCase):
         """
         verify the fields of a RGN segment
         """
-        self.assertEqual(actual.crgn, expected.crgn) # 0 = component
-        self.assertEqual(actual.srgn, expected.srgn) # 0 = implicit
+        self.assertEqual(actual.crgn, expected.crgn)  # 0 = component
+        self.assertEqual(actual.srgn, expected.srgn)  # 0 = implicit
         self.assertEqual(actual.sprgn, expected.sprgn)
 
     def verifySOTsegment(self, actual, expected):
@@ -114,8 +126,9 @@ class MetadataBase(unittest.TestCase):
         """
         Verify the fields of the SIZ segment.
         """
-        for field in ['rsiz', 'xsiz', 'ysiz', 'xosiz', 'yosiz', 'xtsiz', 
-                'ytsiz', 'xtosiz', 'ytosiz', 'bitdepth', 'xrsiz', 'yrsiz']:
+        for field in ['rsiz', 'xsiz', 'ysiz', 'xosiz', 'yosiz', 'xtsiz',
+                      'ytsiz', 'xtosiz', 'ytosiz', 'bitdepth',
+                      'xrsiz', 'yrsiz']:
             self.assertEqual(getattr(actual, field), getattr(expected, field))
 
     def verifyImageHeaderBox(self, box1, box2):
@@ -142,7 +155,7 @@ class MetadataBase(unittest.TestCase):
         else:
             self.assertEqual(actual.colorspace, expected.colorspace)
             self.assertIsNone(actual.icc_profile)
-        
+
 
 # The Python XMP Toolkit may be used for XMP UUIDs, but only if available and
 # if the version is at least 2.0.0.
@@ -172,7 +185,7 @@ except:
 # The Cinema2K/4K tests seem to need the freeimage backend to skimage.io
 # in order to work.  Unfortunately, scikit-image/freeimage is about as wonky as
 # it gets.  Anaconda can get totally weirded out on versions up through 3.6.4
-# on Python3 with scikit-image up through version 0.10.0.  
+# on Python3 with scikit-image up through version 0.10.0.
 NO_SKIMAGE_FREEIMAGE_SUPPORT = False
 try:
     import skimage
@@ -200,7 +213,7 @@ def _indent(textstr):
         String to be indented.
     indent_level : str
         Number of spaces of indentation to add.
-    
+
     Returns
     -------
     indented_string : str
@@ -223,7 +236,6 @@ try:
 
     # The whole point of trying to import PIL is to determine if it's there
     # or not.  We won't use it directly.
-    # pylint:  disable=F0401,W0611
     import PIL
 
     NO_READ_BACKEND = False
@@ -533,7 +545,7 @@ text_gbr_34 = """Colour Specification Box (colr) @ (179, 1339)
 dump = r'''JPEG 2000 Signature Box (jP  ) @ (0, 12)
     Signature:  0d0a870a
 File Type Box (ftyp) @ (12, 20)
-    Brand:  jp2 
+    Brand:  jp2
     Compatibility:  ['jp2 ']
 JP2 Header Box (jp2h) @ (32, 45)
     Image Header Box (ihdr) @ (40, 22)
@@ -589,7 +601,6 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)
             "Created by OpenJPEG version 2.0.0"'''
 
 nemo_with_codestream_header = dump.format(_indent(nemo_xmp))
-#nemo_dump_full = dump.format(_indent(nemo_xmp))
 
 nemo_dump_short = r"""JPEG 2000 Signature Box (jP  ) @ (0, 12)
 File Type Box (ftyp) @ (12, 20)
@@ -602,7 +613,7 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)"""
 nemo_dump_no_xml = '''JPEG 2000 Signature Box (jP  ) @ (0, 12)
     Signature:  0d0a870a
 File Type Box (ftyp) @ (12, 20)
-    Brand:  jp2 
+    Brand:  jp2
     Compatibility:  ['jp2 ']
 JP2 Header Box (jp2h) @ (32, 45)
     Image Header Box (ihdr) @ (40, 22)
@@ -658,7 +669,7 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)
 dump = r"""JPEG 2000 Signature Box (jP  ) @ (0, 12)
     Signature:  0d0a870a
 File Type Box (ftyp) @ (12, 20)
-    Brand:  jp2 
+    Brand:  jp2
     Compatibility:  ['jp2 ']
 JP2 Header Box (jp2h) @ (32, 45)
     Image Header Box (ihdr) @ (40, 22)
@@ -681,7 +692,7 @@ nemo_dump_no_codestream = dump.format(_indent(nemo_xmp))
 nemo_dump_no_codestream_no_xml = r"""JPEG 2000 Signature Box (jP  ) @ (0, 12)
     Signature:  0d0a870a
 File Type Box (ftyp) @ (12, 20)
-    Brand:  jp2 
+    Brand:  jp2
     Compatibility:  ['jp2 ']
 JP2 Header Box (jp2h) @ (32, 45)
     Image Header Box (ihdr) @ (40, 22)
@@ -697,6 +708,190 @@ JP2 Header Box (jp2h) @ (32, 45)
 UUID Box (uuid) @ (77, 3146)
     UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
 Contiguous Codestream Box (jp2c) @ (3223, 1132296)"""
+
+nemo = """JPEG 2000 Signature Box (jP  ) @ (0, 12)
+    Signature:  0d0a870a
+File Type Box (ftyp) @ (12, 20)
+    Brand:  jp2 
+    Compatibility:  ['jp2 ']
+JP2 Header Box (jp2h) @ (32, 45)
+    Image Header Box (ihdr) @ (40, 22)
+        Size:  [1456 2592 3]
+        Bitdepth:  8
+        Signed:  False
+        Compression:  wavelet
+        Colorspace Unknown:  False
+    Colour Specification Box (colr) @ (62, 15)
+        Method:  enumerated colorspace
+        Precedence:  0
+        Colorspace:  sRGB
+UUID Box (uuid) @ (77, 3146)
+    UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
+    UUID Data:
+    <?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>
+    <ns0:xmpmeta xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:ns0="adobe:ns:meta/" xmlns:ns2="http://ns.adobe.com/xap/1.0/" xmlns:ns3="http://ns.adobe.com/tiff/1.0/" xmlns:ns4="http://ns.adobe.com/exif/1.0/" xmlns:ns5="http://ns.adobe.com/photoshop/1.0/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" ns0:xmptk="Exempi + XMP Core 5.1.2">
+     <rdf:RDF>
+      <rdf:Description rdf:about="">
+       <ns2:CreatorTool>Google</ns2:CreatorTool>
+       <ns2:CreateDate>2013-02-09T14:47:53</ns2:CreateDate>
+      </rdf:Description>
+      <rdf:Description rdf:about="">
+       <ns3:YCbCrPositioning>1</ns3:YCbCrPositioning>
+       <ns3:XResolution>72/1</ns3:XResolution>
+       <ns3:YResolution>72/1</ns3:YResolution>
+       <ns3:ResolutionUnit>2</ns3:ResolutionUnit>
+       <ns3:Make>HTC</ns3:Make>
+       <ns3:Model>HTC Glacier</ns3:Model>
+       <ns3:ImageWidth>2592</ns3:ImageWidth>
+       <ns3:ImageLength>1456</ns3:ImageLength>
+       <ns3:BitsPerSample>
+        <rdf:Seq>
+         <rdf:li>8</rdf:li>
+         <rdf:li>8</rdf:li>
+         <rdf:li>8</rdf:li>
+        </rdf:Seq>
+       </ns3:BitsPerSample>
+       <ns3:PhotometricInterpretation>2</ns3:PhotometricInterpretation>
+       <ns3:SamplesPerPixel>3</ns3:SamplesPerPixel>
+       <ns3:WhitePoint>
+        <rdf:Seq>
+         <rdf:li>1343036288/4294967295</rdf:li>
+         <rdf:li>1413044224/4294967295</rdf:li>
+        </rdf:Seq>
+       </ns3:WhitePoint>
+       <ns3:PrimaryChromaticities>
+        <rdf:Seq>
+         <rdf:li>2748779008/4294967295</rdf:li>
+         <rdf:li>1417339264/4294967295</rdf:li>
+         <rdf:li>1288490240/4294967295</rdf:li>
+         <rdf:li>2576980480/4294967295</rdf:li>
+         <rdf:li>644245120/4294967295</rdf:li>
+         <rdf:li>257698032/4294967295</rdf:li>
+        </rdf:Seq>
+       </ns3:PrimaryChromaticities>
+      </rdf:Description>
+      <rdf:Description rdf:about="">
+       <ns4:ColorSpace>1</ns4:ColorSpace>
+       <ns4:PixelXDimension>2528</ns4:PixelXDimension>
+       <ns4:PixelYDimension>1424</ns4:PixelYDimension>
+       <ns4:FocalLength>353/100</ns4:FocalLength>
+       <ns4:GPSAltitudeRef>0</ns4:GPSAltitudeRef>
+       <ns4:GPSAltitude>0/1</ns4:GPSAltitude>
+       <ns4:GPSMapDatum>WGS-84</ns4:GPSMapDatum>
+       <ns4:DateTimeOriginal>2013-02-09T14:47:53</ns4:DateTimeOriginal>
+       <ns4:ISOSpeedRatings>
+        <rdf:Seq>
+         <rdf:li>76</rdf:li>
+        </rdf:Seq>
+       </ns4:ISOSpeedRatings>
+       <ns4:ExifVersion>0220</ns4:ExifVersion>
+       <ns4:FlashpixVersion>0100</ns4:FlashpixVersion>
+       <ns4:ComponentsConfiguration>
+        <rdf:Seq>
+         <rdf:li>1</rdf:li>
+         <rdf:li>2</rdf:li>
+         <rdf:li>3</rdf:li>
+         <rdf:li>0</rdf:li>
+        </rdf:Seq>
+       </ns4:ComponentsConfiguration>
+       <ns4:GPSLatitude>42,20.56N</ns4:GPSLatitude>
+       <ns4:GPSLongitude>71,5.29W</ns4:GPSLongitude>
+       <ns4:GPSTimeStamp>2013-02-09T19:47:53Z</ns4:GPSTimeStamp>
+       <ns4:GPSProcessingMethod>NETWORK</ns4:GPSProcessingMethod>
+      </rdf:Description>
+      <rdf:Description rdf:about="">
+       <ns5:DateCreated>2013-02-09T14:47:53</ns5:DateCreated>
+      </rdf:Description>
+      <rdf:Description rdf:about="">
+       <dc:Creator>
+        <rdf:Seq>
+         <rdf:li>Glymur</rdf:li>
+         <rdf:li>Python XMP Toolkit</rdf:li>
+        </rdf:Seq>
+       </dc:Creator>
+      </rdf:Description>
+     </rdf:RDF>
+    </ns0:xmpmeta>
+    <?xpacket end="w"?>
+Contiguous Codestream Box (jp2c) @ (3223, 1132296)
+    SOC marker segment @ (3231, 0)
+    SIZ marker segment @ (3233, 47)
+        Profile:  no profile
+        Reference Grid Height, Width:  (1456 x 2592)
+        Vertical, Horizontal Reference Grid Offset:  (0 x 0)
+        Reference Tile Height, Width:  (1456 x 2592)
+        Vertical, Horizontal Reference Tile Offset:  (0 x 0)
+        Bitdepth:  (8, 8, 8)
+        Signed:  (False, False, False)
+        Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))
+    COD marker segment @ (3282, 12)
+        Coding style:
+            Entropy coder, without partitions
+            SOP marker segments:  False
+            EPH marker segments:  False
+        Coding style parameters:
+            Progression order:  LRCP
+            Number of layers:  2
+            Multiple component transformation usage:  reversible
+            Number of resolutions:  2
+            Code block height, width:  (64 x 64)
+            Wavelet transform:  5-3 reversible
+            Precinct size:  default, 2^15 x 2^15
+            Code block context:
+                Selective arithmetic coding bypass:  False
+                Reset context probabilities on coding pass boundaries:  False
+                Termination on each coding pass:  False
+                Vertically stripe causal context:  False
+                Predictable termination:  False
+                Segmentation symbols:  False
+    QCD marker segment @ (3296, 7)
+        Quantization style:  no quantization, 2 guard bits
+        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]
+    CME marker segment @ (3305, 37)
+        "Created by OpenJPEG version 2.0.0"
+    SOT marker segment @ (3344, 10)
+        Tile part index:  0
+        Tile part length:  1132173
+        Tile part instance:  0
+        Number of tile parts:  1
+    COC marker segment @ (3356, 9)
+        Associated component:  1
+        Coding style for this component:  Entropy coder, PARTITION = 0
+        Coding style parameters:
+            Number of resolutions:  2
+            Code block height, width:  (64 x 64)
+            Wavelet transform:  5-3 reversible
+            Code block context:
+                Selective arithmetic coding bypass:  False
+                Reset context probabilities on coding pass boundaries:  False
+                Termination on each coding pass:  False
+                Vertically stripe causal context:  False
+                Predictable termination:  False
+                Segmentation symbols:  False
+    QCC marker segment @ (3367, 8)
+        Associated Component:  1
+        Quantization style:  no quantization, 2 guard bits
+        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]
+    COC marker segment @ (3377, 9)
+        Associated component:  2
+        Coding style for this component:  Entropy coder, PARTITION = 0
+        Coding style parameters:
+            Number of resolutions:  2
+            Code block height, width:  (64 x 64)
+            Wavelet transform:  5-3 reversible
+            Code block context:
+                Selective arithmetic coding bypass:  False
+                Reset context probabilities on coding pass boundaries:  False
+                Termination on each coding pass:  False
+                Vertically stripe causal context:  False
+                Predictable termination:  False
+                Segmentation symbols:  False
+    QCC marker segment @ (3388, 8)
+        Associated Component:  2
+        Quantization style:  no quantization, 2 guard bits
+        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]
+    SOD marker segment @ (3398, 0)
+    EOC marker segment @ (1135517, 0)"""
 
 # Output of reader requirements printing for text_GBR.jp2
 text_GBR_rreq = r"""Reader Requirements Box (rreq) @ (40, 109)
@@ -732,7 +927,7 @@ issue_183_colr = """Colour Specification Box (colr) @ (62, 12)
     Method:  restricted ICC profile
     Precedence:  0
     ICC Profile:  None"""
-        
+
 
 # Progression order is invalid.
 issue_186_progression_order = """COD marker segment @ (174, 12)

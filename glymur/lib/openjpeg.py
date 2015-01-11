@@ -1,14 +1,11 @@
 """Wraps library calls to openjpeg.
 """
 
-# pylint: disable=R0903
-
 import ctypes
 import sys
 
-import numpy as np
-
 from .config import glymur_config
+
 _, OPENJPEG = glymur_config()
 
 # Maximum number of tile parts expected by JPWL: increase at your will
@@ -58,8 +55,10 @@ class CommonStructType(ctypes.Structure):
                 ("mj2_handle", ctypes.c_void_p)]
 
 
-STREAM_READ  = 0x0001 # The stream was opened for reading.
-STREAM_WRITE = 0x0002 # The stream was opened for writing.
+STREAM_READ = 0x0001  # The stream was opened for reading.
+STREAM_WRITE = 0x0002  # The stream was opened for writing.
+
+
 class CioType(ctypes.Structure):
     """Byte input-output stream (CIO)
 
@@ -90,70 +89,57 @@ class CompressionInfoType(CommonStructType):
 class PocType(ctypes.Structure):
     """Progression order changes."""
     _fields_ = [("resno", ctypes.c_int),
-            # Resolution num start, Component num start, given by POC
-            ("compno0", ctypes.c_int),
+                # Resolution num start, Component num start, given by POC
+                ("compno0", ctypes.c_int),
 
-            # Layer num end,Resolution num end, Component num end, given by POC
-            ("layno1", ctypes.c_int),
-            ("resno1", ctypes.c_int),
-            ("compno1", ctypes.c_int),
+                # Layer num end,Resolution num end, Component num end, given
+                # by POC
+                ("layno1", ctypes.c_int),
+                ("resno1", ctypes.c_int),
+                ("compno1", ctypes.c_int),
 
-            # Layer num start,Precinct num start, Precinct num end
-            ("layno0", ctypes.c_int),
-            ("precno0", ctypes.c_int),
-            ("precno1", ctypes.c_int),
+                # Layer num start,Precinct num start, Precinct num end
+                ("layno0", ctypes.c_int),
+                ("precno0", ctypes.c_int),
+                ("precno1", ctypes.c_int),
 
-            # Progression order enum
-            # OPJ_PROG_ORDER prg1,prg;
-            ("prg1", ctypes.c_int),
-            ("prg", ctypes.c_int),
+                # Progression order enum
+                # OPJ_PROG_ORDER prg1,prg;
+                ("prg1", ctypes.c_int),
+                ("prg", ctypes.c_int),
 
-            # Progression order string
-            # char progorder[5];
-            ("progorder",            ctypes.c_char * 5),
+                # Progression order string
+                # char progorder[5];
+                ("progorder",            ctypes.c_char * 5),
 
-            # Tile number
-            # int tile;
-            ("tile", ctypes.c_int),
+                # Tile number
+                # int tile;
+                ("tile", ctypes.c_int),
 
-            # /** Start and end values for Tile width and height*/
-            # int tx0,tx1,ty0,ty1;
-            ("tx0", ctypes.c_int),
-            ("tx1", ctypes.c_int),
-            ("ty0", ctypes.c_int),
-            ("ty1", ctypes.c_int),
-
-            # /** Start value, initialised in pi_initialise_encode*/
-            # int layS, resS, compS, prcS;
-            ("layS", ctypes.c_int),
-            ("resS", ctypes.c_int),
-            ("compS", ctypes.c_int),
-            ("prcS", ctypes.c_int),
-
-            # /** End value, initialised in pi_initialise_encode */
-            # int layE, resE, compE, prcE;
-            ("layE", ctypes.c_int),
-            ("resE", ctypes.c_int),
-            ("compE", ctypes.c_int),
-            ("prcE", ctypes.c_int),
-
-            # Start and end values of Tile width and height, initialised in
-            # pi_initialise_encode int txS,txE,tyS,tyE,dx,dy;
-            ("txS", ctypes.c_int),
-            ("txE", ctypes.c_int),
-            ("tyS", ctypes.c_int),
-            ("tyE", ctypes.c_int),
-            ("dx", ctypes.c_int),
-            ("dy", ctypes.c_int),
-
-            # Temporary values for Tile parts, initialised in pi_create_encode
-            # int lay_t, res_t, comp_t, prc_t,tx0_t,ty0_t;
-            ("lay_t", ctypes.c_int),
-            ("res_t", ctypes.c_int),
-            ("comp_t", ctypes.c_int),
-            ("prc_t", ctypes.c_int),
-            ("tx0_t", ctypes.c_int),
-            ("ty0_t", ctypes.c_int)]
+                ("tx0", ctypes.c_int),
+                ("tx1", ctypes.c_int),
+                ("ty0", ctypes.c_int),
+                ("ty1", ctypes.c_int),
+                ("layS", ctypes.c_int),
+                ("resS", ctypes.c_int),
+                ("compS", ctypes.c_int),
+                ("prcS", ctypes.c_int),
+                ("layE", ctypes.c_int),
+                ("resE", ctypes.c_int),
+                ("compE", ctypes.c_int),
+                ("prcE", ctypes.c_int),
+                ("txS", ctypes.c_int),
+                ("txE", ctypes.c_int),
+                ("tyS", ctypes.c_int),
+                ("tyE", ctypes.c_int),
+                ("dx", ctypes.c_int),
+                ("dy", ctypes.c_int),
+                ("lay_t", ctypes.c_int),
+                ("res_t", ctypes.c_int),
+                ("comp_t", ctypes.c_int),
+                ("prc_t", ctypes.c_int),
+                ("tx0_t", ctypes.c_int),
+                ("ty0_t", ctypes.c_int)]
 
 
 class CompressionParametersType(ctypes.Structure):
@@ -374,48 +360,47 @@ class DecompressionParametersType(ctypes.Structure):
 class ImageComptParmType(ctypes.Structure):
     """Component parameters structure used by the opj_image_create function.
     """
-    _fields_ = [
-            # XRsiz: horizontal separation of a sample of ith component with
-            # respect to the reference grid
-            ("dx", ctypes.c_int),
+    _fields_ = [("dx", ctypes.c_int),
+                # XRsiz: horizontal separation of a sample of ith component
+                # with respect to the reference grid
 
-            # YRsiz: vertical separation of a sample of ith component with
-            # respect to the reference grid */
-            ("dy", ctypes.c_int),
+                # YRsiz: vertical separation of a sample of ith component with
+                # respect to the reference grid */
+                ("dy", ctypes.c_int),
 
-            # data width, height
-            ("w", ctypes.c_int),
-            ("h", ctypes.c_int),
+                # data width, height
+                ("w", ctypes.c_int),
+                ("h", ctypes.c_int),
 
-            # x component offset compared to the whole image
-            # y component offset compared to the whole image
-            ("x0", ctypes.c_int),
-            ("y0", ctypes.c_int),
+                # x component offset compared to the whole image
+                # y component offset compared to the whole image
+                ("x0", ctypes.c_int),
+                ("y0", ctypes.c_int),
 
-            # precision
-            ('prec', ctypes.c_int),
+                # precision
+                ('prec', ctypes.c_int),
 
-            # image depth in bits
-            ('bpp', ctypes.c_int),
+                # image depth in bits
+                ('bpp', ctypes.c_int),
 
-            # signed (1) / unsigned (0)
-            ('sgnd', ctypes.c_int)]
+                # signed (1) / unsigned (0)
+                ('sgnd', ctypes.c_int)]
 
 
 class ImageCompType(ctypes.Structure):
     """Defines a single image component. """
     _fields_ = [("dx",        ctypes.c_int),
-            ("dy",            ctypes.c_int),
-            ("w",             ctypes.c_int),
-            ("h",             ctypes.c_int),
-            ("x0",            ctypes.c_int),
-            ("y0",            ctypes.c_int),
-            ("prec",          ctypes.c_int),
-            ("bpp",           ctypes.c_int),
-            ("sgnd",          ctypes.c_int),
-            ("resno_decoded", ctypes.c_int),
-            ("factor",        ctypes.c_int),
-            ("data",          ctypes.POINTER(ctypes.c_int))]
+                ("dy",            ctypes.c_int),
+                ("w",             ctypes.c_int),
+                ("h",             ctypes.c_int),
+                ("x0",            ctypes.c_int),
+                ("y0",            ctypes.c_int),
+                ("prec",          ctypes.c_int),
+                ("bpp",           ctypes.c_int),
+                ("sgnd",          ctypes.c_int),
+                ("resno_decoded", ctypes.c_int),
+                ("factor",        ctypes.c_int),
+                ("data",          ctypes.POINTER(ctypes.c_int))]
 
 
 class ImageType(ctypes.Structure):
@@ -466,6 +451,7 @@ def cio_tell(cio):
     OPENJPEG.cio_tell.restype = ctypes.c_int
     pos = OPENJPEG.cio_tell(cio)
     return pos
+
 
 def create_compress(fmt):
     """Wrapper for openjpeg library function opj_create_compress.
@@ -537,56 +523,11 @@ def destroy_decompress(dinfo):
     OPENJPEG.opj_destroy_decompress(dinfo)
 
 
-def image_cmptparm_t_from_np(np_image):
-    """Return appropriate image_cmptparm_t based on given numpy array.
-    """
-    try:
-        num_comps = np_image.shape[2]
-    except IndexError:
-        num_comps = 1
-
-    cmpt_parm_array_t = ImageCmptparmType * num_comps
-    tarr = cmpt_parm_array_t()
-
-    if np_image.dtype == np.uint8:
-        prec = 8
-        bpp = 8
-        sgnd = 0
-    elif np_image.dtype == np.int8:
-        prec = 8
-        bpp = 8
-        sgnd = 1
-    elif np_image.dtype == np.uint16:
-        prec = 16
-        bpp = 16
-        sgnd = 0
-    elif np_image.dtype == np.int16:
-        prec = 16
-        bpp = 16
-        sgnd = 1
-    else:
-        raise(TypeError("unhandled"))
-
-    for j in range(0, num_comps):
-        tarr[j].dx = 1
-        tarr[j].dy = 1
-        tarr[j].w = np_image.shape[1]
-        tarr[j].h = np_image.shape[0]
-        tarr[j].x0 = 0
-        tarr[j].y0 = 0
-        tarr[j].prec = prec
-        tarr[j].bpp = bpp
-        tarr[j].sgnd = sgnd
-
-    return(tarr)
-
-
 def image_create(cmptparms, cspace):
     """Wrapper for openjpeg library function opj_image_create.
     """
-    OPENJPEG.opj_image_create.argtypes = [ctypes.c_int,
-            ctypes.POINTER(ImageComptParmType),
-            ctypes.c_int]
+    lst = [ctypes.c_int, ctypes.POINTER(ImageComptParmType), ctypes.c_int]
+    OPENJPEG.opj_image_create.argtypes = lst
     OPENJPEG.opj_image_create.restype = ctypes.POINTER(ImageType)
 
     image = OPENJPEG.opj_image_create(len(cmptparms), cmptparms, cspace)

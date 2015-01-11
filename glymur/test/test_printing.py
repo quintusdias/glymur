@@ -1,15 +1,6 @@
 # -*- coding:  utf-8 -*-
 """Test suite for printing.
 """
-# C0302:  don't care too much about having too many lines in a test module
-# pylint: disable=C0302
-
-# E061:  unittest.mock introduced in 3.3 (python-2.7/pylint issue)
-# pylint: disable=E0611,F0401
-
-# R0904:  Not too many methods in unittest.
-# pylint: disable=R0904
-
 import os
 import re
 import struct
@@ -32,12 +23,14 @@ import lxml.etree as ET
 import glymur
 from glymur import Jp2k, command_line
 from . import fixtures
-from .fixtures import OPJ_DATA_ROOT, opj_data_file
-from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
-from .fixtures import text_gbr_27, text_gbr_33, text_gbr_34
+from .fixtures import (OPJ_DATA_ROOT, opj_data_file,
+                       WARNING_INFRASTRUCTURE_ISSUE,
+                       WARNING_INFRASTRUCTURE_MSG,
+                       WINDOWS_TMP_FILE_MSG,
+                       text_gbr_27, text_gbr_33, text_gbr_34)
 
 
-@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
 class TestPrinting(unittest.TestCase):
     """Tests for verifying how printing works."""
     def setUp(self):
@@ -49,25 +42,13 @@ class TestPrinting(unittest.TestCase):
         glymur.set_printoptions(short=False, xml=True, codestream=True)
 
     def tearDown(self):
-        pass
-
-    def test_codestream(self):
-        """Should be able to print a raw codestream."""
-        j = glymur.Jp2k(self.j2kfile)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(j)
-            actual = fake_out.getvalue().strip()
-            # Remove the file line, as that is filesystem-dependent.
-            lines = actual.split('\n')
-            actual = '\n'.join(lines[1:])
-
-        self.assertEqual(actual, fixtures.codestream)
+        glymur.set_parseoptions(full_codestream=False)
 
     def test_version_info(self):
         """Should be able to print(glymur.version.info)"""
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(glymur.version.info)
-            actual = fake_out.getvalue().strip()
+            fake_out.getvalue().strip()
 
         self.assertTrue(True)
 
@@ -77,7 +58,7 @@ class TestPrinting(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
             with open(self.jpxfile, 'rb') as ifile:
                 tfile.write(ifile.read())
-            
+
             # Add the header for an unknown superbox.
             write_buffer = struct.pack('>I4s', 20, 'grp '.encode())
             tfile.write(write_buffer)
@@ -106,16 +87,17 @@ class TestPrinting(unittest.TestCase):
         with self.assertRaises(TypeError):
             glymur.set_printoptions(hi='low')
 
+    @unittest.skipIf(re.match("1.5|2",
+                              glymur.version.openjpeg_version) is None,
+                     "Must have openjpeg 1.5 or higher to run")
     def test_asoc_label_box(self):
         """verify printing of asoc, label boxes"""
         # Construct a fake file with an asoc and a label box, as
         # OpenJPEG doesn't have such a file.
-        data = glymur.Jp2k(self.jp2file).read(rlevel=1)
+        data = glymur.Jp2k(self.jp2file)[::2, ::2]
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-            j = glymur.Jp2k(tfile.name, 'wb')
-            j.write(data)
-
             with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile2:
+                glymur.Jp2k(tfile.name, data=data)
 
                 # Offset of the codestream is where we start.
                 wbuffer = tfile.read(77)
@@ -417,7 +399,7 @@ class TestPrinting(unittest.TestCase):
     @unittest.skipIf(sys.hexversion < 0x03000000,
                      "Only trusting python3 for printing non-ascii chars")
     def test_xml_cyrrilic(self):
-        """Should be able to print an XMLBox with utf-8 encoding (cyrrillic)."""
+        """Should be able to print XMLBox with utf-8 encoding (cyrrillic)."""
         # Seems to be inconsistencies between different versions of python2.x
         # as to what gets printed.
         #
@@ -435,7 +417,8 @@ class TestPrinting(unittest.TestCase):
             actual = fake_out.getvalue().strip()
             if sys.hexversion < 0x03000000:
                 lines = ["XML Box (xml ) @ (-1, 0)",
-                         "    <country>&#1056;&#1086;&#1089;&#1089;&#1080;&#1103;</country>"]
+                         ("    <country>&#1056;&#1086;&#1089;&#1089;",
+                          "&#1080;&#1103;</country>")]
             else:
                 lines = ["XML Box (xml ) @ (-1, 0)",
                          "    <country>Россия</country>"]
@@ -611,7 +594,8 @@ class TestPrinting(unittest.TestCase):
 
         lines = ["UUID Box (uuid) @ (1135519, 76)",
                  "    UUID:  4a706754-6966-6645-7869-662d3e4a5032 (EXIF)",
-                 "    UUID Data:  OrderedDict([('ImageWidth', 256), ('ImageLength', 512), ('Make', 'HTC')])"]
+                 ("    UUID Data:  OrderedDict([('ImageWidth', 256),"
+                  " ('ImageLength', 512), ('Make', 'HTC')])")]
 
         expected = '\n'.join(lines)
 
@@ -825,6 +809,7 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
+
 @unittest.skipIf(OPJ_DATA_ROOT is None,
                  "OPJ_DATA_ROOT environment variable not set")
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
@@ -846,20 +831,31 @@ class TestPrintingOpjDataRootWarns(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_invalid_colour_specification_method(self):
+        """should not error out with invalid colour specification method"""
+        # Don't care so much about what the output looks like, just that we
+        # do not error out.
+        filename = opj_data_file('input/nonregression/issue397.jp2')
+        with self.assertWarns(UserWarning):
+            jp2 = Jp2k(filename)
+        with patch('sys.stdout', new=StringIO()):
+            print(jp2)
+        self.assertTrue(True)
+
     def test_invalid_colorspace(self):
         """An invalid colorspace shouldn't cause an error."""
         filename = opj_data_file('input/nonregression/edf_c2_1103421.jp2')
         with self.assertWarns(UserWarning):
             jp2 = Jp2k(filename)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
+        with patch('sys.stdout', new=StringIO()):
             print(jp2)
 
     def test_bad_rsiz(self):
         """Should still be able to print if rsiz is bad, issue196"""
         filename = opj_data_file('input/nonregression/edf_c2_1002767.jp2')
         with self.assertWarns(UserWarning):
-            j = Jp2k(filename)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
+            j = Jp2k(filename).get_codestream()
+        with patch('sys.stdout', new=StringIO()):
             print(j)
 
     def test_bad_wavelet_transform(self):
@@ -867,7 +863,7 @@ class TestPrintingOpjDataRootWarns(unittest.TestCase):
         filename = opj_data_file('input/nonregression/edf_c2_10025.jp2')
         with self.assertWarns(UserWarning):
             jp2 = Jp2k(filename)
-            with patch('sys.stdout', new=StringIO()) as fake_out:
+            with patch('sys.stdout', new=StringIO()):
                 print(jp2)
 
     def test_invalid_progression_order(self):
@@ -1028,7 +1024,7 @@ class TestPrintingOpjDataRootWarns(unittest.TestCase):
                                               'issue171.jp2'))
         with self.assertWarns(UserWarning):
             jp2 = Jp2k(filename)
-            with patch('sys.stdout', new=StringIO()) as fake_out:
+            with patch('sys.stdout', new=StringIO()):
                 # No need to verify, it's enough that we don't error out.
                 print(jp2)
 
@@ -1044,9 +1040,10 @@ class TestJp2dump(unittest.TestCase):
 
         # Reset printoptions for every test.
         glymur.set_printoptions(short=False, xml=True, codestream=True)
+        glymur.set_parseoptions(full_codestream=False)
 
     def tearDown(self):
-        pass
+        glymur.set_parseoptions(full_codestream=False)
 
     def run_jp2dump(self, args):
         sys.argv = args
@@ -1059,24 +1056,53 @@ class TestJp2dump(unittest.TestCase):
         return actual
 
     def test_default_nemo(self):
-        """Should be able to dump a JP2 file's metadata with no codestream."""
+        """by default one should get the main header"""
         actual = self.run_jp2dump(['', self.jp2file])
 
-        self.assertEqual(actual, fixtures.nemo_dump_no_codestream)
+        # shave off the  non-main-header segments
+        lines = fixtures.nemo.split('\n')
+        expected = lines[0:140]
+        expected = '\n'.join(expected)
+        self.assertEqual(actual, expected)
 
-    def test_codestream_0(self):
+    def test_jp2_codestream_0(self):
         """Verify dumping with -c 0, supressing all codestream details."""
         actual = self.run_jp2dump(['', '-c', '0', self.jp2file])
 
-        self.assertEqual(actual, fixtures.nemo_dump_no_codestream)
+        # shave off the codestream details
+        lines = fixtures.nemo.split('\n')
+        expected = lines[0:105]
+        expected = '\n'.join(expected)
+        self.assertEqual(actual, expected)
 
-    def test_codestream_1(self):
+    def test_jp2_codestream_1(self):
         """Verify dumping with -c 1, print just the header."""
         actual = self.run_jp2dump(['', '-c', '1', self.jp2file])
 
-        self.assertEqual(actual, fixtures.nemo_with_codestream_header)
+        # shave off the  non-main-header segments
+        lines = fixtures.nemo.split('\n')
+        expected = lines[0:140]
+        expected = '\n'.join(expected)
+        self.assertEqual(actual, expected)
 
-    def test_codestream_2(self):
+    def test_jp2_codestream_2(self):
+        """Verify dumping with -c 2, print entire jp2 jacket, codestream."""
+        actual = self.run_jp2dump(['', '-c', '2', self.jp2file])
+
+        # shave off the  non-main-header segments
+        expected = fixtures.nemo
+        self.assertEqual(actual, expected)
+
+    @unittest.skipIf(sys.hexversion < 0x03000000, "assertRegex not in 2.7")
+    def test_j2k_codestream_0(self):
+        """-c 0 should print just a single line when used on a codestream."""
+        sys.argv = ['', '-c', '0', self.j2kfile]
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            command_line.main()
+            actual = fake_out.getvalue().strip()
+        self.assertRegex(actual, "File:  .*")
+
+    def test_j2k_codestream_2(self):
         """Verify dumping with -c 2, full details."""
         with patch('sys.stdout', new=StringIO()) as fake_out:
             sys.argv = ['', '-c', '2', self.j2kfile]
@@ -1101,4 +1127,9 @@ class TestJp2dump(unittest.TestCase):
         """Verify dumping with -x, suppress XML."""
         actual = self.run_jp2dump(['', '-x', self.jp2file])
 
-        self.assertEqual(actual, fixtures.nemo_dump_no_codestream_no_xml)
+        # shave off the XML and non-main-header segments
+        lines = fixtures.nemo.split('\n')
+        expected = lines[0:18]
+        expected.extend(lines[104:140])
+        expected = '\n'.join(expected)
+        self.assertEqual(actual, expected)

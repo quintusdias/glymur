@@ -15,7 +15,7 @@ or if you use windows, then read on.
 
 Glymur uses ctypes to access the openjp2/openjpeg libraries, and
 because ctypes accesses libraries in a platform-dependent manner,
-it is recommended that if you compile and install OpenJPEG into a
+it is recommended that **if** you compile and install OpenJPEG into a
 non-standard location, you should then create a configuration file
 to help Glymur properly find the openjpeg or openjp2 libraries
 (linux users or macports users don’t need to bother with this if
@@ -49,6 +49,9 @@ installed in a non-standard place, i.e. ::
 
     [library]
     openjpeg: /somewhere/lib/libopenjpeg.so
+
+Once again, you should not have to bother with a configuration file if you use
+mac or linux and OpenJPEG is provided by your package manager.
 
 '''''''
 Testing

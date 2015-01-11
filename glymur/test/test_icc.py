@@ -1,13 +1,7 @@
 """
 ICC profile tests.
 """
-
-# unittest doesn't work well with R0904.
-# pylint: disable=R0904
-
 import datetime
-import os
-import sys
 import unittest
 
 import numpy as np
@@ -66,11 +60,6 @@ class TestICC(unittest.TestCase):
         """invalid ICC header data should cause UserWarning"""
         jfile = opj_data_file('input/nonregression/orb-blue10-lin-jp2.jp2')
 
-        # assertWarns in Python 3.3 (python2.7/pylint issue)
-        # pylint: disable=E1101
         regex = 'ICC profile header is corrupt'
         with self.assertWarnsRegex(UserWarning, regex):
             Jp2k(jfile)
-
-if __name__ == "__main__":
-    unittest.main()

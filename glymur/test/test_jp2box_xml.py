@@ -2,34 +2,11 @@
 """
 Test suite specifically targeting JP2 box layout.
 """
-# E1103:  return value from read may be list or np array
-# pylint: disable=E1103
-
-# R0902:  More than 7 instance attributes are just fine for testing.
-# pylint: disable=R0902
-
-# R0904:  Seems like pylint is fooled in this situation
-# pylint: disable=R0904
-
-# W0613:  load_tests doesn't need to use ignore or loader arguments.
-# pylint: disable=W0613
-
 import os
 import re
 import struct
-import sys
 import tempfile
 import unittest
-
-if sys.hexversion < 0x03000000:
-    from StringIO import StringIO
-else:
-    from io import StringIO
-
-if sys.hexversion <= 0x03030000:
-    from mock import patch
-else:
-    from unittest.mock import patch
 
 import lxml.etree as ET
 
@@ -41,8 +18,10 @@ from glymur.jp2box import JPEG2000SignatureBox
 
 from .fixtures import OPJ_DATA_ROOT, opj_data_file
 from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
+from . import fixtures
 
-@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+
+@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
 class TestXML(unittest.TestCase):
     """Test suite for XML boxes."""
 
@@ -166,7 +145,6 @@ class TestXML(unittest.TestCase):
                                  u'<country>Россия</country>')
 
 
-
 class TestJp2kBadXmlFile(unittest.TestCase):
     """Test suite for bad XML box situations"""
 
@@ -219,7 +197,7 @@ class TestJp2kBadXmlFile(unittest.TestCase):
         self.assertIsNone(jp2k.box[3].xml)
 
 
-@unittest.skipIf(os.name == "nt", "NamedTemporaryFile issue on windows")
+@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
 class TestBadButRecoverableXmlFile(unittest.TestCase):
     """Test suite for XML box that is bad, but we can still recover the XML."""
 
@@ -292,22 +270,19 @@ class TestXML_OpjDataRoot(unittest.TestCase):
                                               'nonregression',
                                               'issue171.jp2'))
         msg = 'An illegal BOM \(byte order marker\) was detected and removed '
-        msg += 'from the XML contents in the box starting at byte offset \d+' 
+        msg += 'from the XML contents in the box starting at byte offset \d+'
         with self.assertWarnsRegex(UserWarning, re.compile(msg)):
             jp2 = Jp2k(filename)
 
         self.assertIsNotNone(jp2.box[3].xml)
-            
 
     def test_invalid_utf8(self):
         """Bad byte sequence that cannot be parsed."""
+        relname = '26ccf3651020967f7778238ef5af08af.SIGFPE.d25.527.jp2'
         filename = opj_data_file(os.path.join('input',
                                               'nonregression',
-                                              '26ccf3651020967f7778238ef5af08af.SIGFPE.d25.527.jp2'))
+                                              relname))
         with self.assertWarns((UserWarning, UserWarning)):
             jp2 = Jp2k(filename)
 
         self.assertIsNone(jp2.box[3].box[1].box[1].xml)
-            
-
-

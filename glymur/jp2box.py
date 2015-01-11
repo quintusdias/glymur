@@ -11,8 +11,6 @@ References
    Extensions
 """
 
-# pylint: disable=C0302,R0903,R0913,W0142
-
 from collections import OrderedDict
 import datetime
 import io
@@ -22,34 +20,37 @@ import pprint
 import struct
 import sys
 import textwrap
-import uuid
+from uuid import UUID
 import warnings
 
 import lxml.etree as ET
 import numpy as np
 
 from .codestream import Codestream
-from .core import _COLORSPACE_MAP_DISPLAY
-from .core import _COLOR_TYPE_MAP_DISPLAY
-from .core import SRGB, GREYSCALE, YCC
-from .core import ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE
-from .core import ANY_ICC_PROFILE, VENDOR_COLOR_METHOD
-from .core import _Keydefaultdict
+from .core import (_COLORSPACE_MAP_DISPLAY, _COLOR_TYPE_MAP_DISPLAY,
+                   SRGB, GREYSCALE, YCC,
+                   ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE,
+                   ANY_ICC_PROFILE, VENDOR_COLOR_METHOD,
+                   _Keydefaultdict)
 
 from . import _uuid_io
 
-_METHOD_DISPLAY = {
-    ENUMERATED_COLORSPACE: 'enumerated colorspace',
-    RESTRICTED_ICC_PROFILE: 'restricted ICC profile',
-    ANY_ICC_PROFILE: 'any ICC profile',
-    VENDOR_COLOR_METHOD: 'vendor color method'}
+_factory = lambda x: '{0} (invalid)'.format(x)
+_keysvalues = {ENUMERATED_COLORSPACE: 'enumerated colorspace',
+               RESTRICTED_ICC_PROFILE: 'restricted ICC profile',
+               ANY_ICC_PROFILE: 'any ICC profile',
+               VENDOR_COLOR_METHOD: 'vendor color method'}
+_METHOD_DISPLAY = _Keydefaultdict(_factory, _keysvalues)
 
 _factory = lambda x: '{0} (invalid)'.format(x)
-_APPROX_DISPLAY = _Keydefaultdict(_factory,
-        {1: 'accurately represents correct colorspace definition',
-         2: 'approximates correct colorspace definition, exceptional quality',
-         3: 'approximates correct colorspace definition, reasonable quality',
-         4: 'approximates correct colorspace definition, poor quality'})
+_keysvalues = {1: 'accurately represents correct colorspace definition',
+               2: ('approximates correct colorspace definition, '
+                   'exceptional quality'),
+               3: ('approximates correct colorspace definition, '
+                   'reasonable quality'),
+               4: 'approximates correct colorspace definition, poor quality'}
+_APPROX_DISPLAY = _Keydefaultdict(_factory, _keysvalues)
+
 
 class Jp2kBox(object):
     """Superclass for JPEG 2000 boxes.
@@ -108,7 +109,6 @@ class Jp2kBox(object):
             msg += '\n' + self._indent(boxstr)
         return msg
 
-
     def _indent(self, textstr, indent_level=4):
         """
         Indent a string.
@@ -133,7 +133,6 @@ class Jp2kBox(object):
         else:
             lst = [(' ' * indent_level + x) for x in textstr.split('\n')]
             return '\n'.join(lst)
-
 
     def _write_superbox(self, fptr, box_id):
         """Write a superbox.
@@ -190,13 +189,14 @@ class Jp2kBox(object):
         try:
             box = parser(fptr, start, num_bytes)
         except ValueError as err:
-            msg = "Encountered an unrecoverable ValueError while parsing a {0} "
-            msg += "box at byte offset {1}.  The original error message was "
-            msg += "\"{2}\""
+            msg = "Encountered an unrecoverable ValueError while parsing a "
+            msg += "{0} box at byte offset {1}.  The original error message "
+            msg += "was \"{2}\""
             msg = msg.format(_BOX_WITH_ID[box_id].longname, start, str(err))
             warnings.warn(msg, UserWarning)
             box = UnknownBox(box_id.decode('utf-8'),
-                             length=num_bytes, offset=start, longname='Unknown')
+                             length=num_bytes,
+                             offset=start, longname='Unknown')
 
         return box
 
@@ -298,6 +298,7 @@ class ColourSpecificationBox(Jp2kBox):
     """
     longname = 'Colour Specification'
     box_id = 'colr'
+
     def __init__(self, method=ENUMERATED_COLORSPACE, precedence=0,
                  approximation=0, colorspace=None, icc_profile=None,
                  length=0, offset=-1):
@@ -336,16 +337,16 @@ class ColourSpecificationBox(Jp2kBox):
 
         if self.icc_profile is None:
             if self.colorspace not in [SRGB, GREYSCALE, YCC]:
-                msg = "Colorspace should correspond to one of SRGB, GREYSCALE, "
-                msg += "or YCC."
+                msg = "Colorspace should correspond to one of SRGB, "
+                msg += "GREYSCALE, or YCC."
                 self._dispatch_validation_error(msg, writing=True)
 
         self._validate(writing=True)
 
-
     def __repr__(self):
         msg = "glymur.jp2box.ColourSpecificationBox("
-        msg += "method={0}, precedence={1}, approximation={2}, colorspace={3}, "
+        msg += "method={0}, precedence={1}, approximation={2}, "
+        msg += "colorspace={3}, "
         msg += "icc_profile={4})"
         msg = msg.format(self.method,
                          self.precedence,
@@ -356,7 +357,7 @@ class ColourSpecificationBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         msg += '\n    Method:  {0}'.format(_METHOD_DISPLAY[self.method])
@@ -618,10 +619,9 @@ class ChannelDefinitionBox(Jp2kBox):
             msg += "    65535 - unspecified"
             self._dispatch_validation_error(msg, writing=writing)
 
-
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         for j in range(len(self.association)):
@@ -841,7 +841,7 @@ class CompositingLayerHeaderBox(Jp2kBox):
         List of boxes contained in this superbox.
     """
     box_id = 'jplh'
-    longname='Compositing Layer Header'
+    longname = 'Compositing Layer Header'
 
     def __init__(self, box=None, length=0, offset=-1):
         Jp2kBox.__init__(self)
@@ -930,7 +930,7 @@ class ComponentMappingBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         for k in range(len(self.component_index)):
@@ -1001,18 +1001,19 @@ class ContiguousCodestreamBox(Jp2kBox):
         offset of the box from the start of the file.
     longname : str
         more verbose description of the box.
-    main_header : Codestream object
-        contains list of main header marker/segments
+    codestream : Codestream object
+        Contains list of codestream marker/segments.  By default, only the main
+        header is retrieved.
     main_header_offset : int
         offset of main header from start of file
     """
     box_id = 'jp2c'
     longname = 'Contiguous Codestream'
 
-    def __init__(self, main_header=None, main_header_offset=None, length=0,
+    def __init__(self, codestream=None, main_header_offset=None, length=0,
                  offset=-1):
         Jp2kBox.__init__(self)
-        self._main_header = main_header
+        self._codestream = codestream
         self.length = length
         self.offset = offset
         self.main_header_offset = main_header_offset
@@ -1021,29 +1022,33 @@ class ContiguousCodestreamBox(Jp2kBox):
         self._filename = None
 
     @property
-    def main_header(self):
-        if self._main_header is None:
+    def codestream(self):
+        if _parseoptions['full_codestream'] is True:
+            header_only = False
+        else:
+            header_only = True
+        if self._codestream is None:
             if self._filename is not None:
                 with open(self._filename, 'rb') as fptr:
                     fptr.seek(self.main_header_offset)
-                    main_header = Codestream(fptr, self._length, header_only=True)
-                    self._main_header = main_header
-        return self._main_header
+                    codestream = Codestream(fptr, self._length,
+                                            header_only=header_only)
+                    self._codestream = codestream
+        return self._codestream
 
     def __repr__(self):
-        msg = "glymur.jp2box.ContiguousCodeStreamBox(main_header={0})"
-        return msg.format(repr(self.main_header))
+        msg = "glymur.jp2box.ContiguousCodeStreamBox(codestream={0})"
+        return msg.format(repr(self.codestream))
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
-        if _printoptions['codestream'] == False:
+        if _printoptions['codestream'] is False:
             return msg
 
-        msg += '\n    Main header:'
-        for segment in self.main_header.segment:
-            msg += '\n' + self._indent(str(segment), indent_level=8)
+        for segment in self.codestream.segment:
+            msg += '\n' + self._indent(str(segment), indent_level=4)
 
         return msg
 
@@ -1065,11 +1070,11 @@ class ContiguousCodestreamBox(Jp2kBox):
         ContiguousCodestreamBox instance
         """
         main_header_offset = fptr.tell()
-        if _parseoptions['codestream'] is True:
-            main_header = Codestream(fptr, length, header_only=True)
+        if _parseoptions['full_codestream'] is True:
+            codestream = Codestream(fptr, length, header_only=False)
         else:
-            main_header = None
-        box = cls(main_header, main_header_offset=main_header_offset,
+            codestream = None
+        box = cls(codestream, main_header_offset=main_header_offset,
                   length=length, offset=offset)
         box._filename = fptr.name
         box._length = length
@@ -1117,7 +1122,8 @@ class DataReferenceBox(Jp2kBox):
         """Verify that the box obeys the specifications for writing.
         """
         if len(self.DR) == 0:
-            msg = "A data reference box cannot be empty when written to a file."
+            msg = "A data reference box cannot be empty when written to a "
+            msg += "file."
             self._dispatch_validation_error(msg, writing=True)
         self._validate(writing=True)
 
@@ -1144,7 +1150,7 @@ class DataReferenceBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         for box in self.DR:
@@ -1247,7 +1253,7 @@ class FileTypeBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         lst = [msg,
@@ -1310,12 +1316,18 @@ class FileTypeBox(Jp2kBox):
             brand = brand.decode('utf-8')
 
         # Extract the compatibility list.  Each entry has 4 bytes.
-        num_entries = int((length - 16)/ 4)
+        num_entries = int((length - 16) / 4)
         compatibility_list = []
         for j in range(int(num_entries)):
             entry, = struct.unpack_from('>4s', read_buffer, 8 + j * 4)
             if sys.hexversion >= 0x03000000:
-                entry = entry.decode('utf-8')
+                try:
+                    entry = entry.decode('utf-8')
+                except UnicodeDecodeError:
+                    # The entry is invalid, but we've got code to catch this
+                    # later on.
+                    pass
+
             compatibility_list.append(entry)
 
         return cls(brand=brand, minor_version=minor_version,
@@ -1373,7 +1385,7 @@ class FragmentListBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         for j in range(len(self.fragment_offset)):
@@ -1457,7 +1469,10 @@ class FragmentTableBox(Jp2kBox):
 
     def __repr__(self):
         msg = "glymur.jp2box.FragmentTableBox(box={0})"
-        msg = msg.format(None) if (len(self.box) == 0) else msg.format(self.box)
+        if len(self.box) == 0:
+            msg = msg.format(None)
+        else:
+            msg = msg.format(self.box)
         return msg
 
     def __str__(self):
@@ -1504,7 +1519,6 @@ class FragmentTableBox(Jp2kBox):
         self._write_superbox(fptr, b'ftbl')
 
 
-
 class FreeBox(Jp2kBox):
     """Container for JPX free box information.
 
@@ -1533,7 +1547,7 @@ class FreeBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         return msg
@@ -1629,7 +1643,7 @@ class ImageHeaderBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         msg = "{0}"
@@ -1860,7 +1874,7 @@ class JPEG2000SignatureBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         msg += '\n    Signature:  {0:02x}{1:02x}{2:02x}{3:02x}'
@@ -1949,7 +1963,7 @@ class PaletteBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         msg += '\n    Size:  ({0} x {1})'.format(*self.palette.shape)
@@ -1979,7 +1993,6 @@ class PaletteBox(Jp2kBox):
                                    *bps_signed)
         fptr.write(write_buffer)
 
-        bps = self.bits_per_component
         # All components are the same.  Writing is straightforward.
         if self.bits_per_component[0] <= 8:
             write_buffer = memoryview(self.palette.astype(np.uint8))
@@ -2019,13 +2032,10 @@ class PaletteBox(Jp2kBox):
             # Ok the palette has the same datatype for all columns.  We should
             # be able to efficiently read it.
             if bps[0] <= 8:
-                nbytes_per_row = ncols
                 dtype = np.uint8
             elif bps[0] <= 16:
-                nbytes_per_row = 2 * ncols
                 dtype = np.uint16
             elif bps[0] <= 32:
-                nbytes_per_row = 3 * ncols
                 dtype = np.uint32
 
             palette = np.frombuffer(read_buffer[3 + ncols:], dtype=dtype)
@@ -2069,80 +2079,80 @@ _READER_REQUIREMENTS_DISPLAY = {
     7:  'JPEG codestream as defined in ISO/IEC 10918-1',
     8:  'Deprecated - does not contain opacity',
     9:  'Non-premultiplied opacity channel',
-    10:  'Premultiplied opacity channel',
-    11:  'Chroma-key based opacity',
-    12:  'Deprecated - codestream is contiguous',
-    13:  'Fragmented codestream where all fragments are in file and in order',
-    14:  'Fragmented codestream where all fragments are in file '
-         + 'but are out of order',
-    15:  'Fragmented codestream where not all fragments are within the file '
-         + 'but are all in locally accessible files',
-    16:  'Fragmented codestream where some fragments may be accessible '
-         + 'only through a URL specified network connection',
-    17:  'Compositing required to produce rendered result from multiple '
-         + 'compositing layers',
-    18:  'Deprecated - support for compositing is not required',
-    19:  'Deprecated - contains multiple, discrete layers that should not '
-         + 'be combined through either animation or compositing',
-    20:  'Deprecated - compositing layers each contain only a single '
-         + 'codestream',
-    21:  'At least one compositing layer consists of multiple codestreams',
-    22:  'Deprecated - all compositing layers are in the same colourspace',
-    23:  'Colourspace transformations are required to combine compositing '
-         + 'layers; not all compositing layers are in the same colourspace',
-    24:  'Deprecated - rendered result created without using animation',
-    25:  'Deprecated - animated, but first layer covers entire area and is '
-         + 'opaque',
-    26:  'First animation layer does not cover entire rendered result',
-    27:  'Deprecated - animated, and no layer is reused',
-    28:  'Reuse of animation layers',
-    29:  'Deprecated - animated, but layers are reused',
-    30:  'Some animated frames are non-persistent',
-    31:  'Deprecated - rendered result created without using scaling',
-    32:  'Rendered result involves scaling within a layer',
-    33:  'Rendered result involves scaling between layers',
-    34:  'ROI metadata',
-    35:  'IPR metadata',
-    36:  'Content metadata',
-    37:  'History metadata',
-    38:  'Creation metadata',
-    39:  'JPX digital signatures',
-    40:  'JPX checksums',
-    41:  'Desires Graphics Arts Reproduction specified',
-    42:  'Deprecated - compositing layer uses palettized colour',
-    43:  'Deprecated - compositing layer uses restricted ICC profile',
-    44:  'Compositing layer uses Any ICC profile',
-    45:  'Deprecated - compositing layer uses sRGB enumerated colourspace',
-    46:  'Deprecated - compositing layer uses sRGB-grey enumerated colourspace',
-    47:  'BiLevel 1 enumerated colourspace',
-    48:  'BiLevel 2 enumerated colourspace',
-    49:  'YCbCr 1 enumerated colourspace',
-    50:  'YCbCr 2 enumerated colourspace',
-    51:  'YCbCr 3 enumerated colourspace',
-    52:  'PhotoYCC enumerated colourspace',
-    53:  'YCCK enumerated colourspace',
-    54:  'CMY enumerated colourspace',
-    55:  'CMYK enumerated colorspace',
-    56:  'CIELab enumerated colourspace with default parameters',
-    57:  'CIELab enumerated colourspace with non-default parameters',
-    58:  'CIEJab enumerated colourspace with default parameters',
-    59:  'CIEJab enumerated colourspace with non-default parameters',
-    60:  'e-sRGB enumerated colorspace',
-    61:  'ROMM_RGB enumerated colorspace',
-    62:  'Non-square samples',
-    63:  'Deprecated - compositing layers have labels',
-    64:  'Deprecated - codestreams have labels',
-    65:  'Deprecated - compositing layers have different colour spaces',
-    66:  'Deprecated - compositing layers have different metadata',
-    67:  'GIS metadata XML box',
-    68:  'JPSEC extensions in codestream as specified by ISO/IEC 15444-8',
-    69:  'JP3D extensions in codestream as specified by ISO/IEC 15444-10',
-    70:  'Deprecated - compositing layer uses sYCC enumerated colour space',
-    71:  'e-sYCC enumerated colourspace',
-    72:  'JPEG 2000 Part 2 codestream as restricted by baseline conformance '
-         + 'requirements in M.9.2.3',
-    73:  'YPbPr(1125/60) enumerated colourspace',
-    74:  'YPbPr(1250/50) enumerated colourspace'}
+    10: 'Premultiplied opacity channel',
+    11: 'Chroma-key based opacity',
+    12: 'Deprecated - codestream is contiguous',
+    13: 'Fragmented codestream where all fragments are in file and in order',
+    14: ('Fragmented codestream where all fragments are in file '
+         'but are out of order'),
+    15: ('Fragmented codestream where not all fragments are within the file '
+         'but are all in locally accessible files'),
+    16: ('Fragmented codestream where some fragments may be accessible '
+         'only through a URL specified network connection'),
+    17: ('Compositing required to produce rendered result from multiple '
+         'compositing layers'),
+    18: 'Deprecated - support for compositing is not required',
+    19: ('Deprecated - contains multiple, discrete layers that should not '
+         'be combined through either animation or compositing'),
+    20: ('Deprecated - compositing layers each contain only a single '
+         'codestream'),
+    21: 'At least one compositing layer consists of multiple codestreams',
+    22: 'Deprecated - all compositing layers are in the same colourspace',
+    23: ('Colourspace transformations are required to combine compositing '
+         'layers; not all compositing layers are in the same colourspace'),
+    24: 'Deprecated - rendered result created without using animation',
+    25: ('Deprecated - animated, but first layer covers entire area and is '
+         'opaque'),
+    26: 'First animation layer does not cover entire rendered result',
+    27: 'Deprecated - animated, and no layer is reused',
+    28: 'Reuse of animation layers',
+    29: 'Deprecated - animated, but layers are reused',
+    30: 'Some animated frames are non-persistent',
+    31: 'Deprecated - rendered result created without using scaling',
+    32: 'Rendered result involves scaling within a layer',
+    33: 'Rendered result involves scaling between layers',
+    34: 'ROI metadata',
+    35: 'IPR metadata',
+    36: 'Content metadata',
+    37: 'History metadata',
+    38: 'Creation metadata',
+    39: 'JPX digital signatures',
+    40: 'JPX checksums',
+    41: 'Desires Graphics Arts Reproduction specified',
+    42: 'Deprecated - compositing layer uses palettized colour',
+    43: 'Deprecated - compositing layer uses restricted ICC profile',
+    44: 'Compositing layer uses Any ICC profile',
+    45: 'Deprecated - compositing layer uses sRGB enumerated colourspace',
+    46: 'Deprecated - compositing layer uses sRGB-grey enumerated colourspace',
+    47: 'BiLevel 1 enumerated colourspace',
+    48: 'BiLevel 2 enumerated colourspace',
+    49: 'YCbCr 1 enumerated colourspace',
+    50: 'YCbCr 2 enumerated colourspace',
+    51: 'YCbCr 3 enumerated colourspace',
+    52: 'PhotoYCC enumerated colourspace',
+    53: 'YCCK enumerated colourspace',
+    54: 'CMY enumerated colourspace',
+    55: 'CMYK enumerated colorspace',
+    56: 'CIELab enumerated colourspace with default parameters',
+    57: 'CIELab enumerated colourspace with non-default parameters',
+    58: 'CIEJab enumerated colourspace with default parameters',
+    59: 'CIEJab enumerated colourspace with non-default parameters',
+    60: 'e-sRGB enumerated colorspace',
+    61: 'ROMM_RGB enumerated colorspace',
+    62: 'Non-square samples',
+    63: 'Deprecated - compositing layers have labels',
+    64: 'Deprecated - codestreams have labels',
+    65: 'Deprecated - compositing layers have different colour spaces',
+    66: 'Deprecated - compositing layers have different metadata',
+    67: 'GIS metadata XML box',
+    68: 'JPSEC extensions in codestream as specified by ISO/IEC 15444-8',
+    69: 'JP3D extensions in codestream as specified by ISO/IEC 15444-10',
+    70: 'Deprecated - compositing layer uses sYCC enumerated colour space',
+    71: 'e-sYCC enumerated colourspace',
+    72: ('JPEG 2000 Part 2 codestream as restricted by baseline conformance '
+         'requirements in M.9.2.3'),
+    73: 'YPbPr(1125/60) enumerated colourspace',
+    74: 'YPbPr(1250/50) enumerated colourspace'}
 
 
 class ReaderRequirementsBox(Jp2kBox):
@@ -2202,10 +2212,11 @@ class ReaderRequirementsBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
-        msg += '\n    Fully Understands Aspect Mask:  0x{0:x}'.format(self.fuam)
+        msg += '\n    Fully Understands Aspect Mask:  0x{0:x}'
+        msg = msg.format(self.fuam)
         msg += '\n    Display Completely Mask:  0x{0:x}'.format(self.dcm)
 
         msg += '\n    Standard Features and Masks:'
@@ -2261,7 +2272,8 @@ class ReaderRequirementsBox(Jp2kBox):
             standard_flag, standard_mask = data
 
             nflags = len(standard_flag)
-            vendor_offset = 1 + 2 * mask_length + 2 + (2 + mask_length) * nflags
+            vendor_offset = (1 + 2 * mask_length + 2
+                             + (2 + mask_length) * nflags)
             data = _parse_vendor_features(read_buffer[vendor_offset:],
                                           mask_length)
             vendor_feature, vendor_mask = data
@@ -2318,8 +2330,8 @@ def _parse_rreq3(read_buffer, length, offset):
     read_buffer = read_buffer[9 + num_standard_features * 10:]
     for j in range(num_vendor_features):
         uslice = slice(j * entry_length, (j + 1) * entry_length)
-        ubuffer = read_buffer[slice]
-        vendor_feature.append(uuid.UUID(bytes=ubuffer[0:16]))
+        ubuffer = read_buffer[uslice]
+        vendor_feature.append(UUID(bytes=ubuffer[0:16]))
 
         lst = struct.unpack('>BBB', ubuffer[16:])
         vmask = lst[0] << 16 | lst[1] << 8 | lst[2]
@@ -2347,14 +2359,11 @@ def _parse_standard_flag(read_buffer, mask_length):
     # from the buffer read from file.
     mask_format = {1: 'B', 2: 'H', 4: 'I'}[mask_length]
 
-    #read_buffer = fptr.read(2)
     num_standard_flags, = struct.unpack_from('>H', read_buffer, offset=0)
 
     # Read in standard flags and standard masks.  Each standard flag should
     # be two bytes, but the standard mask flag is as long as specified by
     # the mask length.
-    #read_buffer = fptr.read(num_standard_flags * (2 + mask_length))
-
     fmt = '>' + ('H' + mask_format) * num_standard_flags
     data = struct.unpack_from(fmt, read_buffer, offset=2)
 
@@ -2385,13 +2394,12 @@ def _parse_vendor_features(read_buffer, mask_length):
     # Each vendor feature consists of a 16-byte UUID plus a mask whose
     # length is specified by, you guessed it, "mask_length".
     entry_length = 16 + mask_length
-    #read_buffer = fptr.read(num_vendor_features * entry_length)
     vendor_feature = []
     vendor_mask = []
     for j in range(num_vendor_features):
         uslice = slice(2 + j * entry_length, 2 + (j + 1) * entry_length)
         ubuffer = read_buffer[uslice]
-        vendor_feature.append(uuid.UUID(bytes=ubuffer[0:16]))
+        vendor_feature.append(UUID(bytes=ubuffer[0:16]))
 
         vmask = struct.unpack('>' + mask_format, ubuffer[16:])
         vendor_mask.append(vmask)
@@ -2493,7 +2501,7 @@ class CaptureResolutionBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         msg += '\n    VCR:  {0}'.format(self.vertical_resolution)
@@ -2559,7 +2567,7 @@ class DisplayResolutionBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         msg += '\n    VDR:  {0}'.format(self.vertical_resolution)
@@ -2619,7 +2627,7 @@ class LabelBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         msg += '\n    Label:  {0}'.format(self.label)
@@ -2687,7 +2695,7 @@ class NumberListBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         for j, association in enumerate(self.associations):
@@ -2737,7 +2745,8 @@ class NumberListBox(Jp2kBox):
     def write(self, fptr):
         """Write a NumberList box to file.
         """
-        fptr.write(struct.pack('>I4s', len(self.associations) * 4 + 8, b'nlst'))
+        fptr.write(struct.pack('>I4s',
+                               len(self.associations) * 4 + 8, b'nlst'))
 
         fmt = '>' + 'I' * len(self.associations)
         write_buffer = struct.pack(fmt, *self.associations)
@@ -2789,9 +2798,9 @@ class XMLBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
-        if _printoptions['xml'] == False:
+        if _printoptions['xml'] is False:
             return msg
 
         msg += '\n'
@@ -2910,7 +2919,7 @@ class UUIDListBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         for j, uuid_item in enumerate(self.ulst):
@@ -2941,8 +2950,8 @@ class UUIDListBox(Jp2kBox):
 
         ulst = []
         for j in range(num_uuids):
-            uuid_buffer = read_buffer[2 + j * 16 : 2 + (j + 1) * 16]
-            ulst.append(uuid.UUID(bytes=uuid_buffer))
+            uuid_buffer = read_buffer[2 + j * 16:2 + (j + 1) * 16]
+            ulst.append(UUID(bytes=uuid_buffer))
 
         return cls(ulst, length=length, offset=offset)
 
@@ -3055,7 +3064,6 @@ class DataEntryURLBox(Jp2kBox):
         fptr.write(write_buffer)
         fptr.write(url)
 
-
     def __repr__(self):
         msg = "glymur.jp2box.DataEntryURLBox({0}, {1}, '{2}')"
         msg = msg.format(self.version, self.flag, self.url)
@@ -3063,7 +3071,7 @@ class DataEntryURLBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         msg += '\n    '
@@ -3201,7 +3209,7 @@ class UUIDBox(Jp2kBox):
         """
         Private function for parsing UUID payloads if possible.
         """
-        if self.uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
+        if self.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
             self.data = _uuid_io.xml(self.raw_data)
         elif self.uuid.bytes == b'JpgTiffExif->JP2':
             self.data = _uuid_io.tiff_header(self.raw_data)
@@ -3215,23 +3223,23 @@ class UUIDBox(Jp2kBox):
 
     def __str__(self):
         msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] == True:
+        if _printoptions['short'] is True:
             return msg
 
         msg = '{0}\n    UUID:  {1}'.format(msg, self.uuid)
-        if self.uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
+        if self.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
             msg += ' (XMP)'
         elif self.uuid.bytes == b'JpgTiffExif->JP2':
             msg += ' (EXIF)'
         else:
             msg += ' (unknown)'
 
-        if (((_printoptions['xml'] == False) and
-             (self.uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')))):
+        if (((_printoptions['xml'] is False) and
+             (self.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')))):
             # If it's an XMP UUID, don't print the XML contents.
             return msg
 
-        if self.uuid == uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
+        if self.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
             line = '\n    UUID Data:\n{0}'
             xmlstring = ET.tostring(self.data,
                                     encoding='utf-8',
@@ -3274,7 +3282,7 @@ class UUIDBox(Jp2kBox):
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
-        the_uuid = uuid.UUID(bytes=read_buffer[0:16])
+        the_uuid = UUID(bytes=read_buffer[0:16])
         return cls(the_uuid, read_buffer[16:], length=length, offset=offset)
 
 
@@ -3309,18 +3317,20 @@ _BOX_WITH_ID = {
     b'uuid': UUIDBox,
     b'xml ': XMLBox}
 
-_parseoptions = {'codestream': True}
+_parseoptions = {'full_codestream': False}
 
-def set_parseoptions(codestream=True):
+
+def set_parseoptions(full_codestream=True):
     """Set parsing options.
 
     These options determine the way JPEG 2000 boxes are parsed.
 
     Parameters
     ----------
-    codestream : bool, defaults to True
-        When False, the codestream header is only parsed when accessed.  This
-        can results in faster JP2/JPX parsing.
+    full_codestream : bool, defaults to True
+        When False, only the codestream header is parsed for metadata.  This
+        can results in faster JP2/JPX parsing.  When True, the entire
+        codestream is parsed for metadata.
 
     See also
     --------
@@ -3331,9 +3341,10 @@ def set_parseoptions(codestream=True):
     To put back the default options, you can use:
 
     >>> import glymur
-    >>> glymur.set_parseoptions(codestream=True)
+    >>> glymur.set_parseoptions(full_codestream=True)
     """
-    _parseoptions['codestream'] = codestream
+    _parseoptions['full_codestream'] = full_codestream
+
 
 def get_parseoptions():
     """Return the current parsing options.
@@ -3355,6 +3366,7 @@ def get_parseoptions():
 
 _printoptions = {'short': False, 'xml': True, 'codestream': True}
 
+
 def set_printoptions(**kwargs):
     """Set printing options.
 
@@ -3364,12 +3376,15 @@ def set_printoptions(**kwargs):
     ----------
     short : bool, optional
         When True, only the box ID, offset, and length are displayed.  Useful
-        for displaying only the basic structure or skeleton of a JPEG 2000 file.
+        for displaying only the basic structure or skeleton of a JPEG 2000
+        file.
     xml : bool, optional
         When False, printing of the XML contents of any XML boxes or UUID XMP
         boxes is suppressed.
     codestream : bool, optional
-        When False, printing of the codestream contents is suppressed.
+        When False, only the codestream header is printed.  When True, the
+        entire codestream is printed.  This option has no effect when the
+        'short' option is set to True.
 
     See also
     --------
@@ -3386,6 +3401,7 @@ def set_printoptions(**kwargs):
         if key not in ['short', 'xml', 'codestream']:
             raise TypeError('"{0}" not a valid keyword parameter.'.format(key))
         _printoptions[key] = value
+
 
 def get_printoptions():
     """Return the current print options.
@@ -3406,5 +3422,3 @@ def get_printoptions():
     set_printoptions
     """
     return _printoptions
-
-

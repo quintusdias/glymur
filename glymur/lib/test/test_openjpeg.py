@@ -1,14 +1,13 @@
 """
 Tests for OpenJPEG module.
 """
-# pylint: disable=E1101,R0904
-
 import ctypes
 import re
 import sys
 import unittest
 
 import glymur
+
 
 @unittest.skipIf(glymur.lib.openjpeg.OPENJPEG is None,
                  "Missing openjpeg library.")

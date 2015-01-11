@@ -1,13 +1,8 @@
 """
 Tests for libopenjp2 wrapping functions.
 """
-# R0904:  Seems like pylint is fooled in this situation
-# W0142:  using kwargs is ok in this context
-# pylint: disable=R0904,W0142
-
 import os
 import re
-import sys
 import tempfile
 import unittest
 
@@ -21,8 +16,8 @@ from glymur.lib import openjp2
 @unittest.skipIf(openjp2.OPENJP2 is None,
                  "Missing openjp2 library.")
 @unittest.skipIf(re.match(r'''(1|2.0)''',
-                              glymur.version.openjpeg_version) is not None,
-                     "Not to be run until 2.1.0")
+                          glymur.version.openjpeg_version) is not None,
+                 "Not to be run until 2.1.0")
 class TestOpenJP2(unittest.TestCase):
     """Test openjp2 library functionality.
 
@@ -55,53 +50,6 @@ class TestOpenJP2(unittest.TestCase):
         self.assertEqual(dparams.DA_y0, 0)
         self.assertEqual(dparams.DA_x1, 0)
         self.assertEqual(dparams.DA_y1, 0)
-
-    def tile_macro(self, codec, stream, imagep, tidx):
-        """called only by j2k_random_tile_access"""
-        openjp2.get_decoded_tile(codec, stream, imagep, tidx)
-        for j in range(imagep.contents.numcomps):
-            self.assertIsNotNone(imagep.contents.comps[j].data)
-
-    def j2k_random_tile_access(self, filename, codec_format=None):
-        """fixture called by the test_rtaX methods"""
-        dparam = openjp2.set_default_decoder_parameters()
-
-        infile = filename.encode()
-        nelts = openjp2.PATH_LEN - len(infile)
-        infile += b'0' * nelts
-        dparam.infile = infile
-
-        dparam.decod_format = codec_format
-
-        codec = openjp2.create_decompress(codec_format)
-
-        openjp2.set_info_handler(codec, None)
-        openjp2.set_warning_handler(codec, None)
-        openjp2.set_error_handler(codec, None)
-
-        stream = openjp2.stream_create_default_file_stream(filename, True)
-
-        openjp2.setup_decoder(codec, dparam)
-        image = openjp2.read_header(stream, codec)
-
-        cstr_info = openjp2.get_cstr_info(codec)
-
-        tile_ul = 0
-        tile_ur = cstr_info.contents.tw - 1
-        tile_lr = cstr_info.contents.tw * cstr_info.contents.th - 1
-        tile_ll = tile_lr - cstr_info.contents.tw
-
-        self.tile_macro(codec, stream, image, tile_ul)
-        self.tile_macro(codec, stream, image, tile_ur)
-        self.tile_macro(codec, stream, image, tile_lr)
-        self.tile_macro(codec, stream, image, tile_ll)
-
-        openjp2.destroy_cstr_info(cstr_info)
-
-        openjp2.end_decompress(codec, stream)
-        openjp2.destroy_codec(codec)
-        openjp2.stream_destroy(stream)
-        openjp2.image_destroy(image)
 
     def test_tte0(self):
         """Runs test designated tte0 in OpenJPEG test suite."""
@@ -160,15 +108,6 @@ class TestOpenJP2(unittest.TestCase):
             tile_decoder(**kwargs)
         self.assertTrue(True)
 
-    def test_rta1(self):
-        """Runs test designated rta1 in OpenJPEG test suite."""
-        with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
-            self.xtx1_setup(tfile.name)
-
-            codec_format = openjp2.CODEC_J2K
-            self.j2k_random_tile_access(tfile.name, codec_format)
-        self.assertTrue(True)
-
     def test_tte2(self):
         """Runs test designated tte2 in OpenJPEG test suite."""
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
@@ -190,27 +129,10 @@ class TestOpenJP2(unittest.TestCase):
             tile_decoder(**kwargs)
         self.assertTrue(True)
 
-    def test_rta2(self):
-        """Runs test designated rta2 in OpenJPEG test suite."""
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
-            xtx2_setup(tfile.name)
-
-            codec_format = openjp2.CODEC_JP2
-            self.j2k_random_tile_access(tfile.name, codec_format)
-
     def test_tte3(self):
         """Runs test designated tte3 in OpenJPEG test suite."""
         with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
             xtx3_setup(tfile.name)
-        self.assertTrue(True)
-
-    def test_rta3(self):
-        """Runs test designated rta3 in OpenJPEG test suite."""
-        with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
-            xtx3_setup(tfile.name)
-
-            codec_format = openjp2.CODEC_J2K
-            self.j2k_random_tile_access(tfile.name, codec_format)
         self.assertTrue(True)
 
     def test_tte4(self):
@@ -219,33 +141,13 @@ class TestOpenJP2(unittest.TestCase):
             xtx4_setup(tfile.name)
         self.assertTrue(True)
 
-    def test_rta4(self):
-        """Runs test designated rta4 in OpenJPEG test suite."""
-        with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
-            xtx4_setup(tfile.name)
-
-            codec_format = openjp2.CODEC_J2K
-            self.j2k_random_tile_access(tfile.name, codec_format)
-
     def test_tte5(self):
         """Runs test designated tte5 in OpenJPEG test suite."""
         with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
             xtx5_setup(tfile.name)
         self.assertTrue(True)
 
-    def test_rta5(self):
-        """Runs test designated rta5 in OpenJPEG test suite."""
-        with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
-            xtx5_setup(tfile.name)
 
-            codec_format = openjp2.CODEC_J2K
-            self.j2k_random_tile_access(tfile.name, codec_format)
-
-
-#def tile_encoder(num_comps=None, tile_width=None, tile_height=None,
-#                 filename=None, codec=None, comp_prec=None,
-#                 image_width=None, image_height=None,
-#                 irreversible=None):
 def tile_encoder(**kwargs):
     """Fixture used by many tests."""
     num_tiles = ((kwargs['image_width'] / kwargs['tile_width']) *
@@ -309,7 +211,7 @@ def tile_encoder(**kwargs):
     openjp2.setup_encoder(codec, l_param, l_image)
 
     stream = openjp2.stream_create_default_file_stream(kwargs['filename'],
-                                                          False)
+                                                       False)
     openjp2.start_compress(codec, l_image, stream)
 
     for j in np.arange(num_tiles):
@@ -320,13 +222,14 @@ def tile_encoder(**kwargs):
     openjp2.destroy_codec(codec)
     openjp2.image_destroy(l_image)
 
+
 def tile_decoder(**kwargs):
     """Fixture called with various configurations by many tests.
 
     Reads a tile.  That's all it does.
     """
     stream = openjp2.stream_create_default_file_stream(kwargs['filename'],
-                                                          True)
+                                                       True)
     dparam = openjp2.set_default_decoder_parameters()
 
     dparam.decod_format = kwargs['codec_format']
@@ -364,6 +267,7 @@ def tile_decoder(**kwargs):
     openjp2.stream_destroy(stream)
     openjp2.image_destroy(image)
 
+
 def ttx0_setup(filename):
     """Runs tests tte0, tte0."""
     kwargs = {'filename': filename,
@@ -376,6 +280,7 @@ def ttx0_setup(filename):
               'tile_height': 100,
               'tile_width': 100}
     tile_encoder(**kwargs)
+
 
 def xtx2_setup(filename):
     """Runs tests rta2, tte2, ttd2."""
@@ -390,6 +295,7 @@ def xtx2_setup(filename):
               'tile_width': 128}
     tile_encoder(**kwargs)
 
+
 def xtx3_setup(filename):
     """Runs tests tte3, rta3."""
     kwargs = {'filename': filename,
@@ -402,6 +308,7 @@ def xtx3_setup(filename):
               'tile_height': 128,
               'tile_width': 128}
     tile_encoder(**kwargs)
+
 
 def xtx4_setup(filename):
     """Runs tests rta4, tte4."""
@@ -416,6 +323,7 @@ def xtx4_setup(filename):
               'tile_width': 128}
     tile_encoder(**kwargs)
 
+
 def xtx5_setup(filename):
     """Runs tests rta5, tte5."""
     kwargs = {'filename': filename,
@@ -428,6 +336,3 @@ def xtx5_setup(filename):
               'tile_height': 256,
               'tile_width': 256}
     tile_encoder(**kwargs)
-
-if __name__ == "__main__":
-    unittest.main()

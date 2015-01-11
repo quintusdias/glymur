@@ -1,4 +1,4 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 import os
 import re
 import sys
@@ -11,18 +11,20 @@ kwargs = {'name': 'Glymur',
           'url': 'https://github.com/quintusdias/glymur',
           'packages': ['glymur', 'glymur.data', 'glymur.test', 'glymur.lib',
                        'glymur.lib.test'],
-          'package_data': {'glymur': ['data/*.jp2', 'data/*.j2k', 'data/*.jpx']},
+          'package_data': {'glymur': ['data/*.jp2',
+                                      'data/*.j2k',
+                                      'data/*.jpx']},
           'entry_points': {
               'console_scripts': ['jp2dump=glymur.command_line:main'],
               },
           'license': 'MIT',
           'test_suite': 'glymur.test'}
 
-instllrqrs = ['numpy>=1.4.1', 'lxml>=2.3.2']
+install_requires = ['numpy>=1.7.0', 'lxml>=3.0.0']
 if sys.hexversion < 0x03030000:
-    instllrqrs.append('contextlib2>=0.4')
-    instllrqrs.append('mock>=1.0.1')
-kwargs['install_requires'] = instllrqrs
+    install_requires.append('contextlib2>=0.4')
+    install_requires.append('mock>=1.0.1')
+kwargs['install_requires'] = install_requires
 
 clssfrs = ["Programming Language :: Python",
            "Programming Language :: Python :: 2.7",
