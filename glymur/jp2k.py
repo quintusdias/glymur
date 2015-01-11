@@ -213,19 +213,19 @@ class Jp2k(Jp2kBox):
             num_components = len(cstr.segment[1].xrsiz)
         else:
             # try to get the image size from the IHDR box
-           jp2h = [box for box in self.box if box.box_id == 'jp2h'][0]
-           ihdr = [box for box in jp2h.box if box.box_id == 'ihdr'][0]
+            jp2h = [box for box in self.box if box.box_id == 'jp2h'][0]
+            ihdr = [box for box in jp2h.box if box.box_id == 'ihdr'][0]
 
-           height, width = ihdr.height, ihdr.width
-           num_components = ihdr.num_components
+            height, width = ihdr.height, ihdr.width
+            num_components = ihdr.num_components
 
-           if num_components == 1:
-               # but if there is a PCLR box, then we need to check that as
-               # well, as that turns a single-channel image into a
-               # multi-channel image
-               pclr = [box for box in jp2h.box if box.box_id == 'pclr']
-               if len(pclr) > 0:
-                   num_components = len(pclr[0].signed)
+            if num_components == 1:
+                # but if there is a PCLR box, then we need to check that as
+                # well, as that turns a single-channel image into a
+                # multi-channel image
+                pclr = [box for box in jp2h.box if box.box_id == 'pclr']
+                if len(pclr) > 0:
+                    num_components = len(pclr[0].signed)
 
         if num_components == 1:
             self.shape = (height, width)

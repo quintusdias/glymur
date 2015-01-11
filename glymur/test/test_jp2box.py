@@ -27,12 +27,17 @@ from .fixtures import (WARNING_INFRASTRUCTURE_ISSUE,
                        WINDOWS_TMP_FILE_MSG, MetadataBase)
 
 
+def docTearDown(doctest_obj):
+    glymur.set_parseoptions(full_codestream=False)
+
+
 def load_tests(loader, tests, ignore):
     """Run doc tests as well."""
     if os.name == "nt":
         # Can't do it on windows, temporary file issue.
         return tests
-    tests.addTests(doctest.DocTestSuite('glymur.jp2box'))
+    tests.addTests(doctest.DocTestSuite('glymur.jp2box',
+                                        tearDown=docTearDown))
     return tests
 
 

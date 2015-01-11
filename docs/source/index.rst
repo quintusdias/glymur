@@ -17,7 +17,6 @@ Contents:
    how_do_i
    whatsnew/index
    roadmap
-   api
 
 ------------------
 Indices and tables

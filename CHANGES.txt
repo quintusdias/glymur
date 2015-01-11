@@ -1,3 +1,8 @@
+Jan 10, 2015 - v0.8.0  Reduced number of steps required for writing
+    images.  Deprecated old read and write methods in favor of
+    array-style slicing.  Added ignore_pclr_cmap_cdef, verbose,
+    shape, codestream, layer properties.
+
 Oct 06, 2014 - v0.7.2  Added ellipsis support in array-style slicing.
 
 Oct 02, 2014 - v0.7.1  Fixed README to mention Python 3.4
