@@ -363,7 +363,11 @@ class Jp2k(Jp2kBox):
                 # 2.1 API
                 self._cparams.rsiz = core.OPJ_PROFILE_CINEMA_4K
 
-    def _populate_cparams(self, img_array, **kwargs):
+    def _populate_cparams(self, img_array, mct=None, cratios=None, psnr=None,
+                          cinema2k=None, cinema4k=None, irreversible=None,
+                          cbsize=None, eph=None, grid_offset=None, modesw=None,
+                          numres=None, prog=None, psizes=None, sop=None,
+                          subsam=None, tilesize=None, colorspace=None):
         """Directs processing of write method arguments.
 
         Parameters
@@ -373,12 +377,14 @@ class Jp2k(Jp2kBox):
         kwargs : dictionary
             non-image keyword inputs provided to write method
         """
-        if ((('cinema2k' in kwargs or 'cinema4k' in kwargs) and
-             (len(set(kwargs)) > 1))):
+        other_args = (mct, cratios, psnr, irreversible, cbsize, eph,
+                      grid_offset, modesw, numres, prog, psizes, sop, subsam)
+        if (((cinema2k is not None or cinema4k is not None) and
+             (not all([arg is None for arg in other_args])))):
             msg = "Cannot specify cinema2k/cinema4k along with other options."
             raise IOError(msg)
 
-        if 'cratios' in kwargs and 'psnr' in kwargs:
+        if cratios is not None and psnr is not None:
             msg = "Cannot specify cratios and psnr together."
             raise IOError(msg)
 
@@ -402,90 +408,81 @@ class Jp2k(Jp2kBox):
         cparams.tcp_numlayers = 1
         cparams.cp_disto_alloc = 1
 
-        if 'irreversible' in kwargs and kwargs['irreversible'] is True:
-            cparams.irreversible = 1
+        cparams.irreversible = 1 if irreversible else 0
 
-        if 'cinema2k' in kwargs:
+        if cinema2k is not None:
             self._cparams = cparams
-            self._set_cinema_params('cinema2k', kwargs['cinema2k'])
+            self._set_cinema_params('cinema2k', cinema2k)
             return
 
-        if 'cinema4k' in kwargs:
+        if cinema4k is not None:
             self._cparams = cparams
-            self._set_cinema_params('cinema4k', kwargs['cinema4k'])
+            self._set_cinema_params('cinema4k', cinema4k)
             return
 
-        if 'cbsize' in kwargs:
-            cparams.cblockw_init = kwargs['cbsize'][1]
-            cparams.cblockh_init = kwargs['cbsize'][0]
+        if cbsize is not None:
+            cparams.cblockw_init = cbsize[1]
+            cparams.cblockh_init = cbsize[0]
 
-        if 'cratios' in kwargs:
-            cparams.tcp_numlayers = len(kwargs['cratios'])
-            for j, cratio in enumerate(kwargs['cratios']):
+        if cratios is not None:
+            cparams.tcp_numlayers = len(cratios)
+            for j, cratio in enumerate(cratios):
                 cparams.tcp_rates[j] = cratio
             cparams.cp_disto_alloc = 1
 
-        if 'eph' in kwargs:
-            cparams.csty |= 0x04
+        cparams.csty |= 0x02 if sop else 0
+        cparams.csty |= 0x04 if eph else 0
 
-        if 'grid_offset' in kwargs:
-            cparams.image_offset_x0 = kwargs['grid_offset'][1]
-            cparams.image_offset_y0 = kwargs['grid_offset'][0]
+        if grid_offset is not None:
+            cparams.image_offset_x0 = grid_offset[1]
+            cparams.image_offset_y0 = grid_offset[0]
 
-        if 'modesw' in kwargs:
+        if modesw is not None:
             for shift in range(6):
                 power_of_two = 1 << shift
-                if kwargs['modesw'] & power_of_two:
+                if modesw & power_of_two:
                     cparams.mode |= power_of_two
 
-        if 'numres' in kwargs:
-            cparams.numresolution = kwargs['numres']
+        if numres is not None:
+            cparams.numresolution = numres
 
-        if 'prog' in kwargs:
-            prog = kwargs['prog'].upper()
-            cparams.prog_order = core.PROGRESSION_ORDER[prog]
+        if prog is not None:
+            cparams.prog_order = core.PROGRESSION_ORDER[prog.upper()]
 
-        if 'psnr' in kwargs:
-            cparams.tcp_numlayers = len(kwargs['psnr'])
-            for j, snr_layer in enumerate(kwargs['psnr']):
+        if psnr is not None:
+            cparams.tcp_numlayers = len(psnr)
+            for j, snr_layer in enumerate(psnr):
                 cparams.tcp_distoratio[j] = snr_layer
             cparams.cp_fixed_quality = 1
 
-        if 'psizes' in kwargs:
-            for j, (prch, prcw) in enumerate(kwargs['psizes']):
+        if psizes is not None:
+            for j, (prch, prcw) in enumerate(psizes):
                 cparams.prcw_init[j] = prcw
                 cparams.prch_init[j] = prch
             cparams.csty |= 0x01
-            cparams.res_spec = len(kwargs['psizes'])
+            cparams.res_spec = len(psizes)
 
-        if 'sop' in kwargs:
-            cparams.csty |= 0x02
+        if subsam is not None:
+            cparams.subsampling_dy = subsam[0]
+            cparams.subsampling_dx = subsam[1]
 
-        if 'subsam' in kwargs:
-            cparams.subsampling_dy = kwargs['subsam'][0]
-            cparams.subsampling_dx = kwargs['subsam'][1]
-
-        if 'tilesize' in kwargs:
-            cparams.cp_tdx = kwargs['tilesize'][1]
-            cparams.cp_tdy = kwargs['tilesize'][0]
+        if tilesize is not None:
+            cparams.cp_tdx = tilesize[1]
+            cparams.cp_tdy = tilesize[0]
             cparams.tile_size_on = opj2.TRUE
 
-        try:
-            mct = kwargs['mct']
-            if mct and self._colorspace == opj2.CLRSPC_GRAY:
+        if mct is None:
+            # If the multi component transform was not specified, we infer
+            # that it should be used if the color space is RGB.
+            cparams.tcp_mct = 1 if self._colorspace == opj2.CLRSPC_SRGB else 0
+        else:
+            if self._colorspace == opj2.CLRSPC_GRAY:
                 msg = "Cannot specify usage of the multi component transform "
                 msg += "if the colorspace is gray."
                 raise IOError(msg)
             cparams.tcp_mct = 1 if mct else 0
-        except KeyError:
-            # If the multi component transform was not specified, we infer
-            # that it should be used if the color space is RGB.
-            if self._colorspace == opj2.CLRSPC_SRGB:
-                cparams.tcp_mct = 1
-            else:
-                cparams.tcp_mct = 0
 
-        self._validate_compression_params(img_array, cparams, **kwargs)
+        self._validate_compression_params(img_array, cparams, colorspace)
 
         self._cparams = cparams
 
@@ -576,29 +573,26 @@ class Jp2k(Jp2kBox):
 
         self.parse()
 
-    def _validate_compression_params(self, img_array, cparams, **kwargs):
-        """Check that the compression parameters are valid.
-
-        Parameters
-        ----------
-        img_array : ndarray
-            Image data to be written to file.
-        cparams : CompressionParametersType(ctypes.Structure)
-            Corresponds to cparameters_t type in openjp2 headers.
+    def _validate_j2k_colorspace(self, cparams, colorspace):
         """
-        # Cannot specify a colorspace with J2K.
-        if cparams.codec_fmt == opj2.CODEC_J2K and 'colorspace' in kwargs:
+        Cannot specify a colorspace with J2K.
+        """
+        if cparams.codec_fmt == opj2.CODEC_J2K and colorspace is not None:
             msg = 'Do not specify a colorspace when writing a raw '
             msg += 'codestream.'
             raise IOError(msg)
 
-        # Code block size
-        code_block_specified = False
+    def _validate_codeblock_size(self, cparams):
+        """
+        Code block dimensions must satisfy certain restrictions.
+
+        They must both be a power of 2 and the total area defined by the width
+        and height cannot be either too great or too small for the codec.
+        """
         if cparams.cblockw_init != 0 and cparams.cblockh_init != 0:
             # These fields ARE zero if uninitialized.
             width = cparams.cblockw_init
             height = cparams.cblockh_init
-            code_block_specified = True
             if height * width > 4096 or height < 4 or width < 4:
                 msg = "Code block area cannot exceed 4096.  "
                 msg += "Code block height and width must be larger than 4."
@@ -609,7 +603,17 @@ class Jp2k(Jp2kBox):
                 msg += "must be powers of 2."
                 raise IOError(msg.format(height, width))
 
-        # Precinct size
+    def _validate_precinct_size(self, cparams):
+        """
+        Precinct dimensions must satisfy certain restrictions if specified.
+
+        They must both be a power of 2 and must both be at least twice the
+        size of their codeblock size counterparts.
+        """
+        code_block_specified = False
+        if cparams.cblockw_init != 0 and cparams.cblockh_init != 0:
+            code_block_specified = True
+
         if cparams.res_spec != 0:
             # precinct size was not specified if this field is zero.
             for j in range(cparams.res_spec):
@@ -627,11 +631,18 @@ class Jp2k(Jp2kBox):
                     msg += "must be powers of 2."
                     raise IOError(msg.format(prch, prcw))
 
-        # What would the point of 1D images be?
+    def _validate_image_rank(self, img_array):
+        """
+        Images must be either 2D or 3D.
+        """
         if img_array.ndim == 1 or img_array.ndim > 3:
             msg = "{0}D imagery is not allowed.".format(img_array.ndim)
             raise IOError(msg)
 
+    def _validate_v2_0_0_images(self, img_array):
+        """
+        Version 2.0.0 is restricted to only the most common images.
+        """
         if re.match("2.0.0", version.openjpeg_version) is not None:
             if (((img_array.ndim != 2) and
                  (img_array.shape[2] != 1 and img_array.shape[2] != 3))):
@@ -641,10 +652,31 @@ class Jp2k(Jp2kBox):
                 msg += "release."
                 raise IOError(msg)
 
+    def _validate_image_datatype(self, img_array):
+        """
+        Only uint8 and uint16 images are currently supported.
+        """
         if img_array.dtype != np.uint8 and img_array.dtype != np.uint16:
             msg = "Only uint8 and uint16 datatypes are currently supported "
             msg += "when writing."
             raise RuntimeError(msg)
+
+    def _validate_compression_params(self, img_array, cparams, colorspace):
+        """Check that the compression parameters are valid.
+
+        Parameters
+        ----------
+        img_array : ndarray
+            Image data to be written to file.
+        cparams : CompressionParametersType(ctypes.Structure)
+            Corresponds to cparameters_t type in openjp2 headers.
+        """
+        self._validate_j2k_colorspace(cparams, colorspace)
+        self._validate_codeblock_size(cparams)
+        self._validate_precinct_size(cparams)
+        self._validate_image_rank(img_array)
+        self._validate_v2_0_0_images(img_array)
+        self._validate_image_datatype(img_array)
 
     def _determine_colorspace(self, colorspace=None, **kwargs):
         """Determine the colorspace from the supplied inputs.
@@ -916,6 +948,47 @@ class Jp2k(Jp2kBox):
             msg = "Partial write operations are currently not allowed."
             raise TypeError(msg)
 
+    def _remove_ellipsis(self, index, numrows, numcols, numbands):
+        """
+        resolve the first ellipsis in the index so that it references the image
+
+        Parameters
+        ----------
+        index : tuple
+            tuple of index arguments, presumably one of them is the Ellipsis
+        numrows, numcols, numbands : int
+            image dimensions
+
+        Returns
+        -------
+        newindex : tuple
+            Same as index, except that the first Ellipsis is replaced with
+            a proper slice whose start and stop members are not None
+        """
+        # Remove the first ellipsis we find.
+        rows = slice(0, numrows)
+        cols = slice(0, numcols)
+        bands = slice(0, numbands)
+        if index[0] is Ellipsis:
+            if len(index) == 2:
+                # jp2k[..., other_slice]
+                newindex = (rows, cols, index[1])
+            else:
+                # jp2k[..., cols, bands]
+                newindex = (rows, index[1], index[2])
+        elif index[1] is Ellipsis:
+            if len(index) == 2:
+                # jp2k[rows, ...]
+                newindex = (index[0], cols, bands)
+            else:
+                # jp2k[rows, ..., bands]
+                newindex = (index[0], cols, index[2])
+        else:
+            # Assume that we don't have 4D imagery, of course.
+            newindex = (index[0], index[1], bands)
+
+        return newindex
+
     def __getitem__(self, pargs):
         """
         Slicing protocol.
@@ -950,23 +1023,7 @@ class Jp2k(Jp2kBox):
             pargs = (pargs, Ellipsis)
 
         if isinstance(pargs, tuple) and any(x is Ellipsis for x in pargs):
-            # Remove the first ellipsis we find.
-            rows = slice(0, numrows)
-            cols = slice(0, numcols)
-            bands = slice(0, numbands)
-            if pargs[0] is Ellipsis:
-                if len(pargs) == 2:
-                    newindex = (rows, cols, pargs[1])
-                else:
-                    newindex = (rows, pargs[1], pargs[2])
-            elif pargs[1] is Ellipsis:
-                if len(pargs) == 2:
-                    newindex = (pargs[0], cols, bands)
-                else:
-                    newindex = (pargs[0], cols, pargs[2])
-            else:
-                # Assume that we don't have 4D imagery, of course.
-                newindex = (pargs[0], pargs[1], bands)
+            newindex = self._remove_ellipsis(pargs, numrows, numcols, numbands)
 
             # Run once again because it is possible that there's another
             # Ellipsis object in the 2nd or 3rd position.
@@ -1279,12 +1336,11 @@ class Jp2k(Jp2kBox):
         infile += b'0' * nelts
         dparam.infile = infile
 
-        if self.ignore_pclr_cmap_cdef:
-            # Return raw codestream components.
-            dparam.flags |= 1
+        # Return raw codestream components instead of "interpolating" the
+        # colormap?
+        dparam.flags |= 1 if self.ignore_pclr_cmap_cdef else 0
 
         dparam.decod_format = self._codec_format
-
         dparam.cp_layer = self._layer
 
         # Must check the specified rlevel against the maximum.
@@ -1314,10 +1370,6 @@ class Jp2k(Jp2kBox):
         if tile is not None:
             dparam.tile_index = tile
             dparam.nb_tile_to_decode = 1
-
-        if self.ignore_pclr_cmap_cdef:
-            # Return raw codestream components.
-            dparam.flags |= 1
 
         self._dparams = dparam
 
