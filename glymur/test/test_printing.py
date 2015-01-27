@@ -1088,8 +1088,6 @@ class TestJp2dump(unittest.TestCase):
     def test_jp2_codestream_2(self):
         """Verify dumping with -c 2, print entire jp2 jacket, codestream."""
         actual = self.run_jp2dump(['', '-c', '2', self.jp2file])
-
-        # shave off the  non-main-header segments
         expected = fixtures.nemo
         self.assertEqual(actual, expected)
 
@@ -1125,6 +1123,7 @@ class TestJp2dump(unittest.TestCase):
 
     def test_suppress_xml(self):
         """Verify dumping with -x, suppress XML."""
+        self.maxDiff = None
         actual = self.run_jp2dump(['', '-x', self.jp2file])
 
         # shave off the XML and non-main-header segments

@@ -356,35 +356,45 @@ class ColourSpecificationBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
+        title = Jp2kBox.__str__(self)
         if _printoptions['short'] is True:
-            return msg
+            return title
 
-        msg += '\n    Method:  {0}'.format(_METHOD_DISPLAY[self.method])
-        msg += '\n    Precedence:  {0}'.format(self.precedence)
+        lst = []
+        text = 'Method:  {0}'.format(_METHOD_DISPLAY[self.method])
+        lst.append(text)
+        text = 'Precedence:  {0}'.format(self.precedence)
+        lst.append(text)
 
         if self.approximation is not 0:
             dispvalue = _APPROX_DISPLAY[self.approximation]
-            msg += '\n    Approximation:  {0}'.format(dispvalue)
+            text = 'Approximation:  {0}'.format(dispvalue)
+            lst.append(text)
 
         if self.colorspace is not None:
             dispvalue = _COLORSPACE_MAP_DISPLAY[self.colorspace]
-            msg += '\n    Colorspace:  {0}'.format(dispvalue)
+            text = 'Colorspace:  {0}'.format(dispvalue)
         else:
             # 2.7 has trouble pretty-printing ordered dicts so we just have
             # to print as a regular dict in this case.
             if self.icc_profile is None:
-                msg += '\n    ICC Profile:  None'
+                text = 'ICC Profile:  None'
             else:
                 if sys.hexversion < 0x03000000:
                     icc_profile = dict(self.icc_profile)
                 else:
                     icc_profile = self.icc_profile
-                dispvalue = pprint.pformat(icc_profile)
-                lines = [' ' * 8 + y for y in dispvalue.split('\n')]
-                msg += '\n    ICC Profile:\n{0}'.format('\n'.join(lines))
+                text = pprint.pformat(icc_profile)
+                text = self._indent(text)
+                text = '\n'.join(['ICC Profile:', text])
 
-        return msg
+        lst.append(text)
+
+        text = '\n'.join(lst)
+
+        text = '\n'.join([title, self._indent(text)])
+
+        return text
 
     def write(self, fptr):
         """Write an Colour Specification box to file.
@@ -620,19 +630,26 @@ class ChannelDefinitionBox(Jp2kBox):
             self._dispatch_validation_error(msg, writing=writing)
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
+        title = Jp2kBox.__str__(self)
         if _printoptions['short'] is True:
-            return msg
+            return title
 
+        lst = []
         for j in range(len(self.association)):
             color_type_string = _COLOR_TYPE_MAP_DISPLAY[self.channel_type[j]]
             if self.association[j] == 0:
                 assn = 'whole image'
             else:
                 assn = str(self.association[j])
-            msg += '\n    Channel {0} ({1}) ==> ({2})'
-            msg = msg.format(self.index[j], color_type_string, assn)
-        return msg
+            text = 'Channel {0} ({1}) ==> ({2})'.format(self.index[j],
+                                                        color_type_string,
+                                                        assn)
+            lst.append(text)
+
+        text = '\n'.join(lst)
+        text = self._indent(text)
+        text = '\n'.join([title, text])
+        return text
 
     def __repr__(self):
         msg = "glymur.jp2box.ChannelDefinitionBox("
@@ -929,19 +946,26 @@ class ComponentMappingBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
+        title = Jp2kBox.__str__(self)
         if _printoptions['short'] is True:
-            return msg
+            return title
 
+        lst = []
         for k in range(len(self.component_index)):
             if self.mapping_type[k] == 1:
-                msg += '\n    Component {0} ==> palette column {1}'
-                msg = msg.format(self.component_index[k],
-                                 self.palette_index[k])
+                text = 'Component {0} ==> palette column {1}'
+                text = text.format(self.component_index[k],
+                                   self.palette_index[k])
             else:
-                msg += '\n    Component {0} ==> {1}'
-                msg = msg.format(self.component_index[k], k)
-        return msg
+                text = 'Component {0} ==> {1}'
+                text = text.format(self.component_index[k], k)
+            lst.append(text)
+
+        text = '\n'.join(lst)
+        text = self._indent(text)
+        text = '\n'.join([title, text])
+
+        return text
 
     def write(self, fptr):
         """Write a Component Mapping box to file.
@@ -1041,16 +1065,20 @@ class ContiguousCodestreamBox(Jp2kBox):
         return msg.format(repr(self.codestream))
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
+        title = Jp2kBox.__str__(self)
         if _printoptions['short'] is True:
-            return msg
+            return title
         if _printoptions['codestream'] is False:
-            return msg
+            return title
 
+        lst = []
         for segment in self.codestream.segment:
-            msg += '\n' + self._indent(str(segment), indent_level=4)
+            lst.append(str(segment))
 
-        return msg
+        text = '\n'.join(lst)
+        text = self._indent(text)
+        text = '\n'.join([title, text])
+        return text
 
     @classmethod
     def parse(cls, fptr, offset=0, length=0):
@@ -1149,13 +1177,18 @@ class DataReferenceBox(Jp2kBox):
         fptr.seek(end_pos)
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
+        title = Jp2kBox.__str__(self)
         if _printoptions['short'] is True:
-            return msg
+            return title
 
+        lst = []
         for box in self.DR:
-            msg += '\n    ' + str(box)
-        return msg
+            lst.append(str(box))
+        text = '\n'.join(lst)
+        text = self._indent(text)
+
+        text = '\n'.join([title, text])
+        return text
 
     def __repr__(self):
         msg = 'glymur.jp2box.DataReferenceBox()'
@@ -1252,17 +1285,22 @@ class FileTypeBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
+        title = Jp2kBox.__str__(self)
         if _printoptions['short'] is True:
-            return msg
+            return title
 
-        lst = [msg,
-               '    Brand:  {0}',
-               '    Compatibility:  {1}']
-        msg = '\n'.join(lst)
-        msg = msg.format(self.brand, self.compatibility_list)
+        lst = []
+        text = 'Brand:  {0}'.format(self.brand)
+        lst.append(text)
+        text = 'Compatibility:  {0}'.format(self.compatibility_list)
+        lst.append(text)
 
-        return msg
+        text = '\n'.join(lst)
+        text = self._indent(text)
+
+        text = '\n'.join([title, text])
+
+        return text
 
     def _validate(self, writing=False):
         """Validate the box before writing to file."""
@@ -1384,19 +1422,24 @@ class FragmentListBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
+        title = Jp2kBox.__str__(self)
         if _printoptions['short'] is True:
-            return msg
+            return title
 
+        lst = []
         for j in range(len(self.fragment_offset)):
-            msg += "\n    Offset {0}:  {1}"
-            msg += "\n    Fragment Length {2}:  {3}"
-            msg += "\n    Data Reference {4}:  {5}"
-            msg = msg.format(j, self.fragment_offset[j],
-                             j, self.fragment_length[j],
-                             j, self.data_reference[j])
+            text = "Offset {0}:  {1}".format(j, self.fragment_offset[j])
+            lst.append(text)
+            text = "Fragment Length {0}:  {1}".format(j,
+                                                      self.fragment_length[j])
+            lst.append(text)
+            text = "Data Reference {0}:  {1}".format(j, self.data_reference[j])
+            lst.append(text)
 
-        return msg
+        text = '\n'.join(lst)
+        text = self._indent(text)
+        text = '\n'.join([title, text])
+        return text
 
     def write(self, fptr):
         """Write a fragment list box to file.
@@ -1546,11 +1589,7 @@ class FreeBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
-        if _printoptions['short'] is True:
-            return msg
-
-        return msg
+        return Jp2kBox.__str__(self)
 
     @classmethod
     def parse(cls, fptr, offset, length):
@@ -1642,23 +1681,34 @@ class ImageHeaderBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
+        title = Jp2kBox.__str__(self)
         if _printoptions['short'] is True:
-            return msg
+            return title
 
-        msg = "{0}"
-        msg += '\n    Size:  [{1} {2} {3}]'
-        msg += '\n    Bitdepth:  {4}'
-        msg += '\n    Signed:  {5}'
-        msg += '\n    Compression:  {6}'
-        msg += '\n    Colorspace Unknown:  {7}'
-        msg = msg.format(Jp2kBox.__str__(self),
-                         self.height, self.width, self.num_components,
-                         self.bits_per_component,
-                         self.signed,
-                         'wavelet' if self.compression == 7 else 'unknown',
-                         self.colorspace_unknown)
-        return msg
+        lst = []
+
+        text = 'Size:  [{0} {1} {2}]'
+        text = text.format(self.height, self.width, self.num_components)
+        lst.append(text)
+
+        text = 'Bitdepth:  {0}'.format(self.bits_per_component)
+        lst.append(text)
+
+        text = 'Signed:  {0}'.format(self.signed)
+        lst.append(text)
+
+        text = 'Compression:  {0}'
+        text = text.format('wavelet' if self.compression == 7 else 'unknown')
+        lst.append(text)
+
+        text = 'Colorspace Unknown:  {0}'.format(self.colorspace_unknown)
+        lst.append(text)
+
+        text = '\n'.join(lst)
+        text = self._indent(text)
+        text = '\n'.join([title, text])
+
+        return text
 
     def write(self, fptr):
         """Write an Image Header box to file.
@@ -1873,14 +1923,16 @@ class JPEG2000SignatureBox(Jp2kBox):
         return 'glymur.jp2box.JPEG2000SignatureBox()'
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
+        title = Jp2kBox.__str__(self)
         if _printoptions['short'] is True:
-            return msg
+            return title
 
-        msg += '\n    Signature:  {0:02x}{1:02x}{2:02x}{3:02x}'
-        msg = msg.format(self.signature[0], self.signature[1],
-                         self.signature[2], self.signature[3])
-        return msg
+        body = 'Signature:  {0:02x}{1:02x}{2:02x}{3:02x}'
+        body = body.format(self.signature[0], self.signature[1],
+                           self.signature[2], self.signature[3])
+        body = self._indent(body)
+        text = '\n'.join([title, body])
+        return text
 
     def write(self, fptr):
         """Write a JPEG 2000 Signature box to file.
@@ -1962,12 +2014,15 @@ class PaletteBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
+        title = Jp2kBox.__str__(self)
         if _printoptions['short'] is True:
-            return msg
+            return title
 
-        msg += '\n    Size:  ({0} x {1})'.format(*self.palette.shape)
-        return msg
+        body = 'Size:  ({0} x {1})'.format(*self.palette.shape)
+        body = self._indent(body)
+
+        text = '\n'.join([title, body])
+        return text
 
     def write(self, fptr):
         """Write a Palette box to file.
@@ -2211,25 +2266,47 @@ class ReaderRequirementsBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
+        title = Jp2kBox.__str__(self)
         if _printoptions['short'] is True:
-            return msg
+            return title
 
-        msg += '\n    Fully Understands Aspect Mask:  0x{0:x}'
-        msg = msg.format(self.fuam)
-        msg += '\n    Display Completely Mask:  0x{0:x}'.format(self.dcm)
+        lst = []
 
-        msg += '\n    Standard Features and Masks:'
+        text = 'Fully Understands Aspect Mask:  0x{0:x}'.format(self.fuam)
+        lst.append(text)
+
+        text = 'Display Completely Mask:  0x{0:x}'.format(self.dcm)
+        lst.append(text)
+
+        text = 'Standard Features and Masks:'
+        lst.append(text)
+
+        lst2 = []
         for j in range(len(self.standard_flag)):
             args = (self.standard_flag[j], self.standard_mask[j],
                     _READER_REQUIREMENTS_DISPLAY[self.standard_flag[j]])
-            msg += '\n        Feature {0:03d}:  0x{1:x} {2}'.format(*args)
+            text = 'Feature {0:03d}:  0x{1:x} {2}'.format(*args)
+            lst2.append(text)
+        text = '\n'.join(lst2)
+        text = self._indent(text)
+        lst.append(text)
 
-        msg += '\n    Vendor Features:'
+        text = 'Vendor Features:'
+        lst.append(text)
+
+        lst2 = []
         for j in range(len(self.vendor_feature)):
-            msg += '\n        UUID {0}'.format(self.vendor_feature[j])
+            text = 'UUID {0}'.format(self.vendor_feature[j])
+            lst2.append(text)
+        text = '\n'.join(lst2)
+        text = self._indent(text)
+        lst.append(text)
 
-        return msg
+        text = '\n'.join(lst)
+        text = self._indent(text)
+        text = '\n'.join([title, text])
+
+        return text
 
     @classmethod
     def parse(cls, fptr, offset, length):
@@ -2500,13 +2577,21 @@ class CaptureResolutionBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
+        title = Jp2kBox.__str__(self)
         if _printoptions['short'] is True:
-            return msg
+            return title
 
-        msg += '\n    VCR:  {0}'.format(self.vertical_resolution)
-        msg += '\n    HCR:  {0}'.format(self.horizontal_resolution)
-        return msg
+        lst = []
+        text = 'VCR:  {0}'.format(self.vertical_resolution)
+        lst.append(text)
+        text = 'HCR:  {0}'.format(self.horizontal_resolution)
+        lst.append(text)
+
+        text = '\n'.join(lst)
+        body = self._indent(text)
+
+        text = '\n'.join([title, body])
+        return text
 
     @classmethod
     def parse(cls, fptr, offset, length):
@@ -2566,13 +2651,21 @@ class DisplayResolutionBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
+        title = Jp2kBox.__str__(self)
         if _printoptions['short'] is True:
-            return msg
+            return title
 
-        msg += '\n    VDR:  {0}'.format(self.vertical_resolution)
-        msg += '\n    HDR:  {0}'.format(self.horizontal_resolution)
-        return msg
+        lst = []
+        text = 'VDR:  {0}'.format(self.vertical_resolution)
+        lst.append(text)
+        text = 'HDR:  {0}'.format(self.horizontal_resolution)
+        lst.append(text)
+
+        text = '\n'.join(lst)
+        body = self._indent(text)
+
+        text = '\n'.join([title, body])
+        return text
 
     @classmethod
     def parse(cls, fptr, offset, length):
@@ -2626,12 +2719,15 @@ class LabelBox(Jp2kBox):
         self.offset = offset
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
+        title = Jp2kBox.__str__(self)
         if _printoptions['short'] is True:
-            return msg
+            return title
 
-        msg += '\n    Label:  {0}'.format(self.label)
-        return msg
+        text = 'Label:  {0}'.format(self.label)
+        body = self._indent(text)
+
+        text = '\n'.join([title, body])
+        return text
 
     def __repr__(self):
         msg = 'glymur.jp2box.LabelBox("{0}")'.format(self.label)
@@ -2694,25 +2790,30 @@ class NumberListBox(Jp2kBox):
         self.offset = offset
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
+        title = Jp2kBox.__str__(self)
         if _printoptions['short'] is True:
-            return msg
+            return title
 
+        lst = []
         for j, association in enumerate(self.associations):
-            msg += '\n    Association[{0}]:  '.format(j)
+            text = 'Association[{0}]:  '.format(j)
             if association == 0:
-                msg += 'the rendered result'
+                text += 'the rendered result'
             elif (association >> 24) == 1:
                 idx = association & 0x00FFFFFF
-                msg += 'codestream {0}'
-                msg = msg.format(idx)
+                text += 'codestream {0}'.format(idx)
             elif (association >> 24) == 2:
                 idx = association & 0x00FFFFFF
-                msg += 'compositing layer {0}'
-                msg = msg.format(idx)
+                text += 'compositing layer {0}'.format(idx)
             else:
-                msg += 'unrecognized'
-        return msg
+                text += 'unrecognized'
+            lst.append(text)
+
+        body = '\n'.join(lst)
+        body = self._indent(body)
+
+        text = '\n'.join([title, body])
+        return text
 
     def __repr__(self):
         msg = 'glymur.jp2box.NumberListBox(associations={0})'
@@ -2797,21 +2898,22 @@ class XMLBox(Jp2kBox):
         return "glymur.jp2box.XMLBox(xml={0})".format(self.xml)
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
+        title = Jp2kBox.__str__(self)
         if _printoptions['short'] is True:
-            return msg
+            return title
         if _printoptions['xml'] is False:
-            return msg
+            return title
 
-        msg += '\n'
         if self.xml is not None:
-            xmlstring = ET.tostring(self.xml,
-                                    encoding='utf-8',
-                                    pretty_print=True).decode('utf-8')
+            body = ET.tostring(self.xml,
+                               encoding='utf-8',
+                               pretty_print=True).decode('utf-8')
         else:
-            xmlstring = 'None'
-        msg += self._indent(xmlstring)
-        return msg
+            body = 'None'
+        body = self._indent(body)
+
+        text = '\n'.join([title, body])
+        return text
 
     def write(self, fptr):
         """Write an XML box to file.
@@ -2918,13 +3020,19 @@ class UUIDListBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
+        title = Jp2kBox.__str__(self)
         if _printoptions['short'] is True:
-            return msg
+            return title
 
+        lst = []
         for j, uuid_item in enumerate(self.ulst):
-            msg += '\n    UUID[{0}]:  {1}'.format(j, uuid_item)
-        return msg
+            text = 'UUID[{0}]:  {1}'.format(j, uuid_item)
+            lst.append(text)
+        body = '\n'.join(lst)
+        body = self._indent(body)
+
+        text = '\n'.join([title, body])
+        return text
 
     @classmethod
     def parse(cls, fptr, offset, length):
@@ -3070,20 +3178,21 @@ class DataEntryURLBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
+        title = Jp2kBox.__str__(self)
         if _printoptions['short'] is True:
-            return msg
+            return title
 
-        msg += '\n    '
+        lst = ['Version:  {0}',
+               'Flag:  {1} {2} {3}',
+               'URL:  "{4}"']
+        body = '\n'.join(lst)
+        body = body.format(self.version,
+                           self.flag[0], self.flag[1], self.flag[2],
+                           self.url)
+        body = self._indent(body)
 
-        lines = ['Version:  {0}',
-                 'Flag:  {1} {2} {3}',
-                 'URL:  "{4}"']
-        msg += '\n    '.join(lines)
-        msg = msg.format(self.version,
-                         self.flag[0], self.flag[1], self.flag[2],
-                         self.url)
-        return msg
+        text = '\n'.join([title, body])
+        return text
 
     @classmethod
     def parse(cls, fptr, offset, length):
@@ -3222,38 +3331,44 @@ class UUIDBox(Jp2kBox):
         return msg.format(repr(self.uuid), len(self.raw_data))
 
     def __str__(self):
-        msg = Jp2kBox.__str__(self)
+        title = Jp2kBox.__str__(self)
         if _printoptions['short'] is True:
-            return msg
+            return title
 
-        msg = '{0}\n    UUID:  {1}'.format(msg, self.uuid)
+        text = 'UUID:  {0}'.format(self.uuid)
         if self.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
-            msg += ' (XMP)'
+            text += ' (XMP)'
         elif self.uuid.bytes == b'JpgTiffExif->JP2':
-            msg += ' (EXIF)'
+            text += ' (EXIF)'
         else:
-            msg += ' (unknown)'
+            text += ' (unknown)'
+
+        lst = [text]
 
         if (((_printoptions['xml'] is False) and
              (self.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')))):
             # If it's an XMP UUID, don't print the XML contents.
-            return msg
+            pass
 
-        if self.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
-            line = '\n    UUID Data:\n{0}'
+        elif self.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
+            line = 'UUID Data:\n{0}'
             xmlstring = ET.tostring(self.data,
                                     encoding='utf-8',
-                                    pretty_print=True).decode('utf-8')
-            # indent it a bit
-            xmlstring = self._indent(xmlstring.rstrip())
-            msg += line.format(xmlstring)
+                                    pretty_print=True).decode('utf-8').rstrip()
+            text = line.format(xmlstring)
+            lst.append(text)
         elif self.uuid.bytes == b'JpgTiffExif->JP2':
-            msg += '\n    UUID Data:  {0}'.format(str(self.data))
+            text = 'UUID Data:  {0}'.format(str(self.data))
+            lst.append(text)
         else:
-            line = '\n    UUID Data:  {0} bytes'
-            msg += line.format(len(self.raw_data))
+            text = 'UUID Data:  {0} bytes'.format(len(self.raw_data))
+            lst.append(text)
 
-        return msg
+        body = '\n'.join(lst)
+        body = self._indent(body)
+
+        text = '\n'.join([title, body])
+        return text
 
     def write(self, fptr):
         """Write a UUID box to file.
