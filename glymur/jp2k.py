@@ -840,7 +840,7 @@ class Jp2k(Jp2kBox):
         if boxes is None:
             boxes = self._get_default_jp2_boxes()
 
-        _validate_jp2_box_sequence(boxes)
+        self._validate_jp2_box_sequence(boxes)
 
         with open(filename, 'wb') as ofile:
             for box in boxes:
@@ -1486,7 +1486,7 @@ class Jp2k(Jp2kBox):
         dtypes, nrows, ncols = [], [], []
         for k in range(raw_image.contents.numcomps):
             component = raw_image.contents.comps[k]
-            dtypes.append(_component2dtype(component))
+            dtypes.append(self._component2dtype(component))
             nrows.append(component.h)
             ncols.append(component.w)
         is_cube = all(r == nrows[0] and c == ncols[0] and d == dtypes[0]
@@ -1500,7 +1500,7 @@ class Jp2k(Jp2kBox):
         for k in range(raw_image.contents.numcomps):
             component = raw_image.contents.comps[k]
 
-            _validate_nonzero_image_size(nrows[k], ncols[k], k)
+            self._validate_nonzero_image_size(nrows[k], ncols[k], k)
 
             addr = ctypes.addressof(component.data.contents)
             with warnings.catch_warnings():
@@ -1516,6 +1516,38 @@ class Jp2k(Jp2kBox):
                                  (nrows[k], ncols[k])))
 
         return image
+
+    def _component2dtype(self, component):
+        """Determin the appropriate numpy datatype for an OpenJPEG component.
+
+        Parameters
+        ----------
+        component : ctypes pointer to ImageCompType (image_comp_t)
+            single image component structure.
+
+        Returns
+        -------
+        dtype : builtins.type
+            numpy datatype to be used to construct an image array.
+        """
+        if component.sgnd:
+            if component.prec <= 8:
+                dtype = np.int8
+            elif component.prec <= 16:
+                dtype = np.int16
+            else:
+                msg = "Unhandled precision: {0} bits.".format(component.prec)
+                raise RuntimeError(msg)
+        else:
+            if component.prec <= 8:
+                dtype = np.uint8
+            elif component.prec <= 16:
+                dtype = np.uint16
+            else:
+                msg = "Unhandled precision: {0} bits.".format(component.prec)
+                raise RuntimeError(msg)
+
+        return dtype
 
     def get_codestream(self, header_only=True):
         """Returns a codestream object.
@@ -1645,306 +1677,260 @@ class Jp2k(Jp2kBox):
 
         self._comptparms = comptparms
 
-
-def _component2dtype(component):
-    """Take an OpenJPEG component structure and determine the numpy datatype.
-
-    Parameters
-    ----------
-    component : ctypes pointer to ImageCompType (image_comp_t)
-        single image component structure.
-
-    Returns
-    -------
-    dtype : builtins.type
-        numpy datatype to be used to construct an image array.
-    """
-    if component.sgnd:
-        if component.prec <= 8:
-            dtype = np.int8
-        elif component.prec <= 16:
-            dtype = np.int16
-        else:
-            raise RuntimeError("Unhandled precision, datatype")
-    else:
-        if component.prec <= 8:
-            dtype = np.uint8
-        elif component.prec <= 16:
-            dtype = np.uint16
-        else:
-            raise RuntimeError("Unhandled precision, datatype")
-
-    return dtype
-
-
-def _validate_nonzero_image_size(nrows, ncols, component_index):
-    """The image cannot have area of zero.
-    """
-    if nrows == 0 or ncols == 0:
-        # Letting this situation continue would segfault Python.
-        msg = "Component {0} has dimensions {1} x {2}"
-        msg = msg.format(component_index, nrows, ncols)
-        raise IOError(msg)
-
-
-JP2_IDS = ['colr', 'cdef', 'cmap', 'jp2c', 'ftyp', 'ihdr', 'jp2h', 'jP  ',
-           'pclr', 'res ', 'resc', 'resd', 'xml ', 'ulst', 'uinf', 'url ',
-           'uuid']
-
-
-def _validate_jp2_box_sequence(boxes):
-    """Run through series of tests for JP2 box legality.
-
-    This is non-exhaustive.
-    """
-    _validate_signature_compatibility(boxes)
-    _validate_jp2h(boxes)
-    _validate_jp2c(boxes)
-    if boxes[1].brand == 'jpx ':
-        _validate_jpx_box_sequence(boxes)
-    else:
-        # Validate the JP2 box IDs.
-        count = _collect_box_count(boxes)
-        for box_id in count.keys():
-            if box_id not in JP2_IDS:
-                msg = "The presence of a '{0}' box requires that the file "
-                msg += "type brand be set to 'jpx '."
-                raise IOError(msg.format(box_id))
-
-        _validate_jp2_colr(boxes)
-
-
-def _validate_jp2_colr(boxes):
-    """
-    Validate JP2 requirements on colour specification boxes.
-    """
-    lst = [box for box in boxes if box.box_id == 'jp2h']
-    jp2h = lst[0]
-    for colr in [box for box in jp2h.box if box.box_id == 'colr']:
-        if colr.approximation != 0:
-            msg = "A JP2 colr box cannot have a non-zero approximation field."
+    def _validate_nonzero_image_size(self, nrows, ncols, component_index):
+        """The image cannot have area of zero.
+        """
+        if nrows == 0 or ncols == 0:
+            # Letting this situation continue would segfault openjpeg.
+            msg = "Component {0} has dimensions {1} x {2}"
+            msg = msg.format(component_index, nrows, ncols)
             raise IOError(msg)
 
+    def _validate_jp2_box_sequence(self, boxes):
+        """Run through series of tests for JP2 box legality.
 
-def _validate_jpx_box_sequence(boxes):
-    """Run through series of tests for JPX box legality."""
-    _validate_label(boxes)
-    _validate_jpx_brand(boxes, boxes[1].brand)
-    _validate_jpx_compatibility(boxes, boxes[1].compatibility_list)
-    _validate_singletons(boxes)
-    _validate_top_level(boxes)
+        This is non-exhaustive.
+        """
+        JP2_IDS = ['colr', 'cdef', 'cmap', 'jp2c', 'ftyp', 'ihdr', 'jp2h',
+                   'jP  ', 'pclr', 'res ', 'resc', 'resd', 'xml ', 'ulst',
+                   'uinf', 'url ', 'uuid']
 
+        self._validate_signature_compatibility(boxes)
+        self._validate_jp2h(boxes)
+        self._validate_jp2c(boxes)
+        if boxes[1].brand == 'jpx ':
+            self._validate_jpx_box_sequence(boxes)
+        else:
+            # Validate the JP2 box IDs.
+            count = self._collect_box_count(boxes)
+            for box_id in count.keys():
+                if box_id not in JP2_IDS:
+                    msg = "The presence of a '{0}' box requires that the file "
+                    msg += "type brand be set to 'jpx '."
+                    raise IOError(msg.format(box_id))
 
-def _validate_signature_compatibility(boxes):
-    """Validate the file signature and compatibility status."""
-    # Check for a bad sequence of boxes.
-    # 1st two boxes must be 'jP  ' and 'ftyp'
-    if boxes[0].box_id != 'jP  ' or boxes[1].box_id != 'ftyp':
-        msg = "The first box must be the signature box and the second "
-        msg += "must be the file type box."
-        raise IOError(msg)
+            self._validate_jp2_colr(boxes)
 
-    # The compatibility list must contain at a minimum 'jp2 '.
-    if 'jp2 ' not in boxes[1].compatibility_list:
-        msg = "The ftyp box must contain 'jp2 ' in the compatibility list."
-        raise IOError(msg)
-
-
-def _validate_jp2c(boxes):
-    """Validate the codestream box in relation to other boxes."""
-    # jp2c must be preceeded by jp2h
-    jp2h_lst = [idx for (idx, box) in enumerate(boxes)
-                if box.box_id == 'jp2h']
-    jp2h_idx = jp2h_lst[0]
-    jp2c_lst = [idx for (idx, box) in enumerate(boxes)
-                if box.box_id == 'jp2c']
-    if len(jp2c_lst) == 0:
-        msg = "A codestream box must be defined in the outermost "
-        msg += "list of boxes."
-        raise IOError(msg)
-
-    jp2c_idx = jp2c_lst[0]
-    if jp2h_idx >= jp2c_idx:
-        msg = "The codestream box must be preceeded by a jp2 header box."
-        raise IOError(msg)
-
-
-def _validate_jp2h(boxes):
-    """Validate the JP2 Header box."""
-    _check_jp2h_child_boxes(boxes, 'top-level')
-
-    jp2h_lst = [box for box in boxes if box.box_id == 'jp2h']
-    jp2h = jp2h_lst[0]
-
-    # 1st jp2 header box cannot be empty.
-    if len(jp2h.box) == 0:
-        msg = "The JP2 header superbox cannot be empty."
-        raise IOError(msg)
-
-    # 1st jp2 header box must be ihdr
-    if jp2h.box[0].box_id != 'ihdr':
-        msg = "The first box in the jp2 header box must be the image "
-        msg += "header box."
-        raise IOError(msg)
-
-    # colr must be present in jp2 header box.
-    colr_lst = [j for (j, box) in enumerate(jp2h.box)
-                if box.box_id == 'colr']
-    if len(colr_lst) == 0:
-        msg = "The jp2 header box must contain a color definition box."
-        raise IOError(msg)
-    colr = jp2h.box[colr_lst[0]]
-
-    _validate_channel_definition(jp2h, colr)
-
-
-def _validate_channel_definition(jp2h, colr):
-    """Validate the channel definition box."""
-    cdef_lst = [j for (j, box) in enumerate(jp2h.box) if box.box_id == 'cdef']
-    if len(cdef_lst) > 1:
-        msg = "Only one channel definition box is allowed in the "
-        msg += "JP2 header."
-        raise IOError(msg)
-    elif len(cdef_lst) == 1:
-        cdef = jp2h.box[cdef_lst[0]]
-        if colr.colorspace == core.SRGB:
-            if any([chan + 1 not in cdef.association
-                    or cdef.channel_type[chan] != 0
-                    for chan in [0, 1, 2]]):
-                msg = "All color channels must be defined in the "
-                msg += "channel definition box."
-                raise IOError(msg)
-        elif colr.colorspace == core.GREYSCALE:
-            if 0 not in cdef.channel_type:
-                msg = "All color channels must be defined in the "
-                msg += "channel definition box."
+    def _validate_jp2_colr(self, boxes):
+        """
+        Validate JP2 requirements on colour specification boxes.
+        """
+        lst = [box for box in boxes if box.box_id == 'jp2h']
+        jp2h = lst[0]
+        for colr in [box for box in jp2h.box if box.box_id == 'colr']:
+            if colr.approximation != 0:
+                msg = "A JP2 colr box cannot have a non-zero approximation "
+                msg += "field."
                 raise IOError(msg)
 
+    def _validate_jpx_box_sequence(self, boxes):
+        """Run through series of tests for JPX box legality."""
+        self._validate_label(boxes)
+        self._validate_jpx_brand(boxes, boxes[1].brand)
+        self._validate_jpx_compatibility(boxes, boxes[1].compatibility_list)
+        self._validate_singletons(boxes)
+        self._validate_top_level(boxes)
 
-JP2H_CHILDREN = set(['bpcc', 'cdef', 'cmap', 'ihdr', 'pclr'])
+    def _validate_signature_compatibility(self, boxes):
+        """Validate the file signature and compatibility status."""
+        # Check for a bad sequence of boxes.
+        # 1st two boxes must be 'jP  ' and 'ftyp'
+        if boxes[0].box_id != 'jP  ' or boxes[1].box_id != 'ftyp':
+            msg = "The first box must be the signature box and the second "
+            msg += "must be the file type box."
+            raise IOError(msg)
 
+        # The compatibility list must contain at a minimum 'jp2 '.
+        if 'jp2 ' not in boxes[1].compatibility_list:
+            msg = "The ftyp box must contain 'jp2 ' in the compatibility list."
+            raise IOError(msg)
 
-def _check_jp2h_child_boxes(boxes, parent_box_name):
-    """Certain boxes can only reside in the JP2 header."""
-    box_ids = set([box.box_id for box in boxes])
-    intersection = box_ids.intersection(JP2H_CHILDREN)
-    if len(intersection) > 0 and parent_box_name not in ['jp2h', 'jpch']:
-        msg = "A '{0}' box can only be nested in a JP2 header box."
-        raise IOError(msg.format(list(intersection)[0]))
+    def _validate_jp2c(self, boxes):
+        """Validate the codestream box in relation to other boxes."""
+        # jp2c must be preceeded by jp2h
+        jp2h_lst = [idx for (idx, box) in enumerate(boxes)
+                    if box.box_id == 'jp2h']
+        jp2h_idx = jp2h_lst[0]
+        jp2c_lst = [idx for (idx, box) in enumerate(boxes)
+                    if box.box_id == 'jp2c']
+        if len(jp2c_lst) == 0:
+            msg = "A codestream box must be defined in the outermost "
+            msg += "list of boxes."
+            raise IOError(msg)
 
-    # Recursively check any contained superboxes.
-    for box in boxes:
-        if hasattr(box, 'box'):
-            _check_jp2h_child_boxes(box.box, box.box_id)
+        jp2c_idx = jp2c_lst[0]
+        if jp2h_idx >= jp2c_idx:
+            msg = "The codestream box must be preceeded by a jp2 header box."
+            raise IOError(msg)
 
+    def _validate_jp2h(self, boxes):
+        """Validate the JP2 Header box."""
+        self._check_jp2h_child_boxes(boxes, 'top-level')
 
-def _collect_box_count(boxes):
-    """Count the occurences of each box type."""
-    count = Counter([box.box_id for box in boxes])
+        jp2h_lst = [box for box in boxes if box.box_id == 'jp2h']
+        jp2h = jp2h_lst[0]
 
-    # Add the counts in the superboxes.
-    for box in boxes:
-        if hasattr(box, 'box'):
-            count.update(_collect_box_count(box.box))
+        # 1st jp2 header box cannot be empty.
+        if len(jp2h.box) == 0:
+            msg = "The JP2 header superbox cannot be empty."
+            raise IOError(msg)
 
-    return count
+        # 1st jp2 header box must be ihdr
+        if jp2h.box[0].box_id != 'ihdr':
+            msg = "The first box in the jp2 header box must be the image "
+            msg += "header box."
+            raise IOError(msg)
 
-TOP_LEVEL_ONLY_BOXES = set(['dtbl'])
+        # colr must be present in jp2 header box.
+        colr_lst = [j for (j, box) in enumerate(jp2h.box)
+                    if box.box_id == 'colr']
+        if len(colr_lst) == 0:
+            msg = "The jp2 header box must contain a color definition box."
+            raise IOError(msg)
+        colr = jp2h.box[colr_lst[0]]
 
+        self._validate_channel_definition(jp2h, colr)
 
-def _check_superbox_for_top_levels(boxes):
-    """Several boxes can only occur at the top level."""
-    # We are only looking at the boxes contained in a superbox, so if any of
-    # the blacklisted boxes show up here, it's an error.
-    box_ids = set([box.box_id for box in boxes])
-    intersection = box_ids.intersection(TOP_LEVEL_ONLY_BOXES)
-    if len(intersection) > 0:
-        msg = "A '{0}' box cannot be nested in a superbox."
-        raise IOError(msg.format(list(intersection)[0]))
+    def _validate_channel_definition(self, jp2h, colr):
+        """Validate the channel definition box."""
+        cdef_lst = [j for (j, box) in enumerate(jp2h.box)
+                    if box.box_id == 'cdef']
+        if len(cdef_lst) > 1:
+            msg = "Only one channel definition box is allowed in the "
+            msg += "JP2 header."
+            raise IOError(msg)
+        elif len(cdef_lst) == 1:
+            cdef = jp2h.box[cdef_lst[0]]
+            if colr.colorspace == core.SRGB:
+                if any([chan + 1 not in cdef.association
+                        or cdef.channel_type[chan] != 0
+                        for chan in [0, 1, 2]]):
+                    msg = "All color channels must be defined in the "
+                    msg += "channel definition box."
+                    raise IOError(msg)
+            elif colr.colorspace == core.GREYSCALE:
+                if 0 not in cdef.channel_type:
+                    msg = "All color channels must be defined in the "
+                    msg += "channel definition box."
+                    raise IOError(msg)
 
-    # Recursively check any contained superboxes.
-    for box in boxes:
-        if hasattr(box, 'box'):
-            _check_superbox_for_top_levels(box.box)
+    def _check_jp2h_child_boxes(self, boxes, parent_box_name):
+        """Certain boxes can only reside in the JP2 header."""
+        JP2H_CHILDREN = set(['bpcc', 'cdef', 'cmap', 'ihdr', 'pclr'])
 
+        box_ids = set([box.box_id for box in boxes])
+        intersection = box_ids.intersection(JP2H_CHILDREN)
+        if len(intersection) > 0 and parent_box_name not in ['jp2h', 'jpch']:
+            msg = "A '{0}' box can only be nested in a JP2 header box."
+            raise IOError(msg.format(list(intersection)[0]))
 
-def _validate_top_level(boxes):
-    """Several boxes can only occur at the top level."""
-    # Add the counts in the superboxes.
-    for box in boxes:
-        if hasattr(box, 'box'):
-            _check_superbox_for_top_levels(box.box)
-
-    count = _collect_box_count(boxes)
-    # Which boxes occur more than once?
-    multiples = [box_id for box_id, bcount in count.items() if bcount > 1]
-    if 'dtbl' in multiples:
-        raise IOError('There can only be one dtbl box in a file.')
-
-    # If there is one data reference box, then there must also be one ftbl.
-    if 'dtbl' in count and 'ftbl' not in count:
-        msg = 'The presence of a data reference box requires the presence of '
-        msg += 'a fragment table box as well.'
-        raise IOError(msg)
-
-
-def _validate_singletons(boxes):
-    """Several boxes can only occur once."""
-    count = _collect_box_count(boxes)
-    # Which boxes occur more than once?
-    multiples = [box_id for box_id, bcount in count.items() if bcount > 1]
-    if 'dtbl' in multiples:
-        raise IOError('There can only be one dtbl box in a file.')
-
-JPX_IDS = ['asoc', 'nlst']
-
-
-def _validate_jpx_brand(boxes, brand):
-    """
-    If there is a JPX box then the brand must be 'jpx '.
-    """
-    for box in boxes:
-        if box.box_id in JPX_IDS:
-            if brand != 'jpx ':
-                msg = "A JPX box requires that the file type box brand be "
-                msg += "'jpx '."
-                raise RuntimeError(msg)
-        if hasattr(box, 'box') != 0:
-            # Same set of checks on any child boxes.
-            _validate_jpx_brand(box.box, brand)
-
-
-def _validate_jpx_compatibility(boxes, compatibility_list):
-    """
-    If there is a JPX box then the compatibility list must also contain 'jpx '.
-    """
-    jpx_cl = set(compatibility_list)
-    for box in boxes:
-        if box.box_id in JPX_IDS:
-            if len(set(['jpx ', 'jpxb']).intersection(jpx_cl)) == 0:
-                msg = "A JPX box requires that either 'jpx ' or 'jpxb' be "
-                msg += "present in the ftype compatibility list."
-                raise RuntimeError(msg)
-        if hasattr(box, 'box') != 0:
-            # Same set of checks on any child boxes.
-            _validate_jpx_compatibility(box.box, compatibility_list)
-
-
-def _validate_label(boxes):
-    """
-    Label boxes can only be inside association, codestream headers, or
-    compositing layer header boxes.
-    """
-    for box in boxes:
-        if box.box_id != 'asoc':
+        # Recursively check any contained superboxes.
+        for box in boxes:
             if hasattr(box, 'box'):
-                for boxi in box.box:
-                    if boxi.box_id == 'lbl ':
-                        msg = "A label box cannot be nested inside a {0} box."
-                        msg = msg.format(box.box_id)
-                        raise IOError(msg)
+                self._check_jp2h_child_boxes(box.box, box.box_id)
+
+    def _collect_box_count(self, boxes):
+        """Count the occurences of each box type."""
+        count = Counter([box.box_id for box in boxes])
+
+        # Add the counts in the superboxes.
+        for box in boxes:
+            if hasattr(box, 'box'):
+                count.update(self._collect_box_count(box.box))
+
+        return count
+
+    def _check_superbox_for_top_levels(self, boxes):
+        """Several boxes can only occur at the top level."""
+        # We are only looking at the boxes contained in a superbox, so if any
+        # of the blacklisted boxes show up here, it's an error.
+        TOP_LEVEL_ONLY_BOXES = set(['dtbl'])
+        box_ids = set([box.box_id for box in boxes])
+        intersection = box_ids.intersection(TOP_LEVEL_ONLY_BOXES)
+        if len(intersection) > 0:
+            msg = "A '{0}' box cannot be nested in a superbox."
+            raise IOError(msg.format(list(intersection)[0]))
+
+        # Recursively check any contained superboxes.
+        for box in boxes:
+            if hasattr(box, 'box'):
+                self._check_superbox_for_top_levels(box.box)
+
+    def _validate_top_level(self, boxes):
+        """Several boxes can only occur at the top level."""
+        # Add the counts in the superboxes.
+        for box in boxes:
+            if hasattr(box, 'box'):
+                self._check_superbox_for_top_levels(box.box)
+
+        count = self._collect_box_count(boxes)
+        # Which boxes occur more than once?
+        multiples = [box_id for box_id, bcount in count.items() if bcount > 1]
+        if 'dtbl' in multiples:
+            raise IOError('There can only be one dtbl box in a file.')
+
+        # If there is one data reference box, then there must also be one ftbl.
+        if 'dtbl' in count and 'ftbl' not in count:
+            msg = 'The presence of a data reference box requires the presence '
+            msg += 'of a fragment table box as well.'
+            raise IOError(msg)
+
+    def _validate_singletons(self, boxes):
+        """Several boxes can only occur once."""
+        count = self._collect_box_count(boxes)
+        # Which boxes occur more than once?
+        multiples = [box_id for box_id, bcount in count.items() if bcount > 1]
+        if 'dtbl' in multiples:
+            raise IOError('There can only be one dtbl box in a file.')
+
+    def _validate_jpx_brand(self, boxes, brand):
+        """
+        If there is a JPX box then the brand must be 'jpx '.
+        """
+        JPX_IDS = ['asoc', 'nlst']
+        for box in boxes:
+            if box.box_id in JPX_IDS:
+                if brand != 'jpx ':
+                    msg = "A JPX box requires that the file type box brand be "
+                    msg += "'jpx '."
+                    raise RuntimeError(msg)
+            if hasattr(box, 'box') != 0:
                 # Same set of checks on any child boxes.
-                _validate_label(box.box)
+                self._validate_jpx_brand(box.box, brand)
+
+    def _validate_jpx_compatibility(self, boxes, compatibility_list):
+        """
+        If there is a JPX box then the compatibility list must also contain
+        'jpx '.
+        """
+        JPX_IDS = ['asoc', 'nlst']
+        jpx_cl = set(compatibility_list)
+        for box in boxes:
+            if box.box_id in JPX_IDS:
+                if len(set(['jpx ', 'jpxb']).intersection(jpx_cl)) == 0:
+                    msg = "A JPX box requires that either 'jpx ' or 'jpxb' be "
+                    msg += "present in the ftype compatibility list."
+                    raise RuntimeError(msg)
+            if hasattr(box, 'box') != 0:
+                # Same set of checks on any child boxes.
+                self._validate_jpx_compatibility(box.box, compatibility_list)
+
+    def _validate_label(self, boxes):
+        """
+        Label boxes can only be inside association, codestream headers, or
+        compositing layer header boxes.
+        """
+        for box in boxes:
+            if box.box_id != 'asoc':
+                if hasattr(box, 'box'):
+                    for boxi in box.box:
+                        if boxi.box_id == 'lbl ':
+                            msg = "A label box cannot be nested inside a "
+                            msg += "{0} box."
+                            msg = msg.format(box.box_id)
+                            raise IOError(msg)
+                    # Same set of checks on any child boxes.
+                    self._validate_label(box.box)
 
 
 # Setup the default callback handlers.  See the callback functions subsection
