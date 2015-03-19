@@ -1167,7 +1167,7 @@ class Jp2k(Jp2kBox):
 
         Returns
         -------
-        img_array : ndarray
+        image : ndarray
             The image data.
 
         Raises
@@ -1203,21 +1203,21 @@ class Jp2k(Jp2kBox):
                     src = fptr.read()
                 cio = opj.cio_open(dinfo, src)
 
-                image = opj.decode(dinfo, cio)
+                raw_image = opj.decode(dinfo, cio)
 
-                stack.callback(opj.image_destroy, image)
+                stack.callback(opj.image_destroy, raw_image)
                 stack.callback(opj.destroy_decompress, dinfo)
                 stack.callback(opj.cio_close, cio)
 
-                data = extract_image_cube(image)
+                image = self._extract_image(raw_image)
 
             except ValueError:
                 opj2.check_error(0)
 
-        if data.shape[2] == 1:
+        if image.shape[2] == 1:
             # The third dimension has just a single layer.  Make the image
             # data 2D instead of 3D.
-            data.shape = data.shape[0:2]
+            image.shape = image.shape[0:2]
 
         if area is not None:
             x0, y0, x1, y1 = area
@@ -1229,9 +1229,9 @@ class Jp2k(Jp2kBox):
             area = [int(round(float(x)/extent + 2 ** -20)) for x in area]
             rows = slice(area[0], area[2], None)
             cols = slice(area[1], area[3], None)
-            data = data[rows, cols]
+            image = image[rows, cols]
 
-        return data
+        return image
 
     def _read_openjp2(self, rlevel=0, layer=None, area=None, tile=None,
                       verbose=False):
@@ -1254,7 +1254,7 @@ class Jp2k(Jp2kBox):
 
         Returns
         -------
-        img_array : ndarray
+        image : ndarray
             The image data.
 
         Raises
@@ -1291,26 +1291,26 @@ class Jp2k(Jp2kBox):
                 opj2.set_info_handler(codec, None)
 
             opj2.setup_decoder(codec, self._dparams)
-            image = opj2.read_header(stream, codec)
-            stack.callback(opj2.image_destroy, image)
+            raw_image = opj2.read_header(stream, codec)
+            stack.callback(opj2.image_destroy, raw_image)
 
             if self._dparams.nb_tile_to_decode:
-                opj2.get_decoded_tile(codec, stream, image,
+                opj2.get_decoded_tile(codec, stream, raw_image,
                                       self._dparams.tile_index)
             else:
-                opj2.set_decode_area(codec, image,
+                opj2.set_decode_area(codec, raw_image,
                                      self._dparams.DA_x0, self._dparams.DA_y0,
                                      self._dparams.DA_x1, self._dparams.DA_y1)
-                opj2.decode(codec, stream, image)
+                opj2.decode(codec, stream, raw_image)
 
             opj2.end_decompress(codec, stream)
 
-            img_array = extract_image_cube(image)
+            image = self._extract_image(raw_image)
 
-        if img_array.shape[2] == 1:
-            img_array.shape = img_array.shape[0:2]
+        if image.shape[2] == 1:
+            image.shape = image.shape[0:2]
 
-        return img_array
+        return image
 
     def _populate_dparams(self, rlevel, tile=None, area=None):
         """Populate decompression structure with appropriate input parameters.
@@ -1459,9 +1459,63 @@ class Jp2k(Jp2kBox):
                 opj2.decode(codec, stream, image)
                 opj2.end_decompress(codec, stream)
 
-            lst = extract_image_bands(image)
+            lst = self._extract_image(image)
 
         return lst
+
+    def _extract_image(self, raw_image):
+        """
+        Extract unequally-sized image bands.
+
+        Parameters
+        ----------
+        raw_image : reference to openjpeg ImageType instance
+            The image structure initialized with image characteristics.
+
+        Returns
+        -------
+        image : list or numpy array
+            If the JPEG 2000 image has unequally-sized images, they are
+            extracted into a list, otherwise a numpy array.
+
+        """
+        ncomps = raw_image.contents.numcomps
+
+        # Make a pass thru the image, see if any of the band datatypes or
+        # dimensions differ.
+        dtypes, nrows, ncols = [], [], []
+        for k in range(raw_image.contents.numcomps):
+            component = raw_image.contents.comps[k]
+            dtypes.append(_component2dtype(component))
+            nrows.append(component.h)
+            ncols.append(component.w)
+        is_cube = all(r == nrows[0] and c == ncols[0] and d == dtypes[0]
+                      for r, c, d in zip(nrows, ncols, dtypes))
+
+        if is_cube:
+            image = np.zeros((nrows[0], ncols[0], ncomps), dtypes[0])
+        else:
+            image = []
+
+        for k in range(raw_image.contents.numcomps):
+            component = raw_image.contents.comps[k]
+
+            _validate_nonzero_image_size(nrows[k], ncols[k], k)
+
+            addr = ctypes.addressof(component.data.contents)
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                nelts = nrows[k] * ncols[k]
+                band = np.ctypeslib.as_array(
+                    (ctypes.c_int32 * nelts).from_address(addr))
+                if is_cube:
+                    image[:, :, k] = np.reshape(band.astype(dtypes[k]),
+                                                (nrows[k], ncols[k]))
+                else:
+                    image.append(np.reshape(band.astype(dtypes[k]),
+                                 (nrows[k], ncols[k])))
+
+        return image
 
     def get_codestream(self, header_only=True):
         """Returns a codestream object.
@@ -1891,61 +1945,6 @@ def _validate_label(boxes):
                         raise IOError(msg)
                 # Same set of checks on any child boxes.
                 _validate_label(box.box)
-
-
-def extract_image_cube(image):
-    """Extract 3D image from openjpeg data structure.
-    """
-    ncomps = image.contents.numcomps
-    component = image.contents.comps[0]
-    dtype = _component2dtype(component)
-
-    nrows = component.h
-    ncols = component.w
-    data = np.zeros((nrows, ncols, ncomps), dtype)
-
-    for k in range(image.contents.numcomps):
-        component = image.contents.comps[k]
-        nrows = component.h
-        ncols = component.w
-
-        _validate_nonzero_image_size(nrows, ncols, k)
-
-        addr = ctypes.addressof(component.data.contents)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            nelts = nrows * ncols
-            band = np.ctypeslib.as_array(
-                (ctypes.c_int32 * nelts).from_address(addr))
-            data[:, :, k] = np.reshape(band.astype(dtype), (nrows, ncols))
-
-    return data
-
-
-def extract_image_bands(image):
-    """Extract unequally-sized image bands.
-
-    This routine need only be called when subsampling differs across image
-    components, such as is often the case with YCbCr imagery.
-    """
-    data = []
-    for k in range(image.contents.numcomps):
-        component = image.contents.comps[k]
-
-        dtype = _component2dtype(component)
-        nrows = component.h
-        ncols = component.w
-
-        _validate_nonzero_image_size(nrows, ncols, k)
-
-        addr = ctypes.addressof(component.data.contents)
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-            band = np.ctypeslib.as_array(
-                (ctypes.c_int32 * nrows * ncols).from_address(addr))
-        data.append(np.reshape(band.astype(dtype), (nrows, ncols)))
-
-    return data
 
 
 # Setup the default callback handlers.  See the callback functions subsection
