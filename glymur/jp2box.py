@@ -1830,6 +1830,79 @@ class AssociationBox(Jp2kBox):
         self._write_superbox(fptr, b'asoc')
 
 
+class BitsPerComponentBox(Jp2kBox):
+    """Container for bits per component box information.
+
+    Attributes
+    ----------
+    box_id : str
+        4-character identifier for the box.
+    length : int
+        length of the box in bytes.
+    offset : int
+        offset of the box from the start of the file.
+    longname : str
+        more verbose description of the box.
+    bpc : list
+        bits per component for each component
+    signed : list
+        True if signed, false if not, for each component
+    """
+    box_id = 'bpcc'
+    longname = 'Bits Per Component'
+
+    def __init__(self, bpc, signed, length=0, offset=-1):
+        Jp2kBox.__init__(self)
+        self.length = length
+        self.offset = offset
+        self.bpc = bpc
+        self.signed = signed
+
+    def __repr__(self):
+        msg = "glymur.jp2box.BitsPerComponentBox(box={0})".format(self.box)
+        return msg
+
+    def __str__(self):
+        title = Jp2kBox.__str__(self)
+        if _printoptions['short'] is True:
+            return title
+
+        body = 'Bits per component:  ['
+        body += ', '.join(str(x) for x in self.bpc)
+        body += ']'
+        body += '\n'
+        body += 'Signed:  [' + ', '.join(str(x) for x in self.signed) + ']'
+
+        body = self._indent(body)
+
+        text = '\n'.join([title, body])
+        return text
+
+    @classmethod
+    def parse(cls, fptr, offset, length):
+        """Parse bits per component box.
+
+        Parameters
+        ----------
+        fptr : file
+            Open file object.
+        offset : int
+            Start position of box in bytes.
+        length : int
+            Length of the box in bytes.
+
+        Returns
+        -------
+        AssociationBox instance
+        """
+        nbytes = length - 8
+        data = fptr.read(nbytes)
+        bpc = tuple(((x & 0x7f) + 1) for x in data)
+        signed = tuple(((x & 0x80) > 0) for x in data)
+
+        return cls(bpc, signed, length=length, offset=offset)
+
+
 class JP2HeaderBox(Jp2kBox):
     """Container for JP2 header box information.
 
@@ -3404,6 +3477,7 @@ class UUIDBox(Jp2kBox):
 # Map each box ID to the corresponding class.
 _BOX_WITH_ID = {
     b'asoc': AssociationBox,
+    b'bpcc': BitsPerComponentBox,
     b'cdef': ChannelDefinitionBox,
     b'cgrp': ColourGroupBox,
     b'cmap': ComponentMappingBox,

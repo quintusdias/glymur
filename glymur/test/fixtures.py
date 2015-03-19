@@ -1092,3 +1092,8 @@ goodstuff_with_full_header = r"""Codestream:
         Step size:  [(0, 8), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10)]
     SOD marker segment @ (164, 0)
     EOC marker segment @ (115218, 0)"""
+
+bpcc = """Bits Per Component Box (bpcc) @ (62, 12)
+    Bits per component:  [5, 5, 5, 1]
+    Signed:  [False, False, False, False]"""
+

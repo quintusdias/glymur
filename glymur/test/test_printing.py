@@ -618,6 +618,17 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_bpcc(self):
+        """BPCC boxes are rare :-)"""
+        self.maxDiff = None
+        filename = opj_data_file('input/nonregression/issue458.jp2')
+        jp2 = Jp2k(filename)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            box = jp2.box[2].box[1]
+            print(box)
+            actual = fake_out.getvalue().strip()
+        self.assertEqual(actual, fixtures.bpcc)
+
     def test_cinema_profile(self):
         """Should print Cinema 2K when the profile is 3."""
         filename = opj_data_file('input/nonregression/_00042.j2k')
