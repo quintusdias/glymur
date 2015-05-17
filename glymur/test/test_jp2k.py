@@ -658,11 +658,24 @@ class TestJp2k(unittest.TestCase):
         data = jpx[:]
         self.assertEqual(data.shape, (1024, 1024, 3))
 
+    def test_read_without_openjpeg(self):
+        """Don't have openjpeg or openjp2 library?  Must error out."""
+        with patch('glymur.version.openjpeg_version_tuple', new=(0, 0, 0)):
+            with patch('glymur.version.openjpeg_version', new='0.0.0'):
+                with self.assertRaises(RuntimeError):
+                    with warnings.catch_warnings():
+                        # Suppress a deprecation warning for raw read method.
+                        warnings.simplefilter("ignore")
+                        glymur.Jp2k(self.jp2file).read()
+                with self.assertRaises(RuntimeError):
+                    glymur.Jp2k(self.jp2file)[:]
+
     def test_read_bands_without_openjp2(self):
         """Don't have openjp2 library?  Must error out."""
         with patch('glymur.version.openjpeg_version_tuple', new=(1, 5, 0)):
-            with self.assertRaises(RuntimeError):
-                glymur.Jp2k(self.jp2file).read_bands()
+            with patch('glymur.version.openjpeg_version', new='1.5.0'):
+                with self.assertRaises(RuntimeError):
+                    glymur.Jp2k(self.jp2file).read_bands()
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)

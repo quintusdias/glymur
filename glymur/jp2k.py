@@ -1091,9 +1091,14 @@ class Jp2k(Jp2kBox):
 
         Raises
         ------
-        IOError
-            If the image has differing subsample factors.
+        RuntimeError
+            if the proper version of the OpenJPEG library is not available
         """
+        if re.match("0|1.[01234]", version.openjpeg_version):
+            raise RuntimeError("You must have at least version 1.5.0 of "
+                               "OpenJPEG installed before you can read "
+                               "JPEG2000 images.")
+
         if version.openjpeg_version_tuple[0] < 2:
             img = self._read_openjpeg(**kwargs)
         else:
@@ -1134,10 +1139,7 @@ class Jp2k(Jp2kBox):
         if 'ignore_pclr_cmap_cdef' in kwargs:
             self.ignore_pclr_cmap_cdef = kwargs['ignore_pclr_cmap_cdef']
         warnings.warn("Use array-style slicing instead.", DeprecationWarning)
-        if version.openjpeg_version_tuple[0] < 2:
-            img = self._read_openjpeg(**kwargs)
-        else:
-            img = self._read_openjp2(**kwargs)
+        img = self._read(**kwargs)
         return img
 
     def _subsampling_sanity_check(self):
