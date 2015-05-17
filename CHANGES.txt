@@ -1,3 +1,5 @@
+May 17, 2015 - v0.8.2  Add proper library version check to read methods.
+
 May 08, 2015 - v0.8.1  Add support for JP2 bits per component box.
 
 Jan 10, 2015 - v0.8.0  Reduce number of steps required for writing
