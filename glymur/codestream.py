@@ -250,7 +250,10 @@ class Codestream(object):
 
         read_buffer = fptr.read(2)
         length, = struct.unpack('>H', read_buffer)
-        data = fptr.read(length-2)
+        if length > 0:
+            data = fptr.read(length-2)
+        else:
+            data = None
 
         segment = Segment(marker_id='0x{0:x}'.format(self._marker_id),
                           offset=offset, length=length, data=data)
