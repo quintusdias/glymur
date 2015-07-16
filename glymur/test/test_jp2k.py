@@ -867,12 +867,13 @@ class TestJp2k_1_x(unittest.TestCase):
         """tile option not allowed for 1.x.
         """
         with patch('glymur.version.openjpeg_version_tuple', new=(1, 5, 0)):
-            j2k = Jp2k(self.j2kfile)
-            with warnings.catch_warnings():
-                # The tile keyword is deprecated, so suppress the warning.
-                warnings.simplefilter('ignore')
-                with self.assertRaises(TypeError):
-                    j2k.read(tile=0)
+            with patch('glymur.version.openjpeg_version', new="1.5.0"):
+                j2k = Jp2k(self.j2kfile)
+                with warnings.catch_warnings():
+                    # The tile keyword is deprecated, so suppress the warning.
+                    warnings.simplefilter('ignore')
+                    with self.assertRaises(TypeError):
+                        j2k.read(tile=0)
 
     def test_layer(self):
         """layer option not allowed for 1.x.
