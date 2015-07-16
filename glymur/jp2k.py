@@ -527,12 +527,12 @@ class Jp2k(Jp2kBox):
             # set image offset and reference grid
             image.contents.x0 = self._cparams.image_offset_x0
             image.contents.y0 = self._cparams.image_offset_y0
-            image.contents.x1 = (image.contents.x0
-                                 + (numcols - 1) * self._cparams.subsampling_dx
-                                 + 1)
-            image.contents.y1 = (image.contents.y0
-                                 + (numrows - 1) * self._cparams.subsampling_dy
-                                 + 1)
+            image.contents.x1 = (image.contents.x0 +
+                                 (numcols - 1) * self._cparams.subsampling_dx +
+                                 1)
+            image.contents.y1 = (image.contents.y0 +
+                                 (numrows - 1) * self._cparams.subsampling_dy +
+                                 1)
 
             # Stage the image data to the openjpeg data structure.
             for k in range(0, numlayers):
@@ -1032,8 +1032,8 @@ class Jp2k(Jp2kBox):
         if isinstance(pargs, tuple) and any(isinstance(x, int) for x in pargs):
             # Replace the first such integer argument, replace it with a slice.
             lst = list(pargs)
-            predicate = lambda x: not isinstance(x[1], int)
-            g = filterfalse(predicate, enumerate(pargs))
+            g = filterfalse(lambda x: not isinstance(x[1], int),
+                            enumerate(pargs))
             idx = next(g)[0]
             lst[idx] = slice(pargs[idx], pargs[idx] + 1)
             newindex = tuple(lst)
@@ -1804,9 +1804,8 @@ class Jp2k(Jp2kBox):
         elif len(cdef_lst) == 1:
             cdef = jp2h.box[cdef_lst[0]]
             if colr.colorspace == core.SRGB:
-                if any([chan + 1 not in cdef.association
-                        or cdef.channel_type[chan] != 0
-                        for chan in [0, 1, 2]]):
+                if any([chan + 1 not in cdef.association or
+                        cdef.channel_type[chan] != 0 for chan in [0, 1, 2]]):
                     msg = "All color channels must be defined in the "
                     msg += "channel definition box."
                     raise IOError(msg)

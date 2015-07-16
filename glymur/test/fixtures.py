@@ -199,6 +199,12 @@ try:
 except ((ImportError, RuntimeError)):
     NO_SKIMAGE_FREEIMAGE_SUPPORT = True
 
+# Do we have gdal?
+try:
+    import gdal
+    HAVE_GDAL = True
+except ImportError:
+    HAVE_GDAL = False
 
 def _indent(textstr):
     """
@@ -1097,3 +1103,33 @@ bpcc = """Bits Per Component Box (bpcc) @ (62, 12)
     Bits per component:  [5, 5, 5, 1]
     Signed:  [False, False, False, False]"""
 
+# manually verified via gdalinfo
+geotiff_uuid = """UUID Box (uuid) @ (149, 523)
+    UUID:  b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03 (GeoTIFF)
+    Coordinate System =
+        PROJCS["Equirectangular MARS",
+            GEOGCS["GCS_MARS",
+                DATUM["unknown",
+                    SPHEROID["unnamed",3396190,0]],
+                PRIMEM["Greenwich",0],
+                UNIT["degree",0.0174532925199433]],
+            PROJECTION["Equirectangular"],
+            PARAMETER["latitude_of_origin",0],
+            PARAMETER["central_meridian",180],
+            PARAMETER["standard_parallel_1",0],
+            PARAMETER["false_easting",0],
+            PARAMETER["false_northing",0],
+            UNIT["metre",1,
+                AUTHORITY["EPSG","9001"]]]
+    Origin = (-2523306.125000000000000,-268608.875000000000000)
+    Pixel Size = (0.250000000000000,-0.250000000000000)
+    Corner Coordinates:
+    Upper Left  (-2523306.125, -268608.875) (137d25'49.08"E,  4d31'53.74"S
+    Lower Left  (-2523306.125, -268609.125) (137d25'49.08"E,  4d31'53.75"S
+    Upper Right (-2523305.875, -268608.875) (137d25'49.09"E,  4d31'53.74"S
+    Lower Right (-2523305.875, -268609.125) (137d25'49.09"E,  4d31'53.75"S
+    Center      (-2523306.000, -268609.000) (137d25'49.09"E,  4d31'53.75"S"""
+
+geotiff_uuid_without_gdal = """UUID Box (uuid) @ (149, 523)
+    UUID:  b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03 (GeoTIFF)
+    UUID Data:  OrderedDict([('ImageWidth', 1), ('ImageLength', 1), ('BitsPerSample', 8), ('Compression', 1), ('PhotometricInterpretation', 1), ('StripOffsets', 8), ('SamplesPerPixel', 1), ('RowsPerStrip', 1), ('StripByteCounts', 1), ('PlanarConfiguration', 1), ('ModelPixelScale', (0.25, 0.25, 0.0)), ('ModelTiePoint', (0.0, 0.0, 0.0, -2523306.125, -268608.875, 0.0)), ('GeoKeyDirectory', (1, 1, 0, 18, 1024, 0, 1, 1, 1025, 0, 1, 1, 1026, 34737, 21, 0, 2048, 0, 1, 32767, 2049, 34737, 9, 21, 2050, 0, 1, 32767, 2054, 0, 1, 9102, 2056, 0, 1, 32767, 2057, 34736, 1, 4, 2058, 34736, 1, 5, 3072, 0, 1, 32767, 3074, 0, 1, 32767, 3075, 0, 1, 17, 3076, 0, 1, 9001, 3082, 34736, 1, 2, 3083, 34736, 1, 3, 3088, 34736, 1, 1, 3089, 34736, 1, 0)), ('GeoDoubleParams', (0.0, 180.0, 0.0, 0.0, 3396190.0, 3396190.0)), ('GeoAsciiParams', 'Equirectangular MARS|GCS_MARS|')])"""

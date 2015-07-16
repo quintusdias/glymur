@@ -2,29 +2,31 @@
 """Test suite for printing.
 """
 import os
+import pkg_resources as pkg
 import shutil
 import struct
 import sys
 import tempfile
+import unittest
 import uuid
 
-if sys.hexversion < 0x02070000:
-    import unittest2 as unittest
+if sys.hexversion <= 0x03000000:
+    from mock import patch
+    from StringIO import StringIO
 else:
-    import unittest
+    from unittest.mock import patch
+    from io import StringIO
 
 import lxml.etree
 
-from .fixtures import (WARNING_INFRASTRUCTURE_ISSUE,
-                       WARNING_INFRASTRUCTURE_MSG,
-                       WINDOWS_TMP_FILE_MSG)
+from . import fixtures
 
 import glymur
 from glymur import Jp2k
 from .fixtures import SimpleRDF
 
 
-@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
+@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
 class TestSuite(unittest.TestCase):
     """Tests for XMP, Exif UUIDs."""
 
@@ -80,8 +82,88 @@ class TestSuite(unittest.TestCase):
             self.assertEqual(jp2.box[-1].data['Make'], "HTC")
 
 
-@unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
-@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
+@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
+class TestSuiteHiRISE(unittest.TestCase):
+    """Tests for HiRISE RDRs."""
+
+    def setUp(self):
+        # Hand-create the boxes needed for HiRISE.
+        the_uuid = uuid.UUID('2b0d7e97-aa2e-317d-9a33-e53161a2f7d0')
+        ulst = glymur.jp2box.UUIDListBox([the_uuid])
+
+        version = 0
+        flag = [0, 0, 0]
+        url = 'ESP_032436_1755_COLOR.LBL'
+        debox = glymur.jp2box.DataEntryURLBox(version, flag, url)
+
+        uuidinfo = glymur.jp2box.UUIDInfoBox([ulst, debox])
+
+        relpath = os.path.join('data', 'degenerate_geotiff.tif')
+        path = pkg.resource_filename(__name__, relpath)
+        with open(path, 'rb') as fptr:
+            uuid_data = fptr.read()
+        the_uuid = uuid.UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03')
+        geotiff_uuid = glymur.jp2box.UUIDBox(the_uuid, uuid_data)
+
+        # Fabricate a new JP2 file out of the signature, file type, header,
+        # and codestream out of nemo.jp2, but add in the UUIDInfo and UUID
+        # box from HiRISE.
+        jp2 = Jp2k(glymur.data.nemo())
+        boxes = [jp2.box[0], jp2.box[1], jp2.box[2], uuidinfo, geotiff_uuid,
+                 jp2.box[-1]]
+
+        with tempfile.NamedTemporaryFile(suffix=".jp2", delete=False) as tfile:
+            jp2.wrap(tfile.name, boxes=boxes)
+        self.hirise_jp2file_name = tfile.name
+
+    def tearDown(self):
+        os.unlink(self.hirise_jp2file_name)
+
+    def test_tags(self):
+        jp2 = Jp2k(self.hirise_jp2file_name)
+        self.assertEqual(jp2.box[4].data['GeoDoubleParams'],
+                         (0.0, 180.0, 0.0, 0.0, 3396190.0, 3396190.0))
+        self.assertEqual(jp2.box[4].data['GeoAsciiParams'],
+                         'Equirectangular MARS|GCS_MARS|')
+        self.assertEqual(jp2.box[4].data['GeoKeyDirectory'],
+                         (   1,     1,  0,    18, 
+                          1024,     0,  1,     1, 
+                          1025,     0,  1,     1, 
+                          1026, 34737, 21,     0, 
+                          2048,     0,  1, 32767, 
+                          2049, 34737,  9,    21, 
+                          2050,     0,  1, 32767, 
+                          2054,     0,  1,  9102, 
+                          2056,     0,  1, 32767, 
+                          2057, 34736,  1,     4, 
+                          2058, 34736,  1,     5, 
+                          3072,     0,  1, 32767, 
+                          3074,     0,  1, 32767, 
+                          3075,     0,  1,    17, 
+                          3076,     0,  1,  9001, 
+                          3082, 34736,  1,     2, 
+                          3083, 34736,  1,     3, 
+                          3088, 34736,  1,     1, 
+                          3089, 34736,  1,     0))
+        self.assertEqual(jp2.box[4].data['ModelPixelScale'], (0.25, 0.25, 0.0))
+        self.assertEqual(jp2.box[4].data['ModelTiePoint'],
+                         (0.0, 0.0, 0.0, -2523306.125, -268608.875, 0.0))
+
+    def test_printing(self):
+        jp2 = Jp2k(self.hirise_jp2file_name)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(jp2.box[4])
+            actual = fake_out.getvalue().strip()
+        if fixtures.HAVE_GDAL:
+            expected = fixtures.geotiff_uuid
+        else:
+            expected = fixtures.geotiff_uuid_without_gdal
+        self.assertEqual(actual, expected)
+
+
+@unittest.skipIf(fixtures.WARNING_INFRASTRUCTURE_ISSUE,
+                 fixtures.WARNING_INFRASTRUCTURE_MSG)
+@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
 class TestSuiteWarns(unittest.TestCase):
     """Tests for XMP, Exif UUIDs, issues warnings."""
 

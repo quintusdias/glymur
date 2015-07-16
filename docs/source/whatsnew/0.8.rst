@@ -2,6 +2,25 @@
 Changes in glymur 0.8
 =====================
 
+Changes in 0.8.3
+=================
+
+    * Fix doc bug (thanks Daniel Haehn)
+    * Fix unittest bug on cygwin, issue #326
+    * Add write support for UUIDInfo and UUIDList boxes
+    * Add read support for HiRISE UUID boxes (gdal module recommended, but
+      not required)
+
+Changes in 0.8.2
+=================
+
+    * Improve read error message when openjpeg library not found, issue #322
+
+Changes in 0.8.1
+=================
+
+    * Add support for BitsPerComponentBox
+
 Changes in 0.8.0
 =================
 

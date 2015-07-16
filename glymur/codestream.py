@@ -27,7 +27,8 @@ from .core import (LRCP, RLCP, RPCL, PCRL, CPRL,
                    _Keydefaultdict)
 from .lib import openjp2 as opj2
 
-_factory = lambda x:  '{0} (invalid)'.format(x)
+
+_factory = lambda x: '{0} (invalid)'.format(x)
 _PROGRESSION_ORDER_DISPLAY = _Keydefaultdict(_factory, {LRCP: 'LRCP',
                                                         RLCP: 'RLCP',
                                                         RPCL: 'RPCL',

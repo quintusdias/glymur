@@ -25,6 +25,13 @@ import warnings
 
 import lxml.etree as ET
 import numpy as np
+try:
+    import gdal
+    import osr
+    _HAVE_GDAL = True
+except ImportError:
+    _HAVE_GDAL = False
+
 
 from .codestream import Codestream
 from .core import (_COLORSPACE_MAP_DISPLAY, _COLOR_TYPE_MAP_DISPLAY,
@@ -35,12 +42,14 @@ from .core import (_COLORSPACE_MAP_DISPLAY, _COLOR_TYPE_MAP_DISPLAY,
 
 from . import _uuid_io
 
+
 _factory = lambda x: '{0} (invalid)'.format(x)
 _keysvalues = {ENUMERATED_COLORSPACE: 'enumerated colorspace',
                RESTRICTED_ICC_PROFILE: 'restricted ICC profile',
                ANY_ICC_PROFILE: 'any ICC profile',
                VENDOR_COLOR_METHOD: 'vendor color method'}
 _METHOD_DISPLAY = _Keydefaultdict(_factory, _keysvalues)
+
 
 _factory = lambda x: '{0} (invalid)'.format(x)
 _keysvalues = {1: 'accurately represents correct colorspace definition',
@@ -50,6 +59,11 @@ _keysvalues = {1: 'accurately represents correct colorspace definition',
                    'reasonable quality'),
                4: 'approximates correct colorspace definition, poor quality'}
 _APPROX_DISPLAY = _Keydefaultdict(_factory, _keysvalues)
+
+# Three different UUIDs are given special treatment.
+_GEOTIFF_UUID = UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03')
+_EXIF_UUID = UUID(bytes=b'JpgTiffExif->JP2')
+_XMP_UUID = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
 
 
 class Jp2kBox(object):
@@ -2197,12 +2211,12 @@ _READER_REQUIREMENTS_DISPLAY = {
     0:  'File not completely understood',
     1:  'Deprecated - contains no extensions',
     2:  'Contains multiple composition layers',
-    3:  'Deprecated - codestream is compressed using JPEG 2000 and requires '
-        + 'at least a Profile 0 decoder as defind in ITU-T Rec. T.800 '
-        + '| ISO/IEC 15444-1, A.10 Table A.45',
+    3:  ('Deprecated - codestream is compressed using JPEG 2000 and requires '
+         'at least a Profile 0 decoder as defind in ITU-T Rec. T.800 '
+         '| ISO/IEC 15444-1, A.10 Table A.45'),
     4:  'JPEG 2000 Part 1 Profile 1 codestream',
-    5:  'Unrestricted JPEG 2000 Part 1 codestream, ITU-T Rec. T.800 '
-        + '| ISO/IEC 15444-1',
+    5:  ('Unrestricted JPEG 2000 Part 1 codestream, ITU-T Rec. T.800 '
+         '| ISO/IEC 15444-1'),
     6:  'Unrestricted JPEG 2000 Part 2 codestream',
     7:  'JPEG codestream as defined in ISO/IEC 10918-1',
     8:  'Deprecated - does not contain opacity',
@@ -2422,9 +2436,8 @@ class ReaderRequirementsBox(Jp2kBox):
             standard_flag, standard_mask = data
 
             nflags = len(standard_flag)
-            vendor_offset = (1 + 2 * mask_length + 2
-                             + (2 + mask_length) * nflags)
-            data = _parse_vendor_features(read_buffer[vendor_offset:],
+            vndr_offset = 1 + 2 * mask_length + 2 + (2 + mask_length) * nflags
+            data = _parse_vendor_features(read_buffer[vndr_offset:],
                                           mask_length)
             vendor_feature, vendor_mask = data
 
@@ -3107,6 +3120,17 @@ class UUIDListBox(Jp2kBox):
         text = '\n'.join([title, body])
         return text
 
+    def write(self, fptr):
+        """Write a UUID list box to file.
+        """
+        num_uuids = len(self.ulst)
+        length = 4 + 4 + 2 + num_uuids * 16
+        write_buffer = struct.pack('>I4sH', length, b'ulst', num_uuids)
+        fptr.write(write_buffer)
+
+        for j in range(num_uuids):
+            fptr.write(self.ulst[j].bytes)
+
     @classmethod
     def parse(cls, fptr, offset, length):
         """Parse UUIDList box.
@@ -3169,6 +3193,11 @@ class UUIDInfoBox(Jp2kBox):
     def __str__(self):
         msg = self._str_superbox()
         return msg
+
+    def write(self, fptr):
+        """Write a UUIDInfo box to file.
+        """
+        self._write_superbox(fptr, b'uinf')
 
     @classmethod
     def parse(cls, fptr, offset, length):
@@ -3393,8 +3422,11 @@ class UUIDBox(Jp2kBox):
         """
         if self.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
             self.data = _uuid_io.xml(self.raw_data)
-        elif self.uuid.bytes == b'JpgTiffExif->JP2':
+        elif self.uuid == _GEOTIFF_UUID:
             self.data = _uuid_io.tiff_header(self.raw_data)
+        elif self.uuid == _EXIF_UUID:
+            # Cut off 'EXIF\0\0' part.
+            self.data = _uuid_io.tiff_header(self.raw_data[6:])
         else:
             self.data = self.raw_data
 
@@ -3411,6 +3443,8 @@ class UUIDBox(Jp2kBox):
         text = 'UUID:  {0}'.format(self.uuid)
         if self.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
             text += ' (XMP)'
+        elif self.uuid == UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03'):
+            text += ' (GeoTIFF)'
         elif self.uuid.bytes == b'JpgTiffExif->JP2':
             text += ' (EXIF)'
         else:
@@ -3433,6 +3467,12 @@ class UUIDBox(Jp2kBox):
         elif self.uuid.bytes == b'JpgTiffExif->JP2':
             text = 'UUID Data:  {0}'.format(str(self.data))
             lst.append(text)
+        elif self.uuid == UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03'):
+            if _HAVE_GDAL:
+                txt = self._print_geotiff()
+            else:
+                txt = 'UUID Data:  {0}'.format(str(self.data))
+            lst.append(txt)
         else:
             text = 'UUID Data:  {0} bytes'.format(len(self.raw_data))
             lst.append(text)
@@ -3443,10 +3483,115 @@ class UUIDBox(Jp2kBox):
         text = '\n'.join([title, body])
         return text
 
+    def _print_geotiff(self):
+        """
+        Print geotiff information.  Shamelessly ripped off from gdalinfo.py
+        """
+        lst = []
+        in_mem_name = '/vsimem/geo.tif'
+        gdal.FileFromMemBuffer(in_mem_name, self.raw_data)
+        gtif = gdal.Open(in_mem_name)
+
+        # Report projection
+        proj_ref = gtif.GetProjectionRef()
+        sref = osr.SpatialReference()
+        lst.append("Coordinate System =")
+        if sref.ImportFromWkt(proj_ref) == gdal.CE_None:
+            psz_pretty_wkt = sref.ExportToPrettyWkt(False)
+        else:
+            psz_pretty_wkt = proj_ref
+        lst.append(self._indent(psz_pretty_wkt))
+
+        # report geotransform
+        geo_transform = gtif.GetGeoTransform(can_return_null=True)
+        if geo_transform is not None:
+
+            if geo_transform[2] == 0.0 and geo_transform[4] == 0.0:
+                fmt = ('Origin = ({:.15f},{:.15f})\n'
+                       'Pixel Size = ({:.15f},{:.15f})')
+                txt = fmt.format(geo_transform[0], geo_transform[3],
+                                 geo_transform[1], geo_transform[5])
+            else:
+                fmt = ('GeoTransform =   '
+                       '{:.16g}, {:16g}, {:.16g}, {:.16g}, {:16g} {:16g}')
+                txt = fmt.format(geo_transform[0], geo_transform[1],
+                                 geo_transform[2], geo_transform[3],
+                                 geo_transform[4], geo_transform[5])
+            lst.append(txt)
+
+        # setup projected to lat/long transform if appropriate
+        if proj_ref is not None and len(proj_ref) > 0:
+            hProj = osr.SpatialReference(proj_ref)
+            if hProj is not None:
+                hLatLong = hProj.CloneGeogCS()
+
+            if hLatLong is not None:
+                gdal.PushErrorHandler('CPLQuietErrorHandler')
+                hTransform = osr.CoordinateTransformation(hProj, hLatLong)
+                gdal.PopErrorHandler()
+                msg = 'Unable to load PROJ.4 library'
+                if gdal.GetLastErrorMsg().find(msg) != -1:
+                    hTransform = None
+
+        # report corners
+        lst.append("Corner Coordinates:")
+        txt = self.GDALInfoReportCorner(gtif, hTransform, "Upper Left", 0, 0)
+        lst.append(txt)
+
+        txt = self.GDALInfoReportCorner(gtif, hTransform, "Lower Left",
+                                        0, gtif.RasterYSize)
+        lst.append(txt)
+
+        txt = self.GDALInfoReportCorner(gtif, hTransform, "Upper Right",
+                                        gtif.RasterXSize, 0)
+        lst.append(txt)
+
+        txt = self.GDALInfoReportCorner(gtif, hTransform, "Lower Right",
+                                        gtif.RasterXSize, gtif.RasterYSize)
+        lst.append(txt)
+
+        txt = self.GDALInfoReportCorner(gtif, hTransform, "Center",
+                                        gtif.RasterXSize/2.0,
+                                        gtif.RasterYSize/2.0)
+        lst.append(txt)
+
+        gdal.Unlink(in_mem_name)
+        return '\n'.join(lst)
+
+    def GDALInfoReportCorner(self, hDataset, hTransform, corner_name, x, y):
+        line = '{:<11s} '.format(corner_name)
+
+        # transform the point into georeferenced coordinates
+        geo_transform = hDataset.GetGeoTransform(can_return_null=True)
+        if geo_transform is not None:
+            dfGeoX = (geo_transform[0] + geo_transform[1] * x +
+                      geo_transform[2] * y)
+            dfGeoY = geo_transform[3] + geo_transform[4] * x
+            dfGeoY += geo_transform[5] * y
+        else:
+            line += '({:12.7f},{:12.7f})'.format(x, y)
+            return line
+
+        # report the georeferenced coordinates
+        if abs(dfGeoX) < 181 and abs(dfGeoY) < 91:
+            line += '({:12.7f},{:12.7f}) '.format(dfGeoX, dfGeoY)
+        else:
+            line += '({:12.3f},{:12.3f}) '.format(dfGeoX, dfGeoY)
+
+        # transform to latlong and report
+        if hTransform is not None:
+            point = hTransform.TransformPoint(dfGeoX, dfGeoY, 0)
+            if point is not None:
+                line += '({},{}'.format(gdal.DecToDMS(point[0], 'Long', 2),
+                                        gdal.DecToDMS(point[1], 'Lat', 2))
+
+        return line
+
     def write(self, fptr):
         """Write a UUID box to file.
         """
-        write_buffer = struct.pack('>I4s', self.length, b'uuid')
+        length = 4 + 4 + 16 + len(self.raw_data)
+        write_buffer = struct.pack('>I4s', length, b'uuid')
         fptr.write(write_buffer)
         fptr.write(self.uuid.bytes)
         fptr.write(self.raw_data)
