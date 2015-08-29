@@ -1911,8 +1911,8 @@ class BitsPerComponentBox(Jp2kBox):
         """
         nbytes = length - 8
         data = fptr.read(nbytes)
-        bpc = tuple(((x & 0x7f) + 1) for x in data)
-        signed = tuple(((x & 0x80) > 0) for x in data)
+        bpc = tuple(((x & 0x7f) + 1) for x in bytearray(data))
+        signed = tuple(((x & 0x80) > 0) for x in bytearray(data))
 
         return cls(bpc, signed, length=length, offset=offset)
 
