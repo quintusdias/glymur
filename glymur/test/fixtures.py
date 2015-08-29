@@ -238,6 +238,12 @@ def opj_data_file(relative_file_name):
     return jfile
 
 try:
+    import matplotlib
+    if not re.match('[1-9]\.[3-9]', matplotlib.__version__):
+        # Probably too old.  On Ubuntu 12.04.5, the old PIL
+        # is still used for the backend, and it can't read
+        # the images we need.
+        raise ImportError('MPL is too old')  
     from matplotlib.pyplot import imread
 
     # The whole point of trying to import PIL is to determine if it's there
