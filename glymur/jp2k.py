@@ -826,7 +826,7 @@ class Jp2k(Jp2kBox):
 
         Returns
         -------
-        jp2 : Jp2k object
+        Jp2k
             Newly wrapped Jp2k object.
 
         Examples
@@ -961,7 +961,7 @@ class Jp2k(Jp2kBox):
 
         Returns
         -------
-        newindex : tuple
+        tuple
             Same as index, except that the first Ellipsis is replaced with
             a proper slice whose start and stop members are not None
         """
@@ -1086,7 +1086,7 @@ class Jp2k(Jp2kBox):
 
         Returns
         -------
-        img_array : ndarray
+        ndarray
             The image data.
 
         Raises
@@ -1169,7 +1169,7 @@ class Jp2k(Jp2kBox):
 
         Returns
         -------
-        image : ndarray
+        ndarray
             The image data.
 
         Raises
@@ -1256,7 +1256,7 @@ class Jp2k(Jp2kBox):
 
         Returns
         -------
-        image : ndarray
+        ndarray
             The image data.
 
         Raises
@@ -1402,8 +1402,8 @@ class Jp2k(Jp2kBox):
 
         Returns
         -------
-        lst : list
-            The individual image components.
+        list
+            List of the individual image components.
 
         See also
         --------
@@ -1476,8 +1476,8 @@ class Jp2k(Jp2kBox):
 
         Returns
         -------
-        image : list or numpy array
-            If the JPEG 2000 image has unequally-sized images, they are
+        list or ndarray
+            If the JPEG 2000 image has unequally-sized components, they are
             extracted into a list, otherwise a numpy array.
 
         """
@@ -1529,8 +1529,8 @@ class Jp2k(Jp2kBox):
 
         Returns
         -------
-        dtype : builtins.type
-            numpy datatype to be used to construct an image array.
+        builtins.type
+            numpy datatype to be used to construct an image array
         """
         if component.sgnd:
             if component.prec <= 8:
@@ -1562,7 +1562,8 @@ class Jp2k(Jp2kBox):
 
         Returns
         -------
-        Object describing the codestream syntax.
+        Codestream
+            Object describing the codestream syntax.
 
         Examples
         --------

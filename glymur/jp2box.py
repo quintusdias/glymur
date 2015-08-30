@@ -139,8 +139,8 @@ class Jp2kBox(object):
 
         Returns
         -------
-        indented_string : str
-            Possibly multi-line string indented a certain bit.
+        str
+            Possibly multi-line string indented by the specified amount.
         """
         if sys.hexversion >= 0x03030000:
             return textwrap.indent(textstr, ' ' * indent_level)
@@ -184,8 +184,8 @@ class Jp2kBox(object):
 
         Returns
         -------
-        box : Jp2kBox
-            object corresponding to the current box
+        Jp2kBox
+            Object corresponding to the current box.
         """
         try:
             parser = _BOX_WITH_ID[box_id].parse
@@ -224,7 +224,8 @@ class Jp2kBox(object):
 
         Returns
         -------
-        List of top-level boxes in the JPEG 2000 file.
+        list
+            List of top-level boxes in the JPEG 2000 file.
         """
 
         superbox = []
@@ -439,7 +440,8 @@ class ColourSpecificationBox(Jp2kBox):
 
         Returns
         -------
-        ColourSpecificationBox instance
+        ColourSpecificationBox
+            Instance of the current colour specification box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -699,7 +701,8 @@ class ChannelDefinitionBox(Jp2kBox):
 
         Returns
         -------
-        ComponentDefinitionBox instance
+        ComponentDefinitionBox
+            Instance of the current component definition box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -772,7 +775,8 @@ class CodestreamHeaderBox(Jp2kBox):
 
         Returns
         -------
-        CodestreamHeaderBox instance
+        CodestreamHeaderBox
+            Instance of the current codestream header box.
         """
         box = cls(length=length, offset=offset)
 
@@ -844,7 +848,8 @@ class ColourGroupBox(Jp2kBox):
 
         Returns
         -------
-        ColourGroupBox instance
+        ColourGroupBox
+            Instance of the current colour group box.
         """
         box = cls(length=length, offset=offset)
 
@@ -909,7 +914,8 @@ class CompositingLayerHeaderBox(Jp2kBox):
 
         Returns
         -------
-        CompositingLayerHeaderBox instance
+        CompositingLayerHeaderBox
+            Instance of the current compositing layer header box.
         """
         box = cls(length=length, offset=offset)
 
@@ -1010,7 +1016,8 @@ class ComponentMappingBox(Jp2kBox):
 
         Returns
         -------
-        ComponentMappingBox instance
+        ComponentMappingBox
+            Instance of the current component mapping box.
         """
         num_bytes = offset + length - fptr.tell()
         num_components = int(num_bytes/4)
@@ -1109,7 +1116,8 @@ class ContiguousCodestreamBox(Jp2kBox):
 
         Returns
         -------
-        ContiguousCodestreamBox instance
+        ContiguousCodestreamBox
+            Instance of the current contiguous codestream box.
         """
         main_header_offset = fptr.tell()
         if _parseoptions['full_codestream'] is True:
@@ -1223,7 +1231,8 @@ class DataReferenceBox(Jp2kBox):
 
         Returns
         -------
-        DataReferenceBox instance
+        DataReferenceBox
+            Instance of the current data reference box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -1358,7 +1367,8 @@ class FileTypeBox(Jp2kBox):
 
         Returns
         -------
-        FileTypeBox instance
+        FileTypeBox
+            Instance of the current file type box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -1485,7 +1495,8 @@ class FragmentListBox(Jp2kBox):
 
         Returns
         -------
-        FragmentListBox instance
+        FragmentListBox
+            Instance of the current fragment list box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -1551,7 +1562,8 @@ class FragmentTableBox(Jp2kBox):
 
         Returns
         -------
-        FragmentTableBox instance
+        FragmentTableBox
+            Instance of the current fragment table box.
         """
         box = cls(length=length, offset=offset)
 
@@ -1620,7 +1632,8 @@ class FreeBox(Jp2kBox):
 
         Returns
         -------
-        FreeBox instance
+        FreeBox
+            Instance of the current free box.
         """
         return cls(length=length, offset=offset)
 
@@ -1757,7 +1770,8 @@ class ImageHeaderBox(Jp2kBox):
 
         Returns
         -------
-        ImageHeaderBox instance
+        ImageHeaderBox
+            Instance of the current image header box.
         """
         # Read the box information
         read_buffer = fptr.read(14)
@@ -1828,7 +1842,8 @@ class AssociationBox(Jp2kBox):
 
         Returns
         -------
-        AssociationBox instance
+        AssociationBox
+            Instance of the current association box.
         """
         box = cls(length=length, offset=offset)
 
@@ -1907,7 +1922,8 @@ class BitsPerComponentBox(Jp2kBox):
 
         Returns
         -------
-        AssociationBox instance
+        BitsPerComponent
+            Instance of the current bits per component box.
         """
         nbytes = length - 8
         data = fptr.read(nbytes)
@@ -1970,7 +1986,8 @@ class JP2HeaderBox(Jp2kBox):
 
         Returns
         -------
-        JP2HeaderBox instance
+        JP2HeaderBox
+            Instance of the current JP2 header box.
         """
         box = cls(length=length, offset=offset)
 
@@ -2042,7 +2059,8 @@ class JPEG2000SignatureBox(Jp2kBox):
 
         Returns
         -------
-        JPEG2000SignatureBox instance
+        JPEG2000SignatureBox
+            Instance of the current JPEG2000 signature box.
         """
         read_buffer = fptr.read(4)
         signature = struct.unpack('>BBBB', read_buffer)
@@ -2159,7 +2177,8 @@ class PaletteBox(Jp2kBox):
 
         Returns
         -------
-        PaletteBox instance
+        PaletteBox
+            Instance of the current palette box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -2410,7 +2429,8 @@ class ReaderRequirementsBox(Jp2kBox):
 
         Returns
         -------
-        ReaderRequirementsBox instance
+        ReaderRequirementsBox
+            Instance of the current reader requirements box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -2619,7 +2639,8 @@ class ResolutionBox(Jp2kBox):
 
         Returns
         -------
-        ResolutionBox instance
+        ResolutionBox
+            Instance of the current resolution box.
         """
         box = cls(length=length, offset=offset)
 
@@ -2694,7 +2715,8 @@ class CaptureResolutionBox(Jp2kBox):
 
         Returns
         -------
-        CaptureResolutionBox instance
+        CaptureResolutionBox
+            Instance of the current capture resolution box.
         """
         read_buffer = fptr.read(10)
         (rn1, rd1, rn2, rd2, re1, re2) = struct.unpack('>HHHHBB', read_buffer)
@@ -2768,7 +2790,8 @@ class DisplayResolutionBox(Jp2kBox):
 
         Returns
         -------
-        DisplayResolutionBox instance
+        DisplayResolutionBox
+            Instance of the current display resolution box.
         """
 
         read_buffer = fptr.read(10)
@@ -2841,7 +2864,8 @@ class LabelBox(Jp2kBox):
 
         Returns
         -------
-        LabelBox instance
+        LabelBox
+            Instance of the current label box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -2921,7 +2945,8 @@ class NumberListBox(Jp2kBox):
 
         Returns
         -------
-        LabelBox instance
+        LabelBox
+            Instance of the current number list box.
         """
         num_bytes = offset + length - fptr.tell()
         raw_data = fptr.read(num_bytes)
@@ -3023,7 +3048,8 @@ class XMLBox(Jp2kBox):
 
         Returns
         -------
-        XMLBox instance
+        XMLBox
+            Instance of the current XML box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -3146,7 +3172,8 @@ class UUIDListBox(Jp2kBox):
 
         Returns
         -------
-        UUIDListBox instance
+        UUIDListBox
+            Instance of the current UUID list box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -3214,7 +3241,8 @@ class UUIDInfoBox(Jp2kBox):
 
         Returns
         -------
-        UUIDInfoBox instance
+        UUIDInfoBox
+            Instance of the current UUID information box.
         """
 
         box = cls(length=length, offset=offset)
@@ -3311,7 +3339,8 @@ class DataEntryURLBox(Jp2kBox):
 
         Returns
         -------
-        DataEntryURLbox instance
+        DataEntryURLbox
+            Instance of the current data entry URL box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -3611,7 +3640,8 @@ class UUIDBox(Jp2kBox):
 
         Returns
         -------
-        UUIDBox instance
+        UUIDBox
+            Instance of the current UUID box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -3685,7 +3715,7 @@ def get_parseoptions():
 
     Returns
     -------
-    print_opts : dict
+    dict
         Dictionary of current print options with keys
 
           - codestream : bool
@@ -3742,7 +3772,7 @@ def get_printoptions():
 
     Returns
     -------
-    print_opts : dict
+    dict
         Dictionary of current print options with keys
 
           - short : bool
