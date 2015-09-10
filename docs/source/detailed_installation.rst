@@ -61,8 +61,8 @@ suite.  Check their instructions on how to do that.  You can then
 set the **OPJ_DATA_ROOT** environment variable for the purpose of
 pointing Glymur to OpenJPEG's test suite. ::
 
-    $ svn co http://openjpeg.googlecode.com/svn/data 
-    $ export OPJ_DATA_ROOT=`pwd`/data
+    $ git clone https://github.com/uclouvain/openjpeg-data.git
+    $ export OPJ_DATA_ROOT=`pwd`/openjpeg-data
 
 In order to run the tests, you can either run them from within
 python as follows ... ::
