@@ -40,7 +40,7 @@ On windows, the path to the configuration file can be determined by starting
 up Python and typing ::
 
     import os
-    os.path.join(os.path.expanduser('~', 'glymur', 'glymurrc')
+    os.path.join(os.path.expanduser('~'), 'glymur', 'glymurrc')
 
 You may also include a line for the version 1.x openjpeg library if you have it
 installed in a non-standard place, i.e. ::

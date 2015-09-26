@@ -22,17 +22,30 @@ from .fixtures import (WARNING_INFRASTRUCTURE_ISSUE,
                        WINDOWS_TMP_FILE_MSG)
 
 
+def openjp2_not_found_by_ctypes():
+    """
+    Need to know if openjp2 library can be picked right up by ctypes for one
+    of the tests.
+    """
+    if ctypes.util.find_library('openjp2') is None:
+        return True
+    else:
+        return False
+
+
 def openjpeg_not_found_by_ctypes():
     """
     Need to know if openjpeg library can be picked right up by ctypes for one
     of the tests.
     """
-    with patch.dict('os.environ',
-                    {'DYLD_FALLBACK_LIBRARY_PATH': '/opt/local/lib'}):
-        if ctypes.util.find_library('openjpeg') is None:
-            return True
-        else:
-            return False
+    if ctypes.util.find_library('openjpeg') is None:
+        return True
+    else:
+        return False
+
+
+def no_openjpeg_libraries_found_by_ctypes():
+    return openjpeg_not_found_by_ctypes() and openjp2_not_found_by_ctypes()
 
 
 @contextlib.contextmanager
@@ -99,6 +112,25 @@ class TestSuite(unittest.TestCase):
 
     @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
+    def test_config_file_without_library_section(self):
+        """
+        must ignore if no library section
+        """
+        with tempfile.TemporaryDirectory() as tdir:
+            configdir = os.path.join(tdir, 'glymur')
+            os.mkdir(configdir)
+            fname = os.path.join(configdir, 'glymurrc')
+            with open(fname, 'w') as fptr:
+                fptr.write('[testing]\n')
+                fptr.write('opj_data_root: blah\n')
+                fptr.flush()
+                with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
+                    imp.reload(glymur.lib.openjp2)
+                    # It's enough that we did not error out
+                    self.assertTrue(True)
+
+    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
+    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
     def test_xdg_env_config_file_is_bad(self):
         """A non-existant library location should be rejected."""
         with tempfile.TemporaryDirectory() as tdir:
@@ -117,7 +149,8 @@ class TestSuite(unittest.TestCase):
                         with self.assertWarnsRegex(UserWarning, regex):
                             imp.reload(glymur.lib.openjp2)
 
-    @unittest.skipIf(glymur.lib.openjp2.OPENJPEG is None,
+    @unittest.skipIf((openjpeg_not_found_by_ctypes() and
+                      openjp2_not_found_by_ctypes()),
                      "Needs openjp2 and openjpeg before this test make sense.")
     @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
     def test_library_specified_as_None(self):
@@ -131,8 +164,9 @@ class TestSuite(unittest.TestCase):
                 # openjpeg instead.
                 fptr.write('[library]\n')
                 fptr.write('openjp2: None\n')
-                msg = 'openjpeg: {0}\n'
-                msg = msg.format(glymur.lib.openjp2.OPENJPEG._name)
+                openjpeg_lib = ctypes.util.find_library('openjpeg')
+                msg = 'openjpeg: {openjpeg}\n'
+                msg = msg.format(openjpeg=openjpeg_lib)
                 fptr.write(msg)
                 fptr.flush()
                 with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
@@ -140,10 +174,10 @@ class TestSuite(unittest.TestCase):
                     self.assertIsNone(glymur.lib.openjp2.OPENJP2)
                     self.assertIsNotNone(glymur.lib.openjp2.OPENJPEG)
 
-    @unittest.skipIf(glymur.lib.openjp2.OPENJPEG is None,
-                     "Needs openjpeg before this test make sense.")
-    @unittest.skipIf(openjpeg_not_found_by_ctypes(),
-                     "OpenJPEG must be found before this test can work.")
+    @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
+                     "Needs openjp2 before this test make sense.")
+    @unittest.skipIf(openjp2_not_found_by_ctypes(),
+                     "OpenJP2 must be found before this test can work.")
     @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
     def test_config_dir_but_no_config_file(self):
 
@@ -154,7 +188,7 @@ class TestSuite(unittest.TestCase):
                 # Should still be able to load openjpeg, despite the
                 # configuration file not being there
                 imp.reload(glymur.lib.openjpeg)
-                self.assertIsNotNone(glymur.lib.openjp2.OPENJPEG)
+                self.assertIsNotNone(glymur.lib.openjp2.OPENJP2)
 
     @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
     def test_config_file_in_current_directory(self):

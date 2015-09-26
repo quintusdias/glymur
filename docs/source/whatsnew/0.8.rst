@@ -5,39 +5,38 @@ Changes in glymur 0.8
 Changes in 0.8.3
 =================
 
-    * Fix doc bug (thanks Daniel Haehn)
-    * Fix unittest bug on cygwin, issue #326
-    * Add write support for UUIDInfo and UUIDList boxes
-    * Add read support for HiRISE UUID boxes (gdal module recommended, but
-      not required)
+    * Add gdal interpretation of UUIDBox with GeoTIFF Box specification for JPEG2000 metadata.
+    * Add support for Python 3.5.
+    * Add support for Cygwin platform.
+    * Add write support for UUIDInfo and UUIDList box.
+    * Relax installation requirement of lxml package from 3.0 to 2.3.2.
+    * Fix parsing error of bits-per-component box in Python 2.7.
 
 Changes in 0.8.2
 =================
 
-    * Improve read error message when openjpeg library not found, issue #322
+    * Require at least version 1.5.0 of OpenJPEG.
+    * Improve read error message when openjpeg library not found.
 
 Changes in 0.8.1
 =================
 
-    * Add support for BitsPerComponentBox
+    * Add support for bits per component box.
 
 Changes in 0.8.0
 =================
 
-    * Simplified writing images by moving data and options into the
+    * Simplify writing images by moving image data and options into the 
       constructor.
-    * Deprecated :py:meth:`read` method in favor of array-style slicing.
-      In order to retain certain functionality, the following parameters 
-      to the :py:meth:`read` method have become top-level properties
+    * Deprecate :py:meth:`read` method in favor of array-style slicing.
+      In order to retain certain functionality, change the following parameters 
+      to the :py:meth:`read` method to top-level properties
 
       * verbose
       * layer
       * ignore_pclr_cmap_cdef
 
-    * Two additional properties were introduced.
+    * Two new properties
 
       * codestream
       * shape
-
-      
- 

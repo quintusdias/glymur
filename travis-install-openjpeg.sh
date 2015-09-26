@@ -11,5 +11,7 @@ cd openjpeg-version.2.1/build && cmake .. -DCMAKE_INSTALL_PREFIX=$HOME/openjpeg 
 
 # Setup the configuration file. 
 mkdir -p $HOME/.config/glymur
-echo "[library]:" > $HOME/.config/glymur/glymurrc
-echo "openjp2:  $HOME/openjpeg/lib/libopenjp2.so" >> $HOME/.config/glymur/glymurrc
+cat << EOF > $HOME/.config/glymur/glymurrc
+[library]
+openjp2:  $HOME/openjpeg/lib/libopenjp2.so
+EOF
