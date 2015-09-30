@@ -13,17 +13,18 @@ kwargs = {'name': 'Glymur',
                        'glymur.lib.test'],
           'package_data': {'glymur': ['data/*.jp2',
                                       'data/*.j2k',
-                                      'data/*.jpx']},
+                                      'data/*.jpx',
+                                      'test/data/*.tif']},
           'entry_points': {
               'console_scripts': ['jp2dump=glymur.command_line:main'],
               },
           'license': 'MIT',
           'test_suite': 'glymur.test'}
 
-install_requires = ['numpy>=1.7.0', 'lxml>=3.0.0']
+install_requires = ['numpy>=1.7.0', 'lxml>=2.3.2']
 if sys.hexversion < 0x03030000:
     install_requires.append('contextlib2>=0.4')
-    install_requires.append('mock>=1.0.1')
+    install_requires.append('mock>=0.7.2')
 kwargs['install_requires'] = install_requires
 
 clssfrs = ["Programming Language :: Python",

@@ -26,8 +26,7 @@ from . import fixtures
 from .fixtures import (OPJ_DATA_ROOT, opj_data_file,
                        WARNING_INFRASTRUCTURE_ISSUE,
                        WARNING_INFRASTRUCTURE_MSG,
-                       WINDOWS_TMP_FILE_MSG,
-                       text_gbr_27, text_gbr_33, text_gbr_34)
+                       WINDOWS_TMP_FILE_MSG)
 
 
 @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
@@ -967,7 +966,11 @@ class TestPrintingOpjDataRootWarns(unittest.TestCase):
         self.assertEqual(actual, expected)
 
     def test_icc_profile(self):
-        """verify icc profile printing with a jpx"""
+        """
+        verify icc profile printing with a jpx
+
+        2.7, 3.3, 3.4, and 3.5 all print ordered dicts differently
+        """
         # ICC profiles may be used in JP2, but the approximation field should
         # be zero unless we have jpx.  This file does both.
         filename = opj_data_file('input/nonregression/text_GBR.jp2')
@@ -979,11 +982,13 @@ class TestPrintingOpjDataRootWarns(unittest.TestCase):
             print(jp2.box[3].box[1])
             actual = fake_out.getvalue().strip()
         if sys.hexversion < 0x03000000:
-            expected = text_gbr_27
+            expected = fixtures.text_gbr_27
         elif sys.hexversion < 0x03040000:
-            expected = text_gbr_33
+            expected = fixtures.text_gbr_33
+        elif sys.hexversion < 0x03050000:
+            expected = fixtures.text_gbr_34
         else:
-            expected = text_gbr_34
+            expected = fixtures.text_gbr_35
 
         self.assertEqual(actual, expected)
 

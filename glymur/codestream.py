@@ -27,7 +27,8 @@ from .core import (LRCP, RLCP, RPCL, PCRL, CPRL,
                    _Keydefaultdict)
 from .lib import openjp2 as opj2
 
-_factory = lambda x:  '{0} (invalid)'.format(x)
+
+_factory = lambda x: '{0} (invalid)'.format(x)
 _PROGRESSION_ORDER_DISPLAY = _Keydefaultdict(_factory, {LRCP: 'LRCP',
                                                         RLCP: 'RLCP',
                                                         RPCL: 'RPCL',
@@ -239,18 +240,22 @@ class Codestream(object):
 
         Parameters
         ----------
-        fptr : file
-            Open file object.
+        fptr : file object
+            The file to parse.
 
         Returns
         -------
-        Segment instance.
+        Segment
+            The current segment.
         """
         offset = fptr.tell() - 2
 
         read_buffer = fptr.read(2)
         length, = struct.unpack('>H', read_buffer)
-        data = fptr.read(length-2)
+        if length > 0:
+            data = fptr.read(length-2)
+        else:
+            data = None
 
         segment = Segment(marker_id='0x{0:x}'.format(self._marker_id),
                           offset=offset, length=length, data=data)
@@ -303,7 +308,8 @@ class Codestream(object):
 
         Returns
         -------
-        CME segment instance.
+        CMESegment
+            The current CME segment.
         """
         offset = fptr.tell() - 2
 
@@ -325,7 +331,8 @@ class Codestream(object):
 
         Returns
         -------
-        COC segment instance.
+        COCSegment
+            The current COC segment.
         """
         kwargs = {}
         offset = fptr.tell() - 2
@@ -363,7 +370,8 @@ class Codestream(object):
 
         Returns
         -------
-        COD segment instance.
+        CODSegment
+            The current COD segment.
         """
         offset = fptr.tell() - 2
 
@@ -403,7 +411,8 @@ class Codestream(object):
 
         Returns
         -------
-        CRG segment instance.
+        CRGSegment
+            The current CRG segment.
         """
         offset = fptr.tell() - 2
 
@@ -427,7 +436,8 @@ class Codestream(object):
 
         Returns
         -------
-        EOC Segment instance.
+        EOCSegment
+            The current EOC segment.
         """
         offset = fptr.tell() - 2
         length = 0
@@ -447,7 +457,8 @@ class Codestream(object):
 
         Returns
         -------
-        PLT segment instance.
+        PLTSegment
+            The current PLT segment.
         """
         offset = fptr.tell() - 2
 
@@ -483,7 +494,8 @@ class Codestream(object):
 
         Returns
         -------
-        POD segment instance.
+        PODSegment
+            The current POD segment.
         """
         offset = fptr.tell() - 2
 
@@ -513,7 +525,8 @@ class Codestream(object):
 
         Returns
         -------
-        PPM segment instance.
+        PPMSegment
+            The current PPM segment.
         """
         offset = fptr.tell() - 2
 
@@ -533,12 +546,13 @@ class Codestream(object):
 
         Parameters
         ----------
-        fptr : file
-            Open file object.
+        fptr : file object
+            The file to parse.
 
         Returns
         -------
-        PPT segment instance.
+        PPTSegment
+            The current PPT segment.
         """
         offset = fptr.tell() - 2
 
@@ -557,12 +571,13 @@ class Codestream(object):
 
         Parameters
         ----------
-        fptr : file
-            Open file object.
+        fptr : file object
+            The file to parse.
 
         Returns
         -------
-        QCC Segment instance.
+        QCCSegment
+            The current QCC segment.
         """
         offset = fptr.tell() - 2
 
@@ -597,7 +612,8 @@ class Codestream(object):
 
         Returns
         -------
-        QCD Segment instance.
+        QCDSegment
+            The current QCD segment.
         """
         offset = fptr.tell() - 2
 
@@ -617,7 +633,8 @@ class Codestream(object):
 
         Returns
         -------
-        RGN segment instance.
+        RGNSegment
+            The current RGN segment.
         """
         offset = fptr.tell() - 2
 
@@ -648,7 +665,8 @@ class Codestream(object):
 
         Returns
         -------
-        SIZsegment instance.
+        SIZSegment
+            The current SIZ segment.
         """
         offset = fptr.tell() - 2
 
@@ -725,7 +743,8 @@ class Codestream(object):
 
         Returns
         -------
-        SOD segment instance.
+        SODSegment
+            The current SOD segment.
         """
         offset = fptr.tell() - 2
         length = 0
@@ -742,7 +761,8 @@ class Codestream(object):
 
         Returns
         -------
-        SOT segment instance.
+        SOTSegment
+            The current SOT segment.
         """
         offset = fptr.tell() - 2
 
@@ -780,7 +800,8 @@ class Codestream(object):
 
         Returns
         -------
-        TLM segment instance.
+        TLMSegment
+            The current TLM segment.
         """
         offset = fptr.tell() - 2
 
@@ -1830,7 +1851,8 @@ def parse_quantization(read_buffer, sqcd):
 
     Returns
     ------
-        Tuple of mantissa, exponents from quantization buffer.
+    tuple
+        Mantissa and exponents from quantization buffer.
     """
     numbytes = len(read_buffer)
 

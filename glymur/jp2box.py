@@ -25,6 +25,13 @@ import warnings
 
 import lxml.etree as ET
 import numpy as np
+try:
+    import gdal
+    import osr
+    _HAVE_GDAL = True
+except ImportError:
+    _HAVE_GDAL = False
+
 
 from .codestream import Codestream
 from .core import (_COLORSPACE_MAP_DISPLAY, _COLOR_TYPE_MAP_DISPLAY,
@@ -35,12 +42,14 @@ from .core import (_COLORSPACE_MAP_DISPLAY, _COLOR_TYPE_MAP_DISPLAY,
 
 from . import _uuid_io
 
+
 _factory = lambda x: '{0} (invalid)'.format(x)
 _keysvalues = {ENUMERATED_COLORSPACE: 'enumerated colorspace',
                RESTRICTED_ICC_PROFILE: 'restricted ICC profile',
                ANY_ICC_PROFILE: 'any ICC profile',
                VENDOR_COLOR_METHOD: 'vendor color method'}
 _METHOD_DISPLAY = _Keydefaultdict(_factory, _keysvalues)
+
 
 _factory = lambda x: '{0} (invalid)'.format(x)
 _keysvalues = {1: 'accurately represents correct colorspace definition',
@@ -50,6 +59,11 @@ _keysvalues = {1: 'accurately represents correct colorspace definition',
                    'reasonable quality'),
                4: 'approximates correct colorspace definition, poor quality'}
 _APPROX_DISPLAY = _Keydefaultdict(_factory, _keysvalues)
+
+# Three different UUIDs are given special treatment.
+_GEOTIFF_UUID = UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03')
+_EXIF_UUID = UUID(bytes=b'JpgTiffExif->JP2')
+_XMP_UUID = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
 
 
 class Jp2kBox(object):
@@ -125,8 +139,8 @@ class Jp2kBox(object):
 
         Returns
         -------
-        indented_string : str
-            Possibly multi-line string indented a certain bit.
+        str
+            Possibly multi-line string indented by the specified amount.
         """
         if sys.hexversion >= 0x03030000:
             return textwrap.indent(textstr, ' ' * indent_level)
@@ -170,8 +184,8 @@ class Jp2kBox(object):
 
         Returns
         -------
-        box : Jp2kBox
-            object corresponding to the current box
+        Jp2kBox
+            Object corresponding to the current box.
         """
         try:
             parser = _BOX_WITH_ID[box_id].parse
@@ -210,7 +224,8 @@ class Jp2kBox(object):
 
         Returns
         -------
-        List of top-level boxes in the JPEG 2000 file.
+        list
+            List of top-level boxes in the JPEG 2000 file.
         """
 
         superbox = []
@@ -425,7 +440,8 @@ class ColourSpecificationBox(Jp2kBox):
 
         Returns
         -------
-        ColourSpecificationBox instance
+        ColourSpecificationBox
+            Instance of the current colour specification box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -685,7 +701,8 @@ class ChannelDefinitionBox(Jp2kBox):
 
         Returns
         -------
-        ComponentDefinitionBox instance
+        ComponentDefinitionBox
+            Instance of the current component definition box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -758,7 +775,8 @@ class CodestreamHeaderBox(Jp2kBox):
 
         Returns
         -------
-        CodestreamHeaderBox instance
+        CodestreamHeaderBox
+            Instance of the current codestream header box.
         """
         box = cls(length=length, offset=offset)
 
@@ -830,7 +848,8 @@ class ColourGroupBox(Jp2kBox):
 
         Returns
         -------
-        ColourGroupBox instance
+        ColourGroupBox
+            Instance of the current colour group box.
         """
         box = cls(length=length, offset=offset)
 
@@ -895,7 +914,8 @@ class CompositingLayerHeaderBox(Jp2kBox):
 
         Returns
         -------
-        CompositingLayerHeaderBox instance
+        CompositingLayerHeaderBox
+            Instance of the current compositing layer header box.
         """
         box = cls(length=length, offset=offset)
 
@@ -996,7 +1016,8 @@ class ComponentMappingBox(Jp2kBox):
 
         Returns
         -------
-        ComponentMappingBox instance
+        ComponentMappingBox
+            Instance of the current component mapping box.
         """
         num_bytes = offset + length - fptr.tell()
         num_components = int(num_bytes/4)
@@ -1095,7 +1116,8 @@ class ContiguousCodestreamBox(Jp2kBox):
 
         Returns
         -------
-        ContiguousCodestreamBox instance
+        ContiguousCodestreamBox
+            Instance of the current contiguous codestream box.
         """
         main_header_offset = fptr.tell()
         if _parseoptions['full_codestream'] is True:
@@ -1209,7 +1231,8 @@ class DataReferenceBox(Jp2kBox):
 
         Returns
         -------
-        DataReferenceBox instance
+        DataReferenceBox
+            Instance of the current data reference box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -1344,7 +1367,8 @@ class FileTypeBox(Jp2kBox):
 
         Returns
         -------
-        FileTypeBox instance
+        FileTypeBox
+            Instance of the current file type box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -1471,7 +1495,8 @@ class FragmentListBox(Jp2kBox):
 
         Returns
         -------
-        FragmentListBox instance
+        FragmentListBox
+            Instance of the current fragment list box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -1537,7 +1562,8 @@ class FragmentTableBox(Jp2kBox):
 
         Returns
         -------
-        FragmentTableBox instance
+        FragmentTableBox
+            Instance of the current fragment table box.
         """
         box = cls(length=length, offset=offset)
 
@@ -1606,7 +1632,8 @@ class FreeBox(Jp2kBox):
 
         Returns
         -------
-        FreeBox instance
+        FreeBox
+            Instance of the current free box.
         """
         return cls(length=length, offset=offset)
 
@@ -1743,7 +1770,8 @@ class ImageHeaderBox(Jp2kBox):
 
         Returns
         -------
-        ImageHeaderBox instance
+        ImageHeaderBox
+            Instance of the current image header box.
         """
         # Read the box information
         read_buffer = fptr.read(14)
@@ -1814,7 +1842,8 @@ class AssociationBox(Jp2kBox):
 
         Returns
         -------
-        AssociationBox instance
+        AssociationBox
+            Instance of the current association box.
         """
         box = cls(length=length, offset=offset)
 
@@ -1893,12 +1922,13 @@ class BitsPerComponentBox(Jp2kBox):
 
         Returns
         -------
-        AssociationBox instance
+        BitsPerComponent
+            Instance of the current bits per component box.
         """
         nbytes = length - 8
         data = fptr.read(nbytes)
-        bpc = tuple(((x & 0x7f) + 1) for x in data)
-        signed = tuple(((x & 0x80) > 0) for x in data)
+        bpc = tuple(((x & 0x7f) + 1) for x in bytearray(data))
+        signed = tuple(((x & 0x80) > 0) for x in bytearray(data))
 
         return cls(bpc, signed, length=length, offset=offset)
 
@@ -1956,7 +1986,8 @@ class JP2HeaderBox(Jp2kBox):
 
         Returns
         -------
-        JP2HeaderBox instance
+        JP2HeaderBox
+            Instance of the current JP2 header box.
         """
         box = cls(length=length, offset=offset)
 
@@ -2028,7 +2059,8 @@ class JPEG2000SignatureBox(Jp2kBox):
 
         Returns
         -------
-        JPEG2000SignatureBox instance
+        JPEG2000SignatureBox
+            Instance of the current JPEG2000 signature box.
         """
         read_buffer = fptr.read(4)
         signature = struct.unpack('>BBBB', read_buffer)
@@ -2145,7 +2177,8 @@ class PaletteBox(Jp2kBox):
 
         Returns
         -------
-        PaletteBox instance
+        PaletteBox
+            Instance of the current palette box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -2197,12 +2230,12 @@ _READER_REQUIREMENTS_DISPLAY = {
     0:  'File not completely understood',
     1:  'Deprecated - contains no extensions',
     2:  'Contains multiple composition layers',
-    3:  'Deprecated - codestream is compressed using JPEG 2000 and requires '
-        + 'at least a Profile 0 decoder as defind in ITU-T Rec. T.800 '
-        + '| ISO/IEC 15444-1, A.10 Table A.45',
+    3:  ('Deprecated - codestream is compressed using JPEG 2000 and requires '
+         'at least a Profile 0 decoder as defind in ITU-T Rec. T.800 '
+         '| ISO/IEC 15444-1, A.10 Table A.45'),
     4:  'JPEG 2000 Part 1 Profile 1 codestream',
-    5:  'Unrestricted JPEG 2000 Part 1 codestream, ITU-T Rec. T.800 '
-        + '| ISO/IEC 15444-1',
+    5:  ('Unrestricted JPEG 2000 Part 1 codestream, ITU-T Rec. T.800 '
+         '| ISO/IEC 15444-1'),
     6:  'Unrestricted JPEG 2000 Part 2 codestream',
     7:  'JPEG codestream as defined in ISO/IEC 10918-1',
     8:  'Deprecated - does not contain opacity',
@@ -2396,7 +2429,8 @@ class ReaderRequirementsBox(Jp2kBox):
 
         Returns
         -------
-        ReaderRequirementsBox instance
+        ReaderRequirementsBox
+            Instance of the current reader requirements box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -2422,9 +2456,8 @@ class ReaderRequirementsBox(Jp2kBox):
             standard_flag, standard_mask = data
 
             nflags = len(standard_flag)
-            vendor_offset = (1 + 2 * mask_length + 2
-                             + (2 + mask_length) * nflags)
-            data = _parse_vendor_features(read_buffer[vendor_offset:],
+            vndr_offset = 1 + 2 * mask_length + 2 + (2 + mask_length) * nflags
+            data = _parse_vendor_features(read_buffer[vndr_offset:],
                                           mask_length)
             vendor_feature, vendor_mask = data
 
@@ -2606,7 +2639,8 @@ class ResolutionBox(Jp2kBox):
 
         Returns
         -------
-        ResolutionBox instance
+        ResolutionBox
+            Instance of the current resolution box.
         """
         box = cls(length=length, offset=offset)
 
@@ -2681,7 +2715,8 @@ class CaptureResolutionBox(Jp2kBox):
 
         Returns
         -------
-        CaptureResolutionBox instance
+        CaptureResolutionBox
+            Instance of the current capture resolution box.
         """
         read_buffer = fptr.read(10)
         (rn1, rd1, rn2, rd2, re1, re2) = struct.unpack('>HHHHBB', read_buffer)
@@ -2755,7 +2790,8 @@ class DisplayResolutionBox(Jp2kBox):
 
         Returns
         -------
-        DisplayResolutionBox instance
+        DisplayResolutionBox
+            Instance of the current display resolution box.
         """
 
         read_buffer = fptr.read(10)
@@ -2828,7 +2864,8 @@ class LabelBox(Jp2kBox):
 
         Returns
         -------
-        LabelBox instance
+        LabelBox
+            Instance of the current label box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -2908,7 +2945,8 @@ class NumberListBox(Jp2kBox):
 
         Returns
         -------
-        LabelBox instance
+        LabelBox
+            Instance of the current number list box.
         """
         num_bytes = offset + length - fptr.tell()
         raw_data = fptr.read(num_bytes)
@@ -3010,7 +3048,8 @@ class XMLBox(Jp2kBox):
 
         Returns
         -------
-        XMLBox instance
+        XMLBox
+            Instance of the current XML box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -3107,6 +3146,17 @@ class UUIDListBox(Jp2kBox):
         text = '\n'.join([title, body])
         return text
 
+    def write(self, fptr):
+        """Write a UUID list box to file.
+        """
+        num_uuids = len(self.ulst)
+        length = 4 + 4 + 2 + num_uuids * 16
+        write_buffer = struct.pack('>I4sH', length, b'ulst', num_uuids)
+        fptr.write(write_buffer)
+
+        for j in range(num_uuids):
+            fptr.write(self.ulst[j].bytes)
+
     @classmethod
     def parse(cls, fptr, offset, length):
         """Parse UUIDList box.
@@ -3122,7 +3172,8 @@ class UUIDListBox(Jp2kBox):
 
         Returns
         -------
-        UUIDListBox instance
+        UUIDListBox
+            Instance of the current UUID list box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -3170,6 +3221,11 @@ class UUIDInfoBox(Jp2kBox):
         msg = self._str_superbox()
         return msg
 
+    def write(self, fptr):
+        """Write a UUIDInfo box to file.
+        """
+        self._write_superbox(fptr, b'uinf')
+
     @classmethod
     def parse(cls, fptr, offset, length):
         """Parse UUIDInfo super box.
@@ -3185,7 +3241,8 @@ class UUIDInfoBox(Jp2kBox):
 
         Returns
         -------
-        UUIDInfoBox instance
+        UUIDInfoBox
+            Instance of the current UUID information box.
         """
 
         box = cls(length=length, offset=offset)
@@ -3282,7 +3339,8 @@ class DataEntryURLBox(Jp2kBox):
 
         Returns
         -------
-        DataEntryURLbox instance
+        DataEntryURLbox
+            Instance of the current data entry URL box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -3393,8 +3451,11 @@ class UUIDBox(Jp2kBox):
         """
         if self.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
             self.data = _uuid_io.xml(self.raw_data)
-        elif self.uuid.bytes == b'JpgTiffExif->JP2':
+        elif self.uuid == _GEOTIFF_UUID:
             self.data = _uuid_io.tiff_header(self.raw_data)
+        elif self.uuid == _EXIF_UUID:
+            # Cut off 'EXIF\0\0' part.
+            self.data = _uuid_io.tiff_header(self.raw_data[6:])
         else:
             self.data = self.raw_data
 
@@ -3411,6 +3472,8 @@ class UUIDBox(Jp2kBox):
         text = 'UUID:  {0}'.format(self.uuid)
         if self.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
             text += ' (XMP)'
+        elif self.uuid == UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03'):
+            text += ' (GeoTIFF)'
         elif self.uuid.bytes == b'JpgTiffExif->JP2':
             text += ' (EXIF)'
         else:
@@ -3433,6 +3496,12 @@ class UUIDBox(Jp2kBox):
         elif self.uuid.bytes == b'JpgTiffExif->JP2':
             text = 'UUID Data:  {0}'.format(str(self.data))
             lst.append(text)
+        elif self.uuid == UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03'):
+            if _HAVE_GDAL:
+                txt = self._print_geotiff()
+            else:
+                txt = 'UUID Data:  {0}'.format(str(self.data))
+            lst.append(txt)
         else:
             text = 'UUID Data:  {0} bytes'.format(len(self.raw_data))
             lst.append(text)
@@ -3443,10 +3512,115 @@ class UUIDBox(Jp2kBox):
         text = '\n'.join([title, body])
         return text
 
+    def _print_geotiff(self):
+        """
+        Print geotiff information.  Shamelessly ripped off from gdalinfo.py
+        """
+        lst = []
+        in_mem_name = '/vsimem/geo.tif'
+        gdal.FileFromMemBuffer(in_mem_name, self.raw_data)
+        gtif = gdal.Open(in_mem_name)
+
+        # Report projection
+        proj_ref = gtif.GetProjectionRef()
+        sref = osr.SpatialReference()
+        lst.append("Coordinate System =")
+        if sref.ImportFromWkt(proj_ref) == gdal.CE_None:
+            psz_pretty_wkt = sref.ExportToPrettyWkt(False)
+        else:
+            psz_pretty_wkt = proj_ref
+        lst.append(self._indent(psz_pretty_wkt))
+
+        # report geotransform
+        geo_transform = gtif.GetGeoTransform(can_return_null=True)
+        if geo_transform is not None:
+
+            if geo_transform[2] == 0.0 and geo_transform[4] == 0.0:
+                fmt = ('Origin = ({:.15f},{:.15f})\n'
+                       'Pixel Size = ({:.15f},{:.15f})')
+                txt = fmt.format(geo_transform[0], geo_transform[3],
+                                 geo_transform[1], geo_transform[5])
+            else:
+                fmt = ('GeoTransform =   '
+                       '{:.16g}, {:16g}, {:.16g}, {:.16g}, {:16g} {:16g}')
+                txt = fmt.format(geo_transform[0], geo_transform[1],
+                                 geo_transform[2], geo_transform[3],
+                                 geo_transform[4], geo_transform[5])
+            lst.append(txt)
+
+        # setup projected to lat/long transform if appropriate
+        if proj_ref is not None and len(proj_ref) > 0:
+            hProj = osr.SpatialReference(proj_ref)
+            if hProj is not None:
+                hLatLong = hProj.CloneGeogCS()
+
+            if hLatLong is not None:
+                gdal.PushErrorHandler('CPLQuietErrorHandler')
+                hTransform = osr.CoordinateTransformation(hProj, hLatLong)
+                gdal.PopErrorHandler()
+                msg = 'Unable to load PROJ.4 library'
+                if gdal.GetLastErrorMsg().find(msg) != -1:
+                    hTransform = None
+
+        # report corners
+        lst.append("Corner Coordinates:")
+        txt = self.GDALInfoReportCorner(gtif, hTransform, "Upper Left", 0, 0)
+        lst.append(txt)
+
+        txt = self.GDALInfoReportCorner(gtif, hTransform, "Lower Left",
+                                        0, gtif.RasterYSize)
+        lst.append(txt)
+
+        txt = self.GDALInfoReportCorner(gtif, hTransform, "Upper Right",
+                                        gtif.RasterXSize, 0)
+        lst.append(txt)
+
+        txt = self.GDALInfoReportCorner(gtif, hTransform, "Lower Right",
+                                        gtif.RasterXSize, gtif.RasterYSize)
+        lst.append(txt)
+
+        txt = self.GDALInfoReportCorner(gtif, hTransform, "Center",
+                                        gtif.RasterXSize/2.0,
+                                        gtif.RasterYSize/2.0)
+        lst.append(txt)
+
+        gdal.Unlink(in_mem_name)
+        return '\n'.join(lst)
+
+    def GDALInfoReportCorner(self, hDataset, hTransform, corner_name, x, y):
+        line = '{:<11s} '.format(corner_name)
+
+        # transform the point into georeferenced coordinates
+        geo_transform = hDataset.GetGeoTransform(can_return_null=True)
+        if geo_transform is not None:
+            dfGeoX = (geo_transform[0] + geo_transform[1] * x +
+                      geo_transform[2] * y)
+            dfGeoY = geo_transform[3] + geo_transform[4] * x
+            dfGeoY += geo_transform[5] * y
+        else:
+            line += '({:12.7f},{:12.7f})'.format(x, y)
+            return line
+
+        # report the georeferenced coordinates
+        if abs(dfGeoX) < 181 and abs(dfGeoY) < 91:
+            line += '({:12.7f},{:12.7f}) '.format(dfGeoX, dfGeoY)
+        else:
+            line += '({:12.3f},{:12.3f}) '.format(dfGeoX, dfGeoY)
+
+        # transform to latlong and report
+        if hTransform is not None:
+            point = hTransform.TransformPoint(dfGeoX, dfGeoY, 0)
+            if point is not None:
+                line += '({},{}'.format(gdal.DecToDMS(point[0], 'Long', 2),
+                                        gdal.DecToDMS(point[1], 'Lat', 2))
+
+        return line
+
     def write(self, fptr):
         """Write a UUID box to file.
         """
-        write_buffer = struct.pack('>I4s', self.length, b'uuid')
+        length = 4 + 4 + 16 + len(self.raw_data)
+        write_buffer = struct.pack('>I4s', length, b'uuid')
         fptr.write(write_buffer)
         fptr.write(self.uuid.bytes)
         fptr.write(self.raw_data)
@@ -3466,7 +3640,8 @@ class UUIDBox(Jp2kBox):
 
         Returns
         -------
-        UUIDBox instance
+        UUIDBox
+            Instance of the current UUID box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
@@ -3540,7 +3715,7 @@ def get_parseoptions():
 
     Returns
     -------
-    print_opts : dict
+    dict
         Dictionary of current print options with keys
 
           - codestream : bool
@@ -3597,7 +3772,7 @@ def get_printoptions():
 
     Returns
     -------
-    print_opts : dict
+    dict
         Dictionary of current print options with keys
 
           - short : bool

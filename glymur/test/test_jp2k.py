@@ -867,12 +867,13 @@ class TestJp2k_1_x(unittest.TestCase):
         """tile option not allowed for 1.x.
         """
         with patch('glymur.version.openjpeg_version_tuple', new=(1, 5, 0)):
-            j2k = Jp2k(self.j2kfile)
-            with warnings.catch_warnings():
-                # The tile keyword is deprecated, so suppress the warning.
-                warnings.simplefilter('ignore')
-                with self.assertRaises(TypeError):
-                    j2k.read(tile=0)
+            with patch('glymur.version.openjpeg_version', new="1.5.0"):
+                j2k = Jp2k(self.j2kfile)
+                with warnings.catch_warnings():
+                    # The tile keyword is deprecated, so suppress the warning.
+                    warnings.simplefilter('ignore')
+                    with self.assertRaises(TypeError):
+                        j2k.read(tile=0)
 
     def test_layer(self):
         """layer option not allowed for 1.x.
@@ -1137,6 +1138,21 @@ class TestJp2kOpjDataRootWarnings(unittest.TestCase):
                  "OPJ_DATA_ROOT environment variable not set")
 class TestJp2kOpjDataRoot(unittest.TestCase):
     """These tests should be run by just about all configurations."""
+
+    def test_zero_length_reserved_segment(self):
+        """
+        Zero length reserved segment.  Unsure if this is invalid or not.
+
+        Much of the rest of the file is invalid, so just be sure we can parse
+        all of it without erroring out.
+        """
+        filename = opj_data_file('input/nonregression/issue476.jp2')
+        with warnings.catch_warnings():
+            # Suppress warnings for this corrupt file
+            warnings.simplefilter("ignore")
+            cstr = Jp2k(filename).get_codestream()
+            self.assertEqual(cstr.segment[5].marker_id, '0xff00')
+            self.assertEqual(cstr.segment[5].length, 0)
 
     @unittest.skipIf(re.match("0|1.[0-4]", glymur.version.openjpeg_version),
                      "Must have openjpeg 1.5 or higher to run")

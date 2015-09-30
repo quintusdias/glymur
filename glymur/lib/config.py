@@ -10,10 +10,10 @@ import warnings
 import sys
 if sys.hexversion <= 0x03000000:
     from ConfigParser import SafeConfigParser as ConfigParser
-    from ConfigParser import NoOptionError
+    from ConfigParser import NoOptionError, NoSectionError
 else:
     from configparser import ConfigParser
-    from configparser import NoOptionError
+    from configparser import NoOptionError, NoSectionError
 
 # default library locations for MacPorts
 _macports_default_location = {'openjp2': '/opt/local/lib/libopenjp2.dylib',
@@ -129,7 +129,7 @@ def read_config_file(libname):
     parser.read(filename)
     try:
         path = parser.get('library', libname)
-    except NoOptionError:
+    except (NoOptionError, NoSectionError):
         path = None
     return path
 
@@ -140,16 +140,16 @@ def glymur_config():
 
     Returns
     -------
-    tpl : tuple
+    tuple
         tuple of library handles
     """
-    lst = []
-    for libname in ['openjp2', 'openjpeg']:
-        lst.append(load_openjpeg_library(libname))
-    if all(handle is None for handle in lst):
+    handles = (load_openjpeg_library(x) for x in ['openjp2', 'openjpeg'])
+    handles = tuple(handles)
+
+    if all(handle is None for handle in handles):
         msg = "Neither the openjp2 nor the openjpeg library could be loaded.  "
         warnings.warn(msg)
-    return tuple(lst)
+    return handles
 
 
 def get_configdir():

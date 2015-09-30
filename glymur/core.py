@@ -118,7 +118,8 @@ YCC = 18
 E_SRGB = 20
 ROMM_RGB = 21
 
-_factory = lambda x:  '{0} (unrecognized)'.format(x)
+
+_factory = lambda x: '{0} (unrecognized)'.format(x)
 _COLORSPACE_MAP_DISPLAY = _Keydefaultdict(_factory,
                                           {CMYK:  'CMYK',
                                            SRGB:  'sRGB',
@@ -132,7 +133,9 @@ COLOR = 0
 OPACITY = 1
 PRE_MULTIPLIED_OPACITY = 2
 _UNSPECIFIED = 65535
-_factory = lambda x:  '{0} (invalid)'.format(x)
+
+
+_factory = lambda x: '{0} (invalid)'.format(x)
 _dict = {COLOR:  'color',
          OPACITY:  'opacity',
          PRE_MULTIPLIED_OPACITY: 'pre-multiplied opacity',

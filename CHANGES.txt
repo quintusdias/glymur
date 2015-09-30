@@ -1,128 +1,175 @@
-May 17, 2015 - v0.8.2  Add proper library version check to read methods.
+September 30, 2015 - v0.8.3
+    Add gdal interpretation of UUIDBox with GeoTIFF Box specification for
+    JPEG2000 metadata.
+    Add support for Python 3.5.
+    Add support for Cygwin platform.
+    Add write support for UUIDInfo and UUIDList box.
+    Relax installation requirement of lxml from version 3.0 to version 2.3.2.
+    Fix parsing error on python2 of bits-per-component box.
 
-May 08, 2015 - v0.8.1  Add support for JP2 bits per component box.
+May 17, 2015 - v0.8.2
+    Add proper library version check to read methods.
 
-Jan 10, 2015 - v0.8.0  Reduce number of steps required for writing
-    images.  Deprecate old read and write methods in favor of
-    array-style slicing.  Add ignore_pclr_cmap_cdef, verbose,
-    shape, codestream, layer properties.
+May 08, 2015 - v0.8.1
+    Add support for JP2 bits per component box.
 
-Oct 06, 2014 - v0.7.2  Add ellipsis support in array-style slicing.
+Jan 10, 2015 - v0.8.0
+    Deprecate old read and write methods in favor of array-style slicing.
+    Reduce number of steps required for writing images.
+    Add ignore_pclr_cmap_cdef, verbose, shape, codestream, layer properties.
 
-Oct 02, 2014 - v0.7.1  Fix README to mention Python 3.4
+Oct 06, 2014 - v0.7.2
+    Add ellipsis support in array-style slicing.
 
-Oct 01, 2014 - v0.7.0  Add array-style slicing.
+Oct 02, 2014 - v0.7.1
+    Fix README to mention Python 3.4
 
-August 03, 2014 - v0.6.0  Add Cinema2K, Cinema4K write support.
-    Changed constructor for ChannelDefinition box.  Removed support
-    for Python 2.6.  Added write support for JP2 UUID, DataEntryURL,
-    Palette and Component Mapping boxes, JPX Association, NumberList
-    and DataReference boxes.  Added read support for JPX free,
-    number list, data reference, fragment table, and fragment list
-    boxes.  Improved JPX Reader Requirements box support.  Added
-    get_printoptions, set_printoptions functions.  Palette box now
-    a 2D numpy array instead of a list of 1D arrays.  JP2 super box
-    constructors now take optional box list  argument.  Fixed bug
-    where JPX files with more than one codestream but advertising
+Oct 01, 2014 - v0.7.0
+    Add array-style slicing.
+
+August 03, 2014 - v0.6.0
+    Add Cinema2K, Cinema4K write support.
+    Changed constructor for ChannelDefinition box.
+    Removed support for Python 2.6.
+    Added write support for JP2 UUID, DataEntryURL, Palette and Component
+    Mapping boxes, JPX Association, NumberList and DataReference boxes.
+    Added read support for JPX free, number list, data reference, fragment
+    table, and fragment list boxes.
+    Improved JPX Reader Requirements box support.
+    Added get_printoptions, set_printoptions functions.
+    Palette box now a 2D numpy array instead of a list of 1D arrays.
+    JP2 super box constructors now take optional box list  argument.
+    Fixed bug where JPX files with more than one codestream but advertising
     jp2 compatibility were not being read.
 
-Jan 28, 2014 - v0.5.10  Fixed bad warning when reader requirements box mask
-    length is unsupported.
+Jan 28, 2014 - v0.5.10
+    Fixed bad warning when reader requirements box mask length is unsupported.
 
-Oct 29, 2013 - v0.5.9  Fixed bad library load on linux as a result of 0.5.8
+Oct 29, 2013 - v0.5.9
+    Fixed bad library load on linux as a result of 0.5.8
 
-Oct 29, 2013 - v0.5.8  Fixed unnecessary warnings when default locations for
-    openjpeg libraries on mac do not specify the actual library.
+Oct 29, 2013 - v0.5.8
+    Fixed unnecessary warnings when default locations for openjpeg
+    libraries on mac do not specify the actual library.
 
-Oct 28, 2013 - v0.5.7  Fixed bad import error message when libopenjpeg library
-    not installed on mac.
+Oct 28, 2013 - v0.5.7
+    Fixed bad import error message when libopenjpeg library not
+    installed on mac.
 
-Oct 13, 2013 - v0.5.6  Fixed handling of non-ascii chars in XML boxes.  Fixed
-    some docstring errors in jp2box module.
+Oct 13, 2013 - v0.5.6
+    Fixed handling of non-ascii chars in XML boxes.  Fixed some
+    docstring errors in jp2box module.
 
-Oct 03, 2013 - v0.5.5  Fixed pip install error introduced in 0.5.0.  
+Oct 03, 2013 - v0.5.5
+    Fixed pip install error introduced in 0.5.0.  
 
-Sep 24, 2013 - v0.5.4  Fixed test error restricted to v2.0.
+Sep 24, 2013 - v0.5.4
+    Fixed test error restricted to v2.0.
 
-Sep 24, 2013 - v0.5.3  Removed a duplicated channel definition test in
-    test_jp2box that could cause a segfault in 1.3 if not properly skipped.
+Sep 24, 2013 - v0.5.3
+    Removed a duplicated channel definition test in test_jp2box
+    that could cause a segfault in 1.3 if not properly skipped.
 
-Sep 23, 2013 - v0.5.2  Fixed some tests that have been failing since 0.5.
-    under various edge cases.
+Sep 23, 2013 - v0.5.2
+    Fixed some tests that have been failing since 0.5 under various edge cases.
 
-Sep 19, 2013 - v0.5.1  Added more resiliency to XML box parsing.  Fixed tests
-    that failed if OPJ_DATA_ROOT not set.
+Sep 19, 2013 - v0.5.1
+    Added more resiliency to XML box parsing.
+    Fixed tests that failed if OPJ_DATA_ROOT not set.
 
-Sep 16, 2013 - v0.5.0  Added write support for 1.5.x.  Added version module.
+Sep 16, 2013 - v0.5.0
+    Added write support for 1.5.x.  Added version module.
 
-Aug 21, 2013 - v0.4.1  Fixed segfault with openjpeg 1.x when rlevel=-1
+Aug 21, 2013 - v0.4.1
+    Fixed segfault with openjpeg 1.x when rlevel=-1
 
-Aug 18, 2013 - v0.4.0  Added append method.
+Aug 18, 2013 - v0.4.0
+    Added append method.
 
-Aug 15, 2013 - v0.3.2  Fixed test bug where missing Pillow package caused test
-    failures.
+Aug 15, 2013 - v0.3.2
+   Fixed test bug where missing Pillow package caused test failures.
 
-Aug 14, 2013 - v0.3.1  Exposed mantissa, exponent, and guard_bits fields in QCC
-    and QCD segments.  Exposed layers and code_block_size in COD segment.
+Aug 14, 2013 - v0.3.1
+    Exposed mantissa, exponent, and guard_bits fields in QCC and QCD segments.
+    Exposed layers and code_block_size in COD segment.
     Exposed precinct_size in COC segment.
 
-Jul 31, 2013 - v0.3.0  Added support for official 2.0.0.
+Jul 31, 2013 - v0.3.0
+    Added support for official 2.0.0.
 
-Jul 27, 2013 - v0.2.8  Fixed inconsistency regarding configuration
-    file directory on windows (issue91).
+Jul 27, 2013 - v0.2.8
+    Fixed inconsistency regarding configuration file directory on windows.
 
-Jul 25, 2013 - v0.2.7  Warns but no longer errors out when neither library is
-    found (issue89).
+Jul 25, 2013 - v0.2.7
+    Warns but no longer errors out when neither library is found (issue89).
 
-Jul 24, 2013 - v0.2.6  No longer warning when configuration file not found.
-    Added read support for jpch, jplh boxes.  Added testing of files in
-    format-corpus repository.
+Jul 24, 2013 - v0.2.6
+    No longer warning when configuration file not found.
+    Added read support for jpch, jplh boxes.
+    Added testing of files in format-corpus repository.
 
-Jul 23, 2013 - v0.2.5  Fixed inconsistency in XML handling, now all instances
-    are always ElementTree objects (issue82).
+Jul 23, 2013 - v0.2.5
+    Fixed inconsistency in XML handling, now all instances are always
+    ElementTree objects.
 
-Jul 21, 2013 - v0.2.4  Fixed markdown bug for Fedora 17 information, fixed
-    out-of-date windows information (issue79).  Fixed incorrect
-    interpretation of Psot parameter (issue78).
+Jul 21, 2013 - v0.2.4
+    Fixed markdown bug for Fedora 17 information.
+    Fixed out-of-date windows information.
+    Fixed incorrect interpretation of Psot parameter.
 
-Jul 18, 2013 - v0.2.3  Support for Python 2.6, OpenJPEG 1.4.  Incompatible
-    change to ChannelDefinitionBox constructor.  Added RGBA example.
+Jul 18, 2013 - v0.2.3
+    Support for Python 2.6, OpenJPEG 1.4.
+    Incompatible change to ChannelDefinitionBox constructor.
+    Added RGBA example.
 
-Jul 11, 2013 - v0.2.2  Fixed mistakes with trove classifier, pypi releases.
+Jul 11, 2013 - v0.2.2
+    Fixed mistakes with trove classifier, pypi releases.
 
-Jul 11, 2013 - v0.2.0  Support for Python 2.7 on windows, OpenJPEG 1.5.1.
+Jul 11, 2013 - v0.2.0
+   Support for Python 2.7 on windows, OpenJPEG 1.5.1.
 
-Jun 27, 2013 - v0.1.10  Can wrap codestreams in custom JP2 jackets.  Exposing
-    parameter to specify multi component transform.  Added a raw codestream 
-    file.
+Jun 27, 2013 - v0.1.10
+    Can wrap codestreams in custom JP2 jackets.
+    Exposing parameter to specify multi component transform.
+   Added a raw codestream file.
 
-Jun 16, 2013 - v0.1.9  Reading ICC profile headers as ordered dicts.  Exif 
-    dictionaries changed to ordered dicts.  Honoring XDG_CONFIG_HOME
-    environment variable.
+Jun 16, 2013 - v0.1.9
+    Reading ICC profile headers as ordered dicts.
+    Exif dictionaries changed to ordered dicts.
+    Honoring XDG_CONFIG_HOME environment variable.
 
-Jun 14, 2013 - v0.1.8  Added reduce=-1 option to get lowest resolution
-    thumbnail.
+Jun 14, 2013 - v0.1.8
+    Added reduce=-1 option to get lowest resolution thumbnail.
 
-Jun 07, 2013 - v0.1.7  Changed Exif dictionary names from ['Exif', 'Photo',
+Jun 07, 2013 - v0.1.7
+    Changed Exif dictionary names from ['Exif', 'Photo',
     'Iop', 'GPSInfo'] to ['Image', 'Photo', 'Iop', 'GPSInfo'].  
 
-Jun 06, 2013 - v0.1.6  Exif classes made private.  Refactored IFD post
-    processing.  Corrected omission of Exif in UUIDBox docstring.
+Jun 06, 2013 - v0.1.6
+    Exif classes made private.
+    Refactored IFD post processing.
+    Corrected omission of Exif in UUIDBox docstring.
 
-Jun 06, 2013 - v0.1.5  Changed ColourSpecificationBox attribute "color_space"
-    to "colorspace".  Fixed MANIFEST issue affecting PyPI installs.
+Jun 06, 2013 - v0.1.5
+    Changed ColourSpecificationBox attribute "color_space" to "colorspace".
+    Fixed MANIFEST issue affecting PyPI installs.
 
-Jun 05, 2013 - v0.1.4  Added Exif UUID read support.
+Jun 05, 2013 - v0.1.4
+    Added Exif UUID read support.
 
-Jun 02, 2013 - v0.1.3p1  Raising IOErrors when code block size and precinct
-    sizes are not in harmony.  Added statement to docs about upstream library
-    dependence.  Added roadmap to docs.
+Jun 02, 2013 - v0.1.3p1
+    Raising IOErrors when code block size and precinct sizes do not match.
+    Added statement to docs about upstream library dependence.
+    Added roadmap to docs.
 
-May 30, 2013 - v0.1.2.  Added XMP UUID read support.  Added jp2 boxes to rst
-    docs, XMLBox.indent method made into a private module method.  Precinct
-    sizes restricted to be multiples of two.
+May 30, 2013 - v0.1.2
+    Added XMP UUID read support.
+    Added jp2 boxes to rst docs, XMLBox.indent method made into a
+    private module method.
+    Precinct sizes restricted to be multiples of two.
 
-May 27, 2013 - v0.1.1.  Changed write example to not rely on matplotlib.  Fixed
-    readthedocs.org setup to build documentation automatically.  Can import 
-    glymur without libopenjp2 actually being present.  Changed write example
-    to not rely on matplotlib.
+May 27, 2013 - v0.1.1
+    Changed write example to not rely on matplotlib.
+    Fixed readthedocs.org setup to build documentation automatically.
+    Can import glymur without libopenjp2 actually being present.
+    Changed write example to not rely on matplotlib.

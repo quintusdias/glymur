@@ -27,9 +27,8 @@ def tiff_header(read_buffer):
     """
     Interpret the uuid raw data as a tiff header.
     """
-    # Ignore the first six bytes.
-    # Next 8 should be (73, 73, 42, 8) or (77, 77, 42, 8)
-    data = struct.unpack('<BB', read_buffer[6:8])
+    # First 8 should be (73, 73, 42, 8) or (77, 77, 42, 8)
+    data = struct.unpack('<BB', read_buffer[0:2])
     if data[0] == 73 and data[1] == 73:
         # little endian
         endian = '<'
@@ -42,10 +41,10 @@ def tiff_header(read_buffer):
         msg = msg.format(read_buffer[6:8], bytes([73, 73]), bytes([77, 77]))
         raise IOError(msg)
 
-    _, offset = struct.unpack(endian + 'HI', read_buffer[8:14])
+    _, offset = struct.unpack(endian + 'HI', read_buffer[2:8])
 
     # This is the 'Exif Image' portion.
-    exif = _ExifImageIfd(endian, read_buffer[6:], offset)
+    exif = _ExifImageIfd(endian, read_buffer, offset)
     return exif.processed_ifd
 
 
@@ -74,7 +73,9 @@ class _Ifd(object):
                     5: ('II', 8),
                     7: ('B', 1),
                     9: ('i', 4),
-                    10: ('ii', 8)}
+                    10: ('ii', 8),
+                    11: ('f', 4),
+                    12: ('d', 8)}
 
     def __init__(self, endian, read_buffer, offset):
         self.endian = endian
@@ -246,10 +247,16 @@ class _ExifImageIfd(_Ifd):
                    33432: 'Copyright',
                    33434: 'ExposureTime',
                    33437: 'FNumber',
+                   33550: 'ModelPixelScale',
                    33723: 'IPTCNAA',
+                   33922: 'ModelTiePoint',
+                   34264: 'ModelTransformation',
                    34377: 'ImageResources',
                    34665: 'ExifTag',
                    34675: 'InterColorProfile',
+                   34735: 'GeoKeyDirectory',
+                   34736: 'GeoDoubleParams',
+                   34737: 'GeoAsciiParams',
                    34850: 'ExposureProgram',
                    34852: 'SpectralSensitivity',
                    34853: 'GPSTag',
