@@ -1,20 +1,52 @@
-sudo: false
+sudo: true
 language: python
-python:
-  - "2.7"
-  - "3.3"
-  - "3.4"
-  - "3.5"
 
+matrix:
+    include:
+    - python: 2.7
+      env:
+      - JOB_NAME: "27_eldest"
+      - NUMPY_VERSION=1.7.2
+      - LXML_VERSION=3.0.2
+    - python: 2.7
+      env:
+      - JOB_NAME: "27_np182"
+      - NUMPY_VERSION=1.8.2
+      - LXML_VERSION=3.4.4
+    - python: 2.7
+      env:
+      - JOB_NAME: "27_np192"
+      - NUMPY_VERSION=1.9.2
+      - LXML_VERSION=3.4.4
+    - python: 2.7
+      env:
+      - JOB_NAME: "27_np_latest"
+      - NUMPY_VERSION=1.10.1
+      - LXML_VERSION=3.4.4
+    - python: 3.3
+      env:
+      - JOB_NAME: "33"
+      - NUMPY_VERSION=1.7.2
+      - LXML_VERSION=3.0.2
+    - python: 3.4
+      env:
+      - JOB_NAME: "34"
+      - NUMPY_VERSION=1.9.2
+      - LXML_VERSION=3.4.4
+    - python: 3.5
+      env:
+      - JOB_NAME: "35"
+      - NUMPY_VERSION=1.10.1
+      - LXML_VERSION=3.4.4
+    
 before_install:
   - bash travis-install-openjpeg.sh
+  - sudo apt-get update -qq
+  - sudo apt-get install libexempi3
 
 # command to install dependencies
 install:
-  - if [[ $TRAVIS_PYTHON_VERSION == '2.7' ]]; then pip install lxml contextlib2 mock six; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == '3.3' ]]; then pip install lxml numpy six; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == '3.4' ]]; then pip install lxml numpy six; fi
-  - if [[ $TRAVIS_PYTHON_VERSION == '3.5' ]]; then pip install lxml numpy six; fi
+    - pip install numpy==$NUMPY_VERSION lxml==$LXML_VERSION python-xmp-toolkit six contextlib2
 
 # command to run tests
 script:
