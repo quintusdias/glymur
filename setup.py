@@ -21,7 +21,7 @@ kwargs = {'name': 'Glymur',
           'license': 'MIT',
           'test_suite': 'glymur.test'}
 
-install_requires = ['numpy>=1.7.0', 'lxml>=2.3.2']
+install_requires = ['numpy>=1.7.0', 'lxml>=3.0.2']
 if sys.hexversion < 0x03030000:
     install_requires.append('contextlib2>=0.4')
     install_requires.append('mock>=0.7.2')
