@@ -174,14 +174,6 @@ except:
 NO_READ_BACKEND_MSG = "Matplotlib with the PIL backend must be available in "
 NO_READ_BACKEND_MSG += "order to run the tests in this suite."
 
-try:
-    OPJ_DATA_ROOT = os.environ['OPJ_DATA_ROOT']
-except KeyError:
-    OPJ_DATA_ROOT = None
-except:
-    raise
-
-
 # The Cinema2K/4K tests seem to need the freeimage backend to skimage.io
 # in order to work.  Unfortunately, scikit-image/freeimage is about as wonky as
 # it gets.  Anaconda can get totally weirded out on versions up through 3.6.4
@@ -232,11 +224,6 @@ def _indent(textstr):
         return '\n'.join(lst)
 
 
-def opj_data_file(relative_file_name):
-    """Compact way of forming a full filename from OpenJPEG's test suite."""
-    jfile = os.path.join(OPJ_DATA_ROOT, relative_file_name)
-    return jfile
-
 try:
     import matplotlib
     if not re.match('[1-9]\.[3-9]', matplotlib.__version__):
@@ -273,106 +260,6 @@ def mse(amat, bmat):
     err = np.mean(diff**2)
     return err
 
-
-def peak_tolerance(amat, bmat):
-    """Peak Tolerance"""
-    diff = np.abs(amat.astype(np.double) - bmat.astype(np.double))
-    ptol = diff.max()
-    return ptol
-
-
-def read_pgx(pgx_file):
-    """Helper function for reading the PGX comparison files.
-    """
-    header, pos = read_pgx_header(pgx_file)
-
-    tokens = re.split(r'\s', header)
-
-    if (tokens[1][0] == 'M') and (sys.byteorder == 'little'):
-        swapbytes = True
-    elif (tokens[1][0] == 'L') and (sys.byteorder == 'big'):
-        swapbytes = True
-    else:
-        swapbytes = False
-
-    if (len(tokens) == 6):
-        bitdepth = int(tokens[3])
-        signed = bitdepth < 0
-        if signed:
-            bitdepth = -1 * bitdepth
-        nrows = int(tokens[5])
-        ncols = int(tokens[4])
-    else:
-        bitdepth = int(tokens[2])
-        signed = bitdepth < 0
-        if signed:
-            bitdepth = -1 * bitdepth
-        nrows = int(tokens[4])
-        ncols = int(tokens[3])
-
-    dtype = determine_pgx_datatype(signed, bitdepth)
-
-    shape = [nrows, ncols]
-
-    # Reopen the file in binary mode and seek to the start of the binary
-    # data
-    with open(pgx_file, 'rb') as fptr:
-        fptr.seek(pos)
-        data = np.fromfile(file=fptr, dtype=dtype).reshape(shape)
-
-    return(data.byteswap(swapbytes))
-
-
-def determine_pgx_datatype(signed, bitdepth):
-    """Determine the datatype of the PGX file.
-
-    Parameters
-    ----------
-    signed : bool
-        True if the datatype is signed, false otherwise
-    bitdepth : int
-        How many bits are used to make up an image plane.  Should be 8 or 16.
-    """
-    if signed:
-        if bitdepth <= 8:
-            dtype = np.int8
-        elif bitdepth <= 16:
-            dtype = np.int16
-        else:
-            raise RuntimeError("unhandled bitdepth")
-    else:
-        if bitdepth <= 8:
-            dtype = np.uint8
-        elif bitdepth <= 16:
-            dtype = np.uint16
-        else:
-            raise RuntimeError("unhandled bitdepth")
-
-    return dtype
-
-
-def read_pgx_header(pgx_file):
-    """Open the file in ascii mode (not really) and read the header line.
-    Will look something like
-
-    PG ML + 8 128 128
-    PG%[ \t]%c%c%[ \t+-]%d%[ \t]%d%[ \t]%d"
-    """
-    header = ''
-    with open(pgx_file, 'rb') as fptr:
-        while True:
-            char = fptr.read(1)
-            if char[0] == 10 or char == '\n':
-                pos = fptr.tell()
-                break
-            else:
-                if sys.hexversion < 0x03000000:
-                    header += char
-                else:
-                    header += chr(char[0])
-
-    header = header.rstrip()
-    return header, pos
 
 nemo_xmp = """<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>
 <ns0:xmpmeta xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:ns0="adobe:ns:meta/" xmlns:ns2="http://ns.adobe.com/xap/1.0/" xmlns:ns3="http://ns.adobe.com/tiff/1.0/" xmlns:ns4="http://ns.adobe.com/exif/1.0/" xmlns:ns5="http://ns.adobe.com/photoshop/1.0/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" ns0:xmptk="Exempi + XMP Core 5.1.2">
@@ -944,12 +831,19 @@ text_GBR_rreq = r"""Reader Requirements Box (rreq) @ (40, 109)
         UUID bc45a774-dd50-4ec6-a9f6-f3a137f47e90
         UUID d7c8c5ef-951f-43b2-8757-042500f538e8"""
 
-file1_xml = """XML Box (xml ) @ (36, 439)
+file1_xml = """<IMAGE_CREATION xmlns="http://www.jpeg.org/jpx/1.0/xml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.jpeg.org/jpx/1.0/xml http://www.jpeg.org/metadata/15444-2.xsd">
+    <GENERAL_CREATION_INFO>
+        <CREATION_TIME>2001-11-01T13:45:00.000-06:00</CREATION_TIME>
+        <IMAGE_SOURCE>Professional 120 Image</IMAGE_SOURCE>
+    </GENERAL_CREATION_INFO>
+</IMAGE_CREATION>"""
+
+file1_xml_box = """XML Box (xml ) @ (36, 439)
     <IMAGE_CREATION xmlns="http://www.jpeg.org/jpx/1.0/xml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.jpeg.org/jpx/1.0/xml http://www.jpeg.org/metadata/15444-2.xsd">
-    \t<GENERAL_CREATION_INFO>
-    \t\t<CREATION_TIME>2001-11-01T13:45:00.000-06:00</CREATION_TIME>
-    \t\t<IMAGE_SOURCE>Professional 120 Image</IMAGE_SOURCE>
-    \t</GENERAL_CREATION_INFO>
+        <GENERAL_CREATION_INFO>
+            <CREATION_TIME>2001-11-01T13:45:00.000-06:00</CREATION_TIME>
+            <IMAGE_SOURCE>Professional 120 Image</IMAGE_SOURCE>
+        </GENERAL_CREATION_INFO>
     </IMAGE_CREATION>"""
 
 issue_182_cmap = """Component Mapping Box (cmap) @ (130, 24)

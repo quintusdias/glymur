@@ -125,31 +125,33 @@ class TestSuiteHiRISE(unittest.TestCase):
                          (0.0, 180.0, 0.0, 0.0, 3396190.0, 3396190.0))
         self.assertEqual(jp2.box[4].data['GeoAsciiParams'],
                          'Equirectangular MARS|GCS_MARS|')
-        self.assertEqual(jp2.box[4].data['GeoKeyDirectory'],
-                         (   1,     1,  0,    18, 
-                          1024,     0,  1,     1, 
-                          1025,     0,  1,     1, 
-                          1026, 34737, 21,     0, 
-                          2048,     0,  1, 32767, 
-                          2049, 34737,  9,    21, 
-                          2050,     0,  1, 32767, 
-                          2054,     0,  1,  9102, 
-                          2056,     0,  1, 32767, 
-                          2057, 34736,  1,     4, 
-                          2058, 34736,  1,     5, 
-                          3072,     0,  1, 32767, 
-                          3074,     0,  1, 32767, 
-                          3075,     0,  1,    17, 
-                          3076,     0,  1,  9001, 
-                          3082, 34736,  1,     2, 
-                          3083, 34736,  1,     3, 
-                          3088, 34736,  1,     1, 
-                          3089, 34736,  1,     0))
+        self.assertEqual(jp2.box[4].data['GeoKeyDirectory'], (
+            1,        1,  0,    18,
+            1024,     0,  1,     1,
+            1025,     0,  1,     1,
+            1026, 34737, 21,     0,
+            2048,     0,  1, 32767,
+            2049, 34737,  9,    21,
+            2050,     0,  1, 32767,
+            2054,     0,  1,  9102,
+            2056,     0,  1, 32767,
+            2057, 34736,  1,     4,
+            2058, 34736,  1,     5,
+            3072,     0,  1, 32767,
+            3074,     0,  1, 32767,
+            3075,     0,  1,    17,
+            3076,     0,  1,  9001,
+            3082, 34736,  1,     2,
+            3083, 34736,  1,     3,
+            3088, 34736,  1,     1,
+            3089, 34736,  1,     0
+        ))
         self.assertEqual(jp2.box[4].data['ModelPixelScale'], (0.25, 0.25, 0.0))
-        self.assertEqual(jp2.box[4].data['ModelTiePoint'],
-                         (0.0, 0.0, 0.0, -2523306.125, -268608.875, 0.0))
+        self.assertEqual(jp2.box[4].data['ModelTiePoint'], (
+            0.0, 0.0, 0.0, -2523306.125, -268608.875, 0.0
+        ))
 
-    @unittest.skipIf(sys.platform == 'cygwin', 'Problem with corner coords')     
+    @unittest.skipIf(sys.platform == 'cygwin', 'Problem with corner coords')
     def test_printing(self):
         jp2 = Jp2k(self.hirise_jp2file_name)
         with patch('sys.stdout', new=StringIO()) as fake_out:

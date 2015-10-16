@@ -66,6 +66,51 @@ _EXIF_UUID = UUID(bytes=b'JpgTiffExif->JP2')
 _XMP_UUID = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
 
 
+class ByteOrderMarkerWarning(UserWarning):
+    """
+    Byte order markers (BOMs) are illegal in XML content.
+    """
+    pass
+
+
+class ExtraBytesAtEndOfFileWarning(UserWarning):
+    """
+    Must be either 0 or more than 8 bytes at the end of each box.
+    """
+    pass
+
+
+class FilePointerPositioningWarning(UserWarning):
+    """
+    Issued if positioned past the end of a box.
+    """
+    pass
+
+
+class UnrecognizedBoxWarning(UserWarning):
+    """
+    If not a JP2 box, then at least must be a JPX box we've heard of.
+
+    The problem is that we haven't seen even close to all the possible JPX
+    boxes.
+    """
+    pass
+
+
+class UnrecoverableBoxParsingWarning(UserWarning):
+    """
+    Issue this warning if a box of a superbox errors out when parsing.
+    """
+    pass
+
+
+class UnrecoverableXMLWarning(UserWarning):
+    """
+    Issue this warning when no valid XML was recovered from an XML box.
+    """
+    pass
+
+
 class Jp2kBox(object):
     """Superclass for JPEG 2000 boxes.
 
@@ -87,9 +132,10 @@ class Jp2kBox(object):
         self.box = []
 
     def __repr__(self):
-        msg = "glymur.jp2box.Jp2kBox(box_id='{0}', offset={1}, length={2}, "
-        msg += "longname='{3}')"
-        msg = msg.format(self.box_id, self.offset, self.length, self.longname)
+        msg = "glymur.jp2box.Jp2kBox(box_id='{id}', offset={offset}, "
+        msg += "length={length}, longname='{longname}')"
+        msg = msg.format(id=self.box_id, offset=self.offset,
+                         length=self.length, longname=self.longname)
         return msg
 
     def __str__(self):
@@ -194,7 +240,7 @@ class Jp2kBox(object):
             # We don't recognize the box ID, so create an UnknownBox and be
             # done with it.
             msg = 'Unrecognized box ({0}) encountered.'.format(box_id)
-            warnings.warn(msg)
+            warnings.warn(msg, UnrecognizedBoxWarning)
             box = UnknownBox(box_id, offset=start, length=num_bytes,
                              longname='Unknown')
 
@@ -204,10 +250,12 @@ class Jp2kBox(object):
             box = parser(fptr, start, num_bytes)
         except ValueError as err:
             msg = "Encountered an unrecoverable ValueError while parsing a "
-            msg += "{0} box at byte offset {1}.  The original error message "
-            msg += "was \"{2}\""
-            msg = msg.format(_BOX_WITH_ID[box_id].longname, start, str(err))
-            warnings.warn(msg, UserWarning)
+            msg += "{box_id} box at byte offset {offset}.  The original error "
+            msg += "message was \"{original_error_message}\""
+            msg = msg.format(box_id=_BOX_WITH_ID[box_id].longname,
+                             offset=start, 
+                             original_error_message=str(err))
+            warnings.warn(msg, UnrecoverableBoxParsingWarning)
             box = UnknownBox(box_id.decode('utf-8'),
                              length=num_bytes,
                              offset=start, longname='Unknown')
@@ -241,7 +289,7 @@ class Jp2kBox(object):
             read_buffer = fptr.read(8)
             if len(read_buffer) < 8:
                 msg = "Extra bytes at end of file ignored."
-                warnings.warn(msg)
+                warnings.warn(msg, ExtraBytesAtEndOfFileWarning)
                 return superbox
 
             (box_length, box_id) = struct.unpack('>I4s', read_buffer)
@@ -273,15 +321,45 @@ class Jp2kBox(object):
             elif fptr.tell() > start + num_bytes:
                 # The box must be invalid somehow, as the file pointer is
                 # positioned past the end of the box.
-                msg = '{0} box may be invalid, the file pointer is positioned '
-                msg += '{1} bytes past the end of the box.'
-                msg = msg.format(box_id, fptr.tell() - (start + num_bytes))
-                warnings.warn(msg)
+                msg = ('{box_id} box may be invalid, the file pointer is '
+                       'positioned {num_bytes} bytes past the end of the box.')
+                msg = msg.format(box_id=box_id,
+                                 num_bytes=fptr.tell() - (start + num_bytes))
+                warnings.warn(msg, FilePointerPositioningWarning)
             fptr.seek(start + num_bytes)
 
             start += num_bytes
 
         return superbox
+
+
+class InvalidApproximationWarning(UserWarning):
+    """
+    The approximation value should be in the range from 1 to 4.  Values 1-2
+    are specified in 15444-1.  Values 3-4 are specified in 15444-2.
+    """
+    pass
+
+
+class InvalidColourspaceMethod(UserWarning):
+    """
+    The "method" of a colr box must be one of (1, 2, 3, 4)
+    """
+    pass
+
+
+class InvalidICCProfileLengthWarning(UserWarning):
+    """
+    Invoked if the ICC profile is shorter than the minimum of 128 bytes.
+    """
+    pass
+
+
+class UnrecognizedColourspaceWarning(UserWarning):
+    """
+    Only a certain number of color space enums are recognized.
+    """
+    pass
 
 
 class ColourSpecificationBox(Jp2kBox):
@@ -336,11 +414,18 @@ class ColourSpecificationBox(Jp2kBox):
             msg = "Colorspace and icc_profile cannot both be set."
             self._dispatch_validation_error(msg, writing=writing)
         if self.method not in (1, 2, 3, 4):
-            msg = "Invalid method.".format(self.method)
-            self._dispatch_validation_error(msg, writing=writing)
+            msg = "Invalid colorspace method:  {method}"
+            msg = msg.format(method=self.method)
+            if writing:
+                raise IOError(msg)
+            else:
+                warnings.warn(msg, InvalidColourspaceMethod)
         if self.approximation not in (0, 1, 2, 3, 4):
             msg = "Invalid approximation:  {0}".format(self.approximation)
-            self._dispatch_validation_error(msg, writing=writing)
+            if writing:
+                raise IOError(msg)
+            else:
+                warnings.warn(msg, InvalidApproximationWarning)
 
     def _write_validate(self):
         """In addition to constructor validation steps, run validation steps
@@ -445,17 +530,16 @@ class ColourSpecificationBox(Jp2kBox):
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
-        # Read the brand, minor version.
-        (method, precedence, approximation) = struct.unpack_from('>BBB',
-                                                                 read_buffer,
-                                                                 offset=0)
+
+        lst = struct.unpack_from('>BBB', read_buffer, offset=0)
+        method, precedence, approximation = lst
 
         if method == 1:
             # enumerated colour space
             colorspace, = struct.unpack_from('>I', read_buffer, offset=3)
             if colorspace not in _COLORSPACE_MAP_DISPLAY.keys():
                 msg = "Unrecognized colorspace: {0}".format(colorspace)
-                warnings.warn(msg)
+                warnings.warn(msg, UnrecognizedColourspaceWarning)
             icc_profile = None
 
         else:
@@ -464,7 +548,8 @@ class ColourSpecificationBox(Jp2kBox):
             if (num_bytes - 3) < 128:
                 msg = "ICC profile header is corrupt, length is "
                 msg += "only {0} instead of 128."
-                warnings.warn(msg.format(num_bytes - 3), UserWarning)
+                warnings.warn(msg.format(num_bytes - 3),
+                              InvalidICCProfileLengthWarning)
                 icc_profile = None
             else:
                 profile = _ICCProfile(read_buffer[3:])
@@ -1263,6 +1348,20 @@ class DataReferenceBox(Jp2kBox):
         return cls(data_entry_url_box_list, length=length, offset=offset)
 
 
+class CompatibilityListItemWarning(UserWarning):
+    """
+    Compatibility list items should be one of 'jp2 ', 'jpx ', or 'jpxb'
+    """
+    pass
+
+
+class FileTypeBrandWarning(UserWarning):
+    """
+    Compatibility list items should be one of 'jp2 ', 'jpx ', or 'jpxb'
+    """
+    pass
+
+
 class FileTypeBox(Jp2kBox):
     """Container for JPEG 2000 file type box information.
 
@@ -1286,6 +1385,7 @@ class FileTypeBox(Jp2kBox):
     """
     box_id = 'ftyp'
     longname = 'File Type'
+    _valid_cls = ['jp2 ', 'jpx ', 'jpxb']
 
     def __init__(self, brand='jp2 ', minor_version=0,
                  compatibility_list=None, length=0, offset=-1):
@@ -1326,19 +1426,26 @@ class FileTypeBox(Jp2kBox):
         return text
 
     def _validate(self, writing=False):
-        """Validate the box before writing to file."""
+        """
+        Validate the box before writing to file.
+        """
         if self.brand not in ['jp2 ', 'jpx ']:
-            msg = "The file type brand was '{0}'.  "
+            msg = "The file type brand was '{brand}'.  "
             msg += "It should be either 'jp2 ' or 'jpx '."
-            self._dispatch_validation_error(msg.format(self.brand),
-                                            writing=writing)
-        valid_cls = ['jp2 ', 'jpx ', 'jpxb']
+            msg = msg.format(brand=self.brand)
+            if writing:
+                raise IOError(msg)
+            else:
+                warnings.warn(msg, FileTypeBrandWarning)
         for item in self.compatibility_list:
-            if item not in valid_cls:
-                msg = "The file type compatibility list item '{0}' is not "
-                msg += "valid:  valid entries are {1}"
-                msg = msg.format(item, valid_cls)
-                self._dispatch_validation_error(msg, writing=writing)
+            if item not in self._valid_cls:
+                msg = "The file type compatibility list item '{entry}' is not "
+                msg += "valid:  valid entries are {valid_entries}"
+                msg = msg.format(entry=item, valid_entries=self._valid_cls)
+                if writing:
+                    raise IOError(msg)
+                else:
+                    warnings.warn(msg, CompatibilityListItemWarning)
 
     def write(self, fptr):
         """Write a File Type box to file.
@@ -2378,21 +2485,24 @@ class ReaderRequirementsBox(Jp2kBox):
 
         lst = []
 
-        text = 'Fully Understands Aspect Mask:  0x{0:x}'.format(self.fuam)
-        lst.append(text)
+        text = 'Fully Understands Aspect Mask:  0x{fuam:x}'
+        lst.append(text.format(fuam=self.fuam))
 
-        text = 'Display Completely Mask:  0x{0:x}'.format(self.dcm)
+        text = 'Display Completely Mask:  0x{dcm:x}'.format(dcm=self.dcm)
         lst.append(text)
 
         text = 'Standard Features and Masks:'
         lst.append(text)
 
         lst2 = []
+        text = 'Feature {flag:03d}:  0x{mask:x} {decoded}'
         for j in range(len(self.standard_flag)):
-            args = (self.standard_flag[j], self.standard_mask[j],
-                    _READER_REQUIREMENTS_DISPLAY[self.standard_flag[j]])
-            text = 'Feature {0:03d}:  0x{1:x} {2}'.format(*args)
-            lst2.append(text)
+            kwargs = {
+                'flag': self.standard_flag[j],
+                'mask': self.standard_mask[j],
+                'decoded': _READER_REQUIREMENTS_DISPLAY[self.standard_flag[j]],
+            }
+            lst2.append(text.format(**kwargs))
         text = '\n'.join(lst2)
         text = self._indent(text)
         lst.append(text)
@@ -3006,7 +3116,7 @@ class XMLBox(Jp2kBox):
         self.offset = offset
 
     def __repr__(self):
-        return "glymur.jp2box.XMLBox(xml={0})".format(self.xml)
+        return "glymur.jp2box.XMLBox(xml={xml})".format(xml=self.xml)
 
     def __str__(self):
         title = Jp2kBox.__str__(self)
@@ -3062,16 +3172,17 @@ class XMLBox(Jp2kBox):
             if decl_start <= -1:
                 # Nope, that's not it.  All is lost.
                 msg = 'A problem was encountered while parsing an XML box:'
-                msg += '\n\n\t"{0}"\n\nNo XML was retrieved.'
-                warnings.warn(msg.format(str(err)))
+                msg += '\n\n\t"{error}"\n\nNo XML was retrieved.'
+                warnings.warn(msg.format(error=str(err)),
+                              UnrecoverableXMLWarning)
                 return XMLBox(xml=None, length=length, offset=offset)
 
             text = read_buffer[decl_start:].decode('utf-8')
 
             # Let the user know that the XML box was problematic.
             msg = 'A UnicodeDecodeError was encountered parsing an XML box at '
-            msg += 'byte position {0} ({1}), but the XML was still recovered.'
-            msg = msg.format(offset, err.reason)
+            msg += 'byte position {offset} ({reason}), but the XML was still recovered.'
+            msg = msg.format(offset=offset, reason=err.reason)
             warnings.warn(msg, UserWarning)
 
         # Strip out any trailing nulls, as they can foul up XML parsing.
@@ -3079,10 +3190,11 @@ class XMLBox(Jp2kBox):
 
         # Remove any byte order markers.
         if u'\ufeff' in text:
-            msg = 'An illegal BOM (byte order marker) was detected and '
-            msg += 'removed from the XML contents in the box starting at byte '
-            msg += 'offset {0}'.format(offset)
-            warnings.warn(msg)
+            msg = ('An illegal BOM (byte order marker) was detected and '
+                   'removed from the XML contents in the box starting at byte '
+                   'offset {offset}.')
+            msg = msg.format(offset=offset)
+            warnings.warn(msg, ByteOrderMarkerWarning)
             text = text.replace(u'\ufeff', '')
 
         # Remove any encoding declaration.
@@ -3094,8 +3206,8 @@ class XMLBox(Jp2kBox):
             xml = ET.ElementTree(elt)
         except ET.ParseError as err:
             msg = 'A problem was encountered while parsing an XML box:'
-            msg += '\n\n\t"{0}"\n\nNo XML was retrieved.'
-            msg = msg.format(str(err))
+            msg += '\n\n\t"{reason}"\n\nNo XML was retrieved.'
+            msg = msg.format(reason=str(err))
             warnings.warn(msg, UserWarning)
             xml = None
 
@@ -3138,7 +3250,7 @@ class UUIDListBox(Jp2kBox):
 
         lst = []
         for j, uuid_item in enumerate(self.ulst):
-            text = 'UUID[{0}]:  {1}'.format(j, uuid_item)
+            text = 'UUID[{item_no}]:  {uuid}'.format(item_no=j, uuid=uuid_item)
             lst.append(text)
         body = '\n'.join(lst)
         body = self._indent(body)
@@ -3303,8 +3415,8 @@ class DataEntryURLBox(Jp2kBox):
         fptr.write(url)
 
     def __repr__(self):
-        msg = "glymur.jp2box.DataEntryURLBox({0}, {1}, '{2}')"
-        msg = msg.format(self.version, self.flag, self.url)
+        msg = "glymur.jp2box.DataEntryURLBox({version}, {flag}, '{url}')"
+        msg = msg.format(version=self.version, flag=self.flag, url=self.url)
         return msg
 
     def __str__(self):
@@ -3312,13 +3424,15 @@ class DataEntryURLBox(Jp2kBox):
         if _printoptions['short'] is True:
             return title
 
-        lst = ['Version:  {0}',
-               'Flag:  {1} {2} {3}',
-               'URL:  "{4}"']
+        lst = ['Version:  {version}',
+               'Flag:  {flag0} {flag1} {flag2}',
+               'URL:  "{url}"']
         body = '\n'.join(lst)
-        body = body.format(self.version,
-                           self.flag[0], self.flag[1], self.flag[2],
-                           self.url)
+        body = body.format(version=self.version,
+                           flag0=self.flag[0],
+                           flag1=self.flag[1],
+                           flag2=self.flag[2],
+                           url=self.url)
         body = self._indent(body)
 
         text = '\n'.join([title, body])

@@ -149,7 +149,7 @@ class TestSuite(unittest.TestCase):
                         with self.assertWarnsRegex(UserWarning, regex):
                             imp.reload(glymur.lib.openjp2)
 
-    @unittest.skipIf((openjpeg_not_found_by_ctypes() and
+    @unittest.skipIf((openjpeg_not_found_by_ctypes() or
                       openjp2_not_found_by_ctypes()),
                      "Needs openjp2 and openjpeg before this test make sense.")
     @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)

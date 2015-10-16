@@ -5,6 +5,7 @@ import os
 import re
 import sys
 import tempfile
+import warnings
 
 import unittest
 
@@ -16,8 +17,7 @@ else:
     from io import StringIO
 
 import glymur
-
-from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
+from glymur.jp2k import OpenJPEGLibraryWarning
 
 
 class TestCallbacks(unittest.TestCase):
@@ -32,13 +32,17 @@ class TestCallbacks(unittest.TestCase):
 
     @unittest.skipIf(glymur.version.openjpeg_version[0] != '2',
                      "Missing openjp2 library.")
-    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_info_callback_on_write_backwards_compatibility(self):
         """Verify messages printed when writing an image in verbose mode."""
         j = glymur.Jp2k(self.jp2file)
-        with self.assertWarns(UserWarning):
-            tiledata = j.read(tile=0)
+        if sys.hexversion < 0x03000000:
+            with warnings.catch_warnings(record=True) as w:
+                tiledata = j.read(tile=0)
+                assert issubclass(w[-1].category, OpenJPEGLibraryWarning)
+        else:
+            with self.assertWarns(OpenJPEGLibraryWarning):
+                tiledata = j.read(tile=0)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             with patch('sys.stdout', new=StringIO()) as fake_out:
                 glymur.Jp2k(tfile.name, data=tiledata, verbose=True)
