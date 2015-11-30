@@ -1360,7 +1360,7 @@ class Jp2k(Jp2kBox):
         # Must check the specified rlevel against the maximum.
         if rlevel != 0:
             # Must check the specified rlevel against the maximum.
-            max_rlevel = self.codestream.segment[2].spcod[4]
+            max_rlevel = self.codestream.segment[2].num_res
             if rlevel == -1:
                 # -1 is shorthand for the largest rlevel
                 rlevel = max_rlevel

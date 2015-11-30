@@ -151,10 +151,10 @@ class TestPrinting(unittest.TestCase):
 
         Original test file was 2977.pdf.asan.67.2198.jp2
         """
-        self.maxDiff = None
-        spcod = struct.pack('>BHBBBBBB', 33, 1, 1, 5, 3, 3, 0, 0)
-        spcod = bytearray(spcod)
-        segment = glymur.codestream.CODsegment(0, spcod, 12, 174)
+        pargs = (0, 33, 1, 1, 5, 3, 3, 0, 0, None)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            segment = glymur.codestream.CODsegment(*pargs, length=12, offset=174)
         with patch('sys.stdout', new=StringIO()) as stdout:
             print(segment)
             actual = stdout.getvalue().strip()
@@ -167,9 +167,10 @@ class TestPrinting(unittest.TestCase):
 
         Original test file was edf_c2_10025.jp2
         """
-        spcod = struct.pack('>BBBBBBBBB', 0, 0, 0, 0, 0, 0, 0, 0, 2)
-        spcod = bytearray(spcod)
-        segment = glymur.codestream.CODsegment(0, spcod, 0, 0)
+        pargs = (0, 0, 0, 0, 0, 0, 0, 0, 2, None)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            segment = glymur.codestream.CODsegment(*pargs, length=0, offset=0)
         with patch('sys.stdout', new=StringIO()):
             print(segment)
 
@@ -288,6 +289,8 @@ class TestPrinting(unittest.TestCase):
         """verify printing of asoc, label boxes"""
         # Construct a fake file with an asoc and a label box, as
         # OpenJPEG doesn't have such a file.
+        #pargs = (scod, prog, nlayers, mct, nr, xcb, ycb, cstyle, xform,
+        #         precinct_size)
         data = glymur.Jp2k(self.jp2file)[::2, ::2]
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile2:

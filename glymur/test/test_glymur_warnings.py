@@ -351,16 +351,17 @@ class TestSuite(unittest.TestCase):
         Original test file was input/nonregression/
                                gdal_fuzzer_unchecked_numresolutions.jp2
         """
+        pargs = (0, 0, 1, 1, 64, 3, 3, 0, 0, None)
         spcod = struct.pack('>BHBBBBBB', 0, 1, 1, 64, 3, 3, 0, 0)
         spcod = bytearray(spcod)
         exp_warning = glymur.codestream.InvalidNumberOfResolutionsWarning
         if sys.hexversion < 0x03000000:
             with warnings.catch_warnings(record=True) as w:
-                glymur.codestream.CODsegment(0, spcod, 12, 174)
+                glymur.codestream.CODsegment(*pargs, length=12, offset=174)
             assert issubclass(w[-1].category, exp_warning)
         else:
             with self.assertWarns(exp_warning):
-                glymur.codestream.CODsegment(0, spcod, 12, 174)
+                glymur.codestream.CODsegment(*pargs, length=12, offset=174)
 
     def test_file_pointer_badly_positioned(self):
         """
@@ -378,9 +379,7 @@ class TestSuite(unittest.TestCase):
 
                 # Write a too-long color box
                 buffer = struct.pack('>I4sBBBI',
-                                     4194319, b'colr', 0, 0, 0, 0)
-
-                buffer = struct.pack('>I4s', 32, b'XML ')
+                                     4194319, b'colr', 1, 0, 0, 0)
                 ofile.write(buffer)
 
                 # Write everything past the colr box.

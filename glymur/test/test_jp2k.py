@@ -384,7 +384,7 @@ class TestJp2k(unittest.TestCase):
             j2 = Jp2k(tfile.name, data=expdata, irreversible=True)
 
             codestream = j2.get_codestream()
-            self.assertEqual(codestream.segment[2].spcod[8],
+            self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
             actdata = j2[:]
@@ -469,8 +469,8 @@ class TestJp2k(unittest.TestCase):
         self.assertEqual(c.segment[2].scod, 0)
         self.assertEqual(c.segment[2].layers, 2)
         self.assertEqual(c.segment[2].code_block_size, (64.0, 64.0))
-        np.testing.assert_array_equal(c.segment[2].spcod,
-                                      np.array([0, 0, 2, 1, 1, 4, 4, 0, 1]))
+        self.assertEqual(c.segment[2].prog_order, 0)
+        self.assertEqual(c.segment[2].xform, 1)
         self.assertIsNone(c.segment[2].precinct_size)
 
         self.assertEqual(c.segment[3].marker_id, 'QCD')
@@ -951,10 +951,10 @@ class CinemaBase(fixtures.MetadataBase):
 
         self.assertFalse(cod_segment.scod & 2)  # no sop
         self.assertFalse(cod_segment.scod & 4)  # no eph
-        self.assertEqual(cod_segment.spcod[0], glymur.core.CPRL)
+        self.assertEqual(cod_segment.prog_order, glymur.core.CPRL)
         self.assertEqual(cod_segment.layers, 1)
-        self.assertEqual(cod_segment.spcod[3], 1)  # mct
-        self.assertEqual(cod_segment.spcod[4], 5)  # levels
+        self.assertEqual(cod_segment.mct, 1)
+        self.assertEqual(cod_segment.num_res, 5)  # levels
         self.assertEqual(tuple(cod_segment.code_block_size), (32, 32))
 
     def check_cinema4k_codestream(self, codestream, image_size):
@@ -978,6 +978,7 @@ class CinemaBase(fixtures.MetadataBase):
         self.verify_cinema_cod(codestream.segment[2])
 
 
+@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
 @unittest.skipIf(re.match(r'''(1|2.0.0)''',
                           glymur.version.openjpeg_version) is not None,
@@ -1026,18 +1027,13 @@ class WriteCinema(CinemaBase):
         data = np.concatenate((data, data), axis=1).astype(np.uint16)
         data = data[:1080, :2048, :]
 
-        exp_warning = glymur.jp2k.OpenJPEGLibraryWarning
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    j = Jp2k(tfile.name, data=data, cinema2k=48)
-                assert issubclass(w[-1].category, exp_warning)
-            else:
-                with self.assertWarns(exp_warning):
-                    j = Jp2k(tfile.name, data=data, cinema2k=48)
-
-            codestream = j.get_codestream()
-            self.check_cinema2k_codestream(codestream, (2048, 1080))
+        with warnings.catch_warnings():
+            # Ignore a warning issued by the library.
+            warnings.simplefilter('ignore')
+            with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+                j = Jp2k(tfile.name, data=data, cinema2k=48)
+                codestream = j.get_codestream()
+                self.check_cinema2k_codestream(codestream, (2048, 1080))
 
     def test_NR_ENC_ElephantDream_4K_tif_21_encode(self):
         """
@@ -1063,6 +1059,7 @@ class WriteCinema(CinemaBase):
             codestream = j.get_codestream()
             self.check_cinema4k_codestream(codestream, (4096, 2160))
 
+@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
 class TestJp2k_write(fixtures.MetadataBase):
     """Write tests, can be run by versions 1.5+"""
@@ -1105,17 +1102,17 @@ class TestJp2k_write(fixtures.MetadataBase):
         # COD: Coding style default
         self.assertFalse(codestream.segment[2].scod & 2)  # no sop
         self.assertFalse(codestream.segment[2].scod & 4)  # no eph
-        self.assertEqual(codestream.segment[2].spcod[0], glymur.core.LRCP)
+        self.assertEqual(codestream.segment[2].prog_order, glymur.core.LRCP)
         self.assertEqual(codestream.segment[2].layers, 3)  # layers = 3
-        self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
-        self.assertEqual(codestream.segment[2].spcod[4], 1)  # levels
+        self.assertEqual(codestream.segment[2].mct, 1)  # mct
+        self.assertEqual(codestream.segment[2].num_res, 1)  # levels
         self.assertEqual(tuple(codestream.segment[2].code_block_size),
                          (64, 64))  # cblksz
-        self.verify_codeblock_style(codestream.segment[2].spcod[7],
+        self.verify_codeblock_style(codestream.segment[2].cstyle,
                                     [False, False, False, False, False, False])
-        self.assertEqual(codestream.segment[2].spcod[8],
+        self.assertEqual(codestream.segment[2].xform,
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-        self.assertEqual(len(codestream.segment[2].spcod), 9)
+        self.assertIsNone(codestream.segment[2].precinct_size)
 
     def test_NR_ENC_Bretagne1_ppm_1_encode(self):
         """
@@ -1133,17 +1130,17 @@ class TestJp2k_write(fixtures.MetadataBase):
         # COD: Coding style default
         self.assertFalse(c.segment[2].scod & 2)  # no sop
         self.assertFalse(c.segment[2].scod & 4)  # no eph
-        self.assertEqual(c.segment[2].spcod[0], glymur.core.LRCP)
+        self.assertEqual(c.segment[2].prog_order, glymur.core.LRCP)
         self.assertEqual(c.segment[2].layers, 3)  # layers = 3
-        self.assertEqual(c.segment[2].spcod[3], 1)  # mct
-        self.assertEqual(c.segment[2].spcod[4], 5)  # levels
+        self.assertEqual(c.segment[2].mct, 1)  # mct
+        self.assertEqual(c.segment[2].num_res, 5)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
                          (64, 64))  # cblksz
-        self.verify_codeblock_style(c.segment[2].spcod[7],
+        self.verify_codeblock_style(c.segment[2].cstyle,
                                     [False, False, False, False, False, False])
-        self.assertEqual(c.segment[2].spcod[8],
+        self.assertEqual(c.segment[2].xform,
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-        self.assertEqual(len(c.segment[2].spcod), 9)
+        self.assertIsNone(c.segment[2].precinct_size)
 
     def test_NR_ENC_Bretagne1_ppm_3_encode(self):
         """
@@ -1162,16 +1159,16 @@ class TestJp2k_write(fixtures.MetadataBase):
         # COD: Coding style default
         self.assertFalse(codestream.segment[2].scod & 2)  # no sop
         self.assertFalse(codestream.segment[2].scod & 4)  # no eph
-        self.assertEqual(codestream.segment[2].spcod[0], glymur.core.LRCP)
+        self.assertEqual(codestream.segment[2].prog_order, glymur.core.LRCP)
         self.assertEqual(codestream.segment[2].layers, 3)  # layers = 3
-        self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
-        self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+        self.assertEqual(codestream.segment[2].mct, 1)  # mct
+        self.assertEqual(codestream.segment[2].num_res, 5)  # levels
         self.assertEqual(tuple(codestream.segment[2].code_block_size),
                          (16, 16))  # cblksz
-        self.verify_codeblock_style(codestream.segment[2].spcod[7],
+        self.verify_codeblock_style(codestream.segment[2].cstyle,
                                     [False, False,
                                      False, False, False, False])
-        self.assertEqual(codestream.segment[2].spcod[8],
+        self.assertEqual(codestream.segment[2].xform,
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(codestream.segment[2].precinct_size,
                          [(2, 2), (4, 4), (8, 8), (16, 16), (32, 32),
@@ -1202,16 +1199,16 @@ class TestJp2k_write(fixtures.MetadataBase):
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
             self.assertFalse(codestream.segment[2].scod & 4)  # no eph
-            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].prog_order, glymur.core.LRCP)
             self.assertEqual(codestream.segment[2].layers, 3)  # layers = 3
-            self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
-            self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+            self.assertEqual(codestream.segment[2].mct, 1)  # mct
+            self.assertEqual(codestream.segment[2].num_res, 5)  # levels
             self.assertEqual(tuple(codestream.segment[2].code_block_size),
                              (32, 32))  # cblksz
-            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+            self.verify_codeblock_style(codestream.segment[2].cstyle,
                                         [False, False,
                                          False, False, False, False])
-            self.assertEqual(codestream.segment[2].spcod[8],
+            self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(codestream.segment[2].precinct_size,
                              [(16, 16), (32, 32), (64, 64)] + [(128, 128)] * 3)
@@ -1236,18 +1233,18 @@ class TestJp2k_write(fixtures.MetadataBase):
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
             self.assertFalse(codestream.segment[2].scod & 4)  # no eph
-            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.PCRL)
+            self.assertEqual(codestream.segment[2].prog_order, glymur.core.PCRL)
             self.assertEqual(codestream.segment[2].layers, 1)  # layers = 1
-            self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
-            self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+            self.assertEqual(codestream.segment[2].mct, 1)  # mct
+            self.assertEqual(codestream.segment[2].num_res, 5)  # levels
             self.assertEqual(tuple(codestream.segment[2].code_block_size),
                              (64, 64))  # cblksz
-            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+            self.verify_codeblock_style(codestream.segment[2].cstyle,
                                         [False, False,
                                          False, False, False, False])
-            self.assertEqual(codestream.segment[2].spcod[8],
+            self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-            self.assertEqual(len(codestream.segment[2].spcod), 9)
+            self.assertIsNone(codestream.segment[2].precinct_size)
 
     def test_NR_ENC_Bretagne2_ppm_6_encode(self):
         """
@@ -1267,18 +1264,18 @@ class TestJp2k_write(fixtures.MetadataBase):
             # COD: Coding style default
             self.assertTrue(codestream.segment[2].scod & 2)  # sop
             self.assertFalse(codestream.segment[2].scod & 4)  # no eph
-            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].prog_order, glymur.core.LRCP)
             self.assertEqual(codestream.segment[2].layers, 1)  # layers = 1
-            self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
-            self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+            self.assertEqual(codestream.segment[2].mct, 1)  # mct
+            self.assertEqual(codestream.segment[2].num_res, 5)  # levels
             self.assertEqual(tuple(codestream.segment[2].code_block_size),
                              (64, 64))  # cblksz
-            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+            self.verify_codeblock_style(codestream.segment[2].cstyle,
                                         [False, False, False,
                                          False, False, False])
-            self.assertEqual(codestream.segment[2].spcod[8],
+            self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-            self.assertEqual(len(codestream.segment[2].spcod), 9)
+            self.assertIsNone(codestream.segment[2].precinct_size)
 
             # 18 SOP segments.
             nsops = [x.nsop for x in codestream.segment
@@ -1300,18 +1297,18 @@ class TestJp2k_write(fixtures.MetadataBase):
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
             self.assertTrue(codestream.segment[2].scod & 4)  # eph
-            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].prog_order, glymur.core.LRCP)
             self.assertEqual(codestream.segment[2].layers, 1)  # layers = 1
-            self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
-            self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+            self.assertEqual(codestream.segment[2].mct, 1)  # mct
+            self.assertEqual(codestream.segment[2].num_res, 5)  # levels
             self.assertEqual(tuple(codestream.segment[2].code_block_size),
                              (64, 64))  # cblksz
-            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+            self.verify_codeblock_style(codestream.segment[2].cstyle,
                                         [False, True, True,
                                          False, False, True])
-            self.assertEqual(codestream.segment[2].spcod[8],
+            self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-            self.assertEqual(len(codestream.segment[2].spcod), 9)
+            self.assertIsNone(codestream.segment[2].precinct_size)
 
             # 18 EPH segments.
             ephs = [x for x in codestream.segment if x.marker_id == 'EPH']
@@ -1336,18 +1333,18 @@ class TestJp2k_write(fixtures.MetadataBase):
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
             self.assertFalse(codestream.segment[2].scod & 4)  # no eph
-            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].prog_order, glymur.core.LRCP)
             self.assertEqual(codestream.segment[2].layers, 1)  # layers = 1
-            self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
-            self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+            self.assertEqual(codestream.segment[2].mct, 1)  # mct
+            self.assertEqual(codestream.segment[2].num_res, 5)  # levels
             self.assertEqual(tuple(codestream.segment[2].code_block_size),
                              (64, 64))  # cblksz
-            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+            self.verify_codeblock_style(codestream.segment[2].cstyle,
                                         [False, False, False,
                                          False, False, False])
-            self.assertEqual(codestream.segment[2].spcod[8],
+            self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-            self.assertEqual(len(codestream.segment[2].spcod), 9)
+            self.assertIsNone(codestream.segment[2].precinct_size)
 
     def test_NR_ENC_Cevennes1_bmp_9_encode(self):
         """
@@ -1364,18 +1361,18 @@ class TestJp2k_write(fixtures.MetadataBase):
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
             self.assertFalse(codestream.segment[2].scod & 4)  # no eph
-            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].prog_order, glymur.core.LRCP)
             self.assertEqual(codestream.segment[2].layers, 1)  # layers = 1
-            self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
-            self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+            self.assertEqual(codestream.segment[2].mct, 1)  # mct
+            self.assertEqual(codestream.segment[2].num_res, 5)  # levels
             self.assertEqual(tuple(codestream.segment[2].code_block_size),
                              (64, 64))  # cblksz
-            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+            self.verify_codeblock_style(codestream.segment[2].cstyle,
                                         [False, False, False,
                                          False, False, False])
-            self.assertEqual(codestream.segment[2].spcod[8],
+            self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-            self.assertEqual(len(codestream.segment[2].spcod), 9)
+            self.assertIsNone(codestream.segment[2].precinct_size)
 
     def test_NR_ENC_Cevennes2_ppm_10_encode(self):
         """
@@ -1392,18 +1389,18 @@ class TestJp2k_write(fixtures.MetadataBase):
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
             self.assertFalse(codestream.segment[2].scod & 4)  # no eph
-            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].prog_order, glymur.core.LRCP)
             self.assertEqual(codestream.segment[2].layers, 1)  # layers = 1
-            self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
-            self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+            self.assertEqual(codestream.segment[2].mct, 1)  # mct
+            self.assertEqual(codestream.segment[2].num_res, 5)  # levels
             self.assertEqual(tuple(codestream.segment[2].code_block_size),
                              (64, 64))  # cblksz
-            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+            self.verify_codeblock_style(codestream.segment[2].cstyle,
                                         [False, False, False,
                                          False, False, False])
-            self.assertEqual(codestream.segment[2].spcod[8],
+            self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-            self.assertEqual(len(codestream.segment[2].spcod), 9)
+            self.assertIsNone(codestream.segment[2].precinct_size)
 
     def test_NR_ENC_Rome_bmp_11_encode(self):
         """
@@ -1462,18 +1459,18 @@ class TestJp2k_write(fixtures.MetadataBase):
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
             self.assertFalse(codestream.segment[2].scod & 4)  # no eph
-            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].prog_order, glymur.core.LRCP)
             self.assertEqual(codestream.segment[2].layers, 3)  # layers = 3
-            self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
-            self.assertEqual(codestream.segment[2].spcod[4], 2)  # levels
+            self.assertEqual(codestream.segment[2].mct, 1)  # mct
+            self.assertEqual(codestream.segment[2].num_res, 2)  # levels
             self.assertEqual(tuple(codestream.segment[2].code_block_size),
                              (64, 64))  # cblksz
-            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+            self.verify_codeblock_style(codestream.segment[2].cstyle,
                                         [False, False, False,
                                          False, False, False])
-            self.assertEqual(codestream.segment[2].spcod[8],
+            self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-            self.assertEqual(len(codestream.segment[2].spcod), 9)
+            self.assertIsNone(codestream.segment[2].precinct_size)
 
     def test_NR_ENC_random_issue_0005_tif_12_encode(self):
         """
@@ -1497,18 +1494,18 @@ class TestJp2k_write(fixtures.MetadataBase):
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
             self.assertFalse(codestream.segment[2].scod & 4)  # no eph
-            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].prog_order, glymur.core.LRCP)
             self.assertEqual(codestream.segment[2].layers, 1)  # layers = 1
-            self.assertEqual(codestream.segment[2].spcod[3], 0)  # mct
-            self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+            self.assertEqual(codestream.segment[2].mct, 0)
+            self.assertEqual(codestream.segment[2].num_res, 5)  # levels
             self.assertEqual(tuple(codestream.segment[2].code_block_size),
                              (64, 64))  # cblksz
-            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+            self.verify_codeblock_style(codestream.segment[2].cstyle,
                                         [False, False, False,
                                          False, False, False])
-            self.assertEqual(codestream.segment[2].spcod[8],
+            self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-            self.assertEqual(len(codestream.segment[2].spcod), 9)
+            self.assertIsNone(codestream.segment[2].precinct_size)
 
 
     def test_NR_ENC_issue141_rawl_23_encode(self):
@@ -1524,7 +1521,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             j = Jp2k(tfile.name, data=self.jp2_data, irreversible=True)
 
             codestream = j.get_codestream()
-            self.assertEqual(codestream.segment[2].spcod[8],
+            self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
     def test_cinema_mode_with_too_old_version_of_openjpeg(self):
@@ -1641,7 +1638,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             j = Jp2k(tfile.name, data=expdata, irreversible=True, numres=5)
 
             codestream = j.get_codestream()
-            self.assertEqual(codestream.segment[2].spcod[8],
+            self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
             actdata = j[:]
@@ -1711,7 +1708,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             codestream = j.get_codestream()
 
             # Code block size is reported as XY in the codestream.
-            self.assertEqual(tuple(codestream.segment[2].spcod[5:7]), (3, 2))
+            self.assertEqual(codestream.segment[2].code_block_size, (16, 32))
 
     def test_too_many_dimensions(self):
         """OpenJP2 only allows 2D or 3D images."""
@@ -1797,7 +1794,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             np.testing.assert_array_equal(actdata, expdata)
 
             codestream = ofile.get_codestream()
-            self.assertEqual(codestream.segment[2].spcod[3], 0)  # no mct
+            self.assertEqual(codestream.segment[2].mct, 0)  # no mct
 
     def test_write_grayscale_with_mct(self):
         """MCT usage makes no sense for grayscale images."""
@@ -1818,7 +1815,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             np.testing.assert_array_equal(actdata, expdata)
 
             codestream = ofile.get_codestream()
-            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.CPRL)
+            self.assertEqual(codestream.segment[2].prog_order, glymur.core.CPRL)
 
 
 class TestJp2k_1_x(unittest.TestCase):

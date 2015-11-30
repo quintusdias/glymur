@@ -442,19 +442,14 @@ class Codestream(object):
         length, = struct.unpack('>H', read_buffer)
 
         read_buffer = fptr.read(length - 2)
-        scod, = struct.unpack_from('>B', read_buffer, offset=0)
-        spcod = read_buffer[1:]
-        spcod = np.frombuffer(spcod, dtype=np.uint8)
-        if spcod[0] not in [LRCP, RLCP, RPCL, PCRL, CPRL]:
-            msg = "Invalid progression order in COD segment: {prog_order}."
-            warnings.warn(msg.format(prog_order=spcod[0]),
-                          InvalidProgressionOrderWarning)
 
-        if spcod[8] not in [WAVELET_XFORM_9X7_IRREVERSIBLE,
-                            WAVELET_XFORM_5X3_REVERSIBLE]:
-            msg = "Invalid wavelet transform in COD segment: {xform}."
-            msg = msg.format(xform=spcod[8])
-            warnings.warn(msg, InvalidWaveletTransformWarning)
+        lst = struct.unpack_from('>BBHBBBBBB', read_buffer, offset=0)
+        scod, prog, nlayers, mct, nr, xcb, ycb, cstyle, xform = lst
+
+        if len(read_buffer) > 10:
+            precinct_size = _parse_precinct_size(read_buffer[10:])
+        else:
+            precinct_size = None
 
         sop = (scod & 2) > 0
         eph = (scod & 4) > 0
@@ -464,7 +459,10 @@ class Codestream(object):
         else:
             cls._parse_tpart_flag = False
 
-        return CODsegment(scod, spcod, length, offset)
+        pargs = (scod, prog, nlayers, mct, nr, xcb, ycb, cstyle, xform,
+                 precinct_size)
+
+        return CODsegment(*pargs, length=length, offset=offset)
 
     def _parse_crg_segment(self, fptr):
         """Parse the CRG marker segment.
@@ -1037,56 +1035,77 @@ class CODsegment(Segment):
     Attributes
     ----------
     marker_id : str
-        Identifier for the segment.
+        Identifier for the segment
     offset : int
-        Offset of marker segment in bytes from beginning of file.
+        Offset of marker segment in bytes from beginning of file
     length : int
         Length of marker segment in bytes.  This number does not include the
         two bytes constituting the marker.
     scod : int
-        Default coding style.
-    layers : int
-        Quality layers.
+        Default coding style
     code_block_size : tuple
-        Size of code block.
-    spcod : bytes
-        Encoded coding style parameters, including quality layers,
-        multi component transform usage, decomposition levels, code block size,
-        style of code-block passes, and which wavelet transform is used.
-    precinct_size : list of tuples
-        Dimensions of precinct.
+        Size of code block
+    layers : int
+        Number of decomposition levels
+    progression_order : int
+        Progression order
+    mct : int
+        Multiple component transform usage
+    num_res : int
+        Number of layers
+    xform : int
+        Wavelet transform used
+    cstyle : int
+        Style of the code-block passes
+    precinct_size : list
+        2-tuples of precinct sizes.
 
     References
     ----------
     .. [JP2K15444-1i] International Organization for Standardication.  ISO/IEC
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
+
+        pargs = (scod, prog, nlayers, mct, nr, xcb, ycb, cstyle, xform,
+                 precinct_size)
     """
-    def __init__(self, scod, spcod, length, offset):
+    def __init__(self, scod, prog_order, num_layers, mct, nr, xcb, ycb,
+                 cstyle, xform, precinct_size, length=0, offset=0):
         Segment.__init__(self, marker_id='COD')
         self.scod = scod
-        self.spcod = spcod
         self.length = length
         self.offset = offset
+        self.mct = mct
+        self.cstyle = cstyle
+        self.xform = xform
 
-        params = struct.unpack('>BHBBBBBB', self.spcod[0:9])
-        self.layers = params[1]
-        self._numresolutions = params[3]
+        self.layers = num_layers
+        self._numresolutions = nr
 
-        if params[3] > opj2.J2K_MAXRLVLS:
-            msg = "Invalid number of resolutions: ({0})."
-            msg = msg.format(params[3] + 1)
+        if nr > opj2.J2K_MAXRLVLS:
+            msg = "Invalid number of resolutions: ({numres})."
+            msg = msg.format(numres=nr + 1)
             warnings.warn(msg, InvalidNumberOfResolutionsWarning)
+        self.num_res = nr
 
-        cblk_width = 4 * math.pow(2, params[4])
-        cblk_height = 4 * math.pow(2, params[5])
+        if prog_order not in [LRCP, RLCP, RPCL, PCRL, CPRL]:
+            msg = "Invalid progression order in COD segment: {prog_order}."
+            warnings.warn(msg.format(prog_order=prog_order),
+                          InvalidProgressionOrderWarning)
+        self.prog_order = prog_order
+
+        if xform not in [WAVELET_XFORM_9X7_IRREVERSIBLE,
+                            WAVELET_XFORM_5X3_REVERSIBLE]:
+            msg = "Invalid wavelet transform in COD segment: {xform}."
+            msg = msg.format(xform=xform)
+            warnings.warn(msg, InvalidWaveletTransformWarning)
+
+        cblk_width = 4 * math.pow(2, xcb)
+        cblk_height = 4 * math.pow(2, ycb)
         code_block_size = (cblk_height, cblk_width)
         self.code_block_size = code_block_size
 
-        if len(self.spcod) > 9:
-            self.precinct_size = _parse_precinct_size(self.spcod[9:])
-        else:
-            self.precinct_size = None
+        self.precinct_size = precinct_size
 
     def __str__(self):
         msg = Segment.__str__(self)
@@ -1112,27 +1131,27 @@ class CODsegment(Segment):
             for pps in self.precinct_size:
                 precinct_size = '({ppsx}, {ppsy})'.format(ppsx=pps[0], ppsy=pps[1])
 
-        if self.spcod[3] == 0:
-            mct = 'no transform specified'
-        elif self.spcod[3] & 0x01:
-            mct = 'reversible'
-        elif self.spcod[3] & 0x02:
-            mct = 'irreversible'
+        if self.mct == 0:
+            mct_str = 'no transform specified'
+        elif self.mct & 0x01:
+            mct_str = 'reversible'
+        elif self.mct & 0x02:
+            mct_str = 'irreversible'
         else:
-            mct = 'unknown'
+            mct_str = 'unknown'
 
         msg = msg.format(with_without='with' if (self.scod & 1) else 'without',
                          sop=((self.scod & 2) > 0),
                          eph=((self.scod & 4) > 0),
-                         prog=_PROGRESSION_ORDER_DISPLAY[self.spcod[0]],
+                         prog=_PROGRESSION_ORDER_DISPLAY[self.prog_order],
                          num_layers=self.layers,
-                         mct=mct,
-                         num_resolutions=self.spcod[4] + 1,
+                         mct=mct_str,
+                         num_resolutions=self.num_res + 1,
                          cbh=int(self.code_block_size[0]),
                          cbw=int(self.code_block_size[1]),
-                         xform=_WAVELET_TRANSFORM_DISPLAY[self.spcod[8]],
+                         xform=_WAVELET_TRANSFORM_DISPLAY[self.xform],
                          precinct_size=precinct_size,
-                         code_block_context=_context_string(self.spcod[7]))
+                         code_block_context=_context_string(self.cstyle))
 
         return msg
 
