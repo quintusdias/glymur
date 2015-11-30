@@ -1,12 +1,15 @@
 # -*- coding:  utf-8 -*-
 """Test suite for printing.
 """
+from io import BytesIO
 import os
 import re
 import struct
 import sys
 import tempfile
 import unittest
+from uuid import UUID
+import warnings
 
 if sys.hexversion < 0x03000000:
     from StringIO import StringIO
@@ -18,13 +21,17 @@ if sys.hexversion <= 0x03030000:
 else:
     from unittest.mock import patch
 
+import numpy as np
 import lxml.etree as ET
 
 import glymur
+from glymur.core import RESTRICTED_ICC_PROFILE, ANY_ICC_PROFILE
+from glymur.core import COLOR, RED, GREEN, BLUE
+from glymur.jp2box import BitsPerComponentBox
+from glymur.jp2box import ColourSpecificationBox
 from glymur import Jp2k, command_line
 from . import fixtures
-from .fixtures import (OPJ_DATA_ROOT, opj_data_file,
-                       WARNING_INFRASTRUCTURE_ISSUE,
+from .fixtures import (WARNING_INFRASTRUCTURE_ISSUE,
                        WARNING_INFRASTRUCTURE_MSG,
                        WINDOWS_TMP_FILE_MSG)
 
@@ -42,6 +49,194 @@ class TestPrinting(unittest.TestCase):
 
     def tearDown(self):
         glymur.set_parseoptions(full_codestream=False)
+
+    def test_palette(self):
+        """
+        verify printing of pclr box
+
+        Original file tested was input/conformance/file9.jp2
+        """
+        palette = np.array([[0, 0, 0] for _ in range(256)], dtype=np.uint8)
+        bps = (8, 8, 8)
+        signed = (False, False, False)
+        box = glymur.jp2box.PaletteBox(palette, bits_per_component=bps,
+                                       signed=signed, length=782, offset=66)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(box)
+            actual = fake_out.getvalue().strip()
+        lines = ['Palette Box (pclr) @ (66, 782)',
+                 '    Size:  (256 x 3)']
+        expected = '\n'.join(lines)
+        self.assertEqual(actual, expected)
+
+    def test_component_mapping(self):
+        """
+        verify printing of cmap box
+
+        Original file tested was input/conformance/file9.jp2
+        """
+        cmap = glymur.jp2box.ComponentMappingBox(component_index=(0, 0, 0),
+                                                 mapping_type=(1, 1, 1),
+                                                 palette_index=(0, 1, 2),
+                                                 length=20, offset=848)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(cmap)
+            actual = fake_out.getvalue().strip()
+        lines = ['Component Mapping Box (cmap) @ (848, 20)',
+                 '    Component 0 ==> palette column 0',
+                 '    Component 0 ==> palette column 1',
+                 '    Component 0 ==> palette column 2']
+        expected = '\n'.join(lines)
+        self.assertEqual(actual, expected)
+
+    def test_channel_definition(self):
+        """
+        verify printing of cdef box
+
+        Original file tested was input/conformance/file2.jp2
+        """
+        channel_type = [COLOR, COLOR, COLOR]
+        association = [BLUE, GREEN, RED]
+        cdef = glymur.jp2box.ChannelDefinitionBox(index=[0, 1, 2],
+                                                  channel_type=channel_type,
+                                                  association=association,
+                                                  length=28, offset=81)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(cdef)
+            actual = fake_out.getvalue().strip()
+        lines = ['Channel Definition Box (cdef) @ (81, 28)',
+                 '    Channel 0 (color) ==> (3)',
+                 '    Channel 1 (color) ==> (2)',
+                 '    Channel 2 (color) ==> (1)']
+        expected = '\n'.join(lines)
+        self.assertEqual(actual, expected)
+
+    def test_xml(self):
+        """
+        verify printing of XML box
+
+        Original test file was input/conformance/file1.jp2
+        """
+        self.maxDiff = None
+        elt = ET.fromstring(fixtures.file1_xml)
+        xml = ET.ElementTree(elt)
+        box = glymur.jp2box.XMLBox(xml=xml, length=439, offset=36)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(box)
+            actual = fake_out.getvalue().strip()
+        expected = fixtures.file1_xml_box
+        self.assertEqual(actual, expected)
+
+    def test_uuid(self):
+        """
+        verify printing of UUID box
+
+        Original test file was text_GBR.jp2
+        """
+        buuid = UUID('urn:uuid:3a0d0218-0ae9-4115-b376-4bca41ce0e71')
+        box = glymur.jp2box.UUIDBox(buuid, b'\x00', 25, 1544)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(box)
+            actual = fake_out.getvalue().strip()
+        lines = ['UUID Box (uuid) @ (1544, 25)',
+                 '    UUID:  3a0d0218-0ae9-4115-b376-4bca41ce0e71 (unknown)',
+                 '    UUID Data:  1 bytes']
+
+        expected = '\n'.join(lines)
+        self.assertEqual(actual, expected)
+
+    def test_invalid_progression_order(self):
+        """
+        Should still be able to print even if prog order is invalid.
+
+        Original test file was 2977.pdf.asan.67.2198.jp2
+        """
+        self.maxDiff = None
+        spcod = struct.pack('>BHBBBBBB', 33, 1, 1, 5, 3, 3, 0, 0)
+        spcod = bytearray(spcod)
+        segment = glymur.codestream.CODsegment(0, spcod, 12, 174)
+        with patch('sys.stdout', new=StringIO()) as stdout:
+            print(segment)
+            actual = stdout.getvalue().strip()
+        expected = fixtures.issue_186_progression_order
+        self.assertEqual(actual, expected)
+
+    def test_bad_wavelet_transform(self):
+        """
+        Should still be able to print if wavelet xform is bad, issue195
+
+        Original test file was edf_c2_10025.jp2
+        """
+        spcod = struct.pack('>BBBBBBBBB', 0, 0, 0, 0, 0, 0, 0, 0, 2)
+        spcod = bytearray(spcod)
+        segment = glymur.codestream.CODsegment(0, spcod, 0, 0)
+        with patch('sys.stdout', new=StringIO()):
+            print(segment)
+
+    def test_bad_rsiz(self):
+        """
+        Should still be able to print if rsiz is bad, issue196
+
+        Original test file was edf_c2_1002767.jp2
+        """
+        kwargs = {'rsiz': 33,
+                  'xysiz': (1920, 1080),
+                  'xyosiz': (0, 0),
+                  'xytsiz': (1920, 1080),
+                  'xytosiz': (0, 0),
+                  'Csiz': 3,
+                  'bitdepth': (12, 12, 12),
+                  'signed':  (False, False, False),
+                  'xyrsiz': ((1, 1, 1), (1, 1, 1)),
+                  'length': 47,
+                  'offset': 2}
+        segment = glymur.codestream.SIZsegment(**kwargs)
+        with patch('sys.stdout', new=StringIO()):
+            print(segment)
+
+    def test_invalid_colorspace(self):
+        """
+        An invalid colorspace shouldn't cause an error.
+
+        Original test file was edf_c2_1103421.jp2
+        """
+        colr = ColourSpecificationBox(colorspace=276)
+        colr.colorspace = 276
+        with patch('sys.stdout', new=StringIO()):
+            print(colr)
+
+    def test_bpcc(self):
+        """
+        BPCC boxes are rare :-)
+        """
+        box = BitsPerComponentBox((5, 5, 5, 1),
+                                  (False, False, False, False),
+                                  length=12, offset=62)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(box)
+            actual = fake_out.getvalue().strip()
+        self.assertEqual(actual, fixtures.bpcc)
+
+    def test_cinema_profile(self):
+        """
+        Should print Cinema 2K when the profile is 3.
+        """
+        kwargs = {'rsiz': 3,
+                  'xysiz': (1920, 1080),
+                  'xyosiz': (0, 0),
+                  'xytsiz': (1920, 1080),
+                  'xytosiz': (0, 0),
+                  'Csiz': 3,
+                  'bitdepth': (12, 12, 12),
+                  'signed':  (False, False, False),
+                  'xyrsiz': ((1, 1, 1), (1, 1, 1)),
+                  'length': 47,
+                  'offset': 2}
+        segment = glymur.codestream.SIZsegment(**kwargs)
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(segment)
+            actual = fake_out.getvalue().strip()
+        self.assertEqual(actual, fixtures.cinema2k_profile)
 
     def test_version_info(self):
         """Should be able to print(glymur.version.info)"""
@@ -600,51 +795,11 @@ class TestPrinting(unittest.TestCase):
 
         self.assertEqual(actual, expected)
 
-
-@unittest.skipIf(OPJ_DATA_ROOT is None,
-                 "OPJ_DATA_ROOT environment variable not set")
-@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-class TestPrintingOpjDataRoot(unittest.TestCase):
-    """Tests for verifying printing. restricted to OPJ_DATA_ROOT files."""
-    def setUp(self):
-        self.jpxfile = glymur.data.jpxfile()
-        self.jp2file = glymur.data.nemo()
-        self.j2kfile = glymur.data.goodstuff()
-
-        # Reset printoptions for every test.
-        glymur.set_printoptions(short=False, xml=True, codestream=True)
-
-    def tearDown(self):
-        pass
-
-    def test_bpcc(self):
-        """BPCC boxes are rare :-)"""
-        self.maxDiff = None
-        filename = opj_data_file('input/nonregression/issue458.jp2')
-        jp2 = Jp2k(filename)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            box = jp2.box[2].box[1]
-            print(box)
-            actual = fake_out.getvalue().strip()
-        self.assertEqual(actual, fixtures.bpcc)
-
-    def test_cinema_profile(self):
-        """Should print Cinema 2K when the profile is 3."""
-        filename = opj_data_file('input/nonregression/_00042.j2k')
-        j2k = Jp2k(filename)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            c = j2k.get_codestream()
-            print(c.segment[1])
-            actual = fake_out.getvalue().strip()
-        self.assertEqual(actual, fixtures.cinema2k_profile)
-
     def test_crg(self):
         """verify printing of CRG segment"""
-        filename = opj_data_file('input/conformance/p0_03.j2k')
-        j = glymur.Jp2k(filename)
-        codestream = j.get_codestream()
+        crg = glymur.codestream.CRGsegment((65535,), (32767,), 6, 87)
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(codestream.segment[-5])
+            print(crg)
             actual = fake_out.getvalue().strip()
         lines = ['CRG marker segment @ (87, 6)',
                  '    Vertical, Horizontal offset:  (0.50, 1.00)']
@@ -652,12 +807,12 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         self.assertEqual(actual, expected)
 
     def test_rgn(self):
-        """verify printing of RGN segment"""
-        filename = opj_data_file('input/conformance/p0_03.j2k')
-        j = glymur.Jp2k(filename)
-        codestream = j.get_codestream(header_only=False)
+        """
+        verify printing of RGN segment
+        """
+        segment = glymur.codestream.RGNsegment(0, 0, 7, 5, 310)
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(codestream.segment[12])
+            print(segment)
             actual = fake_out.getvalue().strip()
         lines = ['RGN marker segment @ (310, 5)',
                  '    Associated component:  0',
@@ -667,12 +822,12 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         self.assertEqual(actual, expected)
 
     def test_sop(self):
-        """verify printing of SOP segment"""
-        filename = opj_data_file('input/conformance/p0_03.j2k')
-        j = glymur.Jp2k(filename)
-        codestream = j.get_codestream(header_only=False)
+        """
+        verify printing of SOP segment
+        """
+        segment = glymur.codestream.SOPsegment(15, 4, 12836)
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(codestream.segment[-2])
+            print(segment)
             actual = fake_out.getvalue().strip()
         lines = ['SOP marker segment @ (12836, 4)',
                  '    Nsop:  15']
@@ -680,13 +835,15 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         self.assertEqual(actual, expected)
 
     def test_cme(self):
-        """Test printing a CME or comment marker segment."""
-        filename = opj_data_file('input/conformance/p0_02.j2k')
-        j = glymur.Jp2k(filename)
-        codestream = j.get_codestream()
-        # 2nd to last segment in the main header
+        """
+        Test printing a CME or comment marker segment.
+
+        Originally tested with input/conformance/p0_02.j2k
+        """
+        buffer = "Creator: AV-J2K (c) 2000,2001 Algo Vision".encode('latin-1')
+        segment = glymur.codestream.CMEsegment(1, buffer, 45, 85)
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(codestream.segment[-2])
+            print(segment)
             actual = fake_out.getvalue().strip()
         lines = ['CME marker segment @ (85, 45)',
                  '    "Creator: AV-J2K (c) 2000,2001 Algo Vision"']
@@ -694,12 +851,18 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         self.assertEqual(actual, expected)
 
     def test_plt_segment(self):
-        """verify printing of PLT segment"""
-        filename = opj_data_file('input/conformance/p0_07.j2k')
-        j = glymur.Jp2k(filename)
-        codestream = j.get_codestream(header_only=False)
+        """
+        verify printing of PLT segment
+
+        Originally tested with input/conformance/p0_07.j2k
+        """
+        pkt_lengths = [9, 122, 19, 30, 27, 9, 41, 62, 18, 29, 261,
+                       55, 82, 299, 93, 941, 951, 687, 1729, 1443, 1008, 2168,
+                       2188, 2223]
+        segment = glymur.codestream.PLTsegment(0, pkt_lengths, 38, 7871146)
+
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(codestream.segment[49935])
+            print(segment)
             actual = fake_out.getvalue().strip()
 
         lines = ['PLT marker segment @ (7871146, 38)',
@@ -710,13 +873,27 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
+    def test_componentmapping_box_alpha(self):
+        """Verify __repr__ method on cmap box."""
+        cmap = glymur.jp2box.ComponentMappingBox(component_index=(0, 0, 0),
+                                                 mapping_type=(1, 1, 1),
+                                                 palette_index=(0, 1, 2))
+        newbox = eval(repr(cmap))
+        self.assertEqual(newbox.box_id, 'cmap')
+        self.assertEqual(newbox.component_index, (0, 0, 0))
+        self.assertEqual(newbox.mapping_type, (1, 1, 1))
+        self.assertEqual(newbox.palette_index, (0, 1, 2))
+
     def test_pod_segment(self):
-        """verify printing of POD segment"""
-        filename = opj_data_file('input/conformance/p0_13.j2k')
-        j = glymur.Jp2k(filename)
-        codestream = j.get_codestream()
+        """
+        verify printing of POD segment
+
+        Original test file was input/conformance/p0_13.j2k
+        """
+        params = (0, 0, 1, 33, 128, 1, 0, 128, 1, 33, 257, 4)
+        segment = glymur.codestream.PODsegment(params, 20, 878)
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(codestream.segment[8])
+            print(segment)
             actual = fake_out.getvalue().strip()
 
         lines = ['POD marker segment @ (878, 20)',
@@ -739,12 +916,14 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         self.assertEqual(actual, expected)
 
     def test_ppm_segment(self):
-        """verify printing of PPM segment"""
-        filename = opj_data_file('input/conformance/p1_03.j2k')
-        j = glymur.Jp2k(filename)
-        codestream = j.get_codestream()
+        """
+        verify printing of PPM segment
+
+        Original file tested was input/conformance/p1_03.j2k
+        """
+        segment = glymur.codestream.PPMsegment(0, b'\0' * 43709, 43712, 213)
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(codestream.segment[9])
+            print(segment)
             actual = fake_out.getvalue().strip()
 
         lines = ['PPM marker segment @ (213, 43712)',
@@ -755,12 +934,14 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         self.assertEqual(actual, expected)
 
     def test_ppt_segment(self):
-        """verify printing of ppt segment"""
-        filename = opj_data_file('input/conformance/p1_06.j2k')
-        j = glymur.Jp2k(filename)
-        codestream = j.get_codestream(header_only=False)
+        """
+        verify printing of ppt segment
+
+        Original file tested was input/conformance/p1_06.j2k
+        """
+        segment = glymur.codestream.PPTsegment(0, b'\0' * 106, 109, 155)
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(codestream.segment[6])
+            print(segment)
             actual = fake_out.getvalue().strip()
 
         lines = ['PPT marker segment @ (155, 109)',
@@ -771,12 +952,17 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         self.assertEqual(actual, expected)
 
     def test_tlm_segment(self):
-        """verify printing of TLM segment"""
-        filename = opj_data_file('input/conformance/p0_15.j2k')
-        j = glymur.Jp2k(filename)
-        codestream = j.get_codestream()
+        """
+        verify printing of TLM segment
+
+        Original file tested was input/conformance/p0_15.j2k
+        """
+        segment = glymur.codestream.TLMsegment(0,
+                                               (0, 1, 2, 3),
+                                               (4267, 2117, 4080, 2081),
+                                               28, 268)
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(codestream.segment[10])
+            print(segment)
             actual = fake_out.getvalue().strip()
 
         lines = ['TLM marker segment @ (268, 28)',
@@ -787,24 +973,24 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
-    def test_componentmapping_box_alpha(self):
-        """Verify __repr__ method on cmap box."""
-        cmap = glymur.jp2box.ComponentMappingBox(component_index=(0, 0, 0),
-                                                 mapping_type=(1, 1, 1),
-                                                 palette_index=(0, 1, 2))
-        newbox = eval(repr(cmap))
-        self.assertEqual(newbox.box_id, 'cmap')
-        self.assertEqual(newbox.component_index, (0, 0, 0))
-        self.assertEqual(newbox.mapping_type, (1, 1, 1))
-        self.assertEqual(newbox.palette_index, (0, 1, 2))
-
     def test_differing_subsamples(self):
-        """verify printing of SIZ with different subsampling... Issue 86."""
-        filename = opj_data_file('input/conformance/p0_05.j2k')
-        j = glymur.Jp2k(filename)
-        codestream = j.get_codestream()
+        """
+        verify printing of SIZ with different subsampling... Issue 86.
+        """
+        kwargs = {'rsiz': 1,
+                  'xysiz': (1024, 1024),
+                  'xyosiz': (0, 0),
+                  'xytsiz': (1024, 1024),
+                  'xytosiz': (0, 0),
+                  'Csiz': 4,
+                  'bitdepth': (8, 8, 8, 8),
+                  'signed':  (False, False, False, False),
+                  'xyrsiz': ((1, 1, 2, 2), (1, 1, 2, 2)),
+                  'length': 50,
+                  'offset': 2}
+        segment = glymur.codestream.SIZsegment(**kwargs)
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(codestream.segment[1])
+            print(segment)
             actual = fake_out.getvalue().strip()
         lines = ['SIZ marker segment @ (2, 50)',
                  '    Profile:  0',
@@ -819,168 +1005,127 @@ class TestPrintingOpjDataRoot(unittest.TestCase):
         expected = '\n'.join(lines)
         self.assertEqual(actual, expected)
 
+    def test_issue182(self):
+        """
+        Should not show the format string in output.
 
-@unittest.skipIf(OPJ_DATA_ROOT is None,
-                 "OPJ_DATA_ROOT environment variable not set")
-@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-@unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
-class TestPrintingOpjDataRootWarns(unittest.TestCase):
-    """
-    Tests for verifying printing. restricted to OPJ_DATA_ROOT files.
+        The cmap box is wildly broken, but printing was still wrong.
+        Format strings like %d were showing up in the output.
 
-    These tests issue warnings.
-    """
-    def setUp(self):
-        self.jpxfile = glymur.data.jpxfile()
-        self.jp2file = glymur.data.nemo()
-        self.j2kfile = glymur.data.goodstuff()
-
-        # Reset printoptions for every test.
-        glymur.set_printoptions(short=False, xml=True, codestream=True)
-
-    def tearDown(self):
-        pass
-
-    def test_invalid_colour_specification_method(self):
-        """should not error out with invalid colour specification method"""
-        # Don't care so much about what the output looks like, just that we
-        # do not error out.
-        filename = opj_data_file('input/nonregression/issue397.jp2')
-        with self.assertWarns(UserWarning):
-            jp2 = Jp2k(filename)
-        with patch('sys.stdout', new=StringIO()):
-            print(jp2)
-        self.assertTrue(True)
-
-    def test_invalid_colorspace(self):
-        """An invalid colorspace shouldn't cause an error."""
-        filename = opj_data_file('input/nonregression/edf_c2_1103421.jp2')
-        with self.assertWarns(UserWarning):
-            jp2 = Jp2k(filename)
-        with patch('sys.stdout', new=StringIO()):
-            print(jp2)
-
-    def test_bad_rsiz(self):
-        """Should still be able to print if rsiz is bad, issue196"""
-        filename = opj_data_file('input/nonregression/edf_c2_1002767.jp2')
-        with self.assertWarns(UserWarning):
-            j = Jp2k(filename).get_codestream()
-        with patch('sys.stdout', new=StringIO()):
-            print(j)
-
-    def test_bad_wavelet_transform(self):
-        """Should still be able to print if wavelet xform is bad, issue195"""
-        filename = opj_data_file('input/nonregression/edf_c2_10025.jp2')
-        with self.assertWarns(UserWarning):
-            jp2 = Jp2k(filename)
-            with patch('sys.stdout', new=StringIO()):
-                print(jp2)
-
-    def test_invalid_progression_order(self):
-        """Should still be able to print even if prog order is invalid."""
-        jfile = opj_data_file('input/nonregression/2977.pdf.asan.67.2198.jp2')
-        with self.assertWarns(UserWarning):
-            # Multiple warnings, actually.
-            jp2 = Jp2k(jfile)
-            codestream = jp2.get_codestream()
+        Original file tested was input/nonregression/mem-b2ace68c-1381.jp2
+        """
+        cmap = glymur.jp2box.ComponentMappingBox(component_index=(0, 0, 0, 0),
+                                                 mapping_type=(1, 1, 1, 1),
+                                                 palette_index=(0, 1, 2, 3),
+                                                 length=24, offset=130)
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(codestream.segment[2])
+            print(cmap)
             actual = fake_out.getvalue().strip()
-        self.assertEqual(actual, fixtures.issue_186_progression_order)
+        self.assertEqual(actual, fixtures.issue_182_cmap)
 
-    def test_xml(self):
-        """verify printing of XML box"""
-        filename = opj_data_file('input/conformance/file1.jp2')
-        with self.assertWarns(UserWarning):
-            j = glymur.Jp2k(filename)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(j.box[2])
-            actual = fake_out.getvalue().strip()
-        self.assertEqual(actual, fixtures.file1_xml)
+    def test_issue183(self):
+        """
+        Broken ICC profile
 
-    def test_channel_definition(self):
-        """verify printing of cdef box"""
-        filename = opj_data_file('input/conformance/file2.jp2')
-        with self.assertWarns(UserWarning):
-            # Bad compatibility list item.
-            j = glymur.Jp2k(filename)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(j.box[2].box[2])
-            actual = fake_out.getvalue().strip()
-        lines = ['Channel Definition Box (cdef) @ (81, 28)',
-                 '    Channel 0 (color) ==> (3)',
-                 '    Channel 1 (color) ==> (2)',
-                 '    Channel 2 (color) ==> (1)']
-        expected = '\n'.join(lines)
-        self.assertEqual(actual, expected)
+        Original file tested was input/nonregression/orb-blue10-lin-jp2.jp2
+        """
+        colr = ColourSpecificationBox(method=RESTRICTED_ICC_PROFILE,
+                                      icc_profile=None, length=12, offset=62)
 
-    def test_component_mapping(self):
-        """verify printing of cmap box"""
-        filename = opj_data_file('input/conformance/file9.jp2')
-        with self.assertWarns(UserWarning):
-            j = glymur.Jp2k(filename)
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(j.box[2].box[2])
+            print(colr)
             actual = fake_out.getvalue().strip()
-        lines = ['Component Mapping Box (cmap) @ (848, 20)',
-                 '    Component 0 ==> palette column 0',
-                 '    Component 0 ==> palette column 1',
-                 '    Component 0 ==> palette column 2']
-        expected = '\n'.join(lines)
-        self.assertEqual(actual, expected)
-
-    def test_palette7(self):
-        """verify printing of pclr box"""
-        filename = opj_data_file('input/conformance/file9.jp2')
-        with self.assertWarns(UserWarning):
-            j = glymur.Jp2k(filename)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(j.box[2].box[1])
-            actual = fake_out.getvalue().strip()
-        lines = ['Palette Box (pclr) @ (66, 782)',
-                 '    Size:  (256 x 3)']
-        expected = '\n'.join(lines)
-        self.assertEqual(actual, expected)
+        self.assertEqual(actual, fixtures.issue_183_colr)
 
     def test_rreq(self):
-        """verify printing of reader requirements box"""
-        filename = opj_data_file('input/nonregression/text_GBR.jp2')
-        with self.assertWarns(UserWarning):
-            j = glymur.Jp2k(filename)
+        """
+        verify printing of reader requirements box
+
+        Original file tested was text_GBR.jp2
+        """
+
+        fuam = 0xffff
+        dcm = 0xf8f0
+        standard_flag = 1, 5, 12, 18, 44
+        standard_mask = 0x8000, 0x4080, 0x2040, 0x1020, 0x810
+        vendor_feature = [UUID('{3a0d0218-0ae9-4115-b376-4bca41ce0e71}')]
+        vendor_feature.append(UUID('{47c92ccc-d1a1-4581-b904-38bb5467713b}'))
+        vendor_feature.append(UUID('{bc45a774-dd50-4ec6-a9f6-f3a137f47e90}'))
+        vendor_feature.append(UUID('{d7c8c5ef-951f-43b2-8757-042500f538e8}'))
+        vendor_mask = 0,
+        box = glymur.jp2box.ReaderRequirementsBox(fuam, dcm, standard_flag,
+                                                  standard_mask,
+                                                  vendor_feature, vendor_mask,
+                                                  length=109, offset=40)
+        self.maxDiff = None
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(j.box[2])
+            print(box)
             actual = fake_out.getvalue().strip()
         self.assertEqual(actual, fixtures.text_GBR_rreq)
 
-    def test_palette_box(self):
-        """Verify that palette (pclr) boxes are printed without error."""
-        filename = opj_data_file('input/conformance/file9.jp2')
-        with self.assertWarns(UserWarning):
-            j = glymur.Jp2k(filename)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(j.box[2].box[1])
-            actual = fake_out.getvalue().strip()
-        lines = ['Palette Box (pclr) @ (66, 782)',
-                 '    Size:  (256 x 3)']
-        expected = '\n'.join(lines)
-        self.assertEqual(actual, expected)
+    def test_bom(self):
+        """
+        Byte order markers are illegal in UTF-8.  Issue 185
+
+        Original test file was input/nonregression/issue171.jp2
+        """
+        fptr = BytesIO()
+
+        s = "<?xpacket begin='\ufeff' id='W5M0MpCehiHzreSzNTczkc9d'?>"
+        s += "<stuff>goes here</stuff>"
+        s += "<?xpacket end='w'?>"
+        data = s.encode('utf-8')
+        fptr.write(data)
+        fptr.seek(0)
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            box = glymur.jp2box.XMLBox.parse(fptr, 0, 8 + len(data))
+            with patch('sys.stdout', new=StringIO()):
+                # No need to verify, it's enough that we don't error out.
+                print(box)
+
+        self.assertTrue(True)
 
     def test_icc_profile(self):
         """
         verify icc profile printing with a jpx
 
         2.7, 3.3, 3.4, and 3.5 all print ordered dicts differently
+        Original file tested was input/nonregression/text_GBR.jp2.
         """
-        # ICC profiles may be used in JP2, but the approximation field should
-        # be zero unless we have jpx.  This file does both.
-        filename = opj_data_file('input/nonregression/text_GBR.jp2')
-        with self.assertWarns(UserWarning):
-            # brand is 'jp2 ', but has any icc profile.
-            jp2 = Jp2k(filename)
+        fp = BytesIO()
+        fp.write(b'\x00' * 179)
+
+        # Write the colr box header.
+        buffer = struct.pack('>I4s', 1339, b'colr')
+        buffer += struct.pack('>BBB', ANY_ICC_PROFILE, 2, 1)
+
+        buffer += struct.pack('>IIBB', 1328, 1634758764, 2, 32)
+        buffer += b'\x00' * 2 + b'mntr' + b'RGB ' + b'XYZ '
+        # Need a date in bytes 24:36
+        buffer += struct.pack('>HHHHHH', 2009, 2, 25, 11, 26, 11)
+        buffer += 'acsp'.encode('utf-8')
+        buffer += 'APPL'.encode('utf-8')
+        buffer += b'\x00' * 4
+        buffer += 'appl'.encode('utf-8')  # 48 - 52
+        buffer += b'\x00' * 16
+        buffer += struct.pack('>III', 63190, 65536, 54061)  # 68 - 80
+        buffer += 'appl'.encode('utf-8')  # 80 - 84
+        buffer += b'\x00' * 44
+        fp.write(buffer)
+        fp.seek(179 + 8)
+
+        # Should be able to read the colr box now
+        if sys.hexversion < 0x03000000:
+            box = glymur.jp2box.ColourSpecificationBox.parse(fp, 179, 1339)
+        else:
+            box = glymur.jp2box.ColourSpecificationBox.parse(fp, 179, 1339)
 
         with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(jp2.box[3].box[1])
+            print(box)
             actual = fake_out.getvalue().strip()
+
         if sys.hexversion < 0x03000000:
             expected = fixtures.text_gbr_27
         elif sys.hexversion < 0x03040000:
@@ -991,60 +1136,6 @@ class TestPrintingOpjDataRootWarns(unittest.TestCase):
             expected = fixtures.text_gbr_35
 
         self.assertEqual(actual, expected)
-
-    def test_uuid(self):
-        """verify printing of UUID box"""
-        filename = opj_data_file('input/nonregression/text_GBR.jp2')
-        with self.assertWarns(UserWarning):
-            jp2 = Jp2k(filename)
-
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(jp2.box[4])
-            actual = fake_out.getvalue().strip()
-        lines = ['UUID Box (uuid) @ (1544, 25)',
-                 '    UUID:  3a0d0218-0ae9-4115-b376-4bca41ce0e71 (unknown)',
-                 '    UUID Data:  1 bytes']
-
-        expected = '\n'.join(lines)
-        self.assertEqual(actual, expected)
-
-    def test_issue182(self):
-        """Should not show the format string in output."""
-        # The cmap box is wildly broken, but printing was still wrong.
-        # Format strings like %d were showing up in the output.
-        filename = opj_data_file('input/nonregression/mem-b2ace68c-1381.jp2')
-
-        with self.assertWarns(UserWarning):
-            # Ignore warning about bad pclr box.
-            jp2 = Jp2k(filename)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(jp2.box[3].box[3])
-            actual = fake_out.getvalue().strip()
-        self.assertEqual(actual, fixtures.issue_182_cmap)
-
-    def test_issue183(self):
-        filename = opj_data_file('input/nonregression/orb-blue10-lin-jp2.jp2')
-
-        with self.assertWarns(UserWarning):
-            # Ignore warning about bad pclr box.
-            jp2 = Jp2k(filename)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(jp2.box[2].box[1])
-            actual = fake_out.getvalue().strip()
-        self.assertEqual(actual, fixtures.issue_183_colr)
-
-    def test_bom(self):
-        """Byte order markers are illegal in UTF-8.  Issue 185"""
-        filename = opj_data_file(os.path.join('input',
-                                              'nonregression',
-                                              'issue171.jp2'))
-        with self.assertWarns(UserWarning):
-            jp2 = Jp2k(filename)
-            with patch('sys.stdout', new=StringIO()):
-                # No need to verify, it's enough that we don't error out.
-                print(jp2)
-
-        self.assertTrue(True)
 
 
 class TestJp2dump(unittest.TestCase):
@@ -1103,6 +1194,7 @@ class TestJp2dump(unittest.TestCase):
 
     def test_jp2_codestream_2(self):
         """Verify dumping with -c 2, print entire jp2 jacket, codestream."""
+        self.maxDiff = None
         actual = self.run_jp2dump(['', '-c', '2', self.jp2file])
         expected = fixtures.nemo
         self.assertEqual(actual, expected)

@@ -1,7 +1,9 @@
 """
 Tests for general glymur functionality.
 """
+import datetime
 import doctest
+from io import BytesIO
 import os
 import re
 import struct
@@ -22,6 +24,13 @@ import pkg_resources
 
 import glymur
 from glymur import Jp2k
+from glymur.jp2box import (
+    CompatibilityListItemWarning, FileTypeBrandWarning, UnrecognizedBoxWarning,
+    ExtraBytesAtEndOfFileWarning, UnrecognizedColourspaceWarning
+)
+from glymur.core import COLOR, RED, GREEN, BLUE, RESTRICTED_ICC_PROFILE
+from glymur.codestream import RSizWarning, SIZsegment
+from glymur.jp2box import InvalidApproximationWarning
 from glymur.version import openjpeg_version
 
 from .fixtures import HAS_PYTHON_XMP_TOOLKIT
@@ -32,7 +41,6 @@ if HAS_PYTHON_XMP_TOOLKIT:
     import libxmp
     from libxmp import XMPMeta
 
-from .fixtures import OPJ_DATA_ROOT, opj_data_file
 from . import fixtures
 
 
@@ -232,23 +240,120 @@ class TestSliceProtocolRead(SliceProtocolBase):
         np.testing.assert_array_equal(actual, expected)
 
 
+@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 class TestJp2k(unittest.TestCase):
     """These tests should be run by just about all configuration."""
 
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
-        self.j2kfile = glymur.data.goodstuff()
-        self.jpxfile = glymur.data.jpxfile()
+    @classmethod
+    def setUpClass(cls):
+        cls.jp2file = glymur.data.nemo()
+        cls.j2kfile = glymur.data.goodstuff()
+        cls.jpxfile = glymur.data.jpxfile()
 
-    def tearDown(self):
+    @classmethod
+    def tearDownClass(cls):
         pass
 
-    @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
+    @unittest.skipIf(re.match('1.5.(1|2)', openjpeg_version) is not None,
+                     "Mysteriously fails in 1.5.1 and 1.5.2")
+    def test_no_cxform_pclr_jpx(self):
+        """
+        Indices for pclr jpxfile still usable if no color transform specified
+        """
+        with warnings.catch_warnings():
+            # Suppress a Compatibility list item warning.  We already test
+            # for this elsewhere.
+            warnings.simplefilter("ignore")
+            jp2 = Jp2k(self.jpxfile)
+        rgb = jp2[:]
+        jp2.ignore_pclr_cmap_cdef = True
+        idx = jp2[:]
+        self.assertEqual(rgb.shape, (1024, 1024, 3))
+        self.assertEqual(idx.shape, (1024, 1024))
+
+        # Should be able to manually reconstruct the RGB image from the palette
+        # and indices.
+        palette = jp2.box[2].box[2].palette
+        rgb_from_idx = np.zeros(rgb.shape, dtype=np.uint8)
+        for r in np.arange(rgb.shape[0]):
+            for c in np.arange(rgb.shape[1]):
+                rgb_from_idx[r, c] = palette[idx[r, c]]
+        np.testing.assert_array_equal(rgb, rgb_from_idx)
+
+    def test_no_cxform_cmap(self):
+        """
+        Reorder the components.
+        """
+        j2k = Jp2k(self.j2kfile)
+        rgb = j2k[:]
+        height, width, ncomps = rgb.shape
+
+        # Rewrap the J2K file to reorder the components
+        boxes = [
+            glymur.jp2box.JPEG2000SignatureBox(),
+            glymur.jp2box.FileTypeBox()
+        ]
+        jp2h = glymur.jp2box.JP2HeaderBox()
+        jp2h.box = [
+            glymur.jp2box.ImageHeaderBox(height, width, num_components=ncomps),
+            glymur.jp2box.ColourSpecificationBox(colorspace=glymur.core.SRGB)
+        ]
+
+        channel_type = [COLOR, COLOR, COLOR]
+        association = [BLUE, GREEN, RED]
+        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
+                                                  association=association)
+        jp2h.box.append(cdef)
+
+        boxes.append(jp2h)
+        boxes.append(glymur.jp2box.ContiguousCodestreamBox())
+
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+            jp2 = j2k.wrap(tfile.name, boxes=boxes)
+
+            jp2.ignore_pclr_cmap_cdef = False
+            bgr = jp2[:]
+
+        np.testing.assert_array_equal(rgb, bgr[:, :, [2, 1, 0]])
+
+    @unittest.skipIf(sys.hexversion < 0x03000000, "do not bother on python2")
     def test_warn_if_using_read_method(self):
         """Should warn if deprecated read method is called"""
         with self.assertWarns(DeprecationWarning):
             Jp2k(self.jp2file).read()
+
+    def test_read_differing_subsamples(self):
+        """
+        should error out with read used on differently subsampled images
+
+        Verify that we error out appropriately if we use the read method
+        on an image with differing subsamples
+
+        Issue 86.
+
+        Copy nemo.jp2 but change the SIZ segment to have differing subsamples.
+        """
+        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
+            with open(self.jp2file, 'rb') as ifile:
+                # Copy up until codestream box.
+                ofile.write(ifile.read(3223))
+
+                # Write the jp2c header and SOC marker.
+                ofile.write(ifile.read(10))
+
+                # Read the SIZ segment, modify the last y subsampling value,
+                # and write it back out
+                buffer = bytearray(ifile.read(49))
+                buffer[-1] = 2
+                ofile.write(buffer)
+
+                # Write the rest of the file.
+                ofile.write(ifile.read())
+                ofile.flush()
+
+            j = Jp2k(ofile.name)
+            with self.assertRaises(glymur.jp2k.DifferingSubsampleFactorsError):
+                j[:]
 
     def test_shape_jp2(self):
         """verify shape attribute for JP2 file
@@ -256,28 +361,7 @@ class TestJp2k(unittest.TestCase):
         jp2 = Jp2k(self.jp2file)
         self.assertEqual(jp2.shape, (1456, 2592, 3))
 
-    @unittest.skipIf(OPJ_DATA_ROOT is None,
-                     "OPJ_DATA_ROOT environment variable not set")
-    def test_shape_greyscale_jp2(self):
-        """verify shape attribute for greyscale JP2 file
-        """
-        with warnings.catch_warnings():
-            # Suppress a warning due to bad compatibility list entry.
-            warnings.simplefilter("ignore")
-            jfile = opj_data_file('input/conformance/file4.jp2')
-            jp2 = Jp2k(jfile)
-        self.assertEqual(jp2.shape, (512, 768))
-
-    @unittest.skipIf(OPJ_DATA_ROOT is None,
-                     "OPJ_DATA_ROOT environment variable not set")
-    def test_shape_single_channel_j2k(self):
-        """verify shape attribute for single channel J2K file
-        """
-        jfile = opj_data_file('input/conformance/p0_01.j2k')
-        jp2 = Jp2k(jfile)
-        self.assertEqual(jp2.shape, (128, 128))
-
-    def test_shape_j2k(self):
+    def test_shape_3_channel_j2k(self):
         """verify shape attribute for J2K file
         """
         j2k = Jp2k(self.j2kfile)
@@ -306,30 +390,6 @@ class TestJp2k(unittest.TestCase):
             actdata = j2[:]
             self.assertTrue(fixtures.mse(actdata[0], expdata[0]) < 0.38)
 
-    @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-    @unittest.skipIf(re.match('1.[0-4]', openjpeg_version) is not None,
-                     "Not supported on OpenJPEG {0}".format(openjpeg_version))
-    @unittest.skipIf(re.match('1.5.(1|2)', openjpeg_version) is not None,
-                     "Mysteriously fails in 1.5.1 and 1.5.2")
-    def test_no_cxform_pclr_jpx(self):
-        """Indices for pclr jpxfile if no color transform"""
-        j = Jp2k(self.jpxfile)
-        rgb = j[:]
-        j.ignore_pclr_cmap_cdef = True
-        idx = j[:]
-        nr, nc = 1024, 1024
-        self.assertEqual(rgb.shape, (nr, nc, 3))
-        self.assertEqual(idx.shape, (nr, nc))
-
-        # Should be able to manually reconstruct the RGB image from the palette
-        # and indices.
-        palette = j.box[2].box[2].palette
-        rgb_from_idx = np.zeros(rgb.shape, dtype=np.uint8)
-        for r in np.arange(nr):
-            for c in np.arange(nc):
-                rgb_from_idx[r, c] = palette[idx[r, c]]
-        np.testing.assert_array_equal(rgb, rgb_from_idx)
-
     @unittest.skipIf(os.name == "nt", "Unexplained failure on windows")
     def test_repr(self):
         """Verify that results of __repr__ are eval-able."""
@@ -339,8 +399,6 @@ class TestJp2k(unittest.TestCase):
         self.assertEqual(newjp2.filename, self.j2kfile)
         self.assertEqual(len(newjp2.box), 0)
 
-    @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_rlevel_max_backwards_compatibility(self):
         """
         Verify that rlevel=-1 gets us the lowest resolution image
@@ -349,15 +407,10 @@ class TestJp2k(unittest.TestCase):
         array-style slicing.
         """
         j = Jp2k(self.j2kfile)
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings():
-                # Suppress a warning due to deprecated syntax
-                # Not as easy to verify the warning under python2.
-                warnings.simplefilter("ignore")
-                thumbnail1 = j.read(rlevel=-1)
-        else:
-            with self.assertWarns(DeprecationWarning):
-                thumbnail1 = j.read(rlevel=-1)
+        with warnings.catch_warnings():
+            # Suppress the DeprecationWarning
+            warnings.simplefilter("ignore")
+            thumbnail1 = j.read(rlevel=-1)
         thumbnail2 = j[::32, ::32]
         np.testing.assert_array_equal(thumbnail1, thumbnail2)
         self.assertEqual(thumbnail1.shape, (25, 15, 3))
@@ -382,6 +435,106 @@ class TestJp2k(unittest.TestCase):
         with self.assertRaises(OSError):
             filename = 'this file does not actually exist on the file system.'
             Jp2k(filename)
+
+    def test_codestream(self):
+        """
+        Verify the markers and segments of a JP2 file codestream.
+        """
+        jp2 = Jp2k(self.jp2file)
+        c = jp2.get_codestream(header_only=False)
+
+        # SOC
+        self.assertEqual(c.segment[0].marker_id, 'SOC')
+
+        # SIZ
+        self.assertEqual(c.segment[1].marker_id, 'SIZ')
+        self.assertEqual(c.segment[1].rsiz, 0)
+        self.assertEqual(c.segment[1].xsiz, 2592)
+        self.assertEqual(c.segment[1].ysiz, 1456)
+        self.assertEqual(c.segment[1].xosiz, 0)
+        self.assertEqual(c.segment[1].yosiz, 0)
+        self.assertEqual(c.segment[1].xtsiz, 2592)
+        self.assertEqual(c.segment[1].ytsiz, 1456)
+        self.assertEqual(c.segment[1].xtosiz, 0)
+        self.assertEqual(c.segment[1].ytosiz, 0)
+        self.assertEqual(c.segment[1].Csiz, 3)
+        self.assertEqual(c.segment[1].bitdepth, (8, 8, 8))
+        self.assertEqual(c.segment[1].signed, (False, False, False))
+        self.assertEqual(c.segment[1].xrsiz, (1, 1, 1))
+        self.assertEqual(c.segment[1].yrsiz, (1, 1, 1))
+
+        self.assertEqual(c.segment[2].marker_id, 'COD')
+        self.assertEqual(c.segment[2].offset, 3282)
+        self.assertEqual(c.segment[2].length, 12)
+        self.assertEqual(c.segment[2].scod, 0)
+        self.assertEqual(c.segment[2].layers, 2)
+        self.assertEqual(c.segment[2].code_block_size, (64.0, 64.0))
+        np.testing.assert_array_equal(c.segment[2].spcod,
+                                      np.array([0, 0, 2, 1, 1, 4, 4, 0, 1]))
+        self.assertIsNone(c.segment[2].precinct_size)
+
+        self.assertEqual(c.segment[3].marker_id, 'QCD')
+        self.assertEqual(c.segment[3].offset, 3296)
+        self.assertEqual(c.segment[3].length, 7)
+        self.assertEqual(c.segment[3].sqcd, 64)
+        self.assertEqual(c.segment[3].mantissa, [0, 0, 0, 0])
+        self.assertEqual(c.segment[3].exponent, [8, 9, 9, 10])
+        self.assertEqual(c.segment[3].guard_bits, 2)
+
+        self.assertEqual(c.segment[4].marker_id, 'CME')
+        self.assertEqual(c.segment[4].rcme, 1)
+        self.assertEqual(c.segment[4].ccme,
+                         b'Created by OpenJPEG version 2.0.0')
+
+        self.assertEqual(c.segment[5].marker_id, 'SOT')
+        self.assertEqual(c.segment[5].offset, 3344)
+        self.assertEqual(c.segment[5].length, 10)
+        self.assertEqual(c.segment[5].isot, 0)
+        self.assertEqual(c.segment[5].psot, 1132173)
+        self.assertEqual(c.segment[5].tpsot, 0)
+        self.assertEqual(c.segment[5].tnsot, 1)
+
+        self.assertEqual(c.segment[6].marker_id, 'COC')
+        self.assertEqual(c.segment[6].offset, 3356)
+        self.assertEqual(c.segment[6].length, 9)
+        self.assertEqual(c.segment[6].ccoc, 1)
+        np.testing.assert_array_equal(c.segment[6].scoc,
+                                      np.array([0]))
+        np.testing.assert_array_equal(c.segment[6].spcoc,
+                                      np.array([1, 4, 4, 0, 1]))
+        self.assertIsNone(c.segment[6].precinct_size)
+
+        self.assertEqual(c.segment[7].marker_id, 'QCC')
+        self.assertEqual(c.segment[7].offset, 3367)
+        self.assertEqual(c.segment[7].length, 8)
+        self.assertEqual(c.segment[7].cqcc, 1)
+        self.assertEqual(c.segment[7].sqcc, 64)
+        self.assertEqual(c.segment[7].mantissa, [0, 0, 0, 0])
+        self.assertEqual(c.segment[7].exponent, [8, 9, 9, 10])
+        self.assertEqual(c.segment[7].guard_bits, 2)
+
+        self.assertEqual(c.segment[8].marker_id, 'COC')
+        self.assertEqual(c.segment[8].offset, 3377)
+        self.assertEqual(c.segment[8].length, 9)
+        self.assertEqual(c.segment[8].ccoc, 2)
+        np.testing.assert_array_equal(c.segment[8].scoc,
+                                      np.array([0]))
+        np.testing.assert_array_equal(c.segment[8].spcoc,
+                                      np.array([1, 4, 4, 0, 1]))
+        self.assertIsNone(c.segment[8].precinct_size)
+
+        self.assertEqual(c.segment[9].marker_id, 'QCC')
+        self.assertEqual(c.segment[9].offset, 3388)
+        self.assertEqual(c.segment[9].length, 8)
+        self.assertEqual(c.segment[9].cqcc, 2)
+        self.assertEqual(c.segment[9].sqcc, 64)
+        self.assertEqual(c.segment[9].mantissa, [0, 0, 0, 0])
+        self.assertEqual(c.segment[9].exponent, [8, 9, 9, 10])
+        self.assertEqual(c.segment[9].guard_bits, 2)
+
+        self.assertEqual(c.segment[10].marker_id, 'SOD')
+
+        self.assertEqual(c.segment[11].marker_id, 'EOC')
 
     def test_jp2_boxes(self):
         """Verify the boxes of a JP2 file.  Basic jp2 test."""
@@ -516,16 +669,16 @@ class TestJp2k(unittest.TestCase):
 
     @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
     def test_basic_jp2(self):
-        """Just a very basic test that reading a JP2 file does not error out.
+        """
+        Just a very basic test that reading a JP2 file does not error out.
         """
         j2k = Jp2k(self.jp2file)
         j2k[::2, ::2]
 
     @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
     def test_basic_j2k(self):
-        """This test is only useful when openjp2 is not available
-        and OPJ_DATA_ROOT is not set.  We need at least one
-        working J2K test.
+        """
+        Just a very basic test that reading a J2K file does not error out.
         """
         j2k = Jp2k(self.j2kfile)
         j2k[:]
@@ -677,20 +830,835 @@ class TestJp2k(unittest.TestCase):
                 with self.assertRaises(RuntimeError):
                     glymur.Jp2k(self.jp2file).read_bands()
 
+    def test_zero_length_reserved_segment(self):
+        """
+        Zero length reserved segment.  Unsure if this is invalid or not.
 
-@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-@unittest.skipIf(re.match('1.[0-4]', openjpeg_version) is not None,
-                 "Not supported with OpenJPEG {0}".format(openjpeg_version))
+        Just make sure we can parse all of it without erroring out.
+        """
+        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
+            with open(self.jp2file, 'rb') as ifile:
+                # Copy up until codestream box.
+                ofile.write(ifile.read(3223))
+
+                # Write the new codestream length (+4) and the box ID.
+                buffer = struct.pack('>I4s', 1132296 + 4, b'jp2c')
+                ofile.write(buffer)
+
+                # Copy up until the EOC marker.
+                ifile.seek(3231)
+                ofile.write(ifile.read(1132286))
+
+                # Write the zero-length reserved segment.
+                buffer = struct.pack('>BBH', 255, 0, 0)
+                ofile.write(buffer)
+
+                # Write the EOC marker and be done with it.
+                ofile.write(ifile.read())
+                ofile.flush()
+
+            cstr = Jp2k(ofile.name).get_codestream(header_only=False)
+            self.assertEqual(cstr.segment[11].marker_id, '0xff00')
+            self.assertEqual(cstr.segment[11].length, 0)
+
+    def test_psot_is_zero(self):
+        """
+        Psot=0 in SOT is perfectly legal.  Issue #78.
+        """
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as ofile:
+            with open(self.j2kfile, 'rb') as ifile:
+                # Write up until the SOD segment.
+                ofile.write(ifile.read(164))
+
+                # Write a SOT box with Psot = 0
+                buffer = struct.pack('>HHHIBB', 0xff90, 10, 0, 0, 0, 1)
+                ofile.write(buffer)
+
+                # Write the rest of it.
+                ofile.write(ifile.read())
+                ofile.flush()
+
+            j = Jp2k(ofile.name)
+            codestream = j.get_codestream(header_only=False)
+
+            # The codestream is valid, so we should be able to get the entire
+            # codestream, so the last one is EOC.
+            self.assertEqual(codestream.segment[-3].marker_id, 'SOT')
+            self.assertEqual(codestream.segment[-2].marker_id, 'SOD')
+            self.assertEqual(codestream.segment[-1].marker_id, 'EOC')
+
+    def test_basic_icc_profile(self):
+        """
+        basic ICC profile
+
+        Original file tested was input/conformance/file5.jp2
+        """
+        fp = BytesIO()
+
+        # Write the colr box header.
+        buffer = struct.pack('>I4s', 557, b'colr')
+        buffer += struct.pack('>BBB', RESTRICTED_ICC_PROFILE, 2, 1)
+
+        buffer += struct.pack('>IIBB', 546, 0, 2, 32)
+        buffer += b'\x00' * 2 + b'scnr' + b'RGB ' + b'XYZ '
+        # Need a date in bytes 24:36
+        buffer += struct.pack('>HHHHHH', 2001, 8, 30, 13, 32, 37)
+        buffer += 'acsp'.encode('utf-8')
+        buffer += b'\x00\x00\x00\x00'
+        buffer += b'\x00\x00\x00\x01'  # platform
+        buffer += 'KODA'.encode('utf-8')  # 48 - 52
+        buffer += 'ROMM'.encode('utf-8')  # Device Model
+        buffer += b'\x00' * 12
+        buffer += struct.pack('>III', 63190, 65536, 54061)  # 68 - 80
+        buffer += 'JPEG'.encode('utf-8')  # 80 - 84
+        buffer += b'\x00' * 44
+        fp.write(buffer)
+        fp.seek(8)
+
+        box = glymur.jp2box.ColourSpecificationBox.parse(fp, 0, 557)
+        profile = box.icc_profile
+
+        self.assertEqual(profile['Size'], 546)
+        self.assertEqual(profile['Preferred CMM Type'], 0)
+        self.assertEqual(profile['Version'], '2.2.0')
+        self.assertEqual(profile['Device Class'], 'input device profile')
+        self.assertEqual(profile['Color Space'], 'RGB')
+        self.assertEqual(profile['Datetime'],
+                         datetime.datetime(2001, 8, 30, 13, 32, 37))
+        self.assertEqual(profile['File Signature'], 'acsp')
+        self.assertEqual(profile['Platform'], 'unrecognized')
+        self.assertEqual(profile['Flags'],
+                         'embedded, can be used independently')
+
+        self.assertEqual(profile['Device Manufacturer'], 'KODA')
+        self.assertEqual(profile['Device Model'], 'ROMM')
+
+        self.assertEqual(profile['Device Attributes'],
+                         'reflective, glossy, positive media polarity, '
+                         + 'color media')
+        self.assertEqual(profile['Rendering Intent'], 'perceptual')
+
+        np.testing.assert_almost_equal(profile['Illuminant'],
+                                       (0.964203, 1.000000, 0.824905),
+                                       decimal=6)
+
+        self.assertEqual(profile['Creator'], 'JPEG')
+
+
+class CinemaBase(fixtures.MetadataBase):
+
+    def verify_cinema_cod(self, cod_segment):
+
+        self.assertFalse(cod_segment.scod & 2)  # no sop
+        self.assertFalse(cod_segment.scod & 4)  # no eph
+        self.assertEqual(cod_segment.spcod[0], glymur.core.CPRL)
+        self.assertEqual(cod_segment.layers, 1)
+        self.assertEqual(cod_segment.spcod[3], 1)  # mct
+        self.assertEqual(cod_segment.spcod[4], 5)  # levels
+        self.assertEqual(tuple(cod_segment.code_block_size), (32, 32))
+
+    def check_cinema4k_codestream(self, codestream, image_size):
+
+        kwargs = {'rsiz': 4, 'xysiz': image_size, 'xyosiz': (0, 0),
+                  'xytsiz': image_size, 'xytosiz': (0, 0),
+                  'bitdepth': (12, 12, 12), 'signed': (False, False, False),
+                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(codestream.segment[1], SIZsegment(**kwargs))
+
+        self.verify_cinema_cod(codestream.segment[2])
+
+    def check_cinema2k_codestream(self, codestream, image_size):
+
+        kwargs = {'rsiz': 3, 'xysiz': image_size, 'xyosiz': (0, 0),
+                  'xytsiz': image_size, 'xytosiz': (0, 0),
+                  'bitdepth': (12, 12, 12), 'signed': (False, False, False),
+                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        self.verifySizSegment(codestream.segment[1], SIZsegment(**kwargs))
+
+        self.verify_cinema_cod(codestream.segment[2])
+
+
 @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
-class TestJp2k_write(unittest.TestCase):
+@unittest.skipIf(re.match(r'''(1|2.0.0)''',
+                          glymur.version.openjpeg_version) is not None,
+                 "Uses features not supported until 2.0.1")
+class WriteCinema(CinemaBase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.jp2file = glymur.data.nemo()
+        cls.jp2_data = glymur.Jp2k(cls.jp2file)[:]
+
+    def test_NR_ENC_X_6_2K_24_FULL_CBR_CIRCLE_000_tif_17_encode(self):
+        """
+        Original test file was
+
+            input/nonregression/X_6_2K_24_FULL_CBR_CIRCLE_000.tif
+
+        """
+        # Need to provide the proper size image
+        data = np.concatenate((self.jp2_data, self.jp2_data), axis=0)
+        data = np.concatenate((data, data), axis=1).astype(np.uint16)
+        data = data[:1080, :2048, :]
+
+        exp_warning = glymur.jp2k.OpenJPEGLibraryWarning
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            if sys.hexversion < 0x03000000:
+                with warnings.catch_warnings(record=True) as w:
+                    j = Jp2k(tfile.name, data=data, cinema2k=24)
+                assert issubclass(w[-1].category, exp_warning)
+            else:
+                with self.assertWarns(exp_warning):
+                    j = Jp2k(tfile.name, data=data, cinema2k=24)
+
+            codestream = j.get_codestream()
+            self.check_cinema2k_codestream(codestream, (2048, 1080))
+
+    def test_NR_ENC_X_6_2K_24_FULL_CBR_CIRCLE_000_tif_20_encode(self):
+        """
+        Original test file was
+
+            input/nonregression/X_6_2K_24_FULL_CBR_CIRCLE_000.tif
+
+        """
+        # Need to provide the proper size image
+        data = np.concatenate((self.jp2_data, self.jp2_data), axis=0)
+        data = np.concatenate((data, data), axis=1).astype(np.uint16)
+        data = data[:1080, :2048, :]
+
+        exp_warning = glymur.jp2k.OpenJPEGLibraryWarning
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            if sys.hexversion < 0x03000000:
+                with warnings.catch_warnings(record=True) as w:
+                    j = Jp2k(tfile.name, data=data, cinema2k=48)
+                assert issubclass(w[-1].category, exp_warning)
+            else:
+                with self.assertWarns(exp_warning):
+                    j = Jp2k(tfile.name, data=data, cinema2k=48)
+
+            codestream = j.get_codestream()
+            self.check_cinema2k_codestream(codestream, (2048, 1080))
+
+    def test_NR_ENC_ElephantDream_4K_tif_21_encode(self):
+        """
+        Verify basic cinema4k write
+
+        Original test file is input/nonregression/ElephantDream_4K.tif
+        """
+        # Need to provide the proper size image
+        data = np.concatenate((self.jp2_data, self.jp2_data), axis=0)
+        data = np.concatenate((data, data), axis=1).astype(np.uint16)
+        data = data[:2160, :4096, :]
+
+        exp_warning = glymur.jp2k.OpenJPEGLibraryWarning
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            if sys.hexversion < 0x03000000:
+                with warnings.catch_warnings(record=True) as w:
+                    j = Jp2k(tfile.name, data=data, cinema4k=True)
+                assert issubclass(w[-1].category, exp_warning)
+            else:
+                with self.assertWarns(exp_warning):
+                    j = Jp2k(tfile.name, data=data, cinema4k=True)
+
+            codestream = j.get_codestream()
+            self.check_cinema4k_codestream(codestream, (4096, 2160))
+
+@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
+class TestJp2k_write(fixtures.MetadataBase):
     """Write tests, can be run by versions 1.5+"""
 
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
-        self.j2kfile = glymur.data.goodstuff()
+    @classmethod
+    def setUpClass(cls):
+        cls.jp2file = glymur.data.nemo()
+        cls.j2kfile = glymur.data.goodstuff()
 
-    def tearDown(self):
-        pass
+        cls.j2k_data = glymur.Jp2k(cls.j2kfile)[:]
+        cls.jp2_data = glymur.Jp2k(cls.jp2file)[:]
+
+        # Make single channel jp2 and j2k files.
+        obj = tempfile.NamedTemporaryFile(delete=False, suffix=".j2k")
+        glymur.Jp2k(obj.name, data=cls.j2k_data[:, :, 0])
+        cls.single_channel_j2k = obj
+
+        obj = tempfile.NamedTemporaryFile(delete=False, suffix=".jp2")
+        glymur.Jp2k(obj.name, data=cls.j2k_data[:, :, 0])
+        cls.single_channel_jp2 = obj
+
+    @classmethod
+    def tearDownClass(cls):
+        os.unlink(cls.single_channel_j2k.name)
+        os.unlink(cls.single_channel_jp2.name)
+
+    def test_NR_ENC_Bretagne1_ppm_2_encode(self):
+        """
+        Original file tested was
+
+            input/nonregression/Bretagne1.ppm
+
+        """
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, data=self.jp2_data,
+                     psnr=[30, 35, 40], numres=2)
+
+            codestream = j.get_codestream()
+
+        # COD: Coding style default
+        self.assertFalse(codestream.segment[2].scod & 2)  # no sop
+        self.assertFalse(codestream.segment[2].scod & 4)  # no eph
+        self.assertEqual(codestream.segment[2].spcod[0], glymur.core.LRCP)
+        self.assertEqual(codestream.segment[2].layers, 3)  # layers = 3
+        self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
+        self.assertEqual(codestream.segment[2].spcod[4], 1)  # levels
+        self.assertEqual(tuple(codestream.segment[2].code_block_size),
+                         (64, 64))  # cblksz
+        self.verify_codeblock_style(codestream.segment[2].spcod[7],
+                                    [False, False, False, False, False, False])
+        self.assertEqual(codestream.segment[2].spcod[8],
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
+        self.assertEqual(len(codestream.segment[2].spcod), 9)
+
+    def test_NR_ENC_Bretagne1_ppm_1_encode(self):
+        """
+        Original file tested was
+
+            input/nonregression/Bretagne1.ppm
+
+        """
+        data = self.jp2_data
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            # Should be written with 3 layers.
+            j = Jp2k(tfile.name, data=data, cratios=[200, 100, 50])
+            c = j.get_codestream()
+
+        # COD: Coding style default
+        self.assertFalse(c.segment[2].scod & 2)  # no sop
+        self.assertFalse(c.segment[2].scod & 4)  # no eph
+        self.assertEqual(c.segment[2].spcod[0], glymur.core.LRCP)
+        self.assertEqual(c.segment[2].layers, 3)  # layers = 3
+        self.assertEqual(c.segment[2].spcod[3], 1)  # mct
+        self.assertEqual(c.segment[2].spcod[4], 5)  # levels
+        self.assertEqual(tuple(c.segment[2].code_block_size),
+                         (64, 64))  # cblksz
+        self.verify_codeblock_style(c.segment[2].spcod[7],
+                                    [False, False, False, False, False, False])
+        self.assertEqual(c.segment[2].spcod[8],
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
+        self.assertEqual(len(c.segment[2].spcod), 9)
+
+    def test_NR_ENC_Bretagne1_ppm_3_encode(self):
+        """
+        Original file tested was
+        
+            input/nonregression/Bretagne1.ppm
+
+        """
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name,
+                     data=self.jp2_data,
+                     psnr=[30, 35, 40], cbsize=(16, 16), psizes=[(64, 64)])
+
+            codestream = j.get_codestream()
+
+        # COD: Coding style default
+        self.assertFalse(codestream.segment[2].scod & 2)  # no sop
+        self.assertFalse(codestream.segment[2].scod & 4)  # no eph
+        self.assertEqual(codestream.segment[2].spcod[0], glymur.core.LRCP)
+        self.assertEqual(codestream.segment[2].layers, 3)  # layers = 3
+        self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
+        self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+        self.assertEqual(tuple(codestream.segment[2].code_block_size),
+                         (16, 16))  # cblksz
+        self.verify_codeblock_style(codestream.segment[2].spcod[7],
+                                    [False, False,
+                                     False, False, False, False])
+        self.assertEqual(codestream.segment[2].spcod[8],
+                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
+        self.assertEqual(codestream.segment[2].precinct_size,
+                         [(2, 2), (4, 4), (8, 8), (16, 16), (32, 32),
+                          (64, 64)])
+
+    def test_NR_ENC_Bretagne2_ppm_4_encode(self):
+        """
+        Original file tested was
+
+            input/nonregression/Bretagne2.ppm
+
+        """
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name,
+                     data=self.jp2_data,
+                     psizes=[(128, 128)] * 3,
+                     cratios=[100, 20, 2],
+                     tilesize=(480, 640),
+                     cbsize=(32, 32))
+
+            # Should be three layers.
+            codestream = j.get_codestream()
+
+            # RSIZ
+            self.assertEqual(codestream.segment[1].xtsiz, 640)
+            self.assertEqual(codestream.segment[1].ytsiz, 480)
+
+            # COD: Coding style default
+            self.assertFalse(codestream.segment[2].scod & 2)  # no sop
+            self.assertFalse(codestream.segment[2].scod & 4)  # no eph
+            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].layers, 3)  # layers = 3
+            self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
+            self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+            self.assertEqual(tuple(codestream.segment[2].code_block_size),
+                             (32, 32))  # cblksz
+            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+                                        [False, False,
+                                         False, False, False, False])
+            self.assertEqual(codestream.segment[2].spcod[8],
+                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
+            self.assertEqual(codestream.segment[2].precinct_size,
+                             [(16, 16), (32, 32), (64, 64)] + [(128, 128)] * 3)
+
+    def test_NR_ENC_Bretagne2_ppm_5_encode(self):
+        """
+        Original file tested was
+
+            input/nonregression/Bretagne2.ppm
+
+        """
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, data=self.jp2_data,
+                     tilesize=(127, 127), prog="PCRL")
+
+            codestream = j.get_codestream()
+
+            # RSIZ
+            self.assertEqual(codestream.segment[1].xtsiz, 127)
+            self.assertEqual(codestream.segment[1].ytsiz, 127)
+
+            # COD: Coding style default
+            self.assertFalse(codestream.segment[2].scod & 2)  # no sop
+            self.assertFalse(codestream.segment[2].scod & 4)  # no eph
+            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.PCRL)
+            self.assertEqual(codestream.segment[2].layers, 1)  # layers = 1
+            self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
+            self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+            self.assertEqual(tuple(codestream.segment[2].code_block_size),
+                             (64, 64))  # cblksz
+            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+                                        [False, False,
+                                         False, False, False, False])
+            self.assertEqual(codestream.segment[2].spcod[8],
+                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
+            self.assertEqual(len(codestream.segment[2].spcod), 9)
+
+    def test_NR_ENC_Bretagne2_ppm_6_encode(self):
+        """
+        Original file tested was
+
+            input/nonregression/Bretagne2.ppm
+        """
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, data=self.jp2_data, subsam=(2, 2), sop=True)
+
+            codestream = j.get_codestream(header_only=False)
+
+            # RSIZ
+            self.assertEqual(codestream.segment[1].xrsiz, (2, 2, 2))
+            self.assertEqual(codestream.segment[1].yrsiz, (2, 2, 2))
+
+            # COD: Coding style default
+            self.assertTrue(codestream.segment[2].scod & 2)  # sop
+            self.assertFalse(codestream.segment[2].scod & 4)  # no eph
+            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].layers, 1)  # layers = 1
+            self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
+            self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+            self.assertEqual(tuple(codestream.segment[2].code_block_size),
+                             (64, 64))  # cblksz
+            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+                                        [False, False, False,
+                                         False, False, False])
+            self.assertEqual(codestream.segment[2].spcod[8],
+                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
+            self.assertEqual(len(codestream.segment[2].spcod), 9)
+
+            # 18 SOP segments.
+            nsops = [x.nsop for x in codestream.segment
+                     if x.marker_id == 'SOP']
+            self.assertEqual(nsops, list(range(18)))
+
+    def test_NR_ENC_Bretagne2_ppm_7_encode(self):
+        """
+        Original file tested was
+
+            input/nonregression/Bretagne2.ppm
+
+        """
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, data=self.jp2_data, modesw=38, eph=True)
+
+            codestream = j.get_codestream(header_only=False)
+
+            # COD: Coding style default
+            self.assertFalse(codestream.segment[2].scod & 2)  # no sop
+            self.assertTrue(codestream.segment[2].scod & 4)  # eph
+            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].layers, 1)  # layers = 1
+            self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
+            self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+            self.assertEqual(tuple(codestream.segment[2].code_block_size),
+                             (64, 64))  # cblksz
+            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+                                        [False, True, True,
+                                         False, False, True])
+            self.assertEqual(codestream.segment[2].spcod[8],
+                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
+            self.assertEqual(len(codestream.segment[2].spcod), 9)
+
+            # 18 EPH segments.
+            ephs = [x for x in codestream.segment if x.marker_id == 'EPH']
+            self.assertEqual(len(ephs), 18)
+
+    def test_NR_ENC_Bretagne2_ppm_8_encode(self):
+        """
+        Original file tested was
+
+            input/nonregression/Bretagne2.ppm
+        """
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name,
+                     data=self.jp2_data, grid_offset=[300, 150], cratios=[800])
+
+            codestream = j.get_codestream(header_only=False)
+
+            # RSIZ
+            self.assertEqual(codestream.segment[1].xosiz, 150)
+            self.assertEqual(codestream.segment[1].yosiz, 300)
+
+            # COD: Coding style default
+            self.assertFalse(codestream.segment[2].scod & 2)  # no sop
+            self.assertFalse(codestream.segment[2].scod & 4)  # no eph
+            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].layers, 1)  # layers = 1
+            self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
+            self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+            self.assertEqual(tuple(codestream.segment[2].code_block_size),
+                             (64, 64))  # cblksz
+            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+                                        [False, False, False,
+                                         False, False, False])
+            self.assertEqual(codestream.segment[2].spcod[8],
+                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
+            self.assertEqual(len(codestream.segment[2].spcod), 9)
+
+    def test_NR_ENC_Cevennes1_bmp_9_encode(self):
+        """
+        Original file tested was
+
+            input/nonregression/Cevennes1.bmp
+
+        """
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, data=self.jp2_data, cratios=[800])
+
+            codestream = j.get_codestream(header_only=False)
+
+            # COD: Coding style default
+            self.assertFalse(codestream.segment[2].scod & 2)  # no sop
+            self.assertFalse(codestream.segment[2].scod & 4)  # no eph
+            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].layers, 1)  # layers = 1
+            self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
+            self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+            self.assertEqual(tuple(codestream.segment[2].code_block_size),
+                             (64, 64))  # cblksz
+            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+                                        [False, False, False,
+                                         False, False, False])
+            self.assertEqual(codestream.segment[2].spcod[8],
+                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
+            self.assertEqual(len(codestream.segment[2].spcod), 9)
+
+    def test_NR_ENC_Cevennes2_ppm_10_encode(self):
+        """
+        Original file tested was
+
+            input/nonregression/Cevennes2.ppm
+
+        """
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, data=self.jp2_data, cratios=[50])
+
+            codestream = j.get_codestream(header_only=False)
+
+            # COD: Coding style default
+            self.assertFalse(codestream.segment[2].scod & 2)  # no sop
+            self.assertFalse(codestream.segment[2].scod & 4)  # no eph
+            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].layers, 1)  # layers = 1
+            self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
+            self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+            self.assertEqual(tuple(codestream.segment[2].code_block_size),
+                             (64, 64))  # cblksz
+            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+                                        [False, False, False,
+                                         False, False, False])
+            self.assertEqual(codestream.segment[2].spcod[8],
+                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
+            self.assertEqual(len(codestream.segment[2].spcod), 9)
+
+    def test_NR_ENC_Rome_bmp_11_encode(self):
+        """
+        Original file tested was
+
+            input/nonregression/Rome.bmp
+
+        """
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            jp2 = Jp2k(tfile.name,
+                       data=self.jp2_data,
+                       psnr=[30, 35, 50], prog='LRCP', numres=3)
+
+            ids = [box.box_id for box in jp2.box]
+            self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
+
+            ids = [box.box_id for box in jp2.box[2].box]
+            self.assertEqual(ids, ['ihdr', 'colr'])
+
+            # Signature box.  Check for corruption.
+            self.assertEqual(jp2.box[0].signature, (13, 10, 135, 10))
+
+            # File type box.
+            self.assertEqual(jp2.box[1].brand, 'jp2 ')
+            self.assertEqual(jp2.box[1].minor_version, 0)
+            self.assertEqual(jp2.box[1].compatibility_list[0], 'jp2 ')
+
+            # Jp2 Header
+            # Image header
+            self.assertEqual(jp2.box[2].box[0].height, 1456)
+            self.assertEqual(jp2.box[2].box[0].width, 2592)
+            self.assertEqual(jp2.box[2].box[0].num_components, 3)
+            self.assertEqual(jp2.box[2].box[0].bits_per_component, 8)
+            self.assertEqual(jp2.box[2].box[0].signed, False)
+            self.assertEqual(jp2.box[2].box[0].compression, 7)   # wavelet
+            self.assertEqual(jp2.box[2].box[0].colorspace_unknown, False)
+            self.assertEqual(jp2.box[2].box[0].ip_provided, False)
+
+            # Jp2 Header
+            # Colour specification
+            self.assertEqual(jp2.box[2].box[1].method, 1)
+            self.assertEqual(jp2.box[2].box[1].precedence, 0)
+            self.assertEqual(jp2.box[2].box[1].approximation, 0)
+            self.assertIsNone(jp2.box[2].box[1].icc_profile)
+            self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.SRGB)
+
+            codestream = jp2.box[3].codestream
+
+            kwargs = {'rsiz': 0, 'xysiz': (2592, 1456), 'xyosiz': (0, 0),
+                      'xytsiz': (2592, 1456), 'xytosiz': (0, 0),
+                      'bitdepth': (8, 8, 8), 'signed': (False, False, False),
+                      'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+            self.verifySizSegment(codestream.segment[1],
+                                  glymur.codestream.SIZsegment(**kwargs))
+
+            # COD: Coding style default
+            self.assertFalse(codestream.segment[2].scod & 2)  # no sop
+            self.assertFalse(codestream.segment[2].scod & 4)  # no eph
+            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].layers, 3)  # layers = 3
+            self.assertEqual(codestream.segment[2].spcod[3], 1)  # mct
+            self.assertEqual(codestream.segment[2].spcod[4], 2)  # levels
+            self.assertEqual(tuple(codestream.segment[2].code_block_size),
+                             (64, 64))  # cblksz
+            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+                                        [False, False, False,
+                                         False, False, False])
+            self.assertEqual(codestream.segment[2].spcod[8],
+                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
+            self.assertEqual(len(codestream.segment[2].spcod), 9)
+
+    def test_NR_ENC_random_issue_0005_tif_12_encode(self):
+        """
+        Original file tested was
+
+            input/nonregression/random-issue-0005.tif
+        """
+        data = self.jp2_data[:1024, :1024, 0].astype(np.uint16)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, data=data)
+
+            codestream = j.get_codestream(header_only=False)
+
+            kwargs = {'rsiz': 0, 'xysiz': (1024, 1024), 'xyosiz': (0, 0),
+                      'xytsiz': (1024, 1024), 'xytosiz': (0, 0),
+                      'bitdepth': (16,), 'signed': (False,),
+                      'xyrsiz': [(1,), (1,)]}
+            self.verifySizSegment(codestream.segment[1],
+                                  glymur.codestream.SIZsegment(**kwargs))
+
+            # COD: Coding style default
+            self.assertFalse(codestream.segment[2].scod & 2)  # no sop
+            self.assertFalse(codestream.segment[2].scod & 4)  # no eph
+            self.assertEqual(codestream.segment[2].spcod[0], glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].layers, 1)  # layers = 1
+            self.assertEqual(codestream.segment[2].spcod[3], 0)  # mct
+            self.assertEqual(codestream.segment[2].spcod[4], 5)  # levels
+            self.assertEqual(tuple(codestream.segment[2].code_block_size),
+                             (64, 64))  # cblksz
+            self.verify_codeblock_style(codestream.segment[2].spcod[7],
+                                        [False, False, False,
+                                         False, False, False])
+            self.assertEqual(codestream.segment[2].spcod[8],
+                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
+            self.assertEqual(len(codestream.segment[2].spcod), 9)
+
+
+    def test_NR_ENC_issue141_rawl_23_encode(self):
+        """
+        Test irreversible option
+
+        Original file tested was
+
+            input/nonregression/issue141.rawl
+
+        """
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, data=self.jp2_data, irreversible=True)
+
+            codestream = j.get_codestream()
+            self.assertEqual(codestream.segment[2].spcod[8],
+                             glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
+
+    def test_cinema_mode_with_too_old_version_of_openjpeg(self):
+        """
+        Cinema mode not allowed for anything less than 2.0.1
+
+        Origin file tested was
+        
+            input/nonregression/X_4_2K_24_185_CBR_WB_000.tif
+
+        """
+        data = np.zeros((857, 2048, 3), dtype=np.uint8)
+        versions = ["1.5.0", "2.0.0"]
+        for version in versions:
+            with patch('glymur.version.openjpeg_version', new=version):
+                with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+                    with self.assertRaises(IOError):
+                        Jp2k(tfile.name, data=data, cinema2k=48)
+
+    def test_cinema2K_with_others(self):
+        """
+        Can't specify cinema2k with any other options.
+
+        Original test file was
+        input/nonregression/X_5_2K_24_235_CBR_STEM24_000.tif
+        """
+        data = np.zeros((857, 2048, 3), dtype=np.uint8)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            with self.assertRaises(IOError):
+                Jp2k(tfile.name, data=data,
+                     cinema2k=48, cratios=[200, 100, 50])
+
+    def test_cinema4K_with_others(self):
+        """
+        Can't specify cinema4k with any other options.
+
+        Original test file was input/nonregression/ElephantDream_4K.tif
+        """
+        data = np.zeros((4096, 2160, 3), dtype=np.uint8)
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            with self.assertRaises(IOError):
+                Jp2k(tfile.name, data=data,
+                     cinema4k=True, cratios=[200, 100, 50])
+
+    def test_cblk_size_precinct_size(self):
+        """
+        code block sizes should never exceed half that of precinct size.
+        """
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            with self.assertRaises(IOError):
+                Jp2k(tfile.name, data=self.j2k_data,
+                     cbsize=(64, 64), psizes=[(64, 64)])
+
+    def test_cblk_size_not_power_of_two(self):
+        """
+        code block sizes should be powers of two.
+        """
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            with self.assertRaises(IOError):
+                Jp2k(tfile.name, data=self.j2k_data, cbsize=(13, 12))
+
+    def test_precinct_size_not_p2(self):
+        """
+        precinct sizes should be powers of two.
+        """
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            with self.assertRaises(glymur.jp2k.BadPrecinctDimensionsError):
+                Jp2k(tfile.name, data=self.j2k_data, psizes=[(173, 173)])
+
+    def test_code_block_dimensions(self):
+        """
+        don't allow extreme codeblock sizes
+        """
+        # opj_compress doesn't allow the dimensions of a codeblock
+        # to be too small or too big, so neither will we.
+        data = self.j2k_data
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            # opj_compress doesn't allow code block area to exceed 4096.
+            with self.assertRaises(IOError):
+                Jp2k(tfile.name, data=data, cbsize=(256, 256))
+
+            # opj_compress doesn't allow either dimension to be less than 4.
+            with self.assertRaises(IOError):
+                Jp2k(tfile.name, data=data, cbsize=(2048, 2))
+            with self.assertRaises(IOError):
+                Jp2k(tfile.name, data=data, cbsize=(2, 2048))
+
+    def test_psnr_with_cratios(self):
+        """
+        Using psnr with cratios options is not allowed.
+        """
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            with self.assertRaises(IOError):
+                Jp2k(tfile.name, data=self.j2k_data, psnr=[30, 35, 40],
+                     cratios=[2, 3, 4])
+
+    def test_cinema2K_bad_frame_rate(self):
+        """
+        Cinema2k frame rate must be either 24 or 48.
+
+        Original test input file was
+        input/nonregression/X_5_2K_24_235_CBR_STEM24_000.tif
+        """
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            with self.assertRaises(IOError):
+                Jp2k(tfile.name, data=self.j2k_data, cinema2k=36)
+
+    def test_irreversible(self):
+        """
+        Verify that the Irreversible option works
+        """
+        expdata = self.j2k_data
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, data=expdata, irreversible=True, numres=5)
+
+            codestream = j.get_codestream()
+            self.assertEqual(codestream.segment[2].spcod[8],
+                             glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
+
+            actdata = j[:]
+            self.assertTrue(fixtures.mse(actdata, expdata) < 0.28)
+
+    def test_shape_greyscale_jp2(self):
+        """verify shape attribute for greyscale JP2 file
+        """
+        jp2 = Jp2k(self.single_channel_jp2.name)
+        self.assertEqual(jp2.shape, (800, 480))
+        self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.GREYSCALE)
+
+    def test_shape_single_channel_j2k(self):
+        """verify shape attribute for single channel J2K file
+        """
+        j2k = Jp2k(self.single_channel_j2k.name)
+        self.assertEqual(j2k.shape, (800, 480))
 
     def test_precinct_size_too_small(self):
         """first precinct size must be >= 2x that of the code block size"""
@@ -1055,10 +2023,10 @@ class TestJp2k_2_1(unittest.TestCase):
                             j[::2, ::2]
 
 
-@unittest.skipIf(OPJ_DATA_ROOT is None,
-                 "OPJ_DATA_ROOT environment variable not set")
 class TestParsing(unittest.TestCase):
-    """Tests for verifying how parsing may be altered."""
+    """
+    Tests for verifying how parsing may be altered.
+    """
     def setUp(self):
         self.jp2file = glymur.data.nemo()
         # Reset parseoptions for every test.
@@ -1067,16 +2035,46 @@ class TestParsing(unittest.TestCase):
     def tearDown(self):
         glymur.set_parseoptions(full_codestream=False)
 
-    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_bad_rsiz(self):
-        """Should not warn if RSIZ when parsing is turned off."""
-        filename = opj_data_file('input/nonregression/edf_c2_1002767.jp2')
-        glymur.set_parseoptions(full_codestream=False)
-        Jp2k(filename)
+        """
+        Should not warn if RSIZ when parsing is turned off.
 
-        glymur.set_parseoptions(full_codestream=True)
-        with self.assertWarnsRegex(UserWarning, 'Invalid profile'):
-            Jp2k(filename)
+        This test was originally written for OPJ_DATA file
+
+            input/nonregression/edf_c2_1002767.jp2'
+
+        It had an RSIZ value of 32, so that's what we use here.
+
+        Issue196
+        """
+        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
+            with open(self.jp2file, 'rb') as ifile:
+                # Copy up until the RSIZ value.
+                ofile.write(ifile.read(3237))
+
+                # Write the bad RSIZ value.
+                buffer = struct.pack('>H', 32)
+                ofile.write(buffer)
+                ifile.seek(3239)
+
+                # Get the rest of the file.
+                ofile.write(ifile.read())
+
+                ofile.seek(0)
+
+            glymur.set_parseoptions(full_codestream=False)
+            Jp2k(ofile.name)
+
+            glymur.set_parseoptions(full_codestream=True)
+            pattern = 'Invalid profile'
+            if sys.hexversion < 0x03000000:
+                with warnings.catch_warnings(record=True) as w:
+                    Jp2k(ofile.name)
+                    assert issubclass(w[-1].category, RSizWarning)
+                    assert pattern in str(w[-1].message)
+            else:
+                with self.assertWarnsRegex(RSizWarning, pattern):
+                    Jp2k(ofile.name)
 
     def test_main_header(self):
         """verify that the main header isn't loaded during normal parsing"""
@@ -1088,205 +2086,217 @@ class TestParsing(unittest.TestCase):
         self.assertIsNotNone(jp2c._codestream)
 
 
-@unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
-@unittest.skipIf(OPJ_DATA_ROOT is None,
-                 "OPJ_DATA_ROOT environment variable not set")
-class TestJp2kOpjDataRootWarnings(unittest.TestCase):
+class TestJp2kWarnings(unittest.TestCase):
     """These tests should be run by just about all configuration."""
 
-    def test_undecodeable_box_id(self):
-        """Should warn in case of undecodeable box ID but not error out."""
-        filename = opj_data_file('input/nonregression/edf_c2_1013627.jp2')
-        with self.assertWarnsRegex(UserWarning, 'Unrecognized box'):
-            jp2 = Jp2k(filename)
+    @classmethod
+    def setUpClass(cls):
+        cls.jp2file = glymur.data.nemo()
 
-        # Now make sure we got all of the boxes.  Ignore the last, which was
-        # bad.
-        box_ids = [box.box_id for box in jp2.box[:-1]]
-        self.assertEqual(box_ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
+    def test_undecodeable_box_id(self):
+        """
+        Should warn in case of undecodeable box ID but not error out.
+
+        This test was originally written for this file in the OpenJPEG
+        test suite:
+
+            input/nonregression/edf_c2_1013627.jp2
+        """
+        bad_box_id = b'abcd'
+        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
+            with open(self.jp2file, 'rb') as ifile:
+                ofile.write(ifile.read())
+
+                # Tack an unrecognized box onto the end of nemo.
+                buffer = struct.pack('>I4s', 8, bad_box_id)
+                ofile.write(buffer)
+                ofile.flush()
+
+            if sys.hexversion < 0x03000000:
+                with warnings.catch_warnings(record=True) as w:
+                    jp2 = Jp2k(ofile.name)
+                    assert issubclass(w[-1].category, UnrecognizedBoxWarning)
+                    assert 'Unrecognized box' in str(w[-1].message)
+            else:
+                regex = re.compile('Unrecognized box')
+                with self.assertWarnsRegex(UnrecognizedBoxWarning, regex):
+                    jp2 = Jp2k(ofile.name)
+
+            # Now make sure we got all of the boxes.
+            box_ids = [box.box_id for box in jp2.box]
+            self.assertEqual(box_ids, ['jP  ', 'ftyp', 'jp2h', 'uuid', 'jp2c',
+                                       bad_box_id])
 
     def test_bad_ftyp_brand(self):
-        """Should warn in case of bad ftyp brand."""
-        filename = opj_data_file('input/nonregression/edf_c2_1000290.jp2')
-        with self.assertWarns(UserWarning):
-            Jp2k(filename)
+        """
+        Should warn in case of bad ftyp brand.
+
+        This test was originally written for this file in the OpenJPEG
+        test suite:
+
+            input/nonregression/edf_c2_1000290.jp2
+        """
+        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
+            with open(self.jp2file, 'rb') as ifile:
+                # Write the JPEG2000 signature box
+                ofile.write(ifile.read(12))
+
+                # Write a bad version of the file type box.  'jp  ' is not
+                # allowed as a brand.
+                buffer = struct.pack('>I4s4sI4s', 20, b'ftyp', b'jp  ', 0,
+                                     b'jp2 ')
+                ofile.write(buffer)
+
+                # Write the rest of the boxes as-is.
+                ifile.seek(32)
+                ofile.write(ifile.read())
+                ofile.flush()
+
+            pattern = "The file type brand was 'jp  '.  "
+            pattern += "It should be either 'jp2 ' or 'jpx '."
+            if sys.hexversion < 0x03000000:
+                with warnings.catch_warnings(record=True) as w:
+                    Jp2k(ofile.name)
+                    assert issubclass(w[-1].category, FileTypeBrandWarning)
+                    assert pattern in str(w[-1].message)
+            else:
+                with self.assertWarnsRegex(FileTypeBrandWarning, pattern):
+                    Jp2k(ofile.name)
+
+    def test_bad_ftyp_compatibility_list_item(self):
+        """
+        Should warn in case of bad ftyp compatibility list item
+        """
+        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
+            with open(self.jp2file, 'rb') as ifile:
+                # Write the JPEG2000 signature box
+                ofile.write(ifile.read(12))
+
+                # Write a bad compatibility list item.  'jp3' is not valid.
+                buffer = struct.pack('>I4s4sI4s', 20, b'ftyp', b'jp2 ', 0,
+                                     b'jp3 ')
+                ofile.write(buffer)
+
+                # Write the rest of the boxes as-is.
+                ifile.seek(32)
+                ofile.write(ifile.read())
+                ofile.flush()
+
+            if sys.hexversion < 0x03000000:
+                with warnings.catch_warnings(record=True) as w:
+                    Jp2k(ofile.name)
+                    assert 'jp3' in str(w[-1].message)
+            else:
+                with self.assertWarns(CompatibilityListItemWarning):
+                    Jp2k(ofile.name)
 
     def test_invalid_approximation(self):
-        """Should warn in case of invalid approximation."""
-        filename = opj_data_file('input/nonregression/edf_c2_1015644.jp2')
-        with self.assertWarnsRegex(UserWarning, 'Invalid approximation'):
-            Jp2k(filename)
+        """
+        Should warn in case of invalid approximation.
+
+        This test was originally written for this file in the OpenJPEG
+        test suite:
+
+            input/nonregression/edf_c2_1015644.jp2
+
+        Rewrite nemo.jp2 to have an invalid approximation.
+        """
+        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
+            with open(self.jp2file, 'rb') as ifile:
+                # Copy the signature, file type, and jp2 header, image header
+                # box as-is.
+                ofile.write(ifile.read(62))
+
+                # Write a bad version of the color specification box.  32 is an
+                # invalid approximation value.
+                buffer = struct.pack('>I4sBBBI', 15, b'colr', 1, 2, 32, 16)
+                ofile.write(buffer)
+
+                # Write the rest of the boxes as-is.
+                ifile.seek(77)
+                ofile.write(ifile.read())
+                ofile.flush()
+
+            pattern = "Invalid approximation:  32"
+            if sys.hexversion < 0x03000000:
+                with warnings.catch_warnings(record=True) as w:
+                    Jp2k(ofile.name)
+                    assert pattern in str(w[-1].message)
+                    assert issubclass(w[-1].category,
+                                      InvalidApproximationWarning)
+            else:
+                with self.assertWarnsRegex(InvalidApproximationWarning,
+                                           pattern):
+                    Jp2k(ofile.name)
 
     def test_invalid_colorspace(self):
         """
         Should warn in case of invalid colorspace.
 
-        There are multiple warnings, so there's no good way to regex them all.
+        This test was originally written for this file in the OpenJPEG
+        test suite:
+
+            input/nonregression/edf_c2_1103421.jp2
+
+        Rewrite nemo.jp2 to have an invalid colorspace.
         """
-        filename = opj_data_file('input/nonregression/edf_c2_1103421.jp2')
-        with self.assertWarns(UserWarning):
-            Jp2k(filename)
+        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
+            with open(self.jp2file, 'rb') as ifile:
+                # Copy the signature, file type, and jp2 header, image header
+                # box as-is.
+                ofile.write(ifile.read(62))
+
+                # Write a bad version of the color specification box.  276 is
+                # an invalid colorspace.
+                buffer = struct.pack('>I4sBBBI', 15, b'colr', 1, 2, 0, 276)
+                ofile.write(buffer)
+
+                # Write the rest of the boxes as-is.
+                ifile.seek(77)
+                ofile.write(ifile.read())
+                ofile.flush()
+
+            if sys.hexversion < 0x03000000:
+                with warnings.catch_warnings(record=True) as w:
+                    Jp2k(ofile.name)
+                    assert issubclass(w[-1].category,
+                                      UnrecognizedColourspaceWarning)
+                    assert 'Unrecognized colorspace' in str(w[-1].message)
+            else:
+                with self.assertWarns(UnrecognizedColourspaceWarning):
+                    Jp2k(ofile.name)
 
     def test_stupid_windows_eol_at_end(self):
-        """Garbage characters at the end of the file."""
-        filename = opj_data_file('input/nonregression/issue211.jp2')
-        with self.assertWarns(UserWarning):
-            Jp2k(filename)
-
-
-@unittest.skipIf(OPJ_DATA_ROOT is None,
-                 "OPJ_DATA_ROOT environment variable not set")
-class TestJp2kOpjDataRoot(unittest.TestCase):
-    """These tests should be run by just about all configurations."""
-
-    def test_zero_length_reserved_segment(self):
         """
-        Zero length reserved segment.  Unsure if this is invalid or not.
+        Garbage characters at the end of the file.
 
-        Much of the rest of the file is invalid, so just be sure we can parse
-        all of it without erroring out.
+        This test was originally run on
+
+            input/nonregression/issue211.jp2
+
+        Rewrite nemo.jp2 to have a few additional bytes at the end (less than
+        8 because then it would be interpreted as a box).
         """
-        filename = opj_data_file('input/nonregression/issue476.jp2')
-        with warnings.catch_warnings():
-            # Suppress warnings for this corrupt file
-            warnings.simplefilter("ignore")
-            cstr = Jp2k(filename).get_codestream()
-            self.assertEqual(cstr.segment[5].marker_id, '0xff00')
-            self.assertEqual(cstr.segment[5].length, 0)
+        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
+            with open(self.jp2file, 'rb') as ifile:
+                # Copy the file all the way until the end.
+                ofile.write(ifile.read())
 
-    @unittest.skipIf(re.match("0|1.[0-4]", glymur.version.openjpeg_version),
-                     "Must have openjpeg 1.5 or higher to run")
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
-    def test_irreversible(self):
-        """Irreversible"""
-        filename = opj_data_file('input/nonregression/issue141.rawl')
-        expdata = np.fromfile(filename, dtype=np.uint16)
-        expdata.resize((32, 2048))
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, data=expdata, irreversible=True, numres=5)
+                # then append a few extra bytes
+                ofile.write(b'\0')
+                ofile.flush()
 
-            codestream = j.get_codestream()
-            self.assertEqual(codestream.segment[2].spcod[8],
-                             glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
-
-            actdata = j[:]
-            self.assertTrue(fixtures.mse(actdata, expdata) < 250)
-
-    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
-    def test_no_cxform_pclr_jp2(self):
-        """Indices for pclr jpxfile if no color transform"""
-        filename = opj_data_file('input/conformance/file9.jp2')
-        with self.assertWarns(UserWarning):
-            jp2 = Jp2k(filename)
-        rgb = jp2[:]
-        jp2.ignore_pclr_cmap_cdef = True
-        idx = jp2[:]
-        self.assertEqual(rgb.shape, (512, 768, 3))
-        self.assertEqual(idx.shape, (512, 768))
-
-        # Should be able to manually reconstruct the RGB image from the palette
-        # and indices.
-        palette = jp2.box[2].box[1].palette
-        rgb_from_idx = np.zeros(rgb.shape, dtype=np.uint8)
-        for r in np.arange(rgb.shape[0]):
-            for c in np.arange(rgb.shape[1]):
-                rgb_from_idx[r, c] = palette[idx[r, c]]
-        np.testing.assert_array_equal(rgb, rgb_from_idx)
-
-    def test_read_differing_subsamples(self):
-        """should error out with read used on differently subsampled images"""
-        # Verify that we error out appropriately if we use the read method
-        # on an image with differing subsamples
-        #
-        # Issue 86.
-        filename = opj_data_file('input/conformance/p0_05.j2k')
-        j = Jp2k(filename)
-        with self.assertRaises(RuntimeError):
-            j[:]
-
-    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
-    def test_no_cxform_cmap(self):
-        """Bands as physically ordered, not as physically intended"""
-        # This file has the components physically reversed.  The cmap box
-        # tells the decoder how to order them, but this flag prevents that.
-        filename = opj_data_file('input/conformance/file2.jp2')
-        with self.assertWarns(UserWarning):
-            # The file has a bad compatibility list entry.  Not important here.
-            j = Jp2k(filename)
-        ycbcr = j[:]
-        j.ignore_pclr_cmap_cdef = True
-        crcby = j[:]
-
-        expected = np.zeros(ycbcr.shape, ycbcr.dtype)
-        for k in range(crcby.shape[2]):
-            expected[:, :, crcby.shape[2] - k - 1] = crcby[:, :, k]
-
-        np.testing.assert_array_equal(ycbcr, expected)
-
-
-@unittest.skipIf(OPJ_DATA_ROOT is None,
-                 "OPJ_DATA_ROOT environment variable not set")
-class TestCodestreamOpjData(unittest.TestCase):
-    """Test suite for unusual codestream cases.  Uses OPJ_DATA_ROOT"""
-
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
-
-    def tearDown(self):
-        pass
-
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-    def test_reserved_marker_segment(self):
-        """Reserved marker segments are ok."""
-
-        # Some marker segments were reserved in FCD15444-1.  Since that
-        # standard is old, some of them may have come into use.
-        #
-        # Let's inject a reserved marker segment into a file that
-        # we know something about to make sure we can still parse it.
-        filename = os.path.join(OPJ_DATA_ROOT, 'input/conformance/p0_01.j2k')
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            with open(filename, 'rb') as ifile:
-                # Everything up until the first QCD marker.
-                read_buffer = ifile.read(45)
-                tfile.write(read_buffer)
-
-                # Write the new marker segment, 0xff6f = 65391
-                read_buffer = struct.pack('>HHB', int(65391), int(3), int(0))
-                tfile.write(read_buffer)
-
-                # Get the rest of the input file.
-                read_buffer = ifile.read()
-                tfile.write(read_buffer)
-                tfile.flush()
-
-            codestream = Jp2k(tfile.name).get_codestream()
-
-            self.assertEqual(codestream.segment[2].marker_id, '0xff6f')
-            self.assertEqual(codestream.segment[2].length, 3)
-            self.assertEqual(codestream.segment[2].data, b'\x00')
-
-    def test_psot_is_zero(self):
-        """Psot=0 in SOT is perfectly legal.  Issue #78."""
-        filename = os.path.join(OPJ_DATA_ROOT,
-                                'input/nonregression/123.j2c')
-        j = Jp2k(filename)
-        codestream = j.get_codestream(header_only=False)
-
-        # The codestream is valid, so we should be able to get the entire
-        # codestream, so the last one is EOC.
-        self.assertEqual(codestream.segment[-1].marker_id, 'EOC')
-
-    def test_siz_segment_ssiz_signed(self):
-        """ssiz attribute to be removed in future release"""
-        filename = os.path.join(OPJ_DATA_ROOT, 'input/conformance/p0_03.j2k')
-        j = Jp2k(filename)
-        codestream = j.get_codestream()
-
-        # The ssiz attribute was simply a tuple of raw bytes.
-        # The first 7 bits are interpreted as the bitdepth, the MSB determines
-        # whether or not it is signed.
-        self.assertEqual(codestream.segment[1].ssiz, (131,))
+            pattern = "Extra bytes at end of file ignored."
+            if sys.hexversion < 0x03000000:
+                with warnings.catch_warnings(record=True) as w:
+                    Jp2k(ofile.name)
+                    assert issubclass(w[-1].category,
+                                      ExtraBytesAtEndOfFileWarning)
+                    assert pattern in str(w[-1].message)
+            else:
+                with self.assertWarnsRegex(ExtraBytesAtEndOfFileWarning,
+                                           pattern):
+                    Jp2k(ofile.name)
 
 
 class TestCodestreamRepr(unittest.TestCase):
@@ -1331,25 +2341,46 @@ class TestCodestreamRepr(unittest.TestCase):
         self.assertEqual(newseg.bitdepth, (8, 8, 8))
         self.assertEqual(newseg.signed, (False, False, False))
 
-    def test_siz_segment_ssiz_unsigned(self):
-        """ssiz attribute to be removed in future release"""
-        j = Jp2k(self.jp2file)
-        codestream = j.get_codestream()
-
-        # The ssiz attribute was simply a tuple of raw bytes.
-        # The first 7 bits are interpreted as the bitdepth, the MSB determines
-        # whether or not it is signed.
-        self.assertEqual(codestream.segment[1].ssiz, (7, 7, 7))
-
 
 class TestCodestream(unittest.TestCase):
     """Test suite for unusual codestream cases."""
 
     def setUp(self):
         self.jp2file = glymur.data.nemo()
+        self.j2kfile = glymur.data.goodstuff()
 
     def tearDown(self):
         pass
+
+    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+    def test_reserved_marker_segment(self):
+        """Reserved marker segments are ok."""
+
+        # Some marker segments were reserved in FCD15444-1.  Since that
+        # standard is old, some of them may have come into use.
+        #
+        # Let's inject a reserved marker segment into a file that
+        # we know something about to make sure we can still parse it.
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            with open(self.j2kfile, 'rb') as ifile:
+                # Everything up until the first QCD marker.
+                read_buffer = ifile.read(65)
+                tfile.write(read_buffer)
+
+                # Write the new marker segment, 0xff6f = 65391
+                read_buffer = struct.pack('>HHB', int(65391), int(3), int(0))
+                tfile.write(read_buffer)
+
+                # Get the rest of the input file.
+                read_buffer = ifile.read()
+                tfile.write(read_buffer)
+                tfile.flush()
+
+            codestream = Jp2k(tfile.name).get_codestream()
+
+            self.assertEqual(codestream.segment[3].marker_id, '0xff6f')
+            self.assertEqual(codestream.segment[3].length, 3)
+            self.assertEqual(codestream.segment[3].data, b'\x00')
 
     def test_siz_segment_ssiz_unsigned(self):
         """ssiz attribute to be removed in future release"""
@@ -1360,3 +2391,182 @@ class TestCodestream(unittest.TestCase):
         # The first 7 bits are interpreted as the bitdepth, the MSB determines
         # whether or not it is signed.
         self.assertEqual(codestream.segment[1].ssiz, (7, 7, 7))
+
+
+@unittest.skipIf(re.match(r'''0|1|2.0.0''',
+                          glymur.version.openjpeg_version) is not None,
+                 "Only supported in 2.0.1 or higher")
+class TestReadArea(unittest.TestCase):
+    """
+    Runs tests introduced in version 2.0+ or that pass only in 2.0+
+
+    These tests are only slightly different than their counterparts in the
+    OpenJPEG test suite.  The difference is in the file that is tested and
+    their extents.  The purpose is the same, though.
+    """
+    @classmethod
+    def setUpClass(self):
+
+        self.j2k = Jp2k(glymur.data.goodstuff())
+        self.j2k_data = self.j2k[:]
+        self.j2k_half_data = self.j2k[::2, ::2]
+        self.j2k_quarter_data = self.j2k[::4, ::4]
+
+    def test_NR_DEC_p1_04_j2k_43_decode(self):
+        actual = self.j2k[:800, :480]
+        expected = self.j2k_data
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_45_decode(self):
+        """
+        Get bottom right
+        """
+        actual = self.j2k[672:800, 352:480]
+        expected = self.j2k_data[672:800, 352:480]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_46_decode(self):
+        actual = self.j2k[500:800, 100:300]
+        expected = self.j2k_data[500:800, 100:300]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_47_decode(self):
+        actual = self.j2k[520:600, 260:360]
+        expected = self.j2k_data[520:600, 260:360]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_48_decode(self):
+        actual = self.j2k[520:660, 260:360]
+        expected = self.j2k_data[520:660, 260:360]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_49_decode(self):
+        actual = self.j2k[520:600, 360:400]
+        expected = self.j2k_data[520:600, 360:400]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_50_decode(self):
+        actual = self.j2k[:800:4, :480:4]
+        expected = self.j2k_quarter_data
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_51_decode(self):
+        """
+        NR_DEC_p1_04_j2k_51_decode
+
+        Original extents were
+
+        actual = self.j2k[640:768:4, 512:640:4]
+        expected = self.j2k_quarter_data[160:192, 128:160]
+
+        Just needed to shift the columns to the left to make it work with
+        our own image.
+        """
+        actual = self.j2k[640:768:4, 256:384:4]
+        expected = self.j2k_quarter_data[160:192, 64:96]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_53_decode(self):
+        actual = self.j2k[500:800:4, 100:300:4]
+        expected = self.j2k_quarter_data[125:200, 25:75]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_54_decode(self):
+        actual = self.j2k[520:600:4, 260:360:4]
+        expected = self.j2k_quarter_data[130:150, 65:90]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_55_decode(self):
+        actual = self.j2k[520:660:4, 260:360:4]
+        expected = self.j2k_quarter_data[130:165, 65:90]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_04_j2k_56_decode(self):
+        actual = self.j2k[520:600:4, 360:400:4]
+        expected = self.j2k_quarter_data[130:150, 90:100]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p1_06_j2k_70_decode(self):
+        actual = self.j2k[9:12:2, 9:12:2]
+        self.assertEqual(actual.shape, (1, 1, 3))
+
+    def test_NR_DEC_p1_06_j2k_71_decode(self):
+        actual = self.j2k[10:12:2, 4:10:2]
+        self.assertEqual(actual.shape, (1, 3, 3))
+
+    def test_NR_DEC_p1_06_j2k_72_decode(self):
+        ssdata = self.j2k[3:9:2, 3:9:2]
+        self.assertEqual(ssdata.shape, (3, 3, 3))
+
+    def test_NR_DEC_p1_06_j2k_73_decode(self):
+        ssdata = self.j2k[4:7:2, 4:7:2]
+        self.assertEqual(ssdata.shape, (2, 2, 3))
+
+    def test_NR_DEC_p1_06_j2k_74_decode(self):
+        ssdata = self.j2k[4:5:2, 4:5:2]
+        self.assertEqual(ssdata.shape, (1, 1, 3))
+
+    def test_NR_DEC_p1_06_j2k_75_decode(self):
+        # Image size would be 0 x 0.
+        with self.assertRaises((IOError, OSError)):
+            self.j2k[9:12:4, 9:12:4]
+
+    def test_NR_DEC_p0_04_j2k_85_decode(self):
+        actual = self.j2k[:256, :256]
+        expected = self.j2k_data[:256, :256]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p0_04_j2k_86_decode(self):
+        actual = self.j2k[:128, 128:256]
+        expected = self.j2k_data[:128, 128:256]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p0_04_j2k_87_decode(self):
+        actual = self.j2k[10:200, 50:120]
+        expected = self.j2k_data[10:200, 50:120]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p0_04_j2k_88_decode(self):
+        actual = self.j2k[150:210, 10:190]
+        expected = self.j2k_data[150:210, 10:190]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p0_04_j2k_89_decode(self):
+        actual = self.j2k[80:150, 100:200]
+        expected = self.j2k_data[80:150, 100:200]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p0_04_j2k_90_decode(self):
+        actual = self.j2k[20:50, 150:200]
+        expected = self.j2k_data[20:50, 150:200]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p0_04_j2k_91_decode(self):
+        actual = self.j2k[:256:4, :256:4]
+        expected = self.j2k_quarter_data[0:64, 0:64]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p0_04_j2k_92_decode(self):
+        actual = self.j2k[:128:4, 128:256:4]
+        expected = self.j2k_quarter_data[:32, 32:64]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p0_04_j2k_93_decode(self):
+        actual = self.j2k[10:200:4, 50:120:4]
+        expected = self.j2k_quarter_data[3:50, 13:30]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p0_04_j2k_94_decode(self):
+        actual = self.j2k[150:210:4, 10:190:4]
+        expected = self.j2k_quarter_data[38:53, 3:48]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p0_04_j2k_95_decode(self):
+        actual = self.j2k[80:150:4, 100:200:4]
+        expected = self.j2k_quarter_data[20:38, 25:50]
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_NR_DEC_p0_04_j2k_96_decode(self):
+        actual = self.j2k[20:50:4, 150:200:4]
+        expected = self.j2k_quarter_data[5:13, 38:50]
+        np.testing.assert_array_equal(actual, expected)

@@ -4,16 +4,6 @@ The module contains classes used to store information parsed from JPEG 2000
 codestreams.
 """
 
-# The number of lines in the module is long and that's ok.  It would not help
-# matters to move anything out to another file.
-
-# "Too many instance attributes", "Too many arguments"
-# Some segments just have a lot of information.
-# It doesn't make sense to subclass just for that.
-
-# "Too few public methods"  Some segments don't define any new methods from
-# the base Segment class.
-
 import math
 import struct
 import sys
@@ -67,6 +57,71 @@ for _marker in range(0xff90, 0xff94):
     _VALID_MARKERS.append(_marker)
 
 
+class InvalidNumberOfResolutionsWarning(UserWarning):
+    """
+    The number of resolutions should not exceed J2K_MAXRLVLS.
+    """
+    pass
+
+
+class InvalidNumberOfTilesWarning(UserWarning):
+    """
+    The number of tiles should not exceed 65535.
+    """
+    pass
+
+
+class InvalidProgressionOrderWarning(UserWarning):
+    """
+    Progression order must be one of [LRCP, RLCP, RPCL, PCRL, CPRL]
+    """
+    pass
+
+
+class InvalidQCCComponentNumber(UserWarning):
+    """
+    The component number parsed from a QCC box must validate against Csiz.
+    """
+    pass
+
+
+class InvalidSubsamplingWarning(UserWarning):
+    """
+    The subsampling values must be > 0.
+    """
+    pass
+
+
+class InvalidTileSpecificationWarning(UserWarning):
+    """
+    Warning in case of an invalid tile specification.
+
+    Possibilities include
+    """
+    pass
+
+
+class InvalidWaveletTransformWarning(UserWarning):
+    """
+    The wavelet transform must be either the 5x3 or 9x7.
+    """
+    pass
+
+
+class RSizWarning(UserWarning):
+    """
+    The profile should be in the range of 0 through 4.
+    """
+    pass
+
+
+class UnrecognizedMarkerWarning(UserWarning):
+    """
+    Warn if an unrecognized marker is encountered in the codestream.
+    """
+    pass
+
+
 class Codestream(object):
     """Container for codestream information.
 
@@ -90,6 +145,11 @@ class Codestream(object):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
+    _csiz = -1
+
+    # Do we parse the tile part bit stream or not?
+    _parse_tpart_flag = False
+
     def __init__(self, fptr, length, header_only=True):
         """
         Parameters
@@ -166,10 +226,10 @@ class Codestream(object):
 
         # Number of components.  Must be kept track of for the processing of
         # many segments.
-        self._csiz = -1
+        # self._csiz = -1
 
         # Do we parse the tile part bit stream or not?
-        self._parse_tpart_flag = False
+        # self._parse_tpart_flag = False
 
         self.segment = []
 
@@ -195,10 +255,11 @@ class Codestream(object):
             try:
                 segment = process_marker_segment[self._marker_id](fptr)
             except KeyError:
-                msg = 'Invalid marker id encountered at byte {0:d} '
-                msg += 'in codestream:  "0x{1:x}"'
-                msg = msg.format(self._offset, self._marker_id)
-                warnings.warn(msg, UserWarning)
+                msg = ('Invalid marker ID encountered at byte {offset:d} '
+                       'in codestream:  "0x{marker_id:x}"')
+                msg = msg.format(offset=self._offset,
+                                 marker_id=self._marker_id)
+                warnings.warn(msg, UnrecognizedMarkerWarning)
                 break
 
             self.segment.append(segment)
@@ -220,8 +281,9 @@ class Codestream(object):
     def _parse_unrecognized_segment(self, fptr):
         """Looks like a valid marker, but not sure from reading the specs.
         """
-        msg = "Unrecognized marker id:  0x{0:x}".format(self._marker_id)
-        warnings.warn(msg)
+        msg = "Unrecognized marker id:  0x{marker_id:x}"
+        msg = msg.format(marker_id=self._marker_id)
+        warnings.warn(msg, UnrecognizedMarkerWarning)
         cpos = fptr.tell()
         read_buffer = fptr.read(2)
         next_item, = struct.unpack('>H', read_buffer)
@@ -360,7 +422,8 @@ class Codestream(object):
 
         return COCsegment(ccoc, scoc, spcoc, length, offset)
 
-    def _parse_cod_segment(self, fptr):
+    @classmethod
+    def _parse_cod_segment(cls, fptr):
         """Parse the COD segment.
 
         Parameters
@@ -383,21 +446,23 @@ class Codestream(object):
         spcod = read_buffer[1:]
         spcod = np.frombuffer(spcod, dtype=np.uint8)
         if spcod[0] not in [LRCP, RLCP, RPCL, PCRL, CPRL]:
-            msg = "Invalid progression order in COD segment: {0}."
-            warnings.warn(msg.format(spcod[0]))
+            msg = "Invalid progression order in COD segment: {prog_order}."
+            warnings.warn(msg.format(prog_order=spcod[0]),
+                          InvalidProgressionOrderWarning)
 
         if spcod[8] not in [WAVELET_XFORM_9X7_IRREVERSIBLE,
                             WAVELET_XFORM_5X3_REVERSIBLE]:
-            msg = "Invalid wavelet transform in COD segment: {0}."
-            warnings.warn(msg.format(spcod[8]))
+            msg = "Invalid wavelet transform in COD segment: {xform}."
+            msg = msg.format(xform=spcod[8])
+            warnings.warn(msg, InvalidWaveletTransformWarning)
 
         sop = (scod & 2) > 0
         eph = (scod & 4) > 0
 
         if sop or eph:
-            self._parse_tpart_flag = True
+            cls._parse_tpart_flag = True
         else:
-            self._parse_tpart_flag = False
+            cls._parse_tpart_flag = False
 
         return CODsegment(scod, spcod, length, offset)
 
@@ -566,7 +631,8 @@ class Codestream(object):
 
         return PPTsegment(zppt, ippt, length, offset)
 
-    def _parse_qcc_segment(self, fptr):
+    @classmethod
+    def _parse_qcc_segment(cls, fptr):
         """Parse the QCC segment.
 
         Parameters
@@ -585,18 +651,18 @@ class Codestream(object):
         length, = struct.unpack('>H', read_buffer)
 
         read_buffer = fptr.read(length - 2)
-        if self._csiz > 256:
+        if cls._csiz > 256:
             fmt = '>HB'
             mantissa_exponent_offset = 3
         else:
             fmt = '>BB'
             mantissa_exponent_offset = 2
         cqcc, sqcc = struct.unpack_from(fmt, read_buffer)
-        if cqcc >= self._csiz:
-            msg = "Invalid component number ({0}), "
-            msg += "number of components is only {1}."
-            msg = msg.format(cqcc, self._csiz)
-            warnings.warn(msg)
+        if cqcc >= cls._csiz:
+            msg = ("Invalid QCC component number ({invalid_comp_no}), "
+                   "the actual number of components is only {valid_comp_no}.")
+            msg = msg.format(invalid_comp_no=cqcc, valid_comp_no=cls._csiz)
+            warnings.warn(msg, InvalidQCCComponentNumber)
 
         spqcc = read_buffer[mantissa_exponent_offset:]
 
@@ -623,7 +689,8 @@ class Codestream(object):
 
         return QCDsegment(sqcd, spqcd, length, offset)
 
-    def _parse_rgn_segment(self, fptr):
+    @classmethod
+    def _parse_rgn_segment(cls, fptr):
         """Parse the RGN segment.
 
         Parameters
@@ -641,7 +708,7 @@ class Codestream(object):
         read_buffer = fptr.read(2)
         length, = struct.unpack('>H', read_buffer)
 
-        if self._csiz < 257:
+        if cls._csiz < 257:
             read_buffer = fptr.read(3)
             data = struct.unpack('>BBB', read_buffer)
         else:
@@ -655,7 +722,8 @@ class Codestream(object):
 
         return RGNsegment(crgn, srgn, sprgn, length, offset)
 
-    def _parse_siz_segment(self, fptr):
+    @classmethod
+    def _parse_siz_segment(cls, fptr):
         """Parse the SIZ segment.
 
         Parameters
@@ -678,7 +746,8 @@ class Codestream(object):
 
         rsiz = data[0]
         if rsiz not in _KNOWN_PROFILES:
-            warnings.warn("Invalid profile: (Rsiz={0}).".format(rsiz))
+            msg = "Invalid profile: (Rsiz={rsiz}).".format(rsiz=rsiz)
+            warnings.warn(msg, RSizWarning)
 
         xysiz = (data[1], data[2])
         xyosiz = (data[3], data[4])
@@ -698,38 +767,48 @@ class Codestream(object):
 
         for j, subsampling in enumerate(zip(xrsiz, yrsiz)):
             if 0 in subsampling:
-                msg = "Invalid subsampling value for component {0}: "
-                msg += "dx={1}, dy={2}."
-                msg = msg.format(j, subsampling[0], subsampling[1])
-                warnings.warn(msg)
+                msg = ("Invalid subsampling value for component {comp}: "
+                       "dx={dx}, dy={dy}.")
+                msg = msg.format(comp=j, dx=subsampling[0], dy=subsampling[1])
+                warnings.warn(msg, InvalidSubsamplingWarning)
 
         try:
             num_tiles_x = (xysiz[0] - xyosiz[0]) / (xytsiz[0] - xytosiz[0])
             num_tiles_y = (xysiz[1] - xyosiz[1]) / (xytsiz[1] - xytosiz[1])
         except ZeroDivisionError:
-            warnings.warn("Invalid tile dimensions.")
+            msg = ("Invalid tile specification:  "
+                   "size of {num_tile_rows} x {num_tile_cols}, "
+                   "offset of {row_offset} x {col_offset}")
+            msg = msg.format(num_tile_rows=xytsiz[1],
+                             num_tile_cols=xysiz[0],
+                             row_offset=xytosiz[1],
+                             col_offset=xytosiz[0])
+            warnings.warn(msg, InvalidTileSpecificationWarning)
         else:
             numtiles = math.ceil(num_tiles_x) * math.ceil(num_tiles_y)
             if numtiles > 65535:
-                msg = "Invalid number of tiles ({0}).".format(numtiles)
-                warnings.warn(msg)
+                msg = "Invalid number of tiles: ({numtiles})."
+                msg = msg.format(numtiles=numtiles)
+                warnings.warn(msg, InvalidNumberOfTilesWarning)
 
-        kwargs = {'rsiz': rsiz,
-                  'xysiz': xysiz,
-                  'xyosiz': xyosiz,
-                  'xytsiz': xytsiz,
-                  'xytosiz': xytosiz,
-                  'Csiz': Csiz,
-                  'bitdepth': bitdepth,
-                  'signed':  signed,
-                  'xyrsiz': (xrsiz, yrsiz),
-                  'length': length,
-                  'offset': offset}
+        kwargs = {
+            'rsiz': rsiz,
+            'xysiz': xysiz,
+            'xyosiz': xyosiz,
+            'xytsiz': xytsiz,
+            'xytosiz': xytosiz,
+            'Csiz': Csiz,
+            'bitdepth': bitdepth,
+            'signed':  signed,
+            'xyrsiz': (xrsiz, yrsiz),
+            'length': length,
+            'offset': offset
+        }
         segment = SIZsegment(**kwargs)
 
         # Need to keep track of the number of components from SIZ for
         # other markers.
-        self._csiz = Csiz
+        cls._csiz = Csiz
 
         return segment
 
@@ -841,7 +920,7 @@ class Codestream(object):
             ttlm = data[0::2]
             ptlm = data[1::2]
 
-        return TLMsegment(length, offset, ztlm, ttlm, ptlm)
+        return TLMsegment(ztlm, ttlm, ptlm, length, offset)
 
     def _parse_reserved_marker(self, fptr):
         """Marker range between 0xff30 and 0xff39.
@@ -874,10 +953,10 @@ class Segment(object):
         self.data = data
 
     def __str__(self):
-        msg = '{0} marker segment @ ({1}, {2})'.format(self.marker_id,
-                                                       self.offset,
-                                                       self.length)
-        return msg
+        msg = '{marker_id} marker segment @ ({offset}, {length})'
+        return msg.format(marker_id=self.marker_id,
+                          length=self.length,
+                          offset=self.offset)
 
 
 class COCsegment(Segment):
@@ -927,22 +1006,19 @@ class COCsegment(Segment):
     def __str__(self):
         msg = Segment.__str__(self)
 
-        msg += '\n    Associated component:  {0}'.format(self.ccoc)
-
-        msg += '\n    Coding style for this component:  '
-        if self.scoc == 0:
-            msg += 'Entropy coder, PARTITION = 0'
-        elif self.scoc & 0x01:
-            msg += 'Entropy coder, PARTITION = 1'
-
-        msg += '\n    Coding style parameters:'
-        msg += '\n        Number of resolutions:  {0}'
-        msg += '\n        Code block height, width:  ({1} x {2})'
-        msg += '\n        Wavelet transform:  {3}'
-        msg = msg.format(self.spcoc[0] + 1,
-                         int(self.code_block_size[0]),
-                         int(self.code_block_size[1]),
-                         _WAVELET_TRANSFORM_DISPLAY[self.spcoc[4]])
+        msg += ('\n    Associated component:  {assoc_comp}'
+                '\n    Coding style for this component:  '
+                'Entropy coder, PARTITION = {partition}'
+                '\n    Coding style parameters:'
+                '\n        Number of resolutions:  {num_res}'
+                '\n        Code block height, width:  ({cblh} x {cblw})'
+                '\n        Wavelet transform:  {xform}')
+        msg = msg.format(assoc_comp=self.ccoc,
+                         partition=0 if self.scoc == 0 else 1,
+                         num_res=self.spcoc[0] + 1,
+                         cblh=int(self.code_block_size[0]),
+                         cblw=int(self.code_block_size[1]),
+                         xform=_WAVELET_TRANSFORM_DISPLAY[self.spcoc[4]])
 
         msg += '\n        '
         msg += _context_string(self.spcoc[3])
@@ -998,9 +1074,9 @@ class CODsegment(Segment):
         self._numresolutions = params[3]
 
         if params[3] > opj2.J2K_MAXRLVLS:
-            msg = "Invalid number of resolutions ({0})."
+            msg = "Invalid number of resolutions: ({0})."
             msg = msg.format(params[3] + 1)
-            warnings.warn(msg)
+            warnings.warn(msg, InvalidNumberOfResolutionsWarning)
 
         cblk_width = 4 * math.pow(2, params[4])
         cblk_height = 4 * math.pow(2, params[5])
@@ -1015,13 +1091,26 @@ class CODsegment(Segment):
     def __str__(self):
         msg = Segment.__str__(self)
 
-        msg += '\n    Coding style:'
-        msg += '\n        Entropy coder, {0} partitions'
-        msg += '\n        SOP marker segments:  {1}'
-        msg += '\n        EPH marker segments:  {2}'
-        msg = msg.format('with' if (self.scod & 1) else 'without',
-                         ((self.scod & 2) > 0),
-                         ((self.scod & 4) > 0))
+        msg += '\n'
+        msg += ('    Coding style:\n'
+                '        Entropy coder, {with_without} partitions\n'
+                '        SOP marker segments:  {sop}\n'
+                '        EPH marker segments:  {eph}\n'
+                '    Coding style parameters:\n'
+                '        Progression order:  {prog}\n'
+                '        Number of layers:  {num_layers}\n'
+                '        Multiple component transformation usage:  {mct}\n'
+                '        Number of resolutions:  {num_resolutions}\n'
+                '        Code block height, width:  ({cbh} x {cbw})\n'
+                '        Wavelet transform:  {xform}\n'
+                '        Precinct size:  {precinct_size}\n'
+                '        {code_block_context}')
+
+        if self.precinct_size is None:
+            precinct_size = 'default, 2^15 x 2^15'
+        else:
+            for pps in self.precinct_size:
+                precinct_size = '({ppsx}, {ppsy})'.format(ppsx=pps[0], ppsy=pps[1])
 
         if self.spcod[3] == 0:
             mct = 'no transform specified'
@@ -1032,33 +1121,18 @@ class CODsegment(Segment):
         else:
             mct = 'unknown'
 
-        msg += '\n    '
-        lines = ['Coding style parameters:',
-                 '    Progression order:  {0}',
-                 '    Number of layers:  {1}',
-                 '    Multiple component transformation usage:  {2}',
-                 '    Number of resolutions:  {3}',
-                 '    Code block height, width:  ({4} x {5})',
-                 '    Wavelet transform:  {6}']
-        msg += '\n    '.join(lines)
-
-        msg = msg.format(_PROGRESSION_ORDER_DISPLAY[self.spcod[0]],
-                         self.layers,
-                         mct,
-                         self.spcod[4] + 1,
-                         int(self.code_block_size[0]),
-                         int(self.code_block_size[1]),
-                         _WAVELET_TRANSFORM_DISPLAY[self.spcod[8]])
-
-        msg += '\n        Precinct size:  '
-        if self.precinct_size is None:
-            msg += 'default, 2^15 x 2^15'
-        else:
-            for pps in self.precinct_size:
-                msg += '({0}, {1})'.format(pps[0], pps[1])
-
-        msg += '\n        '
-        msg += _context_string(self.spcod[7])
+        msg = msg.format(with_without='with' if (self.scod & 1) else 'without',
+                         sop=((self.scod & 2) > 0),
+                         eph=((self.scod & 4) > 0),
+                         prog=_PROGRESSION_ORDER_DISPLAY[self.spcod[0]],
+                         num_layers=self.layers,
+                         mct=mct,
+                         num_resolutions=self.spcod[4] + 1,
+                         cbh=int(self.code_block_size[0]),
+                         cbw=int(self.code_block_size[1]),
+                         xform=_WAVELET_TRANSFORM_DISPLAY[self.spcod[8]],
+                         precinct_size=precinct_size,
+                         code_block_context=_context_string(self.spcod[7]))
 
         return msg
 
@@ -1098,11 +1172,10 @@ class CMEsegment(Segment):
         msg = Segment.__str__(self) + '\n'
         if self.rcme == 1:
             # latin-1 string
-            msg += '    "{0}"'
-            msg = msg.format(self.ccme.decode('latin-1'))
+            msg += '    "{ccme}"'.format(ccme=self.ccme.decode('latin-1'))
         else:
-            msg += "    binary data (rcme = {0}):  {1} bytes"
-            msg = msg.format(self.rcme, len(self.ccme))
+            msg += "    binary data (rcme = {rcme}):  {nbytes} bytes"
+            msg = msg.format(rcme=self.rcme, nbytes=len(self.ccme))
         return msg
 
 
@@ -1790,7 +1863,7 @@ class TLMsegment(Segment):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    def __init__(self, length, offset, ztlm, ttlm, ptlm):
+    def __init__(self, ztlm, ttlm, ptlm, length, offset):
         Segment.__init__(self, marker_id='TLM')
         self.length = length
         self.offset = offset
@@ -1801,13 +1874,13 @@ class TLMsegment(Segment):
     def __str__(self):
         msg = Segment.__str__(self)
         msg += '\n    '
-        lines = ['Index:  {0}',
-                 'Tile number:  {1}',
-                 'Length:  {2}']
+        lines = ['Index:  {index}',
+                 'Tile number:  {tile_number}',
+                 'Length:  {tile_length}']
         msg += '\n    '.join(lines)
-        msg = msg.format(self.ztlm,
-                         self.ttlm,
-                         self.ptlm)
+        msg = msg.format(index=self.ztlm,
+                         tile_number=self.ttlm,
+                         tile_length=self.ptlm)
 
         return msg
 

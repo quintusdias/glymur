@@ -481,7 +481,7 @@ class TestColourSpecificationBox(unittest.TestCase):
         """colr must have a valid method field"""
         colorspace = glymur.core.SRGB
         method = -1
-        regex = 'Invalid method'
+        regex = 'Invalid colorspace method'
         with self.assertWarnsRegex(UserWarning, regex):
             glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
                                                  method=method)

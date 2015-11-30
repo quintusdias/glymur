@@ -3,7 +3,6 @@
 Test suite specifically targeting JP2 box layout.
 """
 import os
-import re
 import struct
 import tempfile
 import unittest
@@ -16,7 +15,6 @@ from glymur.jp2box import ColourSpecificationBox, ContiguousCodestreamBox
 from glymur.jp2box import FileTypeBox, ImageHeaderBox, JP2HeaderBox
 from glymur.jp2box import JPEG2000SignatureBox
 
-from .fixtures import OPJ_DATA_ROOT, opj_data_file
 from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
 from . import fixtures
 
@@ -256,33 +254,3 @@ class TestBadButRecoverableXmlFile(unittest.TestCase):
         self.assertEqual(jp2.box[3].length, 64)
         self.assertEqual(ET.tostring(jp2.box[3].xml.getroot()),
                          b'<test>this is a test</test>')
-
-
-@unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
-@unittest.skipIf(OPJ_DATA_ROOT is None,
-                 "OPJ_DATA_ROOT environment variable not set")
-class TestXML_OpjDataRoot(unittest.TestCase):
-    """Test suite for XML boxes, requires OPJ_DATA_ROOT."""
-
-    def test_bom(self):
-        """Byte order markers are illegal in UTF-8.  Issue 185"""
-        filename = opj_data_file(os.path.join('input',
-                                              'nonregression',
-                                              'issue171.jp2'))
-        msg = 'An illegal BOM \(byte order marker\) was detected and removed '
-        msg += 'from the XML contents in the box starting at byte offset \d+'
-        with self.assertWarnsRegex(UserWarning, re.compile(msg)):
-            jp2 = Jp2k(filename)
-
-        self.assertIsNotNone(jp2.box[3].xml)
-
-    def test_invalid_utf8(self):
-        """Bad byte sequence that cannot be parsed."""
-        relname = '26ccf3651020967f7778238ef5af08af.SIGFPE.d25.527.jp2'
-        filename = opj_data_file(os.path.join('input',
-                                              'nonregression',
-                                              relname))
-        with self.assertWarns((UserWarning, UserWarning)):
-            jp2 = Jp2k(filename)
-
-        self.assertIsNone(jp2.box[3].box[1].box[1].xml)

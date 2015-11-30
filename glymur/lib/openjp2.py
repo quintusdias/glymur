@@ -11,6 +11,12 @@ from .config import glymur_config
 
 OPENJP2, OPENJPEG = glymur_config()
 
+class OpenJPEGLibraryError(IOError):
+    """
+    Issue when the OpenJPEG library signals an error.
+    """
+    pass
+
 
 def version():
     """Wrapper for opj_version library routine."""
@@ -588,9 +594,9 @@ def check_error(status):
             # a bad one next time around.
             msg = '\n'.join(ERROR_MSG_LST)
             ERROR_MSG_LST = []
-            raise IOError(msg)
+            raise OpenJPEGLibraryError(msg)
         else:
-            raise IOError("OpenJPEG function failure.")
+            raise OpenJPEGLibraryError("OpenJPEG function failure.")
 
 
 def create_compress(codec_format):

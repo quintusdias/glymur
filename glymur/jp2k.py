@@ -310,7 +310,7 @@ class Jp2k(Jp2kBox):
                     msg = "Color Specification box method must specify either "
                     msg += "an enumerated colorspace or a restricted ICC "
                     msg += "profile if the file type box brand is 'jp2 '."
-                    warnings.warn(msg)
+                    warnings.warn(msg, InvalidJP2ColourspaceMethodWarning)
 
     def _set_cinema_params(self, cinema_mode, fps):
         """Populate compression parameters structure for cinema2K.
@@ -381,7 +381,8 @@ class Jp2k(Jp2kBox):
                       grid_offset, modesw, numres, prog, psizes, sop, subsam)
         if (((cinema2k is not None or cinema4k is not None) and
              (not all([arg is None for arg in other_args])))):
-            msg = "Cannot specify cinema2k/cinema4k along with other options."
+            msg = ("Cannot specify cinema2k/cinema4k along with any other "
+                   "options.")
             raise IOError(msg)
 
         if cratios is not None and psnr is not None:
@@ -594,14 +595,19 @@ class Jp2k(Jp2kBox):
             width = cparams.cblockw_init
             height = cparams.cblockh_init
             if height * width > 4096 or height < 4 or width < 4:
-                msg = "Code block area cannot exceed 4096.  "
-                msg += "Code block height and width must be larger than 4."
+                msg = ("The code block area is specified as "
+                       "{height} x {width} = {area} square pixels.  "
+                       "Code block area cannot exceed 4096 square pixels.  "
+                       "Code block height and width dimensions must be larger "
+                       "than 4 pixels.")
+                msg = msg.format(height=height, width=width,
+                                 area=height * width)
                 raise IOError(msg)
             if ((math.log(height, 2) != math.floor(math.log(height, 2)) or
                  math.log(width, 2) != math.floor(math.log(width, 2)))):
-                msg = "Bad code block size ({0}, {1}), "
-                msg += "must be powers of 2."
-                raise IOError(msg.format(height, width))
+                msg = ("Bad code block dimensions ({height} x {width}).  "
+                       "Code block dimensions must be powers of 2.")
+                raise IOError(msg.format(height=height, width=width))
 
     def _validate_precinct_size(self, cparams):
         """
@@ -622,14 +628,19 @@ class Jp2k(Jp2kBox):
                 if j == 0 and code_block_specified:
                     height, width = cparams.cblockh_init, cparams.cblockw_init
                     if height * 2 > prch or width * 2 > prcw:
-                        msg = "Highest Resolution precinct size must be at "
-                        msg += "least twice that of the code block dimensions."
+                        msg = ("Highest resolution precinct size "
+                               "({prch} x {prcw}) must be at least twice that "
+                               "of the code block dimensions "
+                               "({cbh} x {cbw}).")
+                        msg = msg.format(prch=prch, prcw=prcw,
+                                         cbh=height, cbw=width)
                         raise IOError(msg)
                 if ((math.log(prch, 2) != math.floor(math.log(prch, 2)) or
                      math.log(prcw, 2) != math.floor(math.log(prcw, 2)))):
-                    msg = "Bad precinct sizes ({0}, {1}), "
-                    msg += "must be powers of 2."
-                    raise IOError(msg.format(prch, prcw))
+                    msg = ("Bad precinct dimensions ({height} x {width}).  "
+                           "Precinct dimensions must be powers of 2.")
+                    msg = msg.format(height=prch, width=prcw)
+                    raise BadPrecinctDimensionsError(msg)
 
     def _validate_image_rank(self, img_array):
         """
@@ -1148,10 +1159,11 @@ class Jp2k(Jp2kBox):
         dxs = np.array(self.codestream.segment[1].xrsiz)
         dys = np.array(self.codestream.segment[1].yrsiz)
         if np.any(dxs - dxs[0]) or np.any(dys - dys[0]):
-            msg = "Components must all have the same subsampling factors "
-            msg += "to use this method.  Please consider using OPENJP2 and "
-            msg += "the read_bands method instead."
-            raise RuntimeError(msg)
+            msg = ("The read_bands method should be used with the subsampling "
+                   "factors are different. "
+                   "\n\n{siz_segment}")
+            msg = msg.format(siz_segment=str(self.codestream.segment[1]))
+            raise DifferingSubsampleFactorsError(msg)
 
     def _read_openjpeg(self, rlevel=0, verbose=False, area=None):
         """Read a JPEG 2000 image using libopenjpeg.
@@ -1952,11 +1964,41 @@ def _default_info_handler(msg, _):
     print("[INFO] {0}".format(msg.decode('utf-8').rstrip()))
 
 
+class BadPrecinctDimensionsError(IOError):
+    """
+    Precinct dimensions must be powers of two.
+    """
+    pass
+
+
+class DifferingSubsampleFactorsError(IOError):
+    """
+    The subsample factors must be the same when doing a normal read.
+    """
+    pass
+
+
+class InvalidJP2ColourspaceMethodWarning(UserWarning):
+    """
+    If the file type box brand is JP2, the colour space method is limited.
+
+    The Colour space method must be either ICC profile or enumerated colour
+    space.
+    """
+    pass
+
+
+class OpenJPEGLibraryWarning(UserWarning):
+    """
+    Warnings emitted by OpenJPEG library
+    """
+    pass
+
 def _default_warning_handler(library_msg, _):
     """Default warning handler callback."""
     library_msg = library_msg.decode('utf-8').rstrip()
     msg = "OpenJPEG library warning:  {0}".format(library_msg)
-    warnings.warn(msg)
+    warnings.warn(msg, OpenJPEGLibraryWarning)
 
 _ERROR_CALLBACK = _CMPFUNC(_default_error_handler)
 _INFO_CALLBACK = _CMPFUNC(_default_info_handler)
