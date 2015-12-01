@@ -122,6 +122,13 @@ class UnrecognizedMarkerWarning(UserWarning):
     pass
 
 
+class InvalidCodestreamExpectedMarkerError(IOError):
+    """
+    Error out if we do not find a valid marker where expected.
+    """
+    pass
+
+
 class Codestream(object):
     """Container for codestream information.
 
@@ -244,13 +251,15 @@ class Codestream(object):
         while True:
 
             read_buffer = fptr.read(2)
-            if len(read_buffer) < 2:
+            try:
+                self._marker_id, = struct.unpack('>H', read_buffer)
+            except struct.error:
                 offset = fptr.tell() - 2
                 msg = ('Invalid codestream, expected to find a marker '
-                       'at byte position {offset}')
-                raise IOError(msg.format(offset=offset))
+                       'at byte position {offset}.')
+                msg = msg.format(offset=offset)
+                raise InvalidCodestreamExpectedMarkerError(msg)
 
-            self._marker_id, = struct.unpack('>H', read_buffer)
             self._offset = fptr.tell() - 2
 
             if self._marker_id == 0xff90 and header_only:

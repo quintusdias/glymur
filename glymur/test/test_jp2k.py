@@ -322,6 +322,31 @@ class TestJp2k(unittest.TestCase):
         with self.assertWarns(DeprecationWarning):
             Jp2k(self.jp2file).read()
 
+    def test_bad_tile_part_pointer(self):
+        """
+        Should error out if we don't read a valid marker.
+
+        Rewrite the Psot value such that the SOT marker segment points far
+        beyond the end of the EOC marker (and the end of the file).
+        """
+        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
+            with open(self.jp2file, 'rb') as ifile:
+                # Copy up until Psot field.
+                ofile.write(ifile.read(3350))
+
+                # Write a bad Psot value.
+                ofile.write(struct.pack('>I', 2000000))
+
+                # copy the rest of the file as-is.
+                ifile.seek(3354)
+                ofile.write(ifile.read())
+                ofile.flush()
+
+            j = Jp2k(ofile.name)
+            exp_err = glymur.codestream.InvalidCodestreamExpectedMarkerError
+            with self.assertRaises(exp_err):
+                c = j.get_codestream(header_only=False)
+
     def test_read_differing_subsamples(self):
         """
         should error out with read used on differently subsampled images
