@@ -244,6 +244,12 @@ class Codestream(object):
         while True:
 
             read_buffer = fptr.read(2)
+            if len(read_buffer) < 2:
+                offset = fptr.tell() - 2
+                msg = ('Invalid codestream, expected to find a marker '
+                       'at byte position {offset}')
+                raise IOError(msg.format(offset=offset))
+
             self._marker_id, = struct.unpack('>H', read_buffer)
             self._offset = fptr.tell() - 2
 
@@ -276,7 +282,8 @@ class Codestream(object):
                     self._parse_tile_part_bit_stream(fptr, segment,
                                                      self._tile_length[-1])
 
-                fptr.seek(self._tile_offset[-1] + self._tile_length[-1])
+                new_offset = self._tile_offset[-1] + self._tile_length[-1]
+                fptr.seek(new_offset)
 
     def _parse_unrecognized_segment(self, fptr):
         """Looks like a valid marker, but not sure from reading the specs.
