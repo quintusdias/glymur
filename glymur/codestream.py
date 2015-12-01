@@ -122,6 +122,13 @@ class UnrecognizedMarkerWarning(UserWarning):
     pass
 
 
+class InvalidCodestreamExpectedMarkerError(IOError):
+    """
+    Error out if we do not find a valid marker where expected.
+    """
+    pass
+
+
 class Codestream(object):
     """Container for codestream information.
 
@@ -244,7 +251,15 @@ class Codestream(object):
         while True:
 
             read_buffer = fptr.read(2)
-            self._marker_id, = struct.unpack('>H', read_buffer)
+            try:
+                self._marker_id, = struct.unpack('>H', read_buffer)
+            except struct.error:
+                offset = fptr.tell() - 2
+                msg = ('Invalid codestream, expected to find a marker '
+                       'at byte position {offset}.')
+                msg = msg.format(offset=offset)
+                raise InvalidCodestreamExpectedMarkerError(msg)
+
             self._offset = fptr.tell() - 2
 
             if self._marker_id == 0xff90 and header_only:
@@ -276,7 +291,8 @@ class Codestream(object):
                     self._parse_tile_part_bit_stream(fptr, segment,
                                                      self._tile_length[-1])
 
-                fptr.seek(self._tile_offset[-1] + self._tile_length[-1])
+                new_offset = self._tile_offset[-1] + self._tile_length[-1]
+                fptr.seek(new_offset)
 
     def _parse_unrecognized_segment(self, fptr):
         """Looks like a valid marker, but not sure from reading the specs.
