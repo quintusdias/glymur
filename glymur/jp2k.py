@@ -177,9 +177,11 @@ class Jp2k(Jp2kBox):
     @layer.setter
     def layer(self, layer):
         if version.openjpeg_version_tuple[0] < 2:
-            msg = "Layer property not supported unless the version of "
-            msg += "OpenJPEG is 2.0 or higher."
-            raise RuntimeError(msg)
+            msg = ("The layer property not supported unless the OpenJPEG "
+                   "library version is 2.0 or higher.  The installed version "
+                   "is {version}.")
+            msg = msg.format(version=version.openjpeg_version)
+            raise IOError(msg)
         self._layer = layer
 
     @property
@@ -287,8 +289,9 @@ class Jp2k(Jp2kBox):
             signature = values[2:]
             if (((box_length != 12) or (box_id != b'jP  ') or
                  (signature != (13, 10, 135, 10)))):
-                msg = '{0} is not a JPEG 2000 file.'.format(self.filename)
-                raise IOError(msg)
+                msg = '{filename} is not a JPEG 2000 file.'
+                msg = msg.format(filename=self.filename)
+                raise NotJPEG2000Error(msg)
 
             # Back up and start again, we know we have a superbox (box of
             # boxes) here.
@@ -326,8 +329,10 @@ class Jp2k(Jp2kBox):
             Frames per second, should be either 24 or 48.
         """
         if re.match("1.5|2.0.0", version.openjpeg_version) is not None:
-            msg = "Writing Cinema2K or Cinema4K files is not supported with "
-            msg += 'openjpeg library versions less than 2.0.1.'
+            msg = ("Writing Cinema2K or Cinema4K files is not supported with "
+                   "OpenJPEG library versions less than 2.0.1.  The installed "
+                   "version of OpenJPEG is {version}.")
+            msg = msg.format(version=version.openjpeg_version)
             raise IOError(msg)
 
         # Cinema modes imply MCT.
@@ -335,7 +340,8 @@ class Jp2k(Jp2kBox):
 
         if cinema_mode == 'cinema2k':
             if fps not in [24, 48]:
-                raise IOError('Cinema2K frame rate must be either 24 or 48.')
+                msg = 'Cinema2K frame rate must be either 24 or 48.'
+                raise IOError(msg)
 
             if re.match("2.0", version.openjpeg_version) is not None:
                 # 2.0 API
@@ -386,7 +392,7 @@ class Jp2k(Jp2kBox):
             raise IOError(msg)
 
         if cratios is not None and psnr is not None:
-            msg = "Cannot specify cratios and psnr together."
+            msg = "Cannot specify cratios and psnr options together."
             raise IOError(msg)
 
         if version.openjpeg_version_tuple[0] == 1:
@@ -605,9 +611,10 @@ class Jp2k(Jp2kBox):
                 raise IOError(msg)
             if ((math.log(height, 2) != math.floor(math.log(height, 2)) or
                  math.log(width, 2) != math.floor(math.log(width, 2)))):
-                msg = ("Bad code block dimensions ({height} x {width}).  "
-                       "Code block dimensions must be powers of 2.")
-                raise IOError(msg.format(height=height, width=width))
+                msg = ("Bad code block size ({height} x {width}).  "
+                       "The dimensions must be powers of 2.")
+                msg = msg.format(height=height, width=width)
+                raise IOError(msg)
 
     def _validate_precinct_size(self, cparams):
         """
@@ -628,19 +635,19 @@ class Jp2k(Jp2kBox):
                 if j == 0 and code_block_specified:
                     height, width = cparams.cblockh_init, cparams.cblockw_init
                     if height * 2 > prch or width * 2 > prcw:
-                        msg = ("Highest resolution precinct size "
+                        msg = ("The highest resolution precinct size "
                                "({prch} x {prcw}) must be at least twice that "
-                               "of the code block dimensions "
+                               "of the code block size "
                                "({cbh} x {cbw}).")
                         msg = msg.format(prch=prch, prcw=prcw,
                                          cbh=height, cbw=width)
                         raise IOError(msg)
                 if ((math.log(prch, 2) != math.floor(math.log(prch, 2)) or
                      math.log(prcw, 2) != math.floor(math.log(prcw, 2)))):
-                    msg = ("Bad precinct dimensions ({height} x {width}).  "
+                    msg = ("Bad precinct size ({height} x {width}).  "
                            "Precinct dimensions must be powers of 2.")
                     msg = msg.format(height=prch, width=prcw)
-                    raise BadPrecinctDimensionsError(msg)
+                    raise IOError(msg)
 
     def _validate_image_rank(self, img_array):
         """
@@ -657,10 +664,10 @@ class Jp2k(Jp2kBox):
         if re.match("2.0.0", version.openjpeg_version) is not None:
             if (((img_array.ndim != 2) and
                  (img_array.shape[2] != 1 and img_array.shape[2] != 3))):
-                msg = "Writing images is restricted to single-channel "
-                msg += "greyscale images or three-channel RGB images when "
-                msg += "the OpenJPEG library version is the official 2.0.0 "
-                msg += "release."
+                msg = ("Writing images is restricted to single-channel "
+                       "greyscale images or three-channel RGB images when "
+                       "the OpenJPEG library version is the official 2.0.0 "
+                       "release.")
                 raise IOError(msg)
 
     def _validate_image_datatype(self, img_array):
@@ -711,7 +718,7 @@ class Jp2k(Jp2kBox):
                 self._colorspace = opj2.CLRSPC_SRGB
         else:
             if colorspace.lower() not in ('rgb', 'grey', 'gray'):
-                msg = 'Invalid colorspace "{0}"'.format(colorspace)
+                msg = 'Invalid colorspace "{0}".'.format(colorspace)
                 raise IOError(msg)
             elif colorspace.lower() == 'rgb' and self.shape[2] < 3:
                 msg = 'RGB colorspace requires at least 3 components.'
@@ -1106,9 +1113,10 @@ class Jp2k(Jp2kBox):
             if the proper version of the OpenJPEG library is not available
         """
         if re.match("0|1.[01234]", version.openjpeg_version):
-            raise RuntimeError("You must have at least version 1.5.0 of "
-                               "OpenJPEG installed before you can read "
-                               "JPEG2000 images.")
+            msg = ("You must have at least version 1.5.0 of OpenJPEG "
+                   "installed before you can read JPEG2000 images with "
+                   "glymur.  Your version is {version}")
+            raise RuntimeError(msg.format(version=version.openjpeg_version))
 
         if version.openjpeg_version_tuple[0] < 2:
             img = self._read_openjpeg(**kwargs)
@@ -1163,7 +1171,7 @@ class Jp2k(Jp2kBox):
                    "factors are different. "
                    "\n\n{siz_segment}")
             msg = msg.format(siz_segment=str(self.codestream.segment[1]))
-            raise DifferingSubsampleFactorsError(msg)
+            raise IOError(msg)
 
     def _read_openjpeg(self, rlevel=0, verbose=False, area=None):
         """Read a JPEG 2000 image using libopenjpeg.
@@ -1365,17 +1373,22 @@ class Jp2k(Jp2kBox):
                 # -1 is shorthand for the largest rlevel
                 rlevel = max_rlevel
             elif rlevel < -1 or rlevel > max_rlevel:
-                msg = "rlevel must be in the range [-1, {0}] for this image."
-                msg = msg.format(max_rlevel)
+                msg = ("rlevel must be in the range [-1, {max_rlevel}] "
+                       "for this image.")
+                msg = msg.format(max_rlevel=max_rlevel)
                 raise IOError(msg)
 
         dparam.cp_reduce = rlevel
 
         if area is not None:
             if area[0] < 0 or area[1] < 0 or area[2] <= 0 or area[3] <= 0:
-                msg = "Upper left corner coordinates must be nonnegative and "
-                msg += "lower right corner coordinates must be positive:  {0}"
-                raise IOError(msg.format(area))
+                msg = ("The upper left corner coordinates must be nonnegative "
+                       "and the lower right corner coordinates must be "
+                       "positive.  The specified upper left and lower right "
+                       "coordinates are ({y0}, {x0}) and ({y1}, {x1}).")
+                msg = msg.format(x0=area[1], y0=area[0],
+                                 x1=area[3], y1=area[2])
+                raise IOError(msg)
             dparam.DA_y0 = area[0]
             dparam.DA_x0 = area[1]
             dparam.DA_y1 = area[2]
@@ -1429,9 +1442,11 @@ class Jp2k(Jp2kBox):
         >>> components_lst = jp.read_bands(rlevel=1)
         """
         if version.openjpeg_version_tuple[0] < 2:
-            raise RuntimeError("You must have at least version 2.0.0 of "
-                               "OpenJPEG installed before using this "
-                               "functionality.")
+            msg = ("You must have at least version 2.0.0 of OpenJPEG "
+                   "installed before using this method.  Your version of "
+                   "OpenJPEG is {version}.")
+            msg = msg.format(version=version.openjpeg_version)
+            raise IOError(msg)
 
         self.ignore_pclr_cmap_cdef = ignore_pclr_cmap_cdef
         if layer is not None:
@@ -1835,7 +1850,7 @@ class Jp2k(Jp2kBox):
         box_ids = set([box.box_id for box in boxes])
         intersection = box_ids.intersection(JP2H_CHILDREN)
         if len(intersection) > 0 and parent_box_name not in ['jp2h', 'jpch']:
-            msg = "A '{0}' box can only be nested in a JP2 header box."
+            msg = "A {0} box can only be nested in a JP2 header box."
             raise IOError(msg.format(list(intersection)[0]))
 
         # Recursively check any contained superboxes.
@@ -1862,7 +1877,7 @@ class Jp2k(Jp2kBox):
         box_ids = set([box.box_id for box in boxes])
         intersection = box_ids.intersection(TOP_LEVEL_ONLY_BOXES)
         if len(intersection) > 0:
-            msg = "A '{0}' box cannot be nested in a superbox."
+            msg = "A {0} box cannot be nested in a superbox."
             raise IOError(msg.format(list(intersection)[0]))
 
         # Recursively check any contained superboxes.
@@ -1964,20 +1979,6 @@ def _default_info_handler(msg, _):
     print("[INFO] {0}".format(msg.decode('utf-8').rstrip()))
 
 
-class BadPrecinctDimensionsError(IOError):
-    """
-    Precinct dimensions must be powers of two.
-    """
-    pass
-
-
-class DifferingSubsampleFactorsError(IOError):
-    """
-    The subsample factors must be the same when doing a normal read.
-    """
-    pass
-
-
 class InvalidJP2ColourspaceMethodWarning(UserWarning):
     """
     If the file type box brand is JP2, the colour space method is limited.
@@ -1988,11 +1989,19 @@ class InvalidJP2ColourspaceMethodWarning(UserWarning):
     pass
 
 
+class NotJPEG2000Error(UserWarning):
+    """
+    If the file is not JPEG2000.
+    """
+    pass
+
+
 class OpenJPEGLibraryWarning(UserWarning):
     """
     Warnings emitted by OpenJPEG library
     """
     pass
+
 
 def _default_warning_handler(library_msg, _):
     """Default warning handler callback."""

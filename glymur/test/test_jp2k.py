@@ -377,7 +377,7 @@ class TestJp2k(unittest.TestCase):
                 ofile.flush()
 
             j = Jp2k(ofile.name)
-            with self.assertRaises(glymur.jp2k.DifferingSubsampleFactorsError):
+            with self.assertRaises(IOError):
                 j[:]
 
     def test_shape_jp2(self):
@@ -450,15 +450,15 @@ class TestJp2k(unittest.TestCase):
     def test_not_jpeg2000(self):
         """Should error out appropriately if not given a JPEG 2000 file."""
         filename = pkg_resources.resource_filename(glymur.__name__, "jp2k.py")
-        with self.assertRaises(IOError):
+        with self.assertRaises(glymur.jp2k.NotJPEG2000Error):
             Jp2k(filename)
 
     def test_file_not_present(self):
         """Should error out if reading from a file that does not exist"""
         # Verify that we error out appropriately if not given an existing file
         # at all.
+        filename = 'this file does not actually exist on the file system.'
         with self.assertRaises(OSError):
-            filename = 'this file does not actually exist on the file system.'
             Jp2k(filename)
 
     def test_codestream(self):
@@ -837,7 +837,9 @@ class TestJp2k(unittest.TestCase):
         self.assertEqual(data.shape, (1024, 1024, 3))
 
     def test_read_without_openjpeg(self):
-        """Don't have openjpeg or openjp2 library?  Must error out."""
+        """
+        Don't have openjpeg or openjp2 library?  Must error out.
+        """
         with patch('glymur.version.openjpeg_version_tuple', new=(0, 0, 0)):
             with patch('glymur.version.openjpeg_version', new='0.0.0'):
                 with self.assertRaises(RuntimeError):
@@ -849,10 +851,13 @@ class TestJp2k(unittest.TestCase):
                     glymur.Jp2k(self.jp2file)[:]
 
     def test_read_bands_without_openjp2(self):
-        """Don't have openjp2 library?  Must error out."""
+        """
+        Don't have openjp2 library?  Must error out.
+        """
+        exp_error = IOError
         with patch('glymur.version.openjpeg_version_tuple', new=(1, 5, 0)):
             with patch('glymur.version.openjpeg_version', new='1.5.0'):
-                with self.assertRaises(RuntimeError):
+                with self.assertRaises(exp_error):
                     glymur.Jp2k(self.jp2file).read_bands()
 
     def test_zero_length_reserved_segment(self):
@@ -1613,7 +1618,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         precinct sizes should be powers of two.
         """
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-            with self.assertRaises(glymur.jp2k.BadPrecinctDimensionsError):
+            with self.assertRaises(IOError):
                 Jp2k(tfile.name, data=self.j2k_data, psizes=[(173, 173)])
 
     def test_code_block_dimensions(self):
@@ -1795,9 +1800,9 @@ class TestJp2k_write(fixtures.MetadataBase):
 
     def test_specify_ycc(self):
         """Should reject YCC"""
+        data = np.zeros((128, 128, 3), dtype=np.uint8)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             with self.assertRaises(IOError):
-                data = np.zeros((128, 128, 3), dtype=np.uint8)
                 Jp2k(tfile.name, data=data, colorspace='ycc')
 
     def test_write_with_jp2_in_caps(self):
@@ -1822,7 +1827,9 @@ class TestJp2k_write(fixtures.MetadataBase):
             self.assertEqual(codestream.segment[2].mct, 0)  # no mct
 
     def test_write_grayscale_with_mct(self):
-        """MCT usage makes no sense for grayscale images."""
+        """
+        MCT usage makes no sense for grayscale images.
+        """
         j2k = Jp2k(self.j2kfile)
         expdata = j2k[:]
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
@@ -1868,10 +1875,11 @@ class TestJp2k_1_x(unittest.TestCase):
     def test_layer(self):
         """layer option not allowed for 1.x.
         """
-        with patch('glymur.version.openjpeg_version_tuple', new=(1, 5, 0)):
-            j2k = Jp2k(self.j2kfile)
-            with self.assertRaises(RuntimeError):
-                j2k.layer = 1
+        with patch('glymur.version.openjpeg_version', new="1.5.0"):
+            with patch('glymur.version.openjpeg_version_tuple', new=(1, 5, 0)):
+                j2k = Jp2k(self.j2kfile)
+                with self.assertRaises(IOError):
+                    j2k.layer = 1
 
 
 @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
@@ -1916,8 +1924,8 @@ class TestJp2k_2_0(unittest.TestCase):
     @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_unrecognized_jp2_clrspace(self):
         """We only allow RGB and GRAYSCALE.  Should error out with others"""
+        data = np.zeros((128, 128, 3), dtype=np.uint8)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-            data = np.zeros((128, 128, 3), dtype=np.uint8)
             with self.assertRaises(IOError):
                 Jp2k(tfile.name, data=data, colorspace='cmyk')
 
@@ -2009,7 +2017,9 @@ class TestJp2k_2_1(unittest.TestCase):
     @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_openjpeg_library_message(self):
-        """Verify the error message produced by the openjpeg library"""
+        """
+        Verify the error message produced by the openjpeg library
+        """
         # This will confirm that the error callback mechanism is working.
         with open(self.jp2file, 'rb') as fptr:
             data = fptr.read()
@@ -2032,17 +2042,8 @@ class TestJp2k_2_1(unittest.TestCase):
                 with warnings.catch_warnings():
                     warnings.simplefilter('ignore')
                     j = Jp2k(tfile.name)
-                    regexp = re.compile(r'''OpenJPEG\slibrary\serror:\s+
-                                            Invalid\svalues\sfor\scomp\s=\s0\s+
-                                            :\sdx=1\sdy=0''', re.VERBOSE)
-                    if sys.hexversion < 0x03020000:
-                        with self.assertRaisesRegexp((IOError, OSError),
-                                                     regexp):
-                            j[::2, ::2]
-                    else:
-                        with self.assertRaisesRegex((IOError, OSError),
-                                                    regexp):
-                            j[::2, ::2]
+                    with self.assertRaises((IOError, OSError)):
+                        j[::2, ::2]
 
 
 class TestParsing(unittest.TestCase):

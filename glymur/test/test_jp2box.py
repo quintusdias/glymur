@@ -382,23 +382,21 @@ class TestFileTypeBox(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_brand_unknown(self):
         """A ftyp box brand must be 'jp2 ' or 'jpx '."""
         with self.assertWarns(UserWarning):
             ftyp = glymur.jp2box.FileTypeBox(brand='jp3')
-        with self.assertRaises(IOError):
-            with tempfile.TemporaryFile() as tfile:
+        with tempfile.TemporaryFile() as tfile:
+            with self.assertRaises(IOError):
                 ftyp.write(tfile)
 
-    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_cl_entry_unknown(self):
         """A ftyp box cl list can only contain 'jp2 ', 'jpx ', or 'jpxb'."""
         with self.assertWarns(UserWarning):
             # Bad compatibility list item.
             ftyp = glymur.jp2box.FileTypeBox(compatibility_list=['jp3'])
-        with self.assertRaises(IOError):
-            with tempfile.TemporaryFile() as tfile:
+        with tempfile.TemporaryFile() as tfile:
+            with self.assertRaises(IOError):
                 ftyp.write(tfile)
 
 

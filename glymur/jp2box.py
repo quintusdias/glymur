@@ -431,8 +431,8 @@ class ColourSpecificationBox(Jp2kBox):
         """In addition to constructor validation steps, run validation steps
         for writing."""
         if self.colorspace is None:
-            msg = "Writing Colour Specification boxes without enumerated "
-            msg += "colorspaces is not supported at this time."
+            msg = ("Writing colr boxes without enumerated "
+                   "colorspaces is not supported at this time.")
             self._dispatch_validation_error(msg, writing=True)
 
         if self.icc_profile is None:
@@ -3106,7 +3106,8 @@ class XMLBox(Jp2kBox):
         """
         Jp2kBox.__init__(self)
         if filename is not None and xml is not None:
-            msg = "Only one of either filename or xml should be provided."
+            msg = ("Only one of either a filename or an ElementTree instance "
+                   "should be provided.")
             raise IOError(msg)
         if filename is not None:
             self.xml = ET.parse(filename)

@@ -306,7 +306,6 @@ class TestJPXWrap(unittest.TestCase):
             with self.assertRaises(IOError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
-    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_deurl_child_of_dtbl(self):
         """Data reference boxes can only contain data entry url boxes."""
         jp2 = Jp2k(self.jp2file)
@@ -432,7 +431,6 @@ class TestJPX(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_flst_lens_not_the_same(self):
         """A fragment list box items must be the same length."""
         offset = [89]
@@ -440,11 +438,10 @@ class TestJPX(unittest.TestCase):
         reference = [0, 0]
         with self.assertWarns(UserWarning):
             flst = glymur.jp2box.FragmentListBox(offset, length, reference)
-        with self.assertRaises(IOError):
-            with tempfile.TemporaryFile() as tfile:
+        with tempfile.TemporaryFile() as tfile:
+            with self.assertRaises(IOError):
                 flst.write(tfile)
 
-    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_flst_offsets_not_positive(self):
         """A fragment list box offsets must be positive."""
         offset = [0]
@@ -452,11 +449,10 @@ class TestJPX(unittest.TestCase):
         reference = [0]
         with self.assertWarns(UserWarning):
             flst = glymur.jp2box.FragmentListBox(offset, length, reference)
-        with self.assertRaises((IOError, OSError)):
-            with tempfile.TemporaryFile() as tfile:
+        with tempfile.TemporaryFile() as tfile:
+            with self.assertRaises((IOError, OSError)):
                 flst.write(tfile)
 
-    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_flst_lengths_not_positive(self):
         """A fragment list box lengths must be positive."""
         offset = [89]
@@ -464,23 +460,23 @@ class TestJPX(unittest.TestCase):
         reference = [0]
         with self.assertWarns(UserWarning):
             flst = glymur.jp2box.FragmentListBox(offset, length, reference)
-        with self.assertRaises(IOError):
-            with tempfile.TemporaryFile() as tfile:
+        with tempfile.TemporaryFile() as tfile:
+            with self.assertRaises(IOError):
                 flst.write(tfile)
 
     def test_ftbl_boxes_empty(self):
         """A fragment table box must have at least one child box."""
         ftbl = glymur.jp2box.FragmentTableBox()
-        with self.assertRaises(IOError):
-            with tempfile.TemporaryFile() as tfile:
+        with tempfile.TemporaryFile() as tfile:
+            with self.assertRaises(IOError):
                 ftbl.write(tfile)
 
     def test_ftbl_child_not_flst(self):
         """A fragment table box can only contain a fragment list."""
         free = glymur.jp2box.FreeBox()
         ftbl = glymur.jp2box.FragmentTableBox(box=[free])
-        with self.assertRaises(IOError):
-            with tempfile.TemporaryFile() as tfile:
+        with tempfile.TemporaryFile() as tfile:
+            with self.assertRaises(IOError):
                 ftbl.write(tfile)
 
     def test_data_reference_requires_dtbl(self):
