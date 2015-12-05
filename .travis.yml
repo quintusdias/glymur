@@ -5,55 +5,49 @@ matrix:
     include:
     - python: 2.7
       env:
-      - JOB_NAME: "27_eldest"
-      - NUMPY_VERSION=1.7.2
-      - LXML_VERSION=3.0.2
-      - NO_OPENJPEG=0
-    - python: 2.7
-      env:
-      - JOB_NAME: "27_np182"
-      - NUMPY_VERSION=1.8.2
-      - LXML_VERSION=3.4.4
-      - NO_OPENJPEG=0
-    - python: 2.7
-      env:
-      - JOB_NAME: "27_np192"
-      - NUMPY_VERSION=1.9.2
-      - LXML_VERSION=3.4.4
-      - NO_OPENJPEG=0
-    - python: 2.7
-      env:
-      - JOB_NAME: "27_np_latest"
+      - JOB_NAME: "27_openjpeg15"
       - NUMPY_VERSION=1.10.1
       - LXML_VERSION=3.4.4
-      - NO_OPENJPEG=0
+      - OPJ_LIB=1
+    - python: 2.7
+      env:
+      - JOB_NAME: "27_np172"
+      - NUMPY_VERSION=1.7.2
+      - LXML_VERSION=3.0.2
+      - OPJ_LIB=2
+    - python: 2.7
+      env:
+      - JOB_NAME: "27_np110"
+      - NUMPY_VERSION=1.10.1
+      - LXML_VERSION=3.4.4
+      - OPJ_LIB=2
     - python: 3.3
       env:
       - JOB_NAME: "33"
       - NUMPY_VERSION=1.7.2
       - LXML_VERSION=3.0.2
-      - NO_OPENJPEG=0
+      - OPJ_LIB=2
     - python: 3.4
       env:
       - JOB_NAME: "34"
       - NUMPY_VERSION=1.9.2
       - LXML_VERSION=3.4.4
-      - NO_OPENJPEG=0
+      - OPJ_LIB=2
     - python: 3.5
       env:
-      - JOB_NAME: "35_latest"
+      - JOB_NAME: "35_np110"
       - NUMPY_VERSION=1.10.1
       - LXML_VERSION=3.4.4
-      - NO_OPENJPEG=0
+      - OPJ_LIB=2
     - python: 3.5
       env:
       - JOB_NAME: "no_openjpeg"
       - NUMPY_VERSION=1.10.1
       - LXML_VERSION=3.4.4
-      - NO_OPENJPEG=1
+      - OPJ_LIB=0
     
 before_install:
-  - sh -c "if [ '$NO_OPENJPEG' = '0' ]; then bash travis-install-openjpeg.sh; fi"
+  - sh -c "if test $OPJ_LIB -eq 1; then bash travis-install-openjpeg15.sh; elif test $OPJ_LIB -eq 2; then bash travis-install-openjpeg.sh; fi"
   - sudo apt-get update -qq
   - sudo apt-get install libexempi3
 

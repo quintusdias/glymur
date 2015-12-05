@@ -10,6 +10,7 @@ import sys
 import tempfile
 from uuid import UUID
 import unittest
+import warnings
 
 import lxml.etree as ET
 import numpy as np
@@ -384,17 +385,27 @@ class TestFileTypeBox(unittest.TestCase):
 
     def test_brand_unknown(self):
         """A ftyp box brand must be 'jp2 ' or 'jpx '."""
-        with self.assertWarns(UserWarning):
-            ftyp = glymur.jp2box.FileTypeBox(brand='jp3')
+        if sys.hexversion < 0x03000000:
+            with warnings.catch_warnings(record=True) as w:
+                ftyp = glymur.jp2box.FileTypeBox(brand='jp3')
+                assert issubclass(w[-1].category, UserWarning)
+        else:
+            with self.assertWarns(UserWarning):
+                ftyp = glymur.jp2box.FileTypeBox(brand='jp3')
         with tempfile.TemporaryFile() as tfile:
             with self.assertRaises(IOError):
                 ftyp.write(tfile)
 
     def test_cl_entry_unknown(self):
         """A ftyp box cl list can only contain 'jp2 ', 'jpx ', or 'jpxb'."""
-        with self.assertWarns(UserWarning):
-            # Bad compatibility list item.
-            ftyp = glymur.jp2box.FileTypeBox(compatibility_list=['jp3'])
+        if sys.hexversion < 0x03000000:
+            with warnings.catch_warnings(record=True) as w:
+                # Bad compatibility list item.
+                ftyp = glymur.jp2box.FileTypeBox(compatibility_list=['jp3'])
+        else:
+            with self.assertWarns(UserWarning):
+                # Bad compatibility list item.
+                ftyp = glymur.jp2box.FileTypeBox(compatibility_list=['jp3'])
         with tempfile.TemporaryFile() as tfile:
             with self.assertRaises(IOError):
                 ftyp.write(tfile)

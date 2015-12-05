@@ -13,8 +13,8 @@ from glymur.lib import openjp2, openjpeg
 
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-@unittest.skipIf(re.match(r'''1.5|2''',
-                          glymur.version.openjpeg_version) is None,
+@unittest.skipIf(re.match(r'''1.5|2.0''',
+                          glymur.version.openjpeg_version) is not None,
                  "Not to be run until 2.1.0")
 class TestOpenJP2(unittest.TestCase):
     """Test openjp2 library functionality.
