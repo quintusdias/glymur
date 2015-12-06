@@ -48,7 +48,7 @@ class TestPrinting(unittest.TestCase):
         glymur.set_printoptions(short=False, xml=True, codestream=True)
 
     def tearDown(self):
-        glymur.set_parseoptions(full_codestream=False)
+        glymur.set_printoptions(short=False, xml=True, codestream=True)
 
     def test_palette(self):
         """
