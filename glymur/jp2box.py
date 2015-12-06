@@ -472,7 +472,11 @@ class ColourSpecificationBox(Jp2kBox):
             lst.append(text)
 
         if self.colorspace is not None:
-            dispvalue = _COLORSPACE_MAP_DISPLAY[self.colorspace]
+            try:
+                dispvalue = _COLORSPACE_MAP_DISPLAY[self.colorspace]
+            except KeyError:
+                dispvalue = '{colorspace} (unrecognized)'
+                dispvalue = dispvalue.format(colorspace=self.colorspace)
             text = 'Colorspace:  {0}'.format(dispvalue)
         else:
             # 2.7 has trouble pretty-printing ordered dicts so we just have

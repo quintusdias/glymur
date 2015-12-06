@@ -119,14 +119,14 @@ E_SRGB = 20
 ROMM_RGB = 21
 
 
-_factory = lambda x: '{0} (unrecognized)'.format(x)
-_COLORSPACE_MAP_DISPLAY = _Keydefaultdict(_factory,
-                                          {CMYK:  'CMYK',
-                                           SRGB:  'sRGB',
-                                           GREYSCALE:  'greyscale',
-                                           YCC:  'YCC',
-                                           E_SRGB:  'e-sRGB',
-                                           ROMM_RGB:  'ROMM-RGB'})
+_COLORSPACE_MAP_DISPLAY = {
+    CMYK:  'CMYK',
+    SRGB:  'sRGB',
+    GREYSCALE:  'greyscale',
+    YCC:  'YCC',
+    E_SRGB:  'e-sRGB',
+    ROMM_RGB:  'ROMM-RGB',
+}
 
 # enumerated color channel types
 COLOR = 0
