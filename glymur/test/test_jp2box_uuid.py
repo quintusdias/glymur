@@ -9,6 +9,7 @@ import sys
 import tempfile
 import unittest
 import uuid
+import warnings
 
 if sys.hexversion <= 0x03000000:
     from mock import patch
@@ -164,8 +165,6 @@ class TestSuiteHiRISE(unittest.TestCase):
         self.assertEqual(actual, expected)
 
 
-@unittest.skipIf(fixtures.WARNING_INFRASTRUCTURE_ISSUE,
-                 fixtures.WARNING_INFRASTRUCTURE_MSG)
 @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
 class TestSuiteWarns(unittest.TestCase):
     """Tests for XMP, Exif UUIDs, issues warnings."""
@@ -175,31 +174,6 @@ class TestSuiteWarns(unittest.TestCase):
 
     def tearDown(self):
         pass
-
-    def test_unrecognized_exif_tag(self):
-        """Verify warning in case of unrecognized tag."""
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
-
-            with open(self.jp2file, 'rb') as ifptr:
-                tfile.write(ifptr.read())
-
-            # Write L, T, UUID identifier.
-            tfile.write(struct.pack('>I4s', 52, b'uuid'))
-            tfile.write(b'JpgTiffExif->JP2')
-
-            tfile.write(b'Exif\x00\x00')
-            xbuffer = struct.pack('<BBHI', 73, 73, 42, 8)
-            tfile.write(xbuffer)
-
-            # We will write just a single tag.
-            tfile.write(struct.pack('<H', 1))
-
-            # The "Make" tag is tag no. 271.  Corrupt it to 171.
-            tfile.write(struct.pack('<HHI4s', 171, 2, 3, b'HTC\x00'))
-            tfile.flush()
-
-            with self.assertWarnsRegex(UserWarning, 'Unrecognized Exif tag'):
-                glymur.Jp2k(tfile.name)
 
     def test_bad_tag_datatype(self):
         """Only certain datatypes are allowable"""
@@ -223,10 +197,15 @@ class TestSuiteWarns(unittest.TestCase):
             tfile.write(struct.pack('<HHI4s', 271, 2000, 3, b'HTC\x00'))
             tfile.flush()
 
-            with self.assertWarnsRegex(UserWarning, 'Invalid TIFF tag'):
+            with warnings.catch_warnings():
+                # Ignore the invalid datatype warnings.
+                warnings.simplefilter('ignore')
                 j = glymur.Jp2k(tfile.name)
 
             self.assertEqual(j.box[-1].box_id, 'uuid')
+
+            # Invalid tag, so no data
+            self.assertIsNone(j.box[-1].data)
 
     def test_bad_tiff_header_byte_order_indication(self):
         """Only b'II' and b'MM' are allowed."""
@@ -250,8 +229,12 @@ class TestSuiteWarns(unittest.TestCase):
             tfile.write(struct.pack('<HHI4s', 271, 2, 3, b'HTC\x00'))
             tfile.flush()
 
-            regex = 'The byte order indication in the TIFF header '
-            with self.assertWarnsRegex(UserWarning, regex):
+            with warnings.catch_warnings():
+                # Ignore the warning about the endian order, we test for that
+                # elsewhere.
+                warnings.simplefilter('ignore')
                 jp2 = glymur.Jp2k(tfile.name)
 
+            # We should still get a UUID box out of it.  But we get no data.
             self.assertEqual(jp2.box[-1].box_id, 'uuid')
+            self.assertIsNone(jp2.box[-1].data)
