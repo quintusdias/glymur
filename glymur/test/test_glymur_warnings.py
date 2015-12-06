@@ -16,12 +16,16 @@ from glymur.jp2box import InvalidColourspaceMethod
 from glymur.jp2box import InvalidICCProfileLengthWarning
 
 
+@unittest.skipIf(sys.hexversion < 0x03000000, 'Do not bother on python2')
 class TestSuite(unittest.TestCase):
 
     def setUp(self):
         self.jp2file = glymur.data.nemo()
         self.j2kfile = glymur.data.goodstuff()
         self.jpxfile = glymur.data.jpxfile()
+
+    def tearDown(self):
+        warnings.resetwarnings()
 
     def test_unrecognized_marker(self):
         """
