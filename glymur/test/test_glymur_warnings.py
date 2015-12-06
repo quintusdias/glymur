@@ -16,12 +16,16 @@ from glymur.jp2box import InvalidColourspaceMethod
 from glymur.jp2box import InvalidICCProfileLengthWarning
 
 
+@unittest.skipIf(sys.hexversion < 0x03000000, 'Do not bother on python2')
 class TestSuite(unittest.TestCase):
 
     def setUp(self):
         self.jp2file = glymur.data.nemo()
         self.j2kfile = glymur.data.goodstuff()
         self.jpxfile = glymur.data.jpxfile()
+
+    def tearDown(self):
+        warnings.resetwarnings()
 
     def test_unrecognized_marker(self):
         """
@@ -497,6 +501,27 @@ class TestSuite(unittest.TestCase):
         else:
             with self.assertWarns(InvalidJP2ColourspaceMethodWarning):
                 jp2._validate()
+
+    def test_unknown_superbox(self):
+        """Verify warning for an unknown superbox."""
+
+        with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
+            with open(self.jpxfile, 'rb') as ifile:
+                tfile.write(ifile.read())
+
+            # Add the header for an unknown superbox.
+            write_buffer = struct.pack('>I4s', 20, 'grp '.encode())
+            tfile.write(write_buffer)
+
+            # Add a free box inside of it.  We won't be able to identify it,
+            # but it's there.
+            write_buffer = struct.pack('>I4sI', 12, 'free'.encode(), 0)
+            tfile.write(write_buffer)
+            tfile.flush()
+
+            with self.assertWarns(glymur.jp2box.UnrecognizedBoxWarning):
+                jpx = Jp2k(tfile.name)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -270,8 +270,8 @@ class Codestream(object):
             try:
                 segment = process_marker_segment[self._marker_id](fptr)
             except KeyError:
-                msg = ('Invalid marker ID encountered at byte {offset:d} '
-                       'in codestream:  "0x{marker_id:x}"')
+                msg = ('Invalid marker ID 0x{marker_id:x} encountered at byte '
+                       '{offset:d}.')
                 msg = msg.format(offset=self._offset,
                                  marker_id=self._marker_id)
                 warnings.warn(msg, UnrecognizedMarkerWarning)
@@ -297,8 +297,9 @@ class Codestream(object):
     def _parse_unrecognized_segment(self, fptr):
         """Looks like a valid marker, but not sure from reading the specs.
         """
-        msg = "Unrecognized marker id:  0x{marker_id:x}"
-        msg = msg.format(marker_id=self._marker_id)
+        msg = ("Unrecognized codestream marker 0x{marker_id:x} encountered at "
+               "byte offset {offset}.")
+        msg = msg.format(marker_id=self._marker_id, offset=fptr.tell())
         warnings.warn(msg, UnrecognizedMarkerWarning)
         cpos = fptr.tell()
         read_buffer = fptr.read(2)
@@ -792,9 +793,9 @@ class Codestream(object):
         except ZeroDivisionError:
             msg = ("Invalid tile specification:  "
                    "size of {num_tile_rows} x {num_tile_cols}, "
-                   "offset of {row_offset} x {col_offset}")
+                   "offset of {row_offset} x {col_offset}.")
             msg = msg.format(num_tile_rows=xytsiz[1],
-                             num_tile_cols=xysiz[0],
+                             num_tile_cols=xytsiz[0],
                              row_offset=xytosiz[1],
                              col_offset=xytosiz[0])
             warnings.warn(msg, InvalidTileSpecificationWarning)
