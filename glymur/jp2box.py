@@ -239,7 +239,9 @@ class Jp2kBox(object):
         except KeyError:
             # We don't recognize the box ID, so create an UnknownBox and be
             # done with it.
-            msg = 'Unrecognized box ({0}) encountered.'.format(box_id)
+            msg = ('Unrecognized box ({box_id}) encountered at byte offset '
+                   '{offset}.')
+            msg = msg.format(box_id=box_id, offset=fptr.tell() - 8)
             warnings.warn(msg, UnrecognizedBoxWarning)
             box = UnknownBox(box_id, offset=start, length=num_bytes,
                              longname='Unknown')
@@ -2576,10 +2578,10 @@ class ReaderRequirementsBox(Jp2kBox):
             vendor_feature, vendor_mask = data
 
         except KeyError:
-            msg = 'The ReaderRequirements box (rreq) has a mask length of {0} '
-            msg += 'bytes, but only values of 1, 2, 4, or 8 are supported.  '
-            msg += 'The box contents will not be interpreted.'
-            warnings.warn(msg.format(mask_length), UserWarning)
+            msg = ('The ReaderRequirements box (rreq) has a mask length of '
+                   '{length} bytes, but only values of 1, 2, 4, or 8 are '
+                   'supported.  The box contents will not be interpreted.')
+            warnings.warn(msg.format(length=mask_length), UserWarning)
 
         return cls(fuam, dcm, standard_flag, standard_mask,
                    vendor_feature, vendor_mask,

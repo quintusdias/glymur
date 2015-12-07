@@ -247,7 +247,6 @@ class TestPrinting(unittest.TestCase):
 
         self.assertTrue(True)
 
-    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_unknown_superbox(self):
         """Verify that we can handle an unknown superbox."""
         with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
@@ -264,7 +263,8 @@ class TestPrinting(unittest.TestCase):
             tfile.write(write_buffer)
             tfile.flush()
 
-            with self.assertWarns(UserWarning):
+            with warnings.catch_warnings() as w:
+                warnings.simplefilter("ignore")
                 jpx = Jp2k(tfile.name)
 
             glymur.set_printoptions(short=True)
