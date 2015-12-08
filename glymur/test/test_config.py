@@ -8,6 +8,7 @@ import os
 import sys
 import tempfile
 import unittest
+import warnings
 
 if sys.hexversion <= 0x03030000:
     from mock import patch
@@ -145,9 +146,11 @@ class TestSuite(unittest.TestCase):
                     with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
                         # Misconfigured new configuration file should
                         # be rejected.
-                        regex = 'could not be loaded'
-                        with self.assertWarnsRegex(UserWarning, regex):
+                        with warnings.catch_warnings():
+                            # Ignore a wa
+                            warnings.simplefilter('ignore')
                             imp.reload(glymur.lib.openjp2)
+                        self.assertIsNone(glymur.lib.openjp2.OPENJP2)
 
     @unittest.skipIf((openjpeg_not_found_by_ctypes() or
                       openjp2_not_found_by_ctypes()),

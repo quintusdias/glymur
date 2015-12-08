@@ -1,6 +1,7 @@
 """
 Test suite for warnings issued by glymur.
 """
+import imp
 from io import BytesIO
 import os
 import struct
@@ -8,12 +9,20 @@ import sys
 import tempfile
 import unittest
 import warnings
+import numpy as np
 
 from glymur import Jp2k
 import glymur
 from glymur.jp2k import InvalidJP2ColourspaceMethodWarning
 from glymur.jp2box import InvalidColourspaceMethod
-from glymur.jp2box import InvalidICCProfileLengthWarning
+from glymur.core import COLOR, RED, GREEN, BLUE
+
+from .fixtures import WINDOWS_TMP_FILE_MSG
+
+if sys.hexversion <= 0x03030000:
+    from mock import patch
+else:
+    from unittest.mock import patch
 
 
 @unittest.skipIf(sys.hexversion < 0x03000000, 'Do not bother on python2')
@@ -451,10 +460,9 @@ class TestSuite(unittest.TestCase):
         if sys.hexversion < 0x03000000:
             with warnings.catch_warnings(record=True) as w:
                 glymur.jp2box.ColourSpecificationBox.parse(obj, 66, 47)
-                assert issubclass(w[-1].category,
-                                  InvalidICCProfileLengthWarning)
+                assert issubclass(w[-1].category, UserWarning)
         else:
-            with self.assertWarns(InvalidICCProfileLengthWarning):
+            with self.assertWarns(UserWarning):
                 glymur.jp2box.ColourSpecificationBox.parse(obj, 66, 47)
 
     def test_invalid_colour_specification_method(self):
@@ -520,7 +528,284 @@ class TestSuite(unittest.TestCase):
             tfile.flush()
 
             with self.assertWarns(glymur.jp2box.UnrecognizedBoxWarning):
-                jpx = Jp2k(tfile.name)
+                Jp2k(tfile.name)
+
+    def test_brand_unknown(self):
+        """A ftyp box brand must be 'jp2 ' or 'jpx '."""
+        if sys.hexversion < 0x03000000:
+            with warnings.catch_warnings(record=True) as w:
+                glymur.jp2box.FileTypeBox(brand='jp3')
+                assert issubclass(w[-1].category, UserWarning)
+        else:
+            with self.assertWarns(UserWarning):
+                glymur.jp2box.FileTypeBox(brand='jp3')
+
+    def test_bad_type(self):
+        """Channel types are limited to 0, 1, 2, 65535
+        Should reject if not all of index, channel_type, association the
+        same length.
+        """
+        channel_type = (COLOR, COLOR, 3)
+        association = (RED, GREEN, BLUE)
+        with self.assertWarns(UserWarning):
+            glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
+                                               association=association)
+
+    def test_wrong_lengths(self):
+        """Should reject if not all of index, channel_type, association the
+        same length.
+        """
+        channel_type = (COLOR, COLOR)
+        association = (RED, GREEN, BLUE)
+        with self.assertWarns(UserWarning):
+            glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
+                                               association=association)
+
+    def test_cl_entry_unknown(self):
+        """A ftyp box cl list can only contain 'jp2 ', 'jpx ', or 'jpxb'."""
+        if sys.hexversion < 0x03000000:
+            with warnings.catch_warnings(record=True):
+                # Bad compatibility list item.
+                glymur.jp2box.FileTypeBox(compatibility_list=['jp3'])
+        else:
+            with self.assertWarns(UserWarning):
+                # Bad compatibility list item.
+                glymur.jp2box.FileTypeBox(compatibility_list=['jp3'])
+
+    def test_colr_with_cspace_and_icc(self):
+        """Colour specification boxes can't have both."""
+        with self.assertWarns(UserWarning):
+            colorspace = glymur.core.SRGB
+            rawb = b'\x01\x02\x03\x04'
+            glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
+                                                 icc_profile=rawb)
+
+    def test_colr_with_bad_method(self):
+        """colr must have a valid method field"""
+        colorspace = glymur.core.SRGB
+        method = -1
+        with self.assertWarns(UserWarning):
+            glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
+                                                 method=method)
+
+    def test_colr_with_bad_approx(self):
+        """colr should have a valid approximation field"""
+        colorspace = glymur.core.SRGB
+        approx = -1
+        with self.assertWarns(UserWarning):
+            glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
+                                                 approximation=approx)
+
+    def test_mismatched_bitdepth_signed(self):
+        """bitdepth and signed arguments must have equal length"""
+        palette = np.array([[255, 0, 255], [0, 255, 0]], dtype=np.uint8)
+        bps = (8, 8, 8)
+        signed = (False, False)
+        with self.assertWarns(UserWarning):
+            glymur.jp2box.PaletteBox(palette, bits_per_component=bps,
+                                     signed=signed)
+
+    def test_mismatched_signed_palette(self):
+        """bitdepth and signed arguments must have equal length"""
+        palette = np.array([[255, 0, 255], [0, 255, 0]], dtype=np.uint8)
+        bps = (8, 8, 8, 8)
+        signed = (False, False, False, False)
+        with self.assertWarns(UserWarning):
+            glymur.jp2box.PaletteBox(palette, bits_per_component=bps,
+                                     signed=signed)
+
+    def test_invalid_xml_box(self):
+        """
+        Should be able to recover info from xml box with bad xml.
+        """
+        jp2file = glymur.data.nemo()
+        with tempfile.NamedTemporaryFile(suffix='.jp2', delete=False) as tfile:
+            bad_xml_file = tfile.name
+            with open(jp2file, 'rb') as ifile:
+                # Everything up until the UUID box.
+                write_buffer = ifile.read(77)
+                tfile.write(write_buffer)
+
+                # Write the xml box with bad xml
+                # Length = 28, id is 'xml '.
+                write_buffer = struct.pack('>I4s', int(28), b'xml ')
+                tfile.write(write_buffer)
+
+                write_buffer = '<test>this is a test'
+                write_buffer = write_buffer.encode()
+                tfile.write(write_buffer)
+
+                # Get the rest of the input file.
+                write_buffer = ifile.read()
+                tfile.write(write_buffer)
+                tfile.flush()
+
+            with self.assertWarns(UserWarning):
+                Jp2k(bad_xml_file)
+
+    def test_deurl_child_of_dtbl(self):
+        """
+        Data reference boxes can only contain data entry url boxes.
+
+        It's just a warning here because we haven't tried to write it.
+        """
+        ftyp = glymur.jp2box.FileTypeBox()
+        if sys.hexversion < 0x03000000:
+            with warnings.catch_warnings(record=True) as w:
+                glymur.jp2box.DataReferenceBox([ftyp])
+                assert issubclass(w[-1].category, UserWarning)
+        else:
+            with self.assertWarns(UserWarning):
+                glymur.jp2box.DataReferenceBox([ftyp])
+
+    def test_flst_lens_not_the_same(self):
+        """A fragment list box items must be the same length."""
+        offset = [89]
+        length = [1132288]
+        reference = [0, 0]
+        if sys.hexversion < 0x03000000:
+            with warnings.catch_warnings(record=True) as w:
+                glymur.jp2box.FragmentListBox(offset, length, reference)
+                assert issubclass(w[-1].category, UserWarning)
+        else:
+            with self.assertWarns(UserWarning):
+                glymur.jp2box.FragmentListBox(offset, length, reference)
+
+    def test_flst_offsets_not_positive(self):
+        """A fragment list box offsets must be positive."""
+        offset = [0]
+        length = [1132288]
+        reference = [0]
+        if sys.hexversion < 0x03000000:
+            with warnings.catch_warnings(record=True) as w:
+                glymur.jp2box.FragmentListBox(offset, length, reference)
+                assert issubclass(w[-1].category, UserWarning)
+        else:
+            with self.assertWarns(UserWarning):
+                glymur.jp2box.FragmentListBox(offset, length, reference)
+
+    def test_flst_lengths_not_positive(self):
+        """A fragment list box lengths must be positive."""
+        offset = [89]
+        length = [0]
+        reference = [0]
+        if sys.hexversion < 0x03000000:
+            with warnings.catch_warnings(record=True) as w:
+                glymur.jp2box.FragmentListBox(offset, length, reference)
+                assert issubclass(w[-1].category, UserWarning)
+        else:
+            with self.assertWarns(UserWarning):
+                glymur.jp2box.FragmentListBox(offset, length, reference)
+
+    def test_unrecognized_exif_tag(self):
+        """Verify warning in case of unrecognized tag."""
+        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
+
+            with open(self.jp2file, 'rb') as ifptr:
+                tfile.write(ifptr.read())
+
+            # Write L, T, UUID identifier.
+            tfile.write(struct.pack('>I4s', 52, b'uuid'))
+            tfile.write(b'JpgTiffExif->JP2')
+
+            tfile.write(b'Exif\x00\x00')
+            xbuffer = struct.pack('<BBHI', 73, 73, 42, 8)
+            tfile.write(xbuffer)
+
+            # We will write just a single tag.
+            tfile.write(struct.pack('<H', 1))
+
+            # The "Make" tag is tag no. 271.  Corrupt it to 171.
+            tfile.write(struct.pack('<HHI4s', 171, 2, 3, b'HTC\x00'))
+            tfile.flush()
+
+            with self.assertWarns(UserWarning):
+                glymur.Jp2k(tfile.name)
+
+    def test_bad_tag_datatype(self):
+        """Only certain datatypes are allowable"""
+        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
+
+            with open(self.jp2file, 'rb') as ifptr:
+                tfile.write(ifptr.read())
+
+            # Write L, T, UUID identifier.
+            tfile.write(struct.pack('>I4s', 52, b'uuid'))
+            tfile.write(b'JpgTiffExif->JP2')
+
+            tfile.write(b'Exif\x00\x00')
+            xbuffer = struct.pack('<BBHI', 73, 73, 42, 8)
+            tfile.write(xbuffer)
+
+            # We will write just a single tag.
+            tfile.write(struct.pack('<H', 1))
+
+            # 2000 is not an allowable TIFF datatype.
+            tfile.write(struct.pack('<HHI4s', 271, 2000, 3, b'HTC\x00'))
+            tfile.flush()
+
+            with self.assertWarns(UserWarning):
+                glymur.Jp2k(tfile.name)
+
+    def test_bad_tiff_header_byte_order_indication(self):
+        """Only b'II' and b'MM' are allowed."""
+        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
+
+            with open(self.jp2file, 'rb') as ifptr:
+                tfile.write(ifptr.read())
+
+            # Write L, T, UUID identifier.
+            tfile.write(struct.pack('>I4s', 52, b'uuid'))
+            tfile.write(b'JpgTiffExif->JP2')
+
+            tfile.write(b'Exif\x00\x00')
+            xbuffer = struct.pack('<BBHI', 74, 73, 42, 8)
+            tfile.write(xbuffer)
+
+            # We will write just a single tag.
+            tfile.write(struct.pack('<H', 1))
+
+            # 271 is the Make.
+            tfile.write(struct.pack('<HHI4s', 271, 2, 3, b'HTC\x00'))
+            tfile.flush()
+
+            with self.assertWarns(UserWarning):
+                glymur.Jp2k(tfile.name)
+
+
+@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
+@unittest.skipIf(sys.hexversion < 0x03020000,
+                 "TemporaryDirectory introduced in 3.2.")
+@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
+                 "Needs openjp2 library first before these tests make sense.")
+class TestConfigurationWarnings(unittest.TestCase):
+    """Test suite for configuration file warnings."""
+
+    @classmethod
+    def setUpClass(cls):
+        imp.reload(glymur)
+        imp.reload(glymur.lib.openjp2)
+
+    @classmethod
+    def tearDownClass(cls):
+        imp.reload(glymur)
+        imp.reload(glymur.lib.openjp2)
+
+    def test_xdg_env_config_file_is_bad(self):
+        """A non-existant library location should be rejected."""
+        with tempfile.TemporaryDirectory() as tdir:
+            configdir = os.path.join(tdir, 'glymur')
+            os.mkdir(configdir)
+            fname = os.path.join(configdir, 'glymurrc')
+            with open(fname, 'w') as fptr:
+                with tempfile.NamedTemporaryFile(suffix='.dylib') as tfile:
+                    fptr.write('[library]\n')
+                    fptr.write('openjp2: {0}.not.there\n'.format(tfile.name))
+                    fptr.flush()
+                    with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
+                        # Warn about a bad library being rejected.
+                        with self.assertWarns(UserWarning):
+                            imp.reload(glymur.lib.openjp2)
 
 
 if __name__ == "__main__":

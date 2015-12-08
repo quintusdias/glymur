@@ -6,7 +6,6 @@ Test suite specifically targeting JPX box layout.
 import ctypes
 import os
 import struct
-import sys
 import tempfile
 import unittest
 import warnings
@@ -18,8 +17,6 @@ from glymur import Jp2k
 from glymur.jp2box import DataEntryURLBox, FileTypeBox, JPEG2000SignatureBox
 from glymur.jp2box import DataReferenceBox, FragmentListBox, FragmentTableBox
 from glymur.jp2box import ColourSpecificationBox
-
-from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
 
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
@@ -314,13 +311,9 @@ class TestJPXWrap(unittest.TestCase):
         boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
 
         ftyp = glymur.jp2box.FileTypeBox()
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings(record=True) as w:
-                dref = glymur.jp2box.DataReferenceBox([ftyp])
-                assert issubclass(w[-1].category, UserWarning)
-        else:
-            with self.assertWarns(UserWarning):
-                dref = glymur.jp2box.DataReferenceBox([ftyp])
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            dref = glymur.jp2box.DataReferenceBox([ftyp])
 
         # Try to get around it by appending the ftyp box after creation.
         dref = glymur.jp2box.DataReferenceBox()
@@ -443,13 +436,9 @@ class TestJPX(unittest.TestCase):
         offset = [89]
         length = [1132288]
         reference = [0, 0]
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings(record=True) as w:
-                flst = glymur.jp2box.FragmentListBox(offset, length, reference)
-                assert issubclass(w[-1].category, UserWarning)
-        else:
-            with self.assertWarns(UserWarning):
-                flst = glymur.jp2box.FragmentListBox(offset, length, reference)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            flst = glymur.jp2box.FragmentListBox(offset, length, reference)
         with tempfile.TemporaryFile() as tfile:
             with self.assertRaises(IOError):
                 flst.write(tfile)
@@ -459,13 +448,9 @@ class TestJPX(unittest.TestCase):
         offset = [0]
         length = [1132288]
         reference = [0]
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings(record=True) as w:
-                flst = glymur.jp2box.FragmentListBox(offset, length, reference)
-                assert issubclass(w[-1].category, UserWarning)
-        else:
-            with self.assertWarns(UserWarning):
-                flst = glymur.jp2box.FragmentListBox(offset, length, reference)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            flst = glymur.jp2box.FragmentListBox(offset, length, reference)
         with tempfile.TemporaryFile() as tfile:
             with self.assertRaises((IOError, OSError)):
                 flst.write(tfile)
@@ -475,13 +460,9 @@ class TestJPX(unittest.TestCase):
         offset = [89]
         length = [0]
         reference = [0]
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings(record=True) as w:
-                flst = glymur.jp2box.FragmentListBox(offset, length, reference)
-                assert issubclass(w[-1].category, UserWarning)
-        else:
-            with self.assertWarns(UserWarning):
-                flst = glymur.jp2box.FragmentListBox(offset, length, reference)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            flst = glymur.jp2box.FragmentListBox(offset, length, reference)
         with tempfile.TemporaryFile() as tfile:
             with self.assertRaises(IOError):
                 flst.write(tfile)

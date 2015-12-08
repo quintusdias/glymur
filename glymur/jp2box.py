@@ -350,13 +350,6 @@ class InvalidColourspaceMethod(UserWarning):
     pass
 
 
-class InvalidICCProfileLengthWarning(UserWarning):
-    """
-    Invoked if the ICC profile is shorter than the minimum of 128 bytes.
-    """
-    pass
-
-
 class UnrecognizedColourspaceWarning(UserWarning):
     """
     Only a certain number of color space enums are recognized.
@@ -413,17 +406,18 @@ class ColourSpecificationBox(Jp2kBox):
     def _validate(self, writing=False):
         """Verify that the box obeys the specifications."""
         if self.colorspace is not None and self.icc_profile is not None:
-            msg = "Colorspace and icc_profile cannot both be set."
+            msg = ("Colorspace and icc_profile cannot both be set when "
+                   "creating a ColourSpecificationBox.")
             self._dispatch_validation_error(msg, writing=writing)
         if self.method not in (1, 2, 3, 4):
-            msg = "Invalid colorspace method:  {method}."
+            msg = "Invalid colorspace method value ({method})."
             msg = msg.format(method=self.method)
             if writing:
                 raise IOError(msg)
             else:
                 warnings.warn(msg, InvalidColourspaceMethod)
         if self.approximation not in (0, 1, 2, 3, 4):
-            msg = "Invalid approximation:  {0}".format(self.approximation)
+            msg = "Invalid approximation value ({0}).".format(self.approximation)
             if writing:
                 raise IOError(msg)
             else:
@@ -544,7 +538,7 @@ class ColourSpecificationBox(Jp2kBox):
             # enumerated colour space
             colorspace, = struct.unpack_from('>I', read_buffer, offset=3)
             if colorspace not in _COLORSPACE_MAP_DISPLAY.keys():
-                msg = "Unrecognized colorspace: {0}".format(colorspace)
+                msg = "Unrecognized colorspace ({0}).".format(colorspace)
                 warnings.warn(msg, UnrecognizedColourspaceWarning)
             icc_profile = None
 
@@ -553,9 +547,8 @@ class ColourSpecificationBox(Jp2kBox):
             colorspace = None
             if (num_bytes - 3) < 128:
                 msg = ("ICC profile header is corrupt, length is "
-                       "only {0} when it should be at least 128.")
-                warnings.warn(msg.format(num_bytes - 3),
-                              InvalidICCProfileLengthWarning)
+                       "only {length} when it should be at least 128.")
+                warnings.warn(msg.format(length=num_bytes - 3), UserWarning)
                 icc_profile = None
             else:
                 profile = _ICCProfile(read_buffer[3:])
@@ -724,16 +717,23 @@ class ChannelDefinitionBox(Jp2kBox):
         # channel type and association must be specified.
         if not ((len(self.index) == len(self.channel_type)) and
                 (len(self.channel_type) == len(self.association))):
-            msg = "Length of channel definition box inputs must be the same."
+            msg = ("The length of the index ({index}), channel_type "
+                   "({channel_type}), and association ({association}) inputs "
+                   "must be the same.")
+            msg = msg.format(index=len(self.index),
+                             channel_type=len(self.channel_type),
+                             association=len(self.association))
             self._dispatch_validation_error(msg, writing=writing)
 
         # channel types must be one of 0, 1, 2, 65535
         if any(x not in [0, 1, 2, 65535] for x in self.channel_type):
-            msg = "Channel types must be in the set of\n\n"
-            msg += "    0     - colour image data for associated color\n"
-            msg += "    1     - opacity\n"
-            msg += "    2     - premultiplied opacity\n"
-            msg += "    65535 - unspecified"
+            msg = ("channel_type specified as {channel_type}, but all values "
+                   "must be in the set of\n\n"
+                   "    0     - colour image data for associated color\n"
+                   "    1     - opacity\n"
+                   "    2     - premultiplied opacity\n"
+                   "    65535 - unspecified\n")
+            msg = msg.format(channel_type=self.channel_type)
             self._dispatch_validation_error(msg, writing=writing)
 
     def __str__(self):
@@ -1255,16 +1255,16 @@ class DataReferenceBox(Jp2kBox):
         """Verify that the box obeys the specifications."""
         for box in self.DR:
             if box.box_id != 'url ':
-                msg = 'All child boxes of a data reference box must be data '
-                msg += 'entry URL boxes.'
+                msg = ('Child boxes of a data reference box can only be data '
+                       'entry URL boxes.')
                 self._dispatch_validation_error(msg, writing=writing)
 
     def _write_validate(self):
         """Verify that the box obeys the specifications for writing.
         """
         if len(self.DR) == 0:
-            msg = "A data reference box cannot be empty when written to a "
-            msg += "file."
+            msg = ("A data reference box cannot be empty when written to a "
+                   "file.")
             self._dispatch_validation_error(msg, writing=True)
         self._validate(writing=True)
 
@@ -1436,8 +1436,8 @@ class FileTypeBox(Jp2kBox):
         Validate the box before writing to file.
         """
         if self.brand not in ['jp2 ', 'jpx ']:
-            msg = "The file type brand was '{brand}'.  "
-            msg += "It should be either 'jp2 ' or 'jpx '."
+            msg = ("The file type brand was '{brand}'.  "
+                   "It should be either 'jp2 ' or 'jpx '.")
             msg = msg.format(brand=self.brand)
             if writing:
                 raise IOError(msg)
@@ -1445,9 +1445,11 @@ class FileTypeBox(Jp2kBox):
                 warnings.warn(msg, FileTypeBrandWarning)
         for item in self.compatibility_list:
             if item not in self._valid_cls:
-                msg = "The file type compatibility list item '{entry}' is not "
-                msg += "valid:  valid entries are {valid_entries}"
-                msg = msg.format(entry=item, valid_entries=self._valid_cls)
+                msg = ("The file type compatibility list {items} is "
+                       "not valid.  All items should be members of "
+                       "{valid_entries}.")
+                msg = msg.format(items=self.compatibility_list,
+                                 valid_entries=self._valid_cls)
                 if writing:
                     raise IOError(msg)
                 else:
@@ -1541,8 +1543,12 @@ class FragmentListBox(Jp2kBox):
         """Validate internal correctness."""
         if (((len(self.fragment_offset) != len(self.fragment_length)) or
              (len(self.fragment_length) != len(self.data_reference)))):
-            msg = "The lengths of the fragment offsets, fragment lengths, and "
-            msg += "data reference items must be the same."
+            msg = ("The lengths of the fragment offsets ({len_offsets}), "
+                   "fragment lengths ({len_fragments}), and "
+                   "data reference items ({len_drefs}) must be the same.")
+            msg = msg.format(len_offsets=len(self.fragment_offset),
+                             len_fragments=len(self.fragment_length),
+                             len_drefs=len(self.data_reference))
             self._dispatch_validation_error(msg, writing=writing)
         if any([x <= 0 for x in self.fragment_offset]):
             msg = "Fragment offsets must all be positive."
@@ -3213,8 +3219,8 @@ class XMLBox(Jp2kBox):
             elt = ET.fromstring(text)
             xml = ET.ElementTree(elt)
         except ET.ParseError as err:
-            msg = 'A problem was encountered while parsing an XML box:'
-            msg += '\n\n\t"{reason}"\n\nNo XML was retrieved.'
+            msg = ('A problem was encountered while parsing an XML box:'
+                   '\n\n\t"{reason}"\n\nNo XML was retrieved.')
             msg = msg.format(reason=str(err))
             warnings.warn(msg, UserWarning)
             xml = None
