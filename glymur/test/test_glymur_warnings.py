@@ -806,7 +806,6 @@ class TestConfigurationWarnings(unittest.TestCase):
                         # Warn about a bad library being rejected.
                         with self.assertWarns(UserWarning):
                             imp.reload(glymur.lib.openjp2)
->>>>>>> issue360
 
 
 if __name__ == "__main__":
