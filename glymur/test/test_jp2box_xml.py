@@ -6,6 +6,7 @@ import os
 import struct
 import tempfile
 import unittest
+import warnings
 
 import lxml.etree as ET
 
@@ -15,7 +16,6 @@ from glymur.jp2box import ColourSpecificationBox, ContiguousCodestreamBox
 from glymur.jp2box import FileTypeBox, ImageHeaderBox, JP2HeaderBox
 from glymur.jp2box import JPEG2000SignatureBox
 
-from .fixtures import WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG
 from . import fixtures
 
 
@@ -183,10 +183,10 @@ class TestJp2kBadXmlFile(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_invalid_xml_box(self):
         """Should be able to recover info from xml box with bad xml."""
-        with self.assertWarns(UserWarning):
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
             jp2k = Jp2k(self._bad_xml_file)
 
         self.assertEqual(jp2k.box[3].box_id, 'xml ')
@@ -236,17 +236,10 @@ class TestBadButRecoverableXmlFile(unittest.TestCase):
     def tearDownClass(cls):
         os.unlink(cls._bad_xml_file)
 
-    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
-    def test_bad_xml_box_warning(self):
-        """Should warn in case of bad XML"""
-        regex = 'A UnicodeDecodeError was encountered parsing an XML box'
-        with self.assertWarnsRegex(UserWarning, regex):
-            Jp2k(self._bad_xml_file)
-
-    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     def test_recover_from_bad_xml(self):
         """Should be able to recover info from xml box with bad xml."""
-        with self.assertWarns(UserWarning):
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
             jp2 = Jp2k(self._bad_xml_file)
 
         self.assertEqual(jp2.box[3].box_id, 'xml ')

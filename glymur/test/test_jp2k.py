@@ -12,13 +12,13 @@ import tempfile
 import unittest
 import uuid
 import warnings
-from xml.etree import cElementTree as ET
 
 if sys.hexversion <= 0x03030000:
     from mock import patch
 else:
     from unittest.mock import patch
 
+from xml.etree import cElementTree as ET
 import numpy as np
 import pkg_resources
 
@@ -345,7 +345,7 @@ class TestJp2k(unittest.TestCase):
             j = Jp2k(ofile.name)
             exp_err = glymur.codestream.InvalidCodestreamExpectedMarkerError
             with self.assertRaises(exp_err):
-                c = j.get_codestream(header_only=False)
+                j.get_codestream(header_only=False)
 
     def test_read_differing_subsamples(self):
         """
@@ -964,8 +964,8 @@ class TestJp2k(unittest.TestCase):
         self.assertEqual(profile['Device Model'], 'ROMM')
 
         self.assertEqual(profile['Device Attributes'],
-                         'reflective, glossy, positive media polarity, '
-                         + 'color media')
+                         ('reflective, glossy, positive media polarity, '
+                          'color media'))
         self.assertEqual(profile['Rendering Intent'], 'perceptual')
 
         np.testing.assert_almost_equal(profile['Illuminant'],
@@ -1089,6 +1089,7 @@ class WriteCinema(CinemaBase):
             codestream = j.get_codestream()
             self.check_cinema4k_codestream(codestream, (4096, 2160))
 
+
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
 class TestJp2k_write(fixtures.MetadataBase):
@@ -1175,7 +1176,7 @@ class TestJp2k_write(fixtures.MetadataBase):
     def test_NR_ENC_Bretagne1_ppm_3_encode(self):
         """
         Original file tested was
-        
+
             input/nonregression/Bretagne1.ppm
 
         """
@@ -1229,7 +1230,8 @@ class TestJp2k_write(fixtures.MetadataBase):
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
             self.assertFalse(codestream.segment[2].scod & 4)  # no eph
-            self.assertEqual(codestream.segment[2].prog_order, glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].prog_order,
+                             glymur.core.LRCP)
             self.assertEqual(codestream.segment[2].layers, 3)  # layers = 3
             self.assertEqual(codestream.segment[2].mct, 1)  # mct
             self.assertEqual(codestream.segment[2].num_res, 5)  # levels
@@ -1263,7 +1265,8 @@ class TestJp2k_write(fixtures.MetadataBase):
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
             self.assertFalse(codestream.segment[2].scod & 4)  # no eph
-            self.assertEqual(codestream.segment[2].prog_order, glymur.core.PCRL)
+            self.assertEqual(codestream.segment[2].prog_order,
+                             glymur.core.PCRL)
             self.assertEqual(codestream.segment[2].layers, 1)  # layers = 1
             self.assertEqual(codestream.segment[2].mct, 1)  # mct
             self.assertEqual(codestream.segment[2].num_res, 5)  # levels
@@ -1294,7 +1297,8 @@ class TestJp2k_write(fixtures.MetadataBase):
             # COD: Coding style default
             self.assertTrue(codestream.segment[2].scod & 2)  # sop
             self.assertFalse(codestream.segment[2].scod & 4)  # no eph
-            self.assertEqual(codestream.segment[2].prog_order, glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].prog_order,
+                             glymur.core.LRCP)
             self.assertEqual(codestream.segment[2].layers, 1)  # layers = 1
             self.assertEqual(codestream.segment[2].mct, 1)  # mct
             self.assertEqual(codestream.segment[2].num_res, 5)  # levels
@@ -1327,7 +1331,8 @@ class TestJp2k_write(fixtures.MetadataBase):
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
             self.assertTrue(codestream.segment[2].scod & 4)  # eph
-            self.assertEqual(codestream.segment[2].prog_order, glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].prog_order,
+                             glymur.core.LRCP)
             self.assertEqual(codestream.segment[2].layers, 1)  # layers = 1
             self.assertEqual(codestream.segment[2].mct, 1)  # mct
             self.assertEqual(codestream.segment[2].num_res, 5)  # levels
@@ -1363,7 +1368,8 @@ class TestJp2k_write(fixtures.MetadataBase):
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
             self.assertFalse(codestream.segment[2].scod & 4)  # no eph
-            self.assertEqual(codestream.segment[2].prog_order, glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].prog_order,
+                             glymur.core.LRCP)
             self.assertEqual(codestream.segment[2].layers, 1)  # layers = 1
             self.assertEqual(codestream.segment[2].mct, 1)  # mct
             self.assertEqual(codestream.segment[2].num_res, 5)  # levels
@@ -1391,7 +1397,8 @@ class TestJp2k_write(fixtures.MetadataBase):
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
             self.assertFalse(codestream.segment[2].scod & 4)  # no eph
-            self.assertEqual(codestream.segment[2].prog_order, glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].prog_order,
+                             glymur.core.LRCP)
             self.assertEqual(codestream.segment[2].layers, 1)  # layers = 1
             self.assertEqual(codestream.segment[2].mct, 1)  # mct
             self.assertEqual(codestream.segment[2].num_res, 5)  # levels
@@ -1419,7 +1426,8 @@ class TestJp2k_write(fixtures.MetadataBase):
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
             self.assertFalse(codestream.segment[2].scod & 4)  # no eph
-            self.assertEqual(codestream.segment[2].prog_order, glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].prog_order,
+                             glymur.core.LRCP)
             self.assertEqual(codestream.segment[2].layers, 1)  # layers = 1
             self.assertEqual(codestream.segment[2].mct, 1)  # mct
             self.assertEqual(codestream.segment[2].num_res, 5)  # levels
@@ -1489,7 +1497,8 @@ class TestJp2k_write(fixtures.MetadataBase):
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
             self.assertFalse(codestream.segment[2].scod & 4)  # no eph
-            self.assertEqual(codestream.segment[2].prog_order, glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].prog_order,
+                             glymur.core.LRCP)
             self.assertEqual(codestream.segment[2].layers, 3)  # layers = 3
             self.assertEqual(codestream.segment[2].mct, 1)  # mct
             self.assertEqual(codestream.segment[2].num_res, 2)  # levels
@@ -1524,7 +1533,8 @@ class TestJp2k_write(fixtures.MetadataBase):
             # COD: Coding style default
             self.assertFalse(codestream.segment[2].scod & 2)  # no sop
             self.assertFalse(codestream.segment[2].scod & 4)  # no eph
-            self.assertEqual(codestream.segment[2].prog_order, glymur.core.LRCP)
+            self.assertEqual(codestream.segment[2].prog_order,
+                             glymur.core.LRCP)
             self.assertEqual(codestream.segment[2].layers, 1)  # layers = 1
             self.assertEqual(codestream.segment[2].mct, 0)
             self.assertEqual(codestream.segment[2].num_res, 5)  # levels
@@ -1536,7 +1546,6 @@ class TestJp2k_write(fixtures.MetadataBase):
             self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertIsNone(codestream.segment[2].precinct_size)
-
 
     def test_NR_ENC_issue141_rawl_23_encode(self):
         """
@@ -1559,7 +1568,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         Cinema mode not allowed for anything less than 2.0.1
 
         Origin file tested was
-        
+
             input/nonregression/X_4_2K_24_185_CBR_WB_000.tif
 
         """
@@ -1847,7 +1856,8 @@ class TestJp2k_write(fixtures.MetadataBase):
             np.testing.assert_array_equal(actdata, expdata)
 
             codestream = ofile.get_codestream()
-            self.assertEqual(codestream.segment[2].prog_order, glymur.core.CPRL)
+            self.assertEqual(codestream.segment[2].prog_order,
+                             glymur.core.CPRL)
 
 
 class TestJp2k_1_x(unittest.TestCase):
@@ -2027,17 +2037,17 @@ class TestJp2k_2_1(unittest.TestCase):
                 # Codestream starts at byte 3323. SIZ marker at 3233.
                 # COD marker at 3282.  Subsampling at 3276.
                 offset = 3223
-                tfile.write(data[0:offset+52])
+                tfile.write(data[0:offset + 52])
 
                 # Make the DY bytes of the SIZ segment zero.  That means that
                 # a subsampling factor is zero, which is illegal.
                 tfile.write(b'\x00')
-                tfile.write(data[offset+53:offset+55])
+                tfile.write(data[offset + 53:offset + 55])
                 tfile.write(b'\x00')
-                tfile.write(data[offset+57:offset+59])
+                tfile.write(data[offset + 57:offset + 59])
                 tfile.write(b'\x00')
 
-                tfile.write(data[offset+59:])
+                tfile.write(data[offset + 59:])
                 tfile.flush()
                 with warnings.catch_warnings():
                     warnings.simplefilter('ignore')
@@ -2240,16 +2250,13 @@ class TestJp2kWarnings(unittest.TestCase):
                 ofile.write(ifile.read())
                 ofile.flush()
 
-            pattern = "Invalid approximation:  32"
             if sys.hexversion < 0x03000000:
                 with warnings.catch_warnings(record=True) as w:
                     Jp2k(ofile.name)
-                    assert pattern in str(w[-1].message)
                     assert issubclass(w[-1].category,
                                       InvalidApproximationWarning)
             else:
-                with self.assertWarnsRegex(InvalidApproximationWarning,
-                                           pattern):
+                with self.assertWarns(InvalidApproximationWarning):
                     Jp2k(ofile.name)
 
     def test_invalid_colorspace(self):
@@ -2345,7 +2352,7 @@ class TestCodestreamRepr(unittest.TestCase):
                   'xytosiz': (0, 0),
                   'Csiz': 3,
                   'bitdepth': (8, 8, 8),
-                  'signed':  (False, False, False),
+                  'signed': (False, False, False),
                   'xyrsiz': ((1, 1, 1), (1, 1, 1))}
         segment = glymur.codestream.SIZsegment(**kwargs)
         newseg = eval(repr(segment))

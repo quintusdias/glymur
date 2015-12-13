@@ -31,9 +31,7 @@ from glymur.jp2box import BitsPerComponentBox
 from glymur.jp2box import ColourSpecificationBox
 from glymur import Jp2k, command_line
 from . import fixtures
-from .fixtures import (WARNING_INFRASTRUCTURE_ISSUE,
-                       WARNING_INFRASTRUCTURE_MSG,
-                       WINDOWS_TMP_FILE_MSG)
+from .fixtures import WINDOWS_TMP_FILE_MSG
 
 
 @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
@@ -154,7 +152,8 @@ class TestPrinting(unittest.TestCase):
         pargs = (0, 33, 1, 1, 5, 3, 3, 0, 0, None)
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            segment = glymur.codestream.CODsegment(*pargs, length=12, offset=174)
+            segment = glymur.codestream.CODsegment(*pargs, length=12,
+                                                   offset=174)
         with patch('sys.stdout', new=StringIO()) as stdout:
             print(segment)
             actual = stdout.getvalue().strip()
@@ -187,7 +186,7 @@ class TestPrinting(unittest.TestCase):
                   'xytosiz': (0, 0),
                   'Csiz': 3,
                   'bitdepth': (12, 12, 12),
-                  'signed':  (False, False, False),
+                  'signed': (False, False, False),
                   'xyrsiz': ((1, 1, 1), (1, 1, 1)),
                   'length': 47,
                   'offset': 2}
@@ -229,7 +228,7 @@ class TestPrinting(unittest.TestCase):
                   'xytosiz': (0, 0),
                   'Csiz': 3,
                   'bitdepth': (12, 12, 12),
-                  'signed':  (False, False, False),
+                  'signed': (False, False, False),
                   'xyrsiz': ((1, 1, 1), (1, 1, 1)),
                   'length': 47,
                   'offset': 2}
@@ -263,7 +262,7 @@ class TestPrinting(unittest.TestCase):
             tfile.write(write_buffer)
             tfile.flush()
 
-            with warnings.catch_warnings() as w:
+            with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
                 jpx = Jp2k(tfile.name)
 
@@ -289,7 +288,7 @@ class TestPrinting(unittest.TestCase):
         """verify printing of asoc, label boxes"""
         # Construct a fake file with an asoc and a label box, as
         # OpenJPEG doesn't have such a file.
-        #pargs = (scod, prog, nlayers, mct, nr, xcb, ycb, cstyle, xform,
+        # pargs = (scod, prog, nlayers, mct, nr, xcb, ycb, cstyle, xform,
         #         precinct_size)
         data = glymur.Jp2k(self.jp2file)[::2, ::2]
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
@@ -346,25 +345,24 @@ class TestPrinting(unittest.TestCase):
             print(codestream.segment[6])
             actual = fake_out.getvalue().strip()
 
-        lines = ['COC marker segment @ (3356, 9)',
-                 '    Associated component:  1',
-                 '    Coding style for this component:  '
-                 + 'Entropy coder, PARTITION = 0',
-                 '    Coding style parameters:',
-                 '        Number of resolutions:  2',
-                 '        Code block height, width:  (64 x 64)',
-                 '        Wavelet transform:  5-3 reversible',
-                 '        Code block context:',
-                 '            Selective arithmetic coding bypass:  False',
-                 '            Reset context probabilities '
-                 + 'on coding pass boundaries:  False',
-                 '            Termination on each coding pass:  False',
-                 '            Vertically stripe causal context:  False',
-                 '            Predictable termination:  False',
-                 '            Segmentation symbols:  False']
+        exp = ('COC marker segment @ (3356, 9)\n'
+               '    Associated component:  1\n'
+               '    Coding style for this component:  '
+               'Entropy coder, PARTITION = 0\n'
+               '    Coding style parameters:\n'
+               '        Number of resolutions:  2\n'
+               '        Code block height, width:  (64 x 64)\n'
+               '        Wavelet transform:  5-3 reversible\n'
+               '        Code block context:\n'
+               '            Selective arithmetic coding bypass:  False\n'
+               '            Reset context probabilities '
+               'on coding pass boundaries:  False\n'
+               '            Termination on each coding pass:  False\n'
+               '            Vertically stripe causal context:  False\n'
+               '            Predictable termination:  False\n'
+               '            Segmentation symbols:  False')
 
-        expected = '\n'.join(lines)
-        self.assertEqual(actual, expected)
+        self.assertEqual(actual, exp)
 
     def test_cod_segment(self):
         """verify printing of COD segment"""
@@ -374,31 +372,30 @@ class TestPrinting(unittest.TestCase):
             print(codestream.segment[2])
             actual = fake_out.getvalue().strip()
 
-        lines = ['COD marker segment @ (3282, 12)',
-                 '    Coding style:',
-                 '        Entropy coder, without partitions',
-                 '        SOP marker segments:  False',
-                 '        EPH marker segments:  False',
-                 '    Coding style parameters:',
-                 '        Progression order:  LRCP',
-                 '        Number of layers:  2',
-                 '        Multiple component transformation usage:  '
-                 + 'reversible',
-                 '        Number of resolutions:  2',
-                 '        Code block height, width:  (64 x 64)',
-                 '        Wavelet transform:  5-3 reversible',
-                 '        Precinct size:  default, 2^15 x 2^15',
-                 '        Code block context:',
-                 '            Selective arithmetic coding bypass:  False',
-                 '            Reset context probabilities on coding '
-                 + 'pass boundaries:  False',
-                 '            Termination on each coding pass:  False',
-                 '            Vertically stripe causal context:  False',
-                 '            Predictable termination:  False',
-                 '            Segmentation symbols:  False']
+        exp = ('COD marker segment @ (3282, 12)\n'
+               '    Coding style:\n'
+               '        Entropy coder, without partitions\n'
+               '        SOP marker segments:  False\n'
+               '        EPH marker segments:  False\n'
+               '    Coding style parameters:\n'
+               '        Progression order:  LRCP\n'
+               '        Number of layers:  2\n'
+               '        Multiple component transformation usage:  '
+               'reversible\n'
+               '        Number of resolutions:  2\n'
+               '        Code block height, width:  (64 x 64)\n'
+               '        Wavelet transform:  5-3 reversible\n'
+               '        Precinct size:  default, 2^15 x 2^15\n'
+               '        Code block context:\n'
+               '            Selective arithmetic coding bypass:  False\n'
+               '            Reset context probabilities on coding '
+               'pass boundaries:  False\n'
+               '            Termination on each coding pass:  False\n'
+               '            Vertically stripe causal context:  False\n'
+               '            Predictable termination:  False\n'
+               '            Segmentation symbols:  False')
 
-        expected = '\n'.join(lines)
-        self.assertEqual(actual, expected)
+        self.assertEqual(actual, exp)
 
     def test_eoc_segment(self):
         """verify printing of eoc segment"""
@@ -451,19 +448,18 @@ class TestPrinting(unittest.TestCase):
             print(codestream.segment[1])
             actual = fake_out.getvalue().strip()
 
-        lines = ['SIZ marker segment @ (3233, 47)',
-                 '    Profile:  no profile',
-                 '    Reference Grid Height, Width:  (1456 x 2592)',
-                 '    Vertical, Horizontal Reference Grid Offset:  (0 x 0)',
-                 '    Reference Tile Height, Width:  (1456 x 2592)',
-                 '    Vertical, Horizontal Reference Tile Offset:  (0 x 0)',
-                 '    Bitdepth:  (8, 8, 8)',
-                 '    Signed:  (False, False, False)',
-                 '    Vertical, Horizontal Subsampling:  '
-                 + '((1, 1), (1, 1), (1, 1))']
+        exp = ('SIZ marker segment @ (3233, 47)\n'
+               '    Profile:  no profile\n'
+               '    Reference Grid Height, Width:  (1456 x 2592)\n'
+               '    Vertical, Horizontal Reference Grid Offset:  (0 x 0)\n'
+               '    Reference Tile Height, Width:  (1456 x 2592)\n'
+               '    Vertical, Horizontal Reference Tile Offset:  (0 x 0)\n'
+               '    Bitdepth:  (8, 8, 8)\n'
+               '    Signed:  (False, False, False)\n'
+               '    Vertical, Horizontal Subsampling:  '
+               '((1, 1), (1, 1), (1, 1))')
 
-        expected = '\n'.join(lines)
-        self.assertEqual(actual, expected)
+        self.assertEqual(actual, exp)
 
     def test_soc_segment(self):
         """verify printing of SOC segment"""
@@ -522,48 +518,47 @@ class TestPrinting(unittest.TestCase):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.get_codestream())
             actual = fake_out.getvalue().strip()
-        lst = ['Codestream:',
-               '    SOC marker segment @ (3231, 0)',
-               '    SIZ marker segment @ (3233, 47)',
-               '        Profile:  no profile',
-               '        Reference Grid Height, Width:  (1456 x 2592)',
-               '        Vertical, Horizontal Reference Grid Offset:  (0 x 0)',
-               '        Reference Tile Height, Width:  (1456 x 2592)',
-               '        Vertical, Horizontal Reference Tile Offset:  (0 x 0)',
-               '        Bitdepth:  (8, 8, 8)',
-               '        Signed:  (False, False, False)',
+        exp = ('Codestream:\n'
+               '    SOC marker segment @ (3231, 0)\n'
+               '    SIZ marker segment @ (3233, 47)\n'
+               '        Profile:  no profile\n'
+               '        Reference Grid Height, Width:  (1456 x 2592)\n'
+               '        Vertical, Horizontal Reference Grid Offset:  (0 x 0)\n'
+               '        Reference Tile Height, Width:  (1456 x 2592)\n'
+               '        Vertical, Horizontal Reference Tile Offset:  (0 x 0)\n'
+               '        Bitdepth:  (8, 8, 8)\n'
+               '        Signed:  (False, False, False)\n'
                '        Vertical, Horizontal Subsampling:  '
-               + '((1, 1), (1, 1), (1, 1))',
-               '    COD marker segment @ (3282, 12)',
-               '        Coding style:',
-               '            Entropy coder, without partitions',
-               '            SOP marker segments:  False',
-               '            EPH marker segments:  False',
-               '        Coding style parameters:',
-               '            Progression order:  LRCP',
-               '            Number of layers:  2',
+               '((1, 1), (1, 1), (1, 1))\n'
+               '    COD marker segment @ (3282, 12)\n'
+               '        Coding style:\n'
+               '            Entropy coder, without partitions\n'
+               '            SOP marker segments:  False\n'
+               '            EPH marker segments:  False\n'
+               '        Coding style parameters:\n'
+               '            Progression order:  LRCP\n'
+               '            Number of layers:  2\n'
                '            Multiple component transformation usage:  '
-               + 'reversible',
-               '            Number of resolutions:  2',
-               '            Code block height, width:  (64 x 64)',
-               '            Wavelet transform:  5-3 reversible',
-               '            Precinct size:  default, 2^15 x 2^15',
-               '            Code block context:',
-               '                Selective arithmetic coding bypass:  False',
+               'reversible\n'
+               '            Number of resolutions:  2\n'
+               '            Code block height, width:  (64 x 64)\n'
+               '            Wavelet transform:  5-3 reversible\n'
+               '            Precinct size:  default, 2^15 x 2^15\n'
+               '            Code block context:\n'
+               '                Selective arithmetic coding bypass:  False\n'
                '                Reset context probabilities on '
-               + 'coding pass boundaries:  False',
-               '                Termination on each coding pass:  False',
-               '                Vertically stripe causal context:  False',
-               '                Predictable termination:  False',
-               '                Segmentation symbols:  False',
-               '    QCD marker segment @ (3296, 7)',
+               'coding pass boundaries:  False\n'
+               '                Termination on each coding pass:  False\n'
+               '                Vertically stripe causal context:  False\n'
+               '                Predictable termination:  False\n'
+               '                Segmentation symbols:  False\n'
+               '    QCD marker segment @ (3296, 7)\n'
                '        Quantization style:  no quantization, '
-               + '2 guard bits',
-               '        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]',
-               '    CME marker segment @ (3305, 37)',
-               '        "Created by OpenJPEG version 2.0.0"']
-        expected = '\n'.join(lst)
-        self.assertEqual(actual, expected)
+               '2 guard bits\n'
+               '        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]\n'
+               '    CME marker segment @ (3305, 37)\n'
+               '        "Created by OpenJPEG version 2.0.0"')
+        self.assertEqual(actual, exp)
 
     @unittest.skipIf(sys.hexversion < 0x03000000,
                      "Only trusting python3 for printing non-ascii chars")
@@ -868,13 +863,12 @@ class TestPrinting(unittest.TestCase):
             print(segment)
             actual = fake_out.getvalue().strip()
 
-        lines = ['PLT marker segment @ (7871146, 38)',
-                 '    Index:  0',
-                 '    Iplt:  [9, 122, 19, 30, 27, 9, 41, 62, 18, 29, 261,'
-                 + ' 55, 82, 299, 93, 941, 951, 687, 1729, 1443, 1008, 2168,'
-                 + ' 2188, 2223]']
-        expected = '\n'.join(lines)
-        self.assertEqual(actual, expected)
+        exp = ('PLT marker segment @ (7871146, 38)\n'
+               '    Index:  0\n'
+               '    Iplt:  [9, 122, 19, 30, 27, 9, 41, 62, 18, 29, 261,'
+               ' 55, 82, 299, 93, 941, 951, 687, 1729, 1443, 1008, 2168,'
+               ' 2188, 2223]')
+        self.assertEqual(actual, exp)
 
     def test_componentmapping_box_alpha(self):
         """Verify __repr__ method on cmap box."""
@@ -987,7 +981,7 @@ class TestPrinting(unittest.TestCase):
                   'xytosiz': (0, 0),
                   'Csiz': 4,
                   'bitdepth': (8, 8, 8, 8),
-                  'signed':  (False, False, False, False),
+                  'signed': (False, False, False, False),
                   'xyrsiz': ((1, 1, 2, 2), (1, 1, 2, 2)),
                   'length': 50,
                   'offset': 2}
@@ -995,18 +989,17 @@ class TestPrinting(unittest.TestCase):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(segment)
             actual = fake_out.getvalue().strip()
-        lines = ['SIZ marker segment @ (2, 50)',
-                 '    Profile:  0',
-                 '    Reference Grid Height, Width:  (1024 x 1024)',
-                 '    Vertical, Horizontal Reference Grid Offset:  (0 x 0)',
-                 '    Reference Tile Height, Width:  (1024 x 1024)',
-                 '    Vertical, Horizontal Reference Tile Offset:  (0 x 0)',
-                 '    Bitdepth:  (8, 8, 8, 8)',
-                 '    Signed:  (False, False, False, False)',
-                 '    Vertical, Horizontal Subsampling:  '
-                 + '((1, 1), (1, 1), (2, 2), (2, 2))']
-        expected = '\n'.join(lines)
-        self.assertEqual(actual, expected)
+        exp = ('SIZ marker segment @ (2, 50)\n'
+               '    Profile:  0\n'
+               '    Reference Grid Height, Width:  (1024 x 1024)\n'
+               '    Vertical, Horizontal Reference Grid Offset:  (0 x 0)\n'
+               '    Reference Tile Height, Width:  (1024 x 1024)\n'
+               '    Vertical, Horizontal Reference Tile Offset:  (0 x 0)\n'
+               '    Bitdepth:  (8, 8, 8, 8)\n'
+               '    Signed:  (False, False, False, False)\n'
+               '    Vertical, Horizontal Subsampling:  '
+               '((1, 1), (1, 1), (2, 2), (2, 2))')
+        self.assertEqual(actual, exp)
 
     def test_issue182(self):
         """

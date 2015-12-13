@@ -60,7 +60,7 @@ def load_openjpeg_library(libname):
 
     path = read_config_file(libname)
     if path is not None:
-        return load_library_handle(path)
+        return load_library_handle(libname, path)
 
     # No location specified by the configuration file, must look for it
     # elsewhere.
@@ -78,10 +78,10 @@ def load_openjpeg_library(libname):
             # the mac/win default location does not exist.
             return None
 
-    return load_library_handle(path)
+    return load_library_handle(libname, path)
 
 
-def load_library_handle(path):
+def load_library_handle(libname, path):
     """Load the library, return the ctypes handle."""
 
     if path is None or path in ['None', 'none']:
@@ -97,9 +97,9 @@ def load_library_handle(path):
         else:
             opj_lib = ctypes.CDLL(path)
     except (TypeError, OSError):
-        msg = 'The library specified by configuration file at {0} could not '
-        msg += 'be loaded.'
-        warnings.warn(msg.format(path), UserWarning)
+        msg = 'The {libname} library at {path} could not be loaded.'
+        msg = msg.format(path=path, libname=libname)
+        warnings.warn(msg, UserWarning)
         opj_lib = None
 
     return opj_lib
