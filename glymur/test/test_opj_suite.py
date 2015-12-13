@@ -225,7 +225,7 @@ class TestSuite(unittest.TestCase):
         exp_error = glymur.lib.openjp2.OpenJPEGLibraryError
         with self.assertRaises(exp_error):
             with warnings.catch_warnings():
-                # Suppress an UnrecognizedMarkerWarning
+                # Suppress a UserWarning for an unrecognized marker.
                 warnings.simplefilter("ignore")
                 Jp2k(jfile)[:]
 

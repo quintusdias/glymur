@@ -66,51 +66,6 @@ _EXIF_UUID = UUID(bytes=b'JpgTiffExif->JP2')
 _XMP_UUID = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
 
 
-class ByteOrderMarkerWarning(UserWarning):
-    """
-    Byte order markers (BOMs) are illegal in XML content.
-    """
-    pass
-
-
-class ExtraBytesAtEndOfFileWarning(UserWarning):
-    """
-    Must be either 0 or more than 8 bytes at the end of each box.
-    """
-    pass
-
-
-class FilePointerPositioningWarning(UserWarning):
-    """
-    Issued if positioned past the end of a box.
-    """
-    pass
-
-
-class UnrecognizedBoxWarning(UserWarning):
-    """
-    If not a JP2 box, then at least must be a JPX box we've heard of.
-
-    The problem is that we haven't seen even close to all the possible JPX
-    boxes.
-    """
-    pass
-
-
-class UnrecoverableBoxParsingWarning(UserWarning):
-    """
-    Issue this warning if a box of a superbox errors out when parsing.
-    """
-    pass
-
-
-class UnrecoverableXMLWarning(UserWarning):
-    """
-    Issue this warning when no valid XML was recovered from an XML box.
-    """
-    pass
-
-
 class Jp2kBox(object):
     """Superclass for JPEG 2000 boxes.
 
@@ -242,7 +197,7 @@ class Jp2kBox(object):
             msg = ('Unrecognized box ({box_id}) encountered at byte offset '
                    '{offset}.')
             msg = msg.format(box_id=box_id, offset=fptr.tell() - 8)
-            warnings.warn(msg, UnrecognizedBoxWarning)
+            warnings.warn(msg, UserWarning)
             box = UnknownBox(box_id, offset=start, length=num_bytes,
                              longname='Unknown')
 
@@ -255,9 +210,9 @@ class Jp2kBox(object):
                    "{box_id} box at byte offset {offset}.  The original error "
                    "message was \"{original_error_message}\".")
             msg = msg.format(box_id=_BOX_WITH_ID[box_id].longname,
-                             offset=start, 
+                             offset=start,
                              original_error_message=str(err))
-            warnings.warn(msg, UnrecoverableBoxParsingWarning)
+            warnings.warn(msg, UserWarning)
             box = UnknownBox(box_id.decode('utf-8'),
                              length=num_bytes,
                              offset=start, longname='Unknown')
@@ -291,7 +246,7 @@ class Jp2kBox(object):
             read_buffer = fptr.read(8)
             if len(read_buffer) < 8:
                 msg = "Extra bytes at end of file ignored."
-                warnings.warn(msg, ExtraBytesAtEndOfFileWarning)
+                warnings.warn(msg, UserWarning)
                 return superbox
 
             (box_length, box_id) = struct.unpack('>I4s', read_buffer)
@@ -327,7 +282,7 @@ class Jp2kBox(object):
                        'positioned {num_bytes} bytes past the end of the box.')
                 msg = msg.format(box_id=box_id,
                                  num_bytes=fptr.tell() - (start + num_bytes))
-                warnings.warn(msg, FilePointerPositioningWarning)
+                warnings.warn(msg, UserWarning)
             fptr.seek(start + num_bytes)
 
             start += num_bytes
@@ -417,7 +372,8 @@ class ColourSpecificationBox(Jp2kBox):
             else:
                 warnings.warn(msg, InvalidColourspaceMethod)
         if self.approximation not in (0, 1, 2, 3, 4):
-            msg = "Invalid approximation value ({0}).".format(self.approximation)
+            msg = "Invalid approximation value ({approx})."
+            msg = msg.format(approx=self.approximation)
             if writing:
                 raise IOError(msg)
             else:
@@ -3186,16 +3142,15 @@ class XMLBox(Jp2kBox):
                 # Nope, that's not it.  All is lost.
                 msg = ('A problem was encountered while parsing an XML box:'
                        '\n\n\t"{error}"\n\nNo XML was retrieved.')
-                warnings.warn(msg.format(error=str(err)),
-                              UnrecoverableXMLWarning)
+                warnings.warn(msg.format(error=str(err)), UserWarning)
                 return XMLBox(xml=None, length=length, offset=offset)
 
             text = read_buffer[decl_start:].decode('utf-8')
 
             # Let the user know that the XML box was problematic.
             msg = ('A UnicodeDecodeError was encountered parsing an XML box '
-                    'at byte position {offset:d} ({reason}), but the XML was '
-                    'still recovered.')
+                   'at byte position {offset:d} ({reason}), but the XML was '
+                   'still recovered.')
             msg = msg.format(offset=offset, reason=err.reason)
             warnings.warn(msg, UserWarning)
 
@@ -3208,7 +3163,7 @@ class XMLBox(Jp2kBox):
                    'removed from the XML contents in the box starting at byte '
                    'offset {offset:d}.')
             msg = msg.format(offset=offset)
-            warnings.warn(msg, ByteOrderMarkerWarning)
+            warnings.warn(msg, UserWarning)
             text = text.replace(u'\ufeff', '')
 
         # Remove any encoding declaration.

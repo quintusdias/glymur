@@ -310,10 +310,10 @@ class Jp2k(Jp2kBox):
             for colr in colrs:
                 if colr.method not in (core.ENUMERATED_COLORSPACE,
                                        core.RESTRICTED_ICC_PROFILE):
-                    msg = "Color Specification box method must specify either "
-                    msg += "an enumerated colorspace or a restricted ICC "
-                    msg += "profile if the file type box brand is 'jp2 '."
-                    warnings.warn(msg, InvalidJP2ColourspaceMethodWarning)
+                    msg = ("Color Specification box method must specify "
+                           "either an enumerated colorspace or a restricted "
+                           "ICC profile if the file type box brand is 'jp2 '.")
+                    warnings.warn(msg, UserWarning)
 
     def _set_cinema_params(self, cinema_mode, fps):
         """Populate compression parameters structure for cinema2K.
@@ -1979,26 +1979,9 @@ def _default_info_handler(msg, _):
     print("[INFO] {0}".format(msg.decode('utf-8').rstrip()))
 
 
-class InvalidJP2ColourspaceMethodWarning(UserWarning):
-    """
-    If the file type box brand is JP2, the colour space method is limited.
-
-    The Colour space method must be either ICC profile or enumerated colour
-    space.
-    """
-    pass
-
-
 class NotJPEG2000Error(UserWarning):
     """
     If the file is not JPEG2000.
-    """
-    pass
-
-
-class OpenJPEGLibraryWarning(UserWarning):
-    """
-    Warnings emitted by OpenJPEG library
     """
     pass
 
@@ -2007,7 +1990,7 @@ def _default_warning_handler(library_msg, _):
     """Default warning handler callback."""
     library_msg = library_msg.decode('utf-8').rstrip()
     msg = "OpenJPEG library warning:  {0}".format(library_msg)
-    warnings.warn(msg, OpenJPEGLibraryWarning)
+    warnings.warn(msg, UserWarning)
 
 _ERROR_CALLBACK = _CMPFUNC(_default_error_handler)
 _INFO_CALLBACK = _CMPFUNC(_default_info_handler)

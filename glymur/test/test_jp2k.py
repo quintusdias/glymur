@@ -24,13 +24,8 @@ import pkg_resources
 
 import glymur
 from glymur import Jp2k
-from glymur.jp2box import (
-    CompatibilityListItemWarning, FileTypeBrandWarning, UnrecognizedBoxWarning,
-    ExtraBytesAtEndOfFileWarning, UnrecognizedColourspaceWarning
-)
 from glymur.core import COLOR, RED, GREEN, BLUE, RESTRICTED_ICC_PROFILE
-from glymur.codestream import RSizWarning, SIZsegment
-from glymur.jp2box import InvalidApproximationWarning
+from glymur.codestream import SIZsegment
 from glymur.version import openjpeg_version
 
 from .fixtures import HAS_PYTHON_XMP_TOOLKIT
@@ -1032,14 +1027,13 @@ class WriteCinema(CinemaBase):
         data = np.concatenate((data, data), axis=1).astype(np.uint16)
         data = data[:1080, :2048, :]
 
-        exp_warning = glymur.jp2k.OpenJPEGLibraryWarning
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             if sys.hexversion < 0x03000000:
                 with warnings.catch_warnings(record=True) as w:
                     j = Jp2k(tfile.name, data=data, cinema2k=24)
-                assert issubclass(w[-1].category, exp_warning)
+                assert issubclass(w[-1].category, UserWarning)
             else:
-                with self.assertWarns(exp_warning):
+                with self.assertWarns(UserWarning):
                     j = Jp2k(tfile.name, data=data, cinema2k=24)
 
             codestream = j.get_codestream()
@@ -1076,14 +1070,13 @@ class WriteCinema(CinemaBase):
         data = np.concatenate((data, data), axis=1).astype(np.uint16)
         data = data[:2160, :4096, :]
 
-        exp_warning = glymur.jp2k.OpenJPEGLibraryWarning
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             if sys.hexversion < 0x03000000:
                 with warnings.catch_warnings(record=True) as w:
                     j = Jp2k(tfile.name, data=data, cinema4k=True)
-                assert issubclass(w[-1].category, exp_warning)
+                assert issubclass(w[-1].category, UserWarning)
             else:
-                with self.assertWarns(exp_warning):
+                with self.assertWarns(UserWarning):
                     j = Jp2k(tfile.name, data=data, cinema4k=True)
 
             codestream = j.get_codestream()
@@ -2099,14 +2092,13 @@ class TestParsing(unittest.TestCase):
             Jp2k(ofile.name)
 
             glymur.set_parseoptions(full_codestream=True)
-            pattern = 'Invalid profile'
             if sys.hexversion < 0x03000000:
                 with warnings.catch_warnings(record=True) as w:
                     Jp2k(ofile.name)
-                    assert issubclass(w[-1].category, RSizWarning)
+                    assert issubclass(w[-1].category, UserWarning)
                     assert pattern in str(w[-1].message)
             else:
-                with self.assertWarnsRegex(RSizWarning, pattern):
+                with self.assertWarns(UserWarning):
                     Jp2k(ofile.name)
 
     def test_main_header(self):
@@ -2148,11 +2140,9 @@ class TestJp2kWarnings(unittest.TestCase):
             if sys.hexversion < 0x03000000:
                 with warnings.catch_warnings(record=True) as w:
                     jp2 = Jp2k(ofile.name)
-                    assert issubclass(w[-1].category, UnrecognizedBoxWarning)
-                    assert 'Unrecognized box' in str(w[-1].message)
+                    assert issubclass(w[-1].category, UserWarning)
             else:
-                regex = re.compile('Unrecognized box')
-                with self.assertWarnsRegex(UnrecognizedBoxWarning, regex):
+                with self.assertWarns(UserWarning):
                     jp2 = Jp2k(ofile.name)
 
             # Now make sure we got all of the boxes.
@@ -2185,15 +2175,12 @@ class TestJp2kWarnings(unittest.TestCase):
                 ofile.write(ifile.read())
                 ofile.flush()
 
-            pattern = "The file type brand was 'jp  '.  "
-            pattern += "It should be either 'jp2 ' or 'jpx '."
             if sys.hexversion < 0x03000000:
                 with warnings.catch_warnings(record=True) as w:
                     Jp2k(ofile.name)
                     assert issubclass(w[-1].category, FileTypeBrandWarning)
-                    assert pattern in str(w[-1].message)
             else:
-                with self.assertWarnsRegex(FileTypeBrandWarning, pattern):
+                with self.assertWarns(UserWarning):
                     Jp2k(ofile.name)
 
     def test_bad_ftyp_compatibility_list_item(self):
@@ -2220,7 +2207,7 @@ class TestJp2kWarnings(unittest.TestCase):
                     Jp2k(ofile.name)
                     assert 'jp3' in str(w[-1].message)
             else:
-                with self.assertWarns(CompatibilityListItemWarning):
+                with self.assertWarns(UserWarning):
                     Jp2k(ofile.name)
 
     def test_invalid_approximation(self):
@@ -2253,10 +2240,9 @@ class TestJp2kWarnings(unittest.TestCase):
             if sys.hexversion < 0x03000000:
                 with warnings.catch_warnings(record=True) as w:
                     Jp2k(ofile.name)
-                    assert issubclass(w[-1].category,
-                                      InvalidApproximationWarning)
+                    assert issubclass(w[-1].category, UserWarning)
             else:
-                with self.assertWarns(InvalidApproximationWarning):
+                with self.assertWarns(UserWarning):
                     Jp2k(ofile.name)
 
     def test_invalid_colorspace(self):
@@ -2289,11 +2275,9 @@ class TestJp2kWarnings(unittest.TestCase):
             if sys.hexversion < 0x03000000:
                 with warnings.catch_warnings(record=True) as w:
                     Jp2k(ofile.name)
-                    assert issubclass(w[-1].category,
-                                      UnrecognizedColourspaceWarning)
-                    assert 'Unrecognized colorspace' in str(w[-1].message)
+                    assert issubclass(w[-1].category, UserWarning)
             else:
-                with self.assertWarns(UnrecognizedColourspaceWarning):
+                with self.assertWarns(UserWarning):
                     Jp2k(ofile.name)
 
     def test_stupid_windows_eol_at_end(self):
@@ -2316,16 +2300,12 @@ class TestJp2kWarnings(unittest.TestCase):
                 ofile.write(b'\0')
                 ofile.flush()
 
-            pattern = "Extra bytes at end of file ignored."
             if sys.hexversion < 0x03000000:
                 with warnings.catch_warnings(record=True) as w:
                     Jp2k(ofile.name)
-                    assert issubclass(w[-1].category,
-                                      ExtraBytesAtEndOfFileWarning)
-                    assert pattern in str(w[-1].message)
+                    assert issubclass(w[-1].category, UserWarning)
             else:
-                with self.assertWarnsRegex(ExtraBytesAtEndOfFileWarning,
-                                           pattern):
+                with self.assertWarns(UserWarning):
                     Jp2k(ofile.name)
 
 

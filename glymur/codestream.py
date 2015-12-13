@@ -57,71 +57,6 @@ for _marker in range(0xff90, 0xff94):
     _VALID_MARKERS.append(_marker)
 
 
-class InvalidNumberOfResolutionsWarning(UserWarning):
-    """
-    The number of resolutions should not exceed J2K_MAXRLVLS.
-    """
-    pass
-
-
-class InvalidNumberOfTilesWarning(UserWarning):
-    """
-    The number of tiles should not exceed 65535.
-    """
-    pass
-
-
-class InvalidProgressionOrderWarning(UserWarning):
-    """
-    Progression order must be one of [LRCP, RLCP, RPCL, PCRL, CPRL]
-    """
-    pass
-
-
-class InvalidQCCComponentNumber(UserWarning):
-    """
-    The component number parsed from a QCC box must validate against Csiz.
-    """
-    pass
-
-
-class InvalidSubsamplingWarning(UserWarning):
-    """
-    The subsampling values must be > 0.
-    """
-    pass
-
-
-class InvalidTileSpecificationWarning(UserWarning):
-    """
-    Warning in case of an invalid tile specification.
-
-    Possibilities include
-    """
-    pass
-
-
-class InvalidWaveletTransformWarning(UserWarning):
-    """
-    The wavelet transform must be either the 5x3 or 9x7.
-    """
-    pass
-
-
-class RSizWarning(UserWarning):
-    """
-    The profile should be in the range of 0 through 4.
-    """
-    pass
-
-
-class UnrecognizedMarkerWarning(UserWarning):
-    """
-    Warn if an unrecognized marker is encountered in the codestream.
-    """
-    pass
-
-
 class InvalidCodestreamExpectedMarkerError(IOError):
     """
     Error out if we do not find a valid marker where expected.
@@ -274,7 +209,7 @@ class Codestream(object):
                        '{offset:d}.')
                 msg = msg.format(offset=self._offset,
                                  marker_id=self._marker_id)
-                warnings.warn(msg, UnrecognizedMarkerWarning)
+                warnings.warn(msg, UserWarning)
                 break
 
             self.segment.append(segment)
@@ -300,7 +235,7 @@ class Codestream(object):
         msg = ("Unrecognized codestream marker 0x{marker_id:x} encountered at "
                "byte offset {offset}.")
         msg = msg.format(marker_id=self._marker_id, offset=fptr.tell())
-        warnings.warn(msg, UnrecognizedMarkerWarning)
+        warnings.warn(msg, UserWarning)
         cpos = fptr.tell()
         read_buffer = fptr.read(2)
         next_item, = struct.unpack('>H', read_buffer)
@@ -677,7 +612,7 @@ class Codestream(object):
             msg = ("Invalid QCC component number ({invalid_comp_no}), "
                    "the actual number of components is only {valid_comp_no}.")
             msg = msg.format(invalid_comp_no=cqcc, valid_comp_no=cls._csiz)
-            warnings.warn(msg, InvalidQCCComponentNumber)
+            warnings.warn(msg, UserWarning)
 
         spqcc = read_buffer[mantissa_exponent_offset:]
 
@@ -762,7 +697,7 @@ class Codestream(object):
         rsiz = data[0]
         if rsiz not in _KNOWN_PROFILES:
             msg = "Invalid profile: (Rsiz={rsiz}).".format(rsiz=rsiz)
-            warnings.warn(msg, RSizWarning)
+            warnings.warn(msg, UserWarning)
 
         xysiz = (data[1], data[2])
         xyosiz = (data[3], data[4])
@@ -785,7 +720,7 @@ class Codestream(object):
                 msg = ("Invalid subsampling value for component {comp}: "
                        "dx={dx}, dy={dy}.")
                 msg = msg.format(comp=j, dx=subsampling[0], dy=subsampling[1])
-                warnings.warn(msg, InvalidSubsamplingWarning)
+                warnings.warn(msg, UserWarning)
 
         try:
             num_tiles_x = (xysiz[0] - xyosiz[0]) / (xytsiz[0] - xytosiz[0])
@@ -798,13 +733,13 @@ class Codestream(object):
                              num_tile_cols=xytsiz[0],
                              row_offset=xytosiz[1],
                              col_offset=xytosiz[0])
-            warnings.warn(msg, InvalidTileSpecificationWarning)
+            warnings.warn(msg, UserWarning)
         else:
             numtiles = math.ceil(num_tiles_x) * math.ceil(num_tiles_y)
             if numtiles > 65535:
                 msg = "Invalid number of tiles: ({numtiles})."
                 msg = msg.format(numtiles=numtiles)
-                warnings.warn(msg, InvalidNumberOfTilesWarning)
+                warnings.warn(msg, UserWarning)
 
         kwargs = {
             'rsiz': rsiz,
@@ -1102,20 +1037,19 @@ class CODsegment(Segment):
         if nr > opj2.J2K_MAXRLVLS:
             msg = "Invalid number of resolutions: ({numres})."
             msg = msg.format(numres=nr + 1)
-            warnings.warn(msg, InvalidNumberOfResolutionsWarning)
+            warnings.warn(msg, UserWarning)
         self.num_res = nr
 
         if prog_order not in [LRCP, RLCP, RPCL, PCRL, CPRL]:
             msg = "Invalid progression order in COD segment: {prog_order}."
-            warnings.warn(msg.format(prog_order=prog_order),
-                          InvalidProgressionOrderWarning)
+            warnings.warn(msg.format(prog_order=prog_order), UserWarning)
         self.prog_order = prog_order
 
         if xform not in [WAVELET_XFORM_9X7_IRREVERSIBLE,
                             WAVELET_XFORM_5X3_REVERSIBLE]:
             msg = "Invalid wavelet transform in COD segment: {xform}."
             msg = msg.format(xform=xform)
-            warnings.warn(msg, InvalidWaveletTransformWarning)
+            warnings.warn(msg, UserWarning)
 
         cblk_width = 4 * math.pow(2, xcb)
         cblk_height = 4 * math.pow(2, ycb)

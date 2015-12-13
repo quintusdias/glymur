@@ -17,7 +17,6 @@ else:
     from io import StringIO
 
 import glymur
-from glymur.jp2k import OpenJPEGLibraryWarning
 
 
 class TestCallbacks(unittest.TestCase):
@@ -39,9 +38,9 @@ class TestCallbacks(unittest.TestCase):
         if sys.hexversion < 0x03000000:
             with warnings.catch_warnings(record=True) as w:
                 tiledata = j.read(tile=0)
-                assert issubclass(w[-1].category, OpenJPEGLibraryWarning)
+                assert issubclass(w[-1].category, UserWarning)
         else:
-            with self.assertWarns(OpenJPEGLibraryWarning):
+            with self.assertWarns(UserWarning):
                 tiledata = j.read(tile=0)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             with patch('sys.stdout', new=StringIO()) as fake_out:

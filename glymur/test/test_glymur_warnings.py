@@ -20,7 +20,6 @@ import numpy as np
 
 from glymur import Jp2k
 import glymur
-from glymur.jp2k import InvalidJP2ColourspaceMethodWarning
 from glymur.jp2box import InvalidColourspaceMethod
 from glymur.core import COLOR, RED, GREEN, BLUE
 
@@ -50,7 +49,6 @@ class TestSuite(unittest.TestCase):
 
         Original file tested was input/nonregression/illegalcolortransform.j2k
         """
-        exp_warning = glymur.codestream.UnrecognizedMarkerWarning
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             with open(self.j2kfile, 'rb') as ifile:
                 # Everything up until the SOT marker.
@@ -66,13 +64,12 @@ class TestSuite(unittest.TestCase):
                 tfile.write(read_buffer)
                 tfile.flush()
 
-            exp_warning = glymur.codestream.UnrecognizedMarkerWarning
             if sys.hexversion < 0x03000000:
                 with warnings.catch_warnings(record=True) as w:
                     c = Jp2k(tfile.name).get_codestream(header_only=False)
-                assert issubclass(w[-1].category, exp_warning)
+                assert issubclass(w[-1].category, UserWarning)
             else:
-                with self.assertWarns(exp_warning):
+                with self.assertWarns(UserWarning):
                     c = Jp2k(tfile.name).get_codestream(header_only=False)
 
         # Verify that the last segment returned in the codestream is SOT,
@@ -92,14 +89,13 @@ class TestSuite(unittest.TestCase):
         fptr.write(payload)
         fptr.seek(0)
 
-        exp_warning = glymur.jp2box.UnrecoverableXMLWarning
         if sys.hexversion < 0x03000000:
             pass
             with warnings.catch_warnings(record=True) as w:
                 box = glymur.jp2box.XMLBox.parse(fptr, 0, 8 + len(payload))
-            assert issubclass(w[-1].category, exp_warning)
+            assert issubclass(w[-1].category, UserWarning)
         else:
-            with self.assertWarns(exp_warning):
+            with self.assertWarns(UserWarning):
                 box = glymur.jp2box.XMLBox.parse(fptr, 0, 8 + len(payload))
 
         self.assertIsNone(box.xml)
@@ -119,14 +115,13 @@ class TestSuite(unittest.TestCase):
         fptr.write(data)
         fptr.seek(0)
 
-        exp_warning = glymur.jp2box.ByteOrderMarkerWarning
         if sys.hexversion < 0x03000000:
             pass
             # with warnings.catch_warnings(record=True) as w:
             #     glymur.jp2box.XMLBox.parse(fptr, 0, 8 + len(data))
             # assert issubclass(w[-1].category, exp_warning)
         else:
-            with self.assertWarns(exp_warning):
+            with self.assertWarns(UserWarning):
                 glymur.jp2box.XMLBox.parse(fptr, 0, 8 + len(data))
 
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
@@ -153,13 +148,12 @@ class TestSuite(unittest.TestCase):
                 tfile.write(read_buffer)
                 tfile.flush()
 
-            exp_warning = glymur.codestream.UnrecognizedMarkerWarning
             if sys.hexversion < 0x03000000:
                 with warnings.catch_warnings(record=True) as w:
                     Jp2k(tfile.name).get_codestream()
-                assert issubclass(w[-1].category, exp_warning)
+                assert issubclass(w[-1].category, UserWarning)
             else:
-                with self.assertWarns(exp_warning):
+                with self.assertWarns(UserWarning):
                     Jp2k(tfile.name).get_codestream()
 
     def test_tile_height_is_zero(self):
@@ -189,13 +183,12 @@ class TestSuite(unittest.TestCase):
         fp.write(buffer)
         fp.seek(0)
 
-        exp_warning = glymur.codestream.InvalidTileSpecificationWarning
         if sys.hexversion < 0x03000000:
             with warnings.catch_warnings(record=True) as w:
                 glymur.codestream.Codestream._parse_siz_segment(fp)
-            assert issubclass(w[-1].category, exp_warning)
+            assert issubclass(w[-1].category, UserWarning)
         else:
-            with self.assertWarns(exp_warning):
+            with self.assertWarns(UserWarning):
                 glymur.codestream.Codestream._parse_siz_segment(fp)
 
     def test_invalid_progression_order(self):
@@ -209,13 +202,12 @@ class TestSuite(unittest.TestCase):
         fp.write(buffer)
         fp.seek(0)
 
-        exp_warning = glymur.codestream.InvalidProgressionOrderWarning
         if sys.hexversion < 0x03000000:
             with warnings.catch_warnings(record=True) as w:
                 glymur.codestream.Codestream._parse_cod_segment(fp)
-            assert issubclass(w[-1].category, exp_warning)
+            assert issubclass(w[-1].category, UserWarning)
         else:
-            with self.assertWarns(exp_warning):
+            with self.assertWarns(UserWarning):
                 glymur.codestream.Codestream._parse_cod_segment(fp)
 
     def test_bad_wavelet_transform(self):
@@ -229,13 +221,12 @@ class TestSuite(unittest.TestCase):
         fp.write(buffer)
         fp.seek(0)
 
-        exp_warning = glymur.codestream.InvalidWaveletTransformWarning
         if sys.hexversion < 0x03000000:
             with warnings.catch_warnings(record=True) as w:
                 glymur.codestream.Codestream._parse_cod_segment(fp)
-            assert issubclass(w[-1].category, exp_warning)
+            assert issubclass(w[-1].category, UserWarning)
         else:
-            with self.assertWarns(exp_warning):
+            with self.assertWarns(UserWarning):
                 glymur.codestream.Codestream._parse_cod_segment(fp)
 
     def test_NR_gdal_fuzzer_assert_in_opj_j2k_read_SQcd_SQcc_patch_jp2(self):
@@ -251,13 +242,12 @@ class TestSuite(unittest.TestCase):
         fp.write(buffer)
         fp.seek(0)
 
-        exp_warning = glymur.codestream.InvalidQCCComponentNumber
         if sys.hexversion < 0x03000000:
             with warnings.catch_warnings(record=True) as w:
                 glymur.codestream.Codestream._parse_qcc_segment(fp)
-            assert issubclass(w[-1].category, exp_warning)
+            assert issubclass(w[-1].category, UserWarning)
         else:
-            with self.assertWarns(exp_warning):
+            with self.assertWarns(UserWarning):
                 glymur.codestream.Codestream._parse_qcc_segment(fp)
 
     def test_NR_gdal_fuzzer_check_comp_dx_dy_jp2_dump(self):
@@ -287,13 +277,12 @@ class TestSuite(unittest.TestCase):
         fp.write(buffer)
         fp.seek(0)
 
-        exp_warning = glymur.codestream.InvalidSubsamplingWarning
         if sys.hexversion < 0x03000000:
             with warnings.catch_warnings(record=True) as w:
                 glymur.codestream.Codestream._parse_siz_segment(fp)
-            assert issubclass(w[-1].category, exp_warning)
+            assert issubclass(w[-1].category, UserWarning)
         else:
-            with self.assertWarns(exp_warning):
+            with self.assertWarns(UserWarning):
                 glymur.codestream.Codestream._parse_siz_segment(fp)
 
     def test_read_past_end_of_box(self):
@@ -319,13 +308,12 @@ class TestSuite(unittest.TestCase):
                 ofile.write(ifile.read())
                 ofile.flush()
 
-            exp_warning = glymur.jp2box.UnrecoverableBoxParsingWarning
             if sys.hexversion < 0x03000000:
                 with warnings.catch_warnings(record=True) as w:
                     Jp2k(ofile.name)
-                assert issubclass(w[-1].category, exp_warning)
+                assert issubclass(w[-1].category, UserWarning)
             else:
-                with self.assertWarns(exp_warning):
+                with self.assertWarns(UserWarning):
                     Jp2k(ofile.name)
 
     def test_NR_gdal_fuzzer_check_number_of_tiles(self):
@@ -356,13 +344,12 @@ class TestSuite(unittest.TestCase):
         fp.write(buffer)
         fp.seek(0)
 
-        exp_warning = glymur.codestream.InvalidNumberOfTilesWarning
         if sys.hexversion < 0x03000000:
             with warnings.catch_warnings(record=True) as w:
                 glymur.codestream.Codestream._parse_siz_segment(fp)
-            assert issubclass(w[-1].category, exp_warning)
+            assert issubclass(w[-1].category, UserWarning)
         else:
-            with self.assertWarns(exp_warning):
+            with self.assertWarns(UserWarning):
                 glymur.codestream.Codestream._parse_siz_segment(fp)
 
     def test_NR_gdal_fuzzer_unchecked_numresolutions_dump(self):
@@ -375,13 +362,12 @@ class TestSuite(unittest.TestCase):
         pargs = (0, 0, 1, 1, 64, 3, 3, 0, 0, None)
         spcod = struct.pack('>BHBBBBBB', 0, 1, 1, 64, 3, 3, 0, 0)
         spcod = bytearray(spcod)
-        exp_warning = glymur.codestream.InvalidNumberOfResolutionsWarning
         if sys.hexversion < 0x03000000:
             with warnings.catch_warnings(record=True) as w:
                 glymur.codestream.CODsegment(*pargs, length=12, offset=174)
-            assert issubclass(w[-1].category, exp_warning)
+            assert issubclass(w[-1].category, UserWarning)
         else:
-            with self.assertWarns(exp_warning):
+            with self.assertWarns(UserWarning):
                 glymur.codestream.CODsegment(*pargs, length=12, offset=174)
 
     def test_file_pointer_badly_positioned(self):
@@ -408,13 +394,12 @@ class TestSuite(unittest.TestCase):
                 ofile.write(ifile.read())
                 ofile.flush()
 
-            exp_warning = glymur.jp2box.FilePointerPositioningWarning
             if sys.hexversion < 0x03000000:
                 with warnings.catch_warnings(record=True) as w:
                     Jp2k(ofile.name)
-                assert issubclass(w[-1].category, exp_warning)
+                assert issubclass(w[-1].category, UserWarning)
             else:
-                with self.assertWarns(exp_warning):
+                with self.assertWarns(UserWarning):
                     Jp2k(ofile.name)
 
     def test_NR_DEC_issue188_beach_64bitsbox_jp2_41_decode(self):
@@ -440,10 +425,9 @@ class TestSuite(unittest.TestCase):
             if sys.hexversion < 0x03000000:
                 with warnings.catch_warnings(record=True) as w:
                     Jp2k(ofile.name)
-                assert issubclass(w[-1].category,
-                                  glymur.jp2box.UnrecognizedBoxWarning)
+                assert issubclass(w[-1].category, UserWarning)
             else:
-                with self.assertWarns(glymur.jp2box.UnrecognizedBoxWarning):
+                with self.assertWarns(UserWarning):
                     Jp2k(ofile.name)
 
     def test_truncated_icc_profile(self):
@@ -512,10 +496,9 @@ class TestSuite(unittest.TestCase):
         if sys.hexversion < 0x03000000:
             with warnings.catch_warnings(record=True) as w:
                 jp2._validate()
-                assert issubclass(w[-1].category,
-                                  InvalidJP2ColourspaceMethodWarning)
+                assert issubclass(w[-1].category, UserWarning)
         else:
-            with self.assertWarns(InvalidJP2ColourspaceMethodWarning):
+            with self.assertWarns(UserWarning):
                 jp2._validate()
 
     def test_unknown_superbox(self):
@@ -535,7 +518,7 @@ class TestSuite(unittest.TestCase):
             tfile.write(write_buffer)
             tfile.flush()
 
-            with self.assertWarns(glymur.jp2box.UnrecognizedBoxWarning):
+            with self.assertWarns(UserWarning):
                 Jp2k(tfile.name)
 
     def test_brand_unknown(self):
