@@ -7,7 +7,7 @@ matrix:
       env:
       - JOB_NAME: "27_openjpeg15"
       - NUMPY_VERSION=1.10.1
-      - LXML_VERSION=3.4.4
+      - LXML_VERSION=3.5.0
       - OPJ_LIB=1
     - python: 2.7
       env:
@@ -17,9 +17,9 @@ matrix:
       - OPJ_LIB=2
     - python: 2.7
       env:
-      - JOB_NAME: "27_np110"
+      - JOB_NAME: "27_np1101"
       - NUMPY_VERSION=1.10.1
-      - LXML_VERSION=3.4.4
+      - LXML_VERSION=3.5.0
       - OPJ_LIB=2
     - python: 3.3
       env:
@@ -35,9 +35,9 @@ matrix:
       - OPJ_LIB=2
     - python: 3.5
       env:
-      - JOB_NAME: "35_np110"
+      - JOB_NAME: "35_np1101"
       - NUMPY_VERSION=1.10.1
-      - LXML_VERSION=3.4.4
+      - LXML_VERSION=3.5.0
       - OPJ_LIB=2
     - python: 3.5
       env:
