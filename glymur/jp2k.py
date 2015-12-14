@@ -291,7 +291,7 @@ class Jp2k(Jp2kBox):
                  (signature != (13, 10, 135, 10)))):
                 msg = '{filename} is not a JPEG 2000 file.'
                 msg = msg.format(filename=self.filename)
-                raise NotJPEG2000Error(msg)
+                raise IOError(msg)
 
             # Back up and start again, we know we have a superbox (box of
             # boxes) here.
@@ -1977,13 +1977,6 @@ def _default_error_handler(msg, _):
 def _default_info_handler(msg, _):
     """Default info handler callback."""
     print("[INFO] {0}".format(msg.decode('utf-8').rstrip()))
-
-
-class NotJPEG2000Error(UserWarning):
-    """
-    If the file is not JPEG2000.
-    """
-    pass
 
 
 def _default_warning_handler(library_msg, _):

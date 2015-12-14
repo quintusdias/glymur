@@ -20,7 +20,6 @@ import numpy as np
 
 from glymur import Jp2k
 import glymur
-from glymur.jp2box import InvalidColourspaceMethod
 from glymur.core import COLOR, RED, GREEN, BLUE
 
 if sys.hexversion <= 0x03030000:
@@ -480,9 +479,9 @@ class TestSuite(unittest.TestCase):
         if sys.hexversion < 0x03000000:
             with warnings.catch_warnings(record=True) as w:
                 glymur.jp2box.ColourSpecificationBox.parse(obj, 66, 143)
-                assert issubclass(w[-1].category, InvalidColourspaceMethod)
+                assert issubclass(w[-1].category, UserWarning)
         else:
-            with self.assertWarns(glymur.jp2box.InvalidColourspaceMethod):
+            with self.assertWarns(UserWarning):
                 glymur.jp2box.ColourSpecificationBox.parse(obj, 66, 143)
 
     def test_bad_color_space_specification(self):

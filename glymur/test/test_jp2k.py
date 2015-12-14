@@ -338,8 +338,7 @@ class TestJp2k(unittest.TestCase):
                 ofile.flush()
 
             j = Jp2k(ofile.name)
-            exp_err = glymur.codestream.InvalidCodestreamExpectedMarkerError
-            with self.assertRaises(exp_err):
+            with self.assertRaises(IOError):
                 j.get_codestream(header_only=False)
 
     def test_read_differing_subsamples(self):
@@ -445,7 +444,7 @@ class TestJp2k(unittest.TestCase):
     def test_not_jpeg2000(self):
         """Should error out appropriately if not given a JPEG 2000 file."""
         filename = pkg_resources.resource_filename(glymur.__name__, "jp2k.py")
-        with self.assertRaises(glymur.jp2k.NotJPEG2000Error):
+        with self.assertRaises(IOError):
             Jp2k(filename)
 
     def test_file_not_present(self):
@@ -2096,7 +2095,6 @@ class TestParsing(unittest.TestCase):
                 with warnings.catch_warnings(record=True) as w:
                     Jp2k(ofile.name)
                     assert issubclass(w[-1].category, UserWarning)
-                    assert pattern in str(w[-1].message)
             else:
                 with self.assertWarns(UserWarning):
                     Jp2k(ofile.name)
@@ -2178,7 +2176,7 @@ class TestJp2kWarnings(unittest.TestCase):
             if sys.hexversion < 0x03000000:
                 with warnings.catch_warnings(record=True) as w:
                     Jp2k(ofile.name)
-                    assert issubclass(w[-1].category, FileTypeBrandWarning)
+                    assert issubclass(w[-1].category, UserWarning)
             else:
                 with self.assertWarns(UserWarning):
                     Jp2k(ofile.name)

@@ -57,13 +57,6 @@ for _marker in range(0xff90, 0xff94):
     _VALID_MARKERS.append(_marker)
 
 
-class InvalidCodestreamExpectedMarkerError(IOError):
-    """
-    Error out if we do not find a valid marker where expected.
-    """
-    pass
-
-
 class Codestream(object):
     """Container for codestream information.
 
@@ -193,7 +186,7 @@ class Codestream(object):
                 msg = ('Invalid codestream, expected to find a marker '
                        'at byte position {offset}.')
                 msg = msg.format(offset=offset)
-                raise InvalidCodestreamExpectedMarkerError(msg)
+                raise IOError(msg)
 
             self._offset = fptr.tell() - 2
 

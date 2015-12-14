@@ -290,28 +290,6 @@ class Jp2kBox(object):
         return superbox
 
 
-class InvalidApproximationWarning(UserWarning):
-    """
-    The approximation value should be in the range from 1 to 4.  Values 1-2
-    are specified in 15444-1.  Values 3-4 are specified in 15444-2.
-    """
-    pass
-
-
-class InvalidColourspaceMethod(UserWarning):
-    """
-    The "method" of a colr box must be one of (1, 2, 3, 4)
-    """
-    pass
-
-
-class UnrecognizedColourspaceWarning(UserWarning):
-    """
-    Only a certain number of color space enums are recognized.
-    """
-    pass
-
-
 class ColourSpecificationBox(Jp2kBox):
     """Container for JPEG 2000 color specification box information.
 
@@ -370,14 +348,14 @@ class ColourSpecificationBox(Jp2kBox):
             if writing:
                 raise IOError(msg)
             else:
-                warnings.warn(msg, InvalidColourspaceMethod)
+                warnings.warn(msg, UserWarning)
         if self.approximation not in (0, 1, 2, 3, 4):
-            msg = "Invalid approximation value ({approx})."
+            msg = "Invalid colr approximation value ({approx})."
             msg = msg.format(approx=self.approximation)
             if writing:
                 raise IOError(msg)
             else:
-                warnings.warn(msg, InvalidApproximationWarning)
+                warnings.warn(msg, UserWarning)
 
     def _write_validate(self):
         """In addition to constructor validation steps, run validation steps
@@ -495,7 +473,7 @@ class ColourSpecificationBox(Jp2kBox):
             colorspace, = struct.unpack_from('>I', read_buffer, offset=3)
             if colorspace not in _COLORSPACE_MAP_DISPLAY.keys():
                 msg = "Unrecognized colorspace ({0}).".format(colorspace)
-                warnings.warn(msg, UnrecognizedColourspaceWarning)
+                warnings.warn(msg, UserWarning)
             icc_profile = None
 
         else:
@@ -1310,20 +1288,6 @@ class DataReferenceBox(Jp2kBox):
         return cls(data_entry_url_box_list, length=length, offset=offset)
 
 
-class CompatibilityListItemWarning(UserWarning):
-    """
-    Compatibility list items should be one of 'jp2 ', 'jpx ', or 'jpxb'
-    """
-    pass
-
-
-class FileTypeBrandWarning(UserWarning):
-    """
-    Compatibility list items should be one of 'jp2 ', 'jpx ', or 'jpxb'
-    """
-    pass
-
-
 class FileTypeBox(Jp2kBox):
     """Container for JPEG 2000 file type box information.
 
@@ -1398,7 +1362,7 @@ class FileTypeBox(Jp2kBox):
             if writing:
                 raise IOError(msg)
             else:
-                warnings.warn(msg, FileTypeBrandWarning)
+                warnings.warn(msg, UserWarning)
         for item in self.compatibility_list:
             if item not in self._valid_cls:
                 msg = ("The file type compatibility list {items} is "
@@ -1409,7 +1373,7 @@ class FileTypeBox(Jp2kBox):
                 if writing:
                     raise IOError(msg)
                 else:
-                    warnings.warn(msg, CompatibilityListItemWarning)
+                    warnings.warn(msg, UserWarning)
 
     def write(self, fptr):
         """Write a File Type box to file.
