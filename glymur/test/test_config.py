@@ -18,9 +18,7 @@ else:
 import glymur
 from glymur import Jp2k
 
-from .fixtures import (WARNING_INFRASTRUCTURE_ISSUE,
-                       WARNING_INFRASTRUCTURE_MSG,
-                       WINDOWS_TMP_FILE_MSG)
+from .fixtures import WINDOWS_TMP_FILE_MSG
 
 
 def openjp2_not_found_by_ctypes():
@@ -111,7 +109,6 @@ class TestSuite(unittest.TestCase):
                     imp.reload(glymur.lib.openjp2)
                     Jp2k(self.jp2file)
 
-    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
     def test_config_file_without_library_section(self):
         """
@@ -130,7 +127,6 @@ class TestSuite(unittest.TestCase):
                     # It's enough that we did not error out
                     self.assertTrue(True)
 
-    @unittest.skipIf(WARNING_INFRASTRUCTURE_ISSUE, WARNING_INFRASTRUCTURE_MSG)
     @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
     def test_xdg_env_config_file_is_bad(self):
         """A non-existant library location should be rejected."""

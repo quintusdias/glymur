@@ -21,19 +21,6 @@ else:
     OPENJPEG_NOT_AVAILABLE = False
     OPENJPEG_NOT_AVAILABLE_MSG = None
 
-# Some versions of "six" on python3 cause problems when verifying warnings.
-# Only use when the version is 1.7 or higher.
-# And moreover, we only test using the 3.x infrastructure, never on 2.x.
-WARNING_INFRASTRUCTURE_ISSUE = False
-WARNING_INFRASTRUCTURE_MSG = ""
-if sys.hexversion < 0x03000000:
-    WARNING_INFRASTRUCTURE_ISSUE = True
-    WARNING_INFRASTRUCTURE_MSG = "3.x warning infrastructure only"
-elif re.match('1.[0-6]', six.__version__) is not None:
-    WARNING_INFRASTRUCTURE_ISSUE = True
-    msg = "Cannot run test with version {0} of python-six"
-    WARNING_INFRASTRUCTURE_MSG = msg.format(six.__version__)
-
 # Cannot reopen a named temporary file in windows.
 WINDOWS_TMP_FILE_MSG = "cannot use NamedTemporaryFile like this in windows"
 
