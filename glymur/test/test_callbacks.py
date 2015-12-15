@@ -35,13 +35,10 @@ class TestCallbacks(unittest.TestCase):
     def test_info_callback_on_write_backwards_compatibility(self):
         """Verify messages printed when writing an image in verbose mode."""
         j = glymur.Jp2k(self.jp2file)
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings(record=True) as w:
-                tiledata = j.read(tile=0)
-                assert issubclass(w[-1].category, UserWarning)
-        else:
-            with self.assertWarns(UserWarning):
-                tiledata = j.read(tile=0)
+        with warnings.catch_warnings():
+            # Ignore a library warning.
+            warnings.simplefilter('ignore')
+            tiledata = j.read(tile=0)
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             with patch('sys.stdout', new=StringIO()) as fake_out:
                 glymur.Jp2k(tfile.name, data=tiledata, verbose=True)

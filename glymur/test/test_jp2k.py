@@ -311,12 +311,6 @@ class TestJp2k(unittest.TestCase):
 
         np.testing.assert_array_equal(rgb, bgr[:, :, [2, 1, 0]])
 
-    @unittest.skipIf(sys.hexversion < 0x03000000, "do not bother on python2")
-    def test_warn_if_using_read_method(self):
-        """Should warn if deprecated read method is called"""
-        with self.assertWarns(DeprecationWarning):
-            Jp2k(self.jp2file).read()
-
     def test_bad_tile_part_pointer(self):
         """
         Should error out if we don't read a valid marker.
@@ -1027,13 +1021,10 @@ class WriteCinema(CinemaBase):
         data = data[:1080, :2048, :]
 
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    j = Jp2k(tfile.name, data=data, cinema2k=24)
-                assert issubclass(w[-1].category, UserWarning)
-            else:
-                with self.assertWarns(UserWarning):
-                    j = Jp2k(tfile.name, data=data, cinema2k=24)
+            with warnings.catch_warnings():
+                # Ignore a warning issued by the library.
+                warnings.simplefilter('ignore')
+                j = Jp2k(tfile.name, data=data, cinema2k=24)
 
             codestream = j.get_codestream()
             self.check_cinema2k_codestream(codestream, (2048, 1080))
@@ -1070,13 +1061,10 @@ class WriteCinema(CinemaBase):
         data = data[:2160, :4096, :]
 
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    j = Jp2k(tfile.name, data=data, cinema4k=True)
-                assert issubclass(w[-1].category, UserWarning)
-            else:
-                with self.assertWarns(UserWarning):
-                    j = Jp2k(tfile.name, data=data, cinema4k=True)
+            with warnings.catch_warnings():
+                # Ignore a warning issued by the library.
+                warnings.simplefilter('ignore')
+                j = Jp2k(tfile.name, data=data, cinema4k=True)
 
             codestream = j.get_codestream()
             self.check_cinema4k_codestream(codestream, (4096, 2160))
@@ -2060,45 +2048,6 @@ class TestParsing(unittest.TestCase):
     def tearDown(self):
         glymur.set_parseoptions(full_codestream=False)
 
-    def test_bad_rsiz(self):
-        """
-        Should not warn if RSIZ when parsing is turned off.
-
-        This test was originally written for OPJ_DATA file
-
-            input/nonregression/edf_c2_1002767.jp2'
-
-        It had an RSIZ value of 32, so that's what we use here.
-
-        Issue196
-        """
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
-            with open(self.jp2file, 'rb') as ifile:
-                # Copy up until the RSIZ value.
-                ofile.write(ifile.read(3237))
-
-                # Write the bad RSIZ value.
-                buffer = struct.pack('>H', 32)
-                ofile.write(buffer)
-                ifile.seek(3239)
-
-                # Get the rest of the file.
-                ofile.write(ifile.read())
-
-                ofile.seek(0)
-
-            glymur.set_parseoptions(full_codestream=False)
-            Jp2k(ofile.name)
-
-            glymur.set_parseoptions(full_codestream=True)
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    Jp2k(ofile.name)
-                    assert issubclass(w[-1].category, UserWarning)
-            else:
-                with self.assertWarns(UserWarning):
-                    Jp2k(ofile.name)
-
     def test_main_header(self):
         """verify that the main header isn't loaded during normal parsing"""
         # The hidden _main_header attribute should show up after accessing it.
@@ -2107,204 +2056,6 @@ class TestParsing(unittest.TestCase):
         self.assertIsNone(jp2c._codestream)
         jp2c.codestream
         self.assertIsNotNone(jp2c._codestream)
-
-
-class TestJp2kWarnings(unittest.TestCase):
-    """These tests should be run by just about all configuration."""
-
-    @classmethod
-    def setUpClass(cls):
-        cls.jp2file = glymur.data.nemo()
-
-    def test_undecodeable_box_id(self):
-        """
-        Should warn in case of undecodeable box ID but not error out.
-
-        This test was originally written for this file in the OpenJPEG
-        test suite:
-
-            input/nonregression/edf_c2_1013627.jp2
-        """
-        bad_box_id = b'abcd'
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
-            with open(self.jp2file, 'rb') as ifile:
-                ofile.write(ifile.read())
-
-                # Tack an unrecognized box onto the end of nemo.
-                buffer = struct.pack('>I4s', 8, bad_box_id)
-                ofile.write(buffer)
-                ofile.flush()
-
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    jp2 = Jp2k(ofile.name)
-                    assert issubclass(w[-1].category, UserWarning)
-            else:
-                with self.assertWarns(UserWarning):
-                    jp2 = Jp2k(ofile.name)
-
-            # Now make sure we got all of the boxes.
-            box_ids = [box.box_id for box in jp2.box]
-            self.assertEqual(box_ids, ['jP  ', 'ftyp', 'jp2h', 'uuid', 'jp2c',
-                                       bad_box_id])
-
-    def test_bad_ftyp_brand(self):
-        """
-        Should warn in case of bad ftyp brand.
-
-        This test was originally written for this file in the OpenJPEG
-        test suite:
-
-            input/nonregression/edf_c2_1000290.jp2
-        """
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
-            with open(self.jp2file, 'rb') as ifile:
-                # Write the JPEG2000 signature box
-                ofile.write(ifile.read(12))
-
-                # Write a bad version of the file type box.  'jp  ' is not
-                # allowed as a brand.
-                buffer = struct.pack('>I4s4sI4s', 20, b'ftyp', b'jp  ', 0,
-                                     b'jp2 ')
-                ofile.write(buffer)
-
-                # Write the rest of the boxes as-is.
-                ifile.seek(32)
-                ofile.write(ifile.read())
-                ofile.flush()
-
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    Jp2k(ofile.name)
-                    assert issubclass(w[-1].category, UserWarning)
-            else:
-                with self.assertWarns(UserWarning):
-                    Jp2k(ofile.name)
-
-    def test_bad_ftyp_compatibility_list_item(self):
-        """
-        Should warn in case of bad ftyp compatibility list item
-        """
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
-            with open(self.jp2file, 'rb') as ifile:
-                # Write the JPEG2000 signature box
-                ofile.write(ifile.read(12))
-
-                # Write a bad compatibility list item.  'jp3' is not valid.
-                buffer = struct.pack('>I4s4sI4s', 20, b'ftyp', b'jp2 ', 0,
-                                     b'jp3 ')
-                ofile.write(buffer)
-
-                # Write the rest of the boxes as-is.
-                ifile.seek(32)
-                ofile.write(ifile.read())
-                ofile.flush()
-
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    Jp2k(ofile.name)
-                    assert 'jp3' in str(w[-1].message)
-            else:
-                with self.assertWarns(UserWarning):
-                    Jp2k(ofile.name)
-
-    def test_invalid_approximation(self):
-        """
-        Should warn in case of invalid approximation.
-
-        This test was originally written for this file in the OpenJPEG
-        test suite:
-
-            input/nonregression/edf_c2_1015644.jp2
-
-        Rewrite nemo.jp2 to have an invalid approximation.
-        """
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
-            with open(self.jp2file, 'rb') as ifile:
-                # Copy the signature, file type, and jp2 header, image header
-                # box as-is.
-                ofile.write(ifile.read(62))
-
-                # Write a bad version of the color specification box.  32 is an
-                # invalid approximation value.
-                buffer = struct.pack('>I4sBBBI', 15, b'colr', 1, 2, 32, 16)
-                ofile.write(buffer)
-
-                # Write the rest of the boxes as-is.
-                ifile.seek(77)
-                ofile.write(ifile.read())
-                ofile.flush()
-
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    Jp2k(ofile.name)
-                    assert issubclass(w[-1].category, UserWarning)
-            else:
-                with self.assertWarns(UserWarning):
-                    Jp2k(ofile.name)
-
-    def test_invalid_colorspace(self):
-        """
-        Should warn in case of invalid colorspace.
-
-        This test was originally written for this file in the OpenJPEG
-        test suite:
-
-            input/nonregression/edf_c2_1103421.jp2
-
-        Rewrite nemo.jp2 to have an invalid colorspace.
-        """
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
-            with open(self.jp2file, 'rb') as ifile:
-                # Copy the signature, file type, and jp2 header, image header
-                # box as-is.
-                ofile.write(ifile.read(62))
-
-                # Write a bad version of the color specification box.  276 is
-                # an invalid colorspace.
-                buffer = struct.pack('>I4sBBBI', 15, b'colr', 1, 2, 0, 276)
-                ofile.write(buffer)
-
-                # Write the rest of the boxes as-is.
-                ifile.seek(77)
-                ofile.write(ifile.read())
-                ofile.flush()
-
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    Jp2k(ofile.name)
-                    assert issubclass(w[-1].category, UserWarning)
-            else:
-                with self.assertWarns(UserWarning):
-                    Jp2k(ofile.name)
-
-    def test_stupid_windows_eol_at_end(self):
-        """
-        Garbage characters at the end of the file.
-
-        This test was originally run on
-
-            input/nonregression/issue211.jp2
-
-        Rewrite nemo.jp2 to have a few additional bytes at the end (less than
-        8 because then it would be interpreted as a box).
-        """
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
-            with open(self.jp2file, 'rb') as ifile:
-                # Copy the file all the way until the end.
-                ofile.write(ifile.read())
-
-                # then append a few extra bytes
-                ofile.write(b'\0')
-                ofile.flush()
-
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    Jp2k(ofile.name)
-                    assert issubclass(w[-1].category, UserWarning)
-            else:
-                with self.assertWarns(UserWarning):
-                    Jp2k(ofile.name)
 
 
 class TestCodestreamRepr(unittest.TestCase):
