@@ -756,6 +756,7 @@ class TestSuite(unittest.TestCase):
             with self.assertWarns(UserWarning):
                 glymur.Jp2k(tfile.name)
 
+    @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
     def test_warn_if_using_read_method(self):
         """Should warn if deprecated read method is called"""
         with self.assertWarns(DeprecationWarning):
