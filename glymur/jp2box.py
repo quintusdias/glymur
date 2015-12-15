@@ -43,22 +43,26 @@ from .core import (_COLORSPACE_MAP_DISPLAY, _COLOR_TYPE_MAP_DISPLAY,
 from . import _uuid_io
 
 
-_factory = lambda x: '{0} (invalid)'.format(x)
+def _factory1(x):
+    return '{0} (invalid)'.format(x)
+
 _keysvalues = {ENUMERATED_COLORSPACE: 'enumerated colorspace',
                RESTRICTED_ICC_PROFILE: 'restricted ICC profile',
                ANY_ICC_PROFILE: 'any ICC profile',
                VENDOR_COLOR_METHOD: 'vendor color method'}
-_METHOD_DISPLAY = _Keydefaultdict(_factory, _keysvalues)
+_METHOD_DISPLAY = _Keydefaultdict(_factory1, _keysvalues)
 
 
-_factory = lambda x: '{0} (invalid)'.format(x)
+def _factory2(x):
+    return '{0} (invalid)'.format(x)
+
 _keysvalues = {1: 'accurately represents correct colorspace definition',
                2: ('approximates correct colorspace definition, '
                    'exceptional quality'),
                3: ('approximates correct colorspace definition, '
                    'reasonable quality'),
                4: 'approximates correct colorspace definition, poor quality'}
-_APPROX_DISPLAY = _Keydefaultdict(_factory, _keysvalues)
+_APPROX_DISPLAY = _Keydefaultdict(_factory2, _keysvalues)
 
 # Three different UUIDs are given special treatment.
 _GEOTIFF_UUID = UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03')
@@ -1045,7 +1049,7 @@ class ComponentMappingBox(Jp2kBox):
             Instance of the current component mapping box.
         """
         num_bytes = offset + length - fptr.tell()
-        num_components = int(num_bytes/4)
+        num_components = int(num_bytes / 4)
 
         read_buffer = fptr.read(num_bytes)
         data = struct.unpack('>' + 'HBB' * num_components, read_buffer)
@@ -1379,7 +1383,7 @@ class FileTypeBox(Jp2kBox):
         """Write a File Type box to file.
         """
         self._validate(writing=True)
-        length = 16 + 4*len(self.compatibility_list)
+        length = 16 + 4 * len(self.compatibility_list)
         fptr.write(struct.pack('>I4s', length, b'ftyp'))
         fptr.write(self.brand.encode())
         fptr.write(struct.pack('>I', self.minor_version))
@@ -2254,7 +2258,7 @@ class PaletteBox(Jp2kBox):
 
             # Each palette component is padded out to the next largest byte.
             # That means a list comprehension does this in one shot.
-            row_nbytes = sum([int(math.ceil(x/8.0)) for x in bps])
+            row_nbytes = sum([int(math.ceil(x / 8.0)) for x in bps])
 
             palette = np.zeros((nrows, ncols), dtype=np.int32)
             for j in range(nrows):
@@ -2266,19 +2270,19 @@ class PaletteBox(Jp2kBox):
 
 # Map rreq codes to display text.
 _READER_REQUIREMENTS_DISPLAY = {
-    0:  'File not completely understood',
-    1:  'Deprecated - contains no extensions',
-    2:  'Contains multiple composition layers',
-    3:  ('Deprecated - codestream is compressed using JPEG 2000 and requires '
-         'at least a Profile 0 decoder as defind in ITU-T Rec. T.800 '
-         '| ISO/IEC 15444-1, A.10 Table A.45'),
-    4:  'JPEG 2000 Part 1 Profile 1 codestream',
-    5:  ('Unrestricted JPEG 2000 Part 1 codestream, ITU-T Rec. T.800 '
-         '| ISO/IEC 15444-1'),
-    6:  'Unrestricted JPEG 2000 Part 2 codestream',
-    7:  'JPEG codestream as defined in ISO/IEC 10918-1',
-    8:  'Deprecated - does not contain opacity',
-    9:  'Non-premultiplied opacity channel',
+    0: 'File not completely understood',
+    1: 'Deprecated - contains no extensions',
+    2: 'Contains multiple composition layers',
+    3: ('Deprecated - codestream is compressed using JPEG 2000 and requires '
+        'at least a Profile 0 decoder as defind in ITU-T Rec. T.800 '
+        '| ISO/IEC 15444-1, A.10 Table A.45'),
+    4: 'JPEG 2000 Part 1 Profile 1 codestream',
+    5: ('Unrestricted JPEG 2000 Part 1 codestream, ITU-T Rec. T.800 '
+        '| ISO/IEC 15444-1'),
+    6: 'Unrestricted JPEG 2000 Part 2 codestream',
+    7: 'JPEG codestream as defined in ISO/IEC 10918-1',
+    8: 'Deprecated - does not contain opacity',
+    9: 'Non-premultiplied opacity channel',
     10: 'Premultiplied opacity channel',
     11: 'Chroma-key based opacity',
     12: 'Deprecated - codestream is contiguous',
@@ -3627,8 +3631,8 @@ class UUIDBox(Jp2kBox):
         lst.append(txt)
 
         txt = self.GDALInfoReportCorner(gtif, hTransform, "Center",
-                                        gtif.RasterXSize/2.0,
-                                        gtif.RasterYSize/2.0)
+                                        gtif.RasterXSize / 2.0,
+                                        gtif.RasterYSize / 2.0)
         lst.append(txt)
 
         gdal.Unlink(in_mem_name)

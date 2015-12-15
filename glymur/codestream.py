@@ -18,7 +18,9 @@ from .core import (LRCP, RLCP, RPCL, PCRL, CPRL,
 from .lib import openjp2 as opj2
 
 
-_factory = lambda x: '{0} (invalid)'.format(x)
+def _factory(x):
+    return '{0} (invalid)'.format(x)
+
 _PROGRESSION_ORDER_DISPLAY = _Keydefaultdict(_factory, {LRCP: 'LRCP',
                                                         RLCP: 'RLCP',
                                                         RPCL: 'RPCL',
@@ -98,63 +100,63 @@ class Codestream(object):
             Supplying False may impose a large performance penalty.
         """
         # Map each of the known markers to a method that processes them.
-        process_marker_segment = {0xff00:  self._parse_reserved_segment,
-                                  0xff01:  self._parse_reserved_segment,
-                                  0xff30:  self._parse_reserved_marker,
-                                  0xff31:  self._parse_reserved_marker,
-                                  0xff32:  self._parse_reserved_marker,
-                                  0xff33:  self._parse_reserved_marker,
-                                  0xff34:  self._parse_reserved_marker,
-                                  0xff35:  self._parse_reserved_marker,
-                                  0xff36:  self._parse_reserved_marker,
-                                  0xff37:  self._parse_reserved_marker,
-                                  0xff38:  self._parse_reserved_marker,
-                                  0xff39:  self._parse_reserved_marker,
-                                  0xff3a:  self._parse_reserved_marker,
-                                  0xff3b:  self._parse_reserved_marker,
-                                  0xff3c:  self._parse_reserved_marker,
-                                  0xff3d:  self._parse_reserved_marker,
-                                  0xff3e:  self._parse_reserved_marker,
-                                  0xff3f:  self._parse_reserved_marker,
-                                  0xff4f:  self._parse_reserved_segment,
-                                  0xff50:  self._parse_reserved_segment,
-                                  0xff51:  self._parse_siz_segment,
-                                  0xff52:  self._parse_cod_segment,
-                                  0xff53:  self._parse_coc_segment,
-                                  0xff54:  self._parse_reserved_segment,
-                                  0xff55:  self._parse_tlm_segment,
-                                  0xff56:  self._parse_reserved_segment,
-                                  0xff57:  self._parse_reserved_segment,
-                                  0xff58:  self._parse_plt_segment,
-                                  0xff59:  self._parse_reserved_segment,
-                                  0xff5a:  self._parse_reserved_segment,
-                                  0xff5b:  self._parse_reserved_segment,
-                                  0xff5c:  self._parse_qcd_segment,
-                                  0xff5d:  self._parse_qcc_segment,
-                                  0xff5e:  self._parse_rgn_segment,
-                                  0xff5f:  self._parse_pod_segment,
-                                  0xff60:  self._parse_ppm_segment,
-                                  0xff61:  self._parse_ppt_segment,
-                                  0xff62:  self._parse_reserved_segment,
-                                  0xff63:  self._parse_crg_segment,
-                                  0xff64:  self._parse_cme_segment,
-                                  0xff65:  self._parse_reserved_segment,
-                                  0xff66:  self._parse_reserved_segment,
-                                  0xff67:  self._parse_reserved_segment,
-                                  0xff68:  self._parse_reserved_segment,
-                                  0xff69:  self._parse_reserved_segment,
-                                  0xff6a:  self._parse_reserved_segment,
-                                  0xff6b:  self._parse_reserved_segment,
-                                  0xff6c:  self._parse_reserved_segment,
-                                  0xff6d:  self._parse_reserved_segment,
-                                  0xff6e:  self._parse_reserved_segment,
-                                  0xff6f:  self._parse_reserved_segment,
-                                  0xff79:  self._parse_unrecognized_segment,
-                                  0xff90:  self._parse_sot_segment,
-                                  0xff91:  self._parse_unrecognized_segment,
-                                  0xff92:  self._parse_unrecognized_segment,
-                                  0xff93:  self._parse_sod_segment,
-                                  0xffd9:  self._parse_eoc_segment}
+        process_marker_segment = {0xff00: self._parse_reserved_segment,
+                                  0xff01: self._parse_reserved_segment,
+                                  0xff30: self._parse_reserved_marker,
+                                  0xff31: self._parse_reserved_marker,
+                                  0xff32: self._parse_reserved_marker,
+                                  0xff33: self._parse_reserved_marker,
+                                  0xff34: self._parse_reserved_marker,
+                                  0xff35: self._parse_reserved_marker,
+                                  0xff36: self._parse_reserved_marker,
+                                  0xff37: self._parse_reserved_marker,
+                                  0xff38: self._parse_reserved_marker,
+                                  0xff39: self._parse_reserved_marker,
+                                  0xff3a: self._parse_reserved_marker,
+                                  0xff3b: self._parse_reserved_marker,
+                                  0xff3c: self._parse_reserved_marker,
+                                  0xff3d: self._parse_reserved_marker,
+                                  0xff3e: self._parse_reserved_marker,
+                                  0xff3f: self._parse_reserved_marker,
+                                  0xff4f: self._parse_reserved_segment,
+                                  0xff50: self._parse_reserved_segment,
+                                  0xff51: self._parse_siz_segment,
+                                  0xff52: self._parse_cod_segment,
+                                  0xff53: self._parse_coc_segment,
+                                  0xff54: self._parse_reserved_segment,
+                                  0xff55: self._parse_tlm_segment,
+                                  0xff56: self._parse_reserved_segment,
+                                  0xff57: self._parse_reserved_segment,
+                                  0xff58: self._parse_plt_segment,
+                                  0xff59: self._parse_reserved_segment,
+                                  0xff5a: self._parse_reserved_segment,
+                                  0xff5b: self._parse_reserved_segment,
+                                  0xff5c: self._parse_qcd_segment,
+                                  0xff5d: self._parse_qcc_segment,
+                                  0xff5e: self._parse_rgn_segment,
+                                  0xff5f: self._parse_pod_segment,
+                                  0xff60: self._parse_ppm_segment,
+                                  0xff61: self._parse_ppt_segment,
+                                  0xff62: self._parse_reserved_segment,
+                                  0xff63: self._parse_crg_segment,
+                                  0xff64: self._parse_cme_segment,
+                                  0xff65: self._parse_reserved_segment,
+                                  0xff66: self._parse_reserved_segment,
+                                  0xff67: self._parse_reserved_segment,
+                                  0xff68: self._parse_reserved_segment,
+                                  0xff69: self._parse_reserved_segment,
+                                  0xff6a: self._parse_reserved_segment,
+                                  0xff6b: self._parse_reserved_segment,
+                                  0xff6c: self._parse_reserved_segment,
+                                  0xff6d: self._parse_reserved_segment,
+                                  0xff6e: self._parse_reserved_segment,
+                                  0xff6f: self._parse_reserved_segment,
+                                  0xff79: self._parse_unrecognized_segment,
+                                  0xff90: self._parse_sot_segment,
+                                  0xff91: self._parse_unrecognized_segment,
+                                  0xff92: self._parse_unrecognized_segment,
+                                  0xff93: self._parse_sod_segment,
+                                  0xffd9: self._parse_eoc_segment}
 
         self.offset = fptr.tell()
         self.length = length
@@ -260,7 +262,7 @@ class Codestream(object):
         read_buffer = fptr.read(2)
         length, = struct.unpack('>H', read_buffer)
         if length > 0:
-            data = fptr.read(length-2)
+            data = fptr.read(length - 2)
         else:
             data = None
 
@@ -279,10 +281,10 @@ class Codestream(object):
         indices = np.where(packet == 0xff)
         for idx in indices[0]:
             try:
-                if packet[idx+1] == 0x91 and (idx < (len(packet) - 5)):
+                if packet[idx + 1] == 0x91 and (idx < (len(packet) - 5)):
                     offset = sod_marker.offset + 2 + idx
                     length = 4
-                    nsop = packet[(idx + 4):(idx+6)].view('uint16')[0]
+                    nsop = packet[(idx + 4):(idx + 6)].view('uint16')[0]
                     if sys.byteorder == 'little':
                         nsop = nsop.byteswap()
                     segment = SOPsegment(nsop, length, offset)
@@ -742,7 +744,7 @@ class Codestream(object):
             'xytosiz': xytosiz,
             'Csiz': Csiz,
             'bitdepth': bitdepth,
-            'signed':  signed,
+            'signed': signed,
             'xyrsiz': (xrsiz, yrsiz),
             'length': length,
             'offset': offset
@@ -1039,7 +1041,7 @@ class CODsegment(Segment):
         self.prog_order = prog_order
 
         if xform not in [WAVELET_XFORM_9X7_IRREVERSIBLE,
-                            WAVELET_XFORM_5X3_REVERSIBLE]:
+                         WAVELET_XFORM_5X3_REVERSIBLE]:
             msg = "Invalid wavelet transform in COD segment: {xform}."
             msg = msg.format(xform=xform)
             warnings.warn(msg, UserWarning)
@@ -1073,7 +1075,8 @@ class CODsegment(Segment):
             precinct_size = 'default, 2^15 x 2^15'
         else:
             for pps in self.precinct_size:
-                precinct_size = '({ppsx}, {ppsy})'.format(ppsx=pps[0], ppsy=pps[1])
+                precinct_size = '({ppsx}, {ppsy})'.format(ppsx=pps[0],
+                                                          ppsy=pps[1])
 
         if self.mct == 0:
             mct_str = 'no transform specified'
@@ -1168,8 +1171,8 @@ class CRGsegment(Segment):
         msg = Segment.__str__(self)
         msg += '\n    Vertical, Horizontal offset: '
         for j in range(len(self.xcrg)):
-            msg += ' ({0:.2f}, {1:.2f})'.format(self.ycrg[j]/65535.0,
-                                                self.xcrg[j]/65535.0)
+            msg += ' ({0:.2f}, {1:.2f})'.format(self.ycrg[j] / 65535.0,
+                                                self.xcrg[j] / 65535.0)
         return msg
 
 

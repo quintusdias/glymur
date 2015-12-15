@@ -39,8 +39,8 @@ def tiff_header(read_buffer):
         msg = ("The byte order indication in the TIFF header ({byte_order}) "
                "is invalid.  It should be either {little_endian} or "
                "{big_endian}.")
-        msg = msg.format(byte_order=read_buffer[6:8], 
-                         little_endian=bytes([73, 73]), 
+        msg = msg.format(byte_order=read_buffer[6:8],
+                         little_endian=bytes([73, 73]),
                          big_endian=bytes([77, 77]))
         raise IOError(msg)
 

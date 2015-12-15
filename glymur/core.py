@@ -120,12 +120,12 @@ ROMM_RGB = 21
 
 
 _COLORSPACE_MAP_DISPLAY = {
-    CMYK:  'CMYK',
-    SRGB:  'sRGB',
-    GREYSCALE:  'greyscale',
-    YCC:  'YCC',
-    E_SRGB:  'e-sRGB',
-    ROMM_RGB:  'ROMM-RGB',
+    CMYK: 'CMYK',
+    SRGB: 'sRGB',
+    GREYSCALE: 'greyscale',
+    YCC: 'YCC',
+    E_SRGB: 'e-sRGB',
+    ROMM_RGB: 'ROMM-RGB',
 }
 
 # enumerated color channel types
@@ -135,11 +135,13 @@ PRE_MULTIPLIED_OPACITY = 2
 _UNSPECIFIED = 65535
 
 
-_factory = lambda x: '{0} (invalid)'.format(x)
-_dict = {COLOR:  'color',
-         OPACITY:  'opacity',
+def _factory(x):
+    return '{0} (invalid)'.format(x)
+
+_dict = {COLOR: 'color',
+         OPACITY: 'opacity',
          PRE_MULTIPLIED_OPACITY: 'pre-multiplied opacity',
-         _UNSPECIFIED:  'unspecified'}
+         _UNSPECIFIED: 'unspecified'}
 _COLOR_TYPE_MAP_DISPLAY = _Keydefaultdict(_factory, _dict)
 
 # color channel definitions.

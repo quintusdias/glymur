@@ -16,20 +16,12 @@ if sys.hexversion <= 0x03030000:
 else:
     from unittest.mock import patch
 
-import numpy as np
-
 from glymur import Jp2k
 import glymur
 from glymur.core import COLOR, RED, GREEN, BLUE
 
-if sys.hexversion <= 0x03030000:
-    from mock import patch
-else:
-    from unittest.mock import patch
+from .fixtures import WINDOWS_TMP_FILE_MSG
 
-from .fixtures import (WARNING_INFRASTRUCTURE_ISSUE,
-                       WARNING_INFRASTRUCTURE_MSG,
-                       WINDOWS_TMP_FILE_MSG)
 
 @unittest.skipIf(sys.hexversion < 0x03000000, 'Do not bother on python2')
 class TestSuite(unittest.TestCase):

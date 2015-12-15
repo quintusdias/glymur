@@ -634,7 +634,7 @@ class Jp2k(Jp2kBox):
                 prcw = cparams.prcw_init[j]
                 if j == 0 and code_block_specified:
                     height, width = cparams.cblockh_init, cparams.cblockw_init
-                    if height * 2 > prch or width * 2 > prcw:
+                    if prch < height * 2 or prcw < width * 2:
                         msg = ("The highest resolution precinct size "
                                "({prch} x {prcw}) must be at least twice that "
                                "of the code block size "
@@ -1248,7 +1248,7 @@ class Jp2k(Jp2kBox):
                 msg = "Decoded area is too small."
                 raise IOError(msg)
 
-            area = [int(round(float(x)/extent + 2 ** -20)) for x in area]
+            area = [int(round(float(x) / extent + 2 ** -20)) for x in area]
             rows = slice(area[0], area[2], None)
             cols = slice(area[1], area[3], None)
             image = image[rows, cols]
