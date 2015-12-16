@@ -37,32 +37,25 @@ from .codestream import Codestream
 from .core import (_COLORSPACE_MAP_DISPLAY, _COLOR_TYPE_MAP_DISPLAY,
                    SRGB, GREYSCALE, YCC,
                    ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE,
-                   ANY_ICC_PROFILE, VENDOR_COLOR_METHOD,
-                   _Keydefaultdict)
+                   ANY_ICC_PROFILE, VENDOR_COLOR_METHOD)
 
 from . import _uuid_io
 
 
-def _factory1(x):
-    return '{0} (invalid)'.format(x)
-
-_keysvalues = {ENUMERATED_COLORSPACE: 'enumerated colorspace',
-               RESTRICTED_ICC_PROFILE: 'restricted ICC profile',
-               ANY_ICC_PROFILE: 'any ICC profile',
-               VENDOR_COLOR_METHOD: 'vendor color method'}
-_METHOD_DISPLAY = _Keydefaultdict(_factory1, _keysvalues)
+_METHOD_DISPLAY = {
+    ENUMERATED_COLORSPACE: 'enumerated colorspace',
+    RESTRICTED_ICC_PROFILE: 'restricted ICC profile',
+    ANY_ICC_PROFILE: 'any ICC profile',
+    VENDOR_COLOR_METHOD: 'vendor color method',
+}
 
 
-def _factory2(x):
-    return '{0} (invalid)'.format(x)
-
-_keysvalues = {1: 'accurately represents correct colorspace definition',
-               2: ('approximates correct colorspace definition, '
-                   'exceptional quality'),
-               3: ('approximates correct colorspace definition, '
-                   'reasonable quality'),
-               4: 'approximates correct colorspace definition, poor quality'}
-_APPROX_DISPLAY = _Keydefaultdict(_factory2, _keysvalues)
+_APPROX_DISPLAY = {
+    1: 'accurately represents correct colorspace definition',
+    2: 'approximates correct colorspace definition, exceptional quality',
+    3: 'approximates correct colorspace definition, reasonable quality',
+    4: 'approximates correct colorspace definition, poor quality',
+}
 
 # Three different UUIDs are given special treatment.
 _GEOTIFF_UUID = UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03')

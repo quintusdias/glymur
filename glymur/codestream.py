@@ -13,23 +13,22 @@ import numpy as np
 
 from .core import (LRCP, RLCP, RPCL, PCRL, CPRL,
                    WAVELET_XFORM_9X7_IRREVERSIBLE,
-                   WAVELET_XFORM_5X3_REVERSIBLE,
-                   _Keydefaultdict)
+                   WAVELET_XFORM_5X3_REVERSIBLE)
 from .lib import openjp2 as opj2
 
 
-def _factory(x):
-    return '{0} (invalid)'.format(x)
+_PROGRESSION_ORDER_DISPLAY = {
+    LRCP: 'LRCP',
+    RLCP: 'RLCP',
+    RPCL: 'RPCL',
+    PCRL: 'PCRL',
+    CPRL: 'CPRL',
+}
 
-_PROGRESSION_ORDER_DISPLAY = _Keydefaultdict(_factory, {LRCP: 'LRCP',
-                                                        RLCP: 'RLCP',
-                                                        RPCL: 'RPCL',
-                                                        PCRL: 'PCRL',
-                                                        CPRL: 'CPRL'})
-
-_keysvalues = {WAVELET_XFORM_9X7_IRREVERSIBLE: '9-7 irreversible',
-               WAVELET_XFORM_5X3_REVERSIBLE: '5-3 reversible'}
-_WAVELET_TRANSFORM_DISPLAY = _Keydefaultdict(_factory, _keysvalues)
+_WAVELET_TRANSFORM_DISPLAY = {
+    WAVELET_XFORM_9X7_IRREVERSIBLE: '9-7 irreversible',
+    WAVELET_XFORM_5X3_REVERSIBLE: '5-3 reversible'
+}
 
 _NO_PROFILE = 0
 _PROFILE_0 = 1
@@ -40,11 +39,13 @@ _PROFILE_4 = 4
 _KNOWN_PROFILES = [_NO_PROFILE, _PROFILE_0, _PROFILE_1, _PROFILE_3, _PROFILE_4]
 
 # How to display the codestream profile.
-_CAPABILITIES_DISPLAY = _Keydefaultdict(_factory, {_NO_PROFILE: 'no profile',
-                                                   _PROFILE_0: '0',
-                                                   _PROFILE_1: '1',
-                                                   _PROFILE_3: 'Cinema 2K',
-                                                   _PROFILE_4: 'Cinema 4K'})
+_CAPABILITIES_DISPLAY = {
+    _NO_PROFILE: 'no profile',
+    _PROFILE_0: '0',
+    _PROFILE_1: '1',
+    _PROFILE_3: 'Cinema 2K',
+    _PROFILE_4: 'Cinema 4K',
+}
 
 # Need a catch-all list of valid markers.
 # See table A-1 in ISO/IEC FCD15444-1.
@@ -1087,16 +1088,24 @@ class CODsegment(Segment):
         else:
             mct_str = 'unknown'
 
+        try:
+            progression_order = _PROGRESSION_ORDER_DISPLAY[self.prog_order]
+        except KeyError:
+            progression_order = '{prog} (invalid)'.format(prog=self.prog_order)
+        try:
+            xform = _WAVELET_TRANSFORM_DISPLAY[self.xform]
+        except KeyError:
+            xform = '{xform} (invalid)'.format(xform=self.xform)
         msg = msg.format(with_without='with' if (self.scod & 1) else 'without',
                          sop=((self.scod & 2) > 0),
                          eph=((self.scod & 4) > 0),
-                         prog=_PROGRESSION_ORDER_DISPLAY[self.prog_order],
+                         prog=progression_order,
                          num_layers=self.layers,
                          mct=mct_str,
                          num_resolutions=self.num_res + 1,
                          cbh=int(self.code_block_size[0]),
                          cbw=int(self.code_block_size[1]),
-                         xform=_WAVELET_TRANSFORM_DISPLAY[self.xform],
+                         xform=xform,
                          precinct_size=precinct_size,
                          code_block_context=_context_string(self.cstyle))
 
@@ -1614,25 +1623,30 @@ class SIZsegment(Segment):
 
     def __str__(self):
         msg = Segment.__str__(self)
-        msg += '\n    '
+        msg += '\n'
 
-        lines = ['Profile:  {0}',
-                 'Reference Grid Height, Width:  ({1} x {2})',
-                 'Vertical, Horizontal Reference Grid Offset:  ({3} x {4})',
-                 'Reference Tile Height, Width:  ({5} x {6})',
-                 'Vertical, Horizontal Reference Tile Offset:  ({7} x {8})',
-                 'Bitdepth:  {9}',
-                 'Signed:  {10}',
-                 'Vertical, Horizontal Subsampling:  {11}']
-        msg += '\n    '.join(lines)
-        msg = msg.format(_CAPABILITIES_DISPLAY[self.rsiz],
-                         self.ysiz, self.xsiz,
-                         self.yosiz, self.xosiz,
-                         self.ytsiz, self.xtsiz,
-                         self.ytosiz, self.xtosiz,
-                         self.bitdepth,
-                         self.signed,
-                         tuple(zip(self.yrsiz, self.xrsiz)))
+        msg += ('    Profile:  {profile}\n'
+                '    Reference Grid Height, Width:  ({height} x {width})\n'
+                '    Vertical, Horizontal Reference Grid Offset:  '
+                '({goy} x {gox})\n'
+                '    Reference Tile Height, Width:  ({tileh} x {tilew})\n'
+                '    Vertical, Horizontal Reference Tile Offset:  '
+                '({toy} x {tox})\n'
+                '    Bitdepth:  {bitdepth}\n'
+                '    Signed:  {signed}\n'
+                '    Vertical, Horizontal Subsampling:  {subsampling}')
+        try:
+            profile = _CAPABILITIES_DISPLAY[self.rsiz]
+        except KeyError:
+            profile = '{rsiz} (invalid)'.format(rsiz=self.rsiz)            
+        msg = msg.format(profile=profile,
+                         height=self.ysiz, width=self.xsiz,
+                         goy=self.yosiz, gox=self.xosiz,
+                         tileh=self.ytsiz, tilew=self.xtsiz,
+                         toy=self.ytosiz, tox=self.xtosiz,
+                         bitdepth=self.bitdepth,
+                         signed=self.signed,
+                         subsampling=tuple(zip(self.yrsiz, self.xrsiz)))
 
         return msg
 

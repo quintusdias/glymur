@@ -115,7 +115,6 @@ class TestPrinting(unittest.TestCase):
 
         Original test file was input/conformance/file1.jp2
         """
-        self.maxDiff = None
         elt = ET.fromstring(fixtures.file1_xml)
         xml = ET.ElementTree(elt)
         box = glymur.jp2box.XMLBox(xml=xml, length=439, offset=36)
@@ -166,6 +165,7 @@ class TestPrinting(unittest.TestCase):
 
         Original test file was edf_c2_10025.jp2
         """
+        self.maxDiff = None
         pargs = (0, 0, 0, 0, 0, 0, 0, 0, 2, None)
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
@@ -513,7 +513,9 @@ class TestPrinting(unittest.TestCase):
         self.assertEqual(actual, expected)
 
     def test_codestream(self):
-        """verify printing of entire codestream"""
+        """
+        verify printing of entire codestream
+        """
         j = glymur.Jp2k(self.jp2file)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(j.get_codestream())
@@ -1053,7 +1055,6 @@ class TestPrinting(unittest.TestCase):
                                                   standard_mask,
                                                   vendor_feature, vendor_mask,
                                                   length=109, offset=40)
-        self.maxDiff = None
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(box)
             actual = fake_out.getvalue().strip()
@@ -1190,7 +1191,6 @@ class TestJp2dump(unittest.TestCase):
 
     def test_jp2_codestream_2(self):
         """Verify dumping with -c 2, print entire jp2 jacket, codestream."""
-        self.maxDiff = None
         actual = self.run_jp2dump(['', '-c', '2', self.jp2file])
         expected = fixtures.nemo
         self.assertEqual(actual, expected)
@@ -1227,7 +1227,6 @@ class TestJp2dump(unittest.TestCase):
 
     def test_suppress_xml(self):
         """Verify dumping with -x, suppress XML."""
-        self.maxDiff = None
         actual = self.run_jp2dump(['', '-x', self.jp2file])
 
         # shave off the XML and non-main-header segments

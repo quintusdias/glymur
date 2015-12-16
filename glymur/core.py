@@ -3,19 +3,6 @@
 import collections
 
 
-class _Keydefaultdict(collections.defaultdict):
-    """Unlisted keys help form their own error message.
-
-    Normally defaultdict uses a factory function with no input arguments, but
-    that's not quite the behavior we want.
-    """
-    def __missing__(self, key):
-        if self.default_factory is None:
-            raise KeyError(key)
-        else:
-            ret = self[key] = self.default_factory(key)
-            return ret
-
 # Progression order
 LRCP = 0
 RLCP = 1
@@ -135,14 +122,12 @@ PRE_MULTIPLIED_OPACITY = 2
 _UNSPECIFIED = 65535
 
 
-def _factory(x):
-    return '{0} (invalid)'.format(x)
-
-_dict = {COLOR: 'color',
-         OPACITY: 'opacity',
-         PRE_MULTIPLIED_OPACITY: 'pre-multiplied opacity',
-         _UNSPECIFIED: 'unspecified'}
-_COLOR_TYPE_MAP_DISPLAY = _Keydefaultdict(_factory, _dict)
+_COLOR_TYPE_MAP_DISPLAY = {
+    COLOR: 'color',
+    OPACITY: 'opacity',
+    PRE_MULTIPLIED_OPACITY: 'pre-multiplied opacity',
+    _UNSPECIFIED: 'unspecified',
+}
 
 # color channel definitions.
 RED = 1
@@ -152,8 +137,10 @@ GREY = 1
 WHOLE_IMAGE = 0
 
 # enumerated color channel associations
-_COLORSPACE = {SRGB: {"R": 1, "G": 2, "B": 3},
-               GREYSCALE: {"Y": 1},
-               YCC: {"Y": 1, "Cb": 2, "Cr": 3},
-               E_SRGB: {"R": 1, "G": 2, "B": 3},
-               ROMM_RGB: {"R": 1, "G": 2, "B": 3}}
+_COLORSPACE = {
+    SRGB: {"R": 1, "G": 2, "B": 3},
+    GREYSCALE: {"Y": 1},
+    YCC: {"Y": 1, "Cb": 2, "Cr": 3},
+    E_SRGB: {"R": 1, "G": 2, "B": 3},
+    ROMM_RGB: {"R": 1, "G": 2, "B": 3},
+}
