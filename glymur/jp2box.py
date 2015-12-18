@@ -11,6 +11,7 @@ References
    Extensions
 """
 
+import codecs
 from collections import OrderedDict
 import datetime
 import io
@@ -3093,6 +3094,19 @@ class XMLBox(Jp2kBox):
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
+
+        if sys.hexversion < 0x03000000 and codecs.BOM_UTF8 in read_buffer:
+            # Python3 with utf-8 handles this just fine.  Actually so does
+            # Python2 right here since we decode using utf-8.  The real
+            # problem comes when __str__ is used on the XML box, and that
+            # is where Python2 falls short because of the ascii codec.
+            msg = ('A BOM (byte order marker) was detected and '
+                   'removed from the XML contents in the box starting at byte '
+                   'offset {offset:d}.')
+            msg = msg.format(offset=offset)
+            warnings.warn(msg, UserWarning)
+            read_buffer = read_buffer.replace(codecs.BOM_UTF8, b'')
+
         try:
             text = read_buffer.decode('utf-8')
         except UnicodeDecodeError as err:
@@ -3117,15 +3131,6 @@ class XMLBox(Jp2kBox):
 
         # Strip out any trailing nulls, as they can foul up XML parsing.
         text = text.rstrip(chr(0))
-
-        # Remove any byte order markers.
-        if u'\ufeff' in text:
-            msg = ('An illegal BOM (byte order marker) was detected and '
-                   'removed from the XML contents in the box starting at byte '
-                   'offset {offset:d}.')
-            msg = msg.format(offset=offset)
-            warnings.warn(msg, UserWarning)
-            text = text.replace(u'\ufeff', '')
 
         # Remove any encoding declaration.
         if text.startswith('<?xml version="1.0" encoding="UTF-8"?>'):
