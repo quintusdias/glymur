@@ -1,6 +1,11 @@
 sudo: true
 language: python
 
+env:
+  global:
+      - CPLUS_INCLUDE_PATH=/usr/include/gdal
+      - C_INCLUDE_PATH=/usr/include/gdal    
+
 matrix:
     include:
     - python: 2.7
@@ -50,10 +55,12 @@ before_install:
   - sh -c "if test $OPJ_LIB -eq 1; then bash travis-install-openjpeg15.sh; elif test $OPJ_LIB -eq 2; then bash travis-install-openjpeg.sh; fi"
   - sudo apt-get update -qq
   - sudo apt-get install libexempi3
+  - sudo apt-get install libgdal1h
+  - sudo apt-get install libgdal1-dev
 
 # command to install dependencies
 install:
-    - pip install numpy==$NUMPY_VERSION lxml==$LXML_VERSION python-xmp-toolkit six contextlib2
+    - pip install numpy==$NUMPY_VERSION lxml==$LXML_VERSION GDAL==1.10.0 python-xmp-toolkit six contextlib2
 
 # command to run tests
 script:
