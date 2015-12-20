@@ -31,7 +31,8 @@ from glymur.jp2box import BitsPerComponentBox
 from glymur.jp2box import ColourSpecificationBox
 from glymur import Jp2k, command_line
 from . import fixtures
-from .fixtures import WINDOWS_TMP_FILE_MSG
+from .fixtures import (WINDOWS_TMP_FILE_MSG,
+                       OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 
 
 @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
@@ -165,7 +166,6 @@ class TestPrinting(unittest.TestCase):
 
         Original test file was edf_c2_10025.jp2
         """
-        self.maxDiff = None
         pargs = (0, 0, 0, 0, 0, 0, 0, 0, 2, None)
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
@@ -288,8 +288,6 @@ class TestPrinting(unittest.TestCase):
         """verify printing of asoc, label boxes"""
         # Construct a fake file with an asoc and a label box, as
         # OpenJPEG doesn't have such a file.
-        # pargs = (scod, prog, nlayers, mct, nr, xcb, ycb, cstyle, xform,
-        #         precinct_size)
         data = glymur.Jp2k(self.jp2file)[::2, ::2]
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile2:
@@ -353,6 +351,7 @@ class TestPrinting(unittest.TestCase):
                '        Number of resolutions:  2\n'
                '        Code block height, width:  (64 x 64)\n'
                '        Wavelet transform:  5-3 reversible\n'
+               '        Precinct size:  (32768, 32768)\n'
                '        Code block context:\n'
                '            Selective arithmetic coding bypass:  False\n'
                '            Reset context probabilities '
@@ -385,7 +384,7 @@ class TestPrinting(unittest.TestCase):
                '        Number of resolutions:  2\n'
                '        Code block height, width:  (64 x 64)\n'
                '        Wavelet transform:  5-3 reversible\n'
-               '        Precinct size:  default, 2^15 x 2^15\n'
+               '        Precinct size:  (32768, 32768)\n'
                '        Code block context:\n'
                '            Selective arithmetic coding bypass:  False\n'
                '            Reset context probabilities on coding '
@@ -545,7 +544,7 @@ class TestPrinting(unittest.TestCase):
                '            Number of resolutions:  2\n'
                '            Code block height, width:  (64 x 64)\n'
                '            Wavelet transform:  5-3 reversible\n'
-               '            Precinct size:  default, 2^15 x 2^15\n'
+               '            Precinct size:  (32768, 32768)\n'
                '            Code block context:\n'
                '                Selective arithmetic coding bypass:  False\n'
                '                Reset context probabilities on '
@@ -1134,6 +1133,23 @@ class TestPrinting(unittest.TestCase):
 
         self.assertEqual(actual, expected)
 
+    @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
+    def test_precincts(self):
+        """
+        verify that we print precincts correctly
+        """
+        data = Jp2k(self.jp2file)[:]
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            j = Jp2k(tfile.name, data=data, psizes=[(128, 128)] * 3)
+
+            # Should be three layers.
+            codestream = j.get_codestream()
+
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(codestream.segment[2])
+            actual = fake_out.getvalue().strip()
+
+        self.assertEqual(actual, fixtures.multiple_precinct_size)
 
 class TestJp2dump(unittest.TestCase):
     """Tests for verifying how jp2dump console script works."""
@@ -1211,7 +1227,8 @@ class TestJp2dump(unittest.TestCase):
             command_line.main()
             actual = fake_out.getvalue().strip()
 
-        self.assertIn(fixtures.goodstuff_with_full_header, actual)
+        expected = fixtures.goodstuff_with_full_header
+        self.assertIn(expected, actual)
 
     def test_codestream_invalid(self):
         """Verify dumping with -c 3, not allowd."""

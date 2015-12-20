@@ -944,7 +944,7 @@ class COCsegment(Segment):
         if len(self.spcoc) > 5:
             self.precinct_size = _parse_precinct_size(self.spcoc[5:])
         else:
-            self.precinct_size = None
+            self.precinct_size = ((32768, 32768))
 
         self.length = length
         self.offset = offset
@@ -952,27 +952,24 @@ class COCsegment(Segment):
     def __str__(self):
         msg = Segment.__str__(self)
 
-        msg += ('\n    Associated component:  {assoc_comp}'
-                '\n    Coding style for this component:  '
-                'Entropy coder, PARTITION = {partition}'
-                '\n    Coding style parameters:'
-                '\n        Number of resolutions:  {num_res}'
-                '\n        Code block height, width:  ({cblh} x {cblw})'
-                '\n        Wavelet transform:  {xform}')
+        msg += '\n'
+        msg += ('    Associated component:  {assoc_comp}\n'
+                '    Coding style for this component:  '
+                'Entropy coder, PARTITION = {partition}\n'
+                '    Coding style parameters:\n'
+                '        Number of resolutions:  {num_res}\n'
+                '        Code block height, width:  ({cblh} x {cblw})\n'
+                '        Wavelet transform:  {xform}\n'
+                '        Precinct size:  {psize}\n'
+                '        {context_string}')
         msg = msg.format(assoc_comp=self.ccoc,
                          partition=0 if self.scoc == 0 else 1,
                          num_res=self.spcoc[0] + 1,
                          cblh=int(self.code_block_size[0]),
                          cblw=int(self.code_block_size[1]),
-                         xform=_WAVELET_TRANSFORM_DISPLAY[self.spcoc[4]])
-
-        msg += '\n        '
-        msg += _context_string(self.spcoc[3])
-
-        if self.precinct_size is not None:
-            msg += '\n        Precinct size:  '
-            for pps in self.precinct_size:
-                msg += '(%d, %d)'.format(pps)
+                         xform=_WAVELET_TRANSFORM_DISPLAY[self.spcoc[4]],
+                         context_string=_context_string(self.spcoc[3]),
+                         psize=self.precinct_size)
 
         return msg
 
@@ -1052,7 +1049,10 @@ class CODsegment(Segment):
         code_block_size = (cblk_height, cblk_width)
         self.code_block_size = code_block_size
 
-        self.precinct_size = precinct_size
+        if precinct_size is None:
+            self.precinct_size = ((2 ** 15, 2 ** 15))
+        else:
+            self.precinct_size = precinct_size
 
     def __str__(self):
         msg = Segment.__str__(self)
@@ -1071,13 +1071,6 @@ class CODsegment(Segment):
                 '        Wavelet transform:  {xform}\n'
                 '        Precinct size:  {precinct_size}\n'
                 '        {code_block_context}')
-
-        if self.precinct_size is None:
-            precinct_size = 'default, 2^15 x 2^15'
-        else:
-            for pps in self.precinct_size:
-                precinct_size = '({ppsx}, {ppsy})'.format(ppsx=pps[0],
-                                                          ppsy=pps[1])
 
         if self.mct == 0:
             mct_str = 'no transform specified'
@@ -1106,7 +1099,7 @@ class CODsegment(Segment):
                          cbh=int(self.code_block_size[0]),
                          cbw=int(self.code_block_size[1]),
                          xform=xform,
-                         precinct_size=precinct_size,
+                         precinct_size=self.precinct_size,
                          code_block_context=_context_string(self.cstyle))
 
         return msg
@@ -1873,7 +1866,7 @@ def _parse_precinct_size(spcod):
         ep2 = (item & 0xF0) >> 4
         ep1 = item & 0x0F
         precinct_size.append((2 ** ep1, 2 ** ep2))
-    return precinct_size
+    return tuple(precinct_size)
 
 
 def _context_string(context):

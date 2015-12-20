@@ -483,7 +483,8 @@ class TestJp2k(unittest.TestCase):
         self.assertEqual(c.segment[2].code_block_size, (64.0, 64.0))
         self.assertEqual(c.segment[2].prog_order, 0)
         self.assertEqual(c.segment[2].xform, 1)
-        self.assertIsNone(c.segment[2].precinct_size)
+        self.assertEqual(c.segment[2].precinct_size,
+                             ((32768, 32768)))
 
         self.assertEqual(c.segment[3].marker_id, 'QCD')
         self.assertEqual(c.segment[3].offset, 3296)
@@ -514,7 +515,8 @@ class TestJp2k(unittest.TestCase):
                                       np.array([0]))
         np.testing.assert_array_equal(c.segment[6].spcoc,
                                       np.array([1, 4, 4, 0, 1]))
-        self.assertIsNone(c.segment[6].precinct_size)
+        self.assertEqual(c.segment[6].precinct_size,
+                         ((32768, 32768)))
 
         self.assertEqual(c.segment[7].marker_id, 'QCC')
         self.assertEqual(c.segment[7].offset, 3367)
@@ -533,7 +535,8 @@ class TestJp2k(unittest.TestCase):
                                       np.array([0]))
         np.testing.assert_array_equal(c.segment[8].spcoc,
                                       np.array([1, 4, 4, 0, 1]))
-        self.assertIsNone(c.segment[8].precinct_size)
+        self.assertEqual(c.segment[8].precinct_size,
+                         ((32768, 32768)))
 
         self.assertEqual(c.segment[9].marker_id, 'QCC')
         self.assertEqual(c.segment[9].offset, 3388)
@@ -1122,7 +1125,8 @@ class TestJp2k_write(fixtures.MetadataBase):
                                     [False, False, False, False, False, False])
         self.assertEqual(codestream.segment[2].xform,
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-        self.assertIsNone(codestream.segment[2].precinct_size)
+        self.assertEqual(codestream.segment[2].precinct_size,
+                         ((32768, 32768)))
 
     def test_NR_ENC_Bretagne1_ppm_1_encode(self):
         """
@@ -1150,7 +1154,7 @@ class TestJp2k_write(fixtures.MetadataBase):
                                     [False, False, False, False, False, False])
         self.assertEqual(c.segment[2].xform,
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-        self.assertIsNone(c.segment[2].precinct_size)
+        self.assertEqual(c.segment[2].precinct_size, ((32768, 32768)))
 
     def test_NR_ENC_Bretagne1_ppm_3_encode(self):
         """
@@ -1181,8 +1185,8 @@ class TestJp2k_write(fixtures.MetadataBase):
         self.assertEqual(codestream.segment[2].xform,
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(codestream.segment[2].precinct_size,
-                         [(2, 2), (4, 4), (8, 8), (16, 16), (32, 32),
-                          (64, 64)])
+                         ((2, 2), (4, 4), (8, 8), (16, 16), (32, 32),
+                          (64, 64)))
 
     def test_NR_ENC_Bretagne2_ppm_4_encode(self):
         """
@@ -1222,7 +1226,8 @@ class TestJp2k_write(fixtures.MetadataBase):
             self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(codestream.segment[2].precinct_size,
-                             [(16, 16), (32, 32), (64, 64)] + [(128, 128)] * 3)
+                             ((16, 16), (32, 32), (64, 64), (128, 128),
+                              (128, 128), (128, 128)))
 
     def test_NR_ENC_Bretagne2_ppm_5_encode(self):
         """
@@ -1256,7 +1261,8 @@ class TestJp2k_write(fixtures.MetadataBase):
                                          False, False, False, False])
             self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-            self.assertIsNone(codestream.segment[2].precinct_size)
+            self.assertEqual(codestream.segment[2].precinct_size,
+                             ((32768, 32768)))
 
     def test_NR_ENC_Bretagne2_ppm_6_encode(self):
         """
@@ -1288,7 +1294,8 @@ class TestJp2k_write(fixtures.MetadataBase):
                                          False, False, False])
             self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-            self.assertIsNone(codestream.segment[2].precinct_size)
+            self.assertEqual(codestream.segment[2].precinct_size,
+                             ((32768, 32768)))
 
             # 18 SOP segments.
             nsops = [x.nsop for x in codestream.segment
@@ -1322,7 +1329,8 @@ class TestJp2k_write(fixtures.MetadataBase):
                                          False, False, True])
             self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-            self.assertIsNone(codestream.segment[2].precinct_size)
+            self.assertEqual(codestream.segment[2].precinct_size,
+                             ((32768, 32768)))
 
             # 18 EPH segments.
             ephs = [x for x in codestream.segment if x.marker_id == 'EPH']
@@ -1359,7 +1367,8 @@ class TestJp2k_write(fixtures.MetadataBase):
                                          False, False, False])
             self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-            self.assertIsNone(codestream.segment[2].precinct_size)
+            self.assertEqual(codestream.segment[2].precinct_size,
+                             ((32768, 32768)))
 
     def test_NR_ENC_Cevennes1_bmp_9_encode(self):
         """
@@ -1388,7 +1397,8 @@ class TestJp2k_write(fixtures.MetadataBase):
                                          False, False, False])
             self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-            self.assertIsNone(codestream.segment[2].precinct_size)
+            self.assertEqual(codestream.segment[2].precinct_size,
+                             ((32768, 32768)))
 
     def test_NR_ENC_Cevennes2_ppm_10_encode(self):
         """
@@ -1417,7 +1427,8 @@ class TestJp2k_write(fixtures.MetadataBase):
                                          False, False, False])
             self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-            self.assertIsNone(codestream.segment[2].precinct_size)
+            self.assertEqual(codestream.segment[2].precinct_size,
+                             ((32768, 32768)))
 
     def test_NR_ENC_Rome_bmp_11_encode(self):
         """
@@ -1488,7 +1499,8 @@ class TestJp2k_write(fixtures.MetadataBase):
                                          False, False, False])
             self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-            self.assertIsNone(codestream.segment[2].precinct_size)
+            self.assertEqual(codestream.segment[2].precinct_size,
+                             ((32768, 32768)))
 
     def test_NR_ENC_random_issue_0005_tif_12_encode(self):
         """
@@ -1524,7 +1536,8 @@ class TestJp2k_write(fixtures.MetadataBase):
                                          False, False, False])
             self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-            self.assertIsNone(codestream.segment[2].precinct_size)
+            self.assertEqual(codestream.segment[2].precinct_size,
+                             ((32768, 32768)))
 
     def test_NR_ENC_issue141_rawl_23_encode(self):
         """

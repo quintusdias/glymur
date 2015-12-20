@@ -495,7 +495,7 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)
                 Number of resolutions:  2
                 Code block height, width:  (64 x 64)
                 Wavelet transform:  5-3 reversible
-                Precinct size:  default, 2^15 x 2^15
+                Precinct size:  (32768, 32768)
                 Code block context:
                     Selective arithmetic coding bypass:  False
                     Reset context probabilities on coding pass boundaries:  False
@@ -561,7 +561,7 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)
                 Number of resolutions:  2
                 Code block height, width:  (64 x 64)
                 Wavelet transform:  5-3 reversible
-                Precinct size:  default, 2^15 x 2^15
+                Precinct size:  (32768, 32768)
                 Code block context:
                     Selective arithmetic coding bypass:  False
                     Reset context probabilities on coding pass boundaries:  False
@@ -745,7 +745,7 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)
             Number of resolutions:  2
             Code block height, width:  (64 x 64)
             Wavelet transform:  5-3 reversible
-            Precinct size:  default, 2^15 x 2^15
+            Precinct size:  (32768, 32768)
             Code block context:
                 Selective arithmetic coding bypass:  False
                 Reset context probabilities on coding pass boundaries:  False
@@ -770,6 +770,7 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)
             Number of resolutions:  2
             Code block height, width:  (64 x 64)
             Wavelet transform:  5-3 reversible
+            Precinct size:  (32768, 32768)
             Code block context:
                 Selective arithmetic coding bypass:  False
                 Reset context probabilities on coding pass boundaries:  False
@@ -788,6 +789,7 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)
             Number of resolutions:  2
             Code block height, width:  (64 x 64)
             Wavelet transform:  5-3 reversible
+            Precinct size:  (32768, 32768)
             Code block context:
                 Selective arithmetic coding bypass:  False
                 Reset context probabilities on coding pass boundaries:  False
@@ -858,7 +860,7 @@ issue_186_progression_order = """COD marker segment @ (174, 12)
         Number of resolutions:  6
         Code block height, width:  (32 x 32)
         Wavelet transform:  9-7 irreversible
-        Precinct size:  default, 2^15 x 2^15
+        Precinct size:  (32768, 32768)
         Code block context:
             Selective arithmetic coding bypass:  False
             Reset context probabilities on coding pass boundaries:  False
@@ -919,7 +921,7 @@ goodstuff_codestream_header = r"""Codestream:
             Number of resolutions:  6
             Code block height, width:  (64 x 64)
             Wavelet transform:  5-3 reversible
-            Precinct size:  default, 2^15 x 2^15
+            Precinct size:  (32768, 32768)
             Code block context:
                 Selective arithmetic coding bypass:  False
                 Reset context probabilities on coding pass boundaries:  False
@@ -954,7 +956,7 @@ goodstuff_with_full_header = r"""Codestream:
             Number of resolutions:  6
             Code block height, width:  (64 x 64)
             Wavelet transform:  5-3 reversible
-            Precinct size:  default, 2^15 x 2^15
+            Precinct size:  (32768, 32768)
             Code block context:
                 Selective arithmetic coding bypass:  False
                 Reset context probabilities on coding pass boundaries:  False
@@ -977,6 +979,7 @@ goodstuff_with_full_header = r"""Codestream:
             Number of resolutions:  6
             Code block height, width:  (64 x 64)
             Wavelet transform:  5-3 reversible
+            Precinct size:  (32768, 32768)
             Code block context:
                 Selective arithmetic coding bypass:  False
                 Reset context probabilities on coding pass boundaries:  False
@@ -995,6 +998,7 @@ goodstuff_with_full_header = r"""Codestream:
             Number of resolutions:  6
             Code block height, width:  (64 x 64)
             Wavelet transform:  5-3 reversible
+            Precinct size:  (32768, 32768)
             Code block context:
                 Selective arithmetic coding bypass:  False
                 Reset context probabilities on coding pass boundaries:  False
@@ -1043,3 +1047,24 @@ geotiff_uuid = """UUID Box (uuid) @ (149, 523)
 geotiff_uuid_without_gdal = """UUID Box (uuid) @ (149, 523)
     UUID:  b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03 (GeoTIFF)
     UUID Data:  OrderedDict([('ImageWidth', 1), ('ImageLength', 1), ('BitsPerSample', 8), ('Compression', 1), ('PhotometricInterpretation', 1), ('StripOffsets', 8), ('SamplesPerPixel', 1), ('RowsPerStrip', 1), ('StripByteCounts', 1), ('PlanarConfiguration', 1), ('ModelPixelScale', (0.25, 0.25, 0.0)), ('ModelTiePoint', (0.0, 0.0, 0.0, -2523306.125, -268608.875, 0.0)), ('GeoKeyDirectory', (1, 1, 0, 18, 1024, 0, 1, 1, 1025, 0, 1, 1, 1026, 34737, 21, 0, 2048, 0, 1, 32767, 2049, 34737, 9, 21, 2050, 0, 1, 32767, 2054, 0, 1, 9102, 2056, 0, 1, 32767, 2057, 34736, 1, 4, 2058, 34736, 1, 5, 3072, 0, 1, 32767, 3074, 0, 1, 32767, 3075, 0, 1, 17, 3076, 0, 1, 9001, 3082, 34736, 1, 2, 3083, 34736, 1, 3, 3088, 34736, 1, 1, 3089, 34736, 1, 0)), ('GeoDoubleParams', (0.0, 180.0, 0.0, 0.0, 3396190.0, 3396190.0)), ('GeoAsciiParams', 'Equirectangular MARS|GCS_MARS|')])"""
+
+multiple_precinct_size = """COD marker segment @ (51, 18)
+    Coding style:
+        Entropy coder, with partitions
+        SOP marker segments:  False
+        EPH marker segments:  False
+    Coding style parameters:
+        Progression order:  LRCP
+        Number of layers:  1
+        Multiple component transformation usage:  reversible
+        Number of resolutions:  6
+        Code block height, width:  (64 x 64)
+        Wavelet transform:  5-3 reversible
+        Precinct size:  ((16, 16), (32, 32), (64, 64), (128, 128), (128, 128), (128, 128))
+        Code block context:
+            Selective arithmetic coding bypass:  False
+            Reset context probabilities on coding pass boundaries:  False
+            Termination on each coding pass:  False
+            Vertically stripe causal context:  False
+            Predictable termination:  False
+            Segmentation symbols:  False"""
