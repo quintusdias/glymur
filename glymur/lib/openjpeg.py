@@ -4,7 +4,7 @@
 import ctypes
 import sys
 
-from .config import glymur_config
+from ..config import glymur_config
 
 _, OPENJPEG = glymur_config()
 

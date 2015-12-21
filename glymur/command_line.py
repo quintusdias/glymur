@@ -5,7 +5,7 @@ import argparse
 import os
 import warnings
 
-from . import Jp2k, set_printoptions, set_parseoptions, lib
+from . import Jp2k, set_option, lib
 
 
 def main():
@@ -37,18 +37,18 @@ def main():
 
     args = parser.parse_args()
     if args.noxml:
-        set_printoptions(xml=False)
+        set_option('print.xml', False)
     if args.short:
-        set_printoptions(short=True)
+        set_option('print.short', True)
 
     codestream_level = args.codestream[0]
     if codestream_level not in [0, 1, 2]:
         raise ValueError("Invalid level of codestream information specified.")
 
     if codestream_level == 0:
-        set_printoptions(codestream=False)
+        set_option('print.codestream', False)
     elif codestream_level == 2:
-        set_parseoptions(full_codestream=True)
+        set_option('parse.full_codestream', True)
 
     filename = args.filename
 

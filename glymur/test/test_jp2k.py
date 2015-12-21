@@ -39,7 +39,7 @@ from . import fixtures
 
 
 def docTearDown(doctest_obj):
-    glymur.set_parseoptions(full_codestream=False)
+    glymur.set_option('parse.full_codestream', False)
 
 
 # Doc tests should be run as well.
@@ -2054,10 +2054,10 @@ class TestParsing(unittest.TestCase):
     def setUp(self):
         self.jp2file = glymur.data.nemo()
         # Reset parseoptions for every test.
-        glymur.set_parseoptions(full_codestream=False)
+        glymur.set_option('parse.full_codestream', False)
 
     def tearDown(self):
-        glymur.set_parseoptions(full_codestream=False)
+        glymur.set_option('parse.full_codestream', False)
 
     def test_main_header(self):
         """verify that the main header isn't loaded during normal parsing"""

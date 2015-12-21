@@ -1,7 +1,5 @@
 """Core definitions to be shared amongst the modules.
 """
-import collections
-
 
 # Progression order
 LRCP = 0
@@ -17,7 +15,8 @@ CINEMA4K = 4
 RSIZ = {
     'STD': STD,
     'CINEMA2K': CINEMA2K,
-    'CINEMA4K': CINEMA4K}
+    'CINEMA4K': CINEMA4K
+}
 
 OFF = 0
 CINEMA2K_24 = 1
@@ -83,7 +82,8 @@ PROGRESSION_ORDER = {
     'RLCP': RLCP,
     'RPCL': RPCL,
     'PCRL': PCRL,
-    'CPRL': CPRL}
+    'CPRL': CPRL
+}
 
 WAVELET_XFORM_9X7_IRREVERSIBLE = 0
 WAVELET_XFORM_5X3_REVERSIBLE = 1

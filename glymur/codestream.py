@@ -1631,7 +1631,7 @@ class SIZsegment(Segment):
         try:
             profile = _CAPABILITIES_DISPLAY[self.rsiz]
         except KeyError:
-            profile = '{rsiz} (invalid)'.format(rsiz=self.rsiz)            
+            profile = '{rsiz} (invalid)'.format(rsiz=self.rsiz)
         msg = msg.format(profile=profile,
                          height=self.ysiz, width=self.xsiz,
                          goy=self.yosiz, gox=self.xosiz,

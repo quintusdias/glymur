@@ -7,7 +7,7 @@ import re
 import sys
 import textwrap
 
-from .config import glymur_config
+from ..config import glymur_config
 
 OPENJP2, OPENJPEG = glymur_config()
 

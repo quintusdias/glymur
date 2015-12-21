@@ -189,9 +189,10 @@ object, i.e. ::
 That's fairly overwhelming, and perhaps lost in the flood of information
 is the fact that the codestream metadata is limited to just what's in the
 main codestream header.  You can suppress the codestream and XML details by
-making use of the :py:meth:`set_printoptions` function::
+making use of the :py:meth:`set_option` function::
 
-    >>> glymur.set_printoptions(codestream=False, xml=False)
+    >>> glymur.set_option('print.codestream', False)
+    >>> glymur.set_option(print.xml', False)
     >>> print(jp2)
     File:  nemo.jp2
     JPEG 2000 Signature Box (jP  ) @ (0, 12)
@@ -257,7 +258,7 @@ codestream provided by `goodstuff.j2k` (a file consisting of a raw codestream),
 you can use the :py:meth:`wrap` method with no box argument: ::
 
     >>> import glymur
-    >>> glymur.set_printoptions(codestream=False)
+    >>> glymur.set_option('print.codestream', False)
     >>> jp2file = glymur.data.goodstuff()
     >>> j2k = glymur.Jp2k(jp2file)
     >>> jp2 = j2k.wrap("newfile.jp2")
@@ -567,7 +568,7 @@ We can then append the XMP in a UUID box just as before::
     >>> xmp_uuid = uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
     >>> box = glymur.jp2box.UUIDBox(xmp_uuid, str(xmp).encode())
     >>> jp2.append(box)
-    >>> glymur.set_printoptions(codestream=False)
+    >>> glymur.set_option('print.codestream', False)
     >>> print(jp2)
     File:  goodstuff.jp2
     JPEG 2000 Signature Box (jP  ) @ (0, 12)

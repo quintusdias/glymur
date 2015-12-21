@@ -34,8 +34,12 @@ class TestSuite(unittest.TestCase):
         self.j2kfile = glymur.data.goodstuff()
         self.jpxfile = glymur.data.jpxfile()
 
+        # Reset printoptions for every test.
+        glymur.reset_option('all')
+
     def tearDown(self):
         warnings.resetwarnings()
+        glymur.reset_option('all')
 
     def test_unrecognized_marker(self):
         """
@@ -766,10 +770,10 @@ class TestSuite(unittest.TestCase):
 
                 ofile.seek(0)
 
-            glymur.set_parseoptions(full_codestream=False)
+            glymur.set_option('parse.full_codestream', False)
             Jp2k(ofile.name)
 
-            glymur.set_parseoptions(full_codestream=True)
+            glymur.set_option('parse.full_codestream', True)
             if sys.hexversion < 0x03000000:
                 with warnings.catch_warnings(record=True) as w:
                     Jp2k(ofile.name)
@@ -994,6 +998,28 @@ class TestSuite(unittest.TestCase):
             else:
                 with self.assertWarns(UserWarning):
                     Jp2k(tfile.name, data=data, cinema2k=24)
+
+    def test_deprecated_set_get_printoptions(self):
+        """
+        Verify deprecated get_printoptions and set_printoptions
+        """
+        with self.assertWarns(DeprecationWarning):
+            glymur.set_printoptions(short=True)
+        with self.assertWarns(DeprecationWarning):
+            glymur.set_printoptions(xml=True)
+        with self.assertWarns(DeprecationWarning):
+            glymur.set_printoptions(codestream=True)
+        with self.assertWarns(DeprecationWarning):
+            glymur.get_printoptions()
+
+    def test_deprecated_set_get_parseoption(self):
+        """
+        Verify deprecated get_parseoptions and set_parseoptions
+        """
+        with self.assertWarns(DeprecationWarning):
+            glymur.set_parseoptions(full_codestream=True)
+        with self.assertWarns(DeprecationWarning):
+            glymur.get_parseoptions()
 
 
 @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)

@@ -27,7 +27,7 @@ from .fixtures import WINDOWS_TMP_FILE_MSG, MetadataBase
 
 
 def docTearDown(doctest_obj):
-    glymur.set_parseoptions(full_codestream=False)
+    glymur.set_option('parse.full_codestream', False)
 
 
 def load_tests(loader, tests, ignore):
