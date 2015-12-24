@@ -10,19 +10,6 @@ import warnings
 import lxml.etree as ET
 
 
-def xml(raw_data):
-    """
-    XMP data to be parsed as XML.
-    """
-    if sys.hexversion < 0x03000000:
-        elt = ET.fromstring(raw_data)
-    else:
-        text = raw_data.decode('utf-8')
-        elt = ET.fromstring(text)
-
-    return ET.ElementTree(elt)
-
-
 def tiff_header(read_buffer):
     """
     Interpret the uuid raw data as a tiff header.

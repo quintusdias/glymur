@@ -3500,7 +3500,9 @@ class UUIDBox(Jp2kBox):
         Private function for parsing UUID payloads if possible.
         """
         if self.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
-            self.data = _uuid_io.xml(self.raw_data)
+            txt = self.raw_data.decode('utf-8')
+            elt = ET.fromstring(txt)
+            self.data = ET.ElementTree(elt)
         elif self.uuid == _GEOTIFF_UUID:
             self.data = _uuid_io.tiff_header(self.raw_data)
         elif self.uuid == _EXIF_UUID:
