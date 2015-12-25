@@ -21,4 +21,5 @@ def runtests():
 
 
 __all__ = [__version__, Jp2k, get_printoptions, set_printoptions,
-           get_parseoptions, set_parseoptions, data, runtests]
+           get_parseoptions, set_parseoptions, get_option, set_option,
+           reset_option, data, runtests]

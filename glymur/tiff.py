@@ -10,7 +10,7 @@ import warnings
 import lxml.etree as ET
 
 
-def tiff_header(read_buffer):
+def _tiff_header(read_buffer):
     """
     Interpret the uuid raw data as a tiff header.
     """
