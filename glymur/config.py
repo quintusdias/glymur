@@ -171,12 +171,13 @@ def get_configdir():
     return os.path.join(os.path.expanduser('~'), 'glymur')
 
 
-_options = {
+_original_options = {
     'parse.full_codestream': False,
     'print.xml': True,
     'print.codestream': True,
     'print.short': False,
 }
+_options = copy.deepcopy(_original_options)
 
 
 def set_option(key, value):
@@ -193,7 +194,7 @@ def set_option(key, value):
     ----------
     key : str
         Name of a single option.
-    value : 
+    value :
         New value of option.
 
     Option Descriptions
@@ -248,6 +249,7 @@ def get_option(key):
     """
     return _options[key]
 
+
 def reset_option(key):
     """
     Reset one or more options to their default value.
@@ -266,15 +268,14 @@ def reset_option(key):
     key : str
         Name of a single option.
     """
+    global _options
     if key == 'all':
-        set_option('parse.full_codestream', False)
-        set_option('print.xml', True)
-        set_option('print.codestream', True)
-        set_option('print.short', False)
+        _options = copy.deepcopy(_original_options)
     else:
         if key not in _options.keys():
             raise KeyError('{key} not valid.'.format(key=key))
         _options[key] = _original_options[key]
+
 
 def set_parseoptions(full_codestream=True):
     """Set parsing options.

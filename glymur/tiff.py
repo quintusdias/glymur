@@ -7,8 +7,6 @@ import struct
 import sys
 import warnings
 
-import lxml.etree as ET
-
 
 def _tiff_header(read_buffer):
     """

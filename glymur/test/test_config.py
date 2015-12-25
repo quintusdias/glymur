@@ -66,12 +66,27 @@ def chdir(dirname=None):
     finally:
         os.chdir(curdir)
 
+class TestSuiteOptions(unittest.TestCase):
+
+    def setUp(self):
+        glymur.reset_option('all')
+
+    def tearDown(self):
+        glymur.reset_option('all')
+
+    def test_reset_single_option(self):
+        """
+        Verify a single option can be reset.
+        """
+        glymur.set_option('print.codestream', True)
+        glymur.reset_option('print.codestream')
+        self.assertTrue(glymur.get_option('print.codestream'))
 
 @unittest.skipIf(sys.hexversion < 0x03020000,
                  "TemporaryDirectory introduced in 3.2.")
 @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Needs openjp2 library first before these tests make sense.")
-class TestSuite(unittest.TestCase):
+class TestSuiteConfigFile(unittest.TestCase):
     """Test suite for configuration file operation."""
 
     @classmethod
