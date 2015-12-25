@@ -3568,7 +3568,6 @@ class UUIDBox(Jp2kBox):
         """
         Print geotiff information.  Shamelessly ripped off from gdalinfo.py
         """
-        lst = []
         in_mem_name = '/vsimem/geo.tif'
         gdal.FileFromMemBuffer(in_mem_name, self.raw_data)
         gtif = gdal.Open(in_mem_name)
@@ -3576,29 +3575,31 @@ class UUIDBox(Jp2kBox):
         # Report projection
         proj_ref = gtif.GetProjectionRef()
         sref = osr.SpatialReference()
-        lst.append("Coordinate System =")
         if sref.ImportFromWkt(proj_ref) == gdal.CE_None:
             psz_pretty_wkt = sref.ExportToPrettyWkt(False)
         else:
             psz_pretty_wkt = proj_ref
-        lst.append(self._indent(psz_pretty_wkt))
 
         # report geotransform
         geo_transform = gtif.GetGeoTransform(can_return_null=True)
         if geo_transform is not None:
 
             if geo_transform[2] == 0.0 and geo_transform[4] == 0.0:
-                fmt = ('Origin = ({:.15f},{:.15f})\n'
-                       'Pixel Size = ({:.15f},{:.15f})')
-                txt = fmt.format(geo_transform[0], geo_transform[3],
-                                 geo_transform[1], geo_transform[5])
+                fmt = ('Origin = ({origin_x:.15f},{origin_y:.15f})\n'
+                       'Pixel Size = ({pixel_x:.15f},{pixel_y:.15f})')
+                geotransform_str = fmt.format(origin_x=geo_transform[0],
+                                              origin_y=geo_transform[3],
+                                              pixel_x=geo_transform[1],
+                                              pixel_y=geo_transform[5])
             else:
                 fmt = ('GeoTransform =   '
                        '{:.16g}, {:16g}, {:.16g}, {:.16g}, {:16g} {:16g}')
-                txt = fmt.format(geo_transform[0], geo_transform[1],
-                                 geo_transform[2], geo_transform[3],
-                                 geo_transform[4], geo_transform[5])
-            lst.append(txt)
+                geotransform_str = fmt.format(geo_transform[0],
+                                              geo_transform[1],
+                                              geo_transform[2],
+                                              geo_transform[3],
+                                              geo_transform[4],
+                                              geo_transform[5])
 
         # setup projected to lat/long transform if appropriate
         if proj_ref is not None and len(proj_ref) > 0:
@@ -3615,29 +3616,33 @@ class UUIDBox(Jp2kBox):
                     hTransform = None
 
         # report corners
-        lst.append("Corner Coordinates:")
-        txt = self.GDALInfoReportCorner(gtif, hTransform, "Upper Left", 0, 0)
-        lst.append(txt)
-
-        txt = self.GDALInfoReportCorner(gtif, hTransform, "Lower Left",
-                                        0, gtif.RasterYSize)
-        lst.append(txt)
-
-        txt = self.GDALInfoReportCorner(gtif, hTransform, "Upper Right",
-                                        gtif.RasterXSize, 0)
-        lst.append(txt)
-
-        txt = self.GDALInfoReportCorner(gtif, hTransform, "Lower Right",
-                                        gtif.RasterXSize, gtif.RasterYSize)
-        lst.append(txt)
-
-        txt = self.GDALInfoReportCorner(gtif, hTransform, "Center",
-                                        gtif.RasterXSize / 2.0,
-                                        gtif.RasterYSize / 2.0)
-        lst.append(txt)
+        uleft = self.GDALInfoReportCorner(gtif, hTransform, "Upper Left", 0, 0)
+        lleft = self.GDALInfoReportCorner(gtif, hTransform, "Lower Left",
+                                          0, gtif.RasterYSize)
+        uright = self.GDALInfoReportCorner(gtif, hTransform, "Upper Right",
+                                           gtif.RasterXSize, 0)
+        lright = self.GDALInfoReportCorner(gtif, hTransform, "Lower Right",
+                                           gtif.RasterXSize, gtif.RasterYSize)
+        center = self.GDALInfoReportCorner(gtif, hTransform, "Center",
+                                           gtif.RasterXSize / 2.0,
+                                           gtif.RasterYSize / 2.0)
 
         gdal.Unlink(in_mem_name)
-        return '\n'.join(lst)
+
+        fmt = ("Coordinate System =\n"
+               "{coordinate_system}\n"
+               "{geotransform}\n"
+               "Corner Coordinates:\n"
+               "{upper_left}\n"
+               "{lower_left}\n"
+               "{upper_right}\n"
+               "{lower_right}\n"
+               "{center}")
+        msg = fmt.format(coordinate_system=self._indent(psz_pretty_wkt),
+                         geotransform=geotransform_str,
+                         upper_left=uleft, upper_right=uright,
+                         lower_left=lleft, lower_right=lright, center=center)
+        return msg
 
     def GDALInfoReportCorner(self, hDataset, hTransform, corner_name, x, y):
         line = '{:<11s} '.format(corner_name)
