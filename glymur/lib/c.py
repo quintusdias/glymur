@@ -4,9 +4,13 @@ Wraps fopen and fclose functions in libc.
 
 import ctypes
 import ctypes.util
+import sys
 
-LIBC_PATH = ctypes.util.find_library('c')
-C_LIB = ctypes.CDLL(LIBC_PATH)
+if sys.platform == 'win32':
+    C_LIB = ctypes.windll.msvcrt
+else:
+    LIBC_PATH = ctypes.util.find_library('c')
+    C_LIB = ctypes.CDLL(LIBC_PATH)
 
 
 def fopen(filename, mode):
