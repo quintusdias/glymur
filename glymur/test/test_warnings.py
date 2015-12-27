@@ -41,6 +41,7 @@ class TestSuite(unittest.TestCase):
         warnings.resetwarnings()
         glymur.reset_option('all')
 
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_unrecognized_marker(self):
         """
         EOC marker is not retrieved because there is an unrecognized marker
@@ -259,6 +260,7 @@ class TestSuite(unittest.TestCase):
             with self.assertWarns(UserWarning):
                 glymur.codestream.Codestream._parse_siz_segment(fp)
 
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_read_past_end_of_box(self):
         """
         should warn if reading past end of a box
@@ -344,6 +346,7 @@ class TestSuite(unittest.TestCase):
             with self.assertWarns(UserWarning):
                 glymur.codestream.CODsegment(*pargs, length=12, offset=174)
 
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_file_pointer_badly_positioned(self):
         """
         The file pointer should not be positioned beyond end of superbox
@@ -376,6 +379,7 @@ class TestSuite(unittest.TestCase):
                 with self.assertWarns(UserWarning):
                     Jp2k(ofile.name)
 
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_NR_DEC_issue188_beach_64bitsbox_jp2_41_decode(self):
         """
         Has an 'XML ' box instead of 'xml '.  Yes that is pedantic, but it
@@ -475,6 +479,7 @@ class TestSuite(unittest.TestCase):
             with self.assertWarns(UserWarning):
                 jp2._validate()
 
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_unknown_superbox(self):
         """Verify warning for an unknown superbox."""
 
@@ -579,6 +584,7 @@ class TestSuite(unittest.TestCase):
             glymur.jp2box.PaletteBox(palette, bits_per_component=bps,
                                      signed=signed)
 
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_invalid_xml_box(self):
         """
         Should be able to recover info from xml box with bad xml.
@@ -662,6 +668,7 @@ class TestSuite(unittest.TestCase):
             with self.assertWarns(UserWarning):
                 glymur.jp2box.FragmentListBox(offset, length, reference)
 
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_unrecognized_exif_tag(self):
         """Verify warning in case of unrecognized tag."""
         with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
@@ -687,6 +694,7 @@ class TestSuite(unittest.TestCase):
             with self.assertWarns(UserWarning):
                 glymur.Jp2k(tfile.name)
 
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_bad_tag_datatype(self):
         """Only certain datatypes are allowable"""
         with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
@@ -712,6 +720,7 @@ class TestSuite(unittest.TestCase):
             with self.assertWarns(UserWarning):
                 glymur.Jp2k(tfile.name)
 
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_bad_tiff_header_byte_order_indication(self):
         """Only b'II' and b'MM' are allowed."""
         with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
@@ -743,6 +752,7 @@ class TestSuite(unittest.TestCase):
         with self.assertWarns(DeprecationWarning):
             Jp2k(self.jp2file).read()
 
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_bad_rsiz(self):
         """
         Should not warn if RSIZ when parsing is turned off.
@@ -782,6 +792,7 @@ class TestSuite(unittest.TestCase):
                 with self.assertWarns(UserWarning):
                     Jp2k(ofile.name)
 
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_undecodeable_box_id(self):
         """
         Should warn in case of undecodeable box ID but not error out.
@@ -814,6 +825,7 @@ class TestSuite(unittest.TestCase):
             self.assertEqual(box_ids, ['jP  ', 'ftyp', 'jp2h', 'uuid', 'jp2c',
                                        bad_box_id])
 
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_bad_ftyp_brand(self):
         """
         Should warn in case of bad ftyp brand.
@@ -847,6 +859,7 @@ class TestSuite(unittest.TestCase):
                 with self.assertWarns(UserWarning):
                     Jp2k(ofile.name)
 
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_bad_ftyp_compatibility_list_item(self):
         """
         Should warn in case of bad ftyp compatibility list item
@@ -874,6 +887,7 @@ class TestSuite(unittest.TestCase):
                 with self.assertWarns(UserWarning):
                     Jp2k(ofile.name)
 
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_invalid_approximation(self):
         """
         Should warn in case of invalid approximation.
@@ -909,6 +923,7 @@ class TestSuite(unittest.TestCase):
                 with self.assertWarns(UserWarning):
                     Jp2k(ofile.name)
 
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_invalid_colorspace(self):
         """
         Should warn in case of invalid colorspace.
@@ -944,6 +959,7 @@ class TestSuite(unittest.TestCase):
                 with self.assertWarns(UserWarning):
                     Jp2k(ofile.name)
 
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_stupid_windows_eol_at_end(self):
         """
         Garbage characters at the end of the file.
@@ -1040,6 +1056,7 @@ class TestConfigurationWarnings(unittest.TestCase):
         imp.reload(glymur)
         imp.reload(glymur.lib.openjp2)
 
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_xdg_env_config_file_is_bad(self):
         """A non-existant library location should be rejected."""
         with tempfile.TemporaryDirectory() as tdir:

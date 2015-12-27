@@ -28,7 +28,7 @@ from glymur.core import COLOR, RED, GREEN, BLUE, RESTRICTED_ICC_PROFILE
 from glymur.codestream import SIZsegment
 from glymur.version import openjpeg_version
 
-from .fixtures import HAS_PYTHON_XMP_TOOLKIT
+from .fixtures import HAS_PYTHON_XMP_TOOLKIT, WINDOWS_TMP_FILE_MSG
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 if HAS_PYTHON_XMP_TOOLKIT:
@@ -274,6 +274,7 @@ class TestJp2k(unittest.TestCase):
                 rgb_from_idx[r, c] = palette[idx[r, c]]
         np.testing.assert_array_equal(rgb, rgb_from_idx)
 
+    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_no_cxform_cmap(self):
         """
         Reorder the components.
@@ -310,6 +311,7 @@ class TestJp2k(unittest.TestCase):
 
         np.testing.assert_array_equal(rgb, bgr[:, :, [2, 1, 0]])
 
+    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_bad_tile_part_pointer(self):
         """
         Should error out if we don't read a valid marker.
@@ -334,6 +336,7 @@ class TestJp2k(unittest.TestCase):
             with self.assertRaises(IOError):
                 j.get_codestream(header_only=False)
 
+    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_read_differing_subsamples(self):
         """
         should error out with read used on differently subsampled images
@@ -850,6 +853,7 @@ class TestJp2k(unittest.TestCase):
                 with self.assertRaises(exp_error):
                     glymur.Jp2k(self.jp2file).read_bands()
 
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_zero_length_reserved_segment(self):
         """
         Zero length reserved segment.  Unsure if this is invalid or not.
@@ -881,6 +885,7 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(cstr.segment[11].marker_id, '0xff00')
             self.assertEqual(cstr.segment[11].length, 0)
 
+    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_psot_is_zero(self):
         """
         Psot=0 in SOT is perfectly legal.  Issue #78.
