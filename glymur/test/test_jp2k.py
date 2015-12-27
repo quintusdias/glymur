@@ -1161,6 +1161,7 @@ class TestJp2k_write(fixtures.MetadataBase):
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size, ((32768, 32768)))
 
+    @unittest.skipIf(fixtures.low_memory_linux_machine(), "Low memory machine")
     def test_NR_ENC_Bretagne1_ppm_3_encode(self):
         """
         Original file tested was
