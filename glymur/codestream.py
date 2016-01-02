@@ -83,10 +83,11 @@ class Codestream(object):
        15444-1:2004 - Information technology -- JPEG 2000 image coding system:
        Core coding system
     """
-    _csiz = -1
-
-    # Do we parse the tile part bit stream or not?
-    _parse_tpart_flag = False
+    # These two begin their lives as class attributes that usually become
+    # instance attributes.  The reason why isn't important for users; it's only
+    # important for testing purposes.
+    _csiz = -1  # Number of components in the image.
+    _parse_tpart_flag = False  # Do we parse the bit stream for SOP / EPH?
 
     def __init__(self, fptr, length, header_only=True):
         """
@@ -161,13 +162,6 @@ class Codestream(object):
 
         self.offset = fptr.tell()
         self.length = length
-
-        # Number of components.  Must be kept track of for the processing of
-        # many segments.
-        # self._csiz = -1
-
-        # Do we parse the tile part bit stream or not?
-        # self._parse_tpart_flag = False
 
         self.segment = []
 
@@ -753,7 +747,7 @@ class Codestream(object):
         segment = SIZsegment(**kwargs)
 
         # Need to keep track of the number of components from SIZ for
-        # other markers.
+        # other segments.
         cls._csiz = Csiz
 
         return segment
