@@ -300,7 +300,7 @@ class Codestream(object):
             # Add indentation
             strs = [('    ' + x + '\n') for x in strs.split('\n')]
             msg += ''.join(strs)
-        return msg
+        return msg.rstrip()
 
     def _parse_cme_segment(self, fptr):
         """Parse the CME marker segment.

@@ -1227,6 +1227,9 @@ class DataReferenceBox(Jp2kBox):
         if config.get_option('print.short') is True:
             return title
 
+        if len(self.DR) == 0:
+            return title
+
         lst = []
         for box in self.DR:
             lst.append(str(box))
@@ -3060,7 +3063,7 @@ class XMLBox(Jp2kBox):
         if self.xml is not None:
             body = ET.tostring(self.xml,
                                encoding='utf-8',
-                               pretty_print=True).decode('utf-8')
+                               pretty_print=True).decode('utf-8').rstrip()
         else:
             body = 'None'
         body = self._indent(body)

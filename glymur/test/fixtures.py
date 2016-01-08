@@ -10,7 +10,6 @@ import unittest
 import warnings
 
 import numpy as np
-import six
 
 import glymur
 
