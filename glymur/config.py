@@ -64,18 +64,29 @@ def load_openjpeg_library(libname):
     if path is not None:
         return load_library_handle(libname, path)
 
+    # Attempt to locate in the usual location in Anaconda.
+    if 'Anaconda' in sys.version:
+        if platform.system() == 'Linux':
+            suffix = '.so'
+            basedir = os.path.dirname(os.path.dirname(sys.executable))
+            lib = os.path.join(basedir, 'lib', 'lib' + libname + suffix)
+        elif platform.system() == 'Darwin':
+            suffix = '.dylib'
+            basedir = os.path.dirname(os.path.dirname(sys.executable))
+            lib = os.path.join(basedir, 'lib', 'lib' + libname + suffix)
+        elif platform.system() == 'Windows':
+            suffix = '.dll'
+            basedir = os.path.dirname(sys.executable)
+            lib = os.path.join(basedir, 'Library', 'bin', libname + suffix)
+
+        if os.path.exists(lib):
+            path = lib
+
     # No location specified by the configuration file, must look for it
     # elsewhere.  Here we attempt to locate it in the usual system-dependent
     # locations.  This works in Anaconda/windows, but not Anaconda/{mac,linux}.
-    path = find_library(libname)
-
-    # Attempt to locate in the usual location in Anaconda/{mac/linux}.
-    if path is None and 'Anaconda' in sys.version:
-        suffix = '.so' if platform.system() == 'Linux' else '.dylib'
-        basedir = os.path.dirname(os.path.dirname(sys.executable))
-        lib = os.path.join(basedir, 'lib', 'lib' + libname + suffix)
-        if os.path.exists(lib):
-            path = lib
+    if path is None:
+        path = find_library(libname)
 
     # Last gasp.
     if path is None:
