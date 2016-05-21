@@ -97,6 +97,7 @@ def load_openjpeg_library(libname):
         if path is not None and not os.path.exists(path):
             # the mac/win default location does not exist.
             return None
+
     return load_library_handle(libname, path)
 
 

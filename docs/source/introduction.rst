@@ -21,12 +21,15 @@ For more information about OpenJPEG, please consult http://www.openjpeg.org.
 
 Glymur Installation
 ===================
-You can retrieve the source for Glymur from either of
+Before installing Glymur, you should have OpenJPEG installed, so consult your
+packager manager for this.  If you use Anaconda, please look consult 
+https://anaconda.org/conda-forge/openjpeg.
+
+The source for Glymur can be retrieved from either of
 
     * https://pypi.python.org/pypi/Glymur/ (stable releases)
-    * http://github.com/quintusdias/glymur (bleeding edge, use the devel branch)
 
-but you should also be able to install Glymur via pip ::
+and you should be able to install Glymur via pip ::
 
     $ pip install glymur
 

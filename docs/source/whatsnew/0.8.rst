@@ -2,6 +2,11 @@
 Changes in glymur 0.8
 =====================
 
+Changes in 0.8.4
+=================
+    * Add Anaconda awareness to config module, favor over system package manager.
+    * Fix issue locating openjpeg dll on windows.
+
 Changes in 0.8.3
 =================
 
