@@ -11,7 +11,11 @@ License:  MIT
 import sys
 from distutils.version import LooseVersion
 
-import lxml.etree
+try:
+    import lxml.etree
+except ImportError:
+    pass
+
 import numpy as np
 
 from .lib import openjpeg as opj, openjp2 as opj2
@@ -49,12 +53,20 @@ OPENJPEG      {openjpeg}
 Python        {python}
 sys.platform  {platform}
 sys.maxsize   {maxsize}
-lxml          {elxml}
 numpy         {numpy}
-""".format(glymur=version,
-           openjpeg=openjpeg_version,
-           python=sys.version,
-           platform=sys.platform,
-           maxsize=sys.maxsize,
-           elxml=lxml.etree.__version__,
-           numpy=np.__version__)
+"""
+
+kwargs = {
+    'glymur': version,
+    'openjpeg': openjpeg_version,
+    'python': sys.version,
+    'platform': sys.platform,
+    'maxsize': sys.maxsize,
+    'numpy': np.__version__,
+}
+
+if 'lxml' in sys.modules.keys():
+    info += "lxml          {elxml}\n"
+    kwargs['elxml'] = lxml.etree.__version__
+
+info = info.format(**kwargs)

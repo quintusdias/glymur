@@ -12,7 +12,11 @@ from uuid import UUID
 import unittest
 import warnings
 
-import lxml.etree as ET
+try:
+    import lxml.etree as ET
+except ImportError:
+    import xml.etree.ElementTree as ET
+
 import numpy as np
 
 import glymur
@@ -1175,6 +1179,7 @@ class TestRepr(MetadataBase):
         self.assertEqual(newbox.bits_per_component, (8, 8, 16))
         self.assertEqual(newbox.signed, (True, False, True))
 
+    @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
     def test_xml_box(self):
         """Verify xml box repr."""
         elt = ET.fromstring('<?xml version="1.0"?><data>0</data>')

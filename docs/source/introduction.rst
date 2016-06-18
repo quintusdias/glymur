@@ -14,7 +14,11 @@ In regards to metadata, most JP2 boxes are properly interpreted.
 Certain optional JP2 boxes can also be written, including XML boxes and
 XMP UUIDs.  There is incomplete support for reading JPX metadata.
 
-Glymur works on Python versions 2.7, 3.3, 3.4, and 3.5.  If you have Python
+Glymur will look to use **lxml** when processing boxes with XML content, but can
+fall back upon the standard library's **ElementTree** if **lxml** is not
+available.
+
+Glymur works on Python versions 2.7, 3.4, and 3.5.  If you have Python
 2.6, you should use the 0.5 series of Glymur.
 
 For more information about OpenJPEG, please consult http://www.openjpeg.org.

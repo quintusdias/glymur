@@ -8,7 +8,10 @@ import tempfile
 import unittest
 import warnings
 
-import lxml.etree as ET
+try:
+    import lxml.etree as ET
+except ImportError:
+    import xml.etree.ElementTree as ET
 
 import glymur
 from glymur import Jp2k

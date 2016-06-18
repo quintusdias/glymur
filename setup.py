@@ -21,7 +21,7 @@ kwargs = {'name': 'Glymur',
           'license': 'MIT',
           'test_suite': 'glymur.test'}
 
-install_requires = ['numpy>=1.7.0', 'lxml>=3.0.2']
+install_requires = ['numpy>=1.7.0']
 if sys.hexversion < 0x03030000:
     install_requires.append('contextlib2>=0.4')
     install_requires.append('mock>=0.7.2')
@@ -29,7 +29,6 @@ kwargs['install_requires'] = install_requires
 
 clssfrs = ["Programming Language :: Python",
            "Programming Language :: Python :: 2.7",
-           "Programming Language :: Python :: 3.3",
            "Programming Language :: Python :: 3.4",
            "Programming Language :: Python :: 3.5",
            "Programming Language :: Python :: Implementation :: CPython",
