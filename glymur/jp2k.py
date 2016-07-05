@@ -889,9 +889,9 @@ class Jp2k(Jp2kBox):
         offset = box.offset
         if offset == -1:
             if self.box[1].brand == 'jpx ':
-                msg = "The codestream box must have its offset and "
-                msg += "length attributes fully specified if the file "
-                msg += "type brand is JPX."
+                msg = ("The codestream box must have its offset and length "
+                       "attributes fully specified if the file type brand is "
+                       "JPX.")
                 raise IOError(msg)
 
             # Find the first codestream in the file.

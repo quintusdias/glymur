@@ -5,8 +5,11 @@ Advanced Installation Instructions
 ''''''''''''''''''''''
 Glymur Configuration
 ''''''''''''''''''''''
+If you installed OpenJPEG via conda, you don't have to do any
+configuration, as glymur can find the OpenJPEG library within the
+Anaconda directory structure.
 
-The default glymur installation process relies upon OpenJPEG being
+Otherwise, the default glymur installation process relies upon OpenJPEG being
 properly installed on your system as a shared library. If you have
 OpenJPEG installed through your system’s package manager on linux, Cygwin,
 or if you use MacPorts on the mac, you are probably already set to
@@ -25,7 +28,7 @@ module, i.e. ::
     openjp2: /somewhere/lib/libopenjp2.so
 
 This assumes, of course, that you've installed OpenJPEG into
-/opt/openjpeg on a linux system.  The location of the configuration file
+/somewhere/lib on a linux system.  The location of the configuration file
 can vary as well.  If you use either linux or mac, the path
 to the configuration file would normally be ::
 
@@ -50,27 +53,3 @@ installed in a non-standard place, i.e. ::
 
 Once again, you should not have to bother with a configuration file if you use
 mac, linux, or Cygwin, and OpenJPEG is provided by your package manager.
-
-'''''''
-Testing
-'''''''
-
-It is not necessary, but you may wish to download OpenJPEG's test
-data for the purpose of configuring and running OpenJPEG's test
-suite.  Check their instructions on how to do that.  You can then
-set the **OPJ_DATA_ROOT** environment variable for the purpose of
-pointing Glymur to OpenJPEG's test suite. ::
-
-    $ git clone https://github.com/uclouvain/openjpeg-data.git
-    $ export OPJ_DATA_ROOT=`pwd`/openjpeg-data
-
-In order to run the tests, you can either run them from within
-python as follows ... ::
-
-    >>> import glymur
-    >>> glymur.runtests()
-
-or from the command line. ::
-
-    $ cd /to/where/you/unpacked/glymur
-    $ python -m unittest discover

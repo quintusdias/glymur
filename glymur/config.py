@@ -64,8 +64,8 @@ def load_openjpeg_library(libname):
     if path is not None:
         return load_library_handle(libname, path)
 
-    # Attempt to locate in the usual location in Anaconda.
-    if 'Anaconda' in sys.version:
+    if 'Anaconda' in sys.version or 'Continuum Analytics, Inc.' in sys.version:
+        # If Anaconda, then openjpeg may have been installed via conda.
         if platform.system() == 'Linux':
             suffix = '.so'
             basedir = os.path.dirname(os.path.dirname(sys.executable))
@@ -82,22 +82,22 @@ def load_openjpeg_library(libname):
         if os.path.exists(lib):
             path = lib
 
-    # No location specified by the configuration file, must look for it
-    # elsewhere.  Here we attempt to locate it in the usual system-dependent
-    # locations.  This works in Anaconda/windows, but not Anaconda/{mac,linux}.
     if path is None:
+        # Can ctypes find it in the default system locations?
         path = find_library(libname)
 
-    # Last gasp.
     if path is None:
         if platform.system() == 'Darwin':
+            # OpenJPEG may have been installed via MacPorts
             path = _macports_default_location[libname]
         elif platform.system == 'Windows':
+            # OpenJPEG may have been installed via windows installer
             path = _windows_default_location[libname]
 
         if path is not None and not os.path.exists(path):
             # the mac/win default location does not exist.
             return None
+
     return load_library_handle(libname, path)
 
 

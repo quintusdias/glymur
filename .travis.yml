@@ -26,12 +26,6 @@ matrix:
       - NUMPY_VERSION=1.10.2
       - LXML_VERSION=3.5.0
       - OPJ_LIB=2
-    - python: 3.3
-      env:
-      - JOB_NAME: "33"
-      - NUMPY_VERSION=1.7.2
-      - LXML_VERSION=3.0.2
-      - OPJ_LIB=2
     - python: 3.4
       env:
       - JOB_NAME: "34"

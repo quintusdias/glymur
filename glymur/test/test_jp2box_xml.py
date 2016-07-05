@@ -1,14 +1,18 @@
 # -*- coding:  utf-8 -*-
 """
-Test suite specifically targeting JP2 box layout.
+Test suite specifically targeting the JP2 XML box layout.
 """
 import os
+import pkg_resources as pkg
 import struct
 import tempfile
 import unittest
 import warnings
 
-import lxml.etree as ET
+try:
+    import lxml.etree as ET
+except ImportError:
+    import xml.etree.ElementTree as ET
 
 import glymur
 from glymur import Jp2k
@@ -121,8 +125,10 @@ class TestXML(unittest.TestCase):
             self.assertEqual(neighbor.attrib['name'], 'Malaysia')
             self.assertEqual(neighbor.attrib['direction'], 'N')
 
-    def test_utf8_xml(self):
-        """Should be able to write/read an XMLBox with utf-8 encoding."""
+    def test_utf8_xml_from_xml_file(self):
+        """
+        XMLBox from an XML file with encoding declaration.
+        """
         # 'Россия' is 'Russia' in Cyrillic, not that it matters.
         xml = u"""<?xml version="1.0" encoding="utf-8"?>
         <country>Россия</country>"""
@@ -142,6 +148,47 @@ class TestXML(unittest.TestCase):
                 self.assertEqual(box_xml_str,
                                  u'<country>Россия</country>')
 
+    def test_xml_box_with_encoding_declaration(self):
+        """
+        Read JP2 file with XML box having encoding declaration
+        """
+        with tempfile.NamedTemporaryFile(suffix=".jp2") as ofile:
+            with open(self.jp2file, mode='rb') as ifile:
+                ofile.write(ifile.read())
+
+            # Write the additional box.
+            write_buffer = struct.pack('>I4s', int(1777), b'xml ')
+            ofile.write(write_buffer)
+
+            relpath = os.path.join('data', 'encoding_declaration.xml')
+            xml_file_path = pkg.resource_filename(__name__, relpath)
+
+            with open(xml_file_path, 'rb') as xfptr:
+                ofile.write(xfptr.read())
+
+            ofile.flush()
+            ofile.seek(0)
+
+            jp2 = glymur.Jp2k(ofile.name)
+
+            # Verify that XML box
+            self.assertEqual(jp2.box[-1].box_id, 'xml ')
+
+            namespaces = {'gml': "http://www.opengis.net/gml"}
+            elts = jp2.box[-1].xml.xpath('//gml:rangeSet',
+                                         namespaces=namespaces)
+            self.assertEqual(len(elts), 1)
+            
+            # Write it back out, read it back in. 
+            with tempfile.NamedTemporaryFile(suffix=".jp2") as ofile2:
+                jp2_2 = jp2.wrap(ofile2.name, boxes=jp2.box)
+
+                # Verify that XML box
+                self.assertEqual(jp2_2.box[-1].box_id, 'xml ')
+                elts = jp2_2.box[-1].xml.xpath('//gml:rangeSet',
+                                             namespaces=namespaces)
+
+                self.assertEqual(len(elts), 1)
 
 class TestJp2kBadXmlFile(unittest.TestCase):
     """Test suite for bad XML box situations"""

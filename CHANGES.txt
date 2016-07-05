@@ -1,3 +1,7 @@
+May 21, 2016 - v0.8.4
+    Add Anaconda awareness to config module, favor over system package manager.
+    Fix issue locating openjpeg dll on windows.
+
 September 30, 2015 - v0.8.3
     Add gdal interpretation of UUIDBox with GeoTIFF Box specification for
     JPEG2000 metadata.

@@ -18,7 +18,10 @@ else:
     from unittest.mock import patch
     from io import StringIO
 
-import lxml.etree
+try:
+    import lxml.etree
+except ImportError:
+    import xml.etree.ElementTree as ET
 
 from . import fixtures
 
@@ -54,8 +57,12 @@ class TestSuite(unittest.TestCase):
 
             # The data should be an XMP packet, which gets interpreted as
             # an ElementTree.
-            self.assertTrue(isinstance(jp2.box[-1].data,
-                                       lxml.etree._ElementTree))
+            if 'lxml' in sys.modules.keys():
+                self.assertTrue(isinstance(jp2.box[-1].data,
+                                           lxml.etree._ElementTree))
+            else:
+                self.assertTrue(isinstance(jp2.box[-1].data,
+                                           ET.ElementTree))
 
     def test_big_endian_exif(self):
         """Verify read of Exif big-endian IFD."""

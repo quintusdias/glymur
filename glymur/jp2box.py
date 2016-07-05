@@ -24,7 +24,11 @@ import textwrap
 from uuid import UUID
 import warnings
 
-import lxml.etree as ET
+try:
+    import lxml.etree as ET
+except ImportError:
+    import xml.etree.ElementTree as ET
+
 import numpy as np
 try:
     import gdal
@@ -3072,9 +3076,14 @@ class XMLBox(Jp2kBox):
         return text
 
     def write(self, fptr):
-        """Write an XML box to file.
         """
-        read_buffer = ET.tostring(self.xml, encoding='utf-8')
+        Write an XML box to file.
+        """
+        try:
+            read_buffer = ET.tostring(self.xml, encoding='utf-8')
+        except AttributeError:
+            # xml.etree.ElementTree.Element case
+            read_buffer = ET.tostring(self.xml.getroot(), encoding='utf-8')
         fptr.write(struct.pack('>I4s', len(read_buffer) + 8, b'xml '))
         fptr.write(read_buffer)
 
@@ -3135,14 +3144,10 @@ class XMLBox(Jp2kBox):
 
         # Strip out any trailing nulls, as they can foul up XML parsing.
         text = text.rstrip(chr(0))
-
-        # Remove any encoding declaration.
-        if text.startswith('<?xml version="1.0" encoding="UTF-8"?>'):
-            text = text[38:]
+        bfptr = io.BytesIO(text.encode('utf-8'))
 
         try:
-            elt = ET.fromstring(text)
-            xml = ET.ElementTree(elt)
+            xml = ET.parse(bfptr)
         except ET.ParseError as err:
             msg = ('A problem was encountered while parsing an XML box:'
                    '\n\n\t"{reason}"\n\nNo XML was retrieved.')
@@ -3543,10 +3548,16 @@ class UUIDBox(Jp2kBox):
 
         elif self.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
             line = 'UUID Data:\n{0}'
-            xmlstring = ET.tostring(self.data,
-                                    encoding='utf-8',
-                                    pretty_print=True).decode('utf-8').rstrip()
-            text = line.format(xmlstring)
+            kwargs = {'encoding': 'utf-8', 'pretty_print': True}
+            try:
+                b = ET.tostring(self.data, **kwargs)
+            except TypeError:
+                # No lxml, have to fall back onto stdlib xml.etree.ElementTree
+                # Cannot do pretty print.
+                kwargs.pop('pretty_print')
+                b = ET.tostring(self.data.getroot(), **kwargs)
+            s = b.decode('utf-8').strip()
+            text = line.format(s)
             lst.append(text)
         elif self.uuid.bytes == b'JpgTiffExif->JP2':
             text = 'UUID Data:  {0}'.format(str(self.data))

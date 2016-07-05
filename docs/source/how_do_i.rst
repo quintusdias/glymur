@@ -339,7 +339,7 @@ is currently limited to XML and UUID boxes.
 
 OpenJPEG can create JP2 files with more than 3 components (use version 2.1.0+ 
 for this), but by default, any extra components are not described
-as such.  In order to do so, we need to rewrap such an image in a
+as such.  In order to do so, we need to re-wrap such an image in a
 set of boxes that includes a channel definition box.
 
 This example is based on SciPy example code found at 
