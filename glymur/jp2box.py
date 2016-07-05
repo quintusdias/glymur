@@ -3144,14 +3144,10 @@ class XMLBox(Jp2kBox):
 
         # Strip out any trailing nulls, as they can foul up XML parsing.
         text = text.rstrip(chr(0))
-
-        # Remove any encoding declaration.
-        if text.startswith('<?xml version="1.0" encoding="UTF-8"?>'):
-            text = text[38:]
+        bfptr = io.BytesIO(text.encode('utf-8'))
 
         try:
-            elt = ET.fromstring(text)
-            xml = ET.ElementTree(elt)
+            xml = ET.parse(bfptr)
         except ET.ParseError as err:
             msg = ('A problem was encountered while parsing an XML box:'
                    '\n\n\t"{reason}"\n\nNo XML was retrieved.')
