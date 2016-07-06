@@ -174,9 +174,16 @@ class TestXML(unittest.TestCase):
             # Verify that XML box
             self.assertEqual(jp2.box[-1].box_id, 'xml ')
 
-            namespaces = {'gml': "http://www.opengis.net/gml"}
-            elts = jp2.box[-1].xml.xpath('//gml:rangeSet',
-                                         namespaces=namespaces)
+            namespaces = {
+                'gml': "http://www.opengis.net/gml",
+                'xsi': "http://www.w3.org/2001/XMLSchema-instance",
+            }
+            try:
+                elts = jp2.box[-1].xml.xpath('//gml:rangeSet',
+                                             namespaces=namespaces)
+            except AttributeError:
+                name = './/{{{ns}}}rangeSet'.format(ns=namespaces['gml'])
+                elts = jp2.box[-1].xml.find(name)
             self.assertEqual(len(elts), 1)
             
             # Write it back out, read it back in. 
@@ -185,8 +192,13 @@ class TestXML(unittest.TestCase):
 
                 # Verify that XML box
                 self.assertEqual(jp2_2.box[-1].box_id, 'xml ')
-                elts = jp2_2.box[-1].xml.xpath('//gml:rangeSet',
-                                             namespaces=namespaces)
+
+                try:
+                    elts = jp2.box[-1].xml.xpath('//gml:rangeSet',
+                                                 namespaces=namespaces)
+                except AttributeError:
+                    name = './/{{{ns}}}rangeSet'.format(ns=namespaces['gml'])
+                    elts = jp2.box[-1].xml.find(name)
 
                 self.assertEqual(len(elts), 1)
 
