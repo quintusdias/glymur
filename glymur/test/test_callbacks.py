@@ -73,7 +73,17 @@ class TestCallbacks(unittest.TestCase):
             jp2[::2, ::2]
             actual = fake_out.getvalue().strip()
 
-        if glymur.version.openjpeg_version[0] == '2':
+        if glymur.version.openjpeg_version == '2.1.1':
+            lines = ['[INFO] Start to read j2k main header (0).',
+                     '[INFO] Main header has been correctly decoded.',
+                     '[INFO] Setting decoding area to 0,0,480,800',
+                     '[INFO] Header of tile 1 / 1 has been read.',
+                     '[INFO] Tile 1/1 has been decoded.',
+                     '[INFO] Image data has been updated with tile 1.']
+
+            expected = '\n'.join(lines)
+            self.assertEqual(actual, expected)
+        elif glymur.version.openjpeg_version[0] == '2':
             lines = ['[INFO] Start to read j2k main header (0).',
                      '[INFO] Main header has been correctly decoded.',
                      '[INFO] Setting decoding area to 0,0,480,800',
