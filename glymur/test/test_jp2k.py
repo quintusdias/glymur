@@ -28,12 +28,8 @@ from glymur.core import COLOR, RED, GREEN, BLUE, RESTRICTED_ICC_PROFILE
 from glymur.codestream import SIZsegment
 from glymur.version import openjpeg_version
 
-from .fixtures import HAS_PYTHON_XMP_TOOLKIT, WINDOWS_TMP_FILE_MSG
+from .fixtures import WINDOWS_TMP_FILE_MSG
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
-
-if HAS_PYTHON_XMP_TOOLKIT:
-    import libxmp
-    from libxmp import XMPMeta
 
 from . import fixtures
 
@@ -798,8 +794,6 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(ET.tostring(jp2k.box[3].xml.getroot()),
                              b'<test>this is a test</test>')
 
-    @unittest.skipIf(not HAS_PYTHON_XMP_TOOLKIT,
-                     "Requires Python XMP Toolkit >= 2.0")
     def test_xmp_attribute(self):
         """Verify the XMP packet in the shipping example file can be read."""
         j = Jp2k(self.jp2file)
@@ -810,13 +804,6 @@ class TestJp2k(unittest.TestCase):
         name = '{0}RDF/{0}Description/{1}CreatorTool'.format(ns0, ns1)
         elt = xmp.find(name)
         self.assertEqual(elt.text, 'Google')
-
-        xmp = XMPMeta()
-        xmp.parse_from_str(j.box[3].raw_data.decode('utf-8'),
-                           xmpmeta_wrap=False)
-        creator_tool = xmp.get_property(libxmp.consts.XMP_NS_XMP,
-                                        'CreatorTool')
-        self.assertEqual(creator_tool, 'Google')
 
     @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
     @unittest.skipIf(re.match(r'''(1|2.0.0)''',

@@ -172,20 +172,6 @@ class MetadataBase(unittest.TestCase):
             self.assertIsNone(actual.icc_profile)
 
 
-# The Python XMP Toolkit may be used for XMP UUIDs, but only if available and
-# if the version is at least 2.0.0.
-try:
-    import libxmp
-    if hasattr(libxmp, 'version') and re.match(r'''[2-9].\d*.\d*''',
-                                               libxmp.version.VERSION):
-        from libxmp import XMPMeta
-        HAS_PYTHON_XMP_TOOLKIT = True
-    else:
-        HAS_PYTHON_XMP_TOOLKIT = False
-except:
-    HAS_PYTHON_XMP_TOOLKIT = False
-
-
 NO_READ_BACKEND_MSG = "Matplotlib with the PIL backend must be available in "
 NO_READ_BACKEND_MSG += "order to run the tests in this suite."
 
