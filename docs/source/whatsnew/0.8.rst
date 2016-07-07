@@ -2,6 +2,12 @@
 Changes in glymur 0.8
 =====================
 
+Changes in 0.8.5
+=================
+    * Relax dependency on lxml; use stdlib ElementTree if necessary.
+    * Fix bug in XML box processing with certain XML declarations.
+    * Qualified on OPENJPEG v0.2.1.
+
 Changes in 0.8.4
 =================
     * Add Anaconda awareness to config module, favor over system package manager.
