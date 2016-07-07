@@ -1,3 +1,8 @@
+July 07, 2016 - v0.8.5
+    Relax dependency on lxml; use stdlib ElementTree if necessary.
+    Fix XML box processing bug on certain XML declarations.
+    Qualified on OPENJPEG v0.2.1.
+
 May 21, 2016 - v0.8.4
     Add Anaconda awareness to config module, favor over system package manager.
     Fix issue locating openjpeg dll on windows.
