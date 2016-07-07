@@ -11,49 +11,48 @@ matrix:
     - python: 2.7
       env:
       - JOB_NAME: "27_openjpeg15"
-      - NUMPY_VERSION=1.10.2
-      - LXML_VERSION=3.5.0
       - OPJ_LIB=1
+      - JOB_TAG=_opj15
     - python: 2.7
       env:
       - JOB_NAME: "27_np172"
-      - NUMPY_VERSION=1.7.2
-      - LXML_VERSION=3.0.2
       - OPJ_LIB=2
+      - JOB_TAG=_oldest
     - python: 2.7
       env:
       - JOB_NAME: "27_latest"
-      - NUMPY_VERSION=1.10.2
-      - LXML_VERSION=3.5.0
       - OPJ_LIB=2
+      - JOB_TAG=_latest
     - python: 3.4
       env:
       - JOB_NAME: "34"
-      - NUMPY_VERSION=1.9.2
-      - LXML_VERSION=3.4.4
       - OPJ_LIB=2
+      - JOB_TAG=_latest
     - python: 3.5
       env:
       - JOB_NAME: "35_latest"
-      - NUMPY_VERSION=1.10.2
-      - LXML_VERSION=3.5.0
       - OPJ_LIB=2
+      - JOB_TAG=_latest
+    - python: 3.5
+      env:
+      - JOB_NAME: "35_no_lxml"
+      - OPJ_LIB=2
+      - JOB_TAG=_no_lxml
     - python: 3.5
       env:
       - JOB_NAME: "no_openjpeg"
-      - NUMPY_VERSION=1.10.2
-      - LXML_VERSION=3.5.0
       - OPJ_LIB=0
+      - JOB_TAG=_no_opj
     
 before_install:
-  - sh -c "if test $OPJ_LIB -eq 1; then bash travis-install-openjpeg15.sh; elif test $OPJ_LIB -eq 2; then bash travis-install-openjpeg.sh; fi"
+  - sh -c "if test $OPJ_LIB -eq 1; then bash ci/install_openjpeg15.sh; elif test $OPJ_LIB -eq 2; then bash ci/install_openjpeg.sh; fi"
   - sudo apt-get update -qq
   - sudo apt-get install libgdal1h
   - sudo apt-get install libgdal1-dev
 
 # command to install dependencies
 install:
-    - pip install numpy==$NUMPY_VERSION lxml==$LXML_VERSION GDAL==1.10.0 six contextlib2
+    - sh -c "bash ci/run_pip.sh"
 
 # command to run tests
 script:
