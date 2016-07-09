@@ -1038,11 +1038,11 @@ class TestPrinting(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             glymur.set_printoptions(short=True)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(jp2)
-            actual = fake_out.getvalue().strip()
-            # Get rid of the file line, that's kind of volatile.
-            actual = '\n'.join(actual.splitlines()[1:])
+
+        actual = str(jp2)
+
+        # Get rid of leading "File" line, as that is volatile.
+        actual = '\n'.join(actual.splitlines()[1:])
 
         expected = fixtures.nemo_dump_short
         self.assertEqual(actual, expected)
@@ -1060,11 +1060,11 @@ class TestPrinting(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             glymur.set_printoptions(xml=False)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(jp2)
-            actual = fake_out.getvalue().strip()
-            # Get rid of the file line, that's kind of volatile.
-            actual = '\n'.join(actual.splitlines()[1:])
+
+        actual = str(jp2)
+
+        # Get rid of leading "File" line, as that is volatile.
+        actual = '\n'.join(actual.splitlines()[1:])
 
         # shave off the XML and non-main-header segments
         expected = fixtures.nemo_dump_no_xml
@@ -1081,11 +1081,11 @@ class TestPrinting(unittest.TestCase):
         """
         jp2 = Jp2k(self.jp2file)
         glymur.set_option('print.xml', False)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(jp2)
-            actual = fake_out.getvalue().strip()
-            # Get rid of the file line, that's kind of volatile.
-            actual = '\n'.join(actual.splitlines()[1:])
+
+        actual = str(jp2)
+
+        # Get rid of the file line, that's kind of volatile.
+        actual = '\n'.join(actual.splitlines()[1:])
 
         # shave off the XML and non-main-header segments
         expected = fixtures.nemo_dump_no_xml
@@ -1103,11 +1103,11 @@ class TestPrinting(unittest.TestCase):
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             glymur.set_printoptions(codestream=False)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(jp2)
-            actual = fake_out.getvalue().strip()
-            # Get rid of the file line, that's kind of volatile.
-            actual = '\n'.join(actual.splitlines()[1:])
+
+        actual = str(jp2)
+
+        # Get rid of the file line, that's kind of volatile.
+        actual = '\n'.join(actual.splitlines()[1:])
 
         expected = fixtures.nemo_dump_no_codestream
         self.assertEqual(actual, expected)

@@ -90,15 +90,15 @@ class Jp2kBox(object):
         self.box = []
 
     def __repr__(self):
-        msg = "glymur.jp2box.Jp2kBox(box_id='{id}', offset={offset}, "
-        msg += "length={length}, longname='{longname}')"
+        msg = ("glymur.jp2box.Jp2kBox(box_id='{id}', offset={offset}, "
+               "length={length}, longname='{longname}')")
         msg = msg.format(id=self.box_id, offset=self.offset,
                          length=self.length, longname=self.longname)
         return msg
 
     def __str__(self):
-        msg = "{0} Box ({1})".format(self.longname, self.box_id)
-        msg += " @ ({0}, {1})".format(self.offset, self.length)
+        msg = "{0} Box ({1}) @ ({2}, {3})"
+        msg = msg.format(self.longname, self.box_id, self.offset, self.length)
         return msg
 
     def _dispatch_validation_error(self, msg, writing=False):
@@ -370,17 +370,17 @@ class ColourSpecificationBox(Jp2kBox):
 
         if self.icc_profile is None:
             if self.colorspace not in [SRGB, GREYSCALE, YCC]:
-                msg = "Colorspace should correspond to one of SRGB, "
-                msg += "GREYSCALE, or YCC."
+                msg = ("Colorspace should correspond to one of SRGB, "
+                       "GREYSCALE, or YCC.")
                 self._dispatch_validation_error(msg, writing=True)
 
         self._validate(writing=True)
 
     def __repr__(self):
-        msg = "glymur.jp2box.ColourSpecificationBox("
-        msg += "method={0}, precedence={1}, approximation={2}, "
-        msg += "colorspace={3}, "
-        msg += "icc_profile={4})"
+        msg = ("glymur.jp2box.ColourSpecificationBox("
+               "method={0}, precedence={1}, approximation={2}, "
+               "colorspace={3}, "
+               "icc_profile={4})")
         msg = msg.format(self.method,
                          self.precedence,
                          self.approximation,
@@ -696,8 +696,8 @@ class ChannelDefinitionBox(Jp2kBox):
         return text
 
     def __repr__(self):
-        msg = "glymur.jp2box.ChannelDefinitionBox("
-        msg += "index={0}, channel_type={1}, association={2})"
+        msg = ("glymur.jp2box.ChannelDefinitionBox("
+               "index={0}, channel_type={1}, association={2})")
         msg = msg.format(self.index, self.channel_type, self.association)
         return msg
 
@@ -851,8 +851,8 @@ class ColourGroupBox(Jp2kBox):
     def _validate(self, writing=True):
         """Verify that the box obeys the specifications."""
         if any([box.box_id != 'colr' for box in self.box]):
-            msg = "Colour group boxes can only contain colour specification "
-            msg += "boxes."
+            msg = ("Colour group boxes can only contain colour specification "
+                   "boxes.")
             self._dispatch_validation_error(msg, writing=writing)
 
     def write(self, fptr):
@@ -986,8 +986,8 @@ class ComponentMappingBox(Jp2kBox):
         self.offset = offset
 
     def __repr__(self):
-        msg = "glymur.jp2box.ComponentMappingBox("
-        msg += "component_index={0}, mapping_type={1}, palette_index={2})"
+        msg = ("glymur.jp2box.ComponentMappingBox("
+               "component_index={0}, mapping_type={1}, palette_index={2})")
         msg = msg.format(self.component_index,
                          self.mapping_type,
                          self.palette_index)
@@ -1333,8 +1333,8 @@ class FileTypeBox(Jp2kBox):
         self._validate(writing=False)
 
     def __repr__(self):
-        msg = "glymur.jp2box.FileTypeBox(brand='{0}', minor_version={1}, "
-        msg += "compatibility_list={2})"
+        msg = ("glymur.jp2box.FileTypeBox(brand='{0}', minor_version={1}, "
+               "compatibility_list={2})")
         msg = msg.format(self.brand, self.minor_version,
                          self.compatibility_list)
         return msg
@@ -1622,8 +1622,8 @@ class FragmentTableBox(Jp2kBox):
         """Self-validate the box before writing."""
         box_ids = [box.box_id for box in self.box]
         if len(box_ids) != 1 or box_ids[0] != 'flst':
-            msg = "Fragment table boxes must have a single fragment list "
-            msg += "box as a child box."
+            msg = ("Fragment table boxes must have a single fragment list "
+                   "box as a child box.")
             self._dispatch_validation_error(msg, writing=writing)
 
     def write(self, fptr):
@@ -1737,12 +1737,12 @@ class ImageHeaderBox(Jp2kBox):
         self.offset = offset
 
     def __repr__(self):
-        msg = "glymur.jp2box.ImageHeaderBox("
-        msg += "{height}, {width}, num_components={num_components}, "
-        msg += "signed={signed}, bits_per_component={bits_per_component}, "
-        msg += "compression={compression}, "
-        msg += "colorspace_unknown={colorspace_unknown}, "
-        msg += "ip_provided={ip_provided})"
+        msg = ("glymur.jp2box.ImageHeaderBox("
+               "{height}, {width}, num_components={num_components}, "
+               "signed={signed}, bits_per_component={bits_per_component}, "
+               "compression={compression}, "
+               "colorspace_unknown={colorspace_unknown}, "
+               "ip_provided={ip_provided})")
         msg = msg.format(height=self.height, width=self.width,
                          num_components=self.num_components,
                          signed=self.signed,
@@ -2146,8 +2146,8 @@ class PaletteBox(Jp2kBox):
         """Verify that the box obeys the specifications."""
         if ((len(self.bits_per_component) != len(self.signed)) or
                 (len(self.signed) != self.palette.shape[1])):
-            msg = "The length of the 'bits_per_component' and the 'signed' "
-            msg += "members must equal the number of columns of the palette."
+            msg = ("The length of the 'bits_per_component' and the 'signed' "
+                   "members must equal the number of columns of the palette.")
             self._dispatch_validation_error(msg, writing=writing)
         bps = self.bits_per_component
         if writing and not all(b == bps[0] for b in bps):
@@ -2157,8 +2157,8 @@ class PaletteBox(Jp2kBox):
             self._dispatch_validation_error(msg, writing=writing)
 
     def __repr__(self):
-        msg = "glymur.jp2box.PaletteBox({0}, bits_per_component={1}, "
-        msg += "signed={2})"
+        msg = ("glymur.jp2box.PaletteBox({0}, bits_per_component={1}, "
+               "signed={2})")
         msg = msg.format(repr(self.palette), self.bits_per_component,
                          self.signed)
         return msg
@@ -2405,9 +2405,9 @@ class ReaderRequirementsBox(Jp2kBox):
         self.offset = offset
 
     def __repr__(self):
-        msg = "glymur.jp2box.ReaderRequirementsBox(fuam={fuam}, dcm={dcm}, "
-        msg += "standard_flag={standard_flag}, standard_mask={standard_mask}, "
-        msg += "vendor_feature={vendor_feature}, vendor_mask={vendor_mask})"
+        msg = ("glymur.jp2box.ReaderRequirementsBox(fuam={fuam}, dcm={dcm}, "
+               "standard_flag={standard_flag}, standard_mask={standard_mask}, "
+               "vendor_feature={vendor_feature}, vendor_mask={vendor_mask})")
         msg = msg.format(fuam=self.fuam,
                          dcm=self.dcm,
                          standard_flag=self.standard_flag,
@@ -3520,8 +3520,8 @@ class UUIDBox(Jp2kBox):
             self.data = self.raw_data
 
     def __repr__(self):
-        msg = "glymur.jp2box.UUIDBox(the_uuid={0}, "
-        msg += "raw_data=<byte array {1} elements>)"
+        msg = ("glymur.jp2box.UUIDBox(the_uuid={0}, "
+               "raw_data=<byte array {1} elements>)")
         return msg.format(repr(self.uuid), len(self.raw_data))
 
     def __str__(self):

@@ -484,8 +484,8 @@ class Jp2k(Jp2kBox):
             cparams.tcp_mct = 1 if self._colorspace == opj2.CLRSPC_SRGB else 0
         else:
             if self._colorspace == opj2.CLRSPC_GRAY:
-                msg = "Cannot specify usage of the multi component transform "
-                msg += "if the colorspace is gray."
+                msg = ("Cannot specify usage of the multi component transform "
+                       "if the colorspace is gray.")
                 raise IOError(msg)
             cparams.tcp_mct = 1 if mct else 0
 
@@ -501,8 +501,8 @@ class Jp2k(Jp2kBox):
         in memory.
         """
         if re.match("0|1.[0-4]", version.openjpeg_version) is not None:
-            msg = "You must have at least version 1.5 of OpenJPEG "
-            msg += "in order to write images."
+            msg = ("You must have at least version 1.5 of OpenJPEG "
+                   "in order to write images.")
             raise RuntimeError(msg)
 
         self._determine_colorspace(**kwargs)
@@ -585,8 +585,7 @@ class Jp2k(Jp2kBox):
         Cannot specify a colorspace with J2K.
         """
         if cparams.codec_fmt == opj2.CODEC_J2K and colorspace is not None:
-            msg = 'Do not specify a colorspace when writing a raw '
-            msg += 'codestream.'
+            msg = 'Do not specify a colorspace when writing a raw codestream.'
             raise IOError(msg)
 
     def _validate_codeblock_size(self, cparams):
@@ -675,8 +674,8 @@ class Jp2k(Jp2kBox):
         Only uint8 and uint16 images are currently supported.
         """
         if img_array.dtype != np.uint8 and img_array.dtype != np.uint16:
-            msg = "Only uint8 and uint16 datatypes are currently supported "
-            msg += "when writing."
+            msg = ("Only uint8 and uint16 datatypes are currently supported "
+                   "when writing.")
             raise RuntimeError(msg)
 
     def _validate_compression_params(self, img_array, cparams, colorspace):
@@ -798,8 +797,8 @@ class Jp2k(Jp2kBox):
         if not ((box.box_id == 'xml ') or
                 (box.box_id == 'uuid' and
                  box.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'))):
-            msg = "Only XML boxes and XMP UUID boxes can currently be "
-            msg += "appended."
+            msg = ("Only XML boxes and XMP UUID boxes can currently be "
+                   "appended.")
             raise IOError(msg)
 
         # Check the last box.  If the length field is zero, then rewrite
@@ -1735,8 +1734,8 @@ class Jp2k(Jp2kBox):
             count = self._collect_box_count(boxes)
             for box_id in count.keys():
                 if box_id not in JP2_IDS:
-                    msg = "The presence of a '{0}' box requires that the file "
-                    msg += "type brand be set to 'jpx '."
+                    msg = ("The presence of a '{0}' box requires that the "
+                           "file type brand be set to 'jpx '.")
                     raise IOError(msg.format(box_id))
 
             self._validate_jp2_colr(boxes)
@@ -1749,8 +1748,8 @@ class Jp2k(Jp2kBox):
         jp2h = lst[0]
         for colr in [box for box in jp2h.box if box.box_id == 'colr']:
             if colr.approximation != 0:
-                msg = "A JP2 colr box cannot have a non-zero approximation "
-                msg += "field."
+                msg = ("A JP2 colr box cannot have a non-zero approximation "
+                       "field.")
                 raise IOError(msg)
 
     def _validate_jpx_box_sequence(self, boxes):
@@ -1766,8 +1765,8 @@ class Jp2k(Jp2kBox):
         # Check for a bad sequence of boxes.
         # 1st two boxes must be 'jP  ' and 'ftyp'
         if boxes[0].box_id != 'jP  ' or boxes[1].box_id != 'ftyp':
-            msg = "The first box must be the signature box and the second "
-            msg += "must be the file type box."
+            msg = ("The first box must be the signature box and the second "
+                   "must be the file type box.")
             raise IOError(msg)
 
         # The compatibility list must contain at a minimum 'jp2 '.
@@ -1784,8 +1783,8 @@ class Jp2k(Jp2kBox):
         jp2c_lst = [idx for (idx, box) in enumerate(boxes)
                     if box.box_id == 'jp2c']
         if len(jp2c_lst) == 0:
-            msg = "A codestream box must be defined in the outermost "
-            msg += "list of boxes."
+            msg = ("A codestream box must be defined in the outermost "
+                   "list of boxes.")
             raise IOError(msg)
 
         jp2c_idx = jp2c_lst[0]
@@ -1807,8 +1806,8 @@ class Jp2k(Jp2kBox):
 
         # 1st jp2 header box must be ihdr
         if jp2h.box[0].box_id != 'ihdr':
-            msg = "The first box in the jp2 header box must be the image "
-            msg += "header box."
+            msg = ("The first box in the jp2 header box must be the image "
+                   "header box.")
             raise IOError(msg)
 
         # colr must be present in jp2 header box.
@@ -1826,21 +1825,21 @@ class Jp2k(Jp2kBox):
         cdef_lst = [j for (j, box) in enumerate(jp2h.box)
                     if box.box_id == 'cdef']
         if len(cdef_lst) > 1:
-            msg = "Only one channel definition box is allowed in the "
-            msg += "JP2 header."
+            msg = ("Only one channel definition box is allowed in the "
+                   "JP2 header.")
             raise IOError(msg)
         elif len(cdef_lst) == 1:
             cdef = jp2h.box[cdef_lst[0]]
             if colr.colorspace == core.SRGB:
                 if any([chan + 1 not in cdef.association or
                         cdef.channel_type[chan] != 0 for chan in [0, 1, 2]]):
-                    msg = "All color channels must be defined in the "
-                    msg += "channel definition box."
+                    msg = ("All color channels must be defined in the "
+                           "channel definition box.")
                     raise IOError(msg)
             elif colr.colorspace == core.GREYSCALE:
                 if 0 not in cdef.channel_type:
-                    msg = "All color channels must be defined in the "
-                    msg += "channel definition box."
+                    msg = ("All color channels must be defined in the "
+                           "channel definition box.")
                     raise IOError(msg)
 
     def _check_jp2h_child_boxes(self, boxes, parent_box_name):
@@ -1900,8 +1899,8 @@ class Jp2k(Jp2kBox):
 
         # If there is one data reference box, then there must also be one ftbl.
         if 'dtbl' in count and 'ftbl' not in count:
-            msg = 'The presence of a data reference box requires the presence '
-            msg += 'of a fragment table box as well.'
+            msg = ('The presence of a data reference box requires the presence '
+                   'of a fragment table box as well.')
             raise IOError(msg)
 
     def _validate_singletons(self, boxes):
@@ -1920,8 +1919,8 @@ class Jp2k(Jp2kBox):
         for box in boxes:
             if box.box_id in JPX_IDS:
                 if brand != 'jpx ':
-                    msg = "A JPX box requires that the file type box brand be "
-                    msg += "'jpx '."
+                    msg = ("A JPX box requires that the file type box brand "
+                           "be 'jpx '.")
                     raise RuntimeError(msg)
             if hasattr(box, 'box') != 0:
                 # Same set of checks on any child boxes.
@@ -1937,8 +1936,8 @@ class Jp2k(Jp2kBox):
         for box in boxes:
             if box.box_id in JPX_IDS:
                 if len(set(['jpx ', 'jpxb']).intersection(jpx_cl)) == 0:
-                    msg = "A JPX box requires that either 'jpx ' or 'jpxb' be "
-                    msg += "present in the ftype compatibility list."
+                    msg = ("A JPX box requires that either 'jpx ' or 'jpxb' "
+                           "be present in the ftype compatibility list.")
                     raise RuntimeError(msg)
             if hasattr(box, 'box') != 0:
                 # Same set of checks on any child boxes.
@@ -1954,8 +1953,8 @@ class Jp2k(Jp2kBox):
                 if hasattr(box, 'box'):
                     for boxi in box.box:
                         if boxi.box_id == 'lbl ':
-                            msg = "A label box cannot be nested inside a "
-                            msg += "{0} box."
+                            msg = ("A label box cannot be nested inside a "
+                                   "{0} box.")
                             msg = msg.format(box.box_id)
                             raise IOError(msg)
                     # Same set of checks on any child boxes.
