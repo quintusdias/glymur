@@ -2,8 +2,10 @@
 """
 Test suite for printing.
 """
+# Standard library imports ...
 from io import BytesIO
 import os
+import pkg_resources as pkg
 import re
 import struct
 import sys
@@ -22,6 +24,7 @@ if sys.hexversion <= 0x03030000:
 else:
     from unittest.mock import patch
 
+# Third party imports ...
 import numpy as np
 
 try:
@@ -42,7 +45,9 @@ from .fixtures import (WINDOWS_TMP_FILE_MSG,
 
 @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
 class TestPrinting(unittest.TestCase):
-    """Tests for verifying how printing works."""
+    """
+    Tests for verifying how printing works.
+    """
     def setUp(self):
         self.jpxfile = glymur.data.jpxfile()
         self.jp2file = glymur.data.nemo()
@@ -53,6 +58,17 @@ class TestPrinting(unittest.TestCase):
 
     def tearDown(self):
         glymur.reset_option('all')
+
+    def test_bad_color_specification(self):
+        """
+        Invalid channel type should not prevent printing.
+        """
+        relfile = os.path.join('data', 'issue392.jp2')
+        file = pkg.resource_filename(__name__, relfile)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            jp2 = Jp2k(file)
+        str(jp2)
 
     def test_palette(self):
         """

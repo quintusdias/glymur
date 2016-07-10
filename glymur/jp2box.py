@@ -475,7 +475,8 @@ class ColourSpecificationBox(Jp2kBox):
             # enumerated colour space
             colorspace, = struct.unpack_from('>I', read_buffer, offset=3)
             if colorspace not in _COLORSPACE_MAP_DISPLAY.keys():
-                msg = "Unrecognized colorspace ({0}).".format(colorspace)
+                msg = "Unrecognized colorspace ({colorspace})."
+                msg = msg.format(colorspace=colorspace)
                 warnings.warn(msg, UserWarning)
             icc_profile = None
 
@@ -679,15 +680,19 @@ class ChannelDefinitionBox(Jp2kBox):
             return title
 
         lst = []
-        for j in range(len(self.association)):
-            color_type_string = _COLOR_TYPE_MAP_DISPLAY[self.channel_type[j]]
-            if self.association[j] == 0:
-                assn = 'whole image'
-            else:
-                assn = str(self.association[j])
-            text = 'Channel {0} ({1}) ==> ({2})'.format(self.index[j],
-                                                        color_type_string,
-                                                        assn)
+        for association, channel_type, index in zip(self.association,
+                                                    self.channel_type,
+                                                    self.index):
+            try:
+                color_type_string = _COLOR_TYPE_MAP_DISPLAY[channel_type]
+            except KeyError:
+                color_type_string = "invalid ({})".format(channel_type)
+
+            assn = str(association) if association else 'whole image'
+            text = 'Channel {index} ({ctype}) ==> ({association})'
+            text = text.format(index=index,
+                               ctype=color_type_string,
+                               association=assn)
             lst.append(text)
 
         text = '\n'.join(lst)
