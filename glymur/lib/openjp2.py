@@ -9,7 +9,8 @@ import textwrap
 
 from ..config import glymur_config
 
-OPENJP2, OPENJPEG = glymur_config()
+OPENJP2, _ = glymur_config()
+
 
 class OpenJPEGLibraryError(IOError):
     """

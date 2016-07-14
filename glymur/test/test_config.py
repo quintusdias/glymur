@@ -66,6 +66,7 @@ def chdir(dirname=None):
     finally:
         os.chdir(curdir)
 
+
 class TestSuiteOptions(unittest.TestCase):
 
     def setUp(self):
@@ -81,6 +82,7 @@ class TestSuiteOptions(unittest.TestCase):
         glymur.set_option('print.codestream', True)
         glymur.reset_option('print.codestream')
         self.assertTrue(glymur.get_option('print.codestream'))
+
 
 @unittest.skipIf(sys.hexversion < 0x03020000,
                  "TemporaryDirectory introduced in 3.2.")

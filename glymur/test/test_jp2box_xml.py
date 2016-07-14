@@ -185,8 +185,8 @@ class TestXML(unittest.TestCase):
                 name = './/{{{ns}}}rangeSet'.format(ns=namespaces['gml'])
                 elts = jp2.box[-1].xml.find(name)
             self.assertEqual(len(elts), 1)
-            
-            # Write it back out, read it back in. 
+
+            # Write it back out, read it back in.
             with tempfile.NamedTemporaryFile(suffix=".jp2") as ofile2:
                 jp2_2 = jp2.wrap(ofile2.name, boxes=jp2.box)
 
@@ -201,6 +201,7 @@ class TestXML(unittest.TestCase):
                     elts = jp2.box[-1].xml.find(name)
 
                 self.assertEqual(len(elts), 1)
+
 
 class TestJp2kBadXmlFile(unittest.TestCase):
     """Test suite for bad XML box situations"""

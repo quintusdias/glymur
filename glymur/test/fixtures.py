@@ -147,21 +147,21 @@ class MetadataBase(unittest.TestCase):
             self.assertEqual(getattr(actual, field), getattr(expected, field))
 
     def verifyImageHeaderBox(self, box1, box2):
-        self.assertEqual(box1.height,             box2.height)
-        self.assertEqual(box1.width,              box2.width)
-        self.assertEqual(box1.num_components,     box2.num_components)
+        self.assertEqual(box1.height, box2.height)
+        self.assertEqual(box1.width, box2.width)
+        self.assertEqual(box1.num_components, box2.num_components)
         self.assertEqual(box1.bits_per_component, box2.bits_per_component)
-        self.assertEqual(box1.signed,             box2.signed)
-        self.assertEqual(box1.compression,        box2.compression)
+        self.assertEqual(box1.signed, box2.signed)
+        self.assertEqual(box1.compression, box2.compression)
         self.assertEqual(box1.colorspace_unknown, box2.colorspace_unknown)
-        self.assertEqual(box1.ip_provided,        box2.ip_provided)
+        self.assertEqual(box1.ip_provided, box2.ip_provided)
 
     def verifyColourSpecificationBox(self, actual, expected):
         """
         Does not currently check icc profiles.
         """
-        self.assertEqual(actual.method,        expected.method)
-        self.assertEqual(actual.precedence,    expected.precedence)
+        self.assertEqual(actual.method, expected.method)
+        self.assertEqual(actual.precedence, expected.precedence)
         self.assertEqual(actual.approximation, expected.approximation)
 
         if expected.colorspace is None:

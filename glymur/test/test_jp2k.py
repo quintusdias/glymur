@@ -482,8 +482,7 @@ class TestJp2k(unittest.TestCase):
         self.assertEqual(c.segment[2].code_block_size, (64.0, 64.0))
         self.assertEqual(c.segment[2].prog_order, 0)
         self.assertEqual(c.segment[2].xform, 1)
-        self.assertEqual(c.segment[2].precinct_size,
-                             ((32768, 32768)))
+        self.assertEqual(c.segment[2].precinct_size, ((32768, 32768)))
 
         self.assertEqual(c.segment[3].marker_id, 'QCD')
         self.assertEqual(c.segment[3].offset, 3296)

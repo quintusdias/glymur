@@ -1167,6 +1167,7 @@ class TestPrinting(unittest.TestCase):
         opt = glymur.get_option('print.codestream')
         self.assertTrue(opt)
 
+
 class TestJp2dump(unittest.TestCase):
     """Tests for verifying how jp2dump console script works."""
     def setUp(self):

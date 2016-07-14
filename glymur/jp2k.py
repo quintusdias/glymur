@@ -6,10 +6,18 @@ Copyright 2013 John Evans
 
 License:  MIT
 """
-
+# Standard library imports...
+from collections import Counter
+import ctypes
+import math
+import os
+import re
+import struct
 import sys
+from uuid import UUID
+import warnings
 
-# Exitstack not found in contextlib in 2.7
+# Standard library, third party imports...
 if sys.hexversion >= 0x03030000:
     from contextlib import ExitStack
     from itertools import filterfalse
@@ -17,17 +25,9 @@ else:
     from contextlib2 import ExitStack
     from itertools import ifilterfalse as filterfalse
 
-from collections import Counter
-import ctypes
-import math
-import os
-import re
-import struct
-from uuid import UUID
-import warnings
-
 import numpy as np
 
+# Local imports...
 from .codestream import Codestream
 from . import core, version
 from .jp2box import (Jp2kBox, JPEG2000SignatureBox, FileTypeBox,
@@ -53,15 +53,15 @@ class Jp2k(Jp2kBox):
     Properties
     ----------
     ignore_pclr_cmap_cdef : bool
-        whether or not to ignore the pclr, cmap, or cdef boxes during any
+        Whether or not to ignore the pclr, cmap, or cdef boxes during any
         color transformation, defaults to False.
     layer : int
-        zero-based number of quality layer to decode
+        Zero-based number of quality layer to decode.
     verbose : bool
-        whether or not to print informational messages produced by the
-        OpenJPEG library, defaults to false
-    codestream : object
-        JP2 or J2K codestream object
+        Whether or not to print informational messages produced by the
+        OpenJPEG library, defaults to false.
+    codestream : glymur.codestream.Codestream
+        JP2 or J2K codestream object.
 
     Examples
     --------
@@ -88,31 +88,31 @@ class Jp2k(Jp2kBox):
 
         Parameters
         ----------
-        filename : str or file
-            the path to JPEG 2000 file
+        filename : str
+            The path to JPEG 2000 file.
         image_data : ndarray, optional
-            image data to be written
-        shape : tuple
-            size of image data, only required when image_data is not provided
+            Image data to be written to file.
+        shape : tuple, optional
+            Size of image data, only required when image_data is not provided.
         cbsize : tuple, optional
-            code block size (DY, DX)
+            Code block size (NROWS, NCOLS)
         cinema2k : int, optional
-            frames per second, either 24 or 48
+            Frames per second, either 24 or 48.
         cinema4k : bool, optional
-            set to True to specify Cinema4K mode, defaults to false
-        colorspace : str, optional
-            either 'rgb' or 'gray'
-        cratios : iterable
-            compression ratios for successive layers
+            Set to True to specify Cinema4K mode, defaults to false.
+        colorspace : {'rgb', 'gray'}
+            The image color space.
+        cratios : iterable, optional
+            Compression ratios for successive layers.
         eph : bool, optional
-            if true, write SOP marker after each header packet
+            If true, write SOP marker after each header packet.
         grid_offset : tuple, optional
-            offset (DY, DX) of the origin of the image in the reference grid
+            Offset (DY, DX) of the origin of the image in the reference grid.
         irreversible : bool, optional
-            if true, use the irreversible DWT 9-7 transform
+            If true, use the irreversible DWT 9-7 transform.
         mct : bool, optional
-            specifies usage of the multi component transform, if not
-            specified, defaults to True if the colorspace is RGB
+            Usage of the multi component transform.  If not specified, defaults
+            to True if the color space is RGB.
         modesw : int, optional
             mode switch
                 1 = BYPASS(LAZY)
@@ -122,23 +122,22 @@ class Jp2k(Jp2kBox):
                 16 = ERTERM(SEGTERM)
                 32 = SEGMARK(SEGSYM)
         numres : int, optional
-            number of resolutions
-        prog : str, optional
-            progression order, one of "LRCP" "RLCP", "RPCL", "PCRL", "CPRL"
+            Number of resolutions.
+        prog : {"LRCP" "RLCP", "RPCL", "PCRL", "CPRL"}
+            Progression order.
         psnr : iterable, optional
-            different PSNR for successive layers
+            Different PSNR for successive layers.
         psizes : list, optional
-            list of precinct sizes, each precinct size tuple is defined in
-            (height x width)
+            List of precinct sizes, each precinct size tuple is defined in
+            (height x width).
         sop : bool, optional
-            if true, write SOP marker before each packet
+            If true, write SOP marker before each packet.
         subsam : tuple, optional
-            subsampling factors (dy, dx)
+            Subsampling factors (dy, dx).
         tilesize : tuple, optional
-            numeric tuple specifying tile size in terms of (numrows, numcols),
-            not (X, Y)
+            Tile size in terms of (numrows, numcols), not (X, Y).
         verbose : bool, optional
-            print informational messages produced by the OpenJPEG library
+            Print informational messages produced by the OpenJPEG library.
         """
         Jp2kBox.__init__(self)
         self.filename = filename
@@ -200,6 +199,15 @@ class Jp2k(Jp2kBox):
 
     @verbose.setter
     def verbose(self, verbose):
+        """Verbosity property.
+
+        If True, print informational messages from the OPENJPEG library.
+
+        Parameters
+        ----------
+        verbose : {True, False}
+            Set to verbose or not.
+        """
         self._verbose = verbose
 
     @property
@@ -323,10 +331,10 @@ class Jp2k(Jp2kBox):
         params : ctypes struct
             Corresponds to compression parameters structure used by the
             library.
-        cinema_mode : str
-            Either 'cinema2k' or 'cinema4k'
-        fps : int
-            Frames per second, should be either 24 or 48.
+        cinema_mode : {'cinema2k', 'cinema4k}
+            Use either Cinema2K or Cinema4K profile.
+        fps : {24, 48}
+            Frames per second.
         """
         if re.match("1.5|2.0.0", version.openjpeg_version) is not None:
             msg = ("Writing Cinema2K or Cinema4K files is not supported with "
@@ -379,9 +387,9 @@ class Jp2k(Jp2kBox):
         Parameters
         ----------
         img_array : ndarray
-            image data to be written to file
+            Image data to be written to file.
         kwargs : dictionary
-            non-image keyword inputs provided to write method
+            Non-image keyword inputs provided to write method.
         """
         other_args = (mct, cratios, psnr, irreversible, cbsize, eph,
                       grid_offset, modesw, numres, prog, psizes, sop, subsam)
@@ -1899,8 +1907,8 @@ class Jp2k(Jp2kBox):
 
         # If there is one data reference box, then there must also be one ftbl.
         if 'dtbl' in count and 'ftbl' not in count:
-            msg = ('The presence of a data reference box requires the presence '
-                   'of a fragment table box as well.')
+            msg = ('The presence of a data reference box requires the '
+                   'presence of a fragment table box as well.')
             raise IOError(msg)
 
     def _validate_singletons(self, boxes):
