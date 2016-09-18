@@ -1,7 +1,11 @@
+September 18, 2016 - v0.8.6rc1
+    State explicit install requirement on setuptools.
+    Fix error printing invalid channel definition box.
+
 July 07, 2016 - v0.8.5
     Relax dependency on lxml; use stdlib ElementTree if necessary.
     Fix XML box processing bug on certain XML declarations.
-    Qualified on OPENJPEG v0.2.1.
+    Qualified on OPENJPEG v2.1.1.
 
 May 21, 2016 - v0.8.4
     Add Anaconda awareness to config module, favor over system package manager.
