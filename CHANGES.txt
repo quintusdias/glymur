@@ -1,4 +1,4 @@
-September 18, 2016 - v0.8.6rc1
+September 19, 2016 - v0.8.6
     State explicit install requirement on setuptools.
     Fix error printing invalid channel definition box.
 
