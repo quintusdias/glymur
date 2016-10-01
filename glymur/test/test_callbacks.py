@@ -1,21 +1,23 @@
 """
 Test suite for openjpeg's callback functions.
 """
+# Standard library imports ...
 import os
 import re
 import sys
 import tempfile
 import warnings
-
 import unittest
-
-if sys.hexversion <= 0x03030000:
-    from mock import patch
-    from StringIO import StringIO
-else:
+if sys.hexversion >= 0x03030000:
     from unittest.mock import patch
     from io import StringIO
+else:
+    from StringIO import StringIO
 
+    # Third party imports ...
+    from mock import patch
+
+# Local imports ...
 import glymur
 
 
@@ -73,7 +75,8 @@ class TestCallbacks(unittest.TestCase):
             jp2[::2, ::2]
             actual = fake_out.getvalue().strip()
 
-        if glymur.version.openjpeg_version == '2.1.1':
+        if glymur.version.openjpeg_version_tuple >= [2, 1, 1]:
+            # Issue correctly fixed in 2.1.1
             lines = ['[INFO] Start to read j2k main header (0).',
                      '[INFO] Main header has been correctly decoded.',
                      '[INFO] Setting decoding area to 0,0,480,800',
@@ -83,7 +86,8 @@ class TestCallbacks(unittest.TestCase):
 
             expected = '\n'.join(lines)
             self.assertEqual(actual, expected)
-        elif glymur.version.openjpeg_version[0] == '2':
+        elif glymur.version.openjpeg_version_tuple >= [2, 0, 0]:
+            # Behavior change in 2.0.0
             lines = ['[INFO] Start to read j2k main header (0).',
                      '[INFO] Main header has been correctly decoded.',
                      '[INFO] Setting decoding area to 0,0,480,800',
