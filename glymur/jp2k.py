@@ -8,23 +8,25 @@ License:  MIT
 """
 # Standard library imports...
 from collections import Counter
+try:
+    from contextlib import ExitStack
+except ImportError:
+    # v2.7, third party library import ...
+    from contextlib2 import ExitStack
 import ctypes
+try:
+    from itertools import filterfalse
+except ImportError:
+    # v2.7
+    from itertools import ifilterfalse as filterfalse
 import math
 import os
 import re
 import struct
-import sys
 from uuid import UUID
 import warnings
 
-# Standard library, third party imports...
-if sys.hexversion >= 0x03030000:
-    from contextlib import ExitStack
-    from itertools import filterfalse
-else:
-    from contextlib2 import ExitStack
-    from itertools import ifilterfalse as filterfalse
-
+# Third party library imports
 import numpy as np
 
 # Local imports...

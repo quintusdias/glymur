@@ -1,5 +1,8 @@
+October 01, 2016 - v0.8.7rc1
+    Qualified on OPENJPEG v2.1.2
+
 September 19, 2016 - v0.8.6
-    State explicit install requirement on setuptools.
+    The install requirement on setuptools is now stated explicitly.
     Fix error printing invalid channel definition box.
 
 July 07, 2016 - v0.8.5

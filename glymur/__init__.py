@@ -1,16 +1,17 @@
 """glymur - read, write, and interrogate JPEG 2000 files
 """
+# Standard library imports ...
 import unittest
 
+# Local imports
 from glymur import version
-__version__ = version.version
-
 from .jp2k import Jp2k
 from .config import (get_option, set_option, reset_option,
                      get_printoptions, set_printoptions,
                      get_parseoptions, set_parseoptions)
-
 from . import data
+
+__version__ = version.version
 
 
 def runtests():

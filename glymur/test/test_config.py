@@ -1,6 +1,7 @@
 """These tests are for edge cases where OPENJPEG does not exist, but
 OPENJP2 may be present in some form or other.
 """
+# Standard library imports ...
 import contextlib
 import ctypes
 import imp
@@ -9,15 +10,15 @@ import sys
 import tempfile
 import unittest
 import warnings
-
-if sys.hexversion <= 0x03030000:
-    from mock import patch
-else:
+try:
     from unittest.mock import patch
+except ImportError:
+    # v2.7, third party library
+    from mock import patch
 
+# Local imports ...
 import glymur
 from glymur import Jp2k
-
 from .fixtures import WINDOWS_TMP_FILE_MSG
 
 
@@ -188,7 +189,7 @@ class TestSuiteConfigFile(unittest.TestCase):
                 with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
                     imp.reload(glymur.lib.openjp2)
                     self.assertIsNone(glymur.lib.openjp2.OPENJP2)
-                    self.assertIsNotNone(glymur.lib.openjp2.OPENJPEG)
+                    self.assertIsNotNone(glymur.lib.openjpeg.OPENJPEG)
 
     @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                      "Needs openjp2 before this test make sense.")

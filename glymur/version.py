@@ -8,24 +8,25 @@ Copyright 2013 John Evans
 License:  MIT
 """
 
+# Standard library imports ...
 import sys
-from distutils.version import LooseVersion
 
+# Third party library imports ...
+from distutils.version import LooseVersion
 try:
     import lxml.etree
 except ImportError:
     pass
-
 import numpy as np
 
+# Local imports ...
 from .lib import openjpeg as opj, openjp2 as opj2
 
 # Do not change the format of this next line!  Doing so risks breaking
 # setup.py
-version = "0.8.6"
+version = "0.8.7rc1"
 _sv = LooseVersion(version)
 version_tuple = _sv.version
-
 
 if opj.OPENJPEG is None and opj2.OPENJP2 is None:
     openjpeg_version = '0.0.0'
@@ -40,7 +41,7 @@ openjpeg_version_tuple = _sv.version
 __doc__ = """\
 This is glymur **{glymur_version}**
 
-* OPENJPEG version:  **{openjpeg}**
+* OpenJPEG version:  **{openjpeg}**
 """.format(glymur_version=version,
            openjpeg=openjpeg_version)
 
@@ -49,7 +50,7 @@ Summary of glymur configuration
 -------------------------------
 
 glymur        {glymur}
-OPENJPEG      {openjpeg}
+OpenJPEG      {openjpeg}
 Python        {python}
 sys.platform  {platform}
 sys.maxsize   {maxsize}

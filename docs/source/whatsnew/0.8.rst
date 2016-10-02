@@ -2,11 +2,19 @@
 Changes in glymur 0.8
 =====================
 
+Changes in 0.8.7
+=================
+    * Qualified on OPENJPEG v2.1.2.
+
+Changes in 0.8.6
+=================
+    * State explicit dependence on setuptools.
+
 Changes in 0.8.5
 =================
     * Relax dependency on lxml; use stdlib ElementTree if necessary.
     * Fix bug in XML box processing with certain XML declarations.
-    * Qualified on OPENJPEG v0.2.1.
+    * Qualified on OPENJPEG v2.1.1.
 
 Changes in 0.8.4
 =================
