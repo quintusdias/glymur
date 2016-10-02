@@ -1,6 +1,7 @@
 """
 Test suite specifically targeting JP2 box layout.
 """
+# Standard library imports ...
 import doctest
 import os
 import re
@@ -11,14 +12,17 @@ import tempfile
 from uuid import UUID
 import unittest
 import warnings
-
 try:
+    # Third party library import, favored over standard library.
     import lxml.etree as ET
 except ImportError:
     import xml.etree.ElementTree as ET
 
+# Third party library imports ...
 import numpy as np
+import pkg_resources as pkg
 
+# Local imports ...
 import glymur
 from glymur import Jp2k
 from glymur.jp2box import ColourSpecificationBox, ContiguousCodestreamBox
@@ -26,7 +30,6 @@ from glymur.jp2box import FileTypeBox, ImageHeaderBox, JP2HeaderBox
 from glymur.jp2box import JPEG2000SignatureBox
 from glymur.core import COLOR, OPACITY
 from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE
-
 from .fixtures import WINDOWS_TMP_FILE_MSG, MetadataBase
 
 
@@ -355,11 +358,18 @@ class TestChannelDefinition(unittest.TestCase):
 class TestFileTypeBox(unittest.TestCase):
     """Test suite for ftyp box issues."""
 
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
+    def test_bad_brand_on_parse(self):
+        """The JP2 file file type box does not contain a valid brand.
+        
+        Expect a specific validation error.
+        """
+        relpath = os.path.join('data', 'issue396.jp2')
+        filename = pkg.resource_filename(__name__, relpath)
+        with warnings.catch_warnings():
+            # Lots of things wrong with this file.
+            warnings.simplefilter('ignore')
+            with self.assertRaises(IOError):
+                jp2 = Jp2k(filename)
 
     def test_brand_unknown(self):
         """A ftyp box brand must be 'jp2 ' or 'jpx '."""

@@ -312,6 +312,13 @@ class Jp2k(Jp2kBox):
     def _validate(self):
         """Validate the JPEG 2000 outermost superbox.
         """
+        # A JP2 file must contain certain boxes.  The 2nd box must be a file
+        # type box.
+        if not isinstance(self.box[1], FileTypeBox):
+            msg = "{filename} does not contain a valid File Type box."
+            msg = msg.format(filename=self.filename)
+            raise IOError(msg)
+
         # A jp2-branded file cannot contain an "any ICC profile
         ftyp = self.box[1]
         if ftyp.brand == 'jp2 ':
