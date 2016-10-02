@@ -1,4 +1,4 @@
-October 01, 2016 - v0.8.7rc1
+October 02, 2016 - v0.8.7
     Qualified on OPENJPEG v2.1.2
 
 September 19, 2016 - v0.8.6
