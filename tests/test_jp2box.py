@@ -1,8 +1,8 @@
-"""
-Test suite specifically targeting JP2 box layout.
+"""Test suite specifically targeting JP2 box layout.
 """
 # Standard library imports ...
 import doctest
+from io import BytesIO
 import os
 import re
 import shutil
@@ -27,8 +27,9 @@ import glymur
 from glymur import Jp2k
 from glymur.jp2box import ColourSpecificationBox, ContiguousCodestreamBox
 from glymur.jp2box import FileTypeBox, ImageHeaderBox, JP2HeaderBox
-from glymur.jp2box import JPEG2000SignatureBox
-from glymur.core import COLOR, OPACITY
+from glymur.jp2box import JPEG2000SignatureBox, BitsPerComponentBox
+from glymur.jp2box import PaletteBox, UnknownBox
+from glymur.core import COLOR, OPACITY, SRGB, GREYSCALE
 from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE
 from .fixtures import WINDOWS_TMP_FILE_MSG, MetadataBase
 
@@ -167,8 +168,8 @@ class TestChannelDefinition(unittest.TestCase):
         self.jp2c = ContiguousCodestreamBox()
         self.ihdr = ImageHeaderBox(height=height, width=width,
                                    num_components=num_components)
-        self.colr_rgb = ColourSpecificationBox(colorspace=glymur.core.SRGB)
-        self.colr_gr = ColourSpecificationBox(colorspace=glymur.core.GREYSCALE)
+        self.colr_rgb = ColourSpecificationBox(colorspace=SRGB)
+        self.colr_gr = ColourSpecificationBox(colorspace=GREYSCALE)
 
     def tearDown(self):
         pass
@@ -358,6 +359,9 @@ class TestChannelDefinition(unittest.TestCase):
 class TestFileTypeBox(unittest.TestCase):
     """Test suite for ftyp box issues."""
 
+    def setUp(self):
+        self.jp2file = glymur.data.nemo()
+
     def test_bad_brand_on_parse(self):
         """The JP2 file file type box does not contain a valid brand.
         
@@ -390,6 +394,21 @@ class TestFileTypeBox(unittest.TestCase):
             with self.assertRaises(IOError):
                 ftyp.write(tfile)
 
+    @unittest.skipIf(sys.hexversion < 0x03000000,
+                     "assertWarns not introduced until 3.2")
+    def test_cl_entry_not_utf8(self):
+        """A ftyp box cl list entry must be utf-8 decodable."""
+        with open(self.jp2file, mode='rb') as f:
+            data = f.read()
+
+        # Replace bytes 28-32 with bad utf-8 data
+        data = data[:28] + b'\xff\xff\xff\xff' + data[32:]
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            tfile.write(data)
+            tfile.flush()
+
+            with self.assertWarns(UserWarning):
+                jp2 = Jp2k(tfile.name)
 
 class TestColourSpecificationBox(unittest.TestCase):
     """Test suite for colr box instantiation."""
@@ -439,8 +458,7 @@ class TestColourSpecificationBox(unittest.TestCase):
         """JP2 has requirements for approx field"""
         j2k = Jp2k(self.j2kfile)
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
-        colr = ColourSpecificationBox(colorspace=glymur.core.SRGB,
-                                      approximation=1)
+        colr = ColourSpecificationBox(colorspace=SRGB, approximation=1)
         boxes[2].box = [self.ihdr, colr]
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             with self.assertRaises(IOError):
@@ -448,19 +466,32 @@ class TestColourSpecificationBox(unittest.TestCase):
 
     def test_default_colr(self):
         """basic colr instantiation"""
-        colr = ColourSpecificationBox(colorspace=glymur.core.SRGB)
+        colr = ColourSpecificationBox(colorspace=SRGB)
         self.assertEqual(colr.method, glymur.core.ENUMERATED_COLORSPACE)
         self.assertEqual(colr.precedence, 0)
         self.assertEqual(colr.approximation, 0)
-        self.assertEqual(colr.colorspace, glymur.core.SRGB)
+        self.assertEqual(colr.colorspace, SRGB)
         self.assertIsNone(colr.icc_profile)
 
     def test_colr_with_bad_color(self):
         """colr must have a valid color, strange as though that may sound."""
         colorspace = -1
         approx = 0
-        colr = glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
-                                                    approximation=approx)
+        colr = ColourSpecificationBox(colorspace=colorspace,
+                                      approximation=approx)
+        with tempfile.TemporaryFile() as tfile:
+            with self.assertRaises(IOError):
+                colr.write(tfile)
+
+    def test_write_colr_with_bad_method(self):
+        """
+        A colr box has an invalid method.
+        
+        Expect an IOError when trying to write to file.
+        """
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            colr = ColourSpecificationBox(colorspace=SRGB, method=5)
         with tempfile.TemporaryFile() as tfile:
             with self.assertRaises(IOError):
                 colr.write(tfile)
@@ -487,6 +518,36 @@ class TestPaletteBox(unittest.TestCase):
             with self.assertRaises(IOError):
                 pclr.write(tfile)
 
+    def test_signed_components(self):
+        """
+        Palettes with signed components are not supported.
+        """
+        b = BytesIO()
+
+        # L, T
+        b.write(struct.pack('>I4s', 20, b'pclr'))
+
+        # Palette is 2 rows, 3 columns
+        ncols = 3
+        nrows = 2
+        b.write(struct.pack('>HB', nrows, ncols))
+
+        # bits per sample is 8, but signed
+        bps = (np.int8(7), np.int8(7), np.int8(7))
+        bps_signed = (x | 0x80 for x in bps)
+        b.write(struct.pack('BBB', *bps_signed))
+
+        # Write the palette itself.
+        #
+        buffer = np.int8([[0, 0, 0], [127, 127, 127]])
+        b.write(struct.pack('BBB', *buffer[0]))
+        b.write(struct.pack('BBB', *buffer[1]))
+
+        # Seek back to point after L, T
+        b.seek(8)
+        with self.assertRaises(IOError):
+            PaletteBox.parse(b, 8, 20)
+
 
 @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
 class TestAppend(unittest.TestCase):
@@ -505,8 +566,9 @@ class TestAppend(unittest.TestCase):
             shutil.copyfile(self.jp2file, tfile.name)
 
             jp2 = Jp2k(tfile.name)
-            the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
-            xmlbox = glymur.jp2box.XMLBox(xml=ET.ElementTree(the_xml))
+            b = BytesIO(b'<?xml version="1.0"?><data>0</data>')
+            doc = ET.parse(b)
+            xmlbox = glymur.jp2box.XMLBox(xml=doc)
             jp2.append(xmlbox)
 
             # The sequence of box IDs should be the same as before, but with an
@@ -554,8 +616,9 @@ class TestAppend(unittest.TestCase):
                 tfile.flush()
 
             jp2 = Jp2k(tfile.name)
-            the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
-            xmlbox = glymur.jp2box.XMLBox(xml=the_xml)
+            b = BytesIO(b'<?xml version="1.0"?><data>0</data>')
+            doc = ET.parse(b)
+            xmlbox = glymur.jp2box.XMLBox(xml=doc)
             jp2.append(xmlbox)
 
             # The sequence of box IDs should be the same as before, but with an
@@ -964,7 +1027,9 @@ class TestJp2Boxes(unittest.TestCase):
         self.assertIsNone(box.codestream)
 
     def test_codestream_main_header_offset(self):
-        """main_header_offset is an attribute of the CCS box"""
+        """
+        main_header_offset is an attribute of the ContiguousCodesStream box
+        """
         j = Jp2k(self.jpxfile)
         self.assertEqual(j.box[5].main_header_offset,
                          j.box[5].offset + 8)
@@ -980,6 +1045,25 @@ class TestRepr(MetadataBase):
         newbox = eval(repr(jp2k))
         self.assertTrue(isinstance(newbox, glymur.jp2box.JPEG2000SignatureBox))
         self.assertEqual(newbox.signature, (13, 10, 135, 10))
+
+    def test_unknown(self):
+        """Should be able to instantiate an unknown box"""
+        box = UnknownBox('bpcc')
+
+        # Test the representation instantiation.
+        newbox = eval(repr(box))
+        self.assertTrue(isinstance(newbox, glymur.jp2box.UnknownBox))
+
+    def test_bpcc(self):
+        """Should be able to instantiate a bpcc box"""
+        bpc = (5, 5, 5, 1)
+        signed = (False, False, True, False)
+        box = BitsPerComponentBox(bpc, signed, length=12, offset=62)
+
+        # Test the representation instantiation.
+        newbox = eval(repr(box))
+        self.assertEqual(bpc, newbox.bpc)
+        self.assertEqual(signed, newbox.signed)
 
     def test_free(self):
         """Should be able to instantiate a free box"""
@@ -1001,7 +1085,8 @@ class TestRepr(MetadataBase):
 
     def test_ftbl(self):
         """Should be able to instantiate a fragment table box"""
-        ftbl = glymur.jp2box.FragmentTableBox()
+        flst = glymur.jp2box.FragmentListBox([89], [1132288], [0])
+        ftbl = glymur.jp2box.FragmentTableBox([flst])
 
         # Test the representation instantiation.
         newbox = eval(repr(ftbl))

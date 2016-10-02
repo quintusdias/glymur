@@ -2,19 +2,24 @@
 """
 Test suite specifically targeting JPX box layout.
 """
-
+# Standard library imports ...
 import ctypes
+from io import BytesIO
 import os
 import struct
+import sys
 import tempfile
 import unittest
 import warnings
 
+# Third party library imports ...
 try:
     import lxml.etree as ET
 except ImportError:
     import xml.etree.ElementTree as ET
+import pkg_resources as pkg
 
+# Local imports ...
 import glymur
 from glymur import Jp2k
 from glymur.jp2box import DataEntryURLBox, FileTypeBox, JPEG2000SignatureBox
@@ -247,8 +252,9 @@ class TestJPXWrap(unittest.TestCase):
 
         numbers = (0, 1)
         nlst = glymur.jp2box.NumberListBox(numbers)
-        the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
-        xmlb = glymur.jp2box.XMLBox(xml=the_xml)
+        b = BytesIO(b'<?xml version="1.0"?><data>0</data>')
+        doc = ET.parse(b)
+        xmlb = glymur.jp2box.XMLBox(xml=doc)
         asoc = glymur.jp2box.AssociationBox([nlst, xmlb])
         boxes.append(asoc)
 
@@ -276,8 +282,9 @@ class TestJPXWrap(unittest.TestCase):
         lblb = glymur.jp2box.LabelBox(label)
         numbers = (0, 1)
         nlst = glymur.jp2box.NumberListBox(numbers)
-        the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
-        xmlb = glymur.jp2box.XMLBox(xml=the_xml)
+        b = BytesIO(b'<?xml version="1.0"?><data>0</data>')
+        doc = ET.parse(b)
+        xmlb = glymur.jp2box.XMLBox(xml=doc)
         asoc = glymur.jp2box.AssociationBox([nlst, xmlb, lblb])
         boxes.append(asoc)
 
@@ -434,6 +441,33 @@ class TestJPX(unittest.TestCase):
     def tearDown(self):
         pass
 
+    def test_reader_requirements_box(self):
+        """
+        Simple test for parsing a reader requirements box.
+        """
+        file = os.path.join('data', 'text_GBR.jp2')
+        file = pkg.resource_filename(__name__, file)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            j = Jp2k(file)
+            self.assertEqual(len(j.box[2].vendor_feature), 4)
+
+    @unittest.skipIf(sys.hexversion < 0x03000000, "assertWarns is PY3K")
+    def test_reader_requirements_box_writing(self):
+        """
+        If a box does not have writing specifically enabled, must error out.
+        """
+        file = os.path.join('data', 'text_GBR.jp2')
+        file = pkg.resource_filename(__name__, file)
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            j = Jp2k(file)
+            box = j.box[2]
+
+            b = BytesIO()
+            with self.assertRaises(NotImplementedError):
+                box.write(b)
+
     def test_flst_lens_not_the_same(self):
         """A fragment list box items must be the same length."""
         offset = [89]
@@ -504,8 +538,8 @@ class TestJPX(unittest.TestCase):
             with self.assertRaises(IOError):
                 jpx1.wrap(tfile.name, boxes=boxes)
 
-    def test_dtbl(self):
-        """Verify that we can interpret Data Reference boxes."""
+    def test_dtbl_free(self):
+        """Verify that we can interpret Data Reference and Free boxes."""
         # Copy the existing JPX file, add a data reference box onto the end.
         flag = 0
         version = (0, 0, 0)
@@ -520,14 +554,20 @@ class TestJPX(unittest.TestCase):
                 dref = glymur.jp2box.DataReferenceBox([deurl1, deurl2])
                 dref.write(tfile)
 
+                # Free box.  The content does not matter.
+                tfile.write(struct.pack('>I4s', 12, b'free'))
+                tfile.write(struct.pack('>I', 0))
+
             tfile.flush()
 
             jpx = Jp2k(tfile.name)
 
-            self.assertEqual(jpx.box[-1].box_id, 'dtbl')
-            self.assertEqual(len(jpx.box[-1].DR), 2)
-            self.assertEqual(jpx.box[-1].DR[0].url, url1)
-            self.assertEqual(jpx.box[-1].DR[1].url, url2.rstrip('\0'))
+            self.assertEqual(jpx.box[-2].box_id, 'dtbl')
+            self.assertEqual(len(jpx.box[-2].DR), 2)
+            self.assertEqual(jpx.box[-2].DR[0].url, url1)
+            self.assertEqual(jpx.box[-2].DR[1].url, url2.rstrip('\0'))
+
+            self.assertEqual(jpx.box[-1].box_id, 'free')
 
     def test_ftbl(self):
         """Verify that we can interpret Fragment Table boxes."""
@@ -556,8 +596,11 @@ class TestJPX(unittest.TestCase):
             self.assertEqual(jpx.box[-1].box[0].fragment_length, (170246,))
             self.assertEqual(jpx.box[-1].box[0].data_reference, (3,))
 
+    @unittest.skipIf(sys.hexversion < 0x03000000, "assertWarns is PY3K")
     def test_rreq3(self):
-        """Verify that we can read a rreq box with mask length 3 bytes"""
+        """
+        Verify that we warn with RREQ box with an unsupported mask length.
+        """
         rreq_buffer = ctypes.create_string_buffer(74)
         struct.pack_into('>I4s', rreq_buffer, 0, 74, b'rreq')
 
@@ -593,13 +636,8 @@ class TestJPX(unittest.TestCase):
                 ofile.write(ifile.read())
                 ofile.flush()
 
-            jpx = Jp2k(ofile.name)
-
-        self.assertEqual(jpx.box[2].box_id, 'rreq')
-        self.assertEqual(type(jpx.box[2]),
-                         glymur.jp2box.ReaderRequirementsBox)
-        self.assertEqual(jpx.box[2].standard_flag,
-                         (5, 42, 45, 2, 18, 19, 1, 8, 12, 31, 20))
+            with self.assertWarns(UserWarning):
+                Jp2k(ofile.name)
 
     def test_nlst(self):
         """Verify that we can handle a number list box."""

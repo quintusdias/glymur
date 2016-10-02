@@ -1,25 +1,26 @@
-from setuptools import setup
+# Standard library imports ...
 import os
 import re
 import sys
 
-kwargs = {'name': 'Glymur',
-          'description': 'Tools for accessing JPEG2000 files',
-          'long_description': open('README.md').read(),
-          'author': 'John Evans',
-          'author_email': 'john.g.evans.ne@gmail.com',
-          'url': 'https://github.com/quintusdias/glymur',
-          'packages': ['glymur', 'glymur.data', 'glymur.test', 'glymur.lib',
-                       'glymur.lib.test'],
-          'package_data': {'glymur': ['data/*.jp2',
-                                      'data/*.j2k',
-                                      'data/*.jpx',
-                                      'test/data/*.tif']},
-          'entry_points': {
-              'console_scripts': ['jp2dump=glymur.command_line:main'],
-              },
-          'license': 'MIT',
-          'test_suite': 'glymur.test'}
+# Third party library imports ...
+from setuptools import setup
+
+kwargs = {
+    'name': 'Glymur',
+    'description': 'Tools for accessing JPEG2000 files',
+    'long_description': open('README.md').read(),
+    'author': 'John Evans',
+    'author_email': 'john.g.evans.ne@gmail.com',
+    'url': 'https://github.com/quintusdias/glymur',
+    'packages': ['glymur', 'glymur.data', 'glymur.lib'],
+    'package_data': {'glymur': ['data/*.jp2', 'data/*.j2k', 'data/*.jpx']},
+    'entry_points': {
+        'console_scripts': ['jp2dump=glymur.command_line:main'],
+    },
+    'license': 'MIT',
+    'test_suite': 'glymur.test'
+}
 
 install_requires = ['numpy>=1.7.0', 'setuptools']
 if sys.hexversion < 0x03030000:

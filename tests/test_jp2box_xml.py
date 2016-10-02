@@ -2,6 +2,7 @@
 """
 Test suite specifically targeting the JP2 XML box layout.
 """
+from io import BytesIO
 import os
 import pkg_resources as pkg
 import struct
@@ -88,9 +89,9 @@ class TestXML(unittest.TestCase):
 
         self.jp2h.box = [self.ihdr, self.colr]
 
-        the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
-        xmlb = glymur.jp2box.XMLBox(xml=the_xml)
-        self.assertEqual(ET.tostring(xmlb.xml),
+        doc = ET.parse(BytesIO(b'<?xml version="1.0"?><data>0</data>'))
+        xmlb = glymur.jp2box.XMLBox(xml=doc)
+        self.assertEqual(ET.tostring(xmlb.xml.getroot()),
                          b'<data>0</data>')
 
         boxes = [self.jp2b, self.ftyp, self.jp2h, xmlb, self.jp2c]

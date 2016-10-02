@@ -11,9 +11,8 @@ References
    Extensions
 """
 
+# Standard library imports ...
 import codecs
-from collections import OrderedDict
-import datetime
 import io
 import math
 import os
@@ -24,11 +23,11 @@ import textwrap
 from uuid import UUID
 import warnings
 
+# Third party library imports ...
 try:
     import lxml.etree as ET
 except ImportError:
     import xml.etree.ElementTree as ET
-
 import numpy as np
 try:
     import gdal
@@ -38,17 +37,18 @@ except ImportError:
     _HAVE_GDAL = False
 
 
+# Local imports ...
 from .codestream import Codestream
 from .core import (_COLORSPACE_MAP_DISPLAY, _COLOR_TYPE_MAP_DISPLAY,
                    SRGB, GREYSCALE, YCC,
                    ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE,
                    ANY_ICC_PROFILE, VENDOR_COLOR_METHOD)
-
 from . import tiff
 from . import config
+from ._iccprofile import _ICCProfile
 
 
-_METHOD_DISPLAY = {
+_COLORSPACE_METHODS = {
     ENUMERATED_COLORSPACE: 'enumerated colorspace',
     RESTRICTED_ICC_PROFILE: 'restricted ICC profile',
     ANY_ICC_PROFILE: 'any ICC profile',
@@ -56,7 +56,8 @@ _METHOD_DISPLAY = {
 }
 
 
-_APPROX_DISPLAY = {
+_APPROXIMATION_MEASURES = {
+    0: 'JP2 only',
     1: 'accurately represents correct colorspace definition',
     2: 'approximates correct colorspace definition, exceptional quality',
     3: 'approximates correct colorspace definition, reasonable quality',
@@ -89,13 +90,6 @@ class Jp2kBox(object):
         self.offset = offset
         self.box = []
 
-    def __repr__(self):
-        msg = ("glymur.jp2box.Jp2kBox(box_id='{id}', offset={offset}, "
-               "length={length}, longname='{longname}')")
-        msg = msg.format(id=self.box_id, offset=self.offset,
-                         length=self.length, longname=self.longname)
-        return msg
-
     def __str__(self):
         msg = "{0} Box ({1}) @ ({2}, {3})"
         msg = msg.format(self.longname, self.box_id, self.offset, self.length)
@@ -115,7 +109,7 @@ class Jp2kBox(object):
     def write(self, _):
         """Must be implemented in a subclass.
         """
-        msg = "Not supported for {0} box.".format(self.longname)
+        msg = "Writing not supported for {0} box.".format(self.longname)
         raise NotImplementedError(msg)
 
     def _str_superbox(self):
@@ -345,19 +339,21 @@ class ColourSpecificationBox(Jp2kBox):
             msg = ("Colorspace and icc_profile cannot both be set when "
                    "creating a ColourSpecificationBox.")
             self._dispatch_validation_error(msg, writing=writing)
-        if self.method not in (1, 2, 3, 4):
+
+        if self.method not in _COLORSPACE_METHODS.keys():
             msg = "Invalid colorspace method value ({method})."
             msg = msg.format(method=self.method)
             if writing:
                 raise IOError(msg)
             else:
                 warnings.warn(msg, UserWarning)
-        if self.approximation not in (0, 1, 2, 3, 4):
+
+        if self.approximation not in _APPROXIMATION_MEASURES.keys():
             msg = "Invalid colr approximation value ({approx})."
             msg = msg.format(approx=self.approximation)
-            if writing:
-                raise IOError(msg)
-            else:
+            if not writing:
+                # Don't bother to check this for the case of writing=True
+                # because it's already handles in the wrapping code.
                 warnings.warn(msg, UserWarning)
 
     def _write_validate(self):
@@ -394,13 +390,13 @@ class ColourSpecificationBox(Jp2kBox):
             return title
 
         lst = []
-        text = 'Method:  {0}'.format(_METHOD_DISPLAY[self.method])
+        text = 'Method:  {0}'.format(_COLORSPACE_METHODS[self.method])
         lst.append(text)
         text = 'Precedence:  {0}'.format(self.precedence)
         lst.append(text)
 
         if self.approximation is not 0:
-            dispvalue = _APPROX_DISPLAY[self.approximation]
+            dispvalue = _APPROXIMATION_MEASURES[self.approximation]
             text = 'Approximation:  {0}'.format(dispvalue)
             lst.append(text)
 
@@ -412,16 +408,10 @@ class ColourSpecificationBox(Jp2kBox):
                 dispvalue = dispvalue.format(colorspace=self.colorspace)
             text = 'Colorspace:  {0}'.format(dispvalue)
         else:
-            # 2.7 has trouble pretty-printing ordered dicts so we just have
-            # to print as a regular dict in this case.
             if self.icc_profile is None:
                 text = 'ICC Profile:  None'
             else:
-                if sys.hexversion < 0x03000000:
-                    icc_profile = dict(self.icc_profile)
-                else:
-                    icc_profile = self.icc_profile
-                text = pprint.pformat(icc_profile)
+                text = pprint.pformat(self.icc_profile)
                 text = self._indent(text)
                 text = '\n'.join(['ICC Profile:', text])
 
@@ -499,118 +489,6 @@ class ColourSpecificationBox(Jp2kBox):
                    icc_profile=icc_profile,
                    length=length,
                    offset=offset)
-
-
-class _ICCProfile(object):
-    """
-    Container for ICC profile information.
-    """
-    profile_class = {b'scnr': 'input device profile',
-                     b'mntr': 'display device profile',
-                     b'prtr': 'output device profile',
-                     b'link': 'devicelink profile',
-                     b'spac': 'colorspace conversion profile',
-                     b'abst': 'abstract profile',
-                     b'nmcl': 'name colour profile'}
-
-    colour_space_dict = {b'XYZ ': 'XYZ',
-                         b'Lab ': 'Lab',
-                         b'Luv ': 'Luv',
-                         b'YCbr': 'YCbCr',
-                         b'Yxy ': 'Yxy',
-                         b'RGB ': 'RGB',
-                         b'GRAY': 'gray',
-                         b'HSV ': 'hsv',
-                         b'HLS ': 'hls',
-                         b'CMYK': 'CMYK',
-                         b'CMY ': 'cmy',
-                         b'2CLR': '2colour',
-                         b'3CLR': '3colour',
-                         b'4CLR': '4colour',
-                         b'5CLR': '5colour',
-                         b'6CLR': '6colour',
-                         b'7CLR': '7colour',
-                         b'8CLR': '8colour',
-                         b'9CLR': '9colour',
-                         b'ACLR': '10colour',
-                         b'BCLR': '11colour',
-                         b'CCLR': '12colour',
-                         b'DCLR': '13colour',
-                         b'ECLR': '14colour',
-                         b'FCLR': '15colour'}
-
-    rendering_intent_dict = {0: 'perceptual',
-                             1: 'media-relative colorimetric',
-                             2: 'saturation',
-                             3: 'ICC-absolute colorimetric'}
-
-    def __init__(self, read_buffer):
-        self._raw_buffer = read_buffer
-        header = OrderedDict()
-
-        data = struct.unpack('>IIBB', self._raw_buffer[0:10])
-        header['Size'] = data[0]
-        header['Preferred CMM Type'] = data[1]
-        major = data[2]
-        minor = (data[3] & 0xf0) >> 4
-        bugfix = (data[3] & 0x0f)
-        header['Version'] = '{0}.{1}.{2}'.format(major, minor, bugfix)
-
-        header['Device Class'] = self.profile_class[self._raw_buffer[12:16]]
-        header['Color Space'] = self.colour_space_dict[self._raw_buffer[16:20]]
-        data = self.colour_space_dict[self._raw_buffer[20:24]]
-        header['Connection Space'] = data
-
-        data = struct.unpack('>HHHHHH', self._raw_buffer[24:36])
-        header['Datetime'] = datetime.datetime(data[0], data[1], data[2],
-                                               data[3], data[4], data[5])
-        header['File Signature'] = read_buffer[36:40].decode('utf-8')
-        if read_buffer[40:44] == b'\x00\x00\x00\x00':
-            header['Platform'] = 'unrecognized'
-        else:
-            header['Platform'] = read_buffer[40:44].decode('utf-8')
-
-        fval, = struct.unpack('>I', read_buffer[44:48])
-        flags = "{0}embedded, {1} be used independently"
-        header['Flags'] = flags.format('' if fval & 0x01 else 'not ',
-                                       'cannot' if fval & 0x02 else 'can')
-
-        header['Device Manufacturer'] = read_buffer[48:52].decode('utf-8')
-        if read_buffer[52:56] == b'\x00\x00\x00\x00':
-            device_model = ''
-        else:
-            device_model = read_buffer[52:56].decode('utf-8')
-        header['Device Model'] = device_model
-
-        val, = struct.unpack('>Q', read_buffer[56:64])
-        attr = "{0}, {1}, {2} media polarity, {3} media"
-        attr = attr.format('transparency' if val & 0x01 else 'reflective',
-                           'matte' if val & 0x02 else 'glossy',
-                           'negative' if val & 0x04 else 'positive',
-                           'black and white' if val & 0x08 else 'color')
-        header['Device Attributes'] = attr
-
-        rval, = struct.unpack('>I', read_buffer[64:68])
-        try:
-            header['Rendering Intent'] = self.rendering_intent_dict[rval]
-        except KeyError:
-            header['Rendering Intent'] = 'unknown'
-
-        data = struct.unpack('>iii', read_buffer[68:80])
-        header['Illuminant'] = np.array(data, dtype=np.float64) / 65536
-
-        if read_buffer[80:84] == b'\x00\x00\x00\x00':
-            creator = 'unrecognized'
-        else:
-            creator = read_buffer[80:84].decode('utf-8')
-        header['Creator'] = creator
-
-        if header['Version'][0] == '4':
-            header['Profile Id'] = read_buffer[84:100]
-
-        # Final 27 bytes are reserved.
-
-        self.header = header
 
 
 class ChannelDefinitionBox(Jp2kBox):
@@ -1004,14 +882,17 @@ class ComponentMappingBox(Jp2kBox):
             return title
 
         lst = []
-        for k in range(len(self.component_index)):
-            if self.mapping_type[k] == 1:
+        for k, (mapping_type, component_idx, palette_idx) in enumerate(
+            zip(self.mapping_type, self.component_index, self.palette_index)
+        ):
+            if mapping_type == 1:
+                # palette mapping
                 text = 'Component {0} ==> palette column {1}'
-                text = text.format(self.component_index[k],
-                                   self.palette_index[k])
+                text = text.format(component_idx, palette_idx)
             else:
+                # Direct use
                 text = 'Component {0} ==> {1}'
-                text = text.format(self.component_index[k], k)
+                text = text.format(component_idx, k)
             lst.append(text)
 
         text = '\n'.join(lst)
@@ -1203,11 +1084,10 @@ class DataReferenceBox(Jp2kBox):
 
     def _write_validate(self):
         """Verify that the box obeys the specifications for writing.
+
+        The only tests for writing the data reference box are actually handled
+        elsewhere, so just do validation for reading.
         """
-        if len(self.DR) == 0:
-            msg = ("A data reference box cannot be empty when written to a "
-                   "file.")
-            self._dispatch_validation_error(msg, writing=True)
         self._validate(writing=True)
 
     def write(self, fptr):
@@ -1575,6 +1455,8 @@ class FragmentTableBox(Jp2kBox):
         offset of the box from the start of the file.
     longname : str
         more verbose description of the box.
+    box : list
+        List containing exactly one FragmentListBox
     """
     box_id = 'ftbl'
     longname = 'Fragment Table'
@@ -1587,10 +1469,7 @@ class FragmentTableBox(Jp2kBox):
 
     def __repr__(self):
         msg = "glymur.jp2box.FragmentTableBox(box={0})"
-        if len(self.box) == 0:
-            msg = msg.format(None)
-        else:
-            msg = msg.format(self.box)
+        msg = msg.format(self.box)
         return msg
 
     def __str__(self):
@@ -1685,6 +1564,9 @@ class FreeBox(Jp2kBox):
         FreeBox
             Instance of the current free box.
         """
+        # Must seek to end of box.
+        nbytes = offset + length - fptr.tell()
+        fptr.read(nbytes)
         return cls(length=length, offset=offset)
 
 
@@ -1938,7 +1820,8 @@ class BitsPerComponentBox(Jp2kBox):
         self.signed = signed
 
     def __repr__(self):
-        msg = "glymur.jp2box.BitsPerComponentBox(box={0})".format(self.box)
+        msg = "glymur.jp2box.BitsPerComponentBox({0}, {1})"
+        msg = msg.format(self.bpc, self.signed)
         return msg
 
     def __str__(self):
@@ -1946,11 +1829,9 @@ class BitsPerComponentBox(Jp2kBox):
         if config.get_option('print.short') is True:
             return title
 
-        body = 'Bits per component:  ['
-        body += ', '.join(str(x) for x in self.bpc)
-        body += ']'
-        body += '\n'
-        body += 'Signed:  [' + ', '.join(str(x) for x in self.signed) + ']'
+        body = 'Bits per component:  [{bpc}]\nSigned:  [{sgn}]'
+        body = body.format(bpc=', '.join(str(x) for x in self.bpc),
+                           sgn=', '.join(str(x) for x in self.signed))
 
         body = self._indent(body)
 
@@ -2187,30 +2068,23 @@ class PaletteBox(Jp2kBox):
         bytes_per_palette = bytes_per_row * self.palette.shape[0]
         box_length = 8 + 3 + self.palette.shape[1] + bytes_per_palette
 
-        # Write the usual header.
+        # Write the usual (L, T) header.
         write_buffer = struct.pack('>I4s', int(box_length), b'pclr')
         fptr.write(write_buffer)
 
+        # NE, NPC
         write_buffer = struct.pack('>HB', self.palette.shape[0],
                                    self.palette.shape[1])
         fptr.write(write_buffer)
 
+        # Bits Per Sample.  Signed components aren't supported.
         bps_signed = [x - 1 for x in self.bits_per_component]
-        for j, _ in enumerate(bps_signed):
-            if self.signed[j]:
-                bps_signed[j] |= 0x80
         write_buffer = struct.pack('>' + 'B' * self.palette.shape[1],
                                    *bps_signed)
         fptr.write(write_buffer)
 
-        # All components are the same.  Writing is straightforward.
-        if self.bits_per_component[0] <= 8:
-            write_buffer = memoryview(self.palette.astype(np.uint8))
-        elif self.bits_per_component[0] <= 16:
-            write_buffer = memoryview(self.palette.astype(np.uint16))
-        elif self.bits_per_component[0] <= 32:
-            write_buffer = memoryview(self.palette.astype(np.uint32))
-        fptr.write(write_buffer)
+        # C(i,j)
+        fptr.write(memoryview(self.palette))
 
     @classmethod
     def parse(cls, fptr, offset, length):
@@ -2239,38 +2113,20 @@ class PaletteBox(Jp2kBox):
         bps = [((x & 0x7f) + 1) for x in bps_signed]
         signed = [((x & 0x80) > 1) for x in bps_signed]
 
-        if all(b == bps_signed[0] for b in bps_signed):
-            # Ok the palette has the same datatype for all columns.  We should
-            # be able to efficiently read it.
-            if bps[0] <= 8:
-                dtype = np.uint8
-            elif bps[0] <= 16:
-                dtype = np.uint16
-            elif bps[0] <= 32:
-                dtype = np.uint32
+        # Are any components signed or differently sized?  We don't handle
+        # that.
+        if any(signed) or len(set(bps)) != 1:
+            msg = ("Palettes with signed components or differently sized "
+                   "components are not supported.")
+            raise IOError(msg)
 
-            palette = np.frombuffer(read_buffer[3 + ncols:], dtype=dtype)
-            palette = np.reshape(palette, (nrows, ncols))
+        # The palette is unsigned and all components have the same width.
+        # This should cover all but a vanishingly small share of palettes.
+        b = bps[0]
+        dtype = np.uint8 if b <=8 else np.uint16 if b <= 16 else np.uint32
 
-        else:
-            # General case where the columns may not be the same width.
-            fmt = '>'
-            for bits in bps:
-                if bits <= 8:
-                    fmt += 'B'
-                elif bits <= 16:
-                    fmt += 'H'
-                elif bits <= 32:
-                    fmt += 'I'
-
-            # Each palette component is padded out to the next largest byte.
-            # That means a list comprehension does this in one shot.
-            row_nbytes = sum([int(math.ceil(x / 8.0)) for x in bps])
-
-            palette = np.zeros((nrows, ncols), dtype=np.int32)
-            for j in range(nrows):
-                poff = 3 + ncols + j * row_nbytes
-                palette[j] = struct.unpack_from(fmt, read_buffer, offset=poff)
+        palette = np.frombuffer(read_buffer[3 + ncols:], dtype=dtype)
+        palette = np.reshape(palette, (nrows, ncols))
 
         return cls(palette, bps, signed, length=length, offset=offset)
 
@@ -2489,9 +2345,6 @@ class ReaderRequirementsBox(Jp2kBox):
         read_buffer = fptr.read(num_bytes)
         mask_length, = struct.unpack_from('>B', read_buffer, offset=0)
 
-        if mask_length == 3:
-            return _parse_rreq3(read_buffer, length, offset)
-
         # Fully Understands Aspect Mask
         # Decodes Completely Mask
         fuam = dcm = standard_flag = standard_mask = []
@@ -2523,60 +2376,6 @@ class ReaderRequirementsBox(Jp2kBox):
         return cls(fuam, dcm, standard_flag, standard_mask,
                    vendor_feature, vendor_mask,
                    length=length, offset=offset)
-
-
-def _parse_rreq3(read_buffer, length, offset):
-    """Parse a reader requirements box.  Special case when mask length is 3."""
-    # Fully Understands Aspect Mask
-    # Decodes Completely Mask
-    fuam = dcm = standard_flag = standard_mask = []
-    vendor_feature = vendor_mask = []
-
-    # The mask length tells us the format string to use when unpacking
-    # from the buffer read from file.
-    lst = struct.unpack_from('>BBBBBB', read_buffer, offset=1)
-    fuam = lst[0] << 16 | lst[1] << 8 | lst[2]
-    dcm = lst[3] << 16 | lst[4] << 8 | lst[5]
-
-    num_standard_features, = struct.unpack_from('>H', read_buffer, offset=7)
-
-    fmt = '>' + 'HBBB' * num_standard_features
-    lst = struct.unpack_from(fmt, read_buffer, offset=9)
-
-    standard_flag = lst[0::4]
-    standard_mask = []
-    for j in range(num_standard_features):
-        items = lst[slice(j * 4 + 1, j * 4 + 4)]
-        mask = items[0] << 16 | items[1] << 8 | items[2]
-        standard_mask.append(mask)
-
-    boffset = 9 + num_standard_features * 5
-    num_vendor_features, = struct.unpack_from('>H', read_buffer,
-                                              offset=boffset)
-
-    fmt = '>' + 'HBBB' * num_vendor_features
-    buffer_offset = 11 + num_standard_features * 5
-    lst = struct.unpack_from(fmt, read_buffer, offset=buffer_offset)
-
-    # Each vendor feature consists of a 16-byte UUID plus a mask whose
-    # length is specified by, you guessed it, "mask_length".
-    entry_length = 16 + 3
-    vendor_feature = []
-    vendor_mask = []
-    read_buffer = read_buffer[9 + num_standard_features * 10:]
-    for j in range(num_vendor_features):
-        uslice = slice(j * entry_length, (j + 1) * entry_length)
-        ubuffer = read_buffer[uslice]
-        vendor_feature.append(UUID(bytes=ubuffer[0:16]))
-
-        lst = struct.unpack('>BBB', ubuffer[16:])
-        vmask = lst[0] << 16 | lst[1] << 8 | lst[2]
-        vendor_mask.append(vmask)
-
-    box = ReaderRequirementsBox(fuam, dcm, standard_flag, standard_mask,
-                                vendor_feature, vendor_mask,
-                                length=length, offset=offset)
-    return box
 
 
 def _parse_standard_flag(read_buffer, mask_length):
@@ -3084,11 +2883,7 @@ class XMLBox(Jp2kBox):
         """
         Write an XML box to file.
         """
-        try:
-            read_buffer = ET.tostring(self.xml, encoding='utf-8')
-        except AttributeError:
-            # xml.etree.ElementTree.Element case
-            read_buffer = ET.tostring(self.xml.getroot(), encoding='utf-8')
+        read_buffer = ET.tostring(self.xml.getroot(), encoding='utf-8')
         fptr.write(struct.pack('>I4s', len(read_buffer) + 8, b'xml '))
         fptr.write(read_buffer)
 
@@ -3437,15 +3232,11 @@ class UnknownBox(Jp2kBox):
         self.offset = offset
 
     def __repr__(self):
-        msg = "glymur.jp2box.UnknownBox({0})".format(self.box_id)
+        msg = "glymur.jp2box.UnknownBox('{0}')".format(self.box_id)
         return msg
 
     def __str__(self):
-        if len(self.box) > 0:
-            msg = self._str_superbox()
-        else:
-            msg = Jp2kBox.__str__(self)
-        return msg
+        return Jp2kBox.__str__(self)
 
 
 class UUIDBox(Jp2kBox):
@@ -3501,9 +3292,6 @@ class UUIDBox(Jp2kBox):
 
         try:
             self._parse_raw_data()
-        except KeyError as error:
-            # Such as when an Exif tag is unrecognized.
-            warnings.warn(str(error))
         except IOError as error:
             # Such as when Exif byte order is unrecognized.
             warnings.warn(str(error))
@@ -3512,7 +3300,7 @@ class UUIDBox(Jp2kBox):
         """
         Private function for parsing UUID payloads if possible.
         """
-        if self.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
+        if self.uuid == _XMP_UUID:
             txt = self.raw_data.decode('utf-8')
             elt = ET.fromstring(txt)
             self.data = ET.ElementTree(elt)
@@ -3535,11 +3323,11 @@ class UUIDBox(Jp2kBox):
             return title
 
         text = 'UUID:  {0}'.format(self.uuid)
-        if self.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
+        if self.uuid == _XMP_UUID:
             text += ' (XMP)'
-        elif self.uuid == UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03'):
+        elif self.uuid == _GEOTIFF_UUID:
             text += ' (GeoTIFF)'
-        elif self.uuid.bytes == b'JpgTiffExif->JP2':
+        elif self.uuid == _EXIF_UUID:
             text += ' (EXIF)'
         else:
             text += ' (unknown)'
@@ -3547,31 +3335,27 @@ class UUIDBox(Jp2kBox):
         lst = [text]
 
         if (((config.get_option('print.xml') is False) and
-             (self.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')))):
+            (self.uuid == _XMP_UUID))):
             # If it's an XMP UUID, don't print the XML contents.
             pass
 
-        elif self.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'):
+        elif self.uuid == _XMP_UUID:
             line = 'UUID Data:\n{0}'
-            kwargs = {'encoding': 'utf-8', 'pretty_print': True}
             try:
-                b = ET.tostring(self.data, **kwargs)
+                b = ET.tostring(self.data, encoding='utf-8', pretty_print=True)
             except TypeError:
-                # No lxml, have to fall back onto stdlib xml.etree.ElementTree
-                # Cannot do pretty print.
-                kwargs.pop('pretty_print')
-                b = ET.tostring(self.data.getroot(), **kwargs)
+                # No lxml, have to fall back onto stdlib xml.etree.ElementTree,
+                # but that cannot do pretty print.
+                b = ET.tostring(self.data.getroot(), encoding='utf-8')
             s = b.decode('utf-8').strip()
             text = line.format(s)
             lst.append(text)
-        elif self.uuid.bytes == b'JpgTiffExif->JP2':
+        elif self.uuid == _EXIF_UUID:
             text = 'UUID Data:  {0}'.format(str(self.data))
             lst.append(text)
-        elif self.uuid == UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03'):
-            if _HAVE_GDAL:
-                txt = self._print_geotiff()
-            else:
-                txt = 'UUID Data:  {0}'.format(str(self.data))
+        elif self.uuid == _GEOTIFF_UUID:
+            item = self._print_geotiff() if _HAVE_GDAL else str(self.data)
+            txt = 'UUID Data:  {0}'.format(item)
             lst.append(txt)
         else:
             text = 'UUID Data:  {0} bytes'.format(len(self.raw_data))
@@ -3594,31 +3378,17 @@ class UUIDBox(Jp2kBox):
         # Report projection
         proj_ref = gtif.GetProjectionRef()
         sref = osr.SpatialReference()
-        if sref.ImportFromWkt(proj_ref) == gdal.CE_None:
-            psz_pretty_wkt = sref.ExportToPrettyWkt(False)
-        else:
-            psz_pretty_wkt = proj_ref
+        sref.ImportFromWkt(proj_ref)
+        psz_pretty_wkt = sref.ExportToPrettyWkt(False)
 
         # report geotransform
         geo_transform = gtif.GetGeoTransform(can_return_null=True)
-        if geo_transform is not None:
-
-            if geo_transform[2] == 0.0 and geo_transform[4] == 0.0:
-                fmt = ('Origin = ({origin_x:.15f},{origin_y:.15f})\n'
-                       'Pixel Size = ({pixel_x:.15f},{pixel_y:.15f})')
-                geotransform_str = fmt.format(origin_x=geo_transform[0],
-                                              origin_y=geo_transform[3],
-                                              pixel_x=geo_transform[1],
-                                              pixel_y=geo_transform[5])
-            else:
-                fmt = ('GeoTransform =   '
-                       '{:.16g}, {:16g}, {:.16g}, {:.16g}, {:16g} {:16g}')
-                geotransform_str = fmt.format(geo_transform[0],
-                                              geo_transform[1],
-                                              geo_transform[2],
-                                              geo_transform[3],
-                                              geo_transform[4],
-                                              geo_transform[5])
+        fmt = ('Origin = ({origin_x:.15f},{origin_y:.15f})\n'
+               'Pixel Size = ({pixel_x:.15f},{pixel_y:.15f})')
+        geotransform_str = fmt.format(origin_x=geo_transform[0],
+                                      origin_y=geo_transform[3],
+                                      pixel_x=geo_transform[1],
+                                      pixel_y=geo_transform[5])
 
         # setup projected to lat/long transform if appropriate
         if proj_ref is not None and len(proj_ref) > 0:
@@ -3631,8 +3401,6 @@ class UUIDBox(Jp2kBox):
                 hTransform = osr.CoordinateTransformation(hProj, hLatLong)
                 gdal.PopErrorHandler()
                 msg = 'Unable to load PROJ.4 library'
-                if gdal.GetLastErrorMsg().find(msg) != -1:
-                    hTransform = None
 
         # report corners
         uleft = self.GDALInfoReportCorner(gtif, hTransform, "Upper Left", 0, 0)
@@ -3668,20 +3436,13 @@ class UUIDBox(Jp2kBox):
 
         # transform the point into georeferenced coordinates
         geo_transform = hDataset.GetGeoTransform(can_return_null=True)
-        if geo_transform is not None:
-            dfGeoX = (geo_transform[0] + geo_transform[1] * x +
-                      geo_transform[2] * y)
-            dfGeoY = geo_transform[3] + geo_transform[4] * x
-            dfGeoY += geo_transform[5] * y
-        else:
-            line += '({:12.7f},{:12.7f})'.format(x, y)
-            return line
+        dfGeoX = (geo_transform[0] + geo_transform[1] * x +
+                  geo_transform[2] * y)
+        dfGeoY = geo_transform[3] + geo_transform[4] * x
+        dfGeoY += geo_transform[5] * y
 
         # report the georeferenced coordinates
-        if abs(dfGeoX) < 181 and abs(dfGeoY) < 91:
-            line += '({:12.7f},{:12.7f}) '.format(dfGeoX, dfGeoY)
-        else:
-            line += '({:12.3f},{:12.3f}) '.format(dfGeoX, dfGeoY)
+        line += '({:12.3f},{:12.3f}) '.format(dfGeoX, dfGeoY)
 
         # transform to latlong and report
         if hTransform is not None:

@@ -102,63 +102,65 @@ class Codestream(object):
             Supplying False may impose a large performance penalty.
         """
         # Map each of the known markers to a method that processes them.
-        process_marker_segment = {0xff00: self._parse_reserved_segment,
-                                  0xff01: self._parse_reserved_segment,
-                                  0xff30: self._parse_reserved_marker,
-                                  0xff31: self._parse_reserved_marker,
-                                  0xff32: self._parse_reserved_marker,
-                                  0xff33: self._parse_reserved_marker,
-                                  0xff34: self._parse_reserved_marker,
-                                  0xff35: self._parse_reserved_marker,
-                                  0xff36: self._parse_reserved_marker,
-                                  0xff37: self._parse_reserved_marker,
-                                  0xff38: self._parse_reserved_marker,
-                                  0xff39: self._parse_reserved_marker,
-                                  0xff3a: self._parse_reserved_marker,
-                                  0xff3b: self._parse_reserved_marker,
-                                  0xff3c: self._parse_reserved_marker,
-                                  0xff3d: self._parse_reserved_marker,
-                                  0xff3e: self._parse_reserved_marker,
-                                  0xff3f: self._parse_reserved_marker,
-                                  0xff4f: self._parse_reserved_segment,
-                                  0xff50: self._parse_reserved_segment,
-                                  0xff51: self._parse_siz_segment,
-                                  0xff52: self._parse_cod_segment,
-                                  0xff53: self._parse_coc_segment,
-                                  0xff54: self._parse_reserved_segment,
-                                  0xff55: self._parse_tlm_segment,
-                                  0xff56: self._parse_reserved_segment,
-                                  0xff57: self._parse_reserved_segment,
-                                  0xff58: self._parse_plt_segment,
-                                  0xff59: self._parse_reserved_segment,
-                                  0xff5a: self._parse_reserved_segment,
-                                  0xff5b: self._parse_reserved_segment,
-                                  0xff5c: self._parse_qcd_segment,
-                                  0xff5d: self._parse_qcc_segment,
-                                  0xff5e: self._parse_rgn_segment,
-                                  0xff5f: self._parse_pod_segment,
-                                  0xff60: self._parse_ppm_segment,
-                                  0xff61: self._parse_ppt_segment,
-                                  0xff62: self._parse_reserved_segment,
-                                  0xff63: self._parse_crg_segment,
-                                  0xff64: self._parse_cme_segment,
-                                  0xff65: self._parse_reserved_segment,
-                                  0xff66: self._parse_reserved_segment,
-                                  0xff67: self._parse_reserved_segment,
-                                  0xff68: self._parse_reserved_segment,
-                                  0xff69: self._parse_reserved_segment,
-                                  0xff6a: self._parse_reserved_segment,
-                                  0xff6b: self._parse_reserved_segment,
-                                  0xff6c: self._parse_reserved_segment,
-                                  0xff6d: self._parse_reserved_segment,
-                                  0xff6e: self._parse_reserved_segment,
-                                  0xff6f: self._parse_reserved_segment,
-                                  0xff79: self._parse_unrecognized_segment,
-                                  0xff90: self._parse_sot_segment,
-                                  0xff91: self._parse_unrecognized_segment,
-                                  0xff92: self._parse_unrecognized_segment,
-                                  0xff93: self._parse_sod_segment,
-                                  0xffd9: self._parse_eoc_segment}
+        process_marker_segment = {
+            0xff00: self._parse_reserved_segment,
+            0xff01: self._parse_reserved_segment,
+            0xff30: self._parse_reserved_marker,
+            0xff31: self._parse_reserved_marker,
+            0xff32: self._parse_reserved_marker,
+            0xff33: self._parse_reserved_marker,
+            0xff34: self._parse_reserved_marker,
+            0xff35: self._parse_reserved_marker,
+            0xff36: self._parse_reserved_marker,
+            0xff37: self._parse_reserved_marker,
+            0xff38: self._parse_reserved_marker,
+            0xff39: self._parse_reserved_marker,
+            0xff3a: self._parse_reserved_marker,
+            0xff3b: self._parse_reserved_marker,
+            0xff3c: self._parse_reserved_marker,
+            0xff3d: self._parse_reserved_marker,
+            0xff3e: self._parse_reserved_marker,
+            0xff3f: self._parse_reserved_marker,
+            0xff4f: self._parse_reserved_segment,
+            0xff50: self._parse_reserved_segment,
+            0xff51: self._parse_siz_segment,
+            0xff52: self._parse_cod_segment,
+            0xff53: self._parse_coc_segment,
+            0xff54: self._parse_reserved_segment,
+            0xff55: self._parse_tlm_segment,
+            0xff56: self._parse_reserved_segment,
+            0xff57: self._parse_reserved_segment,
+            0xff58: self._parse_plt_segment,
+            0xff59: self._parse_reserved_segment,
+            0xff5a: self._parse_reserved_segment,
+            0xff5b: self._parse_reserved_segment,
+            0xff5c: self._parse_qcd_segment,
+            0xff5d: self._parse_qcc_segment,
+            0xff5e: self._parse_rgn_segment,
+            0xff5f: self._parse_pod_segment,
+            0xff60: self._parse_ppm_segment,
+            0xff61: self._parse_ppt_segment,
+            0xff62: self._parse_reserved_segment,
+            0xff63: self._parse_crg_segment,
+            0xff64: self._parse_cme_segment,
+            0xff65: self._parse_reserved_segment,
+            0xff66: self._parse_reserved_segment,
+            0xff67: self._parse_reserved_segment,
+            0xff68: self._parse_reserved_segment,
+            0xff69: self._parse_reserved_segment,
+            0xff6a: self._parse_reserved_segment,
+            0xff6b: self._parse_reserved_segment,
+            0xff6c: self._parse_reserved_segment,
+            0xff6d: self._parse_reserved_segment,
+            0xff6e: self._parse_reserved_segment,
+            0xff6f: self._parse_reserved_segment,
+            0xff79: self._parse_unrecognized_segment,
+            0xff90: self._parse_sot_segment,
+            0xff91: self._parse_unrecognized_segment,
+            0xff92: self._parse_unrecognized_segment,
+            0xff93: self._parse_sod_segment,
+            0xffd9: self._parse_eoc_segment
+        }
 
         self.offset = fptr.tell()
         self.length = length
@@ -346,13 +348,10 @@ class Codestream(object):
         length, = struct.unpack('>H', read_buffer)
         kwargs['length'] = length
 
-        if self._csiz <= 255:
-            read_buffer = fptr.read(1)
-            component, = struct.unpack('>B', read_buffer)
-        else:
-            read_buffer = fptr.read(2)
-            component, = struct.unpack('>H', read_buffer)
-        ccoc = component
+        fmt = '>B' if self._csiz <= 255 else '>H'
+        nbytes = 1 if self._csiz <= 255 else 2
+        read_buffer = fptr.read(nbytes)
+        ccoc, = struct.unpack(fmt, read_buffer)
 
         read_buffer = fptr.read(1)
         scoc, = struct.unpack('>B', read_buffer)
@@ -452,8 +451,8 @@ class Codestream(object):
     def _parse_plt_segment(self, fptr):
         """Parse the PLT segment.
 
-        The packet headers are not parsed, i.e. they remain "uninterpreted"
-        raw data beffers.
+        The packet headers are not parsed, i.e. they remain uninterpreted raw
+        data buffers.
 
         Parameters
         ----------
@@ -507,15 +506,11 @@ class Codestream(object):
         read_buffer = fptr.read(2)
         length, = struct.unpack('>H', read_buffer)
 
-        if self._csiz < 257:
-            numbytes = int((length - 2) / 7)
-            read_buffer = fptr.read(numbytes * 7)
-            fmt = '>' + 'BBHBBB' * numbytes
-        else:
-            numbytes = int((length - 2) / 9)
-            read_buffer = fptr.read(numbytes * 9)
-            fmt = '>' + 'BHHBHB' * numbytes
-
+        n = ((length - 2) / 7) if self._csiz < 257 else ((length - 2) / 9)
+        n = int(n)
+        nbytes = n * 7 if self._csiz < 257 else n * 9
+        read_buffer = fptr.read(nbytes)
+        fmt = '>' + 'BBHBBB' * n if self._csiz < 257 else '>' + 'BHHBHB' * n
         pod_params = struct.unpack(fmt, read_buffer)
 
         return PODsegment(pod_params, length, offset)
@@ -591,12 +586,8 @@ class Codestream(object):
         length, = struct.unpack('>H', read_buffer)
 
         read_buffer = fptr.read(length - 2)
-        if cls._csiz > 256:
-            fmt = '>HB'
-            mantissa_exponent_offset = 3
-        else:
-            fmt = '>BB'
-            mantissa_exponent_offset = 2
+        fmt = '>HB' if cls._csiz > 256 else '>BB'
+        mantissa_exponent_offset = 3 if cls._csiz > 256 else 2
         cqcc, sqcc = struct.unpack_from(fmt, read_buffer)
         if cqcc >= cls._csiz:
             msg = ("Invalid QCC component number ({invalid_comp_no}), "
@@ -648,12 +639,10 @@ class Codestream(object):
         read_buffer = fptr.read(2)
         length, = struct.unpack('>H', read_buffer)
 
-        if cls._csiz < 257:
-            read_buffer = fptr.read(3)
-            data = struct.unpack('>BBB', read_buffer)
-        else:
-            read_buffer = fptr.read(4)
-            data = struct.unpack('>HBB', read_buffer)
+        nbytes = 3 if cls._csiz < 257 else 4
+        fmt = '>BBB' if cls._csiz < 257 else '>HBB'
+        read_buffer = fptr.read(nbytes)
+        data = struct.unpack(fmt, read_buffer)
 
         length = length
         crgn = data[0]
@@ -1153,7 +1142,7 @@ class CRGsegment(Segment):
     length : int
         Length of marker segment in bytes.  This number does not include the
         two bytes constituting the marker.
-    xcrg, ycrg : int
+    xcrg, ycrg : int sequences
         Horizontal, vertical offset for each component
     """
     def __init__(self, xcrg, ycrg, length, offset):

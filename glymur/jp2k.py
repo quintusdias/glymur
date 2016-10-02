@@ -10,15 +10,12 @@ License:  MIT
 from collections import Counter
 try:
     from contextlib import ExitStack
+    from itertools import filterfalse
 except ImportError:
     # v2.7, third party library import ...
     from contextlib2 import ExitStack
-import ctypes
-try:
-    from itertools import filterfalse
-except ImportError:
-    # v2.7
     from itertools import ifilterfalse as filterfalse
+import ctypes
 import math
 import os
 import re
@@ -35,7 +32,7 @@ from . import core, version
 from .jp2box import (Jp2kBox, JPEG2000SignatureBox, FileTypeBox,
                      JP2HeaderBox, ColourSpecificationBox,
                      ContiguousCodestreamBox, ImageHeaderBox)
-from .lib import openjpeg as opj, openjp2 as opj2, c as libc
+from .lib import openjpeg as opj, openjp2 as opj2
 
 
 class Jp2k(Jp2kBox):
@@ -177,23 +174,20 @@ class Jp2k(Jp2kBox):
 
     @layer.setter
     def layer(self, layer):
-        if version.openjpeg_version_tuple[0] < 2:
+        if version.openjpeg_version < '2.1.0':
             msg = ("The layer property not supported unless the OpenJPEG "
-                   "library version is 2.0 or higher.  The installed version "
+                   "library version is 2.1 or higher.  The installed version "
                    "is {version}.")
             msg = msg.format(version=version.openjpeg_version)
             raise IOError(msg)
-        self._layer = layer
+
+        self._layer = 0 if layer is None else layer
 
     @property
     def codestream(self):
         if self._codestream is None:
             self._codestream = self.get_codestream(header_only=True)
         return self._codestream
-
-    @codestream.setter
-    def codestream(self, the_codestream):
-        self._codestream = the_codestream
 
     @property
     def verbose(self):
@@ -310,7 +304,8 @@ class Jp2k(Jp2kBox):
             self._validate()
 
     def _validate(self):
-        """Validate the JPEG 2000 outermost superbox.
+        """Validate the JPEG 2000 outermost superbox.  These checks must be
+        done at a file level.
         """
         # A JP2 file must contain certain boxes.  The 2nd box must be a file
         # type box.
@@ -345,9 +340,9 @@ class Jp2k(Jp2kBox):
         fps : {24, 48}
             Frames per second.
         """
-        if re.match("1.5|2.0.0", version.openjpeg_version) is not None:
+        if re.match("1.5|2.0", version.openjpeg_version) is not None:
             msg = ("Writing Cinema2K or Cinema4K files is not supported with "
-                   "OpenJPEG library versions less than 2.0.1.  The installed "
+                   "OpenJPEG library versions less than 2.1.0.  The installed "
                    "version of OpenJPEG is {version}.")
             msg = msg.format(version=version.openjpeg_version)
             raise IOError(msg)
@@ -360,31 +355,18 @@ class Jp2k(Jp2kBox):
                 msg = 'Cinema2K frame rate must be either 24 or 48.'
                 raise IOError(msg)
 
-            if re.match("2.0", version.openjpeg_version) is not None:
-                # 2.0 API
-                if fps == 24:
-                    self._cparams.cp_cinema = core.OPJ_CINEMA2K_24
-                else:
-                    self._cparams.cp_cinema = core.OPJ_CINEMA2K_48
+            if fps == 24:
+                self._cparams.rsiz = core.OPJ_PROFILE_CINEMA_2K
+                self._cparams.max_comp_size = core.OPJ_CINEMA_24_COMP
+                self._cparams.max_cs_size = core.OPJ_CINEMA_24_CS
             else:
-                # 2.1 API
-                if fps == 24:
-                    self._cparams.rsiz = core.OPJ_PROFILE_CINEMA_2K
-                    self._cparams.max_comp_size = core.OPJ_CINEMA_24_COMP
-                    self._cparams.max_cs_size = core.OPJ_CINEMA_24_CS
-                else:
-                    self._cparams.rsiz = core.OPJ_PROFILE_CINEMA_2K
-                    self._cparams.max_comp_size = core.OPJ_CINEMA_48_COMP
-                    self._cparams.max_cs_size = core.OPJ_CINEMA_48_CS
+                self._cparams.rsiz = core.OPJ_PROFILE_CINEMA_2K
+                self._cparams.max_comp_size = core.OPJ_CINEMA_48_COMP
+                self._cparams.max_cs_size = core.OPJ_CINEMA_48_CS
 
         else:
             # cinema4k
-            if re.match("2.0", version.openjpeg_version) is not None:
-                # 2.0 API
-                self._cparams.cp_cinema = core.OPJ_CINEMA4K_24
-            else:
-                # 2.1 API
-                self._cparams.rsiz = core.OPJ_PROFILE_CINEMA_4K
+            self._cparams.rsiz = core.OPJ_PROFILE_CINEMA_4K
 
     def _populate_cparams(self, img_array, mct=None, cratios=None, psnr=None,
                           cinema2k=None, cinema4k=None, irreversible=None,
@@ -673,19 +655,6 @@ class Jp2k(Jp2kBox):
             msg = "{0}D imagery is not allowed.".format(img_array.ndim)
             raise IOError(msg)
 
-    def _validate_v2_0_0_images(self, img_array):
-        """
-        Version 2.0.0 is restricted to only the most common images.
-        """
-        if re.match("2.0.0", version.openjpeg_version) is not None:
-            if (((img_array.ndim != 2) and
-                 (img_array.shape[2] != 1 and img_array.shape[2] != 3))):
-                msg = ("Writing images is restricted to single-channel "
-                       "greyscale images or three-channel RGB images when "
-                       "the OpenJPEG library version is the official 2.0.0 "
-                       "release.")
-                raise IOError(msg)
-
     def _validate_image_datatype(self, img_array):
         """
         Only uint8 and uint16 images are currently supported.
@@ -709,7 +678,6 @@ class Jp2k(Jp2kBox):
         self._validate_codeblock_size(cparams)
         self._validate_precinct_size(cparams)
         self._validate_image_rank(img_array)
-        self._validate_v2_0_0_images(img_array)
         self._validate_image_datatype(img_array)
 
     def _determine_colorspace(self, colorspace=None, **kwargs):
@@ -780,16 +748,9 @@ class Jp2k(Jp2kBox):
 
             opj2.setup_encoder(codec, self._cparams, image)
 
-            if re.match("2.0", version.openjpeg_version) is not None:
-                fptr = libc.fopen(self.filename, 'wb')
-                strm = opj2.stream_create_default_file_stream(fptr, False)
-                stack.callback(opj2.stream_destroy, strm)
-                stack.callback(libc.fclose, fptr)
-            else:
-                # Introduced in 2.1 devel series.
-                strm = opj2.stream_create_default_file_stream(self.filename,
-                                                              False)
-                stack.callback(opj2.stream_destroy, strm)
+            strm = opj2.stream_create_default_file_stream(self.filename,
+                                                          False)
+            stack.callback(opj2.stream_destroy, strm)
 
             opj2.start_compress(codec, image, strm)
             opj2.encode(codec, strm)
@@ -1173,6 +1134,7 @@ class Jp2k(Jp2kBox):
 
         if 'ignore_pclr_cmap_cdef' in kwargs:
             self.ignore_pclr_cmap_cdef = kwargs['ignore_pclr_cmap_cdef']
+            kwargs.pop('ignore_pclr_cmap_cdef')
         warnings.warn("Use array-style slicing instead.", DeprecationWarning)
         img = self._read(**kwargs)
         return img
@@ -1224,11 +1186,8 @@ class Jp2k(Jp2kBox):
                 dinfo = opj.create_decompress(self._dparams.decod_format)
 
                 event_mgr = opj.EventMgrType()
-                info_handler = ctypes.cast(_INFO_CALLBACK, ctypes.c_void_p)
-                if verbose or self._verbose:
-                    event_mgr.info_handler = info_handler
-                else:
-                    event_mgr.info_handler = None
+                handler = ctypes.cast(_INFO_CALLBACK, ctypes.c_void_p)
+                event_mgr.info_handler = handler if self.verbose else None
                 event_mgr.warning_handler = ctypes.cast(_WARNING_CALLBACK,
                                                         ctypes.c_void_p)
                 event_mgr.error_handler = ctypes.cast(_ERROR_CALLBACK,
@@ -1252,17 +1211,9 @@ class Jp2k(Jp2kBox):
             except ValueError:
                 opj2.check_error(0)
 
-        if image.shape[2] == 1:
-            # The third dimension has just a single layer.  Make the image
-            # data 2D instead of 3D.
-            image.shape = image.shape[0:2]
-
         if area is not None:
             x0, y0, x1, y1 = area
             extent = 2 ** rlevel
-            if x1 - x0 < extent or y1 - y0 < extent:
-                msg = "Decoded area is too small."
-                raise IOError(msg)
 
             area = [int(round(float(x) / extent + 2 ** -20)) for x in area]
             rows = slice(area[0], area[2], None)
@@ -1300,30 +1251,33 @@ class Jp2k(Jp2kBox):
         RuntimeError
             If the image has differing subsample factors.
         """
-        if layer is not None:
-            self._layer = layer
-
+        self.layer = layer
         self._subsampling_sanity_check()
-
         self._populate_dparams(rlevel, tile=tile, area=area)
+        image = self._read_openjp2_common()
+        return image
 
+    def _read_openjp2_common(self):
+        """
+        Read a JPEG 2000 image using libopenjp2.
+
+        Returns
+        -------
+        ndarray or lst
+            Either the image as an ndarray or a list of ndarrays, each item
+            corresponding to one band.
+        """
         with ExitStack() as stack:
-            if re.match("2.1", version.openjpeg_version):
-                filename = self.filename
-                stream = opj2.stream_create_default_file_stream(filename, True)
-                stack.callback(opj2.stream_destroy, stream)
-            else:
-                fptr = libc.fopen(self.filename, 'rb')
-                stack.callback(libc.fclose, fptr)
-                stream = opj2.stream_create_default_file_stream(fptr, True)
-                stack.callback(opj2.stream_destroy, stream)
+            filename = self.filename
+            stream = opj2.stream_create_default_file_stream(filename, True)
+            stack.callback(opj2.stream_destroy, stream)
             codec = opj2.create_decompress(self._codec_format)
             stack.callback(opj2.destroy_codec, codec)
 
             opj2.set_error_handler(codec, _ERROR_CALLBACK)
             opj2.set_warning_handler(codec, _WARNING_CALLBACK)
 
-            if self._verbose or verbose:
+            if self._verbose:
                 opj2.set_info_handler(codec, _INFO_CALLBACK)
             else:
                 opj2.set_info_handler(codec, None)
@@ -1344,9 +1298,6 @@ class Jp2k(Jp2kBox):
             opj2.end_decompress(codec, stream)
 
             image = self._extract_image(raw_image)
-
-        if image.shape[2] == 1:
-            image.shape = image.shape[0:2]
 
         return image
 
@@ -1457,55 +1408,17 @@ class Jp2k(Jp2kBox):
         >>> jp = glymur.Jp2k(jfile)
         >>> components_lst = jp.read_bands(rlevel=1)
         """
-        if version.openjpeg_version_tuple[0] < 2:
-            msg = ("You must have at least version 2.0.0 of OpenJPEG "
+        if version.openjpeg_version < '2.1.0':
+            msg = ("You must have at least version 2.1.0 of OpenJPEG "
                    "installed before using this method.  Your version of "
                    "OpenJPEG is {version}.")
             msg = msg.format(version=version.openjpeg_version)
             raise IOError(msg)
 
         self.ignore_pclr_cmap_cdef = ignore_pclr_cmap_cdef
-        if layer is not None:
-            self._layer = layer
+        self.layer = layer
         self._populate_dparams(rlevel, tile=tile, area=area)
-
-        with ExitStack() as stack:
-            if re.match("2.1", version.openjpeg_version):
-                # API change in 2.1
-                filename = self.filename
-                stream = opj2.stream_create_default_file_stream(filename, True)
-                stack.callback(opj2.stream_destroy, stream)
-            else:
-                fptr = libc.fopen(self.filename, 'rb')
-                stack.callback(libc.fclose, fptr)
-                stream = opj2.stream_create_default_file_stream(fptr, True)
-                stack.callback(opj2.stream_destroy, stream)
-            codec = opj2.create_decompress(self._codec_format)
-            stack.callback(opj2.destroy_codec, codec)
-
-            opj2.set_error_handler(codec, _ERROR_CALLBACK)
-            opj2.set_warning_handler(codec, _WARNING_CALLBACK)
-            if verbose:
-                opj2.set_info_handler(codec, _INFO_CALLBACK)
-            else:
-                opj2.set_info_handler(codec, None)
-
-            opj2.setup_decoder(codec, self._dparams)
-            image = opj2.read_header(stream, codec)
-            stack.callback(opj2.image_destroy, image)
-
-            if self._dparams.nb_tile_to_decode:
-                opj2.get_decoded_tile(codec, stream, image,
-                                      self._dparams.tile_index)
-            else:
-                opj2.set_decode_area(codec, image,
-                                     self._dparams.DA_x0, self._dparams.DA_y0,
-                                     self._dparams.DA_x1, self._dparams.DA_y1)
-                opj2.decode(codec, stream, image)
-                opj2.end_decompress(codec, stream)
-
-            lst = self._extract_image(image)
-
+        lst = self._read_openjp2_common()
         return lst
 
     def _extract_image(self, raw_image):
@@ -1560,6 +1473,11 @@ class Jp2k(Jp2kBox):
                     image.append(np.reshape(band.astype(dtypes[k]),
                                  (nrows[k], ncols[k])))
 
+        if is_cube and image.shape[2] == 1:
+            # The third dimension has just a single layer.  Make the image
+            # data 2D instead of 3D.
+            image.shape = image.shape[0:2]
+
         return image
 
     def _component2dtype(self, component):
@@ -1575,27 +1493,19 @@ class Jp2k(Jp2kBox):
         builtins.type
             numpy datatype to be used to construct an image array
         """
+        if component.prec > 16:
+            msg = "Unhandled precision: {0} bits.".format(component.prec)
+            raise IOError(msg)
+
         if component.sgnd:
-            if component.prec <= 8:
-                dtype = np.int8
-            elif component.prec <= 16:
-                dtype = np.int16
-            else:
-                msg = "Unhandled precision: {0} bits.".format(component.prec)
-                raise RuntimeError(msg)
+            dtype = np.int8 if component.prec <=8 else np.int16
         else:
-            if component.prec <= 8:
-                dtype = np.uint8
-            elif component.prec <= 16:
-                dtype = np.uint16
-            else:
-                msg = "Unhandled precision: {0} bits.".format(component.prec)
-                raise RuntimeError(msg)
+            dtype = np.uint8 if component.prec <=8 else np.uint16
 
         return dtype
 
     def get_codestream(self, header_only=True):
-        """Returns a codestream object.
+        """Retrieve codestream.
 
         Parameters
         ----------
@@ -1659,6 +1569,8 @@ class Jp2k(Jp2kBox):
         """
 
         numrows, numcols, num_comps = imgdata.shape
+        for k in range(num_comps):
+            self._validate_nonzero_image_size(numrows, numcols, k)
 
         # set image offset and reference grid
         image.contents.x0 = self._cparams.image_offset_x0
@@ -1670,17 +1582,10 @@ class Jp2k(Jp2kBox):
 
         # Stage the image data to the openjpeg data structure.
         for k in range(0, num_comps):
-            if re.match("2.0", version.openjpeg_version) is not None:
-                # 2.0 API
-                if self._cparams.cp_cinema:
-                    image.contents.comps[k].prec = 12
-                    image.contents.comps[k].bpp = 12
-            else:
-                # 2.1 API
-                if self._cparams.rsiz in (core.OPJ_PROFILE_CINEMA_2K,
-                                          core.OPJ_PROFILE_CINEMA_4K):
-                    image.contents.comps[k].prec = 12
-                    image.contents.comps[k].bpp = 12
+            if self._cparams.rsiz in (core.OPJ_PROFILE_CINEMA_2K,
+                                      core.OPJ_PROFILE_CINEMA_4K):
+                image.contents.comps[k].prec = 12
+                image.contents.comps[k].bpp = 12
 
             layer = np.ascontiguousarray(imgdata[:, :, k], dtype=np.int32)
             dest = image.contents.comps[k].data
@@ -1772,7 +1677,6 @@ class Jp2k(Jp2kBox):
     def _validate_jpx_box_sequence(self, boxes):
         """Run through series of tests for JPX box legality."""
         self._validate_label(boxes)
-        self._validate_jpx_brand(boxes, boxes[1].brand)
         self._validate_jpx_compatibility(boxes, boxes[1].compatibility_list)
         self._validate_singletons(boxes)
         self._validate_top_level(boxes)
@@ -1909,10 +1813,6 @@ class Jp2k(Jp2kBox):
                 self._check_superbox_for_top_levels(box.box)
 
         count = self._collect_box_count(boxes)
-        # Which boxes occur more than once?
-        multiples = [box_id for box_id, bcount in count.items() if bcount > 1]
-        if 'dtbl' in multiples:
-            raise IOError('There can only be one dtbl box in a file.')
 
         # If there is one data reference box, then there must also be one ftbl.
         if 'dtbl' in count and 'ftbl' not in count:
@@ -1927,21 +1827,6 @@ class Jp2k(Jp2kBox):
         multiples = [box_id for box_id, bcount in count.items() if bcount > 1]
         if 'dtbl' in multiples:
             raise IOError('There can only be one dtbl box in a file.')
-
-    def _validate_jpx_brand(self, boxes, brand):
-        """
-        If there is a JPX box then the brand must be 'jpx '.
-        """
-        JPX_IDS = ['asoc', 'nlst']
-        for box in boxes:
-            if box.box_id in JPX_IDS:
-                if brand != 'jpx ':
-                    msg = ("A JPX box requires that the file type box brand "
-                           "be 'jpx '.")
-                    raise RuntimeError(msg)
-            if hasattr(box, 'box') != 0:
-                # Same set of checks on any child boxes.
-                self._validate_jpx_brand(box.box, brand)
 
     def _validate_jpx_compatibility(self, boxes, compatibility_list):
         """

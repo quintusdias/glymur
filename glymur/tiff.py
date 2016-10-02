@@ -2,9 +2,9 @@
 """
 Part of glymur.
 """
+# Standard library imports ...
 from collections import OrderedDict
 import struct
-import sys
 import warnings
 
 
@@ -13,7 +13,7 @@ def _tiff_header(read_buffer):
     Interpret the uuid raw data as a tiff header.
     """
     # First 8 should be (73, 73, 42, 8) or (77, 77, 42, 8)
-    data = struct.unpack('<BB', read_buffer[0:2])
+    data = struct.unpack('BB', read_buffer[0:2])
     if data[0] == 73 and data[1] == 73:
         # little endian
         endian = '<'
@@ -108,10 +108,7 @@ class _Ifd(object):
 
         if dtype == 2:
             # ASCII
-            if sys.hexversion < 0x03000000:
-                payload = target_buffer.rstrip('\x00')
-            else:
-                payload = target_buffer.decode('utf-8').rstrip('\x00')
+            payload = target_buffer.decode('utf-8').rstrip('\x00')
 
         else:
             payload = struct.unpack(self.endian + fmt, target_buffer)
@@ -362,138 +359,6 @@ class _ExifImageIfd(_Ifd):
                    51009: 'OpcodeList2',
                    51022: 'OpcodeList3',
                    51041: 'NoiseProfile'}
-
-    def __init__(self, endian, read_buffer, offset):
-        _Ifd.__init__(self, endian, read_buffer, offset)
-        self.post_process(self.tagnum2name)
-
-
-class _ExifPhotoIfd(_Ifd):
-    """Represents tags found in the Exif sub ifd.
-    """
-    tagnum2name = {33434: 'ExposureTime',
-                   33437: 'FNumber',
-                   34850: 'ExposureProgram',
-                   34852: 'SpectralSensitivity',
-                   34855: 'ISOSpeedRatings',
-                   34856: 'OECF',
-                   34864: 'SensitivityType',
-                   34865: 'StandardOutputSensitivity',
-                   34866: 'RecommendedExposureIndex',
-                   34867: 'ISOSpeed',
-                   34868: 'ISOSpeedLatitudeyyy',
-                   34869: 'ISOSpeedLatitudezzz',
-                   36864: 'ExifVersion',
-                   36867: 'DateTimeOriginal',
-                   36868: 'DateTimeDigitized',
-                   37121: 'ComponentsConfiguration',
-                   37122: 'CompressedBitsPerPixel',
-                   37377: 'ShutterSpeedValue',
-                   37378: 'ApertureValue',
-                   37379: 'BrightnessValue',
-                   37380: 'ExposureBiasValue',
-                   37381: 'MaxApertureValue',
-                   37382: 'SubjectDistance',
-                   37383: 'MeteringMode',
-                   37384: 'LightSource',
-                   37385: 'Flash',
-                   37386: 'FocalLength',
-                   37396: 'SubjectArea',
-                   37500: 'MakerNote',
-                   37510: 'UserComment',
-                   37520: 'SubSecTime',
-                   37521: 'SubSecTimeOriginal',
-                   37522: 'SubSecTimeDigitized',
-                   40960: 'FlashpixVersion',
-                   40961: 'ColorSpace',
-                   40962: 'PixelXDimension',
-                   40963: 'PixelYDimension',
-                   40964: 'RelatedSoundFile',
-                   40965: 'InteroperabilityTag',
-                   41483: 'FlashEnergy',
-                   41484: 'SpatialFrequencyResponse',
-                   41486: 'FocalPlaneXResolution',
-                   41487: 'FocalPlaneYResolution',
-                   41488: 'FocalPlaneResolutionUnit',
-                   41492: 'SubjectLocation',
-                   41493: 'ExposureIndex',
-                   41495: 'SensingMethod',
-                   41728: 'FileSource',
-                   41729: 'SceneType',
-                   41730: 'CFAPattern',
-                   41985: 'CustomRendered',
-                   41986: 'ExposureMode',
-                   41987: 'WhiteBalance',
-                   41988: 'DigitalZoomRatio',
-                   41989: 'FocalLengthIn35mmFilm',
-                   41990: 'SceneCaptureType',
-                   41991: 'GainControl',
-                   41992: 'Contrast',
-                   41993: 'Saturation',
-                   41994: 'Sharpness',
-                   41995: 'DeviceSettingDescription',
-                   41996: 'SubjectDistanceRange',
-                   42016: 'ImageUniqueID',
-                   42032: 'CameraOwnerName',
-                   42033: 'BodySerialNumber',
-                   42034: 'LensSpecification',
-                   42035: 'LensMake',
-                   42036: 'LensModel',
-                   42037: 'LensSerialNumber'}
-
-    def __init__(self, endian, read_buffer, offset):
-        _Ifd.__init__(self, endian, read_buffer, offset)
-        self.post_process(self.tagnum2name)
-
-
-class _ExifGPSInfoIfd(_Ifd):
-    """Represents information found in the GPSInfo sub IFD.
-    """
-    tagnum2name = {0: 'GPSVersionID',
-                   1: 'GPSLatitudeRef',
-                   2: 'GPSLatitude',
-                   3: 'GPSLongitudeRef',
-                   4: 'GPSLongitude',
-                   5: 'GPSAltitudeRef',
-                   6: 'GPSAltitude',
-                   7: 'GPSTimeStamp',
-                   8: 'GPSSatellites',
-                   9: 'GPSStatus',
-                   10: 'GPSMeasureMode',
-                   11: 'GPSDOP',
-                   12: 'GPSSpeedRef',
-                   13: 'GPSSpeed',
-                   14: 'GPSTrackRef',
-                   15: 'GPSTrack',
-                   16: 'GPSImgDirectionRef',
-                   17: 'GPSImgDirection',
-                   18: 'GPSMapDatum',
-                   19: 'GPSDestLatitudeRef',
-                   20: 'GPSDestLatitude',
-                   21: 'GPSDestLongitudeRef',
-                   22: 'GPSDestLongitude',
-                   23: 'GPSDestBearingRef',
-                   24: 'GPSDestBearing',
-                   25: 'GPSDestDistanceRef',
-                   26: 'GPSDestDistance',
-                   27: 'GPSProcessingMethod',
-                   28: 'GPSAreaInformation',
-                   29: 'GPSDateStamp',
-                   30: 'GPSDifferential'}
-
-    def __init__(self, endian, read_buffer, offset):
-        _Ifd.__init__(self, endian, read_buffer, offset)
-        self.post_process(self.tagnum2name)
-
-
-class _ExifInteroperabilityIfd(_Ifd):
-    """Represents tags found in the Interoperability sub IFD.
-    """
-    tagnum2name = {1: 'InteroperabilityIndex',
-                   2: 'InteroperabilityVersion',
-                   4096: 'RelatedImageFileFormat',
-                   4097: 'RelatedImageWidth',
-                   4098: 'RelatedImageLength'}
 
     def __init__(self, endian, read_buffer, offset):
         _Ifd.__init__(self, endian, read_buffer, offset)

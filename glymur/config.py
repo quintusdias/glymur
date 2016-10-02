@@ -20,18 +20,6 @@ else:
 _macports_default_location = {'openjp2': '/opt/local/lib/libopenjp2.dylib',
                               'openjpeg': '/opt/local/lib/libopenjpeg.dylib'}
 
-# default library locations on Windows
-_windows_default_location = {'openjp2': os.path.join('C:\\',
-                                                     'Program files',
-                                                     'OpenJPEG 2.0',
-                                                     'bin',
-                                                     'openjp2.dll'),
-                             'openjpeg': os.path.join('C:\\',
-                                                      'Program files',
-                                                      'OpenJPEG 1.5',
-                                                      'bin',
-                                                      'openjpeg.dll')}
-
 
 def glymurrc_fname():
     """Return the path to the configuration file.
@@ -66,18 +54,13 @@ def load_openjpeg_library(libname):
 
     if 'Anaconda' in sys.version or 'Continuum Analytics, Inc.' in sys.version:
         # If Anaconda, then openjpeg may have been installed via conda.
-        if platform.system() == 'Linux':
-            suffix = '.so'
-            basedir = os.path.dirname(os.path.dirname(sys.executable))
-            lib = os.path.join(basedir, 'lib', 'lib' + libname + suffix)
-        elif platform.system() == 'Darwin':
-            suffix = '.dylib'
+        if platform.system() in ['Linux', 'Darwin']:
+            suffix = '.so' if platform.system() == 'Linux' else '.dylib'
             basedir = os.path.dirname(os.path.dirname(sys.executable))
             lib = os.path.join(basedir, 'lib', 'lib' + libname + suffix)
         elif platform.system() == 'Windows':
-            suffix = '.dll'
             basedir = os.path.dirname(sys.executable)
-            lib = os.path.join(basedir, 'Library', 'bin', libname + suffix)
+            lib = os.path.join(basedir, 'Library', 'bin', libname + '.dll')
 
         if os.path.exists(lib):
             path = lib
@@ -90,9 +73,6 @@ def load_openjpeg_library(libname):
         if platform.system() == 'Darwin':
             # OpenJPEG may have been installed via MacPorts
             path = _macports_default_location[libname]
-        elif platform.system == 'Windows':
-            # OpenJPEG may have been installed via windows installer
-            path = _windows_default_location[libname]
 
         if path is not None and not os.path.exists(path):
             # the mac/win default location does not exist.
@@ -378,7 +358,7 @@ def set_printoptions(**kwargs):
                   DeprecationWarning)
     for key, value in kwargs.items():
         if key not in ['short', 'xml', 'codestream']:
-            raise TypeError('"{0}" not a valid keyword parameter.'.format(key))
+            raise KeyError('"{0}" not a valid keyword parameter.'.format(key))
         set_option('print.' + key, value)
 
 
