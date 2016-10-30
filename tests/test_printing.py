@@ -261,6 +261,29 @@ class TestPrinting(unittest.TestCase):
         segment = glymur.codestream.SIZsegment(**kwargs)
         str(segment)
 
+    def test_invalid_approximation(self):
+        """
+        An invalid approximation value shouldn't cause a printing error.
+
+        Original test file was edf_c2_1015644.jp2
+        """
+        kwargs = {
+            'colorspace':  1,
+            'precedence': 2,
+            'approximation': 32,
+        }
+        with warnings.catch_warnings():
+            # Get a warning for the bad approximation value when parsing.
+            warnings.simplefilter("ignore")
+            colr = ColourSpecificationBox(**kwargs)
+        actual = str(colr)
+        expected = ("Colour Specification Box (colr) @ (-1, 0)\n"
+                    "    Method:  enumerated colorspace\n"
+                    "    Precedence:  2\n"
+                    "    Approximation:  invalid (32)\n"
+                    "    Colorspace:  1 (unrecognized)")
+        self.assertEqual(actual, expected)
+
     def test_invalid_colorspace(self):
         """
         An invalid colorspace shouldn't cause an error.

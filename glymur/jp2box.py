@@ -397,7 +397,10 @@ class ColourSpecificationBox(Jp2kBox):
         lst.append(text)
 
         if self.approximation is not 0:
-            dispvalue = _APPROXIMATION_MEASURES[self.approximation]
+            try:
+                dispvalue = _APPROXIMATION_MEASURES[self.approximation]
+            except KeyError:
+                dispvalue = 'invalid ({0})'.format(self.approximation)
             text = 'Approximation:  {0}'.format(dispvalue)
             lst.append(text)
 
