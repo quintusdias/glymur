@@ -329,6 +329,27 @@ class TestSuite(unittest.TestCase):
         expected = 'UTM Zone 16N NAD27"|Clarke, 1866 by Default| '
         self.assertEqual(box.data['GeoAsciiParams'], expected)
 
+    def test_print_bad_geotiff(self):
+        """
+        Geotiff UUID is corrupt.  Print that instead of erroring out.
+        """
+        relpath = os.path.join('data', 'issue398.dat')
+        path = pkg.resource_filename(__name__, relpath)
+        with open(path, 'rb') as f:
+            f.seek(8)
+            with warnings.catch_warnings():
+                # Ignore the warnings about invalid TIFF tags, we already know
+                # that.
+                warnings.simplefilter('ignore')
+                box = glymur.jp2box.UUIDBox.parse(f, 0, 380)
+
+        actual = str(box)
+        expected = ("UUID Box (uuid) @ (0, 380)\n"
+                    "    UUID:  "
+                    "b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03 (GeoTIFF)\n"
+                    "    UUID Data:  corrupt")
+        self.assertEqual(actual, expected)
+
 
 @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
 class TestSuiteHiRISE(unittest.TestCase):

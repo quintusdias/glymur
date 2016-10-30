@@ -33,6 +33,7 @@ try:
     import gdal
     import osr
     _HAVE_GDAL = True
+    gdal.UseExceptions()
 except ImportError:
     _HAVE_GDAL = False
 
@@ -3370,7 +3371,14 @@ class UUIDBox(Jp2kBox):
     def _print_geotiff(self):
         """
         Print geotiff information.  Shamelessly ripped off from gdalinfo.py
+
+        Returns
+        -------
+        str
+            String representation of the degenerate geotiff.
         """
+        if self.data is None:
+            return "corrupt"
         in_mem_name = '/vsimem/geo.tif'
         gdal.FileFromMemBuffer(in_mem_name, self.raw_data)
         gtif = gdal.Open(in_mem_name)
