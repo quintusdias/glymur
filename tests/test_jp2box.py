@@ -429,8 +429,21 @@ class TestColourSpecificationBox(unittest.TestCase):
         self.ihdr = ImageHeaderBox(height=height, width=width,
                                    num_components=num_components)
 
-    def tearDown(self):
-        pass
+    def test_bad_method_printing(self):
+        """
+        A bad method should not cause a printing failure.
+
+        It's enough that it doesn't error out.
+        """
+        relpath = os.path.join('data', 'issue405.dat')
+        filename = pkg.resource_filename(__name__, relpath)
+        with open(filename, 'rb') as f:
+            f.seek(8)
+            with warnings.catch_warnings():
+                # Lots of things wrong with this file.
+                warnings.simplefilter('ignore')
+                box = ColourSpecificationBox.parse(f, length=80, offset=0)
+        str(box)
 
     @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
     def test_colr_with_out_enum_cspace(self):

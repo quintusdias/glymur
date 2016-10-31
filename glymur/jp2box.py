@@ -391,7 +391,13 @@ class ColourSpecificationBox(Jp2kBox):
             return title
 
         lst = []
-        text = 'Method:  {0}'.format(_COLORSPACE_METHODS[self.method])
+
+        try:
+            item = _COLORSPACE_METHODS[self.method]
+        except KeyError:
+            item = 'unrecognized value ({0})'.format(self.method)
+        text = 'Method:  {0}'.format(item)
+
         lst.append(text)
         text = 'Precedence:  {0}'.format(self.precedence)
         lst.append(text)
