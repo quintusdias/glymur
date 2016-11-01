@@ -2,10 +2,12 @@
 """
 Test suite specifically targeting the JP2 XML box layout.
 """
+import codecs
 from io import BytesIO
 import os
 import pkg_resources as pkg
 import struct
+import sys
 import tempfile
 import unittest
 import warnings
@@ -76,6 +78,32 @@ class TestXML(unittest.TestCase):
 
     def tearDown(self):
         os.unlink(self.xmlfile)
+
+    def test_bom(self):
+        """
+        Byte order markers are illegal in UTF-8.  Issue 185
+
+        Original test file was input/nonregression/issue171.jp2
+        """
+        f = BytesIO()
+
+        buffer = (b"<?xpacket "
+                  b"begin='" + codecs.BOM_UTF8 + b"' "
+                  b"id='W5M0MpCehiHzreSzNTczkc9d'?>"
+                  b"<stuff>goes here</stuff>"
+                  b"<?xpacket end='w'?>")
+
+        f.write(buffer)
+        num_bytes = f.tell()
+        f.seek(0)
+
+        with warnings.catch_warnings(record=True) as w:
+            glymur.jp2box.XMLBox.parse(f, 0, 8 + num_bytes)
+            if sys.hexversion < 0x03000000:
+                assert issubclass(w[-1].category, UserWarning)
+            else:
+                # Python3 handles the BOM just fine.
+                self.assertEqual(len(w), 0)
 
     def test_negative_file_and_xml(self):
         """The XML should come from only one source."""
@@ -154,8 +182,8 @@ class TestXML(unittest.TestCase):
         Read JP2 file with XML box having encoding declaration
         """
         with tempfile.NamedTemporaryFile(suffix=".jp2") as ofile:
-            with open(self.jp2file, mode='rb') as ifile:
-                ofile.write(ifile.read())
+            with open(self.jp2file, mode='rb') as f:
+                ofile.write(f.read())
 
             # Write the additional box.
             write_buffer = struct.pack('>I4s', int(1777), b'xml ')
@@ -164,8 +192,8 @@ class TestXML(unittest.TestCase):
             relpath = os.path.join('data', 'encoding_declaration.xml')
             xml_file_path = pkg.resource_filename(__name__, relpath)
 
-            with open(xml_file_path, 'rb') as xfptr:
-                ofile.write(xfptr.read())
+            with open(xml_file_path, 'rb') as f:
+                ofile.write(f.read())
 
             ofile.flush()
             ofile.seek(0)

@@ -1,7 +1,6 @@
 """
-Test suite for warnings issued by glymur.
+Test suite for warnings not specifically tested elsewhere.
 """
-import codecs
 import imp
 from io import BytesIO
 import os
@@ -82,20 +81,20 @@ class TestSuite(unittest.TestCase):
         Original test file was
         26ccf3651020967f7778238ef5af08af.SIGFPE.d25.527.jp2
         """
-        fptr = BytesIO()
+        f = BytesIO()
 
         payload = b'\xees'
-        fptr.write(payload)
-        fptr.seek(0)
+        f.write(payload)
+        f.seek(0)
 
         if sys.hexversion < 0x03000000:
             pass
             with warnings.catch_warnings(record=True) as w:
-                box = glymur.jp2box.XMLBox.parse(fptr, 0, 8 + len(payload))
+                box = glymur.jp2box.XMLBox.parse(f, 0, 8 + len(payload))
             assert issubclass(w[-1].category, UserWarning)
         else:
             with self.assertWarns(UserWarning):
-                box = glymur.jp2box.XMLBox.parse(fptr, 0, 8 + len(payload))
+                box = glymur.jp2box.XMLBox.parse(f, 0, 8 + len(payload))
 
         self.assertIsNone(box.xml)
 
@@ -656,7 +655,7 @@ class TestSuite(unittest.TestCase):
                 glymur.jp2box.FragmentListBox(offset, length, reference)
 
     def test_flst_lengths_not_positive(self):
-        """A fragment list box lengths must be positive."""
+        """Fragment list box lengths must be positive."""
         offset = [89]
         length = [0]
         reference = [0]
@@ -673,8 +672,8 @@ class TestSuite(unittest.TestCase):
         """Verify warning in case of unrecognized tag."""
         with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
 
-            with open(self.jp2file, 'rb') as ifptr:
-                tfile.write(ifptr.read())
+            with open(self.jp2file, 'rb') as f:
+                tfile.write(f.read())
 
             # Write L, T, UUID identifier.
             tfile.write(struct.pack('>I4s', 52, b'uuid'))
@@ -699,8 +698,8 @@ class TestSuite(unittest.TestCase):
         """Only certain datatypes are allowable"""
         with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
 
-            with open(self.jp2file, 'rb') as ifptr:
-                tfile.write(ifptr.read())
+            with open(self.jp2file, 'rb') as f:
+                tfile.write(f.read())
 
             # Write L, T, UUID identifier.
             tfile.write(struct.pack('>I4s', 52, b'uuid'))
@@ -715,32 +714,6 @@ class TestSuite(unittest.TestCase):
 
             # 2000 is not an allowable TIFF datatype.
             tfile.write(struct.pack('<HHI4s', 271, 2000, 3, b'HTC\x00'))
-            tfile.flush()
-
-            with self.assertWarns(UserWarning):
-                glymur.Jp2k(tfile.name)
-
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
-    def test_bad_tiff_header_byte_order_indication(self):
-        """Only b'II' and b'MM' are allowed."""
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
-
-            with open(self.jp2file, 'rb') as ifptr:
-                tfile.write(ifptr.read())
-
-            # Write L, T, UUID identifier.
-            tfile.write(struct.pack('>I4s', 52, b'uuid'))
-            tfile.write(b'JpgTiffExif->JP2')
-
-            tfile.write(b'Exif\x00\x00')
-            xbuffer = struct.pack('<BBHI', 74, 73, 42, 8)
-            tfile.write(xbuffer)
-
-            # We will write just a single tag.
-            tfile.write(struct.pack('<H', 1))
-
-            # 271 is the Make.
-            tfile.write(struct.pack('<HHI4s', 271, 2, 3, b'HTC\x00'))
             tfile.flush()
 
             with self.assertWarns(UserWarning):
@@ -1058,48 +1031,19 @@ class TestConfigurationWarnings(unittest.TestCase):
 
     @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_xdg_env_config_file_is_bad(self):
-        """A non-existant library location should be rejected."""
+        """
+        A non-existant library location should be rejected.
+        """
         with tempfile.TemporaryDirectory() as tdir:
             configdir = os.path.join(tdir, 'glymur')
             os.mkdir(configdir)
             fname = os.path.join(configdir, 'glymurrc')
-            with open(fname, 'w') as fptr:
+            with open(fname, 'w') as f:
                 with tempfile.NamedTemporaryFile(suffix='.dylib') as tfile:
-                    fptr.write('[library]\n')
-                    fptr.write('openjp2: {0}.not.there\n'.format(tfile.name))
-                    fptr.flush()
+                    f.write('[library]\n')
+                    f.write('openjp2: {0}.not.there\n'.format(tfile.name))
+                    f.flush()
                     with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
                         # Warn about a bad library being rejected.
                         with self.assertWarns(UserWarning):
                             imp.reload(glymur.lib.openjp2)
-
-
-class TestSuiteXML(unittest.TestCase):
-    """
-    This test should be run on both python2 and python3.
-    """
-    def test_bom(self):
-        """
-        Byte order markers are illegal in UTF-8.  Issue 185
-
-        Original test file was input/nonregression/issue171.jp2
-        """
-        fptr = BytesIO()
-
-        buffer = b"<?xpacket "
-        buffer += b"begin='" + codecs.BOM_UTF8 + b"' "
-        buffer += b"id='W5M0MpCehiHzreSzNTczkc9d'?>"
-        buffer += b"<stuff>goes here</stuff>"
-        buffer += b"<?xpacket end='w'?>"
-
-        fptr.write(buffer)
-        num_bytes = fptr.tell()
-        fptr.seek(0)
-
-        with warnings.catch_warnings(record=True) as w:
-            glymur.jp2box.XMLBox.parse(fptr, 0, 8 + num_bytes)
-            if sys.hexversion < 0x03000000:
-                assert issubclass(w[-1].category, UserWarning)
-            else:
-                # Python3 handles the BOM just fine.
-                self.assertEqual(len(w), 0)

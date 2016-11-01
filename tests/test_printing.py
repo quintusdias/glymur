@@ -36,9 +36,8 @@ import glymur
 from glymur.codestream import LRCP, WAVELET_XFORM_5X3_REVERSIBLE
 from glymur.core import RESTRICTED_ICC_PROFILE, ANY_ICC_PROFILE
 from glymur.core import COLOR, RED, GREEN, BLUE
-from glymur.jp2box import BitsPerComponentBox, ColourSpecificationBox
-from glymur.jp2box import LabelBox, UnknownBox
-from glymur import Jp2k, command_line
+from glymur.jp2box import BitsPerComponentBox, ColourSpecificationBox, LabelBox
+from glymur import Jp2k
 from . import fixtures
 from .fixtures import (WINDOWS_TMP_FILE_MSG,
                        OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
@@ -155,18 +154,24 @@ class TestPrinting(unittest.TestCase):
 
         Original test file was input/conformance/file1.jp2
         """
-        elt = ET.fromstring(fixtures.file1_xml)
+        item = '\n'.join(fixtures.file1_xml_box.splitlines()[1:])
+        elt = ET.fromstring(item)
         xml = ET.ElementTree(elt)
         box = glymur.jp2box.XMLBox(xml=xml, length=439, offset=36)
         actual = str(box)
-        expected = fixtures.file1_xml_box
+
+        header = fixtures.file1_xml_box.splitlines()[0]
+        body = '\n'.join(['    ' + line for line in item.splitlines()])
+        expected = header + '\n' + body
+
         self.assertEqual(actual, expected)
 
     def test_xml_short_option(self):
         """
         verify printing of XML box when print.xml option set to false
         """
-        elt = ET.fromstring(fixtures.file1_xml)
+        item = '\n'.join(fixtures.file1_xml_box.splitlines()[1:])
+        elt = ET.fromstring(item)
         xml = ET.ElementTree(elt)
         box = glymur.jp2box.XMLBox(xml=xml, length=439, offset=36)
         glymur.set_option('print.short', True)
@@ -179,7 +184,8 @@ class TestPrinting(unittest.TestCase):
         """
         verify printing of XML box when print.xml option set to false
         """
-        elt = ET.fromstring(fixtures.file1_xml)
+        item = '\n'.join(fixtures.file1_xml_box.splitlines()[1:])
+        elt = ET.fromstring(item)
         xml = ET.ElementTree(elt)
         box = glymur.jp2box.XMLBox(xml=xml, length=439, offset=36)
 
@@ -226,8 +232,28 @@ class TestPrinting(unittest.TestCase):
             segment = glymur.codestream.CODsegment(*pargs, length=12,
                                                    offset=174)
         actual = str(segment)
-        expected = fixtures.issue_186_progression_order
-        self.assertEqual(actual, expected)
+        exp = ("COD marker segment @ (174, 12)\n"
+               "    Coding style:\n"
+               "        Entropy coder, without partitions\n"
+               "        SOP marker segments:  False\n"
+               "        EPH marker segments:  False\n"
+               "    Coding style parameters:\n"
+               "        Progression order:  33 (invalid)\n"
+               "        Number of layers:  1\n"
+               "        Multiple component transformation usage:  reversible\n"
+               "        Number of resolutions:  6\n"
+               "        Code block height, width:  (32 x 32)\n"
+               "        Wavelet transform:  9-7 irreversible\n"
+               "        Precinct size:  (32768, 32768)\n"
+               "        Code block context:\n"
+               "            Selective arithmetic coding bypass:  False\n"
+               "            Reset context probabilities "
+               "on coding pass boundaries:  False\n"
+               "            Termination on each coding pass:  False\n"
+               "            Vertically stripe causal context:  False\n"
+               "            Predictable termination:  False\n"
+               "            Segmentation symbols:  False")
+        self.assertEqual(actual, exp)
 
     def test_bad_wavelet_transform(self):
         """
@@ -268,7 +294,7 @@ class TestPrinting(unittest.TestCase):
         Original test file was edf_c2_1015644.jp2
         """
         kwargs = {
-            'colorspace':  1,
+            'colorspace': 1,
             'precedence': 2,
             'approximation': 32,
         }
@@ -314,8 +340,8 @@ class TestPrinting(unittest.TestCase):
         actual = str(box)
 
         expected = ("Bits Per Component Box (bpcc) @ (62, 12)\n"
-                     "    Bits per component:  [5, 5, 5, 1]\n"
-                     "    Signed:  [False, False, True, False]")
+                    "    Bits per component:  [5, 5, 5, 1]\n"
+                    "    Signed:  [False, False, True, False]")
 
         self.assertEqual(actual, expected)
 
@@ -340,7 +366,17 @@ class TestPrinting(unittest.TestCase):
                   'offset': 2}
         segment = glymur.codestream.SIZsegment(**kwargs)
         actual = str(segment)
-        self.assertEqual(actual, fixtures.cinema2k_profile)
+        exp = ("SIZ marker segment @ (2, 47)\n"
+               "    Profile:  Cinema 2K\n"
+               "    Reference Grid Height, Width:  (1080 x 1920)\n"
+               "    Vertical, Horizontal Reference Grid Offset:  (0 x 0)\n"
+               "    Reference Tile Height, Width:  (1080 x 1920)\n"
+               "    Vertical, Horizontal Reference Tile Offset:  (0 x 0)\n"
+               "    Bitdepth:  (12, 12, 12)\n"
+               "    Signed:  (False, False, False)\n"
+               "    Vertical, Horizontal Subsampling:  "
+               "((1, 1), (1, 1), (1, 1))")
+        self.assertEqual(actual, exp)
 
     def test_version_info(self):
         """Should be able to print(glymur.version.info)"""
@@ -671,8 +707,7 @@ class TestPrinting(unittest.TestCase):
         actual = str(j.box[3])
 
         if 'lxml' in sys.modules.keys():
-            expected = fixtures.nemo_xmp_box
-            self.assertEqual(actual, expected)
+            self.assertEqual(actual, fixtures.nemo_xmp_box)
 
     def test_codestream(self):
         """
@@ -914,7 +949,13 @@ class TestPrinting(unittest.TestCase):
         """Verify printing of compositing layer header box, color group box."""
         jpx = glymur.Jp2k(self.jpxfile)
         actual = str(jpx.box[7])
-        self.assertEqual(actual, fixtures.jplh_color_group_box)
+        expected = ("Compositing Layer Header Box (jplh) @ (314227, 31)\n"
+                    "    Colour Group Box (cgrp) @ (314235, 23)\n"
+                    "        Colour Specification Box (colr) @ (314243, 15)\n"
+                    "            Method:  enumerated colorspace\n"
+                    "            Precedence:  0\n"
+                    "            Colorspace:  sRGB")
+        self.assertEqual(actual, expected)
 
     def test_free(self):
         """Verify printing of Free box."""
@@ -935,7 +976,6 @@ class TestPrinting(unittest.TestCase):
                     "    Association[3]:  unrecognized")
 
         self.assertEqual(actual, expected)
-
 
     def test_nlst_short(self):
         glymur.set_option('print.short', True)
@@ -972,8 +1012,8 @@ class TestPrinting(unittest.TestCase):
         """Verify printing of exif information"""
         with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
 
-            with open(self.jp2file, 'rb') as ifptr:
-                tfile.write(ifptr.read())
+            with open(self.jp2file, 'rb') as f:
+                tfile.write(f.read())
 
             # Write L, T, UUID identifier.
             tfile.write(struct.pack('>I4s', 76, b'uuid'))
@@ -1185,11 +1225,16 @@ class TestPrinting(unittest.TestCase):
                                                  palette_index=(0, 1, 2, 3),
                                                  length=24, offset=130)
         actual = str(cmap)
-        self.assertEqual(actual, fixtures.issue_182_cmap)
+        expected = ("Component Mapping Box (cmap) @ (130, 24)\n"
+                    "    Component 0 ==> palette column 0\n"
+                    "    Component 0 ==> palette column 1\n"
+                    "    Component 0 ==> palette column 2\n"
+                    "    Component 0 ==> palette column 3")
+        self.assertEqual(actual, expected)
 
         glymur.set_option('print.short', True)
         actual = str(cmap)
-        expected = fixtures.issue_182_cmap.splitlines()[0]
+        expected = expected.splitlines()[0]
         self.assertEqual(actual, expected)
 
     def test_issue183(self):
@@ -1202,7 +1247,11 @@ class TestPrinting(unittest.TestCase):
                                       icc_profile=None, length=12, offset=62)
 
         actual = str(colr)
-        self.assertEqual(actual, fixtures.issue_183_colr)
+        expected = ("Colour Specification Box (colr) @ (62, 12)\n"
+                    "    Method:  restricted ICC profile\n"
+                    "    Precedence:  0\n"
+                    "    ICC Profile:  None")
+        self.assertEqual(actual, expected)
 
     def test_rreq(self):
         """
@@ -1225,7 +1274,8 @@ class TestPrinting(unittest.TestCase):
                                                   vendor_feature, vendor_mask,
                                                   length=109, offset=40)
         actual = str(box)
-        self.assertEqual(actual, fixtures.text_GBR_rreq)
+        expected = fixtures.text_GBR_rreq
+        self.assertEqual(actual, expected)
 
         glymur.set_option('print.short', True)
         actual = str(box)
@@ -1238,23 +1288,23 @@ class TestPrinting(unittest.TestCase):
 
         Original test file was input/nonregression/issue171.jp2
         """
-        fptr = BytesIO()
+        f = BytesIO()
 
         s = "<?xpacket begin='\ufeff' id='W5M0MpCehiHzreSzNTczkc9d'?>"
         s += "<stuff>goes here</stuff>"
         s += "<?xpacket end='w'?>"
         data = s.encode('utf-8')
-        fptr.write(data)
-        fptr.seek(0)
+        f.write(data)
+        f.seek(0)
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
-            box = glymur.jp2box.XMLBox.parse(fptr, 0, 8 + len(data))
+            box = glymur.jp2box.XMLBox.parse(f, 0, 8 + len(data))
             # No need to verify, it's enough that we don't error out.
             str(box)
 
-    @unittest.skipIf(sys.hexversion < 0x03000000,
-                     'OrderedDict prints differently on python2')
+    @unittest.skipIf(sys.hexversion < 0x03050000,
+                     'OrderedDict prints differently.')
     def test_icc_profile(self):
         """
         verify icc profile printing with a jpx
@@ -1288,11 +1338,7 @@ class TestPrinting(unittest.TestCase):
         box = glymur.jp2box.ColourSpecificationBox.parse(fp, 179, 1339)
 
         actual = str(box)
-
-        if sys.hexversion < 0x03050000:
-            expected = fixtures.text_gbr_34
-        else:
-            expected = fixtures.text_gbr_35
+        expected = fixtures.text_gbr_35
 
         self.assertEqual(actual, expected)
 
@@ -1310,7 +1356,31 @@ class TestPrinting(unittest.TestCase):
 
         actual = str(codestream.segment[2])
 
-        self.assertEqual(actual, fixtures.multiple_precinct_size)
+        expected = ("COD marker segment @ (51, 18)\n"
+                    "    Coding style:\n"
+                    "        Entropy coder, with partitions\n"
+                    "        SOP marker segments:  False\n"
+                    "        EPH marker segments:  False\n"
+                    "    Coding style parameters:\n"
+                    "        Progression order:  LRCP\n"
+                    "        Number of layers:  1\n"
+                    "        Multiple component transformation usage:  "
+                    "reversible\n"
+                    "        Number of resolutions:  6\n"
+                    "        Code block height, width:  (64 x 64)\n"
+                    "        Wavelet transform:  5-3 reversible\n"
+                    "        Precinct size:  "
+                    "((16, 16), (32, 32), (64, 64), (128, 128), (128, 128), "
+                    "(128, 128))\n"
+                    "        Code block context:\n"
+                    "            Selective arithmetic coding bypass:  False\n"
+                    "            Reset context probabilities on coding pass "
+                    "boundaries:  False\n"
+                    "            Termination on each coding pass:  False\n"
+                    "            Vertically stripe causal context:  False\n"
+                    "            Predictable termination:  False\n"
+                    "            Segmentation symbols:  False")
+        self.assertEqual(actual, expected)
 
     def test_old_short_option(self):
         """
@@ -1432,140 +1502,3 @@ class TestPrinting(unittest.TestCase):
 
         opt = glymur.get_option('print.codestream')
         self.assertTrue(opt)
-
-
-class TestJp2dump(unittest.TestCase):
-    """Tests for verifying how jp2dump console script works."""
-    def setUp(self):
-        self.jpxfile = glymur.data.jpxfile()
-        self.jp2file = glymur.data.nemo()
-        self.j2kfile = glymur.data.goodstuff()
-
-        # Reset printoptions for every test.
-        glymur.reset_option('all')
-
-    def tearDown(self):
-        glymur.reset_option('all')
-
-    def run_jp2dump(self, args):
-        sys.argv = args
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            command_line.main()
-            actual = fake_out.getvalue().strip()
-            # Remove the file line, as that is filesystem-dependent.
-            lines = actual.split('\n')
-            actual = '\n'.join(lines[1:])
-        return actual
-
-    def test_default_nemo(self):
-        """by default one should get the main header"""
-        actual = self.run_jp2dump(['', self.jp2file])
-        if 'lxml' not in sys.modules.keys():
-            # No lxml, so don't bother verifying.  We know at least that it
-            # runs.
-            return
-
-        # shave off the  non-main-header segments
-        lines = fixtures.nemo.split('\n')
-        expected = lines[0:140]
-        expected = '\n'.join(expected)
-        self.assertEqual(actual, expected)
-
-    @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
-    def test_jp2_codestream_0(self):
-        """Verify dumping with -c 0, supressing all codestream details."""
-        actual = self.run_jp2dump(['', '-c', '0', self.jp2file])
-
-        # shave off the codestream details
-        lines = fixtures.nemo.split('\n')
-        expected = lines[0:105]
-        expected = '\n'.join(expected)
-        self.assertEqual(actual, expected)
-
-    @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
-    def test_jp2_codestream_1(self):
-        """Verify dumping with -c 1, print just the header."""
-        actual = self.run_jp2dump(['', '-c', '1', self.jp2file])
-
-        # shave off the  non-main-header segments
-        lines = fixtures.nemo.split('\n')
-        expected = lines[0:140]
-        expected = '\n'.join(expected)
-        self.assertEqual(actual, expected)
-
-    @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
-    def test_jp2_codestream_2(self):
-        """Verify dumping with -c 2, print entire jp2 jacket, codestream."""
-        actual = self.run_jp2dump(['', '-c', '2', self.jp2file])
-        expected = fixtures.nemo
-        self.assertEqual(actual, expected)
-
-    @unittest.skipIf(sys.hexversion < 0x03000000, "assertRegex not in 2.7")
-    def test_j2k_codestream_0(self):
-        """-c 0 should print just a single line when used on a codestream."""
-        sys.argv = ['', '-c', '0', self.j2kfile]
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            command_line.main()
-            actual = fake_out.getvalue().strip()
-        self.assertRegex(actual, "File:  .*")
-
-    def test_j2k_codestream_1(self):
-        """-c 1 should print the codestream header"""
-        sys.argv = ['', '-c', '1', self.j2kfile]
-        with patch('sys.stdout', new=StringIO()) as stdout:
-            command_line.main()
-            actual = stdout.getvalue().strip()
-
-        expected = fixtures.goodstuff_codestream_header
-        self.assertEqual(expected, actual)
-
-    def test_j2k_codestream_2(self):
-        """Verify dumping with -c 2, full details."""
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            sys.argv = ['', '-c', '2', self.j2kfile]
-            command_line.main()
-            actual = fake_out.getvalue().strip()
-
-        expected = fixtures.goodstuff_with_full_header
-        self.assertIn(expected, actual)
-
-    def test_codestream_invalid(self):
-        """Verify dumping with -c 3, not allowd."""
-        with self.assertRaises(ValueError):
-            sys.argv = ['', '-c', '3', self.jp2file]
-            command_line.main()
-
-    def test_short(self):
-        """Verify dumping with -s, short option."""
-        actual = self.run_jp2dump(['', '-s', self.jp2file])
-
-        self.assertEqual(actual, fixtures.nemo_dump_short)
-
-    @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
-    def test_suppress_xml(self):
-        """Verify dumping with -x, suppress XML."""
-        actual = self.run_jp2dump(['', '-x', self.jp2file])
-
-        # shave off the XML and non-main-header segments
-        lines = fixtures.nemo.split('\n')
-        expected = lines[0:18]
-        expected.extend(lines[104:140])
-        expected = '\n'.join(expected)
-        self.assertEqual(actual, expected)
-
-    @unittest.skipIf(sys.hexversion < 0x03000000, "assertRegex not in 2.7")
-    def test_suppress_warnings_until_end(self):
-        """
-        Warnings about invalid JP2/J2K syntax should be suppressed until end
-        """
-        file = os.path.join('data', 'edf_c2_1178956.jp2')
-        file = pkg.resource_filename(__name__, file)
-        actual = self.run_jp2dump(['', '-x', file])
-
-        expected = fixtures
-
-        # The "CME marker segment" part is the last segment in the codestream
-        # header.
-        pattern = 'JPEG\s2000.*?CME\smarker\ssegment.*?UserWarning'
-        r = re.compile(pattern, re.DOTALL)
-        self.assertRegex(actual, r)

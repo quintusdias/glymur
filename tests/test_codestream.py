@@ -4,6 +4,7 @@ Test suite for codestream oddities
 """
 
 # Standard library imports ...
+from io import BytesIO
 import os
 import struct
 import tempfile
@@ -15,13 +16,16 @@ import pkg_resources as pkg
 
 # Local imports ...
 import glymur
-from glymur import Jp2k
+from glymur import Jp2k, codestream
 
 
 class TestSuite(unittest.TestCase):
-    """Test suite for ICC Profile code."""
+    """Test suite for codestream issues."""
 
     def setUp(self):
+        self.jp2file = glymur.data.nemo()
+        self.j2kfile = glymur.data.goodstuff()
+
         relpath = os.path.join('data', 'p0_03.j2k')
         self.p0_03 = pkg.resource_filename(__name__, relpath)
 
@@ -83,14 +87,30 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(c.segment[-1].srgn, 0)
         self.assertEqual(c.segment[-1].sprgn, 11)
 
+    def test_tlm_segment(self):
+        """
+        Verify parsing of the TLM segment
 
-class TestCodestreamRepr(unittest.TestCase):
+        This TLM segment taken from p1_04.j2k.
+        """
+        relpath = os.path.join('data', 'tlm_segment.bin')
+        filename = pkg.resource_filename(__name__, relpath)
+        with open(filename, 'rb') as f:
+            data = f.read()
+        b = BytesIO(data)
+        b.seek(2)
 
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
+        tlm = codestream.Codestream._parse_tlm_segment(b)
 
-    def tearDown(self):
-        pass
+        self.assertEqual(tlm.ztlm, 0)
+        self.assertIsNone(tlm.ttlm)
+        ptlm = (350, 356, 402, 245, 402, 564, 675, 283, 317, 299, 330, 333,
+                346, 403, 839, 667, 328, 349, 274, 325, 501, 561, 756, 710,
+                779, 620, 628, 675, 600, 66195, 721, 719, 565, 565, 546, 586,
+                574, 641, 713, 634, 573, 528, 544, 597, 771, 665, 624, 706,
+                568, 537, 554, 546, 542, 635, 826, 667, 617, 606, 813, 586,
+                641, 654, 669, 623)
+        self.assertEqual(tlm.ptlm, ptlm)
 
     def test_soc(self):
         """Test SOC segment repr"""
@@ -126,35 +146,30 @@ class TestCodestreamRepr(unittest.TestCase):
         self.assertEqual(newseg.bitdepth, (8, 8, 8))
         self.assertEqual(newseg.signed, (False, False, False))
 
-
-class TestCodestream(unittest.TestCase):
-    """Test suite for unusual codestream cases."""
-
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
-        self.j2kfile = glymur.data.goodstuff()
-
-    def tearDown(self):
-        pass
-
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-    def test_reserved_marker_segment(self):
-        """Reserved marker segments are ok."""
+    def test_reserved_markers_reserved_segments(self):
+        """
+        Reserved markers and segments should be parsed.
 
-        # Some marker segments were reserved in FCD15444-1.  Since that
-        # standard is old, some of them may have come into use.
-        #
-        # Let's inject a reserved marker segment into a file that
-        # we know something about to make sure we can still parse it.
+        Some marker segments were reserved in FCD15444-1.  Since that
+        standard is old, some of them may have come into use.
+
+        Let's inject a reserved marker and a reserved segment into a file that
+        we know something about to make sure we can still parse it.
+        """
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             with open(self.j2kfile, 'rb') as ifile:
                 # Everything up until the first QCD marker.
                 read_buffer = ifile.read(65)
                 tfile.write(read_buffer)
 
-                # Write the new marker segment, 0xff6f = 65391
-                read_buffer = struct.pack('>HHB', int(65391), int(3), int(0))
-                tfile.write(read_buffer)
+                # Write the reserved marker, 0xff30 = 65328
+                marker = struct.pack('>H', int(65328))
+                tfile.write(marker)
+
+                # Write the reserved segment, 0xff6f = 65391
+                segment = struct.pack('>HHB', int(65391), int(3), int(0))
+                tfile.write(segment)
 
                 # Get the rest of the input file.
                 read_buffer = ifile.read()
@@ -163,9 +178,10 @@ class TestCodestream(unittest.TestCase):
 
             codestream = Jp2k(tfile.name).get_codestream()
 
-            self.assertEqual(codestream.segment[3].marker_id, '0xff6f')
-            self.assertEqual(codestream.segment[3].length, 3)
-            self.assertEqual(codestream.segment[3].data, b'\x00')
+            self.assertEqual(codestream.segment[3].marker_id, '0xff30')
+            self.assertEqual(codestream.segment[4].marker_id, '0xff6f')
+            self.assertEqual(codestream.segment[4].length, 3)
+            self.assertEqual(codestream.segment[4].data, b'\x00')
 
     def test_siz_segment_ssiz_unsigned(self):
         """ssiz attribute to be removed in future release"""
@@ -176,5 +192,3 @@ class TestCodestream(unittest.TestCase):
         # The first 7 bits are interpreted as the bitdepth, the MSB determines
         # whether or not it is signed.
         self.assertEqual(codestream.segment[1].ssiz, (7, 7, 7))
-
-
