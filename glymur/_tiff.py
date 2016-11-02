@@ -8,7 +8,7 @@ import struct
 import warnings
 
 
-def _tiff_header(read_buffer):
+def tiff_header(read_buffer):
     """
     Interpret the uuid raw data as a tiff header.
     """
@@ -32,11 +32,11 @@ def _tiff_header(read_buffer):
     _, offset = struct.unpack(endian + 'HI', read_buffer[2:8])
 
     # This is the 'Exif Image' portion.
-    exif = _ExifImageIfd(endian, read_buffer, offset)
+    exif = ExifImageIfd(endian, read_buffer, offset)
     return exif.processed_ifd
 
 
-class _Ifd(object):
+class Ifd(object):
     """
     Attributes
     ----------
@@ -140,7 +140,7 @@ class _Ifd(object):
             self.processed_ifd[tag_name] = value
 
 
-class _ExifImageIfd(_Ifd):
+class ExifImageIfd(Ifd):
     """
     Attributes
     ----------
@@ -361,5 +361,5 @@ class _ExifImageIfd(_Ifd):
                    51041: 'NoiseProfile'}
 
     def __init__(self, endian, read_buffer, offset):
-        _Ifd.__init__(self, endian, read_buffer, offset)
+        Ifd.__init__(self, endian, read_buffer, offset)
         self.post_process(self.tagnum2name)

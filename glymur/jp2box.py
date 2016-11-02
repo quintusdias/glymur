@@ -44,7 +44,7 @@ from .core import (_COLORSPACE_MAP_DISPLAY, _COLOR_TYPE_MAP_DISPLAY,
                    SRGB, GREYSCALE, YCC,
                    ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE,
                    ANY_ICC_PROFILE, VENDOR_COLOR_METHOD)
-from . import tiff
+from ._tiff import tiff_header
 from . import config
 from ._iccprofile import _ICCProfile
 
@@ -3315,10 +3315,10 @@ class UUIDBox(Jp2kBox):
             elt = ET.fromstring(txt)
             self.data = ET.ElementTree(elt)
         elif self.uuid == _GEOTIFF_UUID:
-            self.data = tiff._tiff_header(self.raw_data)
+            self.data = tiff_header(self.raw_data)
         elif self.uuid == _EXIF_UUID:
             # Cut off 'EXIF\0\0' part.
-            self.data = tiff._tiff_header(self.raw_data[6:])
+            self.data = tiff_header(self.raw_data[6:])
         else:
             self.data = self.raw_data
 
