@@ -267,11 +267,11 @@ class Jp2k(Jp2kBox):
         """
         self.length = os.path.getsize(self.filename)
 
-        with open(self.filename, 'rb') as fptr:
+        with open(self.filename, 'rb') as f:
 
             # Make sure we have a JPEG2000 file.  It could be either JP2 or
             # J2C.  Check for J2C first, single box in that case.
-            read_buffer = fptr.read(2)
+            read_buffer = f.read(2)
             signature, = struct.unpack('>H', read_buffer)
             if signature == 0xff4f:
                 self._codec_format = opj2.CODEC_J2K
@@ -285,8 +285,8 @@ class Jp2k(Jp2kBox):
             # First 4 bytes should be 12, the length of the 'jP  ' box.
             # 2nd 4 bytes should be the box ID ('jP  ').
             # 3rd 4 bytes should be the box signature (13, 10, 135, 10).
-            fptr.seek(0)
-            read_buffer = fptr.read(12)
+            f.seek(0)
+            read_buffer = f.read(12)
             values = struct.unpack('>I4s4B', read_buffer)
             box_length = values[0]
             box_id = values[1]
@@ -299,8 +299,8 @@ class Jp2k(Jp2kBox):
 
             # Back up and start again, we know we have a superbox (box of
             # boxes) here.
-            fptr.seek(0)
-            self.box = self.parse_superbox(fptr)
+            f.seek(0)
+            self.box = self.parse_superbox(f)
             self._validate()
 
     def _validate(self):
@@ -573,9 +573,9 @@ class Jp2k(Jp2kBox):
             pos = opj.cio_tell(cio)
 
             blob = ctypes.string_at(cio.contents.buffer, pos)
-            fptr = open(self.filename, 'wb')
-            stack.callback(fptr.close)
-            fptr.write(blob)
+            f = open(self.filename, 'wb')
+            stack.callback(f.close)
+            f.write(blob)
 
         self.parse()
 
@@ -1196,8 +1196,8 @@ class Jp2k(Jp2kBox):
 
                 opj.setup_decoder(dinfo, self._dparams)
 
-                with open(self.filename, 'rb') as fptr:
-                    src = fptr.read()
+                with open(self.filename, 'rb') as f:
+                    src = f.read()
                 cio = opj.cio_open(dinfo, src)
 
                 raw_image = opj.decode(dinfo, cio)
@@ -1498,9 +1498,9 @@ class Jp2k(Jp2kBox):
             raise IOError(msg)
 
         if component.sgnd:
-            dtype = np.int8 if component.prec <=8 else np.int16
+            dtype = np.int8 if component.prec <= 8 else np.int16
         else:
-            dtype = np.uint8 if component.prec <=8 else np.uint16
+            dtype = np.uint8 if component.prec <= 8 else np.uint16
 
         return dtype
 
@@ -1535,24 +1535,24 @@ class Jp2k(Jp2kBox):
             Signed:  (False, False, False)
             Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))
         """
-        with open(self.filename, 'rb') as fptr:
+        with open(self.filename, 'rb') as f:
             if self._codec_format == opj2.CODEC_J2K:
-                codestream = Codestream(fptr, self.length,
+                codestream = Codestream(f, self.length,
                                         header_only=header_only)
             else:
                 box = [x for x in self.box if x.box_id == 'jp2c']
-                fptr.seek(box[0].offset)
-                read_buffer = fptr.read(8)
+                f.seek(box[0].offset)
+                read_buffer = f.read(8)
                 (box_length, _) = struct.unpack('>I4s', read_buffer)
                 if box_length == 0:
                     # The length of the box is presumed to last until the end
                     # of the file.  Compute the effective length of the box.
-                    box_length = os.path.getsize(fptr.name) - fptr.tell() + 8
+                    box_length = os.path.getsize(f.name) - f.tell() + 8
                 elif box_length == 1:
                     # Seek past the XL field.
-                    read_buffer = fptr.read(8)
+                    read_buffer = f.read(8)
                     box_length, = struct.unpack('>Q', read_buffer)
-                codestream = Codestream(fptr, box_length - 8,
+                codestream = Codestream(f, box_length - 8,
                                         header_only=header_only)
 
             return codestream

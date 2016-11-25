@@ -9,11 +9,7 @@ import tempfile
 import unittest
 if sys.hexversion >= 0x03000000:
     from unittest.mock import patch
-    from io import StringIO
 else:
-    from StringIO import StringIO
-
-    # Third party library import
     from mock import patch
 
 # Third party library imports ...
@@ -21,8 +17,7 @@ import numpy as np
 
 # Local imports ...
 import glymur
-from glymur.lib import openjp2, openjpeg
-from . import fixtures
+from glymur.lib import openjp2
 
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
@@ -363,45 +358,177 @@ class TestPrintingOpenjp2(unittest.TestCase):
     def test_decompression_parameters(self):
         """printing DecompressionParametersType"""
         dparams = glymur.lib.openjp2.set_default_decoder_parameters()
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(dparams)
-            actual = fake_out.getvalue().strip()
-        expected = fixtures.decompression_parameters_type
-        self.assertEqual(actual, expected)
+        actual = str(dparams)
+        exp = ("<class 'glymur.lib.openjp2.DecompressionParametersType'>:\n"
+               "    cp_reduce: 0\n"
+               "    cp_layer: 0\n"
+               "    infile: b''\n"
+               "    outfile: b''\n"
+               "    decod_format: -1\n"
+               "    cod_format: -1\n"
+               "    DA_x0: 0\n"
+               "    DA_x1: 0\n"
+               "    DA_y0: 0\n"
+               "    DA_y1: 0\n"
+               "    m_verbose: 0\n"
+               "    tile_index: 0\n"
+               "    nb_tile_to_decode: 0\n"
+               "    jpwl_correct: 0\n"
+               "    jpwl_exp_comps: 0\n"
+               "    jpwl_max_tiles: 0\n"
+               "    flags: 0\n")
+        self.assertEqual(actual, exp)
 
     def test_progression_order_changes(self):
         """printing PocType"""
         ptype = glymur.lib.openjp2.PocType()
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(ptype)
-            actual = fake_out.getvalue().strip()
-        expected = fixtures.default_progression_order_changes_type
+        actual = str(ptype)
+        expected = ("<class 'glymur.lib.openjp2.PocType'>:\n"
+                    "    resno0: 0\n"
+                    "    compno0: 0\n"
+                    "    layno1: 0\n"
+                    "    resno1: 0\n"
+                    "    compno1: 0\n"
+                    "    layno0: 0\n"
+                    "    precno0: 0\n"
+                    "    precno1: 0\n"
+                    "    prg1: 0\n"
+                    "    prg: 0\n"
+                    "    progorder: b''\n"
+                    "    tile: 0\n"
+                    "    tx0: 0\n"
+                    "    tx1: 0\n"
+                    "    ty0: 0\n"
+                    "    ty1: 0\n"
+                    "    layS: 0\n"
+                    "    resS: 0\n"
+                    "    compS: 0\n"
+                    "    prcS: 0\n"
+                    "    layE: 0\n"
+                    "    resE: 0\n"
+                    "    compE: 0\n"
+                    "    prcE: 0\n"
+                    "    txS: 0\n"
+                    "    txE: 0\n"
+                    "    tyS: 0\n"
+                    "    tyE: 0\n"
+                    "    dx: 0\n"
+                    "    dy: 0\n"
+                    "    lay_t: 0\n"
+                    "    res_t: 0\n"
+                    "    comp_t: 0\n"
+                    "    prec_t: 0\n"
+                    "    tx0_t: 0\n"
+                    "    ty0_t: 0\n")
         self.assertEqual(actual, expected)
 
     def test_default_compression_parameters(self):
         """printing default compression parameters"""
         cparams = glymur.lib.openjp2.set_default_encoder_parameters()
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(cparams)
-            actual = fake_out.getvalue().strip()
-        expected = fixtures.default_compression_parameters_type
+        actual = str(cparams)
+
+        expected = ("<class 'glymur.lib.openjp2.CompressionParametersType'>:\n"
+                    "    tile_size_on: 0\n"
+                    "    cp_tx0: 0\n"
+                    "    cp_ty0: 0\n"
+                    "    cp_tdx: 0\n"
+                    "    cp_tdy: 0\n"
+                    "    cp_disto_alloc: 0\n"
+                    "    cp_fixed_alloc: 0\n"
+                    "    cp_fixed_quality: 0\n"
+                    "    cp_matrice: None\n"
+                    "    cp_comment: None\n"
+                    "    csty: 0\n"
+                    "    prog_order: 0\n"
+                    "    numpocs: 0\n"
+                    "    numpocs: 0\n"
+                    "    tcp_numlayers: 0\n"
+                    "    tcp_rates: []\n"
+                    "    tcp_distoratio: []\n"
+                    "    numresolution: 6\n"
+                    "    cblockw_init: 64\n"
+                    "    cblockh_init: 64\n"
+                    "    mode: 0\n"
+                    "    irreversible: 0\n"
+                    "    roi_compno: -1\n"
+                    "    roi_shift: 0\n"
+                    "    res_spec: 0\n"
+                    "    prch_init: []\n"
+                    "    prcw_init: []\n"
+                    "    infile: b''\n"
+                    "    outfile: b''\n"
+                    "    index_on: 0\n"
+                    "    index: b''\n"
+                    "    image_offset_x0: 0\n"
+                    "    image_offset_y0: 0\n"
+                    "    subsampling_dx: 1\n"
+                    "    subsampling_dy: 1\n"
+                    "    decod_format: -1\n"
+                    "    cod_format: -1\n"
+                    "    jpwl_epc_on: 0\n"
+                    "    jpwl_hprot_mh: 0\n"
+                    "    jpwl_hprot_tph_tileno: "
+                    "[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]\n"
+                    "    jpwl_hprot_tph: "
+                    "[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]\n"
+                    "    jpwl_pprot_tileno: "
+                    "[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]\n"
+                    "    jpwl_pprot_packno: "
+                    "[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]\n"
+                    "    jpwl_pprot: "
+                    "[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]\n"
+                    "    jpwl_sens_size: 0\n"
+                    "    jpwl_sens_addr: 0\n"
+                    "    jpwl_sens_range: 0\n"
+                    "    jpwl_sens_mh: 0\n"
+                    "    jpwl_sens_tph_tileno: "
+                    "[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]\n"
+                    "    jpwl_sens_tph: "
+                    "[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]\n"
+                    "    cp_cinema: 0\n"
+                    "    max_comp_size: 0\n"
+                    "    cp_rsiz: 0\n"
+                    "    tp_on: 0\n"
+                    "    tp_flag: 0\n"
+                    "    tcp_mct: 0\n"
+                    "    jpip_on: 0\n"
+                    "    mct_data: None\n"
+                    "    max_cs_size: 0\n"
+                    "    rsiz: 0\n")
         self.assertEqual(actual, expected)
 
     def test_default_component_parameters(self):
         """printing default image component parameters"""
         icpt = glymur.lib.openjp2.ImageComptParmType()
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(icpt)
-            actual = fake_out.getvalue().strip()
-        expected = fixtures.default_image_component_parameters
+        actual = str(icpt)
+
+        expected = ("<class 'glymur.lib.openjp2.ImageComptParmType'>:\n"
+                    "    dx: 0\n"
+                    "    dy: 0\n"
+                    "    w: 0\n"
+                    "    h: 0\n"
+                    "    x0: 0\n"
+                    "    y0: 0\n"
+                    "    prec: 0\n"
+                    "    bpp: 0\n"
+                    "    sgnd: 0\n")
         self.assertEqual(actual, expected)
 
     def test_default_image_type(self):
         """printing default image type"""
         it = glymur.lib.openjp2.ImageType()
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(it)
-            actual = fake_out.getvalue().strip()
+        actual = str(it)
 
-        expected = fixtures.default_image_type
+        # The "icc_profile_buf" field is problematic as it is a pointer value.
+        # Easiest to do this as a regular expression.
+        expected = ("<class 'glymur.lib.openjp2.ImageType'>:\n"
+                    "    x0: 0\n"
+                    "    y0: 0\n"
+                    "    x1: 0\n"
+                    "    y1: 0\n"
+                    "    numcomps: 0\n"
+                    "    color_space: 0\n"
+                    "    icc_profile_buf: <glymur.lib.openjp2.LP_c_ubyte "
+                    "object at 0x[0-9A-Fa-f]*>\n"
+                    "    icc_profile_len: 0")
         self.assertRegex(actual, expected)

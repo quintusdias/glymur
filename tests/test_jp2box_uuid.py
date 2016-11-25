@@ -2,6 +2,7 @@
 """Test suite for printing.
 """
 # Standard library imports
+from io import BytesIO
 import os
 import pkg_resources as pkg
 import shutil
@@ -11,13 +12,6 @@ import tempfile
 import unittest
 import uuid
 import warnings
-if sys.hexversion >= 0x03000000:
-    from unittest.mock import patch
-    from io import BytesIO, StringIO
-else:
-    from mock import patch
-    from StringIO import StringIO
-    from io import BytesIO
 
 # Third party library imports ...
 try:
@@ -344,162 +338,83 @@ class TestSuite(unittest.TestCase):
                 box = glymur.jp2box.UUIDBox.parse(f, 0, 380)
 
         actual = str(box)
-        expected = ("UUID Box (uuid) @ (0, 380)\n"
-                    "    UUID:  "
-                    "b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03 (GeoTIFF)\n"
-                    "    UUID Data:  corrupt")
-        self.assertEqual(actual, expected)
-
-
-@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
-class TestSuiteHiRISE(unittest.TestCase):
-    """Tests for HiRISE RDRs."""
-
-    def setUp(self):
-        # Hand-create the boxes needed for HiRISE.
-        the_uuid = uuid.UUID('2b0d7e97-aa2e-317d-9a33-e53161a2f7d0')
-        ulst = glymur.jp2box.UUIDListBox([the_uuid])
-
-        version = 0
-        flag = [0, 0, 0]
-        url = 'ESP_032436_1755_COLOR.LBL'
-        debox = glymur.jp2box.DataEntryURLBox(version, flag, url)
-
-        uuidinfo = glymur.jp2box.UUIDInfoBox([ulst, debox])
-
-        relpath = os.path.join('data', 'degenerate_geotiff.tif')
-        path = pkg.resource_filename(__name__, relpath)
-        with open(path, 'rb') as fptr:
-            uuid_data = fptr.read()
-        the_uuid = uuid.UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03')
-        geotiff_uuid = glymur.jp2box.UUIDBox(the_uuid, uuid_data)
-
-        # Fabricate a new JP2 file out of the signature, file type, header,
-        # and codestream out of nemo.jp2, but add in the UUIDInfo and UUID
-        # box from HiRISE.
-        jp2 = Jp2k(glymur.data.nemo())
-        boxes = [jp2.box[0], jp2.box[1], jp2.box[2], uuidinfo, geotiff_uuid,
-                 jp2.box[-1]]
-
-        with tempfile.NamedTemporaryFile(suffix=".jp2", delete=False) as tfile:
-            jp2.wrap(tfile.name, boxes=boxes)
-        self.hirise_jp2file_name = tfile.name
-
-    def tearDown(self):
-        os.unlink(self.hirise_jp2file_name)
-
-    def test_tags(self):
-        jp2 = Jp2k(self.hirise_jp2file_name)
-        self.assertEqual(jp2.box[4].data['GeoDoubleParams'],
-                         (0.0, 180.0, 0.0, 0.0, 3396190.0, 3396190.0))
-        self.assertEqual(jp2.box[4].data['GeoAsciiParams'],
-                         'Equirectangular MARS|GCS_MARS|')
-        self.assertEqual(jp2.box[4].data['GeoKeyDirectory'], (
-            1,        1,  0,    18,
-            1024,     0,  1,     1,
-            1025,     0,  1,     1,
-            1026, 34737, 21,     0,
-            2048,     0,  1, 32767,
-            2049, 34737,  9,    21,
-            2050,     0,  1, 32767,
-            2054,     0,  1,  9102,
-            2056,     0,  1, 32767,
-            2057, 34736,  1,     4,
-            2058, 34736,  1,     5,
-            3072,     0,  1, 32767,
-            3074,     0,  1, 32767,
-            3075,     0,  1,    17,
-            3076,     0,  1,  9001,
-            3082, 34736,  1,     2,
-            3083, 34736,  1,     3,
-            3088, 34736,  1,     1,
-            3089, 34736,  1,     0
-        ))
-        self.assertEqual(jp2.box[4].data['ModelPixelScale'], (0.25, 0.25, 0.0))
-        self.assertEqual(jp2.box[4].data['ModelTiePoint'], (
-            0.0, 0.0, 0.0, -2523306.125, -268608.875, 0.0
-        ))
-
-    def test_printing(self):
-        jp2 = Jp2k(self.hirise_jp2file_name)
-        actual = str(jp2.box[4])
         if fixtures.HAVE_GDAL:
-            expected = fixtures.geotiff_uuid
+            expected = ("UUID Box (uuid) @ (0, 380)\n"
+                        "    UUID:  "
+                        "b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03 (GeoTIFF)\n"
+                        "    UUID Data:  corrupt")
         else:
-            expected = fixtures.geotiff_uuid_without_gdal
+            expected = ("UUID Box (uuid) @ (0, 380)\n"
+                        "    UUID:  "
+                        "b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03 (GeoTIFF)\n"
+                        "    UUID Data:  None")
         self.assertEqual(actual, expected)
-
-
-@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
-class TestSuiteWarns(unittest.TestCase):
-    """Tests for XMP, Exif UUIDs, issues warnings."""
-
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
-
-    def tearDown(self):
-        pass
 
     def test_bad_tag_datatype(self):
         """Only certain datatypes are allowable"""
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
+        f = BytesIO()
 
-            with open(self.jp2file, 'rb') as ifptr:
-                tfile.write(ifptr.read())
+        # Write L, T, UUID identifier.
+        f.write(struct.pack('>I4s', 52, b'uuid'))
+        f.write(b'JpgTiffExif->JP2')
 
-            # Write L, T, UUID identifier.
-            tfile.write(struct.pack('>I4s', 52, b'uuid'))
-            tfile.write(b'JpgTiffExif->JP2')
+        f.write(b'Exif\x00\x00')
+        xbuffer = struct.pack('<BBHI', 74, 73, 42, 8)
+        f.write(xbuffer)
 
-            tfile.write(b'Exif\x00\x00')
-            xbuffer = struct.pack('<BBHI', 73, 73, 42, 8)
-            tfile.write(xbuffer)
+        # We will write just a single tag.
+        f.write(struct.pack('<H', 1))
 
-            # We will write just a single tag.
-            tfile.write(struct.pack('<H', 1))
+        # 2000 is not an allowable TIFF datatype.
+        f.write(struct.pack('<HHI4s', 271, 2000, 3, b'HTC\x00'))
 
-            # 2000 is not an allowable TIFF datatype.
-            tfile.write(struct.pack('<HHI4s', 271, 2000, 3, b'HTC\x00'))
-            tfile.flush()
+        f.seek(8)
 
-            with warnings.catch_warnings():
-                # Ignore the invalid datatype warnings.
-                warnings.simplefilter('ignore')
-                j = glymur.Jp2k(tfile.name)
+        # We should still get a UUID box out of it.  But we get no data.
+        if sys.hexversion < 0x03000000:
+            with warnings.catch_warnings(record=True) as w:
+                box = glymur.jp2box.UUIDBox.parse(f, -1, 56)
+                assert issubclass(w[-1].category, UserWarning)
+        else:
+            with self.assertWarns(UserWarning):
+                box = glymur.jp2box.UUIDBox.parse(f, -1, 56)
 
-            self.assertEqual(j.box[-1].box_id, 'uuid')
+        self.assertEqual(box.box_id, 'uuid')
+        self.assertIsNone(box.data)
 
-            # Invalid tag, so no data
-            self.assertIsNone(j.box[-1].data)
-
+    @unittest.skipIf(sys.hexversion < 0x03000000, "assertWarns not until PY3K")
     def test_bad_tiff_header_byte_order_indication(self):
         """Only b'II' and b'MM' are allowed."""
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
+        f = BytesIO()
 
-            with open(self.jp2file, 'rb') as ifptr:
-                tfile.write(ifptr.read())
+        # Write L, T, UUID identifier.
+        f.write(struct.pack('>I4s', 52, b'uuid'))
+        f.write(b'JpgTiffExif->JP2')
 
-            # Write L, T, UUID identifier.
-            tfile.write(struct.pack('>I4s', 52, b'uuid'))
-            tfile.write(b'JpgTiffExif->JP2')
+        f.write(b'Exif\x00\x00')
+        xbuffer = struct.pack('<BBHI', 74, 73, 42, 8)
+        f.write(xbuffer)
 
-            tfile.write(b'Exif\x00\x00')
-            xbuffer = struct.pack('<BBHI', 74, 73, 42, 8)
-            tfile.write(xbuffer)
+        # We will write just a single tag.
+        f.write(struct.pack('<H', 1))
 
-            # We will write just a single tag.
-            tfile.write(struct.pack('<H', 1))
+        # 271 is the Make.
+        f.write(struct.pack('<HHI4s', 271, 2, 3, b'HTC\x00'))
 
-            # 271 is the Make.
-            tfile.write(struct.pack('<HHI4s', 271, 2, 3, b'HTC\x00'))
-            tfile.flush()
+        # Write the null offset to the next IFD.
+        f.write(struct.pack('<I', 0))
 
+        f.seek(8)
+
+        if sys.hexversion < 0x03000000:
             with warnings.catch_warnings():
-                # Ignore the warning about the endian order, we test for that
-                # elsewhere.
+                # Just ignore the warning on Python2.
                 warnings.simplefilter('ignore')
-                jp2 = glymur.Jp2k(tfile.name)
+                box = glymur.jp2box.UUIDBox.parse(f, -1, 56)
+        else:
+            with self.assertWarns(UserWarning):
+                box = glymur.jp2box.UUIDBox.parse(f, -1, 56)
 
-            # We should still get a UUID box out of it.  But we get no data.
-            self.assertEqual(jp2.box[-1].box_id, 'uuid')
-            self.assertIsNone(jp2.box[-1].data)
+        # We should still get a UUID box out of it.  But we get no data.
+        self.assertEqual(box.box_id, 'uuid')
+        self.assertIsNone(box.data)
