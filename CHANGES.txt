@@ -1,4 +1,4 @@
-November 30, 2016 - v0.8.8rc1
+December 01, 2016 - v0.8.8
     Refactor test suite.
     Fix printing errors in case of bad colr box.
     Fix tests on CentOS when seeing OpenJPEG 1.3
