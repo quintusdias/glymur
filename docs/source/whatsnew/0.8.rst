@@ -2,6 +2,14 @@
 Changes in glymur 0.8
 =====================
 
+Changes in 0.8.8
+=================
+    * Refactor test suite.
+    * Fix printing errors in case of bad colr box.
+    * Fix tests on CentOS when seeing OpenJPEG 1.3
+    * Improve code coverage to 99%.
+    * Don't print geotiff UUID box when known to be bad.
+
 Changes in 0.8.7
 =================
     * Qualified on OPENJPEG v2.1.2.
