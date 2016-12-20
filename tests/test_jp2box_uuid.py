@@ -329,6 +329,7 @@ class TestSuite(unittest.TestCase):
         expected = 'UTM Zone 16N NAD27"|Clarke, 1866 by Default| '
         self.assertEqual(box.data['GeoAsciiParams'], expected)
 
+    @unittest.skipIf(not fixtures.HAVE_GDAL, "needs gdal to make sense")
     def test_print_bad_geotiff(self):
         """
         Geotiff UUID is corrupt.  Print that instead of erroring out.
