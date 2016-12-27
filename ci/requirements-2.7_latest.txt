@@ -1,4 +1,0 @@
-numpy == 1.11.1
-lxml == 3.7.0
-GDAL == 1.10.0
-contextlib2

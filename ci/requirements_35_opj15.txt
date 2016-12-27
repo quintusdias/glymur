@@ -1,0 +1,3 @@
+numpy
+gdal
+lxml=3.6.4

@@ -1253,8 +1253,8 @@ class TestPrinting(unittest.TestCase):
             # No need to verify, it's enough that we don't error out.
             str(box)
 
-    @unittest.skipIf(sys.hexversion < 0x03000000,
-                     'OrderedDict prints differently on python2')
+    @unittest.skipIf(sys.hexversion < 0x03040000,
+                     'OrderedDict prints differently on python2 and python33')
     def test_icc_profile(self):
         """
         verify icc profile printing with a jpx

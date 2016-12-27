@@ -1,62 +1,67 @@
-sudo: true
 language: python
-
-env:
-  global:
-      - CPLUS_INCLUDE_PATH=/usr/include/gdal
-      - C_INCLUDE_PATH=/usr/include/gdal    
-
 matrix:
+    fast_finish: true
     include:
     - python: 2.7
       env:
-      - JOB_NAME: "27_openjpeg15"
-      - OPJ_LIB=1
-      - JOB_TAG=_opj15
+          - JOB_NAME: "27_openjpeg15"
+          - JOB_TAG=27_opj15
+          - OPJ15=1
     - python: 2.7
       env:
-      - JOB_NAME: "27_np172"
-      - OPJ_LIB=2
-      - JOB_TAG=_oldest
+          - JOB_NAME "27_earliest"
+          - JOB_TAG=27_earliest
     - python: 2.7
       env:
-      - JOB_NAME: "27_latest"
-      - OPJ_LIB=2
-      - JOB_TAG=_latest
+          - JOB_NAME "27_latest"
+          - JOB_TAG=27_latest
+    - python: 3.3
+      env:
+          - JOB_NAME "33_no_extras"
+          - JOB_TAG=33_no_extras
     - python: 3.4
       env:
-      - JOB_NAME: "34"
-      - OPJ_LIB=2
-      - JOB_TAG=_latest
+          - JOB_NAME "34_latest"
+          - JOB_TAG=34_latest
     - python: 3.5
       env:
-      - JOB_NAME: "35_latest"
-      - OPJ_LIB=2
-      - JOB_TAG=_latest
+          - JOB_NAME "35_latest"
+          - JOB_TAG=35_latest
     - python: 3.5
       env:
-      - JOB_NAME: "35_no_lxml"
-      - OPJ_LIB=2
-      - JOB_TAG=_no_lxml
+          - JOB_NAME "35_no_opj"
+          - JOB_TAG=35_no_opj
     - python: 3.5
       env:
-      - JOB_NAME: "no_openjpeg"
-      - OPJ_LIB=0
-      - JOB_TAG=_no_opj
-    
+          - JOB_NAME "35_openjpeg15"
+          - JOB_TAG=35_opj15
+          - OPJ15=1
 before_install:
-  - sh -c "if test $OPJ_LIB -eq 1; then bash ci/install_openjpeg15.sh; elif test $OPJ_LIB -eq 2; then bash ci/install_openjpeg.sh; fi"
-  - sudo apt-get update -qq
-  - sudo apt-get install libgdal1h
-  - sudo apt-get install libgdal1-dev
-
-# command to install dependencies
+  - sh -c "if test $OPJ15 -eq 1; then bash ci/install_openjpeg15.sh; fi"
 install:
-    - sh -c "bash ci/run_pip.sh"
+  - sudo apt-get update
+  # We do this conditionally because it saves us some downloading if the
+  # version is the same.
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
+      wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
+    else
+      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
+    fi
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - export PATH="$HOME/miniconda/bin:$PATH"
+  - hash -r
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  # Useful for debugging any issues with conda
+  - conda info -a
 
-# command to run tests
+  # Replace dep1 dep2 ... with your dependencies
+  - conda config --append channels conda-forge
+  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
+  - source activate test-environment
+  - conda install --file ci/requirements_"$JOB_TAG".txt
+  - python setup.py install
+
 script:
   - python -m unittest discover
-
-notifications:
-  email: "john.g.evans.ne@gmail.com"
+  - python -c "import glymur; print(glymur.version.info)"

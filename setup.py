@@ -22,7 +22,7 @@ kwargs = {
     'test_suite': 'glymur.test'
 }
 
-install_requires = ['numpy>=1.7.0', 'setuptools']
+install_requires = ['numpy>=1.7.1', 'setuptools']
 if sys.hexversion < 0x03030000:
     install_requires.append('contextlib2>=0.4')
     install_requires.append('mock>=0.7.2')

@@ -1,0 +1,4 @@
+# libgdal, lxml, and python33 trigger an UnsatisfiableError in conda.
+# Not crucial to test that combination.
+numpy
+openjpeg
