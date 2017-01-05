@@ -36,6 +36,10 @@ matrix:
           - JOB_NAME "35_openjpeg15"
           - JOB_TAG=35_opj15
           - OPJ15=1
+    - python: 3.6
+      env:
+          - JOB_NAME "36_latest"
+          - JOB_TAG=36_latest
 before_install:
   - sh -c "if test $OPJ15 -eq 1; then bash ci/install_openjpeg15.sh; fi"
 install:
