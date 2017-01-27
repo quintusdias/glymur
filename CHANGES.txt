@@ -1,3 +1,8 @@
+January 26, 2016 - v0.8.8
+    Qualified on Python 3.6.
+    Change travis-ci testing to use Anaconda.
+    Fix printing error if colr specification box has a bad method.
+
 October 02, 2016 - v0.8.7
     Qualified on OPENJPEG v2.1.2
 

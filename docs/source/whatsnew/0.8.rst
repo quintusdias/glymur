@@ -2,6 +2,12 @@
 Changes in glymur 0.8
 =====================
 
+Changes in 0.8.8
+=================
+    * Qualified on Python 3.6.
+    * Changed travis-ci testing to use Anaconda.
+    * Fix printing error if colr specification box has a bad method.
+
 Changes in 0.8.7
 =================
     * Qualified on OPENJPEG v2.1.2.
