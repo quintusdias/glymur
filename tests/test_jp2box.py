@@ -394,6 +394,7 @@ class TestFileTypeBox(unittest.TestCase):
             with self.assertRaises(IOError):
                 ftyp.write(tfile)
 
+    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
     @unittest.skipIf(sys.hexversion < 0x03000000,
                      "assertWarns not introduced until 3.2")
     def test_cl_entry_not_utf8(self):
