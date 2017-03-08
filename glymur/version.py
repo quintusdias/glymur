@@ -13,10 +13,6 @@ import sys
 
 # Third party library imports ...
 from distutils.version import LooseVersion
-try:
-    import lxml.etree
-except ImportError:
-    pass
 import numpy as np
 
 # Local imports ...
@@ -64,8 +60,11 @@ kwargs = {
     'numpy': np.__version__,
 }
 
-if 'lxml' in sys.modules.keys():
-    info += "lxml          {elxml}\n"
+try:
+    import lxml.etree
+    info += "lxml.etree    {elxml}\n"
     kwargs['elxml'] = lxml.etree.__version__
+except Exception:
+    pass
 
 info = info.format(**kwargs)

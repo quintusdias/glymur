@@ -1,7 +1,7 @@
 contextlib2
 libgdal
 gdal
-lxml=3.6.4
+lxml
 mock
 numpy
 openjpeg
