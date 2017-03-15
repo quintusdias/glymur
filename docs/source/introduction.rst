@@ -33,7 +33,3 @@ You can also should be able to install Glymur via pip, although you should
 be sure that OpenJPEG is installed first ::
 
     $ pip install glymur
-
-The source for Glymur can be retrieved from either of
-
-    * https://pypi.python.org/pypi/Glymur/ (stable releases)

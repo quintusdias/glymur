@@ -139,7 +139,9 @@ class Jp2k(Jp2kBox):
             Print informational messages produced by the OpenJPEG library.
         """
         Jp2kBox.__init__(self)
-        self.filename = filename
+
+        # In case of pathlib.Paths... 
+        self.filename = str(filename)
 
         self.box = []
         self._codec_format = None

@@ -64,6 +64,10 @@ install:
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
   - source activate test-environment
   - conda install --file ci/requirements_"$TRAVIS_PYTHON_VERSION"_"$JOB_TAG".txt
+  # 3.3 pathlib2 requirement cannot be satisfied via conda
+  - if [[ "$TRAVIS_PYTHON_VERSION" == "3.3" ]]; then
+      pip install pathlib2;
+    fi
   - python setup.py install
 
 script:

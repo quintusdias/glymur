@@ -17,6 +17,10 @@ if sys.hexversion >= 0x03030000:
     from unittest.mock import patch
 else:
     from mock import patch
+if sys.hexversion >= 0x03040000:
+    import pathlib
+else:
+    import pathlib2 as pathlib
 from xml.etree import cElementTree as ET
 
 # Third party library imports ...
@@ -245,6 +249,11 @@ class TestJp2k(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         pass
+
+    def test_pathlib(self):
+        p = pathlib.Path(self.jp2file)
+        jp2 = Jp2k(p)
+        self.assertEqual(jp2.shape, (1456, 2592, 3))
 
     @unittest.skipIf(re.match('1.5.(1|2)', openjpeg_version) is not None,
                      "Mysteriously fails in 1.5.1 and 1.5.2")

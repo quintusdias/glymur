@@ -5,3 +5,4 @@ lxml=3.0.2
 mock=1.0.1
 numpy=1.7.1
 openjpeg
+pathlib2

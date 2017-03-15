@@ -5,3 +5,4 @@ lxml
 mock
 numpy
 openjpeg
+pathlib2
