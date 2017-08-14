@@ -30,9 +30,9 @@ def version():
     return v.decode('utf-8') if sys.hexversion >= 0x03000000 else v
 
 if OPENJP2 is not None:
-    _MAJOR, _MINOR, _PATCH = version().split('.')
+    _MAJOR, _MINOR, _PATCH = [int(x) for x in version().split('.')]
 else:
-    _MINOR = 0
+    _MAJOR, _MINOR, _PATCH = 0, 0, 0
 
 ERROR_MSG_LST = []
 
@@ -392,7 +392,7 @@ class CompressionParametersType(ctypes.Structure):
         # based encoding without offset concerning all the components.
         ("mct_data",              ctypes.c_void_p)]
 
-    if _MINOR == '1':
+    if _MAJOR >= 2 and _MINOR >= 1:
         # Maximum size (in bytes) for the whole codestream.
         # If == 0, codestream size limitation is not considered.
         # If it does not comply with tcp_rates, max_cs_size prevails and a
@@ -478,7 +478,7 @@ class ImageCompType(ctypes.Structure):
         # image component data
         ("data",                ctypes.POINTER(ctypes.c_int32))]
 
-    if _MINOR == '1':
+    if _MAJOR >= 2 and _MINOR >= 1:
         _fields_.append(("alpha",               ctypes.c_uint16))
 
     def __str__(self):

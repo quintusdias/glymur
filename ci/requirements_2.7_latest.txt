@@ -4,5 +4,5 @@ gdal
 lxml
 mock
 numpy
-openjpeg
+openjpeg=2.2.0
 pathlib2

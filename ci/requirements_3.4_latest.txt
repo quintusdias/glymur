@@ -2,4 +2,4 @@ libgdal
 gdal
 lxml
 numpy
-openjpeg
+openjpeg=2.1.2

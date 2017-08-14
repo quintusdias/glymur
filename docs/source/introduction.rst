@@ -7,7 +7,7 @@ which allows one to read and write JPEG 2000 files from Python.
 Glymur supports both reading and writing of JPEG 2000 images, but writing
 JPEG 2000 images is currently limited to images that can fit in memory.
 **Glymur** can read images using OpenJPEG library versions as far back as 1.3,
-but it is strongly recommended to use version 2.1.0 or newer.
+but it is strongly recommended to use at least version 2.1.2.
 
 In regards to metadata, most JP2 boxes are properly interpreted.
 Certain optional JP2 boxes can also be written, including XML boxes and
