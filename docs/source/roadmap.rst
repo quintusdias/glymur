@@ -10,5 +10,6 @@ Known Issues
 Roadmap
 -------
 
-    * Bug fixes will be provided for the 0.8 LTS series of glymur releases.  This will cover python 2.7 and 3.3 as well as OpenJPEG 1.5.x and 2.0.x.
-    * Starting with version 0.9.0, support will be dropped for python 2.7 and 3.3.  Only versions of OpenJPEG at least as high as 2.1.0 will be supported.
+    * Glymur version 0.8.12 will mark the transition of 0.8.x into an LTS series, i.e. bug fixes only.
+    * Version 0.8.12 will drop support for Python 3.3, but keep support for Python 2.7.
+    * Glymur version 0.9.0 will drop support for Python 2.7 and OpenJPEG 1.5.
