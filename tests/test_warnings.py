@@ -12,11 +12,7 @@ import tempfile
 import unittest
 import warnings
 import numpy as np
-
-if sys.hexversion <= 0x03030000:
-    from mock import patch
-else:
-    from unittest.mock import patch
+from unittest.mock import patch
 
 from glymur import Jp2k
 import glymur
@@ -26,7 +22,6 @@ from .fixtures import WINDOWS_TMP_FILE_MSG
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
-@unittest.skipIf(sys.hexversion < 0x03000000, 'Do not bother on python2')
 class TestSuite(unittest.TestCase):
 
     def setUp(self):
@@ -63,13 +58,8 @@ class TestSuite(unittest.TestCase):
                 tfile.write(read_buffer)
                 tfile.flush()
 
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    c = Jp2k(tfile.name).get_codestream(header_only=False)
-                assert issubclass(w[-1].category, UserWarning)
-            else:
-                with self.assertWarns(UserWarning):
-                    c = Jp2k(tfile.name).get_codestream(header_only=False)
+            with self.assertWarns(UserWarning):
+                c = Jp2k(tfile.name).get_codestream(header_only=False)
 
         # Verify that the last segment returned in the codestream is SOT,
         # not EOC.  It was after SOT that the invalid marker was inserted.
@@ -88,14 +78,8 @@ class TestSuite(unittest.TestCase):
         fptr.write(payload)
         fptr.seek(0)
 
-        if sys.hexversion < 0x03000000:
-            pass
-            with warnings.catch_warnings(record=True) as w:
-                box = glymur.jp2box.XMLBox.parse(fptr, 0, 8 + len(payload))
-            assert issubclass(w[-1].category, UserWarning)
-        else:
-            with self.assertWarns(UserWarning):
-                box = glymur.jp2box.XMLBox.parse(fptr, 0, 8 + len(payload))
+        with self.assertWarns(UserWarning):
+            box = glymur.jp2box.XMLBox.parse(fptr, 0, 8 + len(payload))
 
         self.assertIsNone(box.xml)
 
@@ -123,13 +107,8 @@ class TestSuite(unittest.TestCase):
                 tfile.write(read_buffer)
                 tfile.flush()
 
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    Jp2k(tfile.name).get_codestream()
-                assert issubclass(w[-1].category, UserWarning)
-            else:
-                with self.assertWarns(UserWarning):
-                    Jp2k(tfile.name).get_codestream()
+            with self.assertWarns(UserWarning):
+                Jp2k(tfile.name).get_codestream()
 
     def test_tile_height_is_zero(self):
         """
@@ -158,13 +137,8 @@ class TestSuite(unittest.TestCase):
         fp.write(buffer)
         fp.seek(0)
 
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings(record=True) as w:
-                glymur.codestream.Codestream._parse_siz_segment(fp)
-            assert issubclass(w[-1].category, UserWarning)
-        else:
-            with self.assertWarns(UserWarning):
-                glymur.codestream.Codestream._parse_siz_segment(fp)
+        with self.assertWarns(UserWarning):
+            glymur.codestream.Codestream._parse_siz_segment(fp)
 
     def test_invalid_progression_order(self):
         """
@@ -177,13 +151,8 @@ class TestSuite(unittest.TestCase):
         fp.write(buffer)
         fp.seek(0)
 
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings(record=True) as w:
-                glymur.codestream.Codestream._parse_cod_segment(fp)
-            assert issubclass(w[-1].category, UserWarning)
-        else:
-            with self.assertWarns(UserWarning):
-                glymur.codestream.Codestream._parse_cod_segment(fp)
+        with self.assertWarns(UserWarning):
+            glymur.codestream.Codestream._parse_cod_segment(fp)
 
     def test_bad_wavelet_transform(self):
         """
@@ -196,13 +165,8 @@ class TestSuite(unittest.TestCase):
         fp.write(buffer)
         fp.seek(0)
 
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings(record=True) as w:
-                glymur.codestream.Codestream._parse_cod_segment(fp)
-            assert issubclass(w[-1].category, UserWarning)
-        else:
-            with self.assertWarns(UserWarning):
-                glymur.codestream.Codestream._parse_cod_segment(fp)
+        with self.assertWarns(UserWarning):
+            glymur.codestream.Codestream._parse_cod_segment(fp)
 
     def test_NR_gdal_fuzzer_assert_in_opj_j2k_read_SQcd_SQcc_patch_jp2(self):
         """
@@ -217,13 +181,8 @@ class TestSuite(unittest.TestCase):
         fp.write(buffer)
         fp.seek(0)
 
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings(record=True) as w:
-                glymur.codestream.Codestream._parse_qcc_segment(fp)
-            assert issubclass(w[-1].category, UserWarning)
-        else:
-            with self.assertWarns(UserWarning):
-                glymur.codestream.Codestream._parse_qcc_segment(fp)
+        with self.assertWarns(UserWarning):
+            glymur.codestream.Codestream._parse_qcc_segment(fp)
 
     def test_NR_gdal_fuzzer_check_comp_dx_dy_jp2_dump(self):
         """
@@ -252,13 +211,8 @@ class TestSuite(unittest.TestCase):
         fp.write(buffer)
         fp.seek(0)
 
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings(record=True) as w:
-                glymur.codestream.Codestream._parse_siz_segment(fp)
-            assert issubclass(w[-1].category, UserWarning)
-        else:
-            with self.assertWarns(UserWarning):
-                glymur.codestream.Codestream._parse_siz_segment(fp)
+        with self.assertWarns(UserWarning):
+            glymur.codestream.Codestream._parse_siz_segment(fp)
 
     @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_read_past_end_of_box(self):
@@ -284,13 +238,8 @@ class TestSuite(unittest.TestCase):
                 ofile.write(ifile.read())
                 ofile.flush()
 
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    Jp2k(ofile.name)
-                assert issubclass(w[-1].category, UserWarning)
-            else:
-                with self.assertWarns(UserWarning):
-                    Jp2k(ofile.name)
+            with self.assertWarns(UserWarning):
+                Jp2k(ofile.name)
 
     def test_NR_gdal_fuzzer_check_number_of_tiles(self):
         """
@@ -320,13 +269,8 @@ class TestSuite(unittest.TestCase):
         fp.write(buffer)
         fp.seek(0)
 
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings(record=True) as w:
-                glymur.codestream.Codestream._parse_siz_segment(fp)
-            assert issubclass(w[-1].category, UserWarning)
-        else:
-            with self.assertWarns(UserWarning):
-                glymur.codestream.Codestream._parse_siz_segment(fp)
+        with self.assertWarns(UserWarning):
+            glymur.codestream.Codestream._parse_siz_segment(fp)
 
     def test_NR_gdal_fuzzer_unchecked_numresolutions_dump(self):
         """
@@ -338,13 +282,8 @@ class TestSuite(unittest.TestCase):
         pargs = (0, 0, 1, 1, 64, 3, 3, 0, 0, None)
         spcod = struct.pack('>BHBBBBBB', 0, 1, 1, 64, 3, 3, 0, 0)
         spcod = bytearray(spcod)
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings(record=True) as w:
-                glymur.codestream.CODsegment(*pargs, length=12, offset=174)
-            assert issubclass(w[-1].category, UserWarning)
-        else:
-            with self.assertWarns(UserWarning):
-                glymur.codestream.CODsegment(*pargs, length=12, offset=174)
+        with self.assertWarns(UserWarning):
+            glymur.codestream.CODsegment(*pargs, length=12, offset=174)
 
     @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_file_pointer_badly_positioned(self):
@@ -371,13 +310,8 @@ class TestSuite(unittest.TestCase):
                 ofile.write(ifile.read())
                 ofile.flush()
 
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    Jp2k(ofile.name)
-                assert issubclass(w[-1].category, UserWarning)
-            else:
-                with self.assertWarns(UserWarning):
-                    Jp2k(ofile.name)
+            with self.assertWarns(UserWarning):
+                Jp2k(ofile.name)
 
     @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_NR_DEC_issue188_beach_64bitsbox_jp2_41_decode(self):
@@ -400,13 +334,8 @@ class TestSuite(unittest.TestCase):
                 ofile.write(buffer)
                 ofile.flush()
 
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    Jp2k(ofile.name)
-                assert issubclass(w[-1].category, UserWarning)
-            else:
-                with self.assertWarns(UserWarning):
-                    Jp2k(ofile.name)
+            with self.assertWarns(UserWarning):
+                Jp2k(ofile.name)
 
     def test_truncated_icc_profile(self):
         """
@@ -427,13 +356,8 @@ class TestSuite(unittest.TestCase):
         obj.seek(74)
 
         # Should be able to read the colr box now
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings(record=True) as w:
-                glymur.jp2box.ColourSpecificationBox.parse(obj, 66, 47)
-                assert issubclass(w[-1].category, UserWarning)
-        else:
-            with self.assertWarns(UserWarning):
-                glymur.jp2box.ColourSpecificationBox.parse(obj, 66, 47)
+        with self.assertWarns(UserWarning):
+            glymur.jp2box.ColourSpecificationBox.parse(obj, 66, 47)
 
     def test_invalid_colour_specification_method(self):
         """
@@ -455,13 +379,8 @@ class TestSuite(unittest.TestCase):
         obj.seek(74)
 
         # Should be able to read the colr box now
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings(record=True) as w:
-                glymur.jp2box.ColourSpecificationBox.parse(obj, 66, 143)
-                assert issubclass(w[-1].category, UserWarning)
-        else:
-            with self.assertWarns(UserWarning):
-                glymur.jp2box.ColourSpecificationBox.parse(obj, 66, 143)
+        with self.assertWarns(UserWarning):
+            glymur.jp2box.ColourSpecificationBox.parse(obj, 66, 143)
 
     def test_bad_color_space_specification(self):
         """
@@ -471,13 +390,8 @@ class TestSuite(unittest.TestCase):
         """
         jp2 = glymur.Jp2k(self.jp2file)
         jp2.box[2].box[1].method = 3
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings(record=True) as w:
-                jp2._validate()
-                assert issubclass(w[-1].category, UserWarning)
-        else:
-            with self.assertWarns(UserWarning):
-                jp2._validate()
+        with self.assertWarns(UserWarning):
+            jp2._validate()
 
     @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_unknown_superbox(self):
@@ -502,13 +416,8 @@ class TestSuite(unittest.TestCase):
 
     def test_brand_unknown(self):
         """A ftyp box brand must be 'jp2 ' or 'jpx '."""
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings(record=True) as w:
-                glymur.jp2box.FileTypeBox(brand='jp3')
-                assert issubclass(w[-1].category, UserWarning)
-        else:
-            with self.assertWarns(UserWarning):
-                glymur.jp2box.FileTypeBox(brand='jp3')
+        with self.assertWarns(UserWarning):
+            glymur.jp2box.FileTypeBox(brand='jp3')
 
     def test_bad_type(self):
         """Channel types are limited to 0, 1, 2, 65535
@@ -533,14 +442,9 @@ class TestSuite(unittest.TestCase):
 
     def test_cl_entry_unknown(self):
         """A ftyp box cl list can only contain 'jp2 ', 'jpx ', or 'jpxb'."""
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings(record=True):
-                # Bad compatibility list item.
-                glymur.jp2box.FileTypeBox(compatibility_list=['jp3'])
-        else:
-            with self.assertWarns(UserWarning):
-                # Bad compatibility list item.
-                glymur.jp2box.FileTypeBox(compatibility_list=['jp3'])
+        with self.assertWarns(UserWarning):
+            # Bad compatibility list item.
+            glymur.jp2box.FileTypeBox(compatibility_list=['jp3'])
 
     def test_colr_with_cspace_and_icc(self):
         """Colour specification boxes can't have both."""
@@ -621,52 +525,32 @@ class TestSuite(unittest.TestCase):
         It's just a warning here because we haven't tried to write it.
         """
         ftyp = glymur.jp2box.FileTypeBox()
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings(record=True) as w:
-                glymur.jp2box.DataReferenceBox([ftyp])
-                assert issubclass(w[-1].category, UserWarning)
-        else:
-            with self.assertWarns(UserWarning):
-                glymur.jp2box.DataReferenceBox([ftyp])
+        with self.assertWarns(UserWarning):
+            glymur.jp2box.DataReferenceBox([ftyp])
 
     def test_flst_lens_not_the_same(self):
         """A fragment list box items must be the same length."""
         offset = [89]
         length = [1132288]
         reference = [0, 0]
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings(record=True) as w:
-                glymur.jp2box.FragmentListBox(offset, length, reference)
-                assert issubclass(w[-1].category, UserWarning)
-        else:
-            with self.assertWarns(UserWarning):
-                glymur.jp2box.FragmentListBox(offset, length, reference)
+        with self.assertWarns(UserWarning):
+            glymur.jp2box.FragmentListBox(offset, length, reference)
 
     def test_flst_offsets_not_positive(self):
         """A fragment list box offsets must be positive."""
         offset = [0]
         length = [1132288]
         reference = [0]
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings(record=True) as w:
-                glymur.jp2box.FragmentListBox(offset, length, reference)
-                assert issubclass(w[-1].category, UserWarning)
-        else:
-            with self.assertWarns(UserWarning):
-                glymur.jp2box.FragmentListBox(offset, length, reference)
+        with self.assertWarns(UserWarning):
+            glymur.jp2box.FragmentListBox(offset, length, reference)
 
     def test_flst_lengths_not_positive(self):
         """A fragment list box lengths must be positive."""
         offset = [89]
         length = [0]
         reference = [0]
-        if sys.hexversion < 0x03000000:
-            with warnings.catch_warnings(record=True) as w:
-                glymur.jp2box.FragmentListBox(offset, length, reference)
-                assert issubclass(w[-1].category, UserWarning)
-        else:
-            with self.assertWarns(UserWarning):
-                glymur.jp2box.FragmentListBox(offset, length, reference)
+        with self.assertWarns(UserWarning):
+            glymur.jp2box.FragmentListBox(offset, length, reference)
 
     @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_unrecognized_exif_tag(self):
@@ -784,13 +668,8 @@ class TestSuite(unittest.TestCase):
             Jp2k(ofile.name)
 
             glymur.set_option('parse.full_codestream', True)
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    Jp2k(ofile.name)
-                    assert issubclass(w[-1].category, UserWarning)
-            else:
-                with self.assertWarns(UserWarning):
-                    Jp2k(ofile.name)
+            with self.assertWarns(UserWarning):
+                Jp2k(ofile.name)
 
     @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_undecodeable_box_id(self):
@@ -812,13 +691,8 @@ class TestSuite(unittest.TestCase):
                 ofile.write(buffer)
                 ofile.flush()
 
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    jp2 = Jp2k(ofile.name)
-                    assert issubclass(w[-1].category, UserWarning)
-            else:
-                with self.assertWarns(UserWarning):
-                    jp2 = Jp2k(ofile.name)
+            with self.assertWarns(UserWarning):
+                jp2 = Jp2k(ofile.name)
 
             # Now make sure we got all of the boxes.
             box_ids = [box.box_id for box in jp2.box]
@@ -851,13 +725,8 @@ class TestSuite(unittest.TestCase):
                 ofile.write(ifile.read())
                 ofile.flush()
 
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    Jp2k(ofile.name)
-                    assert issubclass(w[-1].category, UserWarning)
-            else:
-                with self.assertWarns(UserWarning):
-                    Jp2k(ofile.name)
+            with self.assertWarns(UserWarning):
+                Jp2k(ofile.name)
 
     @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_bad_ftyp_compatibility_list_item(self):
@@ -879,13 +748,8 @@ class TestSuite(unittest.TestCase):
                 ofile.write(ifile.read())
                 ofile.flush()
 
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    Jp2k(ofile.name)
-                    assert 'jp3' in str(w[-1].message)
-            else:
-                with self.assertWarns(UserWarning):
-                    Jp2k(ofile.name)
+            with self.assertWarns(UserWarning):
+                Jp2k(ofile.name)
 
     @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_invalid_approximation(self):
@@ -915,13 +779,8 @@ class TestSuite(unittest.TestCase):
                 ofile.write(ifile.read())
                 ofile.flush()
 
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    Jp2k(ofile.name)
-                    assert issubclass(w[-1].category, UserWarning)
-            else:
-                with self.assertWarns(UserWarning):
-                    Jp2k(ofile.name)
+            with self.assertWarns(UserWarning):
+                Jp2k(ofile.name)
 
     @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_invalid_colorspace(self):
@@ -951,13 +810,8 @@ class TestSuite(unittest.TestCase):
                 ofile.write(ifile.read())
                 ofile.flush()
 
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    Jp2k(ofile.name)
-                    assert issubclass(w[-1].category, UserWarning)
-            else:
-                with self.assertWarns(UserWarning):
-                    Jp2k(ofile.name)
+            with self.assertWarns(UserWarning):
+                Jp2k(ofile.name)
 
     @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_stupid_windows_eol_at_end(self):
@@ -980,13 +834,8 @@ class TestSuite(unittest.TestCase):
                 ofile.write(b'\0')
                 ofile.flush()
 
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    Jp2k(ofile.name)
-                    assert issubclass(w[-1].category, UserWarning)
-            else:
-                with self.assertWarns(UserWarning):
-                    Jp2k(ofile.name)
+            with self.assertWarns(UserWarning):
+                Jp2k(ofile.name)
 
     @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
     @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
@@ -1007,13 +856,8 @@ class TestSuite(unittest.TestCase):
         data = data[:1080, :2048, :]
 
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    Jp2k(tfile.name, data=data, cinema2k=24)
-                assert issubclass(w[-1].category, UserWarning)
-            else:
-                with self.assertWarns(UserWarning):
-                    Jp2k(tfile.name, data=data, cinema2k=24)
+            with self.assertWarns(UserWarning):
+                Jp2k(tfile.name, data=data, cinema2k=24)
 
     def test_deprecated_set_get_printoptions(self):
         """
@@ -1039,8 +883,6 @@ class TestSuite(unittest.TestCase):
 
 
 @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
-@unittest.skipIf(sys.hexversion < 0x03020000,
-                 "TemporaryDirectory introduced in 3.2.")
 @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Needs openjp2 library first before these tests make sense.")
 class TestConfigurationWarnings(unittest.TestCase):
@@ -1098,8 +940,4 @@ class TestSuiteXML(unittest.TestCase):
 
         with warnings.catch_warnings(record=True) as w:
             glymur.jp2box.XMLBox.parse(fptr, 0, 8 + num_bytes)
-            if sys.hexversion < 0x03000000:
-                assert issubclass(w[-1].category, UserWarning)
-            else:
-                # Python3 handles the BOM just fine.
-                self.assertEqual(len(w), 0)
+            self.assertEqual(len(w), 0)

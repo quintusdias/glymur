@@ -7,7 +7,6 @@ import ctypes
 from io import BytesIO
 import os
 import struct
-import sys
 import tempfile
 import unittest
 import warnings
@@ -452,7 +451,6 @@ class TestJPX(unittest.TestCase):
             j = Jp2k(file)
             self.assertEqual(len(j.box[2].vendor_feature), 4)
 
-    @unittest.skipIf(sys.hexversion < 0x03000000, "assertWarns is PY3K")
     def test_reader_requirements_box_writing(self):
         """
         If a box does not have writing specifically enabled, must error out.
@@ -596,7 +594,6 @@ class TestJPX(unittest.TestCase):
             self.assertEqual(jpx.box[-1].box[0].fragment_length, (170246,))
             self.assertEqual(jpx.box[-1].box[0].data_reference, (3,))
 
-    @unittest.skipIf(sys.hexversion < 0x03000000, "assertWarns is PY3K")
     def test_rreq3(self):
         """
         Verify that we warn with RREQ box with an unsupported mask length.

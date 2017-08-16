@@ -6,21 +6,15 @@ import datetime
 import doctest
 from io import BytesIO
 import os
+import pathlib
 import re
 import struct
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 import uuid
 import warnings
-if sys.hexversion >= 0x03030000:
-    from unittest.mock import patch
-else:
-    from mock import patch
-if sys.hexversion >= 0x03040000:
-    import pathlib
-else:
-    import pathlib2 as pathlib
 from xml.etree import cElementTree as ET
 
 # Third party library imports ...
@@ -75,8 +69,6 @@ class SliceProtocolBase(unittest.TestCase):
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-@unittest.skipIf(re.match("1.5|2", glymur.version.openjpeg_version) is None,
-                 "Must have openjpeg 1.5 or higher to run")
 @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
 class TestSliceProtocolBaseWrite(SliceProtocolBase):
 
@@ -221,8 +213,6 @@ class TestSliceProtocolRead(SliceProtocolBase):
         expected = self.j2k_data[3:8, :, :]
         np.testing.assert_array_equal(actual, expected)
 
-    @unittest.skipIf(re.match("0|1", glymur.version.openjpeg_version),
-                     "Must have openjpeg 2 or higher to run")
     def test_region_rlevel5(self):
         """
         maximim rlevel
@@ -255,8 +245,6 @@ class TestJp2k(unittest.TestCase):
         jp2 = Jp2k(p)
         self.assertEqual(jp2.shape, (1456, 2592, 3))
 
-    @unittest.skipIf(re.match('1.5.(1|2)', openjpeg_version) is not None,
-                     "Mysteriously fails in 1.5.1 and 1.5.2")
     def test_no_cxform_pclr_jpx(self):
         """
         Indices for pclr jpxfile still usable if no color transform specified
@@ -395,8 +383,6 @@ class TestJp2k(unittest.TestCase):
         jpx = Jp2k(self.jpxfile)
         self.assertEqual(jpx.shape, (1024, 1024, 3))
 
-    @unittest.skipIf(re.match("0|1.[0-4]", glymur.version.openjpeg_version),
-                     "Must have openjpeg 1.5 or higher to run")
     @unittest.skipIf(os.name == "nt", "Unexplained failure on windows")
     def test_irreversible(self):
         """Irreversible"""
@@ -850,7 +836,6 @@ class TestJp2k(unittest.TestCase):
                 with self.assertRaises(exp_error):
                     glymur.Jp2k(self.jp2file).read_bands()
 
-        
     @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_zero_length_reserved_segment(self):
         """
@@ -976,7 +961,7 @@ class TestJp2k(unittest.TestCase):
         file = pkg.resource_filename(__name__, file)
         j = Jp2k(file)
         d0 = j[:]
-        
+
         j.layer = 1
         d1 = j[:]
 
@@ -1146,7 +1131,7 @@ class TestJp2k_write(fixtures.MetadataBase):
 
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             with self.assertRaises(IOError):
-                j2 = j.wrap(tfile.name, boxes=boxes)
+                j.wrap(tfile.name, boxes=boxes)
 
     @unittest.skipIf(glymur.version.openjpeg_version_tuple[0] < 2,
                      "Requires as least v2.0")
@@ -1205,40 +1190,6 @@ class TestJp2k_write(fixtures.MetadataBase):
         self.assertFalse(c.segment[2].scod & 4)  # no eph
         self.assertEqual(c.segment[2].prog_order, glymur.core.LRCP)
         self.assertEqual(c.segment[2].layers, 3)  # layers = 3
-        self.assertEqual(c.segment[2].mct, 1)  # mct
-        self.assertEqual(c.segment[2].num_res, 5)  # levels
-        self.assertEqual(tuple(c.segment[2].code_block_size),
-                         (64, 64))  # cblksz
-        self.verify_codeblock_style(c.segment[2].cstyle,
-                                    [False, False, False, False, False, False])
-        self.assertEqual(c.segment[2].xform,
-                         glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-        self.assertEqual(c.segment[2].precinct_size, ((32768, 32768)))
-
-    @unittest.skipIf(glymur.config.load_openjpeg_library('openjpeg') is None,
-                     "Needs openjpeg before this test make sense.")
-    def test_NR_ENC_Bretagne1_ppm_1_encode_v15(self):
-        """
-        Test JPEG writing with version 1.5
-
-        Original file tested was
-
-            input/nonregression/Bretagne1.ppm
-
-        """
-        data = self.jp2_data
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            with patch('glymur.jp2k.version.openjpeg_version_tuple', new=(1, 5, 0)):
-                with patch('glymur.jp2k.opj2.OPENJP2', new=None):
-                    j = Jp2k(tfile.name, shape=data.shape)
-                    j[:] = data
-                    c = j.get_codestream()
-
-        # COD: Coding style default
-        self.assertFalse(c.segment[2].scod & 2)  # no sop
-        self.assertFalse(c.segment[2].scod & 4)  # no eph
-        self.assertEqual(c.segment[2].prog_order, glymur.core.LRCP)
-        self.assertEqual(c.segment[2].layers, 1)  # layers = 3
         self.assertEqual(c.segment[2].mct, 1)  # mct
         self.assertEqual(c.segment[2].num_res, 5)  # levels
         self.assertEqual(tuple(c.segment[2].code_block_size),
@@ -1649,23 +1600,6 @@ class TestJp2k_write(fixtures.MetadataBase):
             self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
 
-    def test_cinema_mode_with_too_old_version_of_openjpeg(self):
-        """
-        Cinema mode not allowed for anything less than 2.0.1
-
-        Origin file tested was
-
-            input/nonregression/X_4_2K_24_185_CBR_WB_000.tif
-
-        """
-        data = np.zeros((857, 2048, 3), dtype=np.uint8)
-        versions = ["1.5.0", "2.0.0"]
-        for version in versions:
-            with patch('glymur.version.openjpeg_version', new=version):
-                with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-                    with self.assertRaises(IOError):
-                        Jp2k(tfile.name, data=data, cinema2k=48)
-
     def test_cinema2K_with_others(self):
         """
         Can't specify cinema2k with any other options.
@@ -1953,42 +1887,6 @@ class TestJp2k_1_x(unittest.TestCase):
         self.jp2file = glymur.data.nemo()
         self.j2kfile = glymur.data.goodstuff()
 
-    def test_tile(self):
-        """tile option not allowed for 1.x.
-        """
-        with patch('glymur.version.openjpeg_version_tuple', new=(1, 5, 0)):
-            with patch('glymur.version.openjpeg_version', new="1.5.0"):
-                j2k = Jp2k(self.j2kfile)
-                with warnings.catch_warnings():
-                    # The tile keyword is deprecated, so suppress the warning.
-                    warnings.simplefilter('ignore')
-                    with self.assertRaises(TypeError):
-                        j2k.read(tile=0)
-
-    def test_layer(self):
-        """layer option not allowed for 1.x.
-        """
-        with patch('glymur.version.openjpeg_version', new="1.5.0"):
-            with patch('glymur.version.openjpeg_version_tuple', new=(1, 5, 0)):
-                j2k = Jp2k(self.j2kfile)
-                with self.assertRaises(IOError):
-                    j2k.layer = 1
-
-    @unittest.skipIf(((glymur.lib.openjpeg.OPENJPEG is None) or
-                      (glymur.lib.openjpeg.version() < '1.5.0')),
-                     "OpenJPEG version one must be present")
-    def test_read_version_15(self):
-        """
-        Test read using version 1.5
-        """
-        j = Jp2k(self.j2kfile)
-        expected = j[:]
-        with patch('glymur.jp2k.opj2.OPENJP2', new=None):
-            actual = j._read_openjpeg()
-            np.testing.assert_array_equal(actual, expected)
-
-            actual = j._read_openjpeg(area=(0, 0, 250, 250))
-            np.testing.assert_array_equal(actual, expected[:250, :250])
 
 @unittest.skipIf(glymur.version.openjpeg_version_tuple[0] < 2,
                  "Requires as least v2.0")

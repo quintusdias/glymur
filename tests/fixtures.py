@@ -14,7 +14,7 @@ import numpy as np
 import glymur
 
 # If openjpeg is not installed, many tests cannot be run.
-if glymur.version.openjpeg_version < '1.5.0':
+if glymur.version.openjpeg_version < '2.1.0':
     OPENJPEG_NOT_AVAILABLE = True
     OPENJPEG_NOT_AVAILABLE_MSG = 'OpenJPEG library not installed'
 else:
@@ -183,8 +183,7 @@ NO_SKIMAGE_FREEIMAGE_SUPPORT = False
 try:
     import skimage
     import skimage.io
-    if (((sys.hexversion >= 0x03000000) and
-         ('Anaconda' in sys.version) and
+    if ((('Anaconda' in sys.version) and
          (re.match('0.10', skimage.__version__)))):
         NO_SKIMAGE_FREEIMAGE_SUPPORT = True
     else:
@@ -198,32 +197,6 @@ try:
     HAVE_GDAL = True
 except ImportError:
     HAVE_GDAL = False
-
-def _indent(textstr):
-    """
-    Indent a string.
-
-    Textwrap's indent method only exists for 3.3 or above.  In 2.7 we have
-    to fake it.
-
-    Parameters
-    ----------
-    textstring : str
-        String to be indented.
-    indent_level : str
-        Number of spaces of indentation to add.
-
-    Returns
-    -------
-    indented_string : str
-        Possibly multi-line string indented a certain bit.
-    """
-    if sys.hexversion >= 0x03030000:
-        return textwrap.indent(textstr, '    ')
-    else:
-        lst = [('    ' + x) for x in textstr.split('\n')]
-        return '\n'.join(lst)
-
 
 try:
     import matplotlib
@@ -351,7 +324,7 @@ nemo_xmp = """<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>
 nemo_xmp_box = """UUID Box (uuid) @ (77, 3146)
     UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
     UUID Data:
-{0}""".format(_indent(nemo_xmp))
+{0}""".format(textwrap.indent(nemo_xmp, '    '))
 
 SimpleRDF = """<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
   <rdf:Description rdf:about='Test:XMPCoreCoverage/kSimpleRDF'
@@ -525,8 +498,8 @@ EOC marker segment @ (1135517, 0)"""
 codestream = '\n'.join([codestream_header, codestream_trailer])
 
 _kwargs = {
-    'xmp': _indent(nemo_xmp),
-    'codestream': _indent(codestream_header)
+    'xmp': textwrap.indent(nemo_xmp, '    '),
+    'codestream': textwrap.indent(codestream_header, '    ')
 }
 nemo_with_codestream_header = nemo_fmt.format(**_kwargs)
 
@@ -559,7 +532,7 @@ UUID Box (uuid) @ (77, 3146)
     UUID Data:
 {xmp}
 Contiguous Codestream Box (jp2c) @ (3223, 1132296)"""
-nemo_dump_no_codestream = _fmt.format(xmp=_indent(nemo_xmp))
+nemo_dump_no_codestream = _fmt.format(xmp=textwrap.indent(nemo_xmp, '    '))
 
 
 nemo_dump_no_codestream_no_xml = r"""JPEG 2000 Signature Box (jP  ) @ (0, 12)
@@ -583,8 +556,8 @@ UUID Box (uuid) @ (77, 3146)
 Contiguous Codestream Box (jp2c) @ (3223, 1132296)"""
 
 _kwargs = {
-    'xmp': _indent(nemo_xmp),
-    'codestream': _indent(codestream)
+    'xmp': textwrap.indent(nemo_xmp, '    '),
+    'codestream': textwrap.indent(codestream, '    ')
 }
 nemo = nemo_fmt.format(**_kwargs)
 
@@ -607,8 +580,8 @@ JP2 Header Box (jp2h) @ (32, 45)
 UUID Box (uuid) @ (77, 3146)
     UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
 Contiguous Codestream Box (jp2c) @ (3223, 1132296)
-{codestream}'''
-nemo_dump_no_xml = _fmt.format(codestream=_indent(codestream_header))
+{}'''
+nemo_dump_no_xml = _fmt.format(textwrap.indent(codestream_header, '    '))
 
 # Output of reader requirements printing for text_GBR.jp2
 text_GBR_rreq = r"""Reader Requirements Box (rreq) @ (40, 109)

@@ -2,23 +2,6 @@ language: python
 matrix:
     fast_finish: true
     include:
-    - python: 2.7
-      env:
-          - JOB_NAME: "27_openjpeg15"
-          - JOB_TAG=opj15
-          - OPJ15=1
-    - python: 2.7
-      env:
-          - JOB_NAME "27_earliest"
-          - JOB_TAG=earliest
-    - python: 2.7
-      env:
-          - JOB_NAME "27_latest"
-          - JOB_TAG=latest
-    - python: 3.3
-      env:
-          - JOB_NAME "33_no_extras"
-          - JOB_TAG=no_extras
     - python: 3.4
       env:
           - JOB_NAME "34_latest"
@@ -27,30 +10,19 @@ matrix:
       env:
           - JOB_NAME "35_latest"
           - JOB_TAG=latest
-    - python: 3.5
+    - python: 3.6
       env:
-          - JOB_NAME "35_no_opj"
+          - JOB_NAME "36_no_opj"
           - JOB_TAG=no_opj
-    - python: 3.5
-      env:
-          - JOB_NAME "35_openjpeg15"
-          - JOB_TAG=opj15
-          - OPJ15=1
     - python: 3.6
       env:
           - JOB_NAME "36_latest"
           - JOB_TAG=latest
-before_install:
-  - sh -c "if test $OPJ15 -eq 1; then bash ci/install_openjpeg15.sh; fi"
 install:
   - sudo apt-get update
   # We do this conditionally because it saves us some downloading if the
   # version is the same.
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "2.7" ]]; then
-      wget https://repo.continuum.io/miniconda/Miniconda2-latest-Linux-x86_64.sh -O miniconda.sh;
-    else
-      wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-    fi
+  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
   - bash miniconda.sh -b -p $HOME/miniconda
   - export PATH="$HOME/miniconda/bin:$PATH"
   - hash -r
@@ -64,10 +36,6 @@ install:
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
   - source activate test-environment
   - conda install --file ci/requirements_"$TRAVIS_PYTHON_VERSION"_"$JOB_TAG".txt
-  # 3.3 pathlib2 requirement cannot be satisfied via conda
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "3.3" ]]; then
-      pip install pathlib2;
-    fi
   - python setup.py install
 
 script:

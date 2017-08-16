@@ -25,13 +25,15 @@ import pkg_resources as pkg
 # Local imports ...
 import glymur
 from glymur import Jp2k
-from glymur.jp2box import ColourSpecificationBox, ContiguousCodestreamBox
-from glymur.jp2box import FileTypeBox, ImageHeaderBox, JP2HeaderBox
-from glymur.jp2box import JPEG2000SignatureBox, BitsPerComponentBox
-from glymur.jp2box import PaletteBox, UnknownBox
+from glymur.jp2box import (
+    ColourSpecificationBox, ContiguousCodestreamBox, FileTypeBox,
+    ImageHeaderBox, JP2HeaderBox, JPEG2000SignatureBox, BitsPerComponentBox,
+    PaletteBox, UnknownBox
+)
 from glymur.core import COLOR, OPACITY, SRGB, GREYSCALE
 from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE
 from .fixtures import WINDOWS_TMP_FILE_MSG, MetadataBase
+from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
 def docTearDown(doctest_obj):
@@ -48,15 +50,13 @@ def load_tests(loader, tests, ignore):
     return tests
 
 
+@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
 class TestDataEntryURL(unittest.TestCase):
     """Test suite for DataEntryURL boxes."""
     def setUp(self):
         self.jp2file = glymur.data.nemo()
 
-    @unittest.skipIf(re.match("1.5|2",
-                              glymur.version.openjpeg_version) is None,
-                     "Must have openjpeg 1.5 or higher to run")
     def test_wrap_greyscale(self):
         """A single component should be wrapped as GREYSCALE."""
         j = Jp2k(self.jp2file)
@@ -118,9 +118,7 @@ class TestDataEntryURL(unittest.TestCase):
                 self.assertEqual(url + chr(0), read_url)
 
 
-@unittest.skipIf(re.match(r'''0|1|2.0.0''',
-                          glymur.version.openjpeg_version) is not None,
-                 "Not supported until 2.1")
+@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
 class TestChannelDefinition(unittest.TestCase):
     """Test suite for channel definition boxes."""
@@ -364,7 +362,7 @@ class TestFileTypeBox(unittest.TestCase):
 
     def test_bad_brand_on_parse(self):
         """The JP2 file file type box does not contain a valid brand.
-        
+
         Expect a specific validation error.
         """
         relpath = os.path.join('data', 'issue396.jp2')
@@ -373,7 +371,7 @@ class TestFileTypeBox(unittest.TestCase):
             # Lots of things wrong with this file.
             warnings.simplefilter('ignore')
             with self.assertRaises(IOError):
-                jp2 = Jp2k(filename)
+                Jp2k(filename)
 
     def test_brand_unknown(self):
         """A ftyp box brand must be 'jp2 ' or 'jpx '."""
@@ -395,8 +393,6 @@ class TestFileTypeBox(unittest.TestCase):
                 ftyp.write(tfile)
 
     @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
-    @unittest.skipIf(sys.hexversion < 0x03000000,
-                     "assertWarns not introduced until 3.2")
     def test_cl_entry_not_utf8(self):
         """A ftyp box cl list entry must be utf-8 decodable."""
         with open(self.jp2file, mode='rb') as f:
@@ -409,7 +405,8 @@ class TestFileTypeBox(unittest.TestCase):
             tfile.flush()
 
             with self.assertWarns(UserWarning):
-                jp2 = Jp2k(tfile.name)
+                Jp2k(tfile.name)
+
 
 class TestColourSpecificationBox(unittest.TestCase):
     """Test suite for colr box instantiation."""
@@ -500,7 +497,7 @@ class TestColourSpecificationBox(unittest.TestCase):
     def test_write_colr_with_bad_method(self):
         """
         A colr box has an invalid method.
-        
+
         Expect an IOError when trying to write to file.
         """
         with warnings.catch_warnings():
@@ -1299,10 +1296,7 @@ class TestRepr(MetadataBase):
         regexp += r"""[(]xml=<lxml.etree._ElementTree\sobject\s"""
         regexp += """at\s0x([a-fA-F0-9]*)>[)]"""
 
-        if sys.hexversion < 0x03000000:
-            self.assertRegexpMatches(repr(box), regexp)
-        else:
-            self.assertRegex(repr(box), regexp)
+        self.assertRegex(repr(box), regexp)
 
     def test_readerrequirements_box(self):
         """Verify rreq repr method."""
@@ -1327,15 +1321,14 @@ class TestRepr(MetadataBase):
 
         # Since the raw_data parameter is a sequence of bytes which could be
         # quite long, don't bother trying to make it conform to eval(repr()).
-        regexp = r"""glymur.jp2box.UUIDBox\("""
-        regexp += """the_uuid="""
-        regexp += """UUID\('00000000-0000-0000-0000-000000000000'\),\s"""
-        regexp += """raw_data=<byte\sarray\s10\selements>\)"""
-
-        if sys.hexversion < 0x03000000:
-            self.assertRegexpMatches(repr(box), regexp)
-        else:
-            self.assertRegex(repr(box), regexp)
+        pattern = r"""
+                   glymur.jp2box.UUIDBox\(
+                       UUID\('00000000-0000-0000-0000-000000000000'\),\s
+                       raw_data=<byte\sarray\s10\selements>
+                   \)
+                   """
+        regex = re.compile(pattern, re.VERBOSE)
+        self.assertRegex(repr(box), regex)
 
     def test_uuid_box_xmp(self):
         """Verify uuid repr method for XMP UUID box."""
@@ -1345,15 +1338,14 @@ class TestRepr(MetadataBase):
 
         # Since the raw_data parameter is a sequence of bytes which could be
         # quite long, don't bother trying to make it conform to eval(repr()).
-        regexp = r"""glymur.jp2box.UUIDBox\("""
-        regexp += """the_uuid="""
-        regexp += """UUID\('be7acfcb-97a9-42e8-9c71-999491e3afac'\),\s"""
-        regexp += """raw_data=<byte\sarray\s3122\selements>\)"""
-
-        if sys.hexversion < 0x03000000:
-            self.assertRegexpMatches(repr(box), regexp)
-        else:
-            self.assertRegex(repr(box), regexp)
+        pattern = r"""
+                   glymur.jp2box.UUIDBox\(
+                       UUID\('be7acfcb-97a9-42e8-9c71-999491e3afac'\),\s
+                       raw_data=<byte\sarray\s3122\selements>
+                   \)
+                   """
+        regex = re.compile(pattern, re.VERBOSE)
+        self.assertRegex(repr(box), regex)
 
     def test_contiguous_codestream_box(self):
         """Verify contiguous codestream box repr method."""
@@ -1362,11 +1354,11 @@ class TestRepr(MetadataBase):
         box = jp2.box[-1]
 
         # Difficult to eval(repr()) this, so just match the general pattern.
-        regexp = "glymur.jp2box.ContiguousCodeStreamBox"
-        regexp += "[(]codestream=<glymur.codestream.Codestream\sobject\s"
-        regexp += "at\s0x([a-fA-F0-9]*)>[)]"
-
-        if sys.hexversion < 0x03000000:
-            self.assertRegexpMatches(repr(box), regexp)
-        else:
-            self.assertRegex(repr(box), regexp)
+        pattern = r"""
+                   glymur.jp2box.ContiguousCodeStreamBox\(
+                       codestream=<glymur.codestream.Codestream\sobject\s
+                        at\s0x([a-fA-F0-9]*)>
+                   \)
+                   """
+        regex = re.compile(pattern, re.VERBOSE)
+        self.assertRegex(repr(box), regex)

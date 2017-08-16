@@ -12,13 +12,11 @@ References
 """
 
 # Standard library imports ...
-import codecs
 import io
 import math
 import os
 import pprint
 import struct
-import sys
 import textwrap
 from uuid import UUID
 import warnings
@@ -119,33 +117,8 @@ class Jp2kBox(object):
         for box in self.box:
             boxstr = str(box)
             # Indent the child boxes to make the association clear.
-            msg += '\n' + self._indent(boxstr)
+            msg += '\n' + textwrap.indent(boxstr, ' ' * 4)
         return msg
-
-    def _indent(self, textstr, indent_level=4):
-        """
-        Indent a string.
-
-        Textwrap's indent method only exists for 3.3 or above.  In 2.7 we have
-        to fake it.
-
-        Parameters
-        ----------
-        textstring : str
-            String to be indented.
-        indent_level : str
-            Number of spaces of indentation to add.
-
-        Returns
-        -------
-        str
-            Possibly multi-line string indented by the specified amount.
-        """
-        if sys.hexversion >= 0x03030000:
-            return textwrap.indent(textstr, ' ' * indent_level)
-        else:
-            lst = [(' ' * indent_level + x) for x in textstr.split('\n')]
-            return '\n'.join(lst)
 
     def _write_superbox(self, fptr, box_id):
         """Write a superbox.
@@ -321,7 +294,7 @@ class ColourSpecificationBox(Jp2kBox):
     def __init__(self, method=ENUMERATED_COLORSPACE, precedence=0,
                  approximation=0, colorspace=None, icc_profile=None,
                  length=0, offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
 
         self.method = method
         self.precedence = precedence
@@ -422,14 +395,14 @@ class ColourSpecificationBox(Jp2kBox):
                 text = 'ICC Profile:  None'
             else:
                 text = pprint.pformat(self.icc_profile)
-                text = self._indent(text)
+                text = textwrap.indent(text, ' ' * 4)
                 text = '\n'.join(['ICC Profile:', text])
 
         lst.append(text)
 
         text = '\n'.join(lst)
 
-        text = '\n'.join([title, self._indent(text)])
+        text = '\n'.join([title, textwrap.indent(text, ' ' * 4)])
 
         return text
 
@@ -526,7 +499,7 @@ class ChannelDefinitionBox(Jp2kBox):
     longname = 'Channel Definition'
 
     def __init__(self, channel_type, association, index=None, **kwargs):
-        Jp2kBox.__init__(self)
+        super().__init__()
 
         if index is None:
             self.index = tuple(range(len(channel_type)))
@@ -584,7 +557,7 @@ class ChannelDefinitionBox(Jp2kBox):
             lst.append(text)
 
         text = '\n'.join(lst)
-        text = self._indent(text)
+        text = textwrap.indent(text, ' ' * 4)
         text = '\n'.join([title, text])
         return text
 
@@ -663,7 +636,7 @@ class CodestreamHeaderBox(Jp2kBox):
     longname = 'Codestream Header'
 
     def __init__(self, box=None, length=0, offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.length = length
         self.offset = offset
         self.box = box if box is not None else []
@@ -728,7 +701,7 @@ class ColourGroupBox(Jp2kBox):
     longname = 'Colour Group'
 
     def __init__(self, box=None, length=0, offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.length = length
         self.offset = offset
         self.box = box if box is not None else []
@@ -801,7 +774,7 @@ class CompositingLayerHeaderBox(Jp2kBox):
     longname = 'Compositing Layer Header'
 
     def __init__(self, box=None, length=0, offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.length = length
         self.offset = offset
         self.box = box if box is not None else []
@@ -871,7 +844,7 @@ class ComponentMappingBox(Jp2kBox):
 
     def __init__(self, component_index, mapping_type, palette_index,
                  length=0, offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.component_index = component_index
         self.mapping_type = mapping_type
         self.palette_index = palette_index
@@ -906,7 +879,7 @@ class ComponentMappingBox(Jp2kBox):
             lst.append(text)
 
         text = '\n'.join(lst)
-        text = self._indent(text)
+        text = textwrap.indent(text, ' ' * 4)
         text = '\n'.join([title, text])
 
         return text
@@ -981,7 +954,7 @@ class ContiguousCodestreamBox(Jp2kBox):
 
     def __init__(self, codestream=None, main_header_offset=None, length=0,
                  offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self._codestream = codestream
         self.length = length
         self.offset = offset
@@ -1021,7 +994,7 @@ class ContiguousCodestreamBox(Jp2kBox):
             lst.append(str(segment))
 
         text = '\n'.join(lst)
-        text = self._indent(text)
+        text = textwrap.indent(text, ' ' * 4)
         text = '\n'.join([title, text])
         return text
 
@@ -1075,7 +1048,7 @@ class DataReferenceBox(Jp2kBox):
     longname = 'Data Reference'
 
     def __init__(self, data_entry_url_boxes=None, length=0, offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         if data_entry_url_boxes is None:
             self.DR = []
         else:
@@ -1133,7 +1106,7 @@ class DataReferenceBox(Jp2kBox):
         for box in self.DR:
             lst.append(str(box))
         text = '\n'.join(lst)
-        text = self._indent(text)
+        text = textwrap.indent(text, ' ' * 4)
 
         text = '\n'.join([title, text])
         return text
@@ -1216,7 +1189,7 @@ class FileTypeBox(Jp2kBox):
 
     def __init__(self, brand='jp2 ', minor_version=0,
                  compatibility_list=None, length=0, offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.brand = brand
         self.minor_version = minor_version
         if compatibility_list is None:
@@ -1246,7 +1219,7 @@ class FileTypeBox(Jp2kBox):
         lst.append(text)
 
         text = '\n'.join(lst)
-        text = self._indent(text)
+        text = textwrap.indent(text, ' ' * 4)
 
         text = '\n'.join([title, text])
 
@@ -1310,21 +1283,19 @@ class FileTypeBox(Jp2kBox):
         read_buffer = fptr.read(num_bytes)
         # Extract the brand, minor version.
         (brand, minor_version) = struct.unpack_from('>4sI', read_buffer, 0)
-        if sys.hexversion >= 0x030000:
-            brand = brand.decode('utf-8')
+        brand = brand.decode('utf-8')
 
         # Extract the compatibility list.  Each entry has 4 bytes.
         num_entries = int((length - 16) / 4)
         compatibility_list = []
         for j in range(int(num_entries)):
             entry, = struct.unpack_from('>4s', read_buffer, 8 + j * 4)
-            if sys.hexversion >= 0x03000000:
-                try:
-                    entry = entry.decode('utf-8')
-                except UnicodeDecodeError:
-                    # The entry is invalid, but we've got code to catch this
-                    # later on.
-                    pass
+            try:
+                entry = entry.decode('utf-8')
+            except UnicodeDecodeError:
+                # The entry is invalid, but we've got code to catch this
+                # later on.
+                pass
 
             compatibility_list.append(entry)
 
@@ -1352,7 +1323,7 @@ class FragmentListBox(Jp2kBox):
 
     def __init__(self, fragment_offset, fragment_length, data_reference,
                  length=0, offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.fragment_offset = fragment_offset
         self.fragment_length = fragment_length
         self.data_reference = data_reference
@@ -1401,7 +1372,7 @@ class FragmentListBox(Jp2kBox):
             lst.append(text)
 
         text = '\n'.join(lst)
-        text = self._indent(text)
+        text = textwrap.indent(text, ' ' * 4)
         text = '\n'.join([title, text])
         return text
 
@@ -1472,7 +1443,7 @@ class FragmentTableBox(Jp2kBox):
     longname = 'Fragment Table'
 
     def __init__(self, box=None, length=0, offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.length = length
         self.offset = offset
         self.box = box if box is not None else []
@@ -1545,7 +1516,7 @@ class FreeBox(Jp2kBox):
     longname = 'Free'
 
     def __init__(self, length=0, offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.length = length
         self.offset = offset
 
@@ -1621,7 +1592,7 @@ class ImageHeaderBox(Jp2kBox):
         >>> import glymur
         >>> box = glymur.jp2box.ImageHeaderBox(height=512, width=256)
         """
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.height = height
         self.width = width
         self.num_components = num_components
@@ -1674,7 +1645,7 @@ class ImageHeaderBox(Jp2kBox):
         lst.append(text)
 
         text = '\n'.join(lst)
-        text = self._indent(text)
+        text = textwrap.indent(text, ' ' * 4)
         text = '\n'.join([title, text])
 
         return text
@@ -1756,7 +1727,7 @@ class AssociationBox(Jp2kBox):
     longname = 'Association'
 
     def __init__(self, box=None, length=0, offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.length = length
         self.offset = offset
         self.box = box if box is not None else []
@@ -1823,7 +1794,7 @@ class BitsPerComponentBox(Jp2kBox):
     longname = 'Bits Per Component'
 
     def __init__(self, bpc, signed, length=0, offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.length = length
         self.offset = offset
         self.bpc = bpc
@@ -1843,7 +1814,7 @@ class BitsPerComponentBox(Jp2kBox):
         body = body.format(bpc=', '.join(str(x) for x in self.bpc),
                            sgn=', '.join(str(x) for x in self.signed))
 
-        body = self._indent(body)
+        body = textwrap.indent(body, ' ' * 4)
 
         text = '\n'.join([title, body])
         return text
@@ -1894,7 +1865,7 @@ class JP2HeaderBox(Jp2kBox):
     longname = 'JP2 Header'
 
     def __init__(self, box=None, length=0, offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.length = length
         self.offset = offset
         self.box = box if box is not None else []
@@ -1959,7 +1930,7 @@ class JPEG2000SignatureBox(Jp2kBox):
     longname = 'JPEG 2000 Signature'
 
     def __init__(self, signature=(13, 10, 135, 10), length=0, offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.signature = signature
         self.length = length
         self.offset = offset
@@ -1975,7 +1946,7 @@ class JPEG2000SignatureBox(Jp2kBox):
         body = 'Signature:  {0:02x}{1:02x}{2:02x}{3:02x}'
         body = body.format(self.signature[0], self.signature[1],
                            self.signature[2], self.signature[3])
-        body = self._indent(body)
+        body = textwrap.indent(body, ' ' * 4)
         text = '\n'.join([title, body])
         return text
 
@@ -2030,7 +2001,7 @@ class PaletteBox(Jp2kBox):
 
     def __init__(self, palette, bits_per_component, signed, length=0,
                  offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.palette = palette
         self.bits_per_component = bits_per_component
         self.signed = signed
@@ -2065,7 +2036,7 @@ class PaletteBox(Jp2kBox):
             return title
 
         body = 'Size:  ({0} x {1})'.format(*self.palette.shape)
-        body = self._indent(body)
+        body = textwrap.indent(body, ' ' * 4)
 
         text = '\n'.join([title, body])
         return text
@@ -2133,7 +2104,7 @@ class PaletteBox(Jp2kBox):
         # The palette is unsigned and all components have the same width.
         # This should cover all but a vanishingly small share of palettes.
         b = bps[0]
-        dtype = np.uint8 if b <=8 else np.uint16 if b <= 16 else np.uint32
+        dtype = np.uint8 if b <= 8 else np.uint16 if b <= 16 else np.uint32
 
         palette = np.frombuffer(read_buffer[3 + ncols:], dtype=dtype)
         palette = np.reshape(palette, (nrows, ncols))
@@ -2265,7 +2236,7 @@ class ReaderRequirementsBox(Jp2kBox):
 
     def __init__(self, fuam, dcm, standard_flag, standard_mask, vendor_feature,
                  vendor_mask, length=0, offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.fuam = fuam
         self.dcm = dcm
         self.standard_flag = tuple(standard_flag)
@@ -2313,7 +2284,7 @@ class ReaderRequirementsBox(Jp2kBox):
             }
             lst2.append(text.format(**kwargs))
         text = '\n'.join(lst2)
-        text = self._indent(text)
+        text = textwrap.indent(text, ' ' * 4)
         lst.append(text)
 
         text = 'Vendor Features:'
@@ -2324,11 +2295,11 @@ class ReaderRequirementsBox(Jp2kBox):
             text = 'UUID {0}'.format(self.vendor_feature[j])
             lst2.append(text)
         text = '\n'.join(lst2)
-        text = self._indent(text)
+        text = textwrap.indent(text, ' ' * 4)
         lst.append(text)
 
         text = '\n'.join(lst)
-        text = self._indent(text)
+        text = textwrap.indent(text, ' ' * 4)
         text = '\n'.join([title, text])
 
         return text
@@ -2472,7 +2443,7 @@ class ResolutionBox(Jp2kBox):
     longname = 'Resolution'
 
     def __init__(self, box=None, length=0, offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.length = length
         self.offset = offset
         self.box = box if box is not None else []
@@ -2534,7 +2505,7 @@ class CaptureResolutionBox(Jp2kBox):
 
     def __init__(self, vertical_resolution, horizontal_resolution, length=0,
                  offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.vertical_resolution = vertical_resolution
         self.horizontal_resolution = horizontal_resolution
         self.length = length
@@ -2557,9 +2528,9 @@ class CaptureResolutionBox(Jp2kBox):
         lst.append(text)
 
         text = '\n'.join(lst)
-        body = self._indent(text)
+        text = textwrap.indent(text, ' ' * 4)
 
-        text = '\n'.join([title, body])
+        text = '\n'.join([title, text])
         return text
 
     @classmethod
@@ -2609,7 +2580,7 @@ class DisplayResolutionBox(Jp2kBox):
 
     def __init__(self, vertical_resolution, horizontal_resolution,
                  length=0, offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.vertical_resolution = vertical_resolution
         self.horizontal_resolution = horizontal_resolution
         self.length = length
@@ -2632,9 +2603,9 @@ class DisplayResolutionBox(Jp2kBox):
         lst.append(text)
 
         text = '\n'.join(lst)
-        body = self._indent(text)
+        text = textwrap.indent(text, ' ' * 4)
 
-        text = '\n'.join([title, body])
+        text = '\n'.join([title, text])
         return text
 
     @classmethod
@@ -2684,7 +2655,7 @@ class LabelBox(Jp2kBox):
     longname = 'Label'
 
     def __init__(self, label, length=0, offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.label = label
         self.length = length
         self.offset = offset
@@ -2695,9 +2666,9 @@ class LabelBox(Jp2kBox):
             return title
 
         text = 'Label:  {0}'.format(self.label)
-        body = self._indent(text)
+        text = textwrap.indent(text, ' ' * 4)
 
-        text = '\n'.join([title, body])
+        text = '\n'.join([title, text])
         return text
 
     def __repr__(self):
@@ -2756,7 +2727,7 @@ class NumberListBox(Jp2kBox):
     longname = 'Number List'
 
     def __init__(self, associations, length=0, offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.associations = associations
         self.length = length
         self.offset = offset
@@ -2782,7 +2753,7 @@ class NumberListBox(Jp2kBox):
             lst.append(text)
 
         body = '\n'.join(lst)
-        body = self._indent(body)
+        body = textwrap.indent(body, ' ' * 4)
 
         text = '\n'.join([title, body])
         return text
@@ -2856,7 +2827,7 @@ class XMLBox(Jp2kBox):
             File from which to read XML.  If filename is not None, then the xml
             keyword argument must be None.
         """
-        Jp2kBox.__init__(self)
+        super().__init__()
         if filename is not None and xml is not None:
             msg = ("Only one of either a filename or an ElementTree instance "
                    "should be provided.")
@@ -2884,7 +2855,7 @@ class XMLBox(Jp2kBox):
                                pretty_print=True).decode('utf-8').rstrip()
         else:
             body = 'None'
-        body = self._indent(body)
+        body = textwrap.indent(body, ' ' * 4)
 
         text = '\n'.join([title, body])
         return text
@@ -2917,18 +2888,6 @@ class XMLBox(Jp2kBox):
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
-
-        if sys.hexversion < 0x03000000 and codecs.BOM_UTF8 in read_buffer:
-            # Python3 with utf-8 handles this just fine.  Actually so does
-            # Python2 right here since we decode using utf-8.  The real
-            # problem comes when __str__ is used on the XML box, and that
-            # is where Python2 falls short because of the ascii codec.
-            msg = ('A BOM (byte order marker) was detected and '
-                   'removed from the XML contents in the box starting at byte '
-                   'offset {offset:d}.')
-            msg = msg.format(offset=offset)
-            warnings.warn(msg, UserWarning)
-            read_buffer = read_buffer.replace(codecs.BOM_UTF8, b'')
 
         try:
             text = read_buffer.decode('utf-8')
@@ -2988,7 +2947,7 @@ class UUIDListBox(Jp2kBox):
     longname = 'UUID List'
 
     def __init__(self, ulst, length=0, offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.ulst = ulst
         self.length = length
         self.offset = offset
@@ -3007,7 +2966,7 @@ class UUIDListBox(Jp2kBox):
             text = 'UUID[{item_no}]:  {uuid}'.format(item_no=j, uuid=uuid_item)
             lst.append(text)
         body = '\n'.join(lst)
-        body = self._indent(body)
+        body = textwrap.indent(body, ' ' * 4)
 
         text = '\n'.join([title, body])
         return text
@@ -3074,7 +3033,7 @@ class UUIDInfoBox(Jp2kBox):
     longname = 'UUIDInfo'
 
     def __init__(self, box=None, length=0, offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.length = length
         self.offset = offset
         self.box = box if box is not None else []
@@ -3144,7 +3103,7 @@ class DataEntryURLBox(Jp2kBox):
     longname = 'Data Entry URL'
 
     def __init__(self, version, flag, url, length=0, offset=-1):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.version = version
         self.flag = flag
         self.url = url
@@ -3187,7 +3146,7 @@ class DataEntryURLBox(Jp2kBox):
                            flag1=self.flag[1],
                            flag2=self.flag[2],
                            url=self.url)
-        body = self._indent(body)
+        body = textwrap.indent(body, ' ' * 4)
 
         text = '\n'.join([title, body])
         return text
@@ -3235,7 +3194,7 @@ class UnknownBox(Jp2kBox):
         more verbose description of the box.
     """
     def __init__(self, box_id, length=0, offset=-1, longname=''):
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.longname = longname
         self.box_id = box_id
         self.length = length
@@ -3293,7 +3252,7 @@ class UUIDBox(Jp2kBox):
         offset : int
             offset of the box from the start of the file.
         """
-        Jp2kBox.__init__(self)
+        super().__init__()
         self.uuid = the_uuid
         self.raw_data = raw_data
         self.length = length
@@ -3323,7 +3282,7 @@ class UUIDBox(Jp2kBox):
             self.data = self.raw_data
 
     def __repr__(self):
-        msg = ("glymur.jp2box.UUIDBox(the_uuid={0}, "
+        msg = ("glymur.jp2box.UUIDBox({0}, "
                "raw_data=<byte array {1} elements>)")
         return msg.format(repr(self.uuid), len(self.raw_data))
 
@@ -3345,7 +3304,7 @@ class UUIDBox(Jp2kBox):
         lst = [text]
 
         if (((config.get_option('print.xml') is False) and
-            (self.uuid == _XMP_UUID))):
+             (self.uuid == _XMP_UUID))):
             # If it's an XMP UUID, don't print the XML contents.
             pass
 
@@ -3372,7 +3331,7 @@ class UUIDBox(Jp2kBox):
             lst.append(text)
 
         body = '\n'.join(lst)
-        body = self._indent(body)
+        body = textwrap.indent(body, ' ' * 4)
 
         text = '\n'.join([title, body])
         return text
@@ -3442,7 +3401,8 @@ class UUIDBox(Jp2kBox):
                "{upper_right}\n"
                "{lower_right}\n"
                "{center}")
-        msg = fmt.format(coordinate_system=self._indent(psz_pretty_wkt),
+        coordinate_system = textwrap.indent(psz_pretty_wkt, ' ' * 4)
+        msg = fmt.format(coordinate_system=coordinate_system,
                          geotransform=geotransform_str,
                          upper_left=uleft, upper_right=uright,
                          lower_left=lleft, lower_right=lright, center=center)

@@ -8,13 +8,8 @@ License:  MIT
 """
 # Standard library imports...
 from collections import Counter
-try:
-    from contextlib import ExitStack
-    from itertools import filterfalse
-except ImportError:
-    # v2.7, third party library import ...
-    from contextlib2 import ExitStack
-    from itertools import ifilterfalse as filterfalse
+from contextlib import ExitStack
+from itertools import filterfalse
 import ctypes
 import math
 import os
@@ -32,7 +27,7 @@ from . import core, version
 from .jp2box import (Jp2kBox, JPEG2000SignatureBox, FileTypeBox,
                      JP2HeaderBox, ColourSpecificationBox,
                      ContiguousCodestreamBox, ImageHeaderBox)
-from .lib import openjpeg as opj, openjp2 as opj2
+from .lib import openjp2 as opj2
 
 
 class Jp2k(Jp2kBox):
@@ -138,9 +133,9 @@ class Jp2k(Jp2kBox):
         verbose : bool, optional
             Print informational messages produced by the OpenJPEG library.
         """
-        Jp2kBox.__init__(self)
+        super().__init__()
 
-        # In case of pathlib.Paths... 
+        # In case of pathlib.Paths...
         self.filename = str(filename)
 
         self.box = []
@@ -342,13 +337,6 @@ class Jp2k(Jp2kBox):
         fps : {24, 48}
             Frames per second.
         """
-        if re.match("1.5|2.0", version.openjpeg_version) is not None:
-            msg = ("Writing Cinema2K or Cinema4K files is not supported with "
-                   "OpenJPEG library versions less than 2.1.0.  The installed "
-                   "version of OpenJPEG is {version}.")
-            msg = msg.format(version=version.openjpeg_version)
-            raise IOError(msg)
-
         # Cinema modes imply MCT.
         self._cparams.tcp_mct = 1
 
@@ -396,10 +384,7 @@ class Jp2k(Jp2kBox):
             msg = "Cannot specify cratios and psnr options together."
             raise IOError(msg)
 
-        if version.openjpeg_version_tuple[0] == 1:
-            cparams = opj.set_default_encoder_parameters()
-        else:
-            cparams = opj2.set_default_encoder_parameters()
+        cparams = opj2.set_default_encoder_parameters()
 
         outfile = self.filename.encode()
         num_pad_bytes = opj2.PATH_LEN - len(outfile)
@@ -509,77 +494,7 @@ class Jp2k(Jp2kBox):
         self._determine_colorspace(**kwargs)
         self._populate_cparams(img_array, **kwargs)
 
-        if opj2.OPENJP2 is not None:
-            self._write_openjp2(img_array, verbose=verbose)
-        else:
-            self._write_openjpeg(img_array, verbose=verbose)
-
-    def _write_openjpeg(self, img_array, verbose=False):
-        """
-        Write JPEG 2000 file using OpenJPEG 1.5 interface.
-        """
-        if img_array.ndim == 2:
-            # Force the image to be 3D.  Just makes things easier later on.
-            img_array = img_array.reshape(img_array.shape[0],
-                                          img_array.shape[1],
-                                          1)
-
-        self._populate_comptparms(img_array)
-
-        with ExitStack() as stack:
-            image = opj.image_create(self._comptparms, self._colorspace)
-            stack.callback(opj.image_destroy, image)
-
-            numrows, numcols, numlayers = img_array.shape
-
-            # set image offset and reference grid
-            image.contents.x0 = self._cparams.image_offset_x0
-            image.contents.y0 = self._cparams.image_offset_y0
-            image.contents.x1 = (image.contents.x0 +
-                                 (numcols - 1) * self._cparams.subsampling_dx +
-                                 1)
-            image.contents.y1 = (image.contents.y0 +
-                                 (numrows - 1) * self._cparams.subsampling_dy +
-                                 1)
-
-            # Stage the image data to the openjpeg data structure.
-            for k in range(0, numlayers):
-                layer = np.ascontiguousarray(img_array[:, :, k],
-                                             dtype=np.int32)
-                dest = image.contents.comps[k].data
-                src = layer.ctypes.data
-                ctypes.memmove(dest, src, layer.nbytes)
-
-            cinfo = opj.create_compress(self._cparams.codec_fmt)
-            stack.callback(opj.destroy_compress, cinfo)
-
-            # Setup the info, warning, and error handlers.
-            # Always use the warning and error handler.  Use of an info
-            # handler is optional.
-            event_mgr = opj.EventMgrType()
-            _info_handler = _INFO_CALLBACK if verbose else None
-            event_mgr.info_handler = _info_handler
-            event_mgr.warning_handler = ctypes.cast(_WARNING_CALLBACK,
-                                                    ctypes.c_void_p)
-            event_mgr.error_handler = ctypes.cast(_ERROR_CALLBACK,
-                                                  ctypes.c_void_p)
-
-            opj.setup_encoder(cinfo, ctypes.byref(self._cparams), image)
-
-            cio = opj.cio_open(cinfo)
-            stack.callback(opj.cio_close, cio)
-
-            if not opj.encode(cinfo, cio, image):
-                raise IOError("Encode error.")
-
-            pos = opj.cio_tell(cio)
-
-            blob = ctypes.string_at(cio.contents.buffer, pos)
-            fptr = open(self.filename, 'wb')
-            stack.callback(fptr.close)
-            fptr.write(blob)
-
-        self.parse()
+        self._write_openjp2(img_array, verbose=verbose)
 
     def _validate_j2k_colorspace(self, cparams, colorspace):
         """
@@ -1097,10 +1012,7 @@ class Jp2k(Jp2kBox):
                    "Your version is {version}")
             raise TypeError(msg.format(version=version.openjpeg_version))
 
-        if version.openjpeg_version_tuple[0] < 2:
-            img = self._read_openjpeg(**kwargs)
-        else:
-            img = self._read_openjp2(**kwargs)
+        img = self._read_openjp2(**kwargs)
         return img
 
     def read(self, **kwargs):
@@ -1152,77 +1064,6 @@ class Jp2k(Jp2kBox):
                    "\n\n{siz_segment}")
             msg = msg.format(siz_segment=str(self.codestream.segment[1]))
             raise IOError(msg)
-
-    def _read_openjpeg(self, rlevel=0, verbose=False, area=None):
-        """Read a JPEG 2000 image using libopenjpeg.
-
-        Parameters
-        ----------
-        rlevel : int, optional
-            Factor by which to rlevel output resolution.  Use -1 to get the
-            lowest resolution thumbnail.
-        verbose : bool, optional
-            Print informational messages produced by the OpenJPEG library.
-        area : tuple, optional
-            Specifies decoding image area,
-            (first_row, first_col, last_row, last_col)
-
-        Returns
-        -------
-        ndarray
-            The image data.
-
-        Raises
-        ------
-        RuntimeError
-            If the image has differing subsample factors.
-        """
-        self._subsampling_sanity_check()
-
-        self._populate_dparams(rlevel)
-
-        with ExitStack() as stack:
-            try:
-                self._dparams.decod_format = self._codec_format
-
-                dinfo = opj.create_decompress(self._dparams.decod_format)
-
-                event_mgr = opj.EventMgrType()
-                handler = ctypes.cast(_INFO_CALLBACK, ctypes.c_void_p)
-                event_mgr.info_handler = handler if self.verbose else None
-                event_mgr.warning_handler = ctypes.cast(_WARNING_CALLBACK,
-                                                        ctypes.c_void_p)
-                event_mgr.error_handler = ctypes.cast(_ERROR_CALLBACK,
-                                                      ctypes.c_void_p)
-                opj.set_event_mgr(dinfo, ctypes.byref(event_mgr))
-
-                opj.setup_decoder(dinfo, self._dparams)
-
-                with open(self.filename, 'rb') as fptr:
-                    src = fptr.read()
-                cio = opj.cio_open(dinfo, src)
-
-                raw_image = opj.decode(dinfo, cio)
-
-                stack.callback(opj.image_destroy, raw_image)
-                stack.callback(opj.destroy_decompress, dinfo)
-                stack.callback(opj.cio_close, cio)
-
-                image = self._extract_image(raw_image)
-
-            except ValueError:
-                opj2.check_error(0)
-
-        if area is not None:
-            x0, y0, x1, y1 = area
-            extent = 2 ** rlevel
-
-            area = [int(round(float(x) / extent + 2 ** -20)) for x in area]
-            rows = slice(area[0], area[2], None)
-            cols = slice(area[1], area[3], None)
-            image = image[rows, cols]
-
-        return image
 
     def _read_openjp2(self, rlevel=0, layer=None, area=None, tile=None,
                       verbose=False):
@@ -1316,11 +1157,7 @@ class Jp2k(Jp2kBox):
         tile : int
             Number of tile to decode.
         """
-        if opj2.OPENJP2 is not None:
-            dparam = opj2.set_default_decoder_parameters()
-        else:
-            dparam = opj.DecompressionParametersType()
-            opj.set_default_decoder_parameters(ctypes.byref(dparam))
+        dparam = opj2.set_default_decoder_parameters()
 
         infile = self.filename.encode()
         nelts = opj2.PATH_LEN - len(infile)
@@ -1500,9 +1337,9 @@ class Jp2k(Jp2kBox):
             raise IOError(msg)
 
         if component.sgnd:
-            dtype = np.int8 if component.prec <=8 else np.int16
+            dtype = np.int8 if component.prec <= 8 else np.int16
         else:
-            dtype = np.uint8 if component.prec <=8 else np.uint16
+            dtype = np.uint8 if component.prec <= 8 else np.uint16
 
         return dtype
 
@@ -1613,10 +1450,7 @@ class Jp2k(Jp2kBox):
             comp_prec = 16
 
         numrows, numcols, num_comps = img_array.shape
-        if version.openjpeg_version_tuple[0] == 1:
-            comptparms = (opj.ImageComptParmType * num_comps)()
-        else:
-            comptparms = (opj2.ImageComptParmType * num_comps)()
+        comptparms = (opj2.ImageComptParmType * num_comps)()
         for j in range(num_comps):
             comptparms[j].dx = self._cparams.subsampling_dx
             comptparms[j].dy = self._cparams.subsampling_dy
@@ -1887,6 +1721,7 @@ def _default_warning_handler(library_msg, _):
     library_msg = library_msg.decode('utf-8').rstrip()
     msg = "OpenJPEG library warning:  {0}".format(library_msg)
     warnings.warn(msg, UserWarning)
+
 
 _ERROR_CALLBACK = _CMPFUNC(_default_error_handler)
 _INFO_CALLBACK = _CMPFUNC(_default_info_handler)

@@ -1,6 +1,7 @@
 """
 Configure glymur to use installed libraries if possible.
 """
+from configparser import ConfigParser, NoOptionError, NoSectionError
 import copy
 import ctypes
 from ctypes.util import find_library
@@ -8,17 +9,6 @@ import os
 import platform
 import sys
 import warnings
-
-if sys.hexversion <= 0x03000000:
-    from ConfigParser import SafeConfigParser as ConfigParser
-    from ConfigParser import NoOptionError, NoSectionError
-else:
-    from configparser import ConfigParser
-    from configparser import NoOptionError, NoSectionError
-
-# default library locations for MacPorts
-_macports_default_location = {'openjp2': '/opt/local/lib/libopenjp2.dylib',
-                              'openjpeg': '/opt/local/lib/libopenjpeg.dylib'}
 
 
 def glymurrc_fname():
@@ -74,7 +64,7 @@ def load_openjpeg_library(libname):
     if path is None:
         if platform.system() == 'Darwin':
             # OpenJPEG may have been installed via MacPorts
-            path = _macports_default_location[libname]
+            path = '/opt/local/lib/libopenjp2.dylib'
 
         if path is not None and not os.path.exists(path):
             # the mac/win default location does not exist.

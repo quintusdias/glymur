@@ -3,8 +3,6 @@ Wraps individual functions in openjp2 library.
 """
 
 import ctypes
-import re
-import sys
 import textwrap
 
 from ..config import glymur_config
@@ -27,7 +25,8 @@ def version():
         return "0.0.0"
 
     v = OPENJP2.opj_version()
-    return v.decode('utf-8') if sys.hexversion >= 0x03000000 else v
+    return v.decode('utf-8')
+
 
 if OPENJP2 is not None:
     _MAJOR, _MINOR, _PATCH = [int(x) for x in version().split('.')]

@@ -2,33 +2,25 @@
 Tests for libopenjp2 wrapping functions.
 """
 # Standard library imports ...
+from io import StringIO
 import os
 import re
-import sys
 import tempfile
 import unittest
-if sys.hexversion >= 0x03000000:
-    from unittest.mock import patch
-    from io import StringIO
-else:
-    from StringIO import StringIO
-
-    # Third party library import
-    from mock import patch
+from unittest.mock import patch
 
 # Third party library imports ...
 import numpy as np
 
 # Local imports ...
 import glymur
-from glymur.lib import openjp2, openjpeg
+from glymur.lib import openjp2
 from . import fixtures
+from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
+@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-@unittest.skipIf(re.match(r'''0|1.5|2.0''',
-                          glymur.version.openjpeg_version) is not None,
-                 "Not to be run until 2.1.0")
 class TestOpenJP2(unittest.TestCase):
     """Test openjp2 library functionality.
 
@@ -349,16 +341,11 @@ def xtx5_setup(filename):
     tile_encoder(**kwargs)
 
 
-@unittest.skipIf(sys.hexversion < 0x03000000, "do not care about 2.7 here")
-@unittest.skipIf(re.match('0|1|2.0', glymur.version.openjpeg_version),
-                 "Requires openjpeg 2.1.0 or higher")
+@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 class TestPrintingOpenjp2(unittest.TestCase):
     """Tests for verifying how printing works on openjp2 library structures."""
     def setUp(self):
         self.jp2file = glymur.data.nemo()
-
-    def tearDown(self):
-        pass
 
     def test_decompression_parameters(self):
         """printing DecompressionParametersType"""

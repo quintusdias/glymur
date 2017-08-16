@@ -2,6 +2,7 @@
 """Test suite for printing.
 """
 # Standard library imports
+from io import BytesIO
 import os
 import pkg_resources as pkg
 import shutil
@@ -11,13 +12,6 @@ import tempfile
 import unittest
 import uuid
 import warnings
-if sys.hexversion >= 0x03000000:
-    from unittest.mock import patch
-    from io import BytesIO, StringIO
-else:
-    from mock import patch
-    from StringIO import StringIO
-    from io import BytesIO
 
 # Third party library imports ...
 try:
@@ -57,6 +51,10 @@ MAXSAMPLEVALUE = 281
 XRESOLUTION = 282
 YRESOLUTION = 283
 PLANARCONFIG = 284
+MODELPIXELSCALE = 33550
+MODELTIEPOINT = 33922
+GEOKEYDIRECTORY = 34735
+GEOASCIIPARAMS = 34737
 
 
 @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
@@ -103,8 +101,6 @@ class TestSuite(unittest.TestCase):
             34735 (0x87af) SHORT (3) 24<1 1 0 5 1024 0 1 1 1025 0 1 1 ...>
             34737 (0x87b1) ASCII (2) 45<UTM Zone 16N NAD27"|Clar ...>
         """
-        tag_payloads = []
-
         b = BytesIO()
 
         # Create the header.
@@ -135,78 +131,33 @@ class TestSuite(unittest.TestCase):
         buffer = struct.pack(e + 'H', num_tags)
         b.write(buffer)
 
-        # Sub file type
-        buffer = struct.pack(e + 'HHII', SUBFILETYPE, TIFF_LONG, 1, 1)
-        b.write(buffer)
-
-        buffer = struct.pack(e + 'HHII', IMAGEWIDTH, TIFF_SHORT, 1, 1)
-        b.write(buffer)
-        buffer = struct.pack(e + 'HHII', IMAGELENGTH, TIFF_SHORT, 1, 1)
-        b.write(buffer)
-
-        buffer = struct.pack(e + 'HHII', BITSPERSAMPLE, TIFF_SHORT, 1, 8)
-        b.write(buffer)
-
-        buffer = struct.pack(e + 'HHII',
-                             COMPRESSION, TIFF_SHORT, 1, COMPRESSION_NONE)
-        b.write(buffer)
-
-        buffer = struct.pack(e + 'HHII', PHOTOMETRIC, TIFF_SHORT, 1, 1)
-        b.write(buffer)
-
-        buffer = struct.pack(e + 'HHII', STRIPOFFSETS, TIFF_LONG, 1, 1)
-        b.write(buffer)
-
-        buffer = struct.pack(e + 'HHII', SAMPLESPERPIXEL, TIFF_SHORT, 1, 1)
-        b.write(buffer)
-
-        buffer = struct.pack(e + 'HHII', ROWSPERSTRIP, TIFF_LONG, 1, 1)
-        b.write(buffer)
-
-        buffer = struct.pack(e + 'HHII', STRIPBYTECOUNTS, TIFF_LONG, 1, 1)
-        b.write(buffer)
-
-        buffer = struct.pack(e + 'HHII', XRESOLUTION, TIFF_RATIONAL, 1, offset)
-        b.write(buffer)
-        tag_payloads.append((e + 'I', 75))
-        tag_payloads.append((e + 'I', 1))
-
-        buffer = struct.pack(e + 'HHII',
-                             YRESOLUTION, TIFF_RATIONAL, 1, offset + 8)
-        b.write(buffer)
-        tag_payloads.append((e + 'I', 75))
-        tag_payloads.append((e + 'I', 1))
-
-        # Model pixel scale tag
-        buffer = struct.pack(e + 'HHII', 33550, TIFF_DOUBLE, 3, offset + 16)
-        b.write(buffer)
-        tag_payloads.append((e + 'd', 10))
-        tag_payloads.append((e + 'd', 10))
-        tag_payloads.append((e + 'd', 0))
-
-        buffer = struct.pack(e + 'HHII', 33922, TIFF_DOUBLE, 6, offset + 40)
-        b.write(buffer)
-        datums = [0.0, 0.0, 0.0, 44650.0, 4640510.0, 0.0]
-        for data in datums:
-            tag_payloads.append((e + 'd', data))
-
-        buffer = struct.pack(e + 'HHII', 34735, TIFF_SHORT, 24, offset + 88)
-        b.write(buffer)
-        datums = [
-            1, 1, 0, 5,
-            1024, 0, 1, 1,
-            1025, 0, 1, 1,
-            1026, 34737, 20, 0,
-            2049, 34737, 24, 20,
-            3072, 0, 1, 26716,
+        # Write out all the IFD tags.  Any data that exceeds 4 bytes has to
+        # be appended later.
+        lst = [
+            struct.pack(e + 'HHII', SUBFILETYPE, TIFF_LONG, 1, 1),
+            struct.pack(e + 'HHII', IMAGEWIDTH, TIFF_SHORT, 1, 1),
+            struct.pack(e + 'HHII', IMAGELENGTH, TIFF_SHORT, 1, 1),
+            struct.pack(e + 'HHII', BITSPERSAMPLE, TIFF_SHORT, 1, 8),
+            struct.pack(e + 'HHII', COMPRESSION, TIFF_SHORT, 1,
+                        COMPRESSION_NONE),
+            struct.pack(e + 'HHII', PHOTOMETRIC, TIFF_SHORT, 1, 1),
+            struct.pack(e + 'HHII', STRIPOFFSETS, TIFF_LONG, 1, 1),
+            struct.pack(e + 'HHII', SAMPLESPERPIXEL, TIFF_SHORT, 1, 1),
+            struct.pack(e + 'HHII', ROWSPERSTRIP, TIFF_LONG, 1, 1),
+            struct.pack(e + 'HHII', STRIPBYTECOUNTS, TIFF_LONG, 1, 1),
+            struct.pack(e + 'HHII', XRESOLUTION, TIFF_RATIONAL, 1, offset),
+            struct.pack(e + 'HHII', YRESOLUTION, TIFF_RATIONAL, 1, offset + 8),
+            struct.pack(e + 'HHII', MODELPIXELSCALE, TIFF_DOUBLE, 3,
+                        offset + 16),
+            struct.pack(e + 'HHII', MODELTIEPOINT, TIFF_DOUBLE, 6,
+                        offset + 40),
+            struct.pack(e + 'HHII', GEOKEYDIRECTORY, TIFF_SHORT, 24,
+                        offset + 88),
+            struct.pack(e + 'HHII', GEOASCIIPARAMS, TIFF_ASCII, 45,
+                        offset + 136),
         ]
-        for data in datums:
-            tag_payloads.append((e + 'H', data))
-
-        buffer = struct.pack(e + 'HHII', 34737, TIFF_ASCII, 45, offset + 136)
-        b.write(buffer)
-        items = (e + '45s', b'UTM Zone 16N NAD27"|Clarke, 1866 by Default| ')
-        tag_payloads.append(items)
+        for buffer in lst:
+            b.write(buffer)
 
         # NULL pointer to next IFD
         buffer = struct.pack(e + 'I', 0)
@@ -215,6 +166,41 @@ class TestSuite(unittest.TestCase):
         # Image data.  Just a single byte will do.
         buffer = struct.pack(e + 'B', 0)
         b.write(buffer)
+
+        # Now append the tag payloads that did not fit into the IFD.
+
+        # XResolution
+        tag_payloads = [
+            (e + 'I', 75),  # XResolution
+            (e + 'I', 1),
+            (e + 'I', 75),  # YResolution
+            (e + 'I', 1),
+            (e + 'd', 10),  # Model pixel scale tag
+            (e + 'd', 10),
+            (e + 'd', 0),
+        ]
+
+        # MODELTIEPOINT
+        datums = [0.0, 0.0, 0.0, 44650.0, 4640510.0, 0.0]
+        for datum in datums:
+            tag_payloads.append((e + 'd', datum))
+
+        # GeoKeyDirectory
+        datums = [
+            1, 1, 0, 5,
+            1024, 0, 1, 1,
+            1025, 0, 1, 1,
+            1026, 34737, 20, 0,
+            2049, 34737, 24, 20,
+            3072, 0, 1, 26716,
+        ]
+        for datum in datums:
+            tag_payloads.append((e + 'H', datum))
+
+        # GEOASCIIPARAMS
+        items = (e + '45s',
+                 b'UTM Zone 16N NAD27"|Clarke, 1866 by Default| ')
+        tag_payloads.append(items)
 
         # Tag payloads
         for format, datum in tag_payloads:
@@ -248,7 +234,6 @@ class TestSuite(unittest.TestCase):
                 self.assertTrue(isinstance(jp2.box[-1].data,
                                            ET.ElementTree))
 
-    @unittest.skipIf(sys.hexversion < 0x03000000, "assertWarns is PY3K")
     def test_bad_exif_tag(self):
         """
         Corrupt the Exif IFD with an invalid tag should produce a warning.
@@ -429,8 +414,7 @@ class TestSuiteHiRISE(unittest.TestCase):
         else:
             # Only verify if PY3K, don't bother with Python2.  OrderedDicts
             # print out differently.
-            if sys.hexversion >= 0x03040000:
-                self.assertEqual(actual, fixtures.geotiff_uuid_without_gdal)
+            self.assertEqual(actual, fixtures.geotiff_uuid_without_gdal)
 
 
 @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)

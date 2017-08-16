@@ -176,5 +176,3 @@ class TestCodestream(unittest.TestCase):
         # The first 7 bits are interpreted as the bitdepth, the MSB determines
         # whether or not it is signed.
         self.assertEqual(codestream.segment[1].ssiz, (7, 7, 7))
-
-

@@ -6,6 +6,7 @@ import struct
 # Third party library imports ...
 import numpy as np
 
+
 class _ICCProfile(object):
     """
     Container for ICC profile information.
@@ -122,7 +123,4 @@ class _ICCProfile(object):
             header['Profile Id'] = read_buffer[84:100]
 
         # Final 27 bytes are reserved.
-
         self.header = header
-
-

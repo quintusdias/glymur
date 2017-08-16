@@ -1,8 +1,0 @@
-contextlib2
-libgdal
-gdal
-lxml
-mock
-numpy
-openjpeg=2.2.0
-pathlib2

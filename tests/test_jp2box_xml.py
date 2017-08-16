@@ -241,9 +241,6 @@ class TestJp2kBadXmlFile(unittest.TestCase):
     def setUp(self):
         self.jp2file = glymur.data.nemo()
 
-    def tearDown(self):
-        pass
-
     def test_invalid_xml_box(self):
         """Should be able to recover info from xml box with bad xml."""
         with warnings.catch_warnings():

@@ -916,7 +916,7 @@ class COCsegment(Segment):
        Core coding system
     """
     def __init__(self, ccoc, scoc, spcoc, length, offset):
-        Segment.__init__(self, marker_id='COC')
+        super().__init__(marker_id='COC')
         self.ccoc = ccoc
         self.scoc = scoc
         self.spcoc = spcoc
@@ -999,7 +999,7 @@ class CODsegment(Segment):
     """
     def __init__(self, scod, prog_order, num_layers, mct, nr, xcb, ycb,
                  cstyle, xform, precinct_size, length=0, offset=0):
-        Segment.__init__(self, marker_id='COD')
+        super().__init__(marker_id='COD')
         self.scod = scod
         self.length = length
         self.offset = offset
@@ -1113,7 +1113,7 @@ class CMEsegment(Segment):
        Core coding system
     """
     def __init__(self, rcme, ccme, length=-1, offset=-1):
-        Segment.__init__(self, marker_id='CME')
+        super().__init__(marker_id='CME')
         self.rcme = rcme
         self.ccme = ccme
         self.length = length
@@ -1146,7 +1146,7 @@ class CRGsegment(Segment):
         Horizontal, vertical offset for each component
     """
     def __init__(self, xcrg, ycrg, length, offset):
-        Segment.__init__(self, marker_id='CRG')
+        super().__init__(marker_id='CRG')
         self.xcrg = xcrg
         self.ycrg = ycrg
         self.length = length
@@ -1182,7 +1182,7 @@ class EOCsegment(Segment):
        Core coding system
     """
     def __init__(self, length, offset):
-        Segment.__init__(self, marker_id='EOC')
+        super().__init__(marker_id='EOC')
         self.length = length
         self.offset = offset
 
@@ -1219,7 +1219,7 @@ class PODsegment(Segment):
        Core coding system
     """
     def __init__(self, pod_params, length, offset):
-        Segment.__init__(self, marker_id='POD')
+        super().__init__(marker_id='POD')
 
         self.rspod = pod_params[0::6]
         self.cspod = pod_params[1::6]
@@ -1232,17 +1232,17 @@ class PODsegment(Segment):
 
     def __str__(self):
         msg = Segment.__str__(self)
+        msg += '\n'
+
+        submsg = ('    Progression change {0}:\n'
+                  '        Resolution index start:  {1}\n'
+                  '        Component index start:  {2}\n'
+                  '        Layer index end:  {3}\n'
+                  '        Resolution index end:  {4}\n'
+                  '        Component index end:  {5}\n'
+                  '        Progression order:  {6}\n')
         for j in range(len(self.rspod)):
 
-            msg += '\n    '
-            lines = ['Progression change {0}:',
-                     '    Resolution index start:  {1}',
-                     '    Component index start:  {2}',
-                     '    Layer index end:  {3}',
-                     '    Resolution index end:  {4}',
-                     '    Component index end:  {5}',
-                     '    Progression order:  {6}']
-            submsg = '\n    '.join(lines)
             msg += submsg.format(j,
                                  self.rspod[j],
                                  self.cspod[j],
@@ -1251,7 +1251,7 @@ class PODsegment(Segment):
                                  self.cdpod[j],
                                  _PROGRESSION_ORDER_DISPLAY[self.ppod[j]])
 
-        return msg
+        return msg.rstrip()
 
 
 class PLTsegment(Segment):
@@ -1278,7 +1278,7 @@ class PLTsegment(Segment):
        Core coding system
     """
     def __init__(self, zplt, iplt, length, offset):
-        Segment.__init__(self, marker_id='PLT')
+        super().__init__(marker_id='PLT')
         self.zplt = zplt
         self.iplt = iplt
         self.length = length
@@ -1315,7 +1315,7 @@ class PPMsegment(Segment):
        Core coding system
     """
     def __init__(self, zppm, data, length, offset):
-        Segment.__init__(self, marker_id='PPM')
+        super().__init__(marker_id='PPM')
         self.zppm = zppm
 
         # both Nppm and Ippms information stored in data
@@ -1356,7 +1356,7 @@ class PPTsegment(Segment):
        Core coding system
     """
     def __init__(self, zppt, ippt, length, offset):
-        Segment.__init__(self, marker_id='PPT')
+        super().__init__(marker_id='PPT')
         self.zppt = zppt
         self.ippt = ippt
         self.length = length
@@ -1400,7 +1400,7 @@ class QCCsegment(Segment):
        Core coding system
     """
     def __init__(self, cqcc, sqcc, spqcc, length, offset):
-        Segment.__init__(self, marker_id='QCC')
+        super().__init__(marker_id='QCC')
         self.cqcc = cqcc
         self.sqcc = sqcc
         self.spqcc = spqcc
@@ -1451,7 +1451,7 @@ class QCDsegment(Segment):
        Core coding system
     """
     def __init__(self, sqcd, spqcd, length, offset):
-        Segment.__init__(self, marker_id='QCD')
+        super().__init__(marker_id='QCD')
 
         self.sqcd = sqcd
         self.spqcd = spqcd
@@ -1501,7 +1501,7 @@ class RGNsegment(Segment):
        Core coding system
     """
     def __init__(self, crgn, srgn, sprgn, length=-1, offset=-1):
-        Segment.__init__(self, marker_id='RGN')
+        super().__init__(marker_id='RGN')
         self.length = length
         self.offset = offset
         self.crgn = crgn
@@ -1560,7 +1560,7 @@ class SIZsegment(Segment):
     def __init__(self, rsiz=-1, xysiz=None, xyosiz=-1, xytsiz=-1, xytosiz=-1,
                  Csiz=-1, bitdepth=None, signed=None, xyrsiz=-1, length=-1,
                  offset=-1):
-        Segment.__init__(self, marker_id='SIZ', length=length, offset=offset)
+        super().__init__(marker_id='SIZ', length=length, offset=offset)
 
         self.rsiz = rsiz
         self.xsiz, self.ysiz = xysiz
@@ -1648,7 +1648,7 @@ class SOCsegment(Segment):
        Core coding system
     """
     def __init__(self, **kwargs):
-        Segment.__init__(self, marker_id='SOC')
+        super().__init__(marker_id='SOC')
         self.__dict__.update(**kwargs)
 
     def __repr__(self):
@@ -1677,7 +1677,7 @@ class SODsegment(Segment):
        Core coding system
     """
     def __init__(self, length, offset):
-        Segment.__init__(self, marker_id='SOD')
+        super().__init__(marker_id='SOD')
         self.length = length
         self.offset = offset
 
@@ -1703,7 +1703,7 @@ class EPHsegment(Segment):
        Core coding system
     """
     def __init__(self, length, offset):
-        Segment.__init__(self, marker_id='EPH')
+        super().__init__(marker_id='EPH')
         self.length = length
         self.offset = offset
 
@@ -1730,7 +1730,7 @@ class SOPsegment(Segment):
        Core coding system
     """
     def __init__(self, nsop, length, offset):
-        Segment.__init__(self, marker_id='SOP')
+        super().__init__(marker_id='SOP')
         self.nsop = nsop
         self.length = length
         self.offset = offset
@@ -1770,7 +1770,7 @@ class SOTsegment(Segment):
        Core coding system
     """
     def __init__(self, isot, psot, tpsot, tnsot, length=-1, offset=-1):
-        Segment.__init__(self, marker_id='SOT')
+        super().__init__(marker_id='SOT')
         self.isot = isot
         self.psot = psot
         self.tpsot = tpsot
@@ -1820,7 +1820,7 @@ class TLMsegment(Segment):
        Core coding system
     """
     def __init__(self, ztlm, ttlm, ptlm, length, offset):
-        Segment.__init__(self, marker_id='TLM')
+        super().__init__(marker_id='TLM')
         self.length = length
         self.offset = offset
         self.ztlm = ztlm

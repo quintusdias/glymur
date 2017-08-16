@@ -3,7 +3,7 @@
 Test suite for printing.
 """
 # Standard library imports ...
-from io import BytesIO
+from io import BytesIO, StringIO
 import os
 import pkg_resources as pkg
 import re
@@ -11,18 +11,9 @@ import struct
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from uuid import UUID
 import warnings
-
-if sys.hexversion < 0x03000000:
-    from StringIO import StringIO
-else:
-    from io import StringIO
-
-if sys.hexversion <= 0x03030000:
-    from mock import patch
-else:
-    from unittest.mock import patch
 
 # Third party imports ...
 import numpy as np
@@ -37,7 +28,7 @@ from glymur.codestream import LRCP, WAVELET_XFORM_5X3_REVERSIBLE
 from glymur.core import RESTRICTED_ICC_PROFILE, ANY_ICC_PROFILE
 from glymur.core import COLOR, RED, GREEN, BLUE
 from glymur.jp2box import BitsPerComponentBox, ColourSpecificationBox
-from glymur.jp2box import LabelBox, UnknownBox
+from glymur.jp2box import LabelBox
 from glymur import Jp2k, command_line
 from . import fixtures
 from .fixtures import (WINDOWS_TMP_FILE_MSG,
@@ -314,8 +305,8 @@ class TestPrinting(unittest.TestCase):
         actual = str(box)
 
         expected = ("Bits Per Component Box (bpcc) @ (62, 12)\n"
-                     "    Bits per component:  [5, 5, 5, 1]\n"
-                     "    Signed:  [False, False, True, False]")
+                    "    Bits per component:  [5, 5, 5, 1]\n"
+                    "    Signed:  [False, False, True, False]")
 
         self.assertEqual(actual, expected)
 
@@ -370,10 +361,7 @@ class TestPrinting(unittest.TestCase):
 
             glymur.set_option('print.short', True)
             actual = str(jpx.box[-1])
-            if sys.hexversion < 0x03000000:
-                expected = "Unknown Box (grp ) @ (1399071, 20)"
-            else:
-                expected = "Unknown Box (b'grp ') @ (1399071, 20)"
+            expected = "Unknown Box (b'grp ') @ (1399071, 20)"
             self.assertEqual(actual, expected)
 
     def test_printoptions_bad_argument(self):
@@ -382,9 +370,6 @@ class TestPrinting(unittest.TestCase):
             glymur.set_option('hi', 'low')
 
     @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
-    @unittest.skipIf(re.match("1.5|2",
-                              glymur.version.openjpeg_version) is None,
-                     "Must have openjpeg 1.5 or higher to run")
     def test_asoc_label_box(self):
         """verify printing of asoc, label boxes"""
         # Construct a fake file with an asoc and a label box, as
@@ -723,8 +708,6 @@ class TestPrinting(unittest.TestCase):
         self.assertEqual(actual, exp)
 
     @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
-    @unittest.skipIf(sys.hexversion < 0x03000000,
-                     "Only trusting python3 for printing non-ascii chars")
     def test_xml_latin1(self):
         """Should be able to print an XMLBox with utf-8 encoding (latin1)."""
         # Seems to be inconsistencies between different versions of python2.x
@@ -733,24 +716,15 @@ class TestPrinting(unittest.TestCase):
         # 2.7.5 (fedora 19) prints xml entities.
         # 2.7.3 seems to want to print hex escapes.
         text = u"""<flow>Strömung</flow>"""
-        if sys.hexversion < 0x03000000:
-            xml = ET.parse(StringIO(text.encode('utf-8')))
-        else:
-            xml = ET.parse(StringIO(text))
+        xml = ET.parse(StringIO(text))
 
         xmlbox = glymur.jp2box.XMLBox(xml=xml)
         actual = str(xmlbox)
-        if sys.hexversion < 0x03000000:
-            expected = ("XML Box (xml ) @ (-1, 0)\n"
-                        "    <flow>Str\xc3\xb6mung</flow>")
-        else:
-            expected = ("XML Box (xml ) @ (-1, 0)\n"
-                        "    <flow>Strömung</flow>")
+        expected = ("XML Box (xml ) @ (-1, 0)\n"
+                    "    <flow>Strömung</flow>")
         self.assertEqual(actual, expected)
 
     @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
-    @unittest.skipIf(sys.hexversion < 0x03000000,
-                     "Only trusting python3 for printing non-ascii chars")
     def test_xml_cyrrilic(self):
         """Should be able to print XMLBox with utf-8 encoding (cyrrillic)."""
         # Seems to be inconsistencies between different versions of python2.x
@@ -759,20 +733,12 @@ class TestPrinting(unittest.TestCase):
         # 2.7.5 (fedora 19) prints xml entities.
         # 2.7.3 seems to want to print hex escapes.
         text = u"""<country>Россия</country>"""
-        if sys.hexversion < 0x03000000:
-            xml = ET.parse(StringIO(text.encode('utf-8')))
-        else:
-            xml = ET.parse(StringIO(text))
+        xml = ET.parse(StringIO(text))
 
         xmlbox = glymur.jp2box.XMLBox(xml=xml)
         actual = str(xmlbox)
-        if sys.hexversion < 0x03000000:
-            expected = ("XML Box (xml ) @ (-1, 0)\n"
-                        ("    <country>&#1056;&#1086;&#1089;&#1089;"
-                         "&#1080;&#1103;</country>"))
-        else:
-            expected = ("XML Box (xml ) @ (-1, 0)\n"
-                        "    <country>Россия</country>")
+        expected = ("XML Box (xml ) @ (-1, 0)\n"
+                    "    <country>Россия</country>")
 
         self.assertEqual(actual, expected)
 
@@ -936,7 +902,6 @@ class TestPrinting(unittest.TestCase):
 
         self.assertEqual(actual, expected)
 
-
     def test_nlst_short(self):
         glymur.set_option('print.short', True)
 
@@ -966,8 +931,6 @@ class TestPrinting(unittest.TestCase):
         actual = str(jpx.box[3])
         self.assertEqual(actual, 'Codestream Header Box (jpch) @ (887, 8)')
 
-    @unittest.skipIf(sys.hexversion < 0x03000000,
-                     "Ordered dicts not printing well in 2.7")
     def test_exif_uuid(self):
         """Verify printing of exif information"""
         with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
@@ -1253,8 +1216,6 @@ class TestPrinting(unittest.TestCase):
             # No need to verify, it's enough that we don't error out.
             str(box)
 
-    @unittest.skipIf(sys.hexversion < 0x03040000,
-                     'OrderedDict prints differently on python2 and python33')
     def test_icc_profile(self):
         """
         verify icc profile printing with a jpx
@@ -1500,7 +1461,6 @@ class TestJp2dump(unittest.TestCase):
         expected = fixtures.nemo
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(sys.hexversion < 0x03000000, "assertRegex not in 2.7")
     def test_j2k_codestream_0(self):
         """-c 0 should print just a single line when used on a codestream."""
         sys.argv = ['', '-c', '0', self.j2kfile]
@@ -1553,7 +1513,6 @@ class TestJp2dump(unittest.TestCase):
         expected = '\n'.join(expected)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(sys.hexversion < 0x03000000, "assertRegex not in 2.7")
     def test_suppress_warnings_until_end(self):
         """
         Warnings about invalid JP2/J2K syntax should be suppressed until end
@@ -1561,8 +1520,6 @@ class TestJp2dump(unittest.TestCase):
         file = os.path.join('data', 'edf_c2_1178956.jp2')
         file = pkg.resource_filename(__name__, file)
         actual = self.run_jp2dump(['', '-x', file])
-
-        expected = fixtures
 
         # The "CME marker segment" part is the last segment in the codestream
         # header.
