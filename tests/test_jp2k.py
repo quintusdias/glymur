@@ -4,7 +4,7 @@ Tests for general glymur functionality.
 # Standard library imports ...
 import datetime
 import doctest
-from io import BytesIO
+import io
 import os
 import re
 import struct
@@ -254,6 +254,54 @@ class TestJp2k(unittest.TestCase):
         p = pathlib.Path(self.jp2file)
         jp2 = Jp2k(p)
         self.assertEqual(jp2.shape, (1456, 2592, 3))
+
+    def test_filename_api(self):
+        jp2 = Jp2k(filename=self.jp2file)
+        self.assertEqual(jp2.shape, (1456, 2592, 3))
+
+    def test_file_object_py2(self):
+        """On Python 2, open and io.open do not return the same object"""
+        with open(self.jp2file, "rb") as f:
+            jp2 = Jp2k(fp=f)
+            self.assertEqual(jp2.shape, (1456, 2592, 3))
+
+    def test_file_object(self):
+        with io.open(self.jp2file, "rb") as f:
+            jp2 = Jp2k(fp=f)
+            self.assertEqual(jp2.shape, (1456, 2592, 3))
+
+    def test_not_aligned_file_object(self):
+        with io.open(self.jp2file, "rb") as f:
+            f.seek(2)
+            try:
+                jp2 = Jp2k(fp=f)
+                jp2.read()
+                self.fail()
+            except IOError:
+                pass
+
+    def test__file_object_with_starting_pad(self):
+        with tempfile.TemporaryFile("w+b") as fpadding:
+            fpadding.write(b"\x01\x23\x45")
+            pos = fpadding.tell()
+            with io.open(self.jp2file, "rb") as fsource:
+                data = fsource.read()
+                fpadding.write(data)
+            fpadding.seek(pos)
+            jp2 = Jp2k(fp=fpadding)
+            self.assertEqual(jp2.shape, (1456, 2592, 3))
+
+    def test__file_object_with_ending_pad(self):
+        with tempfile.TemporaryFile("w+b") as fpadding:
+            length = os.path.getsize(self.jp2file)
+            with io.open(self.jp2file, "rb") as fsource:
+                data = fsource.read()
+                fpadding.write(data)
+            fpadding.write(b"\x01\x23\x45" * 100)
+            fpadding.seek(0)
+            jp2 = Jp2k(fp=fpadding, length=length)
+            self.assertEqual(jp2.shape, (1456, 2592, 3))
+
 
     @unittest.skipIf(re.match('1.5.(1|2)', openjpeg_version) is not None,
                      "Mysteriously fails in 1.5.1 and 1.5.2")
@@ -916,7 +964,7 @@ class TestJp2k(unittest.TestCase):
 
         Original file tested was input/conformance/file5.jp2
         """
-        fp = BytesIO()
+        fp = io.BytesIO()
 
         # Write the colr box header.
         buffer = struct.pack('>I4s', 557, b'colr')

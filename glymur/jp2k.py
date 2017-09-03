@@ -22,6 +22,8 @@ import re
 import struct
 from uuid import UUID
 import warnings
+import io
+import sys
 
 # Third party library imports
 import numpy as np
@@ -34,14 +36,16 @@ from .jp2box import (Jp2kBox, JPEG2000SignatureBox, FileTypeBox,
                      ContiguousCodestreamBox, ImageHeaderBox)
 from .lib import openjpeg as opj, openjp2 as opj2
 
+PY2 = sys.version_info[0] == 2
+
 
 class Jp2k(Jp2kBox):
     """JPEG 2000 file.
 
     Attributes
     ----------
-    filename : str
-        The path to the JPEG 2000 file.
+    fp : str or file descriptor
+        The path or a file descriptor object to the JPEG 2000 file.
     box : sequence
         List of top-level boxes in the file.  Each box may in turn contain
         its own list of boxes.  Will be empty if the file consists only of a
@@ -80,13 +84,18 @@ class Jp2k(Jp2kBox):
     (728, 1296, 3)
     """
 
-    def __init__(self, filename, data=None, shape=None, **kwargs):
+    def __init__(self, fp=None, data=None, shape=None, **kwargs):
         """
         Only the filename parameter is required in order to read a JPEG 2000
         file.
 
         Parameters
         ----------
+        fp : str or file descriptor
+            The path or a fileobject to JPEG 2000 file.
+            For file object, it must implement read(), seek(), and tell() methods,
+            and be opened in binary mode. The current location must at the
+            beggining of the beginning of the data.
         filename : str
             The path to JPEG 2000 file.
         image_data : ndarray, optional
@@ -135,13 +144,32 @@ class Jp2k(Jp2kBox):
             Subsampling factors (dy, dx).
         tilesize : tuple, optional
             Tile size in terms of (numrows, numcols), not (X, Y).
+        length : Available size from the current location in the file
+            object.
         verbose : bool, optional
             Print informational messages produced by the OpenJPEG library.
         """
         Jp2kBox.__init__(self)
 
-        # In case of pathlib.Paths... 
-        self.filename = str(filename)
+        filename = kwargs.pop("filename", None)
+        length = kwargs.pop("length", None)
+
+        if PY2:
+            file_classes = (io.IOBase, file)
+        else:
+            file_classes = (io.IOBase,)
+
+        if fp is not None:
+            if isinstance(fp, file_classes):
+                # That's a file object
+                self.filename = None
+            else:
+                # That's a path
+                self.filename = str(fp)
+                fp = None
+        elif filename is not None:
+            # For compatibility with 0.8 API
+            self.filename = str(filename)
 
         self.box = []
         self._codec_format = None
@@ -158,7 +186,7 @@ class Jp2k(Jp2kBox):
 
         # Parse the file for JP2/JPX contents only if we are reading it.
         if data is None and shape is None:
-            self.parse()
+            self.parse(fp, length)
         elif data is not None:
             self._write(data, **kwargs)
 
@@ -259,51 +287,68 @@ class Jp2k(Jp2kBox):
             metadata.append(str(self.codestream))
         return '\n'.join(metadata)
 
-    def parse(self):
+    def parse(self, fptr=None, fptr_length=None):
         """Parses the JPEG 2000 file.
+
+        If fd is defined it will use it insteqd of the defined filename.
+        If fp_length is defined it will be used instead of the available size.
 
         Raises
         ------
         IOError
             The file was not JPEG 2000.
         """
-        self.length = os.path.getsize(self.filename)
+        if fptr is not None:
+            self.offset = fptr.tell()
+            if fptr_length is not None:
+                self.length = fptr_length
+            else:
+                fptr.seek(0, 2)
+                self.length = fptr.tell() - self.offset
+                fptr.seek(self.offset)
+            self._parse(fptr)
+        else:
+            self.length = os.path.getsize(self.filename)
+            with open(self.filename, 'rb') as fptr:
+                self._parse(fptr)
 
-        with open(self.filename, 'rb') as fptr:
+    def _parse(self, fptr=None):
+        current_pos = fptr.tell()
 
-            # Make sure we have a JPEG2000 file.  It could be either JP2 or
-            # J2C.  Check for J2C first, single box in that case.
-            read_buffer = fptr.read(2)
-            signature, = struct.unpack('>H', read_buffer)
-            if signature == 0xff4f:
-                self._codec_format = opj2.CODEC_J2K
-                # That's it, we're done.  The codestream object is only
-                # produced upon explicit request.
-                return
+        # Make sure we have a JPEG2000 file.  It could be either JP2 or
+        # J2C.  Check for J2C first, single box in that case.
+        read_buffer = fptr.read(2)
+        signature, = struct.unpack('>H', read_buffer)
+        if signature == 0xff4f:
+            self._codec_format = opj2.CODEC_J2K
+            # That's it, we're done.  The codestream object is only
+            # produced upon explicit request.
+            return
 
-            self._codec_format = opj2.CODEC_JP2
+        self._codec_format = opj2.CODEC_JP2
 
-            # Should be JP2.
-            # First 4 bytes should be 12, the length of the 'jP  ' box.
-            # 2nd 4 bytes should be the box ID ('jP  ').
-            # 3rd 4 bytes should be the box signature (13, 10, 135, 10).
-            fptr.seek(0)
-            read_buffer = fptr.read(12)
-            values = struct.unpack('>I4s4B', read_buffer)
-            box_length = values[0]
-            box_id = values[1]
-            signature = values[2:]
-            if (((box_length != 12) or (box_id != b'jP  ') or
-                 (signature != (13, 10, 135, 10)))):
-                msg = '{filename} is not a JPEG 2000 file.'
-                msg = msg.format(filename=self.filename)
-                raise IOError(msg)
+        # Should be JP2.
+        # First 4 bytes should be 12, the length of the 'jP  ' box.
+        # 2nd 4 bytes should be the box ID ('jP  ').
+        # 3rd 4 bytes should be the box signature (13, 10, 135, 10).
+        fptr.seek(current_pos)
+        read_buffer = fptr.read(12)
+        values = struct.unpack('>I4s4B', read_buffer)
+        box_length = values[0]
+        box_id = values[1]
+        signature = values[2:]
+        if (((box_length != 12) or (box_id != b'jP  ') or
+             (signature != (13, 10, 135, 10)))):
+            filename = self.filename or "Stream"
+            msg = '{filename} is not a JPEG 2000 file.'
+            msg = msg.format(filename=filename)
+            raise IOError(msg)
 
-            # Back up and start again, we know we have a superbox (box of
-            # boxes) here.
-            fptr.seek(0)
-            self.box = self.parse_superbox(fptr)
-            self._validate()
+        # Back up and start again, we know we have a superbox (box of
+        # boxes) here.
+        fptr.seek(current_pos)
+        self.box = self.parse_superbox(fptr)
+        self._validate()
 
     def _validate(self):
         """Validate the JPEG 2000 outermost superbox.  These checks must be
@@ -312,8 +357,9 @@ class Jp2k(Jp2kBox):
         # A JP2 file must contain certain boxes.  The 2nd box must be a file
         # type box.
         if not isinstance(self.box[1], FileTypeBox):
+            filename = self.filename or "Stream"
             msg = "{filename} does not contain a valid File Type box."
-            msg = msg.format(filename=self.filename)
+            msg = msg.format(filename=filename)
             raise IOError(msg)
 
         # A jp2-branded file cannot contain an "any ICC profile
