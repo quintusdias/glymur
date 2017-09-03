@@ -22,6 +22,7 @@ import re
 import struct
 from uuid import UUID
 import warnings
+import io
 
 # Third party library imports
 import numpy as np
@@ -40,8 +41,8 @@ class Jp2k(Jp2kBox):
 
     Attributes
     ----------
-    filename : str
-        The path to the JPEG 2000 file.
+    fp : str or file descriptor
+        The path or a file descriptor object to the JPEG 2000 file.
     box : sequence
         List of top-level boxes in the file.  Each box may in turn contain
         its own list of boxes.  Will be empty if the file consists only of a
@@ -80,14 +81,18 @@ class Jp2k(Jp2kBox):
     (728, 1296, 3)
     """
 
-    def __init__(self, filename=None, data=None, shape=None,
-            fp=None, fp_length=None, **kwargs):
+    def __init__(self, fp=None, data=None, shape=None, **kwargs):
         """
         Only the filename parameter is required in order to read a JPEG 2000
         file.
 
         Parameters
         ----------
+        fp : str or file descriptor
+            The path or a fileobject to JPEG 2000 file.
+            For file object, it must implement read(), seek(), and tell() methods,
+            and be opened in binary mode. The current location must at the
+            beggining of the beginning of the data.
         filename : str
             The path to JPEG 2000 file.
         image_data : ndarray, optional
@@ -136,19 +141,27 @@ class Jp2k(Jp2kBox):
             Subsampling factors (dy, dx).
         tilesize : tuple, optional
             Tile size in terms of (numrows, numcols), not (X, Y).
-        fp : file object, optional
-            The file object must implement read(), seek(), and tell() methods,
-            and be opened in binary mode. The current location must at the
-            beggining of the beginning of the data.
-        fp_length : Available size from the current location in the file
+        length : Available size from the current location in the file
             object.
         verbose : bool, optional
             Print informational messages produced by the OpenJPEG library.
         """
         Jp2kBox.__init__(self)
 
-        # In case of pathlib.Paths... 
-        self.filename = str(filename)
+        filename = kwargs.pop("filename", None)
+        length = kwargs.pop("length", None)
+
+        if fp is not None:
+            if isinstance(fp, (io.IOBase, file)):
+                # That's a file object
+                self.filename = None
+            else:
+                # That's a path
+                self.filename = str(fp)
+                fp = None
+        elif filename is not None:
+            # For compatibility with 0.8 API
+            self.filename = str(filename)
 
         self.box = []
         self._codec_format = None
@@ -165,7 +178,7 @@ class Jp2k(Jp2kBox):
 
         # Parse the file for JP2/JPX contents only if we are reading it.
         if data is None and shape is None:
-            self.parse(fp, fp_length)
+            self.parse(fp, length)
         elif data is not None:
             self._write(data, **kwargs)
 
