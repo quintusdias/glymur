@@ -23,6 +23,7 @@ import struct
 from uuid import UUID
 import warnings
 import io
+import sys
 
 # Third party library imports
 import numpy as np
@@ -34,6 +35,8 @@ from .jp2box import (Jp2kBox, JPEG2000SignatureBox, FileTypeBox,
                      JP2HeaderBox, ColourSpecificationBox,
                      ContiguousCodestreamBox, ImageHeaderBox)
 from .lib import openjpeg as opj, openjp2 as opj2
+
+PY2 = sys.version_info[0] == 2
 
 
 class Jp2k(Jp2kBox):
@@ -151,8 +154,13 @@ class Jp2k(Jp2kBox):
         filename = kwargs.pop("filename", None)
         length = kwargs.pop("length", None)
 
+        if PY2:
+            file_classes = (io.IOBase, file)
+        else:
+            file_classes = (io.IOBase,)
+
         if fp is not None:
-            if isinstance(fp, (io.IOBase, file)):
+            if isinstance(fp, file_classes):
                 # That's a file object
                 self.filename = None
             else:
