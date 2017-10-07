@@ -65,49 +65,16 @@ class TestCallbacks(unittest.TestCase):
     @unittest.skipIf(glymur.version.openjpeg_version[0] == '0',
                      "Missing openjpeg/openjp2 library.")
     def test_info_callbacks_on_read(self):
-        """stdio output when info callback handler is enabled"""
+        """
+        Set the verbose flag, do a read operation.
 
-        # Verify that we get the expected stdio output when our internal info
-        # callback handler is enabled.
+        Verify that sys.stdout produces information.  Don't bother matching
+        the exact string because this may change the next time OpenJPEG is
+        update.
+        """
         jp2 = glymur.Jp2k(self.j2kfile)
-        with patch('sys.stdout', new=StringIO()) as fake_out:
+        with patch('sys.stdout', new=StringIO()) as mock_stdout:
             jp2.verbose = True
             jp2[::2, ::2]
-            actual = fake_out.getvalue().strip()
 
-        if glymur.version.openjpeg_version_tuple >= [2, 1, 1]:
-            # Issue correctly fixed in 2.1.1
-            lines = ['[INFO] Start to read j2k main header (0).',
-                     '[INFO] Main header has been correctly decoded.',
-                     '[INFO] Setting decoding area to 0,0,480,800',
-                     '[INFO] Header of tile 1 / 1 has been read.',
-                     '[INFO] Tile 1/1 has been decoded.',
-                     '[INFO] Image data has been updated with tile 1.']
-
-            expected = '\n'.join(lines)
-            self.assertEqual(actual, expected)
-        elif glymur.version.openjpeg_version_tuple >= [2, 0, 0]:
-            # Behavior change in 2.0.0
-            lines = ['[INFO] Start to read j2k main header (0).',
-                     '[INFO] Main header has been correctly decoded.',
-                     '[INFO] Setting decoding area to 0,0,480,800',
-                     '[INFO] Header of tile 0 / 0 has been read.',
-                     '[INFO] Tile 1/1 has been decoded.',
-                     '[INFO] Image data has been updated with tile 1.']
-
-            expected = '\n'.join(lines)
-            self.assertEqual(actual, expected)
-        else:
-            regex = re.compile(r"""\[INFO\]\stile\s1\sof\s1\s+
-                                   \[INFO\]\s-\stiers-1\stook\s
-                                           [0-9]+\.[0-9]+\ss\s+
-                                   \[INFO\]\s-\sdwt\stook\s
-                                           (-){0,1}[0-9]+\.[0-9]+\ss\s+
-                                   \[INFO\]\s-\stile\sdecoded\sin\s
-                                           [0-9]+\.[0-9]+\ss""",
-                               re.VERBOSE)
-
-            if sys.hexversion <= 0x03020000:
-                self.assertRegexpMatches(actual, regex)
-            else:
-                self.assertRegex(actual, regex)
+        self.assertIn('[INFO]', mock_stdout.getvalue())
