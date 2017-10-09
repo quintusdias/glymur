@@ -11,10 +11,6 @@ matrix:
       env:
           - JOB_NAME "27_latest"
           - JOB_TAG=latest
-    - python: 3.3
-      env:
-          - JOB_NAME "33_no_extras"
-          - JOB_TAG=no_extras
     - python: 3.4
       env:
           - JOB_NAME "34_latest"
@@ -60,10 +56,6 @@ install:
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
   - source activate test-environment
   - conda install --file ci/requirements_"$TRAVIS_PYTHON_VERSION"_"$JOB_TAG".txt
-  # 3.3 pathlib2 requirement cannot be satisfied via conda
-  - if [[ "$TRAVIS_PYTHON_VERSION" == "3.3" ]]; then
-      pip install pathlib2;
-    fi
   - python setup.py install
 
 script:

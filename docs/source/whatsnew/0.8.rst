@@ -2,6 +2,19 @@
 Changes in glymur 0.8
 =====================
 
+Changes in 0.8.12
+=================
+    * Qualified on OpenJPEG 2.3.0.
+    * Drop support for Python 3.3.
+
+Changes in 0.8.11
+=================
+    * Qualified on OpenJPEG 2.2.0.
+
+Changes in 0.8.10
+=================
+    * Add pathlib support.
+
 Changes in 0.8.9
 =================
     * Qualified on Python 3.6.

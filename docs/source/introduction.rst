@@ -17,8 +17,7 @@ Glymur will look to use **lxml** when processing boxes with XML content, but can
 fall back upon the standard library's **ElementTree** if **lxml** is not
 available.
 
-Glymur works on Python versions 2.7, 3.3, 3.4, 3.5 and 3.6.  If you have Python
-2.6, you should use the 0.5 series of Glymur.
+Glymur works on Python versions 2.7, 3.4, 3.5 and 3.6.
 
 For more information about OpenJPEG, please consult http://www.openjpeg.org.
 
