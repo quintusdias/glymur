@@ -9,10 +9,6 @@ matrix:
           - OPJ15=1
     - python: 2.7
       env:
-          - JOB_NAME "27_earliest"
-          - JOB_TAG=earliest
-    - python: 2.7
-      env:
           - JOB_NAME "27_latest"
           - JOB_TAG=latest
     - python: 3.3
