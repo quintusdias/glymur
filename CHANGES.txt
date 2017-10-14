@@ -1,3 +1,7 @@
+October 14, 2017 - v0.8.12
+    Qualify on OpenJPEG v2.3.0
+    Drop support for Python 3.3
+
 August 15, 2017 - v0.8.11
     Qualify on OpenJPEG v2.2.0
     State LTS plans.
