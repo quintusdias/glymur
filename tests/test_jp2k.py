@@ -1144,14 +1144,23 @@ class TestJp2k_write(fixtures.MetadataBase):
 
     def test_NR_ENC_Bretagne1_ppm_2_encode(self):
         """
+        SCENARIO:  Three peak signal-to-noise ratio values are supplied.
+
         Original file tested was
 
             input/nonregression/Bretagne1.ppm
 
+        EXPECTED RESULT:  Three quality layers, two resolutions.
         """
+        kwargs = {
+            'data': self.jp2_data,
+            'psnr': [30, 35, 40],
+            'numres': 2,
+        }
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, data=self.jp2_data,
-                     psnr=[30, 35, 40], numres=2)
+            with self.assertWarns(UserWarning):
+                # OpenJPEG library warning about tcp rates in 2.3 and above
+                j = Jp2k(tfile.name, **kwargs)
 
             codestream = j.get_codestream()
 
@@ -1202,15 +1211,22 @@ class TestJp2k_write(fixtures.MetadataBase):
     @unittest.skipIf(fixtures.low_memory_linux_machine(), "Low memory machine")
     def test_NR_ENC_Bretagne1_ppm_3_encode(self):
         """
+        SCENARIO:  Three peak signal to noise rations are provided, along with
+        specific code block sizes and precinct sizes.
+
         Original file tested was
 
             input/nonregression/Bretagne1.ppm
 
+        EXPECTED RESULT:  Three quality layers and the specified code block
+        size are present.  The precinct sizes validate.
         """
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name,
-                     data=self.jp2_data,
-                     psnr=[30, 35, 40], cbsize=(16, 16), psizes=[(64, 64)])
+            # warning due to tcp_rates[1] == 0.
+            with self.assertWarns(UserWarning):
+                j = Jp2k(tfile.name,
+                         data=self.jp2_data,
+                         psnr=[30, 35, 40], cbsize=(16, 16), psizes=[(64, 64)])
 
             codestream = j.get_codestream()
 
@@ -1452,7 +1468,12 @@ class TestJp2k_write(fixtures.MetadataBase):
 
         """
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, data=self.jp2_data, cratios=[50])
+
+            with warnings.catch_warnings():
+                # suppress a library warning
+                warnings.simplefilter('ignore')
+
+                j = Jp2k(tfile.name, data=self.jp2_data, cratios=[50])
 
             codestream = j.get_codestream(header_only=False)
 
@@ -1482,9 +1503,14 @@ class TestJp2k_write(fixtures.MetadataBase):
 
         """
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-            jp2 = Jp2k(tfile.name,
-                       data=self.jp2_data,
-                       psnr=[30, 35, 50], prog='LRCP', numres=3)
+
+            with warnings.catch_warnings():
+                # suppress a library warning
+                warnings.simplefilter('ignore')
+
+                jp2 = Jp2k(tfile.name,
+                           data=self.jp2_data,
+                           psnr=[30, 35, 50], prog='LRCP', numres=3)
 
             ids = [box.box_id for box in jp2.box]
             self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
@@ -1720,8 +1746,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         data = np.zeros((640, 480), dtype=np.uint8)
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             with self.assertRaises(IOError):
-                Jp2k(tfile.name, data=data,
-                     cbsize=(16, 16), psizes=[(16, 16)])
+                Jp2k(tfile.name, data=data, cbsize=(16, 16), psizes=[(16, 16)])
 
     def test_precinct_size_not_power_of_two(self):
         """must be power of two"""
