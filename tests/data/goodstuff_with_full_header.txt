@@ -1,0 +1,79 @@
+Codestream:
+    SOC marker segment @ (0, 0)
+    SIZ marker segment @ (2, 47)
+        Profile:  no profile
+        Reference Grid Height, Width:  (800 x 480)
+        Vertical, Horizontal Reference Grid Offset:  (0 x 0)
+        Reference Tile Height, Width:  (800 x 480)
+        Vertical, Horizontal Reference Tile Offset:  (0 x 0)
+        Bitdepth:  (8, 8, 8)
+        Signed:  (False, False, False)
+        Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))
+    COD marker segment @ (51, 12)
+        Coding style:
+            Entropy coder, without partitions
+            SOP marker segments:  False
+            EPH marker segments:  False
+        Coding style parameters:
+            Progression order:  LRCP
+            Number of layers:  1
+            Multiple component transformation usage:  reversible
+            Number of resolutions:  6
+            Code block height, width:  (64 x 64)
+            Wavelet transform:  5-3 reversible
+            Precinct size:  (32768, 32768)
+            Code block context:
+                Selective arithmetic coding bypass:  False
+                Reset context probabilities on coding pass boundaries:  False
+                Termination on each coding pass:  False
+                Vertically stripe causal context:  False
+                Predictable termination:  False
+                Segmentation symbols:  False
+    QCD marker segment @ (65, 19)
+        Quantization style:  no quantization, 2 guard bits
+        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10)]
+    SOT marker segment @ (86, 10)
+        Tile part index:  0
+        Tile part length:  115132
+        Tile part instance:  0
+        Number of tile parts:  1
+    COC marker segment @ (98, 9)
+        Associated component:  1
+        Coding style for this component:  Entropy coder, PARTITION = 0
+        Coding style parameters:
+            Number of resolutions:  6
+            Code block height, width:  (64 x 64)
+            Wavelet transform:  5-3 reversible
+            Precinct size:  (32768, 32768)
+            Code block context:
+                Selective arithmetic coding bypass:  False
+                Reset context probabilities on coding pass boundaries:  False
+                Termination on each coding pass:  False
+                Vertically stripe causal context:  False
+                Predictable termination:  False
+                Segmentation symbols:  False
+    QCC marker segment @ (109, 20)
+        Associated Component:  1
+        Quantization style:  no quantization, 2 guard bits
+        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10)]
+    COC marker segment @ (131, 9)
+        Associated component:  2
+        Coding style for this component:  Entropy coder, PARTITION = 0
+        Coding style parameters:
+            Number of resolutions:  6
+            Code block height, width:  (64 x 64)
+            Wavelet transform:  5-3 reversible
+            Precinct size:  (32768, 32768)
+            Code block context:
+                Selective arithmetic coding bypass:  False
+                Reset context probabilities on coding pass boundaries:  False
+                Termination on each coding pass:  False
+                Vertically stripe causal context:  False
+                Predictable termination:  False
+                Segmentation symbols:  False
+    QCC marker segment @ (142, 20)
+        Associated Component:  2
+        Quantization style:  no quantization, 2 guard bits
+        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10)]
+    SOD marker segment @ (164, 0)
+    EOC marker segment @ (115218, 0)

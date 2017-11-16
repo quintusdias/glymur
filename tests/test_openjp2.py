@@ -4,7 +4,6 @@ Tests for libopenjp2 wrapping functions.
 # Standard library imports ...
 from io import StringIO
 import os
-import re
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -353,7 +352,7 @@ class TestPrintingOpenjp2(unittest.TestCase):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(dparams)
             actual = fake_out.getvalue().strip()
-        expected = fixtures.decompression_parameters_type
+        expected = fixtures.DECOMPRESSION_PARAMETERS_TYPE
         self.assertEqual(actual, expected)
 
     def test_progression_order_changes(self):
@@ -362,7 +361,7 @@ class TestPrintingOpenjp2(unittest.TestCase):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(ptype)
             actual = fake_out.getvalue().strip()
-        expected = fixtures.default_progression_order_changes_type
+        expected = fixtures.DEFAULT_PROGRESSION_ORDER_CHANGES_TYPE
         self.assertEqual(actual, expected)
 
     def test_default_compression_parameters(self):
@@ -371,7 +370,7 @@ class TestPrintingOpenjp2(unittest.TestCase):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(cparams)
             actual = fake_out.getvalue().strip()
-        expected = fixtures.default_compression_parameters_type
+        expected = fixtures.DEFAULT_COMPRESSION_PARAMETERS_TYPE
         self.assertEqual(actual, expected)
 
     def test_default_component_parameters(self):
@@ -380,7 +379,16 @@ class TestPrintingOpenjp2(unittest.TestCase):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(icpt)
             actual = fake_out.getvalue().strip()
-        expected = fixtures.default_image_component_parameters
+        expected = ("<class 'glymur.lib.openjp2.ImageComptParmType'>:\n"
+                    "    dx: 0\n"
+                    "    dy: 0\n"
+                    "    w: 0\n"
+                    "    h: 0\n"
+                    "    x0: 0\n"
+                    "    y0: 0\n"
+                    "    prec: 0\n"
+                    "    bpp: 0\n"
+                    "    sgnd: 0")
         self.assertEqual(actual, expected)
 
     def test_default_image_type(self):
@@ -390,5 +398,15 @@ class TestPrintingOpenjp2(unittest.TestCase):
             print(it)
             actual = fake_out.getvalue().strip()
 
-        expected = fixtures.default_image_type
+        expected = (
+            "<class 'glymur.lib.openjp2.ImageType'>:\n"
+            "    x0: 0\n"
+            "    y0: 0\n"
+            "    x1: 0\n"
+            "    y1: 0\n"
+            "    numcomps: 0\n"
+            "    color_space: 0\n"
+            "    icc_profile_buf: "
+            "<glymur.lib.openjp2.LP_c_ubyte object at 0x[0-9A-Fa-f]*>\n"
+            "    icc_profile_len: 0")
         self.assertRegex(actual, expected)
