@@ -26,7 +26,6 @@ import glymur
 from glymur import Jp2k
 from glymur.core import COLOR, RED, GREEN, BLUE, RESTRICTED_ICC_PROFILE
 from glymur.codestream import SIZsegment
-from glymur.version import openjpeg_version
 
 from .fixtures import WINDOWS_TMP_FILE_MSG
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG

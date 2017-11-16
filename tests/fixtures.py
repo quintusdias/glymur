@@ -2,6 +2,7 @@
 Test fixtures common to more than one test point.
 """
 import os
+import pathlib
 import re
 import subprocess
 import sys
@@ -583,36 +584,17 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)
 {}'''
 nemo_dump_no_xml = _fmt.format(textwrap.indent(codestream_header, '    '))
 
-# Output of reader requirements printing for text_GBR.jp2
-text_GBR_rreq = r"""Reader Requirements Box (rreq) @ (40, 109)
-    Fully Understands Aspect Mask:  0xffff
-    Display Completely Mask:  0xf8f0
-    Standard Features and Masks:
-        Feature 001:  0x8000 Deprecated - contains no extensions
-        Feature 005:  0x4080 Unrestricted JPEG 2000 Part 1 codestream, ITU-T Rec. T.800 | ISO/IEC 15444-1
-        Feature 012:  0x2040 Deprecated - codestream is contiguous
-        Feature 018:  0x1020 Deprecated - support for compositing is not required
-        Feature 044:  0x810 Compositing layer uses Any ICC profile
-    Vendor Features:
-        UUID 3a0d0218-0ae9-4115-b376-4bca41ce0e71
-        UUID 47c92ccc-d1a1-4581-b904-38bb5467713b
-        UUID bc45a774-dd50-4ec6-a9f6-f3a137f47e90
-        UUID d7c8c5ef-951f-43b2-8757-042500f538e8"""
+path = pathlib.Path(__file__).parent / 'data' / 'text_GBR_rreq.txt'
+with open(path, mode='rt') as f:
+    text_GBR_rreq = f.read()
 
-file1_xml = """<IMAGE_CREATION xmlns="http://www.jpeg.org/jpx/1.0/xml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.jpeg.org/jpx/1.0/xml http://www.jpeg.org/metadata/15444-2.xsd">
-    <GENERAL_CREATION_INFO>
-        <CREATION_TIME>2001-11-01T13:45:00.000-06:00</CREATION_TIME>
-        <IMAGE_SOURCE>Professional 120 Image</IMAGE_SOURCE>
-    </GENERAL_CREATION_INFO>
-</IMAGE_CREATION>"""
+path = pathlib.Path(__file__).parent / 'data' / 'file1_xml.txt'
+with open(path, mode='rt') as f:
+    file1_xml = f.read()
 
-file1_xml_box = """XML Box (xml ) @ (36, 439)
-    <IMAGE_CREATION xmlns="http://www.jpeg.org/jpx/1.0/xml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.jpeg.org/jpx/1.0/xml http://www.jpeg.org/metadata/15444-2.xsd">
-        <GENERAL_CREATION_INFO>
-            <CREATION_TIME>2001-11-01T13:45:00.000-06:00</CREATION_TIME>
-            <IMAGE_SOURCE>Professional 120 Image</IMAGE_SOURCE>
-        </GENERAL_CREATION_INFO>
-    </IMAGE_CREATION>"""
+path = pathlib.Path(__file__).parent / 'data' / 'file1_xml_box.txt'
+with open(path, mode='rt') as f:
+    file1_xml_box = f.read()
 
 issue_182_cmap = """Component Mapping Box (cmap) @ (130, 24)
     Component 0 ==> palette column 0
@@ -624,7 +606,6 @@ issue_183_colr = """Colour Specification Box (colr) @ (62, 12)
     Method:  restricted ICC profile
     Precedence:  0
     ICC Profile:  None"""
-
 
 # Progression order is invalid.
 issue_186_progression_order = """COD marker segment @ (174, 12)
@@ -666,121 +647,13 @@ jplh_color_group_box = r"""Compositing Layer Header Box (jplh) @ (314227, 31)
             Precedence:  0
             Colorspace:  sRGB"""
 
-goodstuff_codestream_header = r"""File:  goodstuff.j2k
-Codestream:
-    SOC marker segment @ (0, 0)
-    SIZ marker segment @ (2, 47)
-        Profile:  no profile
-        Reference Grid Height, Width:  (800 x 480)
-        Vertical, Horizontal Reference Grid Offset:  (0 x 0)
-        Reference Tile Height, Width:  (800 x 480)
-        Vertical, Horizontal Reference Tile Offset:  (0 x 0)
-        Bitdepth:  (8, 8, 8)
-        Signed:  (False, False, False)
-        Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))
-    COD marker segment @ (51, 12)
-        Coding style:
-            Entropy coder, without partitions
-            SOP marker segments:  False
-            EPH marker segments:  False
-        Coding style parameters:
-            Progression order:  LRCP
-            Number of layers:  1
-            Multiple component transformation usage:  reversible
-            Number of resolutions:  6
-            Code block height, width:  (64 x 64)
-            Wavelet transform:  5-3 reversible
-            Precinct size:  (32768, 32768)
-            Code block context:
-                Selective arithmetic coding bypass:  False
-                Reset context probabilities on coding pass boundaries:  False
-                Termination on each coding pass:  False
-                Vertically stripe causal context:  False
-                Predictable termination:  False
-                Segmentation symbols:  False
-    QCD marker segment @ (65, 19)
-        Quantization style:  no quantization, 2 guard bits
-        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10)]"""
+p = pathlib.Path(__file__).parent / 'data' / 'goodstuff_codestream_header.txt'
+with open(p, mode='rt') as f:
+    goodstuff_codestream_header = f.read()
 
-goodstuff_with_full_header = r"""Codestream:
-    SOC marker segment @ (0, 0)
-    SIZ marker segment @ (2, 47)
-        Profile:  no profile
-        Reference Grid Height, Width:  (800 x 480)
-        Vertical, Horizontal Reference Grid Offset:  (0 x 0)
-        Reference Tile Height, Width:  (800 x 480)
-        Vertical, Horizontal Reference Tile Offset:  (0 x 0)
-        Bitdepth:  (8, 8, 8)
-        Signed:  (False, False, False)
-        Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))
-    COD marker segment @ (51, 12)
-        Coding style:
-            Entropy coder, without partitions
-            SOP marker segments:  False
-            EPH marker segments:  False
-        Coding style parameters:
-            Progression order:  LRCP
-            Number of layers:  1
-            Multiple component transformation usage:  reversible
-            Number of resolutions:  6
-            Code block height, width:  (64 x 64)
-            Wavelet transform:  5-3 reversible
-            Precinct size:  (32768, 32768)
-            Code block context:
-                Selective arithmetic coding bypass:  False
-                Reset context probabilities on coding pass boundaries:  False
-                Termination on each coding pass:  False
-                Vertically stripe causal context:  False
-                Predictable termination:  False
-                Segmentation symbols:  False
-    QCD marker segment @ (65, 19)
-        Quantization style:  no quantization, 2 guard bits
-        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10)]
-    SOT marker segment @ (86, 10)
-        Tile part index:  0
-        Tile part length:  115132
-        Tile part instance:  0
-        Number of tile parts:  1
-    COC marker segment @ (98, 9)
-        Associated component:  1
-        Coding style for this component:  Entropy coder, PARTITION = 0
-        Coding style parameters:
-            Number of resolutions:  6
-            Code block height, width:  (64 x 64)
-            Wavelet transform:  5-3 reversible
-            Precinct size:  (32768, 32768)
-            Code block context:
-                Selective arithmetic coding bypass:  False
-                Reset context probabilities on coding pass boundaries:  False
-                Termination on each coding pass:  False
-                Vertically stripe causal context:  False
-                Predictable termination:  False
-                Segmentation symbols:  False
-    QCC marker segment @ (109, 20)
-        Associated Component:  1
-        Quantization style:  no quantization, 2 guard bits
-        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10)]
-    COC marker segment @ (131, 9)
-        Associated component:  2
-        Coding style for this component:  Entropy coder, PARTITION = 0
-        Coding style parameters:
-            Number of resolutions:  6
-            Code block height, width:  (64 x 64)
-            Wavelet transform:  5-3 reversible
-            Precinct size:  (32768, 32768)
-            Code block context:
-                Selective arithmetic coding bypass:  False
-                Reset context probabilities on coding pass boundaries:  False
-                Termination on each coding pass:  False
-                Vertically stripe causal context:  False
-                Predictable termination:  False
-                Segmentation symbols:  False
-    QCC marker segment @ (142, 20)
-        Associated Component:  2
-        Quantization style:  no quantization, 2 guard bits
-        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10), (0, 9), (0, 9), (0, 10)]
-    SOD marker segment @ (164, 0)
-    EOC marker segment @ (115218, 0)"""
+p = pathlib.Path(__file__).parent / 'data' / 'goodstuff_with_full_header.txt'
+with open(p, mode='rt') as f:
+    goodstuff_with_full_header = f.read()
 
 # manually verified via gdalinfo
 geotiff_uuid = """UUID Box (uuid) @ (149, 523)
@@ -809,30 +682,13 @@ geotiff_uuid = """UUID Box (uuid) @ (149, 523)
     Lower Right (-2523305.875, -268609.125) (137d25'49.09"E,  4d31'53.75"S
     Center      (-2523306.000, -268609.000) (137d25'49.09"E,  4d31'53.75"S"""
 
-geotiff_uuid_without_gdal = """UUID Box (uuid) @ (149, 523)
-    UUID:  b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03 (GeoTIFF)
-    UUID Data:  OrderedDict([('ImageWidth', 1), ('ImageLength', 1), ('BitsPerSample', 8), ('Compression', 1), ('PhotometricInterpretation', 1), ('StripOffsets', 8), ('SamplesPerPixel', 1), ('RowsPerStrip', 1), ('StripByteCounts', 1), ('PlanarConfiguration', 1), ('ModelPixelScale', (0.25, 0.25, 0.0)), ('ModelTiePoint', (0.0, 0.0, 0.0, -2523306.125, -268608.875, 0.0)), ('GeoKeyDirectory', (1, 1, 0, 18, 1024, 0, 1, 1, 1025, 0, 1, 1, 1026, 34737, 21, 0, 2048, 0, 1, 32767, 2049, 34737, 9, 21, 2050, 0, 1, 32767, 2054, 0, 1, 9102, 2056, 0, 1, 32767, 2057, 34736, 1, 4, 2058, 34736, 1, 5, 3072, 0, 1, 32767, 3074, 0, 1, 32767, 3075, 0, 1, 17, 3076, 0, 1, 9001, 3082, 34736, 1, 2, 3083, 34736, 1, 3, 3088, 34736, 1, 1, 3089, 34736, 1, 0)), ('GeoDoubleParams', (0.0, 180.0, 0.0, 0.0, 3396190.0, 3396190.0)), ('GeoAsciiParams', 'Equirectangular MARS|GCS_MARS|')])"""
+path = pathlib.Path(__file__).parent / 'data' / 'geotiff_uuid_without_gdal.txt'
+with open(path, mode='rt') as f:
+    geotiff_uuid_without_gdal = f.read()
 
-multiple_precinct_size = """COD marker segment @ (51, 18)
-    Coding style:
-        Entropy coder, with partitions
-        SOP marker segments:  False
-        EPH marker segments:  False
-    Coding style parameters:
-        Progression order:  LRCP
-        Number of layers:  1
-        Multiple component transformation usage:  reversible
-        Number of resolutions:  6
-        Code block height, width:  (64 x 64)
-        Wavelet transform:  5-3 reversible
-        Precinct size:  ((16, 16), (32, 32), (64, 64), (128, 128), (128, 128), (128, 128))
-        Code block context:
-            Selective arithmetic coding bypass:  False
-            Reset context probabilities on coding pass boundaries:  False
-            Termination on each coding pass:  False
-            Vertically stripe causal context:  False
-            Predictable termination:  False
-            Segmentation symbols:  False"""
+path = pathlib.Path(__file__).parent / 'data' / 'multiple_precinct_size.txt'
+with open(path, mode='rt') as f:
+    multiple_precinct_size = f.read()
 
 decompression_parameters_type = """<class 'glymur.lib.openjp2.DecompressionParametersType'>:
     cp_reduce: 0

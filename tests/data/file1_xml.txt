@@ -1,0 +1,6 @@
+<IMAGE_CREATION xmlns="http://www.jpeg.org/jpx/1.0/xml" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.jpeg.org/jpx/1.0/xml http://www.jpeg.org/metadata/15444-2.xsd">
+    <GENERAL_CREATION_INFO>
+        <CREATION_TIME>2001-11-01T13:45:00.000-06:00</CREATION_TIME>
+        <IMAGE_SOURCE>Professional 120 Image</IMAGE_SOURCE>
+    </GENERAL_CREATION_INFO>
+</IMAGE_CREATION>
