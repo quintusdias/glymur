@@ -1,0 +1,14 @@
+Reader Requirements Box (rreq) @ (40, 109)
+    Fully Understands Aspect Mask:  0xffff
+    Display Completely Mask:  0xf8f0
+    Standard Features and Masks:
+        Feature 001:  0x8000 Deprecated - contains no extensions
+        Feature 005:  0x4080 Unrestricted JPEG 2000 Part 1 codestream, ITU-T Rec. T.800 | ISO/IEC 15444-1
+        Feature 012:  0x2040 Deprecated - codestream is contiguous
+        Feature 018:  0x1020 Deprecated - support for compositing is not required
+        Feature 044:  0x810 Compositing layer uses Any ICC profile
+    Vendor Features:
+        UUID 3a0d0218-0ae9-4115-b376-4bca41ce0e71
+        UUID 47c92ccc-d1a1-4581-b904-38bb5467713b
+        UUID bc45a774-dd50-4ec6-a9f6-f3a137f47e90
+        UUID d7c8c5ef-951f-43b2-8757-042500f538e8

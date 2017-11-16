@@ -1,0 +1,19 @@
+JPEG 2000 Signature Box (jP  ) @ (0, 12)
+    Signature:  0d0a870a
+File Type Box (ftyp) @ (12, 20)
+    Brand:  jp2
+    Compatibility:  ['jp2 ']
+JP2 Header Box (jp2h) @ (32, 45)
+    Image Header Box (ihdr) @ (40, 22)
+        Size:  [1456 2592 3]
+        Bitdepth:  8
+        Signed:  False
+        Compression:  wavelet
+        Colorspace Unknown:  False
+    Colour Specification Box (colr) @ (62, 15)
+        Method:  enumerated colorspace
+        Precedence:  0
+        Colorspace:  sRGB
+UUID Box (uuid) @ (77, 3146)
+    UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
+Contiguous Codestream Box (jp2c) @ (3223, 1132296)

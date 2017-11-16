@@ -50,20 +50,16 @@ class TestCallbacks(unittest.TestCase):
         self.assertEqual(actual, expected)
 
     def test_info_callbacks_on_read(self):
-        """stdio output when info callback handler is enabled"""
+        """
+        SCENARIO:  the verbose attribute is set to True
 
-        # Verify that we get the expected stdio output when our internal info
-        # callback handler is enabled.
+        EXPECTED RESULT:  The info callback handler should be enabled.  There
+        should be [INFO] output present in sys.stdout.
+        """
         jp2 = glymur.Jp2k(self.j2kfile)
         with patch('sys.stdout', new=StringIO()) as fake_out:
             jp2.verbose = True
             jp2[::2, ::2]
             actual = fake_out.getvalue().strip()
 
-        expected = ('[INFO] Start to read j2k main header (0).\n'
-                    '[INFO] Main header has been correctly decoded.\n'
-                    '[INFO] Setting decoding area to 0,0,480,800\n'
-                    '[INFO] Header of tile 1 / 1 has been read.\n'
-                    '[INFO] Tile 1/1 has been decoded.\n'
-                    '[INFO] Image data has been updated with tile 1.')
-        self.assertEqual(actual, expected)
+        self.assertIn('[INFO]', actual)
