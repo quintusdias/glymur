@@ -142,9 +142,12 @@ class TestPrinting(unittest.TestCase):
     @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
     def test_xml(self):
         """
-        verify printing of XML box
+        SCENARIO:  JP2 file has an XML box.
 
-        Original test file was input/conformance/file1.jp2
+        The original test file was input/conformance/file1.jp2
+
+        EXPECTED RESULT:  The string representation of the XML box matches
+        expectations.
         """
         elt = ET.fromstring(fixtures.file1_xml)
         xml = ET.ElementTree(elt)
@@ -1470,7 +1473,11 @@ class TestJp2dump(unittest.TestCase):
         self.assertRegex(actual, "File:  .*")
 
     def test_j2k_codestream_1(self):
-        """-c 1 should print the codestream header"""
+        """
+        SCENARIO:  The jp2dump executable is used with the "-c 1" switch.
+
+        EXPECTED RESULT:  The output should include the codestream header.
+        """
         sys.argv = ['', '-c', '1', self.j2kfile]
         with patch('sys.stdout', new=StringIO()) as stdout:
             command_line.main()

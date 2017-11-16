@@ -410,11 +410,12 @@ class TestSuiteHiRISE(unittest.TestCase):
         jp2 = Jp2k(self.hirise_jp2file_name)
         actual = str(jp2.box[4])
         if fixtures.HAVE_GDAL:
-            self.assertEqual(actual, fixtures.geotiff_uuid)
+            expected = fixtures.geotiff_uuid
         else:
             # Only verify if PY3K, don't bother with Python2.  OrderedDicts
             # print out differently.
-            self.assertEqual(actual, fixtures.geotiff_uuid_without_gdal)
+            expected = fixtures.geotiff_uuid_without_gdal
+        self.assertEqual(actual, expected)
 
 
 @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)

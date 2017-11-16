@@ -1,7 +1,6 @@
 """
 Test fixtures common to more than one test point.
 """
-import os
 import pathlib
 import re
 import subprocess
@@ -53,6 +52,7 @@ def low_memory_linux_machine():
     stdout, stderr = p3.communicate()
     nbytes = int(stdout.decode('utf-8').strip())
     return nbytes < 2000
+
 
 class MetadataBase(unittest.TestCase):
     """
@@ -205,7 +205,7 @@ try:
         # Probably too old.  On Ubuntu 12.04.5, the old PIL
         # is still used for the backend, and it can't read
         # the images we need.
-        raise ImportError('MPL is too old')  
+        raise ImportError('MPL is too old')
     from matplotlib.pyplot import imread
 
     # The whole point of trying to import PIL is to determine if it's there
@@ -236,91 +236,11 @@ def mse(amat, bmat):
     return err
 
 
-nemo_xmp = """<?xpacket begin="" id="W5M0MpCehiHzreSzNTczkc9d"?>
-<ns0:xmpmeta xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:ns0="adobe:ns:meta/" xmlns:ns2="http://ns.adobe.com/xap/1.0/" xmlns:ns3="http://ns.adobe.com/tiff/1.0/" xmlns:ns4="http://ns.adobe.com/exif/1.0/" xmlns:ns5="http://ns.adobe.com/photoshop/1.0/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" ns0:xmptk="Exempi + XMP Core 5.1.2">
- <rdf:RDF>
-  <rdf:Description rdf:about="">
-   <ns2:CreatorTool>Google</ns2:CreatorTool>
-   <ns2:CreateDate>2013-02-09T14:47:53</ns2:CreateDate>
-  </rdf:Description>
-  <rdf:Description rdf:about="">
-   <ns3:YCbCrPositioning>1</ns3:YCbCrPositioning>
-   <ns3:XResolution>72/1</ns3:XResolution>
-   <ns3:YResolution>72/1</ns3:YResolution>
-   <ns3:ResolutionUnit>2</ns3:ResolutionUnit>
-   <ns3:Make>HTC</ns3:Make>
-   <ns3:Model>HTC Glacier</ns3:Model>
-   <ns3:ImageWidth>2592</ns3:ImageWidth>
-   <ns3:ImageLength>1456</ns3:ImageLength>
-   <ns3:BitsPerSample>
-    <rdf:Seq>
-     <rdf:li>8</rdf:li>
-     <rdf:li>8</rdf:li>
-     <rdf:li>8</rdf:li>
-    </rdf:Seq>
-   </ns3:BitsPerSample>
-   <ns3:PhotometricInterpretation>2</ns3:PhotometricInterpretation>
-   <ns3:SamplesPerPixel>3</ns3:SamplesPerPixel>
-   <ns3:WhitePoint>
-    <rdf:Seq>
-     <rdf:li>1343036288/4294967295</rdf:li>
-     <rdf:li>1413044224/4294967295</rdf:li>
-    </rdf:Seq>
-   </ns3:WhitePoint>
-   <ns3:PrimaryChromaticities>
-    <rdf:Seq>
-     <rdf:li>2748779008/4294967295</rdf:li>
-     <rdf:li>1417339264/4294967295</rdf:li>
-     <rdf:li>1288490240/4294967295</rdf:li>
-     <rdf:li>2576980480/4294967295</rdf:li>
-     <rdf:li>644245120/4294967295</rdf:li>
-     <rdf:li>257698032/4294967295</rdf:li>
-    </rdf:Seq>
-   </ns3:PrimaryChromaticities>
-  </rdf:Description>
-  <rdf:Description rdf:about="">
-   <ns4:ColorSpace>1</ns4:ColorSpace>
-   <ns4:PixelXDimension>2528</ns4:PixelXDimension>
-   <ns4:PixelYDimension>1424</ns4:PixelYDimension>
-   <ns4:FocalLength>353/100</ns4:FocalLength>
-   <ns4:GPSAltitudeRef>0</ns4:GPSAltitudeRef>
-   <ns4:GPSAltitude>0/1</ns4:GPSAltitude>
-   <ns4:GPSMapDatum>WGS-84</ns4:GPSMapDatum>
-   <ns4:DateTimeOriginal>2013-02-09T14:47:53</ns4:DateTimeOriginal>
-   <ns4:ISOSpeedRatings>
-    <rdf:Seq>
-     <rdf:li>76</rdf:li>
-    </rdf:Seq>
-   </ns4:ISOSpeedRatings>
-   <ns4:ExifVersion>0220</ns4:ExifVersion>
-   <ns4:FlashpixVersion>0100</ns4:FlashpixVersion>
-   <ns4:ComponentsConfiguration>
-    <rdf:Seq>
-     <rdf:li>1</rdf:li>
-     <rdf:li>2</rdf:li>
-     <rdf:li>3</rdf:li>
-     <rdf:li>0</rdf:li>
-    </rdf:Seq>
-   </ns4:ComponentsConfiguration>
-   <ns4:GPSLatitude>42,20.56N</ns4:GPSLatitude>
-   <ns4:GPSLongitude>71,5.29W</ns4:GPSLongitude>
-   <ns4:GPSTimeStamp>2013-02-09T19:47:53Z</ns4:GPSTimeStamp>
-   <ns4:GPSProcessingMethod>NETWORK</ns4:GPSProcessingMethod>
-  </rdf:Description>
-  <rdf:Description rdf:about="">
-   <ns5:DateCreated>2013-02-09T14:47:53</ns5:DateCreated>
-  </rdf:Description>
-  <rdf:Description rdf:about="">
-   <dc:Creator>
-    <rdf:Seq>
-     <rdf:li>Glymur</rdf:li>
-     <rdf:li>Python XMP Toolkit</rdf:li>
-    </rdf:Seq>
-   </dc:Creator>
-  </rdf:Description>
- </rdf:RDF>
-</ns0:xmpmeta>
-<?xpacket end="w"?>"""
+root = pathlib.Path(__file__).parent / 'data'
+
+path = root / 'nemo_xmp.txt'
+with open(path, mode='rt') as f:
+    nemo_xmp = f.read().rstrip('\n')
 
 nemo_xmp_box = """UUID Box (uuid) @ (77, 3146)
     UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
@@ -343,76 +263,13 @@ SimpleRDF = """<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
   </rdf:Description>
 </rdf:RDF>"""
 
-text_gbr_34 = """Colour Specification Box (colr) @ (179, 1339)
-    Method:  any ICC profile
-    Precedence:  2
-    Approximation:  accurately represents correct colorspace definition
-    ICC Profile:
-        {'Size': 1328,
-         'Preferred CMM Type': 1634758764,
-         'Version': '2.2.0',
-         'Device Class': 'display device profile',
-         'Color Space': 'RGB',
-         'Connection Space': 'XYZ',
-         'Datetime': datetime.datetime(2009, 2, 25, 11, 26, 11),
-         'File Signature': 'acsp',
-         'Platform': 'APPL',
-         'Flags': 'not embedded, can be used independently',
-         'Device Manufacturer': 'appl',
-         'Device Model': '',
-         'Device Attributes': 'reflective, glossy, positive media polarity, color '
-                              'media',
-         'Rendering Intent': 'perceptual',
-         'Illuminant': array([ 0.96420288,  1.        ,  0.8249054 ]),
-         'Creator': 'appl'}"""
+path = root / 'text_gbr_34.txt'
+with open(path, mode='rt') as f:
+    text_gbr_34 = f.read().rstrip('\n')
 
-text_gbr_35 = """Colour Specification Box (colr) @ (179, 1339)
-    Method:  any ICC profile
-    Precedence:  2
-    Approximation:  accurately represents correct colorspace definition
-    ICC Profile:
-        OrderedDict([('Size', 1328),
-                     ('Preferred CMM Type', 1634758764),
-                     ('Version', '2.2.0'),
-                     ('Device Class', 'display device profile'),
-                     ('Color Space', 'RGB'),
-                     ('Connection Space', 'XYZ'),
-                     ('Datetime', datetime.datetime(2009, 2, 25, 11, 26, 11)),
-                     ('File Signature', 'acsp'),
-                     ('Platform', 'APPL'),
-                     ('Flags', 'not embedded, can be used independently'),
-                     ('Device Manufacturer', 'appl'),
-                     ('Device Model', ''),
-                     ('Device Attributes',
-                      'reflective, glossy, positive media polarity, color media'),
-                     ('Rendering Intent', 'perceptual'),
-                     ('Illuminant', array([ 0.96420288,  1.        ,  0.8249054 ])),
-                     ('Creator', 'appl')])"""
-
-
-# Metadata dump of nemo.
-nemo_fmt = r'''JPEG 2000 Signature Box (jP  ) @ (0, 12)
-    Signature:  0d0a870a
-File Type Box (ftyp) @ (12, 20)
-    Brand:  jp2 
-    Compatibility:  ['jp2 ']
-JP2 Header Box (jp2h) @ (32, 45)
-    Image Header Box (ihdr) @ (40, 22)
-        Size:  [1456 2592 3]
-        Bitdepth:  8
-        Signed:  False
-        Compression:  wavelet
-        Colorspace Unknown:  False
-    Colour Specification Box (colr) @ (62, 15)
-        Method:  enumerated colorspace
-        Precedence:  0
-        Colorspace:  sRGB
-UUID Box (uuid) @ (77, 3146)
-    UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
-    UUID Data:
-{xmp}
-Contiguous Codestream Box (jp2c) @ (3223, 1132296)
-{codestream}'''
+path = root / 'text_gbr_35.txt'
+with open(path, mode='rt') as f:
+    text_gbr_35 = f.read().rstrip('\n')
 
 codestream_header = '''SOC marker segment @ (3231, 0)
 SIZ marker segment @ (3233, 47)
@@ -498,11 +355,9 @@ EOC marker segment @ (1135517, 0)"""
 
 codestream = '\n'.join([codestream_header, codestream_trailer])
 
-_kwargs = {
-    'xmp': textwrap.indent(nemo_xmp, '    '),
-    'codestream': textwrap.indent(codestream_header, '    ')
-}
-nemo_with_codestream_header = nemo_fmt.format(**_kwargs)
+path = root / 'nemo_with_codestream_header.txt'
+with open(path, mode='rt') as f:
+    nemo_with_codestream_header = f.read().rstrip('\n')
 
 nemo_dump_short = r"""JPEG 2000 Signature Box (jP  ) @ (0, 12)
 File Type Box (ftyp) @ (12, 20)
@@ -512,29 +367,9 @@ JP2 Header Box (jp2h) @ (32, 45)
 UUID Box (uuid) @ (77, 3146)
 Contiguous Codestream Box (jp2c) @ (3223, 1132296)"""
 
-_fmt = """JPEG 2000 Signature Box (jP  ) @ (0, 12)
-    Signature:  0d0a870a
-File Type Box (ftyp) @ (12, 20)
-    Brand:  jp2 
-    Compatibility:  ['jp2 ']
-JP2 Header Box (jp2h) @ (32, 45)
-    Image Header Box (ihdr) @ (40, 22)
-        Size:  [1456 2592 3]
-        Bitdepth:  8
-        Signed:  False
-        Compression:  wavelet
-        Colorspace Unknown:  False
-    Colour Specification Box (colr) @ (62, 15)
-        Method:  enumerated colorspace
-        Precedence:  0
-        Colorspace:  sRGB
-UUID Box (uuid) @ (77, 3146)
-    UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
-    UUID Data:
-{xmp}
-Contiguous Codestream Box (jp2c) @ (3223, 1132296)"""
-nemo_dump_no_codestream = _fmt.format(xmp=textwrap.indent(nemo_xmp, '    '))
-
+path = root / 'nemo_dump_no_codestream.txt'
+with open(path, mode='rt') as f:
+    nemo_dump_no_codestream = f.read().rstrip('\n')
 
 nemo_dump_no_codestream_no_xml = r"""JPEG 2000 Signature Box (jP  ) @ (0, 12)
     Signature:  0d0a870a
@@ -556,45 +391,25 @@ UUID Box (uuid) @ (77, 3146)
     UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
 Contiguous Codestream Box (jp2c) @ (3223, 1132296)"""
 
-_kwargs = {
-    'xmp': textwrap.indent(nemo_xmp, '    '),
-    'codestream': textwrap.indent(codestream, '    ')
-}
-nemo = nemo_fmt.format(**_kwargs)
-
-_fmt = '''JPEG 2000 Signature Box (jP  ) @ (0, 12)
-    Signature:  0d0a870a
-File Type Box (ftyp) @ (12, 20)
-    Brand:  jp2 
-    Compatibility:  ['jp2 ']
-JP2 Header Box (jp2h) @ (32, 45)
-    Image Header Box (ihdr) @ (40, 22)
-        Size:  [1456 2592 3]
-        Bitdepth:  8
-        Signed:  False
-        Compression:  wavelet
-        Colorspace Unknown:  False
-    Colour Specification Box (colr) @ (62, 15)
-        Method:  enumerated colorspace
-        Precedence:  0
-        Colorspace:  sRGB
-UUID Box (uuid) @ (77, 3146)
-    UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
-Contiguous Codestream Box (jp2c) @ (3223, 1132296)
-{}'''
-nemo_dump_no_xml = _fmt.format(textwrap.indent(codestream_header, '    '))
-
-path = pathlib.Path(__file__).parent / 'data' / 'text_GBR_rreq.txt'
+path = root / 'nemo.txt'
 with open(path, mode='rt') as f:
-    text_GBR_rreq = f.read()
+    nemo = f.read().rstrip('\n')
 
-path = pathlib.Path(__file__).parent / 'data' / 'file1_xml.txt'
+path = root / 'nemo_dump_no_xml.txt'
 with open(path, mode='rt') as f:
-    file1_xml = f.read()
+    nemo_dump_no_xml = f.read().rstrip('\n')
 
-path = pathlib.Path(__file__).parent / 'data' / 'file1_xml_box.txt'
+path = root / 'text_GBR_rreq.txt'
 with open(path, mode='rt') as f:
-    file1_xml_box = f.read()
+    text_GBR_rreq = f.read().rstrip('\n')
+
+path = root / 'file1_xml.txt'
+with open(path, mode='rt') as f:
+    file1_xml = f.read().rstrip('\n')
+
+path = root / 'file1_xml_box.txt'
+with open(path, mode='rt') as f:
+    file1_xml_box = f.read().rstrip('\n')
 
 issue_182_cmap = """Component Mapping Box (cmap) @ (130, 24)
     Component 0 ==> palette column 0
@@ -647,13 +462,13 @@ jplh_color_group_box = r"""Compositing Layer Header Box (jplh) @ (314227, 31)
             Precedence:  0
             Colorspace:  sRGB"""
 
-p = pathlib.Path(__file__).parent / 'data' / 'goodstuff_codestream_header.txt'
-with open(p, mode='rt') as f:
-    goodstuff_codestream_header = f.read()
+path = root / 'goodstuff_codestream_header.txt'
+with open(path, mode='rt') as f:
+    goodstuff_codestream_header = f.read().rstrip('\n')
 
-p = pathlib.Path(__file__).parent / 'data' / 'goodstuff_with_full_header.txt'
-with open(p, mode='rt') as f:
-    goodstuff_with_full_header = f.read()
+path = root / 'goodstuff_with_full_header.txt'
+with open(path, mode='rt') as f:
+    goodstuff_with_full_header = f.read().rstrip('\n')
 
 # manually verified via gdalinfo
 geotiff_uuid = """UUID Box (uuid) @ (149, 523)
@@ -682,13 +497,13 @@ geotiff_uuid = """UUID Box (uuid) @ (149, 523)
     Lower Right (-2523305.875, -268609.125) (137d25'49.09"E,  4d31'53.75"S
     Center      (-2523306.000, -268609.000) (137d25'49.09"E,  4d31'53.75"S"""
 
-path = pathlib.Path(__file__).parent / 'data' / 'geotiff_uuid_without_gdal.txt'
+path = root / 'geotiff_uuid_without_gdal.txt'
 with open(path, mode='rt') as f:
-    geotiff_uuid_without_gdal = f.read()
+    geotiff_uuid_without_gdal = f.read().rstrip('\n')
 
-path = pathlib.Path(__file__).parent / 'data' / 'multiple_precinct_size.txt'
+path = root / 'multiple_precinct_size.txt'
 with open(path, mode='rt') as f:
-    multiple_precinct_size = f.read()
+    multiple_precinct_size = f.read().rstrip('\n')
 
 decompression_parameters_type = """<class 'glymur.lib.openjp2.DecompressionParametersType'>:
     cp_reduce: 0

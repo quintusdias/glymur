@@ -52,7 +52,7 @@ class TestCallbacks(unittest.TestCase):
     def test_info_callbacks_on_read(self):
         """
         SCENARIO:  the verbose attribute is set to True
-        
+
         EXPECTED RESULT:  The info callback handler should be enabled.  There
         should be [INFO] output present in sys.stdout.
         """
