@@ -1279,7 +1279,7 @@ class TestRepr(MetadataBase):
                                        signed=(True, False, True))
 
         # Test will fail unless addition imports from numpy are done.
-        from numpy import array, int32
+        from numpy import array, int32  # noqa: F401
         newbox = eval(repr(box))
         np.testing.assert_array_equal(newbox.palette, palette)
         self.assertEqual(newbox.bits_per_component, (8, 8, 16))

@@ -372,6 +372,7 @@ class TestPrinting(unittest.TestCase):
         with self.assertRaises(KeyError):
             glymur.set_option('hi', 'low')
 
+    @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
     @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
     def test_asoc_label_box(self):
         """verify printing of asoc, label boxes"""
