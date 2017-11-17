@@ -186,11 +186,16 @@ def mse(amat, bmat):
     return err
 
 
-root = pathlib.Path(__file__).parent / 'data'
+def load_test_data(name):
+    basename = name + '.txt'
+    path = pathlib.Path(__file__).parent / 'data' / basename
 
-path = root / 'nemo_xmp.txt'
-with open(path, mode='rt') as f:
-    nemo_xmp = f.read().rstrip('\n')
+    # Have to use str for python < 3.6
+    with open(str(path), mode='rt') as f:
+        return f.read().rstrip('\n')
+
+
+nemo_xmp = load_test_data('nemo_xmp')
 
 nemo_xmp_box = """UUID Box (uuid) @ (77, 3146)
     UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
@@ -213,13 +218,8 @@ SimpleRDF = """<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
   </rdf:Description>
 </rdf:RDF>"""
 
-path = root / 'text_gbr_34.txt'
-with open(path, mode='rt') as f:
-    text_gbr_34 = f.read().rstrip('\n')
-
-path = root / 'text_gbr_35.txt'
-with open(path, mode='rt') as f:
-    text_gbr_35 = f.read().rstrip('\n')
+text_gbr_34 = load_test_data('text_gbr_34')
+text_gbr_35 = load_test_data('text_gbr_35')
 
 codestream_header = '''SOC marker segment @ (3231, 0)
 SIZ marker segment @ (3233, 47)
@@ -305,9 +305,7 @@ EOC marker segment @ (1135517, 0)"""
 
 codestream = '\n'.join([codestream_header, codestream_trailer])
 
-path = root / 'nemo_with_codestream_header.txt'
-with open(path, mode='rt') as f:
-    nemo_with_codestream_header = f.read().rstrip('\n')
+nemo_with_codestream_header = load_test_data('nemo_with_codestream_header')
 
 nemo_dump_short = r"""JPEG 2000 Signature Box (jP  ) @ (0, 12)
 File Type Box (ftyp) @ (12, 20)
@@ -317,9 +315,7 @@ JP2 Header Box (jp2h) @ (32, 45)
 UUID Box (uuid) @ (77, 3146)
 Contiguous Codestream Box (jp2c) @ (3223, 1132296)"""
 
-path = root / 'nemo_dump_no_codestream.txt'
-with open(path, mode='rt') as f:
-    nemo_dump_no_codestream = f.read().rstrip('\n')
+nemo_dump_no_codestream = load_test_data('nemo_dump_no_codestream')
 
 nemo_dump_no_codestream_no_xml = r"""JPEG 2000 Signature Box (jP  ) @ (0, 12)
     Signature:  0d0a870a
@@ -341,25 +337,11 @@ UUID Box (uuid) @ (77, 3146)
     UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
 Contiguous Codestream Box (jp2c) @ (3223, 1132296)"""
 
-path = root / 'nemo.txt'
-with open(path, mode='rt') as f:
-    nemo = f.read().rstrip('\n')
-
-path = root / 'nemo_dump_no_xml.txt'
-with open(path, mode='rt') as f:
-    nemo_dump_no_xml = f.read().rstrip('\n')
-
-path = root / 'text_GBR_rreq.txt'
-with open(path, mode='rt') as f:
-    text_GBR_rreq = f.read().rstrip('\n')
-
-path = root / 'file1_xml.txt'
-with open(path, mode='rt') as f:
-    file1_xml = f.read().rstrip('\n')
-
-path = root / 'file1_xml_box.txt'
-with open(path, mode='rt') as f:
-    file1_xml_box = f.read().rstrip('\n')
+nemo = load_test_data('nemo')
+nemo_dump_no_xml = load_test_data('nemo_dump_no_xml')
+text_GBR_rreq = load_test_data('text_GBR_rreq')
+file1_xml = load_test_data('file1_xml')
+file1_xml_box = load_test_data('file1_xml_box')
 
 issue_182_cmap = """Component Mapping Box (cmap) @ (130, 24)
     Component 0 ==> palette column 0
@@ -412,13 +394,8 @@ jplh_color_group_box = r"""Compositing Layer Header Box (jplh) @ (314227, 31)
             Precedence:  0
             Colorspace:  sRGB"""
 
-path = root / 'goodstuff_codestream_header.txt'
-with open(path, mode='rt') as f:
-    goodstuff_codestream_header = f.read().rstrip('\n')
-
-path = root / 'goodstuff_with_full_header.txt'
-with open(path, mode='rt') as f:
-    goodstuff_with_full_header = f.read().rstrip('\n')
+goodstuff_codestream_header = load_test_data('goodstuff_codestream_header')
+goodstuff_with_full_header = load_test_data('goodstuff_with_full_header')
 
 # manually verified via gdalinfo
 geotiff_uuid = """UUID Box (uuid) @ (149, 523)
@@ -447,13 +424,8 @@ geotiff_uuid = """UUID Box (uuid) @ (149, 523)
     Lower Right (-2523305.875, -268609.125) (137d25'49.09"E,  4d31'53.75"S
     Center      (-2523306.000, -268609.000) (137d25'49.09"E,  4d31'53.75"S"""
 
-path = root / 'geotiff_uuid_without_gdal.txt'
-with open(path, mode='rt') as f:
-    geotiff_uuid_without_gdal = f.read().rstrip('\n')
-
-path = root / 'multiple_precinct_size.txt'
-with open(path, mode='rt') as f:
-    multiple_precinct_size = f.read().rstrip('\n')
+geotiff_uuid_without_gdal = load_test_data('geotiff_uuid_without_gdal')
+multiple_precinct_size = load_test_data('multiple_precinct_size')
 
 decompression_parameters_type = """<class 'glymur.lib.openjp2.DecompressionParametersType'>:
     cp_reduce: 0
