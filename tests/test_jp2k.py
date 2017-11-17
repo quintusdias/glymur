@@ -1158,8 +1158,9 @@ class TestJp2k_write(fixtures.MetadataBase):
             'numres': 2,
         }
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            with self.assertWarns(UserWarning):
+            with warnings.catch_warnings():
                 # OpenJPEG library warning about tcp rates in 2.3 and above
+                warnings.simplefilter('ignore')
                 j = Jp2k(tfile.name, **kwargs)
 
             codestream = j.get_codestream()
@@ -1222,8 +1223,10 @@ class TestJp2k_write(fixtures.MetadataBase):
         size are present.  The precinct sizes validate.
         """
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            # warning due to tcp_rates[1] == 0.
-            with self.assertWarns(UserWarning):
+            with warnings.catch_warnings():
+                # warning due to tcp_rates[1] == 0.
+                warnings.simplefilter('ignore')
+
                 j = Jp2k(tfile.name,
                          data=self.jp2_data,
                          psnr=[30, 35, 40], cbsize=(16, 16), psizes=[(64, 64)])
