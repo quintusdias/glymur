@@ -659,7 +659,7 @@ class TestPrinting(unittest.TestCase):
         actual = str(j.box[3])
 
         if 'lxml' in sys.modules.keys():
-            expected = fixtures.nemo_xmp_box
+            expected = fixtures.NEMO_XMP_BOX
             self.assertEqual(actual, expected)
 
     def test_codestream(self):
