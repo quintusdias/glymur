@@ -1139,23 +1139,30 @@ class TestPrinting(unittest.TestCase):
 
     def test_issue182(self):
         """
-        Should not show the format string in output.
+        SCENARIO: Print a component mapping box.
 
-        The cmap box is wildly broken, but printing was still wrong.
-        Format strings like %d were showing up in the output.
+        This is a regression test.
 
         Original file tested was input/nonregression/mem-b2ace68c-1381.jp2
+
+        EXPECTED RESULT:  Format strings like %d should not appear in the
+        output.
         """
         cmap = glymur.jp2box.ComponentMappingBox(component_index=(0, 0, 0, 0),
                                                  mapping_type=(1, 1, 1, 1),
                                                  palette_index=(0, 1, 2, 3),
                                                  length=24, offset=130)
         actual = str(cmap)
-        self.assertEqual(actual, fixtures.issue_182_cmap)
+        expected = ("Component Mapping Box (cmap) @ (130, 24)\n"
+                    "    Component 0 ==> palette column 0\n"
+                    "    Component 0 ==> palette column 1\n"
+                    "    Component 0 ==> palette column 2\n"
+                    "    Component 0 ==> palette column 3")
+        self.assertEqual(actual, expected)
 
         glymur.set_option('print.short', True)
         actual = str(cmap)
-        expected = fixtures.issue_182_cmap.splitlines()[0]
+        expected = expected.splitlines()[0]
         self.assertEqual(actual, expected)
 
     def test_issue183(self):
@@ -1355,7 +1362,7 @@ class TestPrinting(unittest.TestCase):
         # Get rid of the file line, that's kind of volatile.
         actual = '\n'.join(actual.splitlines()[1:])
 
-        expected = fixtures.nemo_dump_no_codestream
+        expected = fixtures.NEMO_DUMP_NO_CODESTREAM
         self.assertEqual(actual, expected)
 
         with warnings.catch_warnings():
@@ -1374,7 +1381,7 @@ class TestPrinting(unittest.TestCase):
         # Get rid of the file line
         actual = '\n'.join(str(jp2).splitlines()[1:])
 
-        expected = fixtures.nemo_dump_no_codestream
+        expected = fixtures.NEMO_DUMP_NO_CODESTREAM
         self.assertEqual(actual, expected)
 
         opt = glymur.get_option('print.codestream')

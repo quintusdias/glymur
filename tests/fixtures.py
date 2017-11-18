@@ -203,39 +203,16 @@ TEXT_GBR_35 = load_test_data('text_gbr_35')
 
 NEMO_DUMP_SHORT = load_test_data('nemo_dump_short')
 
-nemo_dump_no_codestream = load_test_data('nemo_dump_no_codestream')
+NEMO_DUMP_NO_CODESTREAM = load_test_data('nemo_dump_no_codestream')
 
-nemo_dump_no_codestream_no_xml = r"""JPEG 2000 Signature Box (jP  ) @ (0, 12)
-    Signature:  0d0a870a
-File Type Box (ftyp) @ (12, 20)
-    Brand:  jp2
-    Compatibility:  ['jp2 ']
-JP2 Header Box (jp2h) @ (32, 45)
-    Image Header Box (ihdr) @ (40, 22)
-        Size:  [1456 2592 3]
-        Bitdepth:  8
-        Signed:  False
-        Compression:  wavelet
-        Colorspace Unknown:  False
-    Colour Specification Box (colr) @ (62, 15)
-        Method:  enumerated colorspace
-        Precedence:  0
-        Colorspace:  sRGB
-UUID Box (uuid) @ (77, 3146)
-    UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
-Contiguous Codestream Box (jp2c) @ (3223, 1132296)"""
+data = load_test_data('nemo_dump_no_codestream_no_xml')
+NEMO_DUMP_NO_CODESTREAM_NO_XML = data
 
 nemo = load_test_data('nemo')
 nemo_dump_no_xml = load_test_data('nemo_dump_no_xml')
 text_GBR_rreq = load_test_data('text_GBR_rreq')
 file1_xml = load_test_data('file1_xml')
 file1_xml_box = load_test_data('file1_xml_box')
-
-issue_182_cmap = """Component Mapping Box (cmap) @ (130, 24)
-    Component 0 ==> palette column 0
-    Component 0 ==> palette column 1
-    Component 0 ==> palette column 2
-    Component 0 ==> palette column 3"""
 
 issue_183_colr = """Colour Specification Box (colr) @ (62, 12)
     Method:  restricted ICC profile
