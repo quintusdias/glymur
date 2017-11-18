@@ -23,7 +23,6 @@ except ImportError:
 import glymur
 from glymur import Jp2k
 from . import fixtures
-from .fixtures import SimpleRDF
 
 TIFF_ASCII = 2
 TIFF_SHORT = 3
@@ -213,7 +212,7 @@ class TestSuite(unittest.TestCase):
     def test_append_xmp_uuid(self):
         """Should be able to append an XMP UUID box."""
         the_uuid = uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
-        raw_data = SimpleRDF.encode('utf-8')
+        raw_data = fixtures.SIMPLE_RDF.encode('utf-8')
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             shutil.copyfile(self.jp2file, tfile.name)
             jp2 = Jp2k(tfile.name)

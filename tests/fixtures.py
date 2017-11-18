@@ -197,21 +197,7 @@ def load_test_data(name):
 
 NEMO_XMP_BOX = load_test_data('nemo_xmp_box')
 
-SimpleRDF = """<rdf:RDF xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>
-  <rdf:Description rdf:about='Test:XMPCoreCoverage/kSimpleRDF'
-                   xmlns:ns1='ns:test1/' xmlns:ns2='ns:test2/'>
-
-    <ns1:SimpleProp>Simple value</ns1:SimpleProp>
-
-    <ns1:Distros>
-      <rdf:Bag>
-        <rdf:li>Suse</rdf:li>
-        <rdf:li>Fedora</rdf:li>
-      </rdf:Bag>
-    </ns1:Distros>
-
-  </rdf:Description>
-</rdf:RDF>"""
+SIMPLE_RDF = load_test_data('simple_rdf')
 
 text_gbr_34 = load_test_data('text_gbr_34')
 text_gbr_35 = load_test_data('text_gbr_35')
