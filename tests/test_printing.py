@@ -6,7 +6,6 @@ Test suite for printing.
 from io import BytesIO, StringIO
 import os
 import pkg_resources as pkg
-import re
 import struct
 import sys
 import tempfile
@@ -1523,14 +1522,17 @@ class TestJp2dump(unittest.TestCase):
 
     def test_suppress_warnings_until_end(self):
         """
-        Warnings about invalid JP2/J2K syntax should be suppressed until end
+        SCENARIO:  JP2DUMP with -x option on file with invalid ftyp box.
+
+        EXPECTED RESULT:  The warning is suppressed until the very end of the
+        output.
         """
         file = os.path.join('data', 'edf_c2_1178956.jp2')
         file = pkg.resource_filename(__name__, file)
         actual = self.run_jp2dump(['', '-x', file])
+        lines = actual.splitlines()
 
-        # The "CME marker segment" part is the last segment in the codestream
-        # header.
-        pattern = 'JPEG\s2000.*?CME\smarker\ssegment.*?UserWarning'
-        r = re.compile(pattern, re.DOTALL)
-        self.assertRegex(actual, r)
+        for line in lines[:-1]:
+            self.assertNotIn('UserWarning', line)
+
+        self.assertIn('UserWarning', lines[-1])

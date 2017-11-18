@@ -1292,11 +1292,12 @@ class TestRepr(MetadataBase):
         tree = ET.ElementTree(elt)
         box = glymur.jp2box.XMLBox(xml=tree)
 
-        regexp = r"""glymur.jp2box.XMLBox"""
-        regexp += r"""[(]xml=<lxml.etree._ElementTree\sobject\s"""
-        regexp += """at\s0x([a-fA-F0-9]*)>[)]"""
-
-        self.assertRegex(repr(box), regexp)
+        pattern = r"""
+            glymur.jp2box.XMLBox
+            \(xml=<lxml.etree._ElementTree\sobject\sat\s0x[a-fA-F0-9]+>\)
+        """
+        regex = re.compile(pattern, re.VERBOSE)
+        self.assertRegex(repr(box), regex)
 
     def test_readerrequirements_box(self):
         """Verify rreq repr method."""
