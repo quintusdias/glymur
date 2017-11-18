@@ -4,7 +4,6 @@ Test fixtures common to more than one test point.
 import pathlib
 import subprocess
 import sys
-import textwrap
 import unittest
 
 import numpy as np
@@ -199,102 +198,10 @@ NEMO_XMP_BOX = load_test_data('nemo_xmp_box')
 
 SIMPLE_RDF = load_test_data('simple_rdf')
 
-text_gbr_34 = load_test_data('text_gbr_34')
-text_gbr_35 = load_test_data('text_gbr_35')
+TEXT_GBR_34 = load_test_data('text_gbr_34')
+TEXT_GBR_35 = load_test_data('text_gbr_35')
 
-codestream_header = '''SOC marker segment @ (3231, 0)
-SIZ marker segment @ (3233, 47)
-    Profile:  no profile
-    Reference Grid Height, Width:  (1456 x 2592)
-    Vertical, Horizontal Reference Grid Offset:  (0 x 0)
-    Reference Tile Height, Width:  (1456 x 2592)
-    Vertical, Horizontal Reference Tile Offset:  (0 x 0)
-    Bitdepth:  (8, 8, 8)
-    Signed:  (False, False, False)
-    Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))
-COD marker segment @ (3282, 12)
-    Coding style:
-        Entropy coder, without partitions
-        SOP marker segments:  False
-        EPH marker segments:  False
-    Coding style parameters:
-        Progression order:  LRCP
-        Number of layers:  2
-        Multiple component transformation usage:  reversible
-        Number of resolutions:  2
-        Code block height, width:  (64 x 64)
-        Wavelet transform:  5-3 reversible
-        Precinct size:  (32768, 32768)
-        Code block context:
-            Selective arithmetic coding bypass:  False
-            Reset context probabilities on coding pass boundaries:  False
-            Termination on each coding pass:  False
-            Vertically stripe causal context:  False
-            Predictable termination:  False
-            Segmentation symbols:  False
-QCD marker segment @ (3296, 7)
-    Quantization style:  no quantization, 2 guard bits
-    Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]
-CME marker segment @ (3305, 37)
-    "Created by OpenJPEG version 2.0.0"'''
-
-codestream_trailer = """SOT marker segment @ (3344, 10)
-    Tile part index:  0
-    Tile part length:  1132173
-    Tile part instance:  0
-    Number of tile parts:  1
-COC marker segment @ (3356, 9)
-    Associated component:  1
-    Coding style for this component:  Entropy coder, PARTITION = 0
-    Coding style parameters:
-        Number of resolutions:  2
-        Code block height, width:  (64 x 64)
-        Wavelet transform:  5-3 reversible
-        Precinct size:  (32768, 32768)
-        Code block context:
-            Selective arithmetic coding bypass:  False
-            Reset context probabilities on coding pass boundaries:  False
-            Termination on each coding pass:  False
-            Vertically stripe causal context:  False
-            Predictable termination:  False
-            Segmentation symbols:  False
-QCC marker segment @ (3367, 8)
-    Associated Component:  1
-    Quantization style:  no quantization, 2 guard bits
-    Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]
-COC marker segment @ (3377, 9)
-    Associated component:  2
-    Coding style for this component:  Entropy coder, PARTITION = 0
-    Coding style parameters:
-        Number of resolutions:  2
-        Code block height, width:  (64 x 64)
-        Wavelet transform:  5-3 reversible
-        Precinct size:  (32768, 32768)
-        Code block context:
-            Selective arithmetic coding bypass:  False
-            Reset context probabilities on coding pass boundaries:  False
-            Termination on each coding pass:  False
-            Vertically stripe causal context:  False
-            Predictable termination:  False
-            Segmentation symbols:  False
-QCC marker segment @ (3388, 8)
-    Associated Component:  2
-    Quantization style:  no quantization, 2 guard bits
-    Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]
-SOD marker segment @ (3398, 0)
-EOC marker segment @ (1135517, 0)"""
-
-codestream = '\n'.join([codestream_header, codestream_trailer])
-
-nemo_with_codestream_header = load_test_data('nemo_with_codestream_header')
-
-nemo_dump_short = r"""JPEG 2000 Signature Box (jP  ) @ (0, 12)
-File Type Box (ftyp) @ (12, 20)
-JP2 Header Box (jp2h) @ (32, 45)
-    Image Header Box (ihdr) @ (40, 22)
-    Colour Specification Box (colr) @ (62, 15)
-UUID Box (uuid) @ (77, 3146)
-Contiguous Codestream Box (jp2c) @ (3223, 1132296)"""
+NEMO_DUMP_SHORT = load_test_data('nemo_dump_short')
 
 nemo_dump_no_codestream = load_test_data('nemo_dump_no_codestream')
 

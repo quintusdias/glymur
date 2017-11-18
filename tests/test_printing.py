@@ -1254,9 +1254,9 @@ class TestPrinting(unittest.TestCase):
         actual = str(box)
 
         if sys.hexversion < 0x03050000:
-            expected = fixtures.text_gbr_34
+            expected = fixtures.TEXT_GBR_34
         else:
-            expected = fixtures.text_gbr_35
+            expected = fixtures.TEXT_GBR_35
 
         self.assertEqual(actual, expected)
 
@@ -1290,7 +1290,7 @@ class TestPrinting(unittest.TestCase):
         # Get rid of leading "File" line, as that is volatile.
         actual = '\n'.join(actual.splitlines()[1:])
 
-        expected = fixtures.nemo_dump_short
+        expected = fixtures.NEMO_DUMP_SHORT
         self.assertEqual(actual, expected)
 
         with warnings.catch_warnings():
@@ -1506,7 +1506,7 @@ class TestJp2dump(unittest.TestCase):
         """Verify dumping with -s, short option."""
         actual = self.run_jp2dump(['', '-s', self.jp2file])
 
-        self.assertEqual(actual, fixtures.nemo_dump_short)
+        self.assertEqual(actual, fixtures.NEMO_DUMP_SHORT)
 
     @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
     def test_suppress_xml(self):
