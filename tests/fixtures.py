@@ -215,37 +215,7 @@ FILE1_XML = load_test_data('file1_xml')
 FILE1_XML_BOX = load_test_data('file1_xml_box')
 
 # Progression order is invalid.
-issue_186_progression_order = """COD marker segment @ (174, 12)
-    Coding style:
-        Entropy coder, without partitions
-        SOP marker segments:  False
-        EPH marker segments:  False
-    Coding style parameters:
-        Progression order:  33 (invalid)
-        Number of layers:  1
-        Multiple component transformation usage:  reversible
-        Number of resolutions:  6
-        Code block height, width:  (32 x 32)
-        Wavelet transform:  9-7 irreversible
-        Precinct size:  (32768, 32768)
-        Code block context:
-            Selective arithmetic coding bypass:  False
-            Reset context probabilities on coding pass boundaries:  False
-            Termination on each coding pass:  False
-            Vertically stripe causal context:  False
-            Predictable termination:  False
-            Segmentation symbols:  False"""
-
-# Cinema 2K profile
-cinema2k_profile = """SIZ marker segment @ (2, 47)
-    Profile:  Cinema 2K
-    Reference Grid Height, Width:  (1080 x 1920)
-    Vertical, Horizontal Reference Grid Offset:  (0 x 0)
-    Reference Tile Height, Width:  (1080 x 1920)
-    Vertical, Horizontal Reference Tile Offset:  (0 x 0)
-    Bitdepth:  (12, 12, 12)
-    Signed:  (False, False, False)
-    Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))"""
+ISSUE186_PROGRESSION_ORDER = load_test_data('issue186_progression_order')
 
 jplh_color_group_box = r"""Compositing Layer Header Box (jplh) @ (314227, 31)
     Colour Group Box (cgrp) @ (314235, 23)

@@ -219,7 +219,7 @@ class TestPrinting(unittest.TestCase):
             segment = glymur.codestream.CODsegment(*pargs, length=12,
                                                    offset=174)
         actual = str(segment)
-        expected = fixtures.issue_186_progression_order
+        expected = fixtures.ISSUE186_PROGRESSION_ORDER
         self.assertEqual(actual, expected)
 
     def test_bad_wavelet_transform(self):
@@ -333,7 +333,20 @@ class TestPrinting(unittest.TestCase):
                   'offset': 2}
         segment = glymur.codestream.SIZsegment(**kwargs)
         actual = str(segment)
-        self.assertEqual(actual, fixtures.cinema2k_profile)
+
+        expected = (
+            "SIZ marker segment @ (2, 47)\n"
+            "    Profile:  Cinema 2K\n"
+            "    Reference Grid Height, Width:  (1080 x 1920)\n"
+            "    Vertical, Horizontal Reference Grid Offset:  (0 x 0)\n"
+            "    Reference Tile Height, Width:  (1080 x 1920)\n"
+            "    Vertical, Horizontal Reference Tile Offset:  (0 x 0)\n"
+            "    Bitdepth:  (12, 12, 12)\n"
+            "    Signed:  (False, False, False)\n"
+            "    Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))"
+        )
+
+        self.assertEqual(actual, expected)
 
     def test_version_info(self):
         """Should be able to print(glymur.version.info)"""
