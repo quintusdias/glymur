@@ -208,16 +208,11 @@ NEMO_DUMP_NO_CODESTREAM = load_test_data('nemo_dump_no_codestream')
 data = load_test_data('nemo_dump_no_codestream_no_xml')
 NEMO_DUMP_NO_CODESTREAM_NO_XML = data
 
-nemo = load_test_data('nemo')
-nemo_dump_no_xml = load_test_data('nemo_dump_no_xml')
-text_GBR_rreq = load_test_data('text_GBR_rreq')
-file1_xml = load_test_data('file1_xml')
-file1_xml_box = load_test_data('file1_xml_box')
-
-issue_183_colr = """Colour Specification Box (colr) @ (62, 12)
-    Method:  restricted ICC profile
-    Precedence:  0
-    ICC Profile:  None"""
+NEMO = load_test_data('nemo')
+NEMO_DUMP_NO_XML = load_test_data('nemo_dump_no_xml')
+TEXT_GBR_RREQ = load_test_data('text_GBR_rreq')
+FILE1_XML = load_test_data('file1_xml')
+FILE1_XML_BOX = load_test_data('file1_xml_box')
 
 # Progression order is invalid.
 issue_186_progression_order = """COD marker segment @ (174, 12)
