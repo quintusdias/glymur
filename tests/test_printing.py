@@ -1309,7 +1309,7 @@ class TestPrinting(unittest.TestCase):
 
         actual = str(codestream.segment[2])
 
-        self.assertEqual(actual, fixtures.multiple_precinct_size)
+        self.assertEqual(actual, fixtures.MULTIPLE_PRECINCT_SIZE)
 
     def test_old_short_option(self):
         """

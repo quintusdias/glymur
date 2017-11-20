@@ -413,7 +413,7 @@ class TestSuiteHiRISE(unittest.TestCase):
         else:
             # Only verify if PY3K, don't bother with Python2.  OrderedDicts
             # print out differently.
-            expected = fixtures.geotiff_uuid_without_gdal
+            expected = fixtures.GEOTIFF_UUID_WITHOUT_GDAL
         self.assertEqual(actual, expected)
 
 
