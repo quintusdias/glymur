@@ -217,42 +217,10 @@ FILE1_XML_BOX = load_test_data('file1_xml_box')
 # Progression order is invalid.
 ISSUE186_PROGRESSION_ORDER = load_test_data('issue186_progression_order')
 
-jplh_color_group_box = r"""Compositing Layer Header Box (jplh) @ (314227, 31)
-    Colour Group Box (cgrp) @ (314235, 23)
-        Colour Specification Box (colr) @ (314243, 15)
-            Method:  enumerated colorspace
-            Precedence:  0
-            Colorspace:  sRGB"""
+GOODSTUFF_CODESTREAM_HEADER = load_test_data('goodstuff_codestream_header')
+GOODSTUFF_WITH_FULL_HEADER = load_test_data('goodstuff_with_full_header')
 
-goodstuff_codestream_header = load_test_data('goodstuff_codestream_header')
-goodstuff_with_full_header = load_test_data('goodstuff_with_full_header')
-
-# manually verified via gdalinfo
-geotiff_uuid = """UUID Box (uuid) @ (149, 523)
-    UUID:  b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03 (GeoTIFF)
-    UUID Data:  Coordinate System =
-        PROJCS["Equirectangular MARS",
-            GEOGCS["GCS_MARS",
-                DATUM["unknown",
-                    SPHEROID["unnamed",3396190,0]],
-                PRIMEM["Greenwich",0],
-                UNIT["degree",0.0174532925199433]],
-            PROJECTION["Equirectangular"],
-            PARAMETER["latitude_of_origin",0],
-            PARAMETER["central_meridian",180],
-            PARAMETER["standard_parallel_1",0],
-            PARAMETER["false_easting",0],
-            PARAMETER["false_northing",0],
-            UNIT["metre",1,
-                AUTHORITY["EPSG","9001"]]]
-    Origin = (-2523306.125000000000000,-268608.875000000000000)
-    Pixel Size = (0.250000000000000,-0.250000000000000)
-    Corner Coordinates:
-    Upper Left  (-2523306.125, -268608.875) (137d25'49.08"E,  4d31'53.74"S
-    Lower Left  (-2523306.125, -268609.125) (137d25'49.08"E,  4d31'53.75"S
-    Upper Right (-2523305.875, -268608.875) (137d25'49.09"E,  4d31'53.74"S
-    Lower Right (-2523305.875, -268609.125) (137d25'49.09"E,  4d31'53.75"S
-    Center      (-2523306.000, -268609.000) (137d25'49.09"E,  4d31'53.75"S"""
+GEOTIFF_UUID = load_test_data('geotiff_uuid')
 
 geotiff_uuid_without_gdal = load_test_data('geotiff_uuid_without_gdal')
 multiple_precinct_size = load_test_data('multiple_precinct_size')

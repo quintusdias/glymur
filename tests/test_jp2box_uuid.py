@@ -409,7 +409,7 @@ class TestSuiteHiRISE(unittest.TestCase):
         jp2 = Jp2k(self.hirise_jp2file_name)
         actual = str(jp2.box[4])
         if fixtures.HAVE_GDAL:
-            expected = fixtures.geotiff_uuid
+            expected = fixtures.GEOTIFF_UUID
         else:
             # Only verify if PY3K, don't bother with Python2.  OrderedDicts
             # print out differently.

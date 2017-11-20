@@ -896,7 +896,17 @@ class TestPrinting(unittest.TestCase):
         """Verify printing of compositing layer header box, color group box."""
         jpx = glymur.Jp2k(self.jpxfile)
         actual = str(jpx.box[7])
-        self.assertEqual(actual, fixtures.jplh_color_group_box)
+
+        expected = (
+            "Compositing Layer Header Box (jplh) @ (314227, 31)\n"
+            "    Colour Group Box (cgrp) @ (314235, 23)\n"
+            "        Colour Specification Box (colr) @ (314243, 15)\n"
+            "            Method:  enumerated colorspace\n"
+            "            Precedence:  0\n"
+            "            Colorspace:  sRGB"
+        )
+
+        self.assertEqual(actual, expected)
 
     def test_free(self):
         """Verify printing of Free box."""
@@ -1508,7 +1518,7 @@ class TestJp2dump(unittest.TestCase):
             command_line.main()
             actual = stdout.getvalue().strip()
 
-        expected = fixtures.goodstuff_codestream_header
+        expected = fixtures.GOODSTUFF_CODESTREAM_HEADER
         self.assertEqual(expected, actual)
 
     def test_j2k_codestream_2(self):
@@ -1518,7 +1528,7 @@ class TestJp2dump(unittest.TestCase):
             command_line.main()
             actual = fake_out.getvalue().strip()
 
-        expected = fixtures.goodstuff_with_full_header
+        expected = fixtures.GOODSTUFF_WITH_FULL_HEADER
         self.assertIn(expected, actual)
 
     def test_codestream_invalid(self):
