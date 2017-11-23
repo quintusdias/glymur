@@ -140,7 +140,7 @@ class Jp2k(Jp2kBox):
         """
         Jp2kBox.__init__(self)
 
-        # In case of pathlib.Paths... 
+        # In case of pathlib.Paths...
         self.filename = str(filename)
 
         self.box = []
@@ -1500,9 +1500,9 @@ class Jp2k(Jp2kBox):
             raise IOError(msg)
 
         if component.sgnd:
-            dtype = np.int8 if component.prec <=8 else np.int16
+            dtype = np.int8 if component.prec <= 8 else np.int16
         else:
-            dtype = np.uint8 if component.prec <=8 else np.uint16
+            dtype = np.uint8 if component.prec <= 8 else np.uint16
 
         return dtype
 
@@ -1887,6 +1887,7 @@ def _default_warning_handler(library_msg, _):
     library_msg = library_msg.decode('utf-8').rstrip()
     msg = "OpenJPEG library warning:  {0}".format(library_msg)
     warnings.warn(msg, UserWarning)
+
 
 _ERROR_CALLBACK = _CMPFUNC(_default_error_handler)
 _INFO_CALLBACK = _CMPFUNC(_default_info_handler)

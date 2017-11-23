@@ -3,7 +3,6 @@ Test suite for openjpeg's callback functions.
 """
 # Standard library imports ...
 import os
-import re
 import sys
 import tempfile
 import warnings
