@@ -2,6 +2,7 @@
 """Test suite for printing.
 """
 # Standard library imports
+from io import BytesIO
 import os
 import pkg_resources as pkg
 import shutil
@@ -11,13 +12,6 @@ import tempfile
 import unittest
 import uuid
 import warnings
-if sys.hexversion >= 0x03000000:
-    from unittest.mock import patch
-    from io import BytesIO, StringIO
-else:
-    from mock import patch
-    from StringIO import StringIO
-    from io import BytesIO
 
 # Third party library imports ...
 try:
@@ -29,7 +23,6 @@ except ImportError:
 import glymur
 from glymur import Jp2k
 from . import fixtures
-from .fixtures import SimpleRDF
 
 TIFF_ASCII = 2
 TIFF_SHORT = 3
@@ -227,7 +220,7 @@ class TestSuite(unittest.TestCase):
     def test_append_xmp_uuid(self):
         """Should be able to append an XMP UUID box."""
         the_uuid = uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
-        raw_data = SimpleRDF.encode('utf-8')
+        raw_data = fixtures.SIMPLE_RDF.encode('utf-8')
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
             shutil.copyfile(self.jp2file, tfile.name)
             jp2 = Jp2k(tfile.name)
@@ -396,25 +389,25 @@ class TestSuiteHiRISE(unittest.TestCase):
         self.assertEqual(jp2.box[4].data['GeoAsciiParams'],
                          'Equirectangular MARS|GCS_MARS|')
         self.assertEqual(jp2.box[4].data['GeoKeyDirectory'], (
-            1,        1,  0,    18,
-            1024,     0,  1,     1,
-            1025,     0,  1,     1,
-            1026, 34737, 21,     0,
-            2048,     0,  1, 32767,
-            2049, 34737,  9,    21,
-            2050,     0,  1, 32767,
-            2054,     0,  1,  9102,
-            2056,     0,  1, 32767,
-            2057, 34736,  1,     4,
-            2058, 34736,  1,     5,
-            3072,     0,  1, 32767,
-            3074,     0,  1, 32767,
-            3075,     0,  1,    17,
-            3076,     0,  1,  9001,
-            3082, 34736,  1,     2,
-            3083, 34736,  1,     3,
-            3088, 34736,  1,     1,
-            3089, 34736,  1,     0
+            1, 1, 0, 18,
+            1024, 0, 1, 1,
+            1025, 0, 1, 1,
+            1026, 34737, 21, 0,
+            2048, 0, 1, 32767,
+            2049, 34737, 9, 21,
+            2050, 0, 1, 32767,
+            2054, 0, 1, 9102,
+            2056, 0, 1, 32767,
+            2057, 34736, 1, 4,
+            2058, 34736, 1, 5,
+            3072, 0, 1, 32767,
+            3074, 0, 1, 32767,
+            3075, 0, 1, 17,
+            3076, 0, 1, 9001,
+            3082, 34736, 1, 2,
+            3083, 34736, 1, 3,
+            3088, 34736, 1, 1,
+            3089, 34736, 1, 0
         ))
         self.assertEqual(jp2.box[4].data['ModelPixelScale'], (0.25, 0.25, 0.0))
         self.assertEqual(jp2.box[4].data['ModelTiePoint'], (
@@ -425,7 +418,7 @@ class TestSuiteHiRISE(unittest.TestCase):
         jp2 = Jp2k(self.hirise_jp2file_name)
         actual = str(jp2.box[4])
         if fixtures.HAVE_GDAL:
-            self.assertEqual(actual, fixtures.geotiff_uuid)
+            self.assertEqual(actual, fixtures.GEOTIFF_UUID)
         else:
             # Only verify if PY3K, don't bother with Python2.  OrderedDicts
             # print out differently.

@@ -24,6 +24,7 @@ def version():
     else:
         return library_version
 
+
 # Need to get the minor version, make sure we are at least at 1.4.x
 if OPENJPEG is not None:
     _MINOR = version().split('.')[1]
