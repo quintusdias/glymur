@@ -423,7 +423,7 @@ class TestSuiteHiRISE(unittest.TestCase):
             # Only verify if PY3K, don't bother with Python2.  OrderedDicts
             # print out differently.
             if sys.hexversion >= 0x03040000:
-                self.assertEqual(actual, fixtures.geotiff_uuid_without_gdal)
+                self.assertEqual(actual, fixtures.GEOTIFF_UUID_WITHOUT_GDAL)
 
 
 @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
