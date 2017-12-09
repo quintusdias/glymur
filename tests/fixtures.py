@@ -93,12 +93,6 @@ class MetadataBase(unittest.TestCase):
             expected |= 0x20
         self.assertEqual(actual, expected)
 
-    def verifySignatureBox(self, box):
-        """
-        The signature box is a constant.
-        """
-        self.assertEqual(box.signature, (13, 10, 135, 10))
-
     def verify_filetype_box(self, actual, expected):
         """
         All JP2 files should have a brand reading 'jp2 ' and just a single
@@ -111,30 +105,6 @@ class MetadataBase(unittest.TestCase):
         for cl in expected.compatibility_list:
             self.assertIn(cl, actual.compatibility_list)
 
-    def verifyRGNsegment(self, actual, expected):
-        """
-        verify the fields of a RGN segment
-        """
-        self.assertEqual(actual.crgn, expected.crgn)  # 0 = component
-        self.assertEqual(actual.srgn, expected.srgn)  # 0 = implicit
-        self.assertEqual(actual.sprgn, expected.sprgn)
-
-    def verifySOTsegment(self, actual, expected):
-        """
-        verify the fields of a SOT (start of tile) segment
-        """
-        self.assertEqual(actual.isot, expected.isot)
-        self.assertEqual(actual.psot, expected.psot)
-        self.assertEqual(actual.tpsot, expected.tpsot)
-        self.assertEqual(actual.tnsot, expected.tnsot)
-
-    def verifyCMEsegment(self, actual, expected):
-        """
-        verify the fields of a CME (comment) segment
-        """
-        self.assertEqual(actual.rcme, expected.rcme)
-        self.assertEqual(actual.ccme, expected.ccme)
-
     def verifySizSegment(self, actual, expected):
         """
         Verify the fields of the SIZ segment.
@@ -143,31 +113,6 @@ class MetadataBase(unittest.TestCase):
                       'ytsiz', 'xtosiz', 'ytosiz', 'bitdepth',
                       'xrsiz', 'yrsiz']:
             self.assertEqual(getattr(actual, field), getattr(expected, field))
-
-    def verifyImageHeaderBox(self, box1, box2):
-        self.assertEqual(box1.height, box2.height)
-        self.assertEqual(box1.width, box2.width)
-        self.assertEqual(box1.num_components, box2.num_components)
-        self.assertEqual(box1.bits_per_component, box2.bits_per_component)
-        self.assertEqual(box1.signed, box2.signed)
-        self.assertEqual(box1.compression, box2.compression)
-        self.assertEqual(box1.colorspace_unknown, box2.colorspace_unknown)
-        self.assertEqual(box1.ip_provided, box2.ip_provided)
-
-    def verifyColourSpecificationBox(self, actual, expected):
-        """
-        Does not currently check icc profiles.
-        """
-        self.assertEqual(actual.method, expected.method)
-        self.assertEqual(actual.precedence, expected.precedence)
-        self.assertEqual(actual.approximation, expected.approximation)
-
-        if expected.colorspace is None:
-            self.assertIsNone(actual.colorspace)
-            self.assertIsNotNone(actual.icc_profile)
-        else:
-            self.assertEqual(actual.colorspace, expected.colorspace)
-            self.assertIsNone(actual.icc_profile)
 
 
 # Do we have gdal?

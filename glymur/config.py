@@ -128,20 +128,18 @@ def read_config_file(libname):
 
 def glymur_config():
     """
-    Try to ascertain locations of openjp2, openjpeg libraries.
+    Try to ascertain locations of openjp2 library.
 
     Returns
     -------
     tuple
         tuple of library handles
     """
-    handles = (load_openjpeg_library(x) for x in ['openjp2', 'openjpeg'])
-    handles = tuple(handles)
-
-    if all(handle is None for handle in handles):
-        msg = "Neither the openjp2 nor the openjpeg library could be loaded.  "
+    handle = load_openjpeg_library('openjp2')
+    if handle is None:
+        msg = "The openjp2 library could not be loaded.  "
         warnings.warn(msg)
-    return handles
+    return handle
 
 
 def get_configdir():

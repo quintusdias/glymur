@@ -11,6 +11,7 @@ import re
 import struct
 import sys
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 import uuid
@@ -982,6 +983,45 @@ class TestJp2k(unittest.TestCase):
         file = pkg.resource_filename(__name__, file)
         j = Jp2k(file)
         self.assertEqual(j.layer, 0)
+
+    @unittest.skipIf(glymur.version.openjpeg_version < '2.2.0',
+                     "Requires as least v2.2.0")
+    def test_thread_support(self):
+        """
+        SCENARIO:  Set a non-default thread support value.
+
+        EXPECTED RESULTS:  Using more threads speeds up a full read.
+        """
+        jp2 = Jp2k(self.jp2file)
+        t0 = time.time()
+        jp2[:]
+        t1 = time.time()
+        delta0 = t1 - t0
+
+        num_cpus = glymur.lib.openjp2.get_num_cpus()
+        if num_cpus == 1:
+            # Nothing to do, can't use more threads.
+            self.assertTrue(True)
+            return
+
+        jp2.num_threads = num_cpus
+        t0 = time.time()
+        jp2[:]
+        t1 = time.time()
+        delta1 = t1 - t0
+
+        self.assertTrue(delta1 < delta0)
+
+    def test_thread_support_on_openjpeg_lt_220(self):
+        """
+        SCENARIO:  Set number of threads on openjpeg < 2.2.0
+
+        EXPECTED RESULTS:  RuntimeError
+        """
+        jp2 = Jp2k(self.jp2file)
+        with patch('glymur.jp2k.version.openjpeg_version', new='2.1.0'):
+            with self.assertRaises(RuntimeError):
+                jp2.num_threads = 2
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
