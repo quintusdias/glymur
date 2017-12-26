@@ -11,6 +11,7 @@ import re
 import struct
 import sys
 import tempfile
+import time
 import unittest
 from unittest.mock import patch
 import uuid
@@ -25,7 +26,6 @@ import pkg_resources as pkg
 import glymur
 from glymur import Jp2k
 from glymur.core import COLOR, RED, GREEN, BLUE, RESTRICTED_ICC_PROFILE
-from glymur.codestream import SIZsegment
 
 from .fixtures import WINDOWS_TMP_FILE_MSG
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
@@ -984,112 +984,44 @@ class TestJp2k(unittest.TestCase):
         j = Jp2k(file)
         self.assertEqual(j.layer, 0)
 
-
-class CinemaBase(fixtures.MetadataBase):
-
-    def verify_cinema_cod(self, cod_segment):
-
-        self.assertFalse(cod_segment.scod & 2)  # no sop
-        self.assertFalse(cod_segment.scod & 4)  # no eph
-        self.assertEqual(cod_segment.prog_order, glymur.core.CPRL)
-        self.assertEqual(cod_segment.layers, 1)
-        self.assertEqual(cod_segment.mct, 1)
-        self.assertEqual(cod_segment.num_res, 5)  # levels
-        self.assertEqual(tuple(cod_segment.code_block_size), (32, 32))
-
-    def check_cinema4k_codestream(self, codestream, image_size):
-
-        kwargs = {'rsiz': 4, 'xysiz': image_size, 'xyosiz': (0, 0),
-                  'xytsiz': image_size, 'xytosiz': (0, 0),
-                  'bitdepth': (12, 12, 12), 'signed': (False, False, False),
-                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
-        self.verifySizSegment(codestream.segment[1], SIZsegment(**kwargs))
-
-        self.verify_cinema_cod(codestream.segment[2])
-
-    def check_cinema2k_codestream(self, codestream, image_size):
-
-        kwargs = {'rsiz': 3, 'xysiz': image_size, 'xyosiz': (0, 0),
-                  'xytsiz': image_size, 'xytosiz': (0, 0),
-                  'bitdepth': (12, 12, 12), 'signed': (False, False, False),
-                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
-        self.verifySizSegment(codestream.segment[1], SIZsegment(**kwargs))
-
-        self.verify_cinema_cod(codestream.segment[2])
-
-
-@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
-@unittest.skipIf(re.match(r'''(1|2.0.0)''',
-                          glymur.version.openjpeg_version) is not None,
-                 "Uses features not supported until 2.0.1")
-class WriteCinema(CinemaBase):
-
-    @classmethod
-    def setUpClass(cls):
-        cls.jp2file = glymur.data.nemo()
-        cls.jp2_data = glymur.Jp2k(cls.jp2file)[:]
-
-    def test_NR_ENC_X_6_2K_24_FULL_CBR_CIRCLE_000_tif_17_encode(self):
+    @unittest.skipIf(glymur.version.openjpeg_version < '2.2.0',
+                     "Requires as least v2.2.0")
+    def test_thread_support(self):
         """
-        Original test file was
+        SCENARIO:  Set a non-default thread support value.
 
-            input/nonregression/X_6_2K_24_FULL_CBR_CIRCLE_000.tif
-
+        EXPECTED RESULTS:  Using more threads speeds up a full read.
         """
-        # Need to provide the proper size image
-        data = np.concatenate((self.jp2_data, self.jp2_data), axis=0)
-        data = np.concatenate((data, data), axis=1).astype(np.uint16)
-        data = data[:1080, :2048, :]
+        jp2 = Jp2k(self.jp2file)
+        t0 = time.time()
+        jp2[:]
+        t1 = time.time()
+        delta0 = t1 - t0
 
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            with warnings.catch_warnings():
-                # Ignore a warning issued by the library.
-                warnings.simplefilter('ignore')
-                j = Jp2k(tfile.name, data=data, cinema2k=24)
+        num_cpus = glymur.lib.openjp2.get_num_cpus()
+        if num_cpus == 1:
+            # Nothing to do, can't use more threads.
+            self.assertTrue(True)
+            return
 
-            codestream = j.get_codestream()
-            self.check_cinema2k_codestream(codestream, (2048, 1080))
+        jp2.num_threads = num_cpus
+        t0 = time.time()
+        jp2[:]
+        t1 = time.time()
+        delta1 = t1 - t0
 
-    def test_NR_ENC_X_6_2K_24_FULL_CBR_CIRCLE_000_tif_20_encode(self):
+        self.assertTrue(delta1 < delta0)
+
+    def test_thread_support_on_openjpeg_lt_220(self):
         """
-        Original test file was
+        SCENARIO:  Set number of threads on openjpeg < 2.2.0
 
-            input/nonregression/X_6_2K_24_FULL_CBR_CIRCLE_000.tif
-
+        EXPECTED RESULTS:  RuntimeError
         """
-        # Need to provide the proper size image
-        data = np.concatenate((self.jp2_data, self.jp2_data), axis=0)
-        data = np.concatenate((data, data), axis=1).astype(np.uint16)
-        data = data[:1080, :2048, :]
-
-        with warnings.catch_warnings():
-            # Ignore a warning issued by the library.
-            warnings.simplefilter('ignore')
-            with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-                j = Jp2k(tfile.name, data=data, cinema2k=48)
-                codestream = j.get_codestream()
-                self.check_cinema2k_codestream(codestream, (2048, 1080))
-
-    def test_NR_ENC_ElephantDream_4K_tif_21_encode(self):
-        """
-        Verify basic cinema4k write
-
-        Original test file is input/nonregression/ElephantDream_4K.tif
-        """
-        # Need to provide the proper size image
-        data = np.concatenate((self.jp2_data, self.jp2_data), axis=0)
-        data = np.concatenate((data, data), axis=1).astype(np.uint16)
-        data = data[:2160, :4096, :]
-
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            with warnings.catch_warnings():
-                # Ignore a warning issued by the library.
-                warnings.simplefilter('ignore')
-                j = Jp2k(tfile.name, data=data, cinema4k=True)
-
-            codestream = j.get_codestream()
-            self.check_cinema4k_codestream(codestream, (4096, 2160))
+        jp2 = Jp2k(self.jp2file)
+        with patch('glymur.jp2k.version.openjpeg_version', new='2.1.0'):
+            with self.assertRaises(RuntimeError):
+                jp2.num_threads = 2
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
@@ -1905,14 +1837,6 @@ class TestJp2k_write(fixtures.MetadataBase):
             codestream = ofile.get_codestream()
             self.assertEqual(codestream.segment[2].prog_order,
                              glymur.core.CPRL)
-
-
-class TestJp2k_1_x(unittest.TestCase):
-    """Test suite for openjpeg 1.x, not appropriate for 2.x"""
-
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
-        self.j2kfile = glymur.data.goodstuff()
 
 
 @unittest.skipIf(glymur.version.openjpeg_version_tuple[0] < 2,

@@ -46,16 +46,18 @@ class Jp2k(Jp2kBox):
 
     Properties
     ----------
+    codestream : glymur.codestream.Codestream
+        JP2 or J2K codestream object.
     ignore_pclr_cmap_cdef : bool
         Whether or not to ignore the pclr, cmap, or cdef boxes during any
         color transformation, defaults to False.
     layer : int
         Zero-based number of quality layer to decode.
+    num_threads : int
+        Set the number of threads that the decompressor uses.
     verbose : bool
         Whether or not to print informational messages produced by the
         OpenJPEG library, defaults to false.
-    codestream : glymur.codestream.Codestream
-        JP2 or J2K codestream object.
 
     Examples
     --------
@@ -73,6 +75,21 @@ class Jp2k(Jp2kBox):
     >>> thumbnail = jp2[::2, ::2]
     >>> thumbnail.shape
     (728, 1296, 3)
+
+    Make use of OpenJPEG's thread support
+
+    >>> import glymur
+    >>> import time
+    >>> if glymur.version.openjpeg_version >= '2.2.0':
+    ...     jp2file = glymur.data.nemo()
+    ...     jp2 = glymur.Jp2k(jp2file)
+    ...     t0 = time.time(); data = jp2[:]; t1 = time.time()
+    ...     t1 - t0 #doctest: +SKIP
+    0.9024193286895752
+    ...     jp2.num_threads = 2
+    ...     t0 = time.time(); data = jp2[:]; t1 = time.time()
+    ...     t1 - t0 #doctest: +SKIP
+    0.4060473537445068
     """
 
     def __init__(self, filename, data=None, shape=None, **kwargs):
@@ -143,6 +160,8 @@ class Jp2k(Jp2kBox):
         self._colorspace = None
         self._layer = 0
         self._codestream = None
+        self._num_threads = 1
+
         if data is not None:
             self._shape = data.shape
         else:
@@ -240,6 +259,21 @@ class Jp2k(Jp2kBox):
     @shape.setter
     def shape(self, shape):
         self._shape = shape
+
+    @property
+    def num_threads(self):
+        return self._num_threads
+
+    @num_threads.setter
+    def num_threads(self, num_threads):
+        """
+        To be used only by the decompressor.
+        """
+        if version.openjpeg_version >= '2.2.0' and opj2.has_thread_support():
+            self._num_threads = num_threads
+        else:
+            msg = 'The OpenJPEG library is not configured with thread support.'
+            raise RuntimeError(msg)
 
     def __repr__(self):
         msg = "glymur.Jp2k('{0}')".format(self.filename)
@@ -1008,7 +1042,7 @@ class Jp2k(Jp2kBox):
         """
         if re.match("0|1.[01234]", version.openjpeg_version):
             msg = ("You must have a version of OpenJPEG at least as high as "
-                   "1.5.0 before you can read JPEG2000 images with glymur.  "
+                   "2.1.0 before you can read JPEG2000 images with glymur.  "
                    "Your version is {version}")
             raise TypeError(msg.format(version=version.openjpeg_version))
 
@@ -1126,6 +1160,9 @@ class Jp2k(Jp2kBox):
                 opj2.set_info_handler(codec, None)
 
             opj2.setup_decoder(codec, self._dparams)
+            if version.openjpeg_version >= '2.2.0':
+                opj2.codec_set_threads(codec, self.num_threads)
+
             raw_image = opj2.read_header(stream, codec)
             stack.callback(opj2.image_destroy, raw_image)
 

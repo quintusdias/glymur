@@ -7,7 +7,7 @@ import textwrap
 
 from ..config import glymur_config
 
-OPENJP2, _ = glymur_config()
+OPENJP2 = glymur_config()
 
 
 class OpenJPEGLibraryError(IOError):
@@ -614,6 +614,34 @@ def create_compress(codec_format):
     return codec
 
 
+def codec_set_threads(codec, num_threads):
+    """
+    Allocates worker threads for the compressor/decompressor.
+
+    This function Wraps the openjp2 library function opj_codec_set_threads.
+
+    Parameters
+    ----------
+    codec
+        Decompressor handler
+    num_threads : int
+        Number of threads.
+
+    Raises
+    ------
+    RuntimeError
+        If the OpenJPEG library routine opj_decode fails.
+    """
+    if not hasattr(OPENJP2, 'opj_codec_set_threads'):
+        msg = ("The opj_codec_set_threads function is not implemented in this "
+               "version of OpenJPEG ({version}).")
+        msg = msg.format(version=version())
+        raise NotImplementedError(msg)
+    OPENJP2.opj_codec_set_threads.argtypes = [CODEC_TYPE, ctypes.c_int32]
+    OPENJP2.opj_codec_set_threads.restype = check_error
+    OPENJP2.opj_codec_set_threads(codec, num_threads)
+
+
 def decode(codec, stream, image):
     """Reads an entire image.
 
@@ -809,6 +837,33 @@ def end_decompress(codec, stream):
     OPENJP2.opj_end_decompress.argtypes = [CODEC_TYPE, STREAM_TYPE_P]
     OPENJP2.opj_end_decompress.restype = check_error
     OPENJP2.opj_end_decompress(codec, stream)
+
+
+def get_num_cpus():
+    """
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+        Return the number of virtual CPUs.
+    """
+    OPENJP2.opj_get_num_cpus.restype = ctypes.c_int32
+    return OPENJP2.opj_get_num_cpus()
+
+
+def has_thread_support():
+    """
+    Is the library configured with thread support?
+
+    Returns
+    -------
+        True if the library is configured with thread support.
+    """
+    OPENJP2.opj_has_thread_support.restype = BOOL_TYPE
+    ret = OPENJP2.opj_has_thread_support()
+    return True if ret else False
 
 
 def image_destroy(image):

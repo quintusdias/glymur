@@ -6,8 +6,6 @@ Glymur: a Python interface for JPEG 2000
 which allows one to read and write JPEG 2000 files from Python.  
 Glymur supports both reading and writing of JPEG 2000 images, but writing
 JPEG 2000 images is currently limited to images that can fit in memory.
-**Glymur** can read images using OpenJPEG library versions as far back as 1.3,
-but it is strongly recommended to use at least version 2.1.2.
 
 In regards to metadata, most JP2 boxes are properly interpreted.
 Certain optional JP2 boxes can also be written, including XML boxes and
@@ -18,7 +16,8 @@ fall back upon the standard library's **ElementTree** if **lxml** is not
 available.
 
 The current version of glymur works on Python versions 3.4, 3.5, and 3.6.  The
-LTS version, v0.8.11, has support for Python versions 3.3 and 2.7.
+LTS version, v0.8.11, has support for Python versions 3.3 and 2.7 as well as
+OpenJPEG 1.5.
 
 For more information about OpenJPEG, please consult http://www.openjpeg.org.
 
