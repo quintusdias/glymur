@@ -45,7 +45,7 @@ from .core import (_COLORSPACE_MAP_DISPLAY, _COLOR_TYPE_MAP_DISPLAY,
                    ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE,
                    ANY_ICC_PROFILE, VENDOR_COLOR_METHOD)
 from ._tiff import tiff_header
-from . import config
+from . import config, get_option
 from ._iccprofile import _ICCProfile
 
 
@@ -387,7 +387,7 @@ class ColourSpecificationBox(Jp2kBox):
 
     def __str__(self):
         title = Jp2kBox.__str__(self)
-        if config.get_option('print.short') is True:
+        if get_option('print.short') is True:
             return title
 
         lst = []
@@ -564,7 +564,7 @@ class ChannelDefinitionBox(Jp2kBox):
 
     def __str__(self):
         title = Jp2kBox.__str__(self)
-        if config.get_option('print.short') is True:
+        if get_option('print.short') is True:
             return title
 
         lst = []
@@ -888,7 +888,7 @@ class ComponentMappingBox(Jp2kBox):
 
     def __str__(self):
         title = Jp2kBox.__str__(self)
-        if config.get_option('print.short') is True:
+        if get_option('print.short') is True:
             return title
 
         lst = []
@@ -992,7 +992,7 @@ class ContiguousCodestreamBox(Jp2kBox):
 
     @property
     def codestream(self):
-        if config.get_option('parse.full_codestream') is True:
+        if get_option('parse.full_codestream') is True:
             header_only = False
         else:
             header_only = True
@@ -1011,9 +1011,9 @@ class ContiguousCodestreamBox(Jp2kBox):
 
     def __str__(self):
         title = Jp2kBox.__str__(self)
-        if config.get_option('print.short') is True:
+        if get_option('print.short') is True:
             return title
-        if config.get_option('print.codestream') is False:
+        if get_option('print.codestream') is False:
             return title
 
         lst = []
@@ -1044,7 +1044,7 @@ class ContiguousCodestreamBox(Jp2kBox):
             Instance of the current contiguous codestream box.
         """
         main_header_offset = fptr.tell()
-        if config.get_option('parse.full_codestream'):
+        if get_option('parse.full_codestream'):
             codestream = Codestream(fptr, length, header_only=False)
         else:
             codestream = None
@@ -1123,7 +1123,7 @@ class DataReferenceBox(Jp2kBox):
 
     def __str__(self):
         title = Jp2kBox.__str__(self)
-        if config.get_option('print.short') is True:
+        if get_option('print.short') is True:
             return title
 
         if len(self.DR) == 0:
@@ -1236,7 +1236,7 @@ class FileTypeBox(Jp2kBox):
 
     def __str__(self):
         title = Jp2kBox.__str__(self)
-        if config.get_option('print.short') is True:
+        if get_option('print.short') is True:
             return title
 
         lst = []
@@ -1387,7 +1387,7 @@ class FragmentListBox(Jp2kBox):
 
     def __str__(self):
         title = Jp2kBox.__str__(self)
-        if config.get_option('print.short') is True:
+        if get_option('print.short') is True:
             return title
 
         lst = []
@@ -1651,7 +1651,7 @@ class ImageHeaderBox(Jp2kBox):
 
     def __str__(self):
         title = Jp2kBox.__str__(self)
-        if config.get_option('print.short') is True:
+        if get_option('print.short') is True:
             return title
 
         lst = []
@@ -1836,7 +1836,7 @@ class BitsPerComponentBox(Jp2kBox):
 
     def __str__(self):
         title = Jp2kBox.__str__(self)
-        if config.get_option('print.short') is True:
+        if get_option('print.short') is True:
             return title
 
         body = 'Bits per component:  [{bpc}]\nSigned:  [{sgn}]'
@@ -1969,7 +1969,7 @@ class JPEG2000SignatureBox(Jp2kBox):
 
     def __str__(self):
         title = Jp2kBox.__str__(self)
-        if config.get_option('print.short') is True:
+        if get_option('print.short') is True:
             return title
 
         body = 'Signature:  {0:02x}{1:02x}{2:02x}{3:02x}'
@@ -2061,7 +2061,7 @@ class PaletteBox(Jp2kBox):
 
     def __str__(self):
         title = Jp2kBox.__str__(self)
-        if config.get_option('print.short') is True:
+        if get_option('print.short') is True:
             return title
 
         body = 'Size:  ({0} x {1})'.format(*self.palette.shape)
@@ -2289,7 +2289,7 @@ class ReaderRequirementsBox(Jp2kBox):
 
     def __str__(self):
         title = Jp2kBox.__str__(self)
-        if config.get_option('print.short') is True:
+        if get_option('print.short') is True:
             return title
 
         lst = []
@@ -2547,7 +2547,7 @@ class CaptureResolutionBox(Jp2kBox):
 
     def __str__(self):
         title = Jp2kBox.__str__(self)
-        if config.get_option('print.short') is True:
+        if get_option('print.short') is True:
             return title
 
         lst = []
@@ -2622,7 +2622,7 @@ class DisplayResolutionBox(Jp2kBox):
 
     def __str__(self):
         title = Jp2kBox.__str__(self)
-        if config.get_option('print.short') is True:
+        if get_option('print.short') is True:
             return title
 
         lst = []
@@ -2691,7 +2691,7 @@ class LabelBox(Jp2kBox):
 
     def __str__(self):
         title = Jp2kBox.__str__(self)
-        if config.get_option('print.short') is True:
+        if get_option('print.short') is True:
             return title
 
         text = 'Label:  {0}'.format(self.label)
@@ -2763,7 +2763,7 @@ class NumberListBox(Jp2kBox):
 
     def __str__(self):
         title = Jp2kBox.__str__(self)
-        if config.get_option('print.short') is True:
+        if get_option('print.short') is True:
             return title
 
         lst = []
@@ -2873,9 +2873,9 @@ class XMLBox(Jp2kBox):
 
     def __str__(self):
         title = Jp2kBox.__str__(self)
-        if config.get_option('print.short') is True:
+        if get_option('print.short') is True:
             return title
-        if config.get_option('print.xml') is False:
+        if get_option('print.xml') is False:
             return title
 
         if self.xml is not None:
@@ -2999,7 +2999,7 @@ class UUIDListBox(Jp2kBox):
 
     def __str__(self):
         title = Jp2kBox.__str__(self)
-        if config.get_option('print.short') is True:
+        if get_option('print.short') is True:
             return title
 
         lst = []
@@ -3175,7 +3175,7 @@ class DataEntryURLBox(Jp2kBox):
 
     def __str__(self):
         title = Jp2kBox.__str__(self)
-        if config.get_option('print.short') is True:
+        if get_option('print.short') is True:
             return title
 
         lst = ['Version:  {version}',
@@ -3329,7 +3329,7 @@ class UUIDBox(Jp2kBox):
 
     def __str__(self):
         title = Jp2kBox.__str__(self)
-        if config.get_option('print.short') is True:
+        if get_option('print.short') is True:
             return title
 
         text = 'UUID:  {0}'.format(self.uuid)
@@ -3344,7 +3344,7 @@ class UUIDBox(Jp2kBox):
 
         lst = [text]
 
-        if not config.get_option('print.xml') and self.uuid == _XMP_UUID:
+        if not get_option('print.xml') and self.uuid == _XMP_UUID:
             # If it's an XMP UUID, don't print the XML contents.
             pass
 

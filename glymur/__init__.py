@@ -2,10 +2,10 @@
 """
 # Local imports
 from glymur import version
+from .options import (get_option, set_option, reset_option,
+                      get_printoptions, set_printoptions,
+                      get_parseoptions, set_parseoptions)
 from .jp2k import Jp2k
-from .config import (get_option, set_option, reset_option,
-                     get_printoptions, set_printoptions,
-                     get_parseoptions, set_parseoptions)
 from . import data
 
 __version__ = version.version

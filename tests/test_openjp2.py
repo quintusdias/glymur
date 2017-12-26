@@ -26,14 +26,23 @@ from . import fixtures
 
 
 @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-@unittest.skipIf(re.match(r'''0|1.5|2.0''',
-                          glymur.version.openjpeg_version) is not None,
+@unittest.skipIf(glymur.version.openjpeg_version < '2.1.0',
                  "Not to be run until 2.1.0")
 class TestOpenJP2(unittest.TestCase):
     """Test openjp2 library functionality.
 
     Some tests correspond to those in the openjpeg test suite.
     """
+    @unittest.skipIf(glymur.lib.openjp2.version() < '2.2.0', 'Not implemented') 
+    def test_get_num_cpus(self):                                                
+        """                                                                     
+        SCENARIO:  Hard to test this.  Values will be different across          
+        different machines, all we can do is test that the function runs.          
+                                                                                
+        EXPECTED VALUE:  an integer                                             
+        """                                                                     
+        num_cpus = openjp2.get_num_cpus()                                       
+        self.assertTrue(isinstance(num_cpus, int)) 
 
     def test_default_encoder_parameters(self):
         """Ensure that the encoder structure is clean upon init."""

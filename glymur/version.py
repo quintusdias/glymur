@@ -20,7 +20,7 @@ from .lib import openjpeg as opj, openjp2 as opj2
 
 # Do not change the format of this next line!  Doing so risks breaking
 # setup.py
-version = "0.8.12"
+version = "0.8.13"
 _sv = LooseVersion(version)
 version_tuple = _sv.version
 

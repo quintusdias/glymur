@@ -72,7 +72,7 @@ class TestSuiteOptions(unittest.TestCase):
         with self.assertRaises(KeyError):
             with warnings.catch_warnings():
                 warnings.simplefilter('ignore')
-                glymur.config.set_printoptions(blah='value-blah')
+                glymur.set_printoptions(blah='value-blah')
 
 
 @unittest.skipIf(sys.hexversion < 0x03020000,

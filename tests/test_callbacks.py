@@ -30,8 +30,8 @@ class TestCallbacks(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @unittest.skipIf(glymur.version.openjpeg_version[0] != '2',
-                     "Missing openjp2 library.")
+    @unittest.skipIf(glymur.version.openjpeg_version < '2.0.0',
+                     "Openjpeg/openjp2 library too old.")
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_info_callback_on_write_backwards_compatibility(self):
         """Verify messages printed when writing an image in verbose mode."""
@@ -47,8 +47,8 @@ class TestCallbacks(unittest.TestCase):
         expected = '[INFO] tile number 1 / 1'
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(glymur.version.openjpeg_version[0] != '2',
-                     "Missing openjp2 library.")
+    @unittest.skipIf(glymur.version.openjpeg_version < '2.0.0',
+                     "Openjpeg/openjp2 library too old.")
     @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_info_callback_on_write(self):
         """Verify messages printed when writing an image in verbose mode."""
@@ -61,8 +61,8 @@ class TestCallbacks(unittest.TestCase):
         expected = '[INFO] tile number 1 / 1'
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(glymur.version.openjpeg_version[0] == '0',
-                     "Missing openjpeg/openjp2 library.")
+    @unittest.skipIf(glymur.version.openjpeg_version < '1.5.0',
+                     "Openjpeg/openjp2 library too old.")
     def test_info_callbacks_on_read(self):
         """
         Set the verbose flag, do a read operation.

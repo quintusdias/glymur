@@ -20,6 +20,25 @@ retrieve a full resolution and first lower-resolution image ::
     >>> thumbnail.shape
     (728, 1296, 3)
 
+... make use of OpenJPEG's thread support to read images?
+=========================================================
+If you have glymur 0.8.13 or higher
+and OpenJPEG 2.2.0 or higher,
+you can make use of OpenJPEG's thread support to speed up read operations ::
+
+    >>> import glymur
+    >>> import time
+    >>> jp2file = glymur.data.nemo()
+    >>> jp2 = glymur.Jp2k(jp2file)
+    >>> t0 = time.time(); data = jp2[:]; t1 = time.time()
+    >>> t1 - t0
+    0.9024193286895752
+    >>> glymur.set_option('lib.num_threads', 2)
+    >>> t0 = time.time(); data = jp2[:]; t1 = time.time()
+    >>> t1 - t0
+    0.4060473537445068
+
+
 ... write images?
 =================
 It's pretty simple, just supply the image data as the 2nd argument to the Jp2k

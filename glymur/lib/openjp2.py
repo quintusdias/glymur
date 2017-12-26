@@ -594,6 +594,34 @@ def check_error(status):
             raise OpenJPEGLibraryError("OpenJPEG function failure.")
 
 
+def codec_set_threads(codec, num_threads):
+    """
+    Allocates worker threads for the compressor/decompressor.
+
+    This function Wraps the openjp2 library function opj_codec_set_threads.
+
+    Parameters
+    ----------
+    codec
+        Decompressor handler
+    num_threads : int
+        Number of threads.
+
+    Raises
+    ------
+    RuntimeError
+        If the OpenJPEG library routine opj_decode fails.
+    """
+    if not hasattr(OPENJP2, 'opj_codec_set_threads'):
+        msg = ("The opj_codec_set_threads function is not implemented in this "
+               "version of OpenJPEG ({version}).")
+        msg = msg.format(version=version())
+        raise NotImplementedError(msg)
+    OPENJP2.opj_codec_set_threads.argtypes = [CODEC_TYPE, ctypes.c_int32]
+    OPENJP2.opj_codec_set_threads.restype = check_error
+    OPENJP2.opj_codec_set_threads(codec, num_threads)
+
+
 def create_compress(codec_format):
     """Creates a J2K/JP2 compress structure.
 
@@ -766,6 +794,33 @@ def get_decoded_tile(codec, stream, imagep, tile_index):
     OPENJP2.opj_get_decoded_tile.restype = check_error
 
     OPENJP2.opj_get_decoded_tile(codec, stream, imagep, tile_index)
+
+
+def get_num_cpus():
+    """
+    Parameters
+    ----------
+    None
+
+    Returns
+    -------
+        Return the number of virtual CPUs.
+    """
+    OPENJP2.opj_get_num_cpus.restype = ctypes.c_int32
+    return OPENJP2.opj_get_num_cpus()
+
+
+def has_thread_support():
+    """
+    Is the library configured with thread support?
+
+    Returns
+    -------
+        True if the library is configured with thread support.
+    """
+    OPENJP2.opj_has_thread_support.restype = BOOL_TYPE
+    ret = OPENJP2.opj_has_thread_support()
+    return True if ret else False
 
 
 def end_compress(codec, stream):

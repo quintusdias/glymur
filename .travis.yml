@@ -30,6 +30,14 @@ matrix:
           - OPJ15=1
     - python: 3.6
       env:
+          - JOB_NAME "36_openjpeg212"
+          - JOB_TAG=opj212
+    - python: 3.6
+      env:
+          - JOB_NAME "36_openjpeg220"
+          - JOB_TAG=opj220
+    - python: 3.6
+      env:
           - JOB_NAME "36_latest"
           - JOB_TAG=latest
 before_install:

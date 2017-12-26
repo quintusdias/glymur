@@ -28,7 +28,7 @@ import numpy as np
 
 # Local imports...
 from .codestream import Codestream
-from . import core, version
+from . import core, version, get_option
 from .jp2box import (Jp2kBox, JPEG2000SignatureBox, FileTypeBox,
                      JP2HeaderBox, ColourSpecificationBox,
                      ContiguousCodestreamBox, ImageHeaderBox)
@@ -51,6 +51,8 @@ class Jp2k(Jp2kBox):
 
     Properties
     ----------
+    codestream : glymur.codestream.Codestream
+        JP2 or J2K codestream object.
     ignore_pclr_cmap_cdef : bool
         Whether or not to ignore the pclr, cmap, or cdef boxes during any
         color transformation, defaults to False.
@@ -59,8 +61,6 @@ class Jp2k(Jp2kBox):
     verbose : bool
         Whether or not to print informational messages produced by the
         OpenJPEG library, defaults to false.
-    codestream : glymur.codestream.Codestream
-        JP2 or J2K codestream object.
 
     Examples
     --------
@@ -73,11 +73,25 @@ class Jp2k(Jp2kBox):
     >>> image.shape
     (1456, 2592, 3)
 
-    Read a lower resolution thumbnail.
+    Read a lower resolution thumbnail
 
     >>> thumbnail = jp2[::2, ::2]
     >>> thumbnail.shape
     (728, 1296, 3)
+
+    Make use of OpenJPEG's thread support
+    >>> import glymur
+    >>> import time
+    >>> if glymur.version.openjpeg_version >= '2.2.0':
+    ...     jp2file = glymur.data.nemo()
+    ...     jp2 = glymur.Jp2k(jp2file)
+    ...     t0 = time.time(); data = jp2[:]; t1 = time.time()
+    ...     t1 - t0 #doctest: +SKIP
+    0.9024193286895752
+    ...     glymur.set_options('lib.num_threads', 4)
+    ...     t0 = time.time(); data = jp2[:]; t1 = time.time()
+    ...     t1 - t0 #doctest: +SKIP
+    0.4060473537445068
     """
 
     def __init__(self, filename, data=None, shape=None, **kwargs):
@@ -1285,6 +1299,9 @@ class Jp2k(Jp2kBox):
                 opj2.set_info_handler(codec, None)
 
             opj2.setup_decoder(codec, self._dparams)
+            if version.openjpeg_version >= '2.2.0':
+                opj2.codec_set_threads(codec, get_option('lib.num_threads'))
+
             raw_image = opj2.read_header(stream, codec)
             stack.callback(opj2.image_destroy, raw_image)
 
