@@ -33,7 +33,7 @@ you can make use of OpenJPEG's thread support to speed up read operations ::
     >>> t0 = time.time(); data = jp2[:]; t1 = time.time()
     >>> t1 - t0
     0.9024193286895752
-    >>> jp2.num_threads = 2
+    >>> glymur.set_option('lib.num_threads', 2)
     >>> t0 = time.time(); data = jp2[:]; t1 = time.time()
     >>> t1 - t0
     0.4060473537445068

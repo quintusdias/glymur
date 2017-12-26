@@ -23,7 +23,7 @@ import numpy as np
 
 # Local imports...
 from .codestream import Codestream
-from . import core, version
+from . import core, version, get_option
 from .jp2box import (Jp2kBox, JPEG2000SignatureBox, FileTypeBox,
                      JP2HeaderBox, ColourSpecificationBox,
                      ContiguousCodestreamBox, ImageHeaderBox)
@@ -53,8 +53,6 @@ class Jp2k(Jp2kBox):
         color transformation, defaults to False.
     layer : int
         Zero-based number of quality layer to decode.
-    num_threads : int
-        Set the number of threads that the decompressor uses.
     verbose : bool
         Whether or not to print informational messages produced by the
         OpenJPEG library, defaults to false.
@@ -86,7 +84,7 @@ class Jp2k(Jp2kBox):
     ...     t0 = time.time(); data = jp2[:]; t1 = time.time()
     ...     t1 - t0 #doctest: +SKIP
     0.9024193286895752
-    ...     jp2.num_threads = 2
+    ...     glymur.set_options('lib.num_threads', 4)
     ...     t0 = time.time(); data = jp2[:]; t1 = time.time()
     ...     t1 - t0 #doctest: +SKIP
     0.4060473537445068
@@ -160,7 +158,6 @@ class Jp2k(Jp2kBox):
         self._colorspace = None
         self._layer = 0
         self._codestream = None
-        self._num_threads = 1
 
         if data is not None:
             self._shape = data.shape
@@ -259,21 +256,6 @@ class Jp2k(Jp2kBox):
     @shape.setter
     def shape(self, shape):
         self._shape = shape
-
-    @property
-    def num_threads(self):
-        return self._num_threads
-
-    @num_threads.setter
-    def num_threads(self, num_threads):
-        """
-        To be used only by the decompressor.
-        """
-        if version.openjpeg_version >= '2.2.0' and opj2.has_thread_support():
-            self._num_threads = num_threads
-        else:
-            msg = 'The OpenJPEG library is not configured with thread support.'
-            raise RuntimeError(msg)
 
     def __repr__(self):
         msg = "glymur.Jp2k('{0}')".format(self.filename)
@@ -1128,7 +1110,6 @@ class Jp2k(Jp2kBox):
         RuntimeError
             If the image has differing subsample factors.
         """
-        self.layer = layer
         self._subsampling_sanity_check()
         self._populate_dparams(rlevel, tile=tile, area=area)
         image = self._read_openjp2_common()
@@ -1161,7 +1142,7 @@ class Jp2k(Jp2kBox):
 
             opj2.setup_decoder(codec, self._dparams)
             if version.openjpeg_version >= '2.2.0':
-                opj2.codec_set_threads(codec, self.num_threads)
+                opj2.codec_set_threads(codec, get_option('lib.num_threads'))
 
             raw_image = opj2.read_header(stream, codec)
             stack.callback(opj2.image_destroy, raw_image)

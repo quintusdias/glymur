@@ -239,6 +239,9 @@ class TestJp2k(unittest.TestCase):
     def tearDownClass(cls):
         pass
 
+    def setUp(self):
+        glymur.reset_option('all')
+
     def test_pathlib(self):
         p = pathlib.Path(self.jp2file)
         jp2 = Jp2k(p)
@@ -1004,7 +1007,7 @@ class TestJp2k(unittest.TestCase):
             self.assertTrue(True)
             return
 
-        jp2.num_threads = num_cpus
+        glymur.set_option('lib.num_threads', 4)
         t0 = time.time()
         jp2[:]
         t1 = time.time()
@@ -1018,10 +1021,9 @@ class TestJp2k(unittest.TestCase):
 
         EXPECTED RESULTS:  RuntimeError
         """
-        jp2 = Jp2k(self.jp2file)
         with patch('glymur.jp2k.version.openjpeg_version', new='2.1.0'):
             with self.assertRaises(RuntimeError):
-                jp2.num_threads = 2
+                glymur.set_option('lib.num_threads', 4)
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
