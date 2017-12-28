@@ -21,6 +21,8 @@ from xml.etree import cElementTree as ET
 # Third party library imports ...
 import numpy as np
 import pkg_resources as pkg
+import skimage.data
+import skimage.measure
 
 # Local imports
 import glymur
@@ -243,6 +245,9 @@ class TestJp2k(unittest.TestCase):
         glymur.reset_option('all')
 
     def test_pathlib(self):
+        """
+        SCENARIO: Provide a pathlib.Path instead of a string for the filename.
+        """
         p = pathlib.Path(self.jp2file)
         jp2 = Jp2k(p)
         self.assertEqual(jp2.shape, (1456, 2592, 3))
@@ -1025,11 +1030,25 @@ class TestJp2k(unittest.TestCase):
             with self.assertRaises(RuntimeError):
                 glymur.set_option('lib.num_threads', 4)
 
+    @patch('glymur.lib.openjp2.has_thread_support')
+    def test_thread_support_not_compiled_into_library(self, mock_ts):
+        """
+        SCENARIO:  Set number of threads on openjpeg >= 2.2.0, but openjpeg
+        has not been compiled with thread support.
 
-@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
+        EXPECTED RESULTS:  RuntimeError
+        """
+        mock_ts.return_value = False
+        with patch('glymur.jp2k.version.openjpeg_version', new='2.2.0'):
+            with self.assertRaises(RuntimeError):
+                glymur.set_option('lib.num_threads', 4)
+
+
+@unittest.skipIf(glymur.version.openjpeg_version < '2.1.0',
+                 "Requires as least v2.1")
 @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
 class TestJp2k_write(fixtures.MetadataBase):
-    """Write tests, can be run by versions 1.5+"""
+    """Write tests, can be run by versions 2.1"""
 
     @classmethod
     def setUpClass(cls):
@@ -1066,8 +1085,6 @@ class TestJp2k_write(fixtures.MetadataBase):
             with self.assertRaises(IOError):
                 j.wrap(tfile.name, boxes=boxes)
 
-    @unittest.skipIf(glymur.version.openjpeg_version_tuple[0] < 2,
-                     "Requires as least v2.0")
     def test_null_data(self):
         """
         Verify that we prevent trying to write images with one dimension zero.
@@ -1075,6 +1092,70 @@ class TestJp2k_write(fixtures.MetadataBase):
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
             with self.assertRaises(IOError):
                 Jp2k(tfile.name, data=np.zeros((0, 256), dtype=np.uint8))
+
+    def test_psnr_zero_value_not_last(self):
+        """
+        SCENARIO:  The PSNR keyword argument has a zero value, but it is not
+        the last value.
+
+        EXPECTED RESULT:  RuntimeError
+        """
+        kwargs = {
+            'data': skimage.data.camera(),
+            'psnr': [0, 35, 40, 30],
+        }
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            with self.assertRaises(IOError):
+                Jp2k(tfile.name, **kwargs)
+
+    def test_psnr_non_zero_non_monotonically_decreasing(self):
+        """
+        SCENARIO:  The PSNR keyword argument is non-monotonically increasing
+        and does not contain zero.
+
+        EXPECTED RESULT:  RuntimeError
+        """
+        kwargs = {
+            'data': skimage.data.camera(),
+            'psnr': [30, 35, 40, 30],
+        }
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            with self.assertRaises(IOError):
+                Jp2k(tfile.name, **kwargs)
+
+    def test_psnr(self):
+        """
+        SCENARIO:  Four peak signal-to-noise ratio values are supplied, the
+        last is zero.
+
+        EXPECTED RESULT:  Four quality layers, the first should be lossless.
+        """
+        kwargs = {
+            'data': skimage.data.camera(),
+            'psnr': [30, 35, 40, 0],
+        }
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            j = Jp2k(tfile.name, **kwargs)
+
+            d = {}
+            for layer in range(4):
+                j.layer = layer
+                d[layer] = j[:]
+
+        with warnings.catch_warnings():
+            # MSE is zero for that first image, resulting in a divide-by-zero
+            # warning
+            warnings.simplefilter('ignore')
+            psnr = [
+                skimage.measure.compare_psnr(skimage.data.camera(), d[j])
+                for j in range(4)
+            ]
+
+        # That first image should be lossless.
+        self.assertTrue(np.isinf(psnr[0]))
+
+        # PSNR should increase for the remaining images.
+        self.assertTrue(np.all(psnr[1:]) > 0)
 
     def test_NR_ENC_Bretagne1_ppm_2_encode(self):
         """
@@ -1092,10 +1173,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             'numres': 2,
         }
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            with warnings.catch_warnings():
-                # OpenJPEG library warning about tcp rates in 2.3 and above
-                warnings.simplefilter('ignore')
-                j = Jp2k(tfile.name, **kwargs)
+            j = Jp2k(tfile.name, **kwargs)
 
             codestream = j.get_codestream()
 
@@ -1157,13 +1235,8 @@ class TestJp2k_write(fixtures.MetadataBase):
         size are present.  The precinct sizes validate.
         """
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            with warnings.catch_warnings():
-                # warning due to tcp_rates[1] == 0.
-                warnings.simplefilter('ignore')
-
-                j = Jp2k(tfile.name,
-                         data=self.jp2_data,
-                         psnr=[30, 35, 40], cbsize=(16, 16), psizes=[(64, 64)])
+            j = Jp2k(tfile.name, data=self.jp2_data, psnr=[30, 35, 40],
+                     cbsize=(16, 16), psizes=[(64, 64)])
 
             codestream = j.get_codestream()
 
@@ -1406,11 +1479,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         """
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
 
-            with warnings.catch_warnings():
-                # suppress a library warning
-                warnings.simplefilter('ignore')
-
-                j = Jp2k(tfile.name, data=self.jp2_data, cratios=[50])
+            j = Jp2k(tfile.name, data=self.jp2_data, cratios=[50])
 
             codestream = j.get_codestream(header_only=False)
 
@@ -1441,13 +1510,8 @@ class TestJp2k_write(fixtures.MetadataBase):
         """
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
 
-            with warnings.catch_warnings():
-                # suppress a library warning
-                warnings.simplefilter('ignore')
-
-                jp2 = Jp2k(tfile.name,
-                           data=self.jp2_data,
-                           psnr=[30, 35, 50], prog='LRCP', numres=3)
+            jp2 = Jp2k(tfile.name, data=self.jp2_data, psnr=[30, 35, 50],
+                       prog='LRCP', numres=3)
 
             ids = [box.box_id for box in jp2.box]
             self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
@@ -1841,7 +1905,7 @@ class TestJp2k_write(fixtures.MetadataBase):
                              glymur.core.CPRL)
 
 
-@unittest.skipIf(glymur.version.openjpeg_version_tuple[0] < 2,
+@unittest.skipIf(glymur.version.openjpeg_version < '2.1.0',
                  "Requires as least v2.0")
 class TestJp2k_2_0(unittest.TestCase):
     """Test suite requiring at least version 2.0"""
@@ -1849,6 +1913,7 @@ class TestJp2k_2_0(unittest.TestCase):
     def setUp(self):
         self.jp2file = glymur.data.nemo()
         self.j2kfile = glymur.data.goodstuff()
+        self.jpxfile = glymur.data.jpxfile()
 
     def tearDown(self):
         pass
@@ -1920,20 +1985,6 @@ class TestJp2k_2_0(unittest.TestCase):
                 self.assertEqual(jasoc.box[3].box[0].box_id, 'lbl ')
                 self.assertEqual(jasoc.box[3].box[0].label, 'label')
                 self.assertEqual(jasoc.box[3].box[1].box_id, 'xml ')
-
-
-@unittest.skipIf(glymur.version.openjpeg_version < '2.0.0',
-                 "Not to be run until unless 2.0.1 or higher is present")
-class TestJp2k_2_1(unittest.TestCase):
-    """Only to be run in 2.0+."""
-
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
-        self.j2kfile = glymur.data.goodstuff()
-        self.jpxfile = glymur.data.jpxfile()
-
-    def tearDown(self):
-        pass
 
     def test_ignore_pclr_cmap_cdef_on_old_read(self):
         """
@@ -2028,9 +2079,8 @@ class TestParsing(unittest.TestCase):
         self.assertIsNotNone(jp2c._codestream)
 
 
-@unittest.skipIf(re.match(r'''0|1|2.0.0''',
-                          glymur.version.openjpeg_version) is not None,
-                 "Only supported in 2.0.1 or higher")
+@unittest.skipIf(glymur.version.openjpeg_version < '2.1.0',
+                 "Only supported in 2.1.0 or higher")
 class TestReadArea(unittest.TestCase):
     """
     Runs tests introduced in version 2.0+ or that pass only in 2.0+

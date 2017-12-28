@@ -244,7 +244,6 @@ class TestSuite(unittest.TestCase):
 
         # The first tag should begin at byte 32.  Replace the entire IDF
         # entry with zeros.
-        # import pdb; pdb.set_trace()
         tag = struct.pack('<HHII', 0, 3, 0, 0)
         buffer = buffer[:40] + tag + buffer[52:]
 

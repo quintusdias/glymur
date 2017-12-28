@@ -396,9 +396,22 @@ class Jp2k(Jp2kBox):
                    "options.")
             raise IOError(msg)
 
-        if cratios is not None and psnr is not None:
-            msg = "Cannot specify cratios and psnr options together."
-            raise IOError(msg)
+        if psnr is not None:
+            if cratios is not None:
+                msg = "Cannot specify cratios and psnr options together."
+                raise IOError(msg)
+
+            if 0 in psnr and psnr[-1] != 0:
+                msg = ("If a zero value is supplied in the PSNR keyword "
+                       "argument, it must be in the final position.")
+                raise IOError(msg)
+
+            if (((0 in psnr and np.any(np.diff(psnr[:-1]) < 0)) or
+                 (0 not in psnr and np.any(np.diff(psnr) < 0)))):
+                msg = ("PSNR values must be increasing, with one exception - "
+                       "zero may be in the final position to indicate a "
+                       "lossless layer.")
+                raise IOError(msg)
 
         cparams = opj2.set_default_encoder_parameters()
 
@@ -412,22 +425,15 @@ class Jp2k(Jp2kBox):
         else:
             cparams.codec_fmt = opj2.CODEC_J2K
 
-        # Set defaults to lossless to begin.
-        cparams.tcp_rates[0] = 0
-        cparams.tcp_numlayers = 1
-        cparams.cp_disto_alloc = 1
-
         cparams.irreversible = 1 if irreversible else 0
 
         if cinema2k is not None:
             self._cparams = cparams
             self._set_cinema_params('cinema2k', cinema2k)
-            return
 
         if cinema4k is not None:
             self._cparams = cparams
             self._set_cinema_params('cinema4k', cinema4k)
-            return
 
         if cbsize is not None:
             cparams.cblockw_init = cbsize[1]
@@ -491,6 +497,12 @@ class Jp2k(Jp2kBox):
                 raise IOError(msg)
             cparams.tcp_mct = 1 if mct else 0
 
+        # Set defaults to lossless to begin.
+        if cparams.tcp_numlayers == 0:
+            cparams.tcp_rates[0] = 0
+            cparams.tcp_numlayers += 1
+            cparams.cp_disto_alloc = 1
+
         self._validate_compression_params(img_array, cparams, colorspace)
 
         self._cparams = cparams
@@ -502,8 +514,8 @@ class Jp2k(Jp2kBox):
         This method can only be used to create JPEG 2000 images that can fit
         in memory.
         """
-        if re.match("0|1.[0-4]", version.openjpeg_version) is not None:
-            msg = ("You must have at least version 1.5 of OpenJPEG "
+        if version.openjpeg_version < '2.1.0':
+            msg = ("You must have at least version 2.1.0 of OpenJPEG "
                    "in order to write images.")
             raise RuntimeError(msg)
 
