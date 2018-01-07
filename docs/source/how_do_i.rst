@@ -41,14 +41,48 @@ you can make use of OpenJPEG's thread support to speed up read operations ::
 
 ... write images?
 =================
-It's pretty simple, just supply the image data as the 2nd argument to the Jp2k
-constructor.
+It's pretty simple, just supply the image data as a keyword argument to the
+Jp2k constructor.
     
     >>> import glymur, numpy as np
     >>> jp2 = glymur.Jp2k('zeros.jp2', data=np.zeros((640, 480), dtype=np.uint8))
 
 You must have OpenJPEG version 1.5 or more recent in order to write JPEG 2000
 images with glymur.
+
+... write images with different compression rations for different layers?
+=========================================================================
+Different compression factors may be specified with the cratios parameter ::
+
+    >>> import skimage.data, glymur
+    >>> data = skimage.data.camera()
+    >>> # quality layer 1: compress 20x
+    >>> # quality layer 2: compress 10x
+    >>> # quality layer 3: compress lossless
+    >>> jp2 = glymur.Jp2k('myfile.jp2', data=data, cratios=[20, 10, 1])
+    >>> # read the lossless layer
+    >>> jp2.layer = 2
+    >>> data = jp2[:]
+
+... write images with different PSNR (or "quality") for different layers?
+=========================================================================
+Different PSNR values may be specified with the psnr parameter.  Please read
+https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio
+for a basic understanding of PSNR.  
+
+Values must be increasing, but the last value may be 0 to indicate
+the layer is lossless.  However, the OpenJPEG library will reorder
+the layers to make the first layer lossless, not the last.
+
+    >>> import skimage.data, skimage.measure, glymur
+    >>> truth = skimage.data.camera()
+    >>> jp2 = glymur.Jp2k('myfile.jp2', data=truth, psnr=[30, 40, 50, 0])
+    >>> psnr = []
+    >>> for layer in range(4):
+    ...     jp2.layer = layer
+    ...     psnr.append(skimage.measure.compare_psnr(truth, jp2[:]))
+    >>> print(psnr)
+    [inf, 29.028560403833303, 39.206919416670402, 47.593129828702246]
 
 ... display metadata?
 =====================

@@ -27,6 +27,8 @@ from xml.etree import cElementTree as ET
 # Third party library imports ...
 import numpy as np
 import pkg_resources as pkg
+import skimage.data
+import skimage.measure
 
 # Local imports
 import glymur
@@ -255,9 +257,25 @@ class TestJp2k(unittest.TestCase):
         glymur.reset_option('all')
 
     def test_pathlib(self):
+        """
+        SCENARIO:  Provide a pathlib.Path instead of a string for the filename.
+        """
         p = pathlib.Path(self.jp2file)
         jp2 = Jp2k(p)
         self.assertEqual(jp2.shape, (1456, 2592, 3))
+
+    @patch('glymur.lib.openjp2.has_thread_support')
+    def test_thread_support_not_compiled_into_library(self, mock_ts):
+        """
+        SCENARIO:  Set number of threads on openjpeg >= 2.2.0, but openjpeg
+        has not been compiled with thread support.
+
+        EXPECTED RESULTS:  RuntimeError
+        """
+        mock_ts.return_value = False
+        with patch('glymur.jp2k.version.openjpeg_version', new='2.2.0'):
+            with self.assertRaises(RuntimeError):
+                glymur.set_option('lib.num_threads', 4)
 
     @unittest.skipIf(re.match('1.5.(1|2)', openjpeg_version) is not None,
                      "Mysteriously fails in 1.5.1 and 1.5.2")
@@ -1003,43 +1021,43 @@ class TestJp2k(unittest.TestCase):
         j = Jp2k(file)
         self.assertEqual(j.layer, 0)
 
-    @unittest.skipIf(glymur.version.openjpeg_version < '2.2.0',                 
-                     "Requires as least v2.2.0")                                
-    def test_thread_support(self):                                              
-        """                                                                     
-        SCENARIO:  Set a non-default thread support value.                      
-                                                                                
-        EXPECTED RESULTS:  Using more threads speeds up a full read.            
-        """                                                                     
-        jp2 = Jp2k(self.jp2file)                                                
-        t0 = time.time()                                                        
-        jp2[:]                                                                  
-        t1 = time.time()                                                        
-        delta0 = t1 - t0                                                        
-                                                                                
-        num_cpus = glymur.lib.openjp2.get_num_cpus()                            
-        if num_cpus == 1:                                                       
-            # Nothing to do, can't use more threads.                            
-            self.assertTrue(True)                                               
-            return                                                              
-                                                                                
-        glymur.set_option('lib.num_threads', 4)                                 
-        t0 = time.time()                                                        
-        jp2[:]                                                                  
-        t1 = time.time()                                                        
-        delta1 = t1 - t0                                                        
-                                                                                
+    @unittest.skipIf(glymur.version.openjpeg_version < '2.2.0',
+                     "Requires as least v2.2.0")
+    def test_thread_support(self):
+        """
+        SCENARIO:  Set a non-default thread support value.
+
+        EXPECTED RESULTS:  Using more threads speeds up a full read.
+        """
+        jp2 = Jp2k(self.jp2file)
+        t0 = time.time()
+        jp2[:]
+        t1 = time.time()
+        delta0 = t1 - t0
+
+        num_cpus = glymur.lib.openjp2.get_num_cpus()
+        if num_cpus == 1:
+            # Nothing to do, can't use more threads.
+            self.assertTrue(True)
+            return
+
+        glymur.set_option('lib.num_threads', 4)
+        t0 = time.time()
+        jp2[:]
+        t1 = time.time()
+        delta1 = t1 - t0
+
         self.assertTrue(delta1 < delta0)
 
-    def test_thread_support_on_openjpeg_lt_220(self):                           
-        """                                                                     
-        SCENARIO:  Set number of threads on openjpeg < 2.2.0                    
-                                                                                
-        EXPECTED RESULTS:  RuntimeError                                         
-        """                                                                     
-        with patch('glymur.jp2k.version.openjpeg_version', new='2.1.0'):        
-            with self.assertRaises(RuntimeError):                               
-                glymur.set_option('lib.num_threads', 4) 
+    def test_thread_support_on_openjpeg_lt_220(self):
+        """
+        SCENARIO:  Set number of threads on openjpeg < 2.2.0
+
+        EXPECTED RESULTS:  RuntimeError
+        """
+        with patch('glymur.jp2k.version.openjpeg_version', new='2.1.0'):
+            with self.assertRaises(RuntimeError):
+                glymur.set_option('lib.num_threads', 4)
 
 
 class CinemaBase(fixtures.MetadataBase):
@@ -1176,6 +1194,70 @@ class TestJp2k_write(fixtures.MetadataBase):
         os.unlink(cls.single_channel_j2k.name)
         os.unlink(cls.single_channel_jp2.name)
 
+    def test_psnr(self):
+        """
+        SCENARIO:  Four peak signal-to-noise ratio values are supplied, the
+        last is zero.
+
+        EXPECTED RESULT:  Four quality layers, the first should be lossless.
+        """
+        kwargs = {
+            'data': skimage.data.camera(),
+            'psnr': [30, 35, 40, 0],
+        }
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            j = Jp2k(tfile.name, **kwargs)
+
+            d = {}
+            for layer in range(4):
+                j.layer = layer
+                d[layer] = j[:]
+
+        with warnings.catch_warnings():
+            # MSE is zero for that first image, resulting in a divide-by-zero
+            # warning
+            warnings.simplefilter('ignore')
+            psnr = [
+                skimage.measure.compare_psnr(skimage.data.camera(), d[j])
+                for j in range(4)
+            ]
+
+        # That first image should be lossless.
+        self.assertTrue(np.isinf(psnr[0]))
+
+        # PSNR should increase for the remaining images.
+        self.assertTrue(np.all(psnr[1:]) > 0)
+
+    def test_psnr_zero_value_not_last(self):
+        """
+        SCENARIO:  The PSNR keyword argument has a zero value, but it is not
+        the last value.
+
+        EXPECTED RESULT:  RuntimeError
+        """
+        kwargs = {
+            'data': skimage.data.camera(),
+            'psnr': [0, 35, 40, 30],
+        }
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            with self.assertRaises(IOError):
+                Jp2k(tfile.name, **kwargs)
+
+    def test_psnr_non_zero_non_monotonically_decreasing(self):
+        """
+        SCENARIO:  The PSNR keyword argument is non-monotonically increasing
+        and does not contain zero.
+
+        EXPECTED RESULT:  RuntimeError
+        """
+        kwargs = {
+            'data': skimage.data.camera(),
+            'psnr': [30, 35, 40, 30],
+        }
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            with self.assertRaises(IOError):
+                Jp2k(tfile.name, **kwargs)
+
     def test_no_jp2c_box_in_outermost_jp2_list(self):
         """
         There must be a JP2C box in the outermost list of boxes.
@@ -1207,11 +1289,8 @@ class TestJp2k_write(fixtures.MetadataBase):
 
         """
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            with warnings.catch_warnings():
-                # Warning emitted in OpenJPEG 2.3.0 due to TCP rates.
-                warnings.simplefilter('ignore')
-                j = Jp2k(tfile.name, data=self.jp2_data,
-                         psnr=[30, 35, 40], numres=2)
+            j = Jp2k(tfile.name, data=self.jp2_data, psnr=[30, 35, 40],
+                     numres=2)
 
             codestream = j.get_codestream()
 
@@ -1303,12 +1382,8 @@ class TestJp2k_write(fixtures.MetadataBase):
 
         """
         with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            with warnings.catch_warnings():
-                # Warning emitted in OpenJPEG 2.3.0 due to TCP rates.
-                warnings.simplefilter('ignore')
-                j = Jp2k(tfile.name,
-                         data=self.jp2_data,
-                         psnr=[30, 35, 40], cbsize=(16, 16), psizes=[(64, 64)])
+            j = Jp2k(tfile.name, data=self.jp2_data,
+                     psnr=[30, 35, 40], cbsize=(16, 16), psizes=[(64, 64)])
 
             codestream = j.get_codestream()
 
@@ -1580,12 +1655,8 @@ class TestJp2k_write(fixtures.MetadataBase):
 
         """
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-            with warnings.catch_warnings():
-                # Warning emitted in OpenJPEG 2.3.0 due to TCP rates.
-                warnings.simplefilter('ignore')
-                jp2 = Jp2k(tfile.name,
-                           data=self.jp2_data,
-                           psnr=[30, 35, 50], prog='LRCP', numres=3)
+            jp2 = Jp2k(tfile.name, data=self.jp2_data,
+                       psnr=[30, 35, 50], prog='LRCP', numres=3)
 
             ids = [box.box_id for box in jp2.box]
             self.assertEqual(ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])

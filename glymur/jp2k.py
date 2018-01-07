@@ -406,9 +406,22 @@ class Jp2k(Jp2kBox):
                    "options.")
             raise IOError(msg)
 
-        if cratios is not None and psnr is not None:
-            msg = "Cannot specify cratios and psnr options together."
-            raise IOError(msg)
+        if psnr is not None:
+            if cratios is not None:
+                msg = "Cannot specify cratios and psnr options together."
+                raise IOError(msg)
+
+            if 0 in psnr and psnr[-1] != 0:
+                msg = ("If a zero value is supplied in the PSNR keyword "
+                       "argument, it must be in the final position.")
+                raise IOError(msg)
+
+            if (((0 in psnr and np.any(np.diff(psnr[:-1]) < 0)) or
+                 (0 not in psnr and np.any(np.diff(psnr) < 0)))):
+                msg = ("PSNR values must be increasing, with one exception - "
+                       "zero may be in the final position to indicate a "
+                       "lossless layer.")
+                raise IOError(msg)
 
         if version.openjpeg_version_tuple[0] == 1:
             cparams = opj.set_default_encoder_parameters()
@@ -425,22 +438,15 @@ class Jp2k(Jp2kBox):
         else:
             cparams.codec_fmt = opj2.CODEC_J2K
 
-        # Set defaults to lossless to begin.
-        cparams.tcp_rates[0] = 0
-        cparams.tcp_numlayers = 1
-        cparams.cp_disto_alloc = 1
-
         cparams.irreversible = 1 if irreversible else 0
 
         if cinema2k is not None:
             self._cparams = cparams
             self._set_cinema_params('cinema2k', cinema2k)
-            return
 
         if cinema4k is not None:
             self._cparams = cparams
             self._set_cinema_params('cinema4k', cinema4k)
-            return
 
         if cbsize is not None:
             cparams.cblockw_init = cbsize[1]
@@ -503,6 +509,12 @@ class Jp2k(Jp2kBox):
                        "if the colorspace is gray.")
                 raise IOError(msg)
             cparams.tcp_mct = 1 if mct else 0
+
+        # Set defaults to lossless to begin.
+        if cparams.tcp_numlayers == 0:
+            cparams.tcp_rates[0] = 0
+            cparams.tcp_numlayers = 1
+            cparams.cp_disto_alloc = 1
 
         self._validate_compression_params(img_array, cparams, colorspace)
 

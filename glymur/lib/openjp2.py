@@ -22,7 +22,7 @@ def version():
     """Wrapper for opj_version library routine."""
     try:
         OPENJP2.opj_version.restype = ctypes.c_char_p
-    except:
+    except AttributeError:
         return "0.0.0"
 
     v = OPENJP2.opj_version()

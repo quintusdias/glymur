@@ -45,7 +45,7 @@ from .core import (_COLORSPACE_MAP_DISPLAY, _COLOR_TYPE_MAP_DISPLAY,
                    ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE,
                    ANY_ICC_PROFILE, VENDOR_COLOR_METHOD)
 from ._tiff import tiff_header
-from . import config, get_option
+from . import get_option
 from ._iccprofile import _ICCProfile
 
 

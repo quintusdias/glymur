@@ -1,8 +1,9 @@
 contextlib2
-libgdal
 gdal
+libgdal
 lxml
 mock
 numpy
 openjpeg=2.2.0
 pathlib2
+scikit-image
