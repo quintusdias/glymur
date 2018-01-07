@@ -90,8 +90,10 @@ class Jp2kBox(object):
         self.box = []
 
     def __str__(self):
-        msg = "{0} Box ({1}) @ ({2}, {3})"
-        msg = msg.format(self.longname, self.box_id, self.offset, self.length)
+        msg = (
+            f"{self.longname} Box ({self.box_id}) "
+            f"@ ({self.offset}, {self.length})"
+        )
         return msg
 
     def _dispatch_validation_error(self, msg, writing=False):
@@ -108,7 +110,7 @@ class Jp2kBox(object):
     def write(self, _):
         """Must be implemented in a subclass.
         """
-        msg = "Writing not supported for {0} box.".format(self.longname)
+        msg = f"Writing not supported for {self.longname} box."
         raise NotImplementedError(msg)
 
     def _str_superbox(self):
@@ -165,9 +167,10 @@ class Jp2kBox(object):
         except KeyError:
             # We don't recognize the box ID, so create an UnknownBox and be
             # done with it.
-            msg = ('Unrecognized box ({box_id}) encountered at byte offset '
-                   '{offset}.')
-            msg = msg.format(box_id=box_id, offset=fptr.tell() - 8)
+            msg = (
+                f'Unrecognized box ({box_id}) '
+                f'encountered at byte offset {fptr.tell() - 8}.'
+            )
             warnings.warn(msg, UserWarning)
             box = UnknownBox(box_id, offset=start, length=num_bytes,
                              longname='Unknown')
@@ -177,12 +180,11 @@ class Jp2kBox(object):
         try:
             box = parser(fptr, start, num_bytes)
         except ValueError as err:
-            msg = ("Encountered an unrecoverable ValueError while parsing a "
-                   "{box_id} box at byte offset {offset}.  The original error "
-                   "message was \"{original_error_message}\".")
-            msg = msg.format(box_id=_BOX_WITH_ID[box_id].longname,
-                             offset=start,
-                             original_error_message=str(err))
+            msg = (
+                f'Encountered an unrecoverable ValueError while parsing a '
+                f'{_BOX_WITH_ID[box_id]} box at byte offset {start}.  '
+                f'The original error message was "{str(err)}".'
+            )
             warnings.warn(msg, UserWarning)
             box = UnknownBox(box_id.decode('utf-8'),
                              length=num_bytes,
@@ -243,8 +245,7 @@ class Jp2kBox(object):
             if num_bytes > self.length:
                 # Length of the current box goes past the end of the
                 # enclosing superbox.
-                msg = '{0} box has incorrect box length ({1})'
-                msg = msg.format(box_id, num_bytes)
+                msg = f'{box_id} box has incorrect box length ({num_bytes})'
                 warnings.warn(msg)
             elif fptr.tell() > start + num_bytes:
                 # The box must be invalid somehow, as the file pointer is
@@ -315,16 +316,14 @@ class ColourSpecificationBox(Jp2kBox):
             self._dispatch_validation_error(msg, writing=writing)
 
         if self.method not in _COLORSPACE_METHODS.keys():
-            msg = "Invalid colorspace method value ({method})."
-            msg = msg.format(method=self.method)
+            msg = f"Invalid colorspace method value ({self.method})."
             if writing:
                 raise IOError(msg)
             else:
                 warnings.warn(msg, UserWarning)
 
         if self.approximation not in _APPROXIMATION_MEASURES.keys():
-            msg = "Invalid colr approximation value ({approx})."
-            msg = msg.format(approx=self.approximation)
+            msg = f"Invalid color approximation value ({self.approximation})."
             if not writing:
                 # Don't bother to check this for the case of writing=True
                 # because it's already handles in the wrapping code.
@@ -347,15 +346,14 @@ class ColourSpecificationBox(Jp2kBox):
         self._validate(writing=True)
 
     def __repr__(self):
-        msg = ("glymur.jp2box.ColourSpecificationBox("
-               "method={0}, precedence={1}, approximation={2}, "
-               "colorspace={3}, "
-               "icc_profile={4})")
-        msg = msg.format(self.method,
-                         self.precedence,
-                         self.approximation,
-                         self.colorspace,
-                         self.icc_profile)
+        msg = (
+            f"glymur.jp2box.ColourSpecificationBox("
+            f"method={self.method}, "
+            f"precedence={self.precedence}, "
+            f"approximation={self.approximation}, "
+            f"colorspace={self.colorspace}, "
+            f"icc_profile={self.icc_profile})"
+        )
         return msg
 
     def __str__(self):
@@ -368,28 +366,27 @@ class ColourSpecificationBox(Jp2kBox):
         try:
             item = _COLORSPACE_METHODS[self.method]
         except KeyError:
-            item = 'unrecognized value ({0})'.format(self.method)
-        text = 'Method:  {0}'.format(item)
+            item = f'unrecognized value ({self.method})'
+        text = f'Method:  {item}'
 
         lst.append(text)
-        text = 'Precedence:  {0}'.format(self.precedence)
+        text = f'Precedence:  {self.precedence}'
         lst.append(text)
 
         if self.approximation is not 0:
             try:
                 dispvalue = _APPROXIMATION_MEASURES[self.approximation]
             except KeyError:
-                dispvalue = 'invalid ({0})'.format(self.approximation)
-            text = 'Approximation:  {0}'.format(dispvalue)
+                dispvalue = f'invalid ({self.approximation})'
+            text = f'Approximation:  {dispvalue}'
             lst.append(text)
 
         if self.colorspace is not None:
             try:
                 dispvalue = _COLORSPACE_MAP_DISPLAY[self.colorspace]
             except KeyError:
-                dispvalue = '{colorspace} (unrecognized)'
-                dispvalue = dispvalue.format(colorspace=self.colorspace)
-            text = 'Colorspace:  {0}'.format(dispvalue)
+                dispvalue = f'{self.colorspace} (unrecognized)'
+            text = f'Colorspace:  {dispvalue}'
         else:
             if self.icc_profile is None:
                 text = 'ICC Profile:  None'
@@ -448,8 +445,7 @@ class ColourSpecificationBox(Jp2kBox):
             # enumerated colour space
             colorspace, = struct.unpack_from('>I', read_buffer, offset=3)
             if colorspace not in _COLORSPACE_MAP_DISPLAY.keys():
-                msg = "Unrecognized colorspace ({colorspace})."
-                msg = msg.format(colorspace=colorspace)
+                msg = f"Unrecognized colorspace ({colorspace})."
                 warnings.warn(msg, UserWarning)
             icc_profile = None
 
@@ -457,9 +453,11 @@ class ColourSpecificationBox(Jp2kBox):
             # ICC profile
             colorspace = None
             if (num_bytes - 3) < 128:
-                msg = ("ICC profile header is corrupt, length is "
-                       "only {length} when it should be at least 128.")
-                warnings.warn(msg.format(length=num_bytes - 3), UserWarning)
+                msg = (
+                    "ICC profile header is corrupt, length is only "
+                    "{num_bytes - 3} when it should be at least 128."
+                )
+                warnings.warn(msg, UserWarning)
                 icc_profile = None
             else:
                 profile = _ICCProfile(read_buffer[3:])
@@ -516,23 +514,24 @@ class ChannelDefinitionBox(Jp2kBox):
         # channel type and association must be specified.
         if not ((len(self.index) == len(self.channel_type)) and
                 (len(self.channel_type) == len(self.association))):
-            msg = ("The length of the index ({index}), channel_type "
-                   "({channel_type}), and association ({association}) inputs "
-                   "must be the same.")
-            msg = msg.format(index=len(self.index),
-                             channel_type=len(self.channel_type),
-                             association=len(self.association))
+            msg = (
+                f"The length of the index ({len(self.index)}), "
+                f"channel_type ({len(self.channel_type)}), "
+                f"and association ({len(self.association)}) "
+                f"inputs must be the same."
+            )
             self._dispatch_validation_error(msg, writing=writing)
 
         # channel types must be one of 0, 1, 2, 65535
         if any(x not in [0, 1, 2, 65535] for x in self.channel_type):
-            msg = ("channel_type specified as {channel_type}, but all values "
-                   "must be in the set of\n\n"
-                   "    0     - colour image data for associated color\n"
-                   "    1     - opacity\n"
-                   "    2     - premultiplied opacity\n"
-                   "    65535 - unspecified\n")
-            msg = msg.format(channel_type=self.channel_type)
+            msg = (
+                f"channel_type specified as {self.channel_type}, but all "
+                f"values must be in the set of\n\n"
+                f"    0     - colour image data for associated color\n"
+                f"    1     - opacity\n"
+                f"    2     - premultiplied opacity\n"
+                f"    65535 - unspecified\n"
+            )
             self._dispatch_validation_error(msg, writing=writing)
 
     def __str__(self):
@@ -547,13 +546,10 @@ class ChannelDefinitionBox(Jp2kBox):
             try:
                 color_type_string = _COLOR_TYPE_MAP_DISPLAY[channel_type]
             except KeyError:
-                color_type_string = "invalid ({})".format(channel_type)
+                color_type_string = f"invalid ({channel_type})"
 
-            assn = str(association) if association else 'whole image'
-            text = 'Channel {index} ({ctype}) ==> ({association})'
-            text = text.format(index=index,
-                               ctype=color_type_string,
-                               association=assn)
+            associaiton = str(association) if association else 'whole image'
+            text = f'Channel {index} ({color_type_string}) ==> ({association})'
             lst.append(text)
 
         text = '\n'.join(lst)
@@ -562,9 +558,11 @@ class ChannelDefinitionBox(Jp2kBox):
         return text
 
     def __repr__(self):
-        msg = ("glymur.jp2box.ChannelDefinitionBox("
-               "index={0}, channel_type={1}, association={2})")
-        msg = msg.format(self.index, self.channel_type, self.association)
+        msg = (
+            f"glymur.jp2box.ChannelDefinitionBox("
+            f"index={self.index}, channel_type={self.channel_type}, "
+            f"association={self.association})"
+        )
         return msg
 
     def write(self, fptr):
@@ -642,7 +640,7 @@ class CodestreamHeaderBox(Jp2kBox):
         self.box = box if box is not None else []
 
     def __repr__(self):
-        msg = "glymur.jp2box.CodestreamHeaderBox(box={0})".format(self.box)
+        msg = f"glymur.jp2box.CodestreamHeaderBox(box={self.box})"
         return msg
 
     def __str__(self):
@@ -707,7 +705,7 @@ class ColourGroupBox(Jp2kBox):
         self.box = box if box is not None else []
 
     def __repr__(self):
-        msg = "glymur.jp2box.ColourGroupBox(box={0})".format(self.box)
+        msg = f"glymur.jp2box.ColourGroupBox(box={self.box})"
         return msg
 
     def __str__(self):
@@ -780,8 +778,7 @@ class CompositingLayerHeaderBox(Jp2kBox):
         self.box = box if box is not None else []
 
     def __repr__(self):
-        msg = "glymur.jp2box.CompositingLayerHeaderBox(box={0})"
-        msg = msg.format(self.box)
+        msg = f"glymur.jp2box.CompositingLayerHeaderBox(box={self.box})"
         return msg
 
     def __str__(self):
@@ -852,11 +849,12 @@ class ComponentMappingBox(Jp2kBox):
         self.offset = offset
 
     def __repr__(self):
-        msg = ("glymur.jp2box.ComponentMappingBox("
-               "component_index={0}, mapping_type={1}, palette_index={2})")
-        msg = msg.format(self.component_index,
-                         self.mapping_type,
-                         self.palette_index)
+        msg = (
+            f"glymur.jp2box.ComponentMappingBox("
+            f"component_index={self.component_index}, "
+            f"mapping_type={self.mapping_type}, "
+            f"palette_index={self.palette_index})"
+        )
         return msg
 
     def __str__(self):
@@ -870,12 +868,13 @@ class ComponentMappingBox(Jp2kBox):
         ):
             if mapping_type == 1:
                 # palette mapping
-                text = 'Component {0} ==> palette column {1}'
-                text = text.format(component_idx, palette_idx)
+                text = (
+                    f'Component {component_idx} ==> '
+                    f'palette column {palette_idx}'
+                )
             else:
                 # Direct use
-                text = 'Component {0} ==> {1}'
-                text = text.format(component_idx, k)
+                text = f'Component {component_idx} ==> {k}'
             lst.append(text)
 
         text = '\n'.join(lst)
@@ -979,8 +978,9 @@ class ContiguousCodestreamBox(Jp2kBox):
         return self._codestream
 
     def __repr__(self):
-        msg = "glymur.jp2box.ContiguousCodeStreamBox(codestream={0})"
-        return msg.format(repr(self.codestream))
+        msg = "glymur.jp2box.ContiguousCodeStreamBox"
+        msg += f"(codestream={repr(self.codestream)})"
+        return msg
 
     def __str__(self):
         title = Jp2kBox.__str__(self)
@@ -1201,10 +1201,12 @@ class FileTypeBox(Jp2kBox):
         self._validate(writing=False)
 
     def __repr__(self):
-        msg = ("glymur.jp2box.FileTypeBox(brand='{0}', minor_version={1}, "
-               "compatibility_list={2})")
-        msg = msg.format(self.brand, self.minor_version,
-                         self.compatibility_list)
+        msg = (
+            f"glymur.jp2box.FileTypeBox("
+            f"brand='{self.brand}', "
+            f"minor_version={self.minor_version}, "
+            f"compatibility_list={self.compatibility_list})"
+        )
         return msg
 
     def __str__(self):
@@ -1213,9 +1215,9 @@ class FileTypeBox(Jp2kBox):
             return title
 
         lst = []
-        text = 'Brand:  {0}'.format(self.brand)
+        text = f'Brand:  {self.brand}'
         lst.append(text)
-        text = 'Compatibility:  {0}'.format(self.compatibility_list)
+        text = f'Compatibility:  {self.compatibility_list}'
         lst.append(text)
 
         text = '\n'.join(lst)
@@ -1230,20 +1232,21 @@ class FileTypeBox(Jp2kBox):
         Validate the box before writing to file.
         """
         if self.brand not in ['jp2 ', 'jpx ']:
-            msg = ("The file type brand was '{brand}'.  "
-                   "It should be either 'jp2 ' or 'jpx '.")
-            msg = msg.format(brand=self.brand)
+            msg = (
+                f"The file type brand was '{self.brand}'.  "
+                f"It should be either 'jp2 ' or 'jpx '."
+            )
             if writing:
                 raise IOError(msg)
             else:
                 warnings.warn(msg, UserWarning)
         for item in self.compatibility_list:
             if item not in self._valid_cls:
-                msg = ("The file type compatibility list {items} is "
-                       "not valid.  All items should be members of "
-                       "{valid_entries}.")
-                msg = msg.format(items=self.compatibility_list,
-                                 valid_entries=self._valid_cls)
+                msg = (
+                   f"The file type compatibility list "
+                   f"{self.compatibility_list} is not valid.  All items "
+                   f"should be members of {self._valid_cls}."
+                )
                 if writing:
                     raise IOError(msg)
                 else:
@@ -1335,12 +1338,13 @@ class FragmentListBox(Jp2kBox):
         """Validate internal correctness."""
         if (((len(self.fragment_offset) != len(self.fragment_length)) or
              (len(self.fragment_length) != len(self.data_reference)))):
-            msg = ("The lengths of the fragment offsets ({len_offsets}), "
-                   "fragment lengths ({len_fragments}), and "
-                   "data reference items ({len_drefs}) must be the same.")
-            msg = msg.format(len_offsets=len(self.fragment_offset),
-                             len_fragments=len(self.fragment_length),
-                             len_drefs=len(self.data_reference))
+            msg = (
+                f"The lengths of the "
+                f"fragment offsets ({len(self.fragment_offset)}),"
+                f"fragment lengths ({len(self.fragment_length)}), and "
+                f"data reference items ({len(self.data_reference)}) "
+                f"must be the same."
+            )
             self._dispatch_validation_error(msg, writing=writing)
         if any([x <= 0 for x in self.fragment_offset]):
             msg = "Fragment offsets must all be positive."
@@ -1351,9 +1355,9 @@ class FragmentListBox(Jp2kBox):
 
     def __repr__(self):
         msg = "glymur.jp2box.FragmentListBox({0}, {1}, {2})"
-        msg = msg.format(str(self.fragment_offset),
-                         str(self.fragment_length),
-                         str(self.data_reference))
+        msg = msg.format(self.fragment_offset,
+                         self.fragment_length,
+                         self.data_reference)
         return msg
 
     def __str__(self):
@@ -1363,12 +1367,11 @@ class FragmentListBox(Jp2kBox):
 
         lst = []
         for j in range(len(self.fragment_offset)):
-            text = "Offset {0}:  {1}".format(j, self.fragment_offset[j])
+            text = f"Offset {j}:  {self.fragment_offset[j]}"
             lst.append(text)
-            text = "Fragment Length {0}:  {1}".format(j,
-                                                      self.fragment_length[j])
+            text = f"Fragment Length {j}:  {self.fragment_length[j]}"
             lst.append(text)
-            text = "Data Reference {0}:  {1}".format(j, self.data_reference[j])
+            text = f"Data Reference {j}:  {self.data_reference[j]}"
             lst.append(text)
 
         text = '\n'.join(lst)
@@ -1449,8 +1452,7 @@ class FragmentTableBox(Jp2kBox):
         self.box = box if box is not None else []
 
     def __repr__(self):
-        msg = "glymur.jp2box.FragmentTableBox(box={0})"
-        msg = msg.format(self.box)
+        msg = f"glymur.jp2box.FragmentTableBox(box={self.box})"
         return msg
 
     def __str__(self):
@@ -1605,19 +1607,16 @@ class ImageHeaderBox(Jp2kBox):
         self.offset = offset
 
     def __repr__(self):
-        msg = ("glymur.jp2box.ImageHeaderBox("
-               "{height}, {width}, num_components={num_components}, "
-               "signed={signed}, bits_per_component={bits_per_component}, "
-               "compression={compression}, "
-               "colorspace_unknown={colorspace_unknown}, "
-               "ip_provided={ip_provided})")
-        msg = msg.format(height=self.height, width=self.width,
-                         num_components=self.num_components,
-                         signed=self.signed,
-                         bits_per_component=self.bits_per_component,
-                         compression=self.compression,
-                         colorspace_unknown=self.colorspace_unknown,
-                         ip_provided=self.ip_provided)
+        msg = (
+            f"glymur.jp2box.ImageHeaderBox("
+            f"{self.height}, {self.width}, "
+            f"num_components={self.num_components}, "
+            f"signed={self.signed}, "
+            f"bits_per_component={self.bits_per_component}, "
+            f"compression={self.compression}, "
+            f"colorspace_unknown={self.colorspace_unknown}, "
+            f"ip_provided={self.ip_provided})"
+        )
         return msg
 
     def __str__(self):
@@ -1627,21 +1626,22 @@ class ImageHeaderBox(Jp2kBox):
 
         lst = []
 
-        text = 'Size:  [{0} {1} {2}]'
-        text = text.format(self.height, self.width, self.num_components)
+        text = f'Size:  [{self.height} {self.width} {self.num_components}]'
         lst.append(text)
 
-        text = 'Bitdepth:  {0}'.format(self.bits_per_component)
+        text = f'Bitdepth:  {self.bits_per_component}'
         lst.append(text)
 
-        text = 'Signed:  {0}'.format(self.signed)
+        text = f'Signed:  {self.signed}'
         lst.append(text)
 
-        text = 'Compression:  {0}'
-        text = text.format('wavelet' if self.compression == 7 else 'unknown')
+        text = (
+            f"Compression:  "
+            f"{'wavelet' if self.compression == 7 else 'unknown'}"
+        )
         lst.append(text)
 
-        text = 'Colorspace Unknown:  {0}'.format(self.colorspace_unknown)
+        text = f'Colorspace Unknown:  {self.colorspace_unknown}'
         lst.append(text)
 
         text = '\n'.join(lst)
@@ -1733,7 +1733,7 @@ class AssociationBox(Jp2kBox):
         self.box = box if box is not None else []
 
     def __repr__(self):
-        msg = "glymur.jp2box.AssociationBox(box={0})".format(self.box)
+        msg = f"glymur.jp2box.AssociationBox(box={self.box})"
         return msg
 
     def __str__(self):
@@ -1801,8 +1801,7 @@ class BitsPerComponentBox(Jp2kBox):
         self.signed = signed
 
     def __repr__(self):
-        msg = "glymur.jp2box.BitsPerComponentBox({0}, {1})"
-        msg = msg.format(self.bpc, self.signed)
+        msg = f"glymur.jp2box.BitsPerComponentBox({self.bpc}, {self.signed})"
         return msg
 
     def __str__(self):
@@ -1810,10 +1809,7 @@ class BitsPerComponentBox(Jp2kBox):
         if get_option('print.short') is True:
             return title
 
-        body = 'Bits per component:  [{bpc}]\nSigned:  [{sgn}]'
-        body = body.format(bpc=', '.join(str(x) for x in self.bpc),
-                           sgn=', '.join(str(x) for x in self.signed))
-
+        body = f'Bits per component:  {self.bpc}\nSigned:  {self.signed}'
         body = textwrap.indent(body, ' ' * 4)
 
         text = '\n'.join([title, body])

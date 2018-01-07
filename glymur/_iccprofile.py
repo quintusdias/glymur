@@ -66,7 +66,7 @@ class _ICCProfile(object):
         major = data[2]
         minor = (data[3] & 0xf0) >> 4
         bugfix = (data[3] & 0x0f)
-        header['Version'] = '{0}.{1}.{2}'.format(major, minor, bugfix)
+        header['Version'] = f'{major}.{minor}.{bugfix}'
 
         header['Device Class'] = self.profile_class[self._raw_buffer[12:16]]
         header['Color Space'] = self.colour_space_dict[self._raw_buffer[16:20]]
@@ -85,9 +85,10 @@ class _ICCProfile(object):
             header['Platform'] = read_buffer[40:44].decode('utf-8')
 
         fval, = struct.unpack('>I', read_buffer[44:48])
-        flags = "{0}embedded, {1} be used independently"
-        header['Flags'] = flags.format('' if fval & 0x01 else 'not ',
-                                       'cannot' if fval & 0x02 else 'can')
+        header['Flags'] = (
+            f"{'' if fval & 0x01 else 'not '}embedded, "
+            f"{'cannot' if fval & 0x02 else 'can'} be used independently"
+        )
 
         header['Device Manufacturer'] = read_buffer[48:52].decode('utf-8')
         if read_buffer[52:56] == b'\x00\x00\x00\x00':
@@ -97,11 +98,12 @@ class _ICCProfile(object):
         header['Device Model'] = device_model
 
         val, = struct.unpack('>Q', read_buffer[56:64])
-        attr = "{0}, {1}, {2} media polarity, {3} media"
-        attr = attr.format('transparency' if val & 0x01 else 'reflective',
-                           'matte' if val & 0x02 else 'glossy',
-                           'negative' if val & 0x04 else 'positive',
-                           'black and white' if val & 0x08 else 'color')
+        attr = (
+            f"{'transparency' if val & 0x01 else 'reflective'}, "
+            f"{'matte' if val & 0x02 else 'glossy'}, " 
+            f"{'negative' if val & 0x04 else 'positive'} media polarity, "
+            f"{'black and white' if val & 0x08 else 'color'} media"
+        )
         header['Device Attributes'] = attr
 
         rval, = struct.unpack('>I', read_buffer[64:68])

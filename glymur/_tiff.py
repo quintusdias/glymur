@@ -21,12 +21,11 @@ def tiff_header(read_buffer):
         # big endian
         endian = '>'
     else:
-        msg = ("The byte order indication in the TIFF header ({byte_order}) "
-               "is invalid.  It should be either {little_endian} or "
-               "{big_endian}.")
-        msg = msg.format(byte_order=read_buffer[6:8],
-                         little_endian=bytes([73, 73]),
-                         big_endian=bytes([77, 77]))
+        msg = (
+            f"The byte order indication in the TIFF header "
+            f"({read_buffer[6:8]}) is invalid.  It should be either "
+            f"{bytes([73, 73])} or {bytes([77, 77])}."
+        )
         raise IOError(msg)
 
     _, offset = struct.unpack(endian + 'HI', read_buffer[2:8])
@@ -94,7 +93,7 @@ class Ifd(object):
             fmt = self.datatype2fmt[dtype][0] * count
             payload_size = self.datatype2fmt[dtype][1] * count
         except KeyError:
-            msg = 'Invalid TIFF tag datatype ({0}).'.format(dtype)
+            msg = 'Invalid TIFF tag datatype ({dtype}).'
             raise IOError(msg)
 
         if payload_size <= 4:
@@ -134,7 +133,7 @@ class Ifd(object):
                 tag_name = tagnum2name[tag]
             except KeyError:
                 # Ok, we don't recognize this tag.  Just use the numeric id.
-                msg = 'Unrecognized Exif tag ({tag}).'.format(tag=tag)
+                msg = 'Unrecognized Exif tag ({tag}).'
                 warnings.warn(msg, UserWarning)
                 tag_name = tag
             self.processed_ifd[tag_name] = value

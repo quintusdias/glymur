@@ -88,8 +88,7 @@ def load_library_handle(libname, path):
         else:
             opj_lib = ctypes.CDLL(path)
     except (TypeError, OSError):
-        msg = 'The {libname} library at {path} could not be loaded.'
-        msg = msg.format(path=path, libname=libname)
+        msg = f'The {libname} library at {path} could not be loaded.'
         warnings.warn(msg, UserWarning)
         opj_lib = None
 

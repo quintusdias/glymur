@@ -307,8 +307,8 @@ class TestPrinting(unittest.TestCase):
         actual = str(box)
 
         expected = ("Bits Per Component Box (bpcc) @ (62, 12)\n"
-                    "    Bits per component:  [5, 5, 5, 1]\n"
-                    "    Signed:  [False, False, True, False]")
+                    "    Bits per component:  (5, 5, 5, 1)\n"
+                    "    Signed:  (False, False, True, False)")
 
         self.assertEqual(actual, expected)
 

@@ -61,11 +61,11 @@ def main():
         jp2 = Jp2k(filename)
         if jp2._codec_format == lib.openjp2.CODEC_J2K:
             if codestream_level == 0:
-                print('File:  {0}'.format(os.path.basename(filename)))
+                print(f'File:  {os.path.basename(filename)}')
             elif codestream_level == 1:
                 print(jp2)
             elif codestream_level == 2:
-                print('File:  {0}'.format(os.path.basename(filename)))
+                print(f'File:  {os.path.basename(filename)}')
                 print(jp2.get_codestream(header_only=False))
         else:
             print(jp2)
@@ -74,7 +74,7 @@ def main():
         if len(wctx) > 0:
             print("\n")
         for warning in wctx:
-            print("{0}:{1}: {2}: {3}".format(warning.filename,
-                                             warning.lineno,
-                                             warning.category.__name__,
-                                             warning.message))
+            print(
+                f"{warning.filename}:{warning.lineno}: "
+                f"{warning.category.__name__}: {warning.message}"
+            )
