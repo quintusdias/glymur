@@ -100,7 +100,7 @@ class _ICCProfile(object):
         val, = struct.unpack('>Q', read_buffer[56:64])
         attr = (
             f"{'transparency' if val & 0x01 else 'reflective'}, "
-            f"{'matte' if val & 0x02 else 'glossy'}, " 
+            f"{'matte' if val & 0x02 else 'glossy'}, "
             f"{'negative' if val & 0x04 else 'positive'} media polarity, "
             f"{'black and white' if val & 0x08 else 'color'} media"
         )

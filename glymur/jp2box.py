@@ -548,7 +548,7 @@ class ChannelDefinitionBox(Jp2kBox):
             except KeyError:
                 color_type_string = f"invalid ({channel_type})"
 
-            associaiton = str(association) if association else 'whole image'
+            association = str(association) if association else 'whole image'
             text = f'Channel {index} ({color_type_string}) ==> ({association})'
             lst.append(text)
 
@@ -1867,7 +1867,7 @@ class JP2HeaderBox(Jp2kBox):
         self.box = box if box is not None else []
 
     def __repr__(self):
-        msg = "glymur.jp2box.JP2HeaderBox(box={0})".format(self.box)
+        msg = f"glymur.jp2box.JP2HeaderBox(box={self.box})"
         return msg
 
     def __str__(self):
@@ -1940,8 +1940,7 @@ class JPEG2000SignatureBox(Jp2kBox):
             return title
 
         body = 'Signature:  {0:02x}{1:02x}{2:02x}{3:02x}'
-        body = body.format(self.signature[0], self.signature[1],
-                           self.signature[2], self.signature[3])
+        body = body.format(*self.signature)
         body = textwrap.indent(body, ' ' * 4)
         text = '\n'.join([title, body])
         return text
@@ -2020,10 +2019,12 @@ class PaletteBox(Jp2kBox):
             self._dispatch_validation_error(msg, writing=writing)
 
     def __repr__(self):
-        msg = ("glymur.jp2box.PaletteBox({0}, bits_per_component={1}, "
-               "signed={2})")
-        msg = msg.format(repr(self.palette), self.bits_per_component,
-                         self.signed)
+        msg = (
+            f"glymur.jp2box.PaletteBox("
+            f"{repr(self.palette)}, "
+            f"bits_per_component={self.bits_per_component}, "
+            f"signed={self.signed})"
+        )
         return msg
 
     def __str__(self):
@@ -2031,7 +2032,7 @@ class PaletteBox(Jp2kBox):
         if get_option('print.short') is True:
             return title
 
-        body = 'Size:  ({0} x {1})'.format(*self.palette.shape)
+        body = f'Size:  ({self.palette.shape[0]} x {self.palette.shape[1]})'
         body = textwrap.indent(body, ' ' * 4)
 
         text = '\n'.join([title, body])
@@ -2261,10 +2262,10 @@ class ReaderRequirementsBox(Jp2kBox):
 
         lst = []
 
-        text = 'Fully Understands Aspect Mask:  0x{fuam:x}'
-        lst.append(text.format(fuam=self.fuam))
+        text = f'Fully Understands Aspect Mask:  0x{self.fuam:x}'
+        lst.append(text)
 
-        text = 'Display Completely Mask:  0x{dcm:x}'.format(dcm=self.dcm)
+        text = f'Display Completely Mask:  0x{self.dcm:x}'
         lst.append(text)
 
         text = 'Standard Features and Masks:'
@@ -2345,10 +2346,12 @@ class ReaderRequirementsBox(Jp2kBox):
             vendor_feature, vendor_mask = data
 
         except KeyError:
-            msg = ('The ReaderRequirements box (rreq) has a mask length of '
-                   '{length} bytes, but only values of 1, 2, 4, or 8 are '
-                   'supported.  The box contents will not be interpreted.')
-            warnings.warn(msg.format(length=mask_length), UserWarning)
+            msg = (
+                f'The ReaderRequirements box (rreq) has a mask length of '
+                f'{mask_length} bytes, but only values of 1, 2, 4, or 8 are '
+                f'supported.  The box contents will not be interpreted.'
+            )
+            warnings.warn(msg, UserWarning)
 
         return cls(fuam, dcm, standard_flag, standard_mask,
                    vendor_feature, vendor_mask,
@@ -2445,8 +2448,7 @@ class ResolutionBox(Jp2kBox):
         self.box = box if box is not None else []
 
     def __repr__(self):
-        msg = "glymur.jp2box.ResolutionBox(box={0})"
-        msg = msg.format(self.box)
+        msg = f"glymur.jp2box.ResolutionBox(box={self.box})"
         return msg
 
     def __str__(self):
@@ -2508,8 +2510,10 @@ class CaptureResolutionBox(Jp2kBox):
         self.offset = offset
 
     def __repr__(self):
-        msg = "glymur.jp2box.CaptureResolutionBox({0}, {1})"
-        msg = msg.format(self.vertical_resolution, self.horizontal_resolution)
+        msg = (
+            f"glymur.jp2box.CaptureResolutionBox"
+            f"({self.vertical_resolution}, {self.horizontal_resolution})"
+        )
         return msg
 
     def __str__(self):
@@ -2518,9 +2522,9 @@ class CaptureResolutionBox(Jp2kBox):
             return title
 
         lst = []
-        text = 'VCR:  {0}'.format(self.vertical_resolution)
+        text = f'VCR:  {self.vertical_resolution}'
         lst.append(text)
-        text = 'HCR:  {0}'.format(self.horizontal_resolution)
+        text = f'HCR:  {self.horizontal_resolution}'
         lst.append(text)
 
         text = '\n'.join(lst)
@@ -2593,9 +2597,9 @@ class DisplayResolutionBox(Jp2kBox):
             return title
 
         lst = []
-        text = 'VDR:  {0}'.format(self.vertical_resolution)
+        text = f'VDR:  {self.vertical_resolution}'
         lst.append(text)
-        text = 'HDR:  {0}'.format(self.horizontal_resolution)
+        text = f'HDR:  {self.horizontal_resolution}'
         lst.append(text)
 
         text = '\n'.join(lst)
@@ -2661,14 +2665,14 @@ class LabelBox(Jp2kBox):
         if get_option('print.short') is True:
             return title
 
-        text = 'Label:  {0}'.format(self.label)
+        text = f'Label:  {self.label}'
         text = textwrap.indent(text, ' ' * 4)
 
         text = '\n'.join([title, text])
         return text
 
     def __repr__(self):
-        msg = 'glymur.jp2box.LabelBox("{0}")'.format(self.label)
+        msg = f'glymur.jp2box.LabelBox("{self.label}")'
         return msg
 
     def write(self, fptr):
@@ -2755,8 +2759,7 @@ class NumberListBox(Jp2kBox):
         return text
 
     def __repr__(self):
-        msg = 'glymur.jp2box.NumberListBox(associations={0})'
-        msg = msg.format(self.associations)
+        msg = f'glymur.jp2box.NumberListBox(associations={self.associations})'
         return msg
 
     @classmethod
@@ -2836,7 +2839,7 @@ class XMLBox(Jp2kBox):
         self.offset = offset
 
     def __repr__(self):
-        return "glymur.jp2box.XMLBox(xml={xml})".format(xml=self.xml)
+        return f"glymur.jp2box.XMLBox(xml={self.xml})"
 
     def __str__(self):
         title = Jp2kBox.__str__(self)
@@ -2893,18 +2896,24 @@ class XMLBox(Jp2kBox):
             decl_start = read_buffer.find(b'<?xml')
             if decl_start <= -1:
                 # Nope, that's not it.  All is lost.
-                msg = ('A problem was encountered while parsing an XML box:'
-                       '\n\n\t"{error}"\n\nNo XML was retrieved.')
-                warnings.warn(msg.format(error=str(err)), UserWarning)
+                msg = (
+                    f'A problem was encountered while parsing an XML box:'
+                    f'\n\n\t'
+                    f'"{str(err)}"'
+                    f'\n\n'
+                    f'No XML was retrieved.'
+                )
+                warnings.warn(msg, UserWarning)
                 return XMLBox(xml=None, length=length, offset=offset)
 
             text = read_buffer[decl_start:].decode('utf-8')
 
             # Let the user know that the XML box was problematic.
-            msg = ('A UnicodeDecodeError was encountered parsing an XML box '
-                   'at byte position {offset:d} ({reason}), but the XML was '
-                   'still recovered.')
-            msg = msg.format(offset=offset, reason=err.reason)
+            msg = (
+                f'A UnicodeDecodeError was encountered parsing an XML box '
+                f'at byte position {offset:d} ({err.reason}), but the XML was '
+                f'still recovered.'
+            )
             warnings.warn(msg, UserWarning)
 
         # Strip out any trailing nulls, as they can foul up XML parsing.
@@ -2914,9 +2923,13 @@ class XMLBox(Jp2kBox):
         try:
             xml = ET.parse(bfptr)
         except ET.ParseError as err:
-            msg = ('A problem was encountered while parsing an XML box:'
-                   '\n\n\t"{reason}"\n\nNo XML was retrieved.')
-            msg = msg.format(reason=str(err))
+            msg = (
+                f'A problem was encountered while parsing an XML box:'
+                f'\n\n\t'
+                f'"{str(err)}"'
+                f'\n\n'
+                f'No XML was retrieved.'
+            )
             warnings.warn(msg, UserWarning)
             xml = None
 
@@ -2949,7 +2962,7 @@ class UUIDListBox(Jp2kBox):
         self.offset = offset
 
     def __repr__(self):
-        msg = "glymur.jp2box.UUIDListBox({0})".format(self.ulst)
+        msg = f"glymur.jp2box.UUIDListBox({self.ulst})"
         return msg
 
     def __str__(self):
@@ -2959,7 +2972,7 @@ class UUIDListBox(Jp2kBox):
 
         lst = []
         for j, uuid_item in enumerate(self.ulst):
-            text = 'UUID[{item_no}]:  {uuid}'.format(item_no=j, uuid=uuid_item)
+            text = f'UUID[{j}]:  {uuid_item}'
             lst.append(text)
         body = '\n'.join(lst)
         body = textwrap.indent(body, ' ' * 4)
@@ -3035,7 +3048,7 @@ class UUIDInfoBox(Jp2kBox):
         self.box = box if box is not None else []
 
     def __repr__(self):
-        msg = "glymur.jp2box.UUIDInfoBox(box={0})".format(self.box)
+        msg = f"glymur.jp2box.UUIDInfoBox(box={self.box})"
         return msg
 
     def __str__(self):
@@ -3133,15 +3146,11 @@ class DataEntryURLBox(Jp2kBox):
         if get_option('print.short') is True:
             return title
 
-        lst = ['Version:  {version}',
-               'Flag:  {flag0} {flag1} {flag2}',
-               'URL:  "{url}"']
-        body = '\n'.join(lst)
-        body = body.format(version=self.version,
-                           flag0=self.flag[0],
-                           flag1=self.flag[1],
-                           flag2=self.flag[2],
-                           url=self.url)
+        body = (
+            f'Version:  {self.version}\n'
+            f'Flag:  {self.flag[0]} {self.flag[1]} {self.flag[2]}\n'
+            f'URL:  "{self.url}"'
+        )
         body = textwrap.indent(body, ' ' * 4)
 
         text = '\n'.join([title, body])
@@ -3197,7 +3206,7 @@ class UnknownBox(Jp2kBox):
         self.offset = offset
 
     def __repr__(self):
-        msg = "glymur.jp2box.UnknownBox('{0}')".format(self.box_id)
+        msg = f"glymur.jp2box.UnknownBox('{self.box_id}')"
         return msg
 
     def __str__(self):
@@ -3287,7 +3296,7 @@ class UUIDBox(Jp2kBox):
         if get_option('print.short') is True:
             return title
 
-        text = 'UUID:  {0}'.format(self.uuid)
+        text = f'UUID:  {self.uuid}'
         if self.uuid == _XMP_UUID:
             text += ' (XMP)'
         elif self.uuid == _GEOTIFF_UUID:
@@ -3305,7 +3314,6 @@ class UUIDBox(Jp2kBox):
             pass
 
         elif self.uuid == _XMP_UUID:
-            line = 'UUID Data:\n{0}'
             try:
                 b = ET.tostring(self.data, encoding='utf-8', pretty_print=True)
             except TypeError:
@@ -3313,17 +3321,17 @@ class UUIDBox(Jp2kBox):
                 # but that cannot do pretty print.
                 b = ET.tostring(self.data.getroot(), encoding='utf-8')
             s = b.decode('utf-8').strip()
-            text = line.format(s)
+            text = f'UUID Data:\n{s}'
             lst.append(text)
         elif self.uuid == _EXIF_UUID:
-            text = 'UUID Data:  {0}'.format(str(self.data))
+            text = f'UUID Data:  {self.data}'
             lst.append(text)
         elif self.uuid == _GEOTIFF_UUID:
             item = self._print_geotiff() if _HAVE_GDAL else str(self.data)
-            txt = 'UUID Data:  {0}'.format(item)
+            txt = f'UUID Data:  {item}'
             lst.append(txt)
         else:
-            text = 'UUID Data:  {0} bytes'.format(len(self.raw_data))
+            text = f'UUID Data:  {len(self.raw_data)} bytes'
             lst.append(text)
 
         body = '\n'.join(lst)
@@ -3354,13 +3362,11 @@ class UUIDBox(Jp2kBox):
         psz_pretty_wkt = sref.ExportToPrettyWkt(False)
 
         # report geotransform
-        geo_transform = gtif.GetGeoTransform(can_return_null=True)
-        fmt = ('Origin = ({origin_x:.15f},{origin_y:.15f})\n'
-               'Pixel Size = ({pixel_x:.15f},{pixel_y:.15f})')
-        geotransform_str = fmt.format(origin_x=geo_transform[0],
-                                      origin_y=geo_transform[3],
-                                      pixel_x=geo_transform[1],
-                                      pixel_y=geo_transform[5])
+        geo_xform = gtif.GetGeoTransform(can_return_null=True)
+        geotransform_str = (
+            f'Origin = ({geo_xform[0]:.15f},{geo_xform[3]:.15f})\n'
+            f'Pixel Size = ({geo_xform[1]:.15f},{geo_xform[5]:.15f})'
+        )
 
         # setup projected to lat/long transform if appropriate
         if proj_ref is not None and len(proj_ref) > 0:
@@ -3415,7 +3421,7 @@ class UUIDBox(Jp2kBox):
         dfGeoY += geo_transform[5] * y
 
         # report the georeferenced coordinates
-        line += '({:12.3f},{:12.3f}) '.format(dfGeoX, dfGeoY)
+        line += f'({dfGeoX:12.3f},{dfGeoY:12.3f}) '
 
         # transform to latlong and report
         if hTransform is not None:

@@ -64,13 +64,16 @@ def set_option(key, value):
     get_option
     """
     if key not in _options.keys():
-        raise KeyError('{key} not valid.'.format(key=key))
+        raise KeyError(f'{key} not valid.')
 
     if key == 'lib.num_threads':
         if version.openjpeg_version < '2.2.0':
-            msg = ('Thread support is not available on versions of OpenJPEG '
-                   'prior to 2.2.0.  Your version is {version}.')
-            raise RuntimeError(msg.format(version=version.openjpeg_version))
+            msg = (
+                f'Thread support is not available on versions of OpenJPEG '
+                f'prior to 2.2.0.  Your version is '
+                f'{version.openjpeg_version}.'
+            )
+            raise RuntimeError(msg)
         if not opj2.has_thread_support():
             msg = 'The OpenJPEG library is not configured with thread support.'
             raise RuntimeError(msg)
@@ -127,7 +130,7 @@ def reset_option(key):
         _options = copy.deepcopy(_original_options)
     else:
         if key not in _options.keys():
-            raise KeyError('{key} not valid.'.format(key=key))
+            raise KeyError(f'{key} not valid.')
         _options[key] = _original_options[key]
 
 
@@ -213,7 +216,7 @@ def set_printoptions(**kwargs):
                   DeprecationWarning)
     for key, value in kwargs.items():
         if key not in ['short', 'xml', 'codestream']:
-            raise KeyError('"{0}" not a valid keyword parameter.'.format(key))
+            raise KeyError(f'"{key}" not a valid keyword parameter.')
         set_option('print.' + key, value)
 
 
