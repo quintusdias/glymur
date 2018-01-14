@@ -24,8 +24,7 @@ except ImportError:
 
 import glymur
 from glymur.codestream import LRCP, WAVELET_XFORM_5X3_REVERSIBLE
-from glymur.core import RESTRICTED_ICC_PROFILE, ANY_ICC_PROFILE
-from glymur.core import COLOR, RED, GREEN, BLUE
+from glymur.core import COLOR, RED, GREEN, BLUE, RESTRICTED_ICC_PROFILE
 from glymur.jp2box import BitsPerComponentBox, ColourSpecificationBox
 from glymur.jp2box import LabelBox
 from glymur import Jp2k, command_line
@@ -1253,47 +1252,6 @@ class TestPrinting(unittest.TestCase):
             box = glymur.jp2box.XMLBox.parse(fptr, 0, 8 + len(data))
             # No need to verify, it's enough that we don't error out.
             str(box)
-
-    def test_icc_profile(self):
-        """
-        verify icc profile printing with a jpx
-
-        3.4, and 3.5 all print ordered dicts differently
-        Original file tested was input/nonregression/text_GBR.jp2.
-        """
-        fp = BytesIO()
-        fp.write(b'\x00' * 179)
-
-        # Write the colr box header.
-        buffer = struct.pack('>I4s', 1339, b'colr')
-        buffer += struct.pack('>BBB', ANY_ICC_PROFILE, 2, 1)
-
-        buffer += struct.pack('>IIBB', 1328, 1634758764, 2, 32)
-        buffer += b'\x00' * 2 + b'mntr' + b'RGB ' + b'XYZ '
-        # Need a date in bytes 24:36
-        buffer += struct.pack('>HHHHHH', 2009, 2, 25, 11, 26, 11)
-        buffer += 'acsp'.encode('utf-8')
-        buffer += 'APPL'.encode('utf-8')
-        buffer += b'\x00' * 4
-        buffer += 'appl'.encode('utf-8')  # 48 - 52
-        buffer += b'\x00' * 16
-        buffer += struct.pack('>III', 63190, 65536, 54061)  # 68 - 80
-        buffer += 'appl'.encode('utf-8')  # 80 - 84
-        buffer += b'\x00' * 44
-        fp.write(buffer)
-        fp.seek(179 + 8)
-
-        # Should be able to read the colr box now
-        box = glymur.jp2box.ColourSpecificationBox.parse(fp, 179, 1339)
-
-        actual = str(box)
-
-        if sys.hexversion < 0x03050000:
-            expected = fixtures.TEXT_GBR_34
-        else:
-            expected = fixtures.TEXT_GBR_35
-
-        self.assertEqual(actual, expected)
 
     @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
     def test_precincts(self):
