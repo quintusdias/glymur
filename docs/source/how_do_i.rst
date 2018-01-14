@@ -50,7 +50,7 @@ Jp2k constructor.
 You must have OpenJPEG version 1.5 or more recent in order to write JPEG 2000
 images with glymur.
 
-... write images with different compression rations for different layers?
+... write images with different compression ratios for different layers?
 =========================================================================
 Different compression factors may be specified with the cratios parameter ::
 
