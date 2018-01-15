@@ -46,7 +46,7 @@ Jp2k constructor.
     >>> import glymur, numpy as np
     >>> jp2 = glymur.Jp2k('zeros.jp2', data=np.zeros((640, 480), dtype=np.uint8))
 
-... write images with different compression rations for different layers?
+... write images with different compression ratios for different layers?
 =========================================================================
 Different compression factors may be specified with the cratios parameter ::
 
