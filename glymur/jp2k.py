@@ -513,7 +513,7 @@ class Jp2k(Jp2kBox):
         # Set defaults to lossless to begin.
         if cparams.tcp_numlayers == 0:
             cparams.tcp_rates[0] = 0
-            cparams.tcp_numlayers = 1
+            cparams.tcp_numlayers += 1
             cparams.cp_disto_alloc = 1
 
         self._validate_compression_params(img_array, cparams, colorspace)
@@ -1279,7 +1279,6 @@ class Jp2k(Jp2kBox):
         RuntimeError
             If the image has differing subsample factors.
         """
-        self.layer = layer
         self._subsampling_sanity_check()
         self._populate_dparams(rlevel, tile=tile, area=area)
         image = self._read_openjp2_common()

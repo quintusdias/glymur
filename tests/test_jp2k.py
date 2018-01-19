@@ -1225,8 +1225,11 @@ class TestJp2k_write(fixtures.MetadataBase):
         # That first image should be lossless.
         self.assertTrue(np.isinf(psnr[0]))
 
+        # None of the subsequent images should register inf for PSNR.
+        self.assertTrue(not np.any(np.isinf(psnr[1:])))
+
         # PSNR should increase for the remaining images.
-        self.assertTrue(np.all(psnr[1:]) > 0)
+        self.assertTrue(np.all(np.diff(psnr[1:])) > 0)
 
     def test_psnr_zero_value_not_last(self):
         """
