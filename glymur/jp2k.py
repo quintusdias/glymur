@@ -92,9 +92,6 @@ class Jp2k(Jp2kBox):
 
     def __init__(self, filename, data=None, shape=None, **kwargs):
         """
-        Only the filename parameter is required in order to read a JPEG 2000
-        file.
-
         Parameters
         ----------
         filename : str
