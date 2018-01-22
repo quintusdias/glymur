@@ -3191,6 +3191,10 @@ class UnknownBox(Jp2kBox):
     ----------
     box_id : str
         4-character identifier for the box.
+    claimed_box_id : str
+        4-character identifier that the box claimed to be.  If the box was
+        intended to be a known box such as 'pclr' but is somehow invalid, then
+        we give it a box_id of 'xxxx' but a claimed_box_id of 'pclr'.
     length : int
         length of the box in bytes.
     offset : int
@@ -3198,10 +3202,11 @@ class UnknownBox(Jp2kBox):
     longname : str
         more verbose description of the box.
     """
-    def __init__(self, box_id, length=0, offset=-1, longname=''):
+    def __init__(self, claimed_box_id, length=0, offset=-1, longname=''):
         super().__init__()
         self.longname = longname
-        self.box_id = box_id
+        self.box_id = 'xxxx'
+        self.claimed_box_id = claimed_box_id
         self.length = length
         self.offset = offset
 
@@ -3210,7 +3215,10 @@ class UnknownBox(Jp2kBox):
         return msg
 
     def __str__(self):
-        return Jp2kBox.__str__(self)
+        title = Jp2kBox.__str__(self)
+        body = f'    Claimed ID:  {self.claimed_box_id}'
+        text = '\n'.join([title, body])
+        return text
 
 
 class UUIDBox(Jp2kBox):

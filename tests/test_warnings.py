@@ -674,7 +674,9 @@ class TestSuite(unittest.TestCase):
     @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_undecodeable_box_id(self):
         """
-        Should warn in case of undecodeable box ID but not error out.
+        SCENARIO:  an unknown box ID is encountered
+
+        EXPECTED RESULT:  Should warn but not error out.
 
         This test was originally written for this file in the OpenJPEG
         test suite:
@@ -697,7 +699,8 @@ class TestSuite(unittest.TestCase):
             # Now make sure we got all of the boxes.
             box_ids = [box.box_id for box in jp2.box]
             self.assertEqual(box_ids, ['jP  ', 'ftyp', 'jp2h', 'uuid', 'jp2c',
-                                       bad_box_id])
+                                       'xxxx'])
+            self.assertEqual(jp2.box[5].claimed_box_id, b'abcd')
 
     @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_bad_ftyp_brand(self):

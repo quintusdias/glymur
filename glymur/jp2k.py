@@ -156,19 +156,56 @@ class Jp2k(Jp2kBox):
         self._layer = 0
         self._codestream = None
 
-        if data is not None:
-            self._shape = data.shape
-        else:
-            self._shape = shape
-
         self._ignore_pclr_cmap_cdef = False
         self._verbose = False
 
-        # Parse the file for JP2/JPX contents only if we are reading it.
-        if data is None and shape is None:
-            self.parse()
-        elif data is not None:
+        if data is not None:
+            # We are writing a JP2/J2K/JPX file.
+            self._shape = data.shape
             self._write(data, **kwargs)
+        elif shape is not None:
+            # Only if J2X?
+            self._shape = shape
+        if data is None and shape is None:
+            # We must be just reading a JP2/J2K/JPX file.  Parse its
+            # contents, then determine "shape".
+            self.parse()
+            self._initialize_shape()
+
+    def _initialize_shape(self):
+        """
+        If there was no image data provided and if no shape was
+        initially provisioned, then shape must be computed AFTER we
+        have parsed the input file.
+        """
+        if self._codec_format == opj2.CODEC_J2K:
+            # get the image size from the codestream
+            cstr = self.codestream
+            height = cstr.segment[1].ysiz
+            width = cstr.segment[1].xsiz
+            num_components = len(cstr.segment[1].xrsiz)
+        else:
+            # try to get the image size from the IHDR box
+            jp2h = [box for box in self.box if box.box_id == 'jp2h'][0]
+            ihdr = [box for box in jp2h.box if box.box_id == 'ihdr'][0]
+
+            height, width = ihdr.height, ihdr.width
+            num_components = ihdr.num_components
+
+            if num_components == 1:
+                # but if there is a PCLR box, then we need to check
+                # that as well, as that turns a single-channel image
+                # into a multi-channel image
+                pclr = [box for box in jp2h.box if box.box_id == 'pclr']
+                if len(pclr) > 0:
+                    num_components = len(pclr[0].signed)
+
+        if num_components == 1:
+            self.shape = (height, width)
+        else:
+            self.shape = (height, width, num_components)
+
+        return self._shape
 
     @property
     def ignore_pclr_cmap_cdef(self):
@@ -219,36 +256,6 @@ class Jp2k(Jp2kBox):
 
     @property
     def shape(self):
-        if self._shape is not None:
-            return self._shape
-
-        if self._codec_format == opj2.CODEC_J2K:
-            # get the image size from the codestream
-            cstr = self.codestream
-            height = cstr.segment[1].ysiz
-            width = cstr.segment[1].xsiz
-            num_components = len(cstr.segment[1].xrsiz)
-        else:
-            # try to get the image size from the IHDR box
-            jp2h = [box for box in self.box if box.box_id == 'jp2h'][0]
-            ihdr = [box for box in jp2h.box if box.box_id == 'ihdr'][0]
-
-            height, width = ihdr.height, ihdr.width
-            num_components = ihdr.num_components
-
-            if num_components == 1:
-                # but if there is a PCLR box, then we need to check that as
-                # well, as that turns a single-channel image into a
-                # multi-channel image
-                pclr = [box for box in jp2h.box if box.box_id == 'pclr']
-                if len(pclr) > 0:
-                    num_components = len(pclr[0].signed)
-
-        if num_components == 1:
-            self.shape = (height, width)
-        else:
-            self.shape = (height, width, num_components)
-
         return self._shape
 
     @shape.setter

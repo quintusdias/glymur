@@ -354,7 +354,11 @@ class TestPrinting(unittest.TestCase):
         self.assertTrue(True)
 
     def test_unknown_superbox(self):
-        """Verify that we can handle an unknown superbox."""
+        """
+        SCENARIO:  An unknown superbox is encountered.
+
+        EXPECTED RESULT:  str should produce a predictable result.
+        """
         with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
             with open(self.jpxfile, 'rb') as ifile:
                 tfile.write(ifile.read())
@@ -375,7 +379,8 @@ class TestPrinting(unittest.TestCase):
 
             glymur.set_option('print.short', True)
             actual = str(jpx.box[-1])
-            expected = "Unknown Box (b'grp ') @ (1399071, 20)"
+            expected = ("Unknown Box (xxxx) @ (1399071, 20)\n"
+                        "    Claimed ID:  b'grp '")
             self.assertEqual(actual, expected)
 
     def test_printoptions_bad_argument(self):
