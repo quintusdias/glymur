@@ -5,6 +5,7 @@ OPENJP2 may be present in some form or other.
 import contextlib
 import imp
 import os
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -13,6 +14,7 @@ import warnings
 # Local imports ...
 import glymur
 from glymur import Jp2k
+from . import fixtures
 from .fixtures import WINDOWS_TMP_FILE_MSG
 
 
@@ -69,8 +71,8 @@ class TestSuiteOptions(unittest.TestCase):
                 glymur.set_printoptions(blah='value-blah')
 
 
-@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
-                 "Needs openjp2 library first before these tests make sense.")
+@unittest.skipIf(fixtures.OPENJPEG_NOT_AVAILABLE,
+                 fixtures.OPENJPEG_NOT_AVAILABLE_MSG)
 class TestSuiteConfigFile(unittest.TestCase):
     """Test suite for configuration file operation."""
 
@@ -109,7 +111,7 @@ class TestSuiteConfigFile(unittest.TestCase):
                     imp.reload(glymur.lib.openjp2)
                     Jp2k(self.jp2file)
 
-    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_config_file_without_library_section(self):
         """
         must ignore if no library section
@@ -127,7 +129,7 @@ class TestSuiteConfigFile(unittest.TestCase):
                     # It's enough that we did not error out
                     self.assertTrue(True)
 
-    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_xdg_env_config_file_is_bad(self):
         """A non-existant library location should be rejected."""
         with tempfile.TemporaryDirectory() as tdir:
@@ -148,9 +150,9 @@ class TestSuiteConfigFile(unittest.TestCase):
                             imp.reload(glymur.lib.openjp2)
                         self.assertIsNone(glymur.lib.openjp2.OPENJP2)
 
-    @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
-                     "Needs openjp2 before this test make sense.")
-    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
+    @unittest.skipIf(fixtures.OPENJPEG_NOT_AVAILABLE,
+                     fixtures.OPENJPEG_NOT_AVAILABLE_MSG)
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_config_dir_but_no_config_file(self):
 
         with tempfile.TemporaryDirectory() as tdir:
@@ -162,7 +164,7 @@ class TestSuiteConfigFile(unittest.TestCase):
                 imp.reload(glymur.lib.openjp2)
                 self.assertIsNotNone(glymur.lib.openjp2.OPENJP2)
 
-    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_config_file_in_current_directory(self):
         """A configuration file in the current directory should be honored."""
         libloc = glymur.lib.openjp2.OPENJP2._name

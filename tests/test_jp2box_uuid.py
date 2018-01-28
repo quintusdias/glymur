@@ -56,7 +56,7 @@ GEOKEYDIRECTORY = 34735
 GEOASCIIPARAMS = 34737
 
 
-@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
+@unittest.skipIf(sys.platform == 'win32', fixtures.WINDOWS_TMP_FILE_MSG)
 class TestSuite(unittest.TestCase):
     """Tests for XMP, Exif UUIDs."""
 
@@ -335,7 +335,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(actual, expected)
 
 
-@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
+@unittest.skipIf(sys.platform == 'win32', fixtures.WINDOWS_TMP_FILE_MSG)
 class TestSuiteHiRISE(unittest.TestCase):
     """Tests for HiRISE RDRs."""
 
@@ -416,7 +416,7 @@ class TestSuiteHiRISE(unittest.TestCase):
         self.assertEqual(actual, expected)
 
 
-@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
+@unittest.skipIf(sys.platform == 'win32', fixtures.WINDOWS_TMP_FILE_MSG)
 class TestSuiteWarns(unittest.TestCase):
     """Tests for XMP, Exif UUIDs, issues warnings."""
 

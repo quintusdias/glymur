@@ -5,6 +5,7 @@ Module for tests specifically devoted to cinema profile.
 # Standard library imports
 import os
 import re
+import sys
 import tempfile
 import unittest
 import warnings
@@ -54,10 +55,7 @@ class CinemaBase(fixtures.MetadataBase):
 
 @unittest.skipIf(fixtures.OPENJPEG_NOT_AVAILABLE,
                  fixtures.OPENJPEG_NOT_AVAILABLE_MSG)
-@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
-@unittest.skipIf(re.match(r'''(1|2.0.0)''',
-                          glymur.version.openjpeg_version) is not None,
-                 "Uses features not supported until 2.0.1")
+@unittest.skipIf(sys.platform == 'win32', fixtures.WINDOWS_TMP_FILE_MSG)
 class WriteCinema(CinemaBase):
 
     @classmethod

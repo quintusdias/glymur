@@ -4,6 +4,7 @@ Test suite for openjpeg's callback functions.
 # Standard library imports ...
 from io import StringIO
 import os
+import sys
 import tempfile
 import warnings
 import unittest
@@ -11,18 +12,19 @@ from unittest.mock import patch
 
 # Local imports ...
 import glymur
+from . import fixtures
 
 
-@unittest.skipIf(glymur.version.openjpeg_version[0] != '2',
-                 "Missing openjp2 library.")
-class TestCallbacks(unittest.TestCase):
+@unittest.skipIf(fixtures.OPENJPEG_NOT_AVAILABLE,
+                 fixtures.OPENJPEG_NOT_AVAILABLE_MSG)
+class TestSuite(unittest.TestCase):
     """Test suite for callbacks."""
 
     def setUp(self):
         self.jp2file = glymur.data.nemo()
         self.j2kfile = glymur.data.goodstuff()
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+    @unittest.skipIf(sys.platform == 'win32', fixtures.WINDOWS_TMP_FILE_MSG)
     def test_info_callback_on_write_backwards_compatibility(self):
         """Verify messages printed when writing an image in verbose mode."""
         j = glymur.Jp2k(self.jp2file)
@@ -37,7 +39,7 @@ class TestCallbacks(unittest.TestCase):
         expected = '[INFO] tile number 1 / 1'
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+    @unittest.skipIf(sys.platform == 'win32', fixtures.WINDOWS_TMP_FILE_MSG)
     def test_info_callback_on_write(self):
         """Verify messages printed when writing an image in verbose mode."""
         j = glymur.Jp2k(self.jp2file)

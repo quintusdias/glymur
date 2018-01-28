@@ -4,6 +4,7 @@ Tests for libopenjp2 wrapping functions.
 # Standard library imports ...
 from io import StringIO
 import os
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -19,7 +20,7 @@ from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+@unittest.skipIf(sys.platform == 'win32', fixtures.WINDOWS_TMP_FILE_MSG)
 class TestOpenJP2(unittest.TestCase):
     """Test openjp2 library functionality.
 

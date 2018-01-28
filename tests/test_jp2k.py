@@ -70,7 +70,7 @@ class SliceProtocolBase(unittest.TestCase):
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
+@unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
 class TestSliceProtocolBaseWrite(SliceProtocolBase):
 
     def test_write_ellipsis(self):
@@ -276,7 +276,7 @@ class TestJp2k(unittest.TestCase):
                 rgb_from_idx[r, c] = palette[idx[r, c]]
         np.testing.assert_array_equal(rgb, rgb_from_idx)
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_no_cxform_cmap(self):
         """
         Reorder the components.
@@ -313,7 +313,7 @@ class TestJp2k(unittest.TestCase):
 
         np.testing.assert_array_equal(rgb, bgr[:, :, [2, 1, 0]])
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_bad_tile_part_pointer(self):
         """
         Should error out if we don't read a valid marker.
@@ -338,7 +338,7 @@ class TestJp2k(unittest.TestCase):
             with self.assertRaises(IOError):
                 j.get_codestream(header_only=False)
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_read_differing_subsamples(self):
         """
         should error out with read used on differently subsampled images
@@ -390,7 +390,7 @@ class TestJp2k(unittest.TestCase):
         jpx = Jp2k(self.jpxfile)
         self.assertEqual(jpx.shape, (1024, 1024, 3))
 
-    @unittest.skipIf(os.name == "nt", "Unexplained failure on windows")
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_irreversible(self):
         """Irreversible"""
         j = Jp2k(self.jp2file)
@@ -405,7 +405,7 @@ class TestJp2k(unittest.TestCase):
             actdata = j2[:]
             self.assertTrue(fixtures.mse(actdata[0], expdata[0]) < 0.38)
 
-    @unittest.skipIf(os.name == "nt", "Unexplained failure on windows")
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_repr(self):
         """Verify that results of __repr__ are eval-able."""
         j = Jp2k(self.j2kfile)
@@ -614,7 +614,7 @@ class TestJp2k(unittest.TestCase):
         jp2k = Jp2k(self.j2kfile)
         self.assertEqual(len(jp2k.box), 0)
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_64bit_xl_field(self):
         """XL field should be supported"""
         # Verify that boxes with the XL field are properly read.
@@ -648,7 +648,7 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(jp2k.box[4].offset, 3223)
             self.assertEqual(jp2k.box[4].length, 1133427 + 8)
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_length_field_is_zero(self):
         """L=0 (length field in box header) is allowed"""
         # Verify that boxes with the L field as zero are correctly read.
@@ -707,7 +707,7 @@ class TestJp2k(unittest.TestCase):
         j = Jp2k(self.j2kfile)
         self.assertEqual(j.box, [])
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_uinf_ulst_url_boxes(self):
         """Verify that we can read UINF, ULST, and URL boxes"""
         # Verify that we can read UINF, ULST, and URL boxes.  I don't have
@@ -766,7 +766,7 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(jp2k.box[3].box[1].flag, (0, 0, 0))
             self.assertEqual(jp2k.box[3].box[1].url, 'abcd')
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_xml_with_trailing_nulls(self):
         """ElementTree doesn't like trailing null chars after valid XML text"""
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
@@ -809,9 +809,6 @@ class TestJp2k(unittest.TestCase):
         self.assertEqual(elt.text, 'Google')
 
     @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-    @unittest.skipIf(re.match(r'''(1|2.0.0)''',
-                              glymur.version.openjpeg_version) is not None,
-                     "Not supported until 2.0.1")
     def test_jpx_mult_codestreams_jp2_brand(self):
         """Read JPX codestream when jp2-compatible."""
         # The file in question has multiple codestreams.
@@ -875,7 +872,7 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(cstr.segment[11].marker_id, '0xff00')
             self.assertEqual(cstr.segment[11].length, 0)
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_psot_is_zero(self):
         """
         Psot=0 in SOT is perfectly legal.  Issue #78.
@@ -959,7 +956,7 @@ class TestJp2k(unittest.TestCase):
 
         self.assertEqual(profile['Creator'], 'JPEG')
 
-    @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None, "Needs openjp2")
+    @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
     def test_different_layers(self):
         """
         Verify that setting the layer property results in different images.
@@ -1044,9 +1041,8 @@ class TestJp2k(unittest.TestCase):
                 glymur.set_option('lib.num_threads', 4)
 
 
-@unittest.skipIf(glymur.version.openjpeg_version < '2.1.0',
-                 "Requires as least v2.1")
-@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
+@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
+@unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
 class TestJp2k_write(fixtures.MetadataBase):
     """Write tests, can be run by versions 2.1"""
 
@@ -1908,8 +1904,7 @@ class TestJp2k_write(fixtures.MetadataBase):
                              glymur.core.CPRL)
 
 
-@unittest.skipIf(glymur.version.openjpeg_version < '2.1.0',
-                 "Requires as least v2.0")
+@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 class TestJp2k_2_0(unittest.TestCase):
     """Test suite requiring at least version 2.0"""
 
@@ -1934,7 +1929,7 @@ class TestJp2k_2_0(unittest.TestCase):
             # End corner must be >= start corner
             j[10:8, 10:8]
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_unrecognized_jp2_clrspace(self):
         """We only allow RGB and GRAYSCALE.  Should error out with others"""
         data = np.zeros((128, 128, 3), dtype=np.uint8)
@@ -1942,7 +1937,7 @@ class TestJp2k_2_0(unittest.TestCase):
             with self.assertRaises(IOError):
                 Jp2k(tfile.name, data=data, colorspace='cmyk')
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_asoc_label_box(self):
         """Test asoc and label box"""
         # Construct a fake file with an asoc and a label box, as
@@ -2006,7 +2001,7 @@ class TestJp2k_2_0(unittest.TestCase):
 
         np.testing.assert_array_equal(actual, expected)
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_grey_with_extra_component(self):
         """version 2.0 cannot write gray + extra"""
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
@@ -2018,7 +2013,7 @@ class TestJp2k_2_0(unittest.TestCase):
             self.assertEqual(j.box[2].box[1].colorspace,
                              glymur.core.GREYSCALE)
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_rgb_with_extra_component(self):
         """v2.0+ should be able to write extra components"""
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
@@ -2029,7 +2024,7 @@ class TestJp2k_2_0(unittest.TestCase):
             self.assertEqual(j.box[2].box[0].num_components, 4)
             self.assertEqual(j.box[2].box[1].colorspace, glymur.core.SRGB)
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_openjpeg_library_message(self):
         """
         Verify the error message produced by the openjpeg library
@@ -2082,8 +2077,7 @@ class TestParsing(unittest.TestCase):
         self.assertIsNotNone(jp2c._codestream)
 
 
-@unittest.skipIf(glymur.version.openjpeg_version < '2.1.0',
-                 "Only supported in 2.1.0 or higher")
+@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 class TestReadArea(unittest.TestCase):
     """
     Runs tests introduced in version 2.0+ or that pass only in 2.0+

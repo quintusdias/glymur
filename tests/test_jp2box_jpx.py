@@ -7,6 +7,7 @@ import ctypes
 from io import BytesIO
 import os
 import struct
+import sys
 import tempfile
 import unittest
 import warnings
@@ -24,9 +25,10 @@ from glymur import Jp2k
 from glymur.jp2box import DataEntryURLBox, FileTypeBox, JPEG2000SignatureBox
 from glymur.jp2box import DataReferenceBox, FragmentListBox, FragmentTableBox
 from glymur.jp2box import ColourSpecificationBox
+from . import fixtures
 
 
-@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+@unittest.skipIf(sys.platform == 'win32', fixtures.WINDOWS_TMP_FILE_MSG)
 class TestJPXWrap(unittest.TestCase):
     """Test suite for wrapping JPX files."""
 
@@ -429,7 +431,7 @@ class TestJPXWrap(unittest.TestCase):
                 jp2.wrap(tfile.name, boxes=boxes)
 
 
-@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+@unittest.skipIf(sys.platform == 'win32', fixtures.WINDOWS_TMP_FILE_MSG)
 class TestJPX(unittest.TestCase):
     """Test suite for other JPX boxes."""
 

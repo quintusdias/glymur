@@ -51,7 +51,7 @@ def load_tests(loader, tests, ignore):
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
+@unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
 class TestDataEntryURL(unittest.TestCase):
     """Test suite for DataEntryURL boxes."""
     def setUp(self):
@@ -119,7 +119,7 @@ class TestDataEntryURL(unittest.TestCase):
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
+@unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
 class TestChannelDefinition(unittest.TestCase):
     """Test suite for channel definition boxes."""
 
@@ -392,7 +392,7 @@ class TestFileTypeBox(unittest.TestCase):
             with self.assertRaises(IOError):
                 ftyp.write(tfile)
 
-    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_cl_entry_not_utf8(self):
         """A ftyp box cl list entry must be utf-8 decodable."""
         with open(self.jp2file, mode='rb') as f:
@@ -443,7 +443,7 @@ class TestColourSpecificationBox(unittest.TestCase):
                 box = ColourSpecificationBox.parse(f, length=80, offset=0)
         str(box)
 
-    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_colr_with_out_enum_cspace(self):
         """must supply an enumerated colorspace when writing"""
         j2k = Jp2k(self.j2kfile)
@@ -454,7 +454,7 @@ class TestColourSpecificationBox(unittest.TestCase):
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
-    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_missing_colr_box(self):
         """jp2h must have a colr box"""
         j2k = Jp2k(self.j2kfile)
@@ -464,7 +464,7 @@ class TestColourSpecificationBox(unittest.TestCase):
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
-    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_bad_approx_jp2_field(self):
         """JP2 has requirements for approx field"""
         j2k = Jp2k(self.j2kfile)
@@ -508,7 +508,7 @@ class TestColourSpecificationBox(unittest.TestCase):
                 colr.write(tfile)
 
 
-@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
+@unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
 class TestPaletteBox(unittest.TestCase):
     """Test suite for pclr box instantiation."""
 
@@ -560,7 +560,7 @@ class TestPaletteBox(unittest.TestCase):
             PaletteBox.parse(b, 8, 20)
 
 
-@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
+@unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
 class TestAppend(unittest.TestCase):
     """Tests for append method."""
 
@@ -655,7 +655,7 @@ class TestAppend(unittest.TestCase):
                 jp2.append(uuidbox)
 
 
-@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
+@unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
 class TestWrap(unittest.TestCase):
     """Tests for wrap method."""
 

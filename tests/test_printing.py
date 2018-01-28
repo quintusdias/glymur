@@ -33,7 +33,7 @@ from .fixtures import (WINDOWS_TMP_FILE_MSG,
                        OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 
 
-@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
+@unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
 class TestPrinting(unittest.TestCase):
     """
     Tests for verifying how printing works.
@@ -762,7 +762,7 @@ class TestPrinting(unittest.TestCase):
 
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_less_common_boxes(self):
         """verify uinf, ulst, url, res, resd, resc box printing"""
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:

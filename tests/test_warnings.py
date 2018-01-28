@@ -83,7 +83,7 @@ class TestSuite(unittest.TestCase):
 
         self.assertIsNone(box.xml)
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_unknown_marker_segment(self):
         """
         Should warn for an unknown marker.
@@ -841,10 +841,7 @@ class TestSuite(unittest.TestCase):
                 Jp2k(ofile.name)
 
     @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
-    @unittest.skipIf(re.match(r'''(1|2.0.0)''',
-                              glymur.version.openjpeg_version) is not None,
-                     "Uses features not supported until 2.0.1")
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_NR_ENC_X_6_2K_24_FULL_CBR_CIRCLE_000_tif_17_encode(self):
         """
         Original test file was
@@ -885,9 +882,8 @@ class TestSuite(unittest.TestCase):
             glymur.get_parseoptions()
 
 
-@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
-@unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
-                 "Needs openjp2 library first before these tests make sense.")
+@unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
+@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 class TestConfigurationWarnings(unittest.TestCase):
     """Test suite for configuration file warnings."""
 

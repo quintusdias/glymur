@@ -6,6 +6,7 @@ Test suite for codestream oddities
 # Standard library imports ...
 import os
 import struct
+import sys
 import tempfile
 import unittest
 import warnings
@@ -16,6 +17,7 @@ import pkg_resources as pkg
 # Local imports ...
 import glymur
 from glymur import Jp2k
+from . import fixtures
 
 
 class TestSuite(unittest.TestCase):
@@ -137,7 +139,7 @@ class TestCodestream(unittest.TestCase):
     def tearDown(self):
         pass
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
+    @unittest.skipIf(sys.platform == 'win32', fixtures.WINDOWS_TMP_FILE_MSG)
     def test_reserved_marker_segment(self):
         """Reserved marker segments are ok."""
 
