@@ -971,6 +971,22 @@ class TestJp2k(unittest.TestCase):
 
         np.alltrue(d0 != d1)
 
+    def test_invalid_layers(self):
+        """
+        SCENARIO:  an improper layer value is set
+
+        EXPECTED RESULT:  should error out
+        """
+        # There are 8 layers, so only values [0-7] are valid.
+        file = os.path.join('data', 'p0_03.j2k')
+        file = pkg.resource_filename(__name__, file)
+        j = Jp2k(file)
+        with self.assertRaises(IOError):
+            j.layer = -1
+
+        with self.assertRaises(IOError):
+            j.layer = 8
+
     def test_default_verbosity(self):
         """
         By default, verbosity should be false.

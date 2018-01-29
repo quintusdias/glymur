@@ -229,7 +229,20 @@ class Jp2k(Jp2kBox):
             )
             raise IOError(msg)
 
-        self._layer = 0 if layer is None else layer
+        if layer is None:
+            self._layer = 0
+            return
+
+        # Set to the indicated value so long as it is valid.
+        cod = [
+            segment for segment in self.codestream.segment
+            if segment.marker_id == 'COD'
+        ][0]
+        if layer < 0 or layer >= cod.layers:
+            msg = f"Invalid layer number, must be in range [0, {cod.layers})."
+            raise IOError(msg)
+
+        self._layer = layer
 
     @property
     def codestream(self):
@@ -1204,7 +1217,7 @@ class Jp2k(Jp2kBox):
         dparam.flags |= 1 if self.ignore_pclr_cmap_cdef else 0
 
         dparam.decod_format = self._codec_format
-        dparam.cp_layer = self._layer
+        dparam.cp_layer = self.layer
 
         # Must check the specified rlevel against the maximum.
         if rlevel != 0:
