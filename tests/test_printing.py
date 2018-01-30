@@ -1209,6 +1209,31 @@ class TestPrinting(unittest.TestCase):
 
         self.assertEqual(actual, expected)
 
+    def test_icc_profile(self):
+        """
+        SCENARIO:  print a colr box with an ICC profile
+        """
+        relpath = os.path.join('data', 'text_GBR.jp2')
+        jfile = pkg.resource_filename(__name__, relpath)
+        with self.assertWarns(UserWarning):
+            # The brand is wrong, this is JPX, not JP2.
+            j = Jp2k(jfile)
+        box = j.box[3].box[1]
+        actual = str(box)
+        # Don't bother verifying the OrderedDict part of the colr box.
+        # OrderedDicts are brittle print-wise.
+        actual = actual.split('\n')[:5]
+        actual = '\n'.join(actual)
+        expected = (
+            "Colour Specification Box (colr) @ (179, 1339)\n"
+            "    Method:  any ICC profile\n"
+            "    Precedence:  2\n"
+            "    Approximation:  "
+            "accurately represents correct colorspace definition\n"
+            "    ICC Profile:"
+        )
+        self.assertEqual(actual, expected)
+
     def test_rreq(self):
         """
         verify printing of reader requirements box

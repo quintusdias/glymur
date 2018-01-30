@@ -5,7 +5,6 @@ import codecs
 import imp
 from io import BytesIO
 import os
-import re
 import struct
 import sys
 import tempfile

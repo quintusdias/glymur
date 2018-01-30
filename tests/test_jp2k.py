@@ -7,7 +7,6 @@ import doctest
 from io import BytesIO
 import os
 import pathlib
-import re
 import struct
 import sys
 import tempfile
@@ -1236,7 +1235,6 @@ class TestJp2k_write(fixtures.MetadataBase):
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
         self.assertEqual(c.segment[2].precinct_size, ((32768, 32768)))
 
-    @unittest.skipIf(fixtures.low_memory_linux_machine(), "Low memory machine")
     def test_NR_ENC_Bretagne1_ppm_3_encode(self):
         """
         SCENARIO:  Three peak signal to noise rations are provided, along with

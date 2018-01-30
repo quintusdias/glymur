@@ -3,8 +3,6 @@ Module for tests specifically devoted to cinema profile.
 """
 
 # Standard library imports
-import os
-import re
 import sys
 import tempfile
 import unittest

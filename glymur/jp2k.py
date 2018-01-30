@@ -221,18 +221,6 @@ class Jp2k(Jp2kBox):
 
     @layer.setter
     def layer(self, layer):
-        if version.openjpeg_version < '2.1.0':
-            msg = (
-                f"The layer property not supported unless the OpenJPEG "
-                f"library version is 2.1 or higher.  The installed version "
-                f"is {version.openjpeg_version}."
-            )
-            raise IOError(msg)
-
-        if layer is None:
-            self._layer = 0
-            return
-
         # Set to the indicated value so long as it is valid.
         cod = [
             segment for segment in self.codestream.segment

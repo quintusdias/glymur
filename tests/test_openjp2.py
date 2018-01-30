@@ -3,7 +3,6 @@ Tests for libopenjp2 wrapping functions.
 """
 # Standard library imports ...
 from io import StringIO
-import os
 import sys
 import tempfile
 import unittest

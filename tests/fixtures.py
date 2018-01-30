@@ -23,35 +23,6 @@ else:
 WINDOWS_TMP_FILE_MSG = "cannot use NamedTemporaryFile like this in windows"
 
 
-def low_memory_linux_machine():
-    """
-    Detect if the current machine is low-memory (< 2.5GB)
-
-    This is primarily aimed at Digital Ocean VMs running linux.  Don't bother
-    on mac or windows.
-
-    Returns
-    -------
-    bool
-        True if <2GB, False otherwise
-    """
-    if not sys.platform.startswith('linux'):
-        return False
-    cmd1 = "free -m"
-    cmd2 = "tail -n +2"
-    cmd3 = "awk '{sum += $2} END {print sum}'"
-    p1 = subprocess.Popen(cmd1, shell=True, stdout=subprocess.PIPE)
-    p2 = subprocess.Popen(cmd2, shell=True,
-                          stdin=p1.stdout, stdout=subprocess.PIPE)
-    p3 = subprocess.Popen(cmd3, shell=True,
-                          stdin=p2.stdout, stdout=subprocess.PIPE)
-    p1.stdout.close()
-    p2.stdout.close()
-    stdout, stderr = p3.communicate()
-    nbytes = int(stdout.decode('utf-8').strip())
-    return nbytes < 2000
-
-
 class MetadataBase(unittest.TestCase):
     """
     Base class for testing metadata.
