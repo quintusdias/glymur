@@ -16,11 +16,7 @@ import warnings
 
 # Third party imports ...
 import numpy as np
-
-try:
-    import lxml.etree as ET
-except ImportError:
-    import xml.etree.ElementTree as ET
+import lxml.etree as ET
 
 import glymur
 from glymur.codestream import LRCP, WAVELET_XFORM_5X3_REVERSIBLE
@@ -137,7 +133,6 @@ class TestPrinting(unittest.TestCase):
         expected = ('Channel Definition Box (cdef) @ (81, 28)')
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
     def test_xml(self):
         """
         SCENARIO:  JP2 file has an XML box.
@@ -389,7 +384,6 @@ class TestPrinting(unittest.TestCase):
             glymur.set_option('hi', 'low')
 
     @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-    @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
     def test_asoc_label_box(self):
         """verify printing of asoc, label boxes"""
         # Construct a fake file with an asoc and a label box, as
@@ -669,15 +663,12 @@ class TestPrinting(unittest.TestCase):
     def test_xmp(self):
         """
         Verify the printing of a UUID/XMP box.
-
-        If no lxml, just verify that we don't error out.
         """
         j = glymur.Jp2k(self.jp2file)
         actual = str(j.box[3])
 
-        if 'lxml' in sys.modules.keys():
-            expected = fixtures.NEMO_XMP_BOX
-            self.assertEqual(actual, expected)
+        expected = fixtures.NEMO_XMP_BOX
+        self.assertEqual(actual, expected)
 
     def test_codestream(self):
         """
@@ -727,7 +718,6 @@ class TestPrinting(unittest.TestCase):
                '        "Created by OpenJPEG version 2.0.0"')
         self.assertEqual(actual, exp)
 
-    @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
     def test_xml_latin1(self):
         """Should be able to print an XMLBox with utf-8 encoding (latin1)."""
         # Seems to be inconsistencies between different versions of python2.x
@@ -744,7 +734,6 @@ class TestPrinting(unittest.TestCase):
                     "    <flow>Strömung</flow>")
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
     def test_xml_cyrrilic(self):
         """Should be able to print XMLBox with utf-8 encoding (cyrrillic)."""
         # Seems to be inconsistencies between different versions of python2.x
@@ -1261,7 +1250,6 @@ class TestPrinting(unittest.TestCase):
         actual = str(box)
         self.assertEqual(actual, fixtures.TEXT_GBR_RREQ.splitlines()[0])
 
-    @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
     def test_bom(self):
         """
         Byte order markers are illegal in UTF-8.  Issue 185
@@ -1363,7 +1351,6 @@ class TestPrinting(unittest.TestCase):
         opt = glymur.get_option('print.xml')
         self.assertFalse(opt)
 
-    @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
     def test_suppress_codestream_old_option(self):
         """
         Verify printing with codestream suppressed, deprecated
@@ -1386,7 +1373,6 @@ class TestPrinting(unittest.TestCase):
             opt = glymur.get_printoptions()['codestream']
         self.assertFalse(opt)
 
-    @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
     def test_suppress_codestream(self):
         """
         Verify printing with codestream suppressed
@@ -1403,7 +1389,6 @@ class TestPrinting(unittest.TestCase):
         opt = glymur.get_option('print.codestream')
         self.assertFalse(opt)
 
-    @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
     def test_full_codestream(self):
         """
         Verify printing with the full blown codestream
@@ -1447,10 +1432,6 @@ class TestJp2dump(unittest.TestCase):
     def test_default_nemo(self):
         """by default one should get the main header"""
         actual = self.run_jp2dump(['', self.jp2file])
-        if 'lxml' not in sys.modules.keys():
-            # No lxml, so don't bother verifying.  We know at least that it
-            # runs.
-            return
 
         # shave off the  non-main-header segments
         lines = fixtures.NEMO.split('\n')
@@ -1458,7 +1439,6 @@ class TestJp2dump(unittest.TestCase):
         expected = '\n'.join(expected)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
     def test_jp2_codestream_0(self):
         """Verify dumping with -c 0, supressing all codestream details."""
         actual = self.run_jp2dump(['', '-c', '0', self.jp2file])
@@ -1469,7 +1449,6 @@ class TestJp2dump(unittest.TestCase):
         expected = '\n'.join(expected)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
     def test_jp2_codestream_1(self):
         """Verify dumping with -c 1, print just the header."""
         actual = self.run_jp2dump(['', '-c', '1', self.jp2file])
@@ -1480,7 +1459,6 @@ class TestJp2dump(unittest.TestCase):
         expected = '\n'.join(expected)
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
     def test_jp2_codestream_2(self):
         """Verify dumping with -c 2, print entire jp2 jacket, codestream."""
         actual = self.run_jp2dump(['', '-c', '2', self.jp2file])
@@ -1531,7 +1509,6 @@ class TestJp2dump(unittest.TestCase):
 
         self.assertEqual(actual, fixtures.NEMO_DUMP_SHORT)
 
-    @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
     def test_suppress_xml(self):
         """Verify dumping with -x, suppress XML."""
         actual = self.run_jp2dump(['', '-x', self.jp2file])

@@ -2,6 +2,7 @@
 """
 Test suite specifically targeting the JP2 XML box layout.
 """
+# Standard library imports
 from io import BytesIO
 import os
 import pkg_resources as pkg
@@ -11,11 +12,10 @@ import tempfile
 import unittest
 import warnings
 
-try:
-    import lxml.etree as ET
-except ImportError:
-    import xml.etree.ElementTree as ET
+# 3rd party library imports
+import lxml.etree as ET
 
+# Local imports
 import glymur
 from glymur import Jp2k
 from glymur.jp2box import ColourSpecificationBox, ContiguousCodestreamBox
@@ -180,12 +180,8 @@ class TestXML(unittest.TestCase):
                 'gml': "http://www.opengis.net/gml",
                 'xsi': "http://www.w3.org/2001/XMLSchema-instance",
             }
-            try:
-                elts = jp2.box[-1].xml.xpath('//gml:rangeSet',
-                                             namespaces=namespaces)
-            except AttributeError:
-                name = './/{{{ns}}}rangeSet'.format(ns=namespaces['gml'])
-                elts = jp2.box[-1].xml.find(name)
+            elts = jp2.box[-1].xml.xpath('//gml:rangeSet',
+                                         namespaces=namespaces)
             self.assertEqual(len(elts), 1)
 
             # Write it back out, read it back in.
@@ -195,12 +191,8 @@ class TestXML(unittest.TestCase):
                 # Verify that XML box
                 self.assertEqual(jp2_2.box[-1].box_id, 'xml ')
 
-                try:
-                    elts = jp2.box[-1].xml.xpath('//gml:rangeSet',
-                                                 namespaces=namespaces)
-                except AttributeError:
-                    name = './/{{{ns}}}rangeSet'.format(ns=namespaces['gml'])
-                    elts = jp2.box[-1].xml.find(name)
+                elts = jp2.box[-1].xml.xpath('//gml:rangeSet',
+                                             namespaces=namespaces)
 
                 self.assertEqual(len(elts), 1)
 

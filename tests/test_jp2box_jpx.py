@@ -13,10 +13,7 @@ import unittest
 import warnings
 
 # Third party library imports ...
-try:
-    import lxml.etree as ET
-except ImportError:
-    import xml.etree.ElementTree as ET
+import lxml.etree as ET
 import pkg_resources as pkg
 
 # Local imports ...

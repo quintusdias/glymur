@@ -12,11 +12,9 @@ import tempfile
 from uuid import UUID
 import unittest
 import warnings
-try:
-    # Third party library import, favored over standard library.
-    import lxml.etree as ET
-except ImportError:
-    import xml.etree.ElementTree as ET
+
+# Third party library import, favored over standard library.
+import lxml.etree as ET
 
 # Third party library imports ...
 import numpy as np
@@ -1285,7 +1283,6 @@ class TestRepr(MetadataBase):
         self.assertEqual(newbox.bits_per_component, (8, 8, 16))
         self.assertEqual(newbox.signed, (True, False, True))
 
-    @unittest.skipIf('lxml' not in sys.modules.keys(), "No lxml")
     def test_xml_box(self):
         """Verify xml box repr."""
         elt = ET.fromstring('<?xml version="1.0"?><data>0</data>')

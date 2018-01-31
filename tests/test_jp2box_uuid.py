@@ -14,10 +14,7 @@ import uuid
 import warnings
 
 # Third party library imports ...
-try:
-    import lxml.etree
-except ImportError:
-    import xml.etree.ElementTree as ET
+import lxml.etree
 
 # Local imports
 import glymur
@@ -226,12 +223,8 @@ class TestSuite(unittest.TestCase):
 
             # The data should be an XMP packet, which gets interpreted as
             # an ElementTree.
-            if 'lxml' in sys.modules.keys():
-                self.assertTrue(isinstance(jp2.box[-1].data,
-                                           lxml.etree._ElementTree))
-            else:
-                self.assertTrue(isinstance(jp2.box[-1].data,
-                                           ET.ElementTree))
+            self.assertTrue(isinstance(jp2.box[-1].data,
+                                       lxml.etree._ElementTree))
 
     def test_bad_exif_tag(self):
         """

@@ -22,10 +22,7 @@ from uuid import UUID
 import warnings
 
 # Third party library imports ...
-try:
-    import lxml.etree as ET
-except ImportError:
-    import xml.etree.ElementTree as ET
+import lxml.etree as ET
 import numpy as np
 try:
     import gdal
@@ -3322,12 +3319,7 @@ class UUIDBox(Jp2kBox):
             pass
 
         elif self.uuid == _XMP_UUID:
-            try:
-                b = ET.tostring(self.data, encoding='utf-8', pretty_print=True)
-            except TypeError:
-                # No lxml, have to fall back onto stdlib xml.etree.ElementTree,
-                # but that cannot do pretty print.
-                b = ET.tostring(self.data.getroot(), encoding='utf-8')
+            b = ET.tostring(self.data, encoding='utf-8', pretty_print=True)
             s = b.decode('utf-8').strip()
             text = f'UUID Data:\n{s}'
             lst.append(text)
