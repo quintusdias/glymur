@@ -1511,7 +1511,7 @@ class Jp2k(Jp2kBox):
         return image
 
     def _component2dtype(self, component):
-        """Determin the appropriate numpy datatype for an OpenJPEG component.
+        """Determine the appropriate numpy datatype for an OpenJPEG component.
 
         Parameters
         ----------
