@@ -130,10 +130,12 @@ class TestChannelDefinition(unittest.TestCase):
         with tempfile.NamedTemporaryFile(suffix=".j2k", delete=False) as tfile:
             Jp2k(tfile.name, data=data[:, :, 0])
             cls.one_plane = tfile.name
+
         # Write the first two components back out to file.
         with tempfile.NamedTemporaryFile(suffix=".j2k", delete=False) as tfile:
-            Jp2k(tfile.name, data=data[:, :, 0:1])
+            Jp2k(tfile.name, data=data[:, :, 0:2])
             cls.two_planes = tfile.name
+
         # Write four components back out to file.
         with tempfile.NamedTemporaryFile(suffix=".j2k", delete=False) as tfile:
             shape = (data.shape[0], data.shape[1], 1)
@@ -164,6 +166,12 @@ class TestChannelDefinition(unittest.TestCase):
         self.jp2c = ContiguousCodestreamBox()
         self.ihdr = ImageHeaderBox(height=height, width=width,
                                    num_components=num_components)
+        self.ihdr1 = ImageHeaderBox(height=height, width=width,
+                                   num_components=1)
+        self.ihdr2 = ImageHeaderBox(height=height, width=width,
+                                   num_components=2)
+        self.ihdr4 = ImageHeaderBox(height=height, width=width,
+                                   num_components=4)
         self.colr_rgb = ColourSpecificationBox(colorspace=SRGB)
         self.colr_gr = ColourSpecificationBox(colorspace=GREYSCALE)
 
@@ -229,13 +237,14 @@ class TestChannelDefinition(unittest.TestCase):
         association = (RED, GREEN, BLUE, WHOLE_IMAGE)
         cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
                                                   association=association)
-        boxes = [self.ihdr, self.colr_rgb, cdef]
+        boxes = [self.ihdr4, self.colr_rgb, cdef]
         self.jp2h.box = boxes
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
             j2k.wrap(tfile.name, boxes=boxes)
 
             jp2 = Jp2k(tfile.name)
+
             jp2h = jp2.box[2]
             boxes = [box.box_id for box in jp2h.box]
             self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
@@ -264,7 +273,7 @@ class TestChannelDefinition(unittest.TestCase):
         association = (GREY,)
         cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
                                                   association=association)
-        boxes = [self.ihdr, self.colr_gr, cdef]
+        boxes = [self.ihdr1, self.colr_gr, cdef]
         self.jp2h.box = boxes
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
@@ -285,7 +294,7 @@ class TestChannelDefinition(unittest.TestCase):
         association = (GREY, WHOLE_IMAGE)
         cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
                                                   association=association)
-        boxes = [self.ihdr, self.colr_gr, cdef]
+        boxes = [self.ihdr2, self.colr_gr, cdef]
         self.jp2h.box = boxes
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
         with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:

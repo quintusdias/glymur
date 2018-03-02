@@ -36,6 +36,37 @@ class TestSuite(unittest.TestCase):
         glymur.reset_option('all')
 
     @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
+    def test_siz_ihdr_mismatch(self):
+        """
+        SCENARIO:  The dimensions reported by the IHDR box don't match what is
+        reported by the SIZ marker.
+
+        EXPECTED RESULT: A warning is issued.
+        """
+        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+            with open(self.jp2file, 'rb') as ifile:
+                # Everything up until the IHDR payload
+                read_buffer = ifile.read(48)
+                tfile.write(read_buffer)
+
+                # Write the bad IHDR.  The correct sequence of values read
+                # should be
+                # (1456, 2592, 3, 7, 7, 0, 0)
+                bad_ihdr = (1600, 2592, 3, 7, 7, 0, 0)
+                buffer = struct.pack('>IIHBBBB', *bad_ihdr)
+                tfile.write(buffer)
+
+                # Get the rest of the input file.
+                ifile.seek(62)
+                read_buffer = ifile.read()
+                tfile.write(read_buffer)
+                tfile.flush()
+
+            with self.assertWarns(UserWarning):
+                # c = Jp2k(tfile.name).get_codestream(header_only=False)
+                Jp2k(tfile.name)
+
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_unrecognized_marker(self):
         """
         EOC marker is not retrieved because there is an unrecognized marker

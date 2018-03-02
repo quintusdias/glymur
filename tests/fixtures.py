@@ -2,8 +2,6 @@
 Test fixtures common to more than one test point.
 """
 import pathlib
-import subprocess
-import sys
 import unittest
 
 import numpy as np
