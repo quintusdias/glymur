@@ -1261,7 +1261,7 @@ class Jp2k(Jp2kBox):
 
         self._dparams = dparam
 
-    def read_bands(self, rlevel=0, layer=None, area=None, tile=None,
+    def read_bands(self, rlevel=0, layer=0, area=None, tile=None,
                    verbose=False, ignore_pclr_cmap_cdef=False):
         """Read a JPEG 2000 image.
 
