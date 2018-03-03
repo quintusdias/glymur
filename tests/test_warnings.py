@@ -685,15 +685,9 @@ class TestSuite(unittest.TestCase):
     @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_bad_rsiz(self):
         """
-        Should not warn if RSIZ when parsing is turned off.
+        SCENARIO:  The SIZ value parsed from the SIZ segment is invalid.
 
-        This test was originally written for OPJ_DATA file
-
-            input/nonregression/edf_c2_1002767.jp2'
-
-        It had an RSIZ value of 32, so that's what we use here.
-
-        Issue196
+        EXPECTED RESULT:  A warning is issued.
         """
         with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
             with open(self.jp2file, 'rb') as ifile:
@@ -710,10 +704,6 @@ class TestSuite(unittest.TestCase):
 
                 ofile.seek(0)
 
-            glymur.set_option('parse.full_codestream', False)
-            Jp2k(ofile.name)
-
-            glymur.set_option('parse.full_codestream', True)
             with self.assertWarns(UserWarning):
                 Jp2k(ofile.name)
 
