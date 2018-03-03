@@ -167,11 +167,11 @@ class TestChannelDefinition(unittest.TestCase):
         self.ihdr = ImageHeaderBox(height=height, width=width,
                                    num_components=num_components)
         self.ihdr1 = ImageHeaderBox(height=height, width=width,
-                                   num_components=1)
+                                    num_components=1)
         self.ihdr2 = ImageHeaderBox(height=height, width=width,
-                                   num_components=2)
+                                    num_components=2)
         self.ihdr4 = ImageHeaderBox(height=height, width=width,
-                                   num_components=4)
+                                    num_components=4)
         self.colr_rgb = ColourSpecificationBox(colorspace=SRGB)
         self.colr_gr = ColourSpecificationBox(colorspace=GREYSCALE)
 

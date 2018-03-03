@@ -1,6 +1,7 @@
 """
 Test suite for warnings issued by glymur.
 """
+# Standard library imports
 import codecs
 import imp
 from io import BytesIO
@@ -12,6 +13,9 @@ import unittest
 import warnings
 import numpy as np
 from unittest.mock import patch
+
+# Third party library imports
+import pkg_resources as pkg
 
 from glymur import Jp2k
 import glymur
@@ -34,6 +38,18 @@ class TestSuite(unittest.TestCase):
     def tearDown(self):
         warnings.resetwarnings()
         glymur.reset_option('all')
+
+    def test_parsing_bad_fptr_box(self):
+        """
+        SCENARIO: An ftyp box advertises too many bytes to be read.
+
+        EXPECTED RESULT:  A warning is issued.  In this case we also end up
+        erroring out anyway since we don't get a valid FileType box.
+        """
+        filename = pkg.resource_filename(__name__, 'data/issue438.jp2')
+        with self.assertWarns(UserWarning):
+            with self.assertRaises(OSError):
+                Jp2k(filename)
 
     @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_siz_ihdr_mismatch(self):

@@ -176,9 +176,9 @@ class Jp2kBox(object):
 
         try:
             box = parser(fptr, start, num_bytes)
-        except ValueError as err:
+        except Exception as err:
             msg = (
-                f'Encountered an unrecoverable ValueError while parsing a '
+                f'Encountered an error while parsing a '
                 f'{_BOX_WITH_ID[box_id]} box at byte offset {start}.  '
                 f'The original error message was "{str(err)}".'
             )
