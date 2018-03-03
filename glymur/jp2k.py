@@ -347,6 +347,11 @@ class Jp2k(Jp2kBox):
                        "ICC profile if the file type box brand is 'jp2 '.")
                 warnings.warn(msg, UserWarning)
 
+        # We need to have one and only one JP2C box if we have a JP2 file.
+        if len([box for box in self.box if box.box_id == 'jp2c']) != 1:
+            msg = "A valid JP2C box was not found.  The JP2 file is invalid."
+            raise IOError(msg)
+
         # Make sure that IHDR and SIZ conform on the dimensions.
         ihdr = jp2h.box[0]
         ihdr_dims = ihdr.height, ihdr.width, ihdr.num_components
