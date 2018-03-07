@@ -240,9 +240,10 @@ class Jp2kBox(object):
 
             # Position to the start of the next box.
             if num_bytes > self.length:
-                # Length of the current box goes past the end of the
-                # enclosing superbox.
-                msg = f'{box_id} box has incorrect box length ({num_bytes})'
+                msg = (
+                    f"The {box_id} box has a length ({num_bytes}) that "
+                    f"exceeds the length of the file ({self.length})."
+                )
                 warnings.warn(msg)
             elif fptr.tell() > start + num_bytes:
                 # The box must be invalid somehow, as the file pointer is

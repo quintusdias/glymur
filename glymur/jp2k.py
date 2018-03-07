@@ -30,6 +30,13 @@ from .jp2box import (Jp2kBox, JPEG2000SignatureBox, FileTypeBox,
 from .lib import openjp2 as opj2
 
 
+class InvalidJP2File(IOError):
+    """
+    Raise this exception in case we cannot parse a valid JP2 file.
+    """
+    pass
+
+
 class Jp2k(Jp2kBox):
     """JPEG 2000 file.
 
@@ -334,10 +341,17 @@ class Jp2k(Jp2kBox):
 
         ftyp = self.box[1]
         if ftyp.brand != 'jp2 ':
+            # Don't bother trying to validate JPX.
             return
 
-        # A jp2-branded file cannot contain an "any ICC profile
         jp2h = [box for box in self.box if box.box_id == 'jp2h'][0]
+
+        # An IHDR box is required as the first child box of the JP2H box.
+        if jp2h.box[0].box_id != 'ihdr':
+            msg = "A valid IHDR box was not found.  The JP2 file is invalid."
+            raise InvalidJP2File(msg)
+
+        # A jp2-branded file cannot contain an "any ICC profile
         colrs = [box for box in jp2h.box if box.box_id == 'colr']
         for colr in colrs:
             if colr.method not in (core.ENUMERATED_COLORSPACE,
@@ -349,8 +363,11 @@ class Jp2k(Jp2kBox):
 
         # We need to have one and only one JP2C box if we have a JP2 file.
         if len([box for box in self.box if box.box_id == 'jp2c']) != 1:
-            msg = "A valid JP2C box was not found.  The JP2 file is invalid."
-            raise IOError(msg)
+            msg = (
+                "A valid JP2C box was not found in the outermost level of JP2 "
+                "boxes.  The JP2 file is invalid."
+            )
+            raise InvalidJP2File(msg)
 
         # Make sure that IHDR and SIZ conform on the dimensions.
         ihdr = jp2h.box[0]

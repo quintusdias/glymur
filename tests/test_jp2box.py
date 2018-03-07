@@ -23,6 +23,7 @@ import pkg_resources as pkg
 # Local imports ...
 import glymur
 from glymur import Jp2k
+from glymur.jp2k import InvalidJP2File
 from glymur.jp2box import (
     ColourSpecificationBox, ContiguousCodestreamBox, FileTypeBox,
     ImageHeaderBox, JP2HeaderBox, JPEG2000SignatureBox, BitsPerComponentBox,
@@ -1006,7 +1007,58 @@ class TestJp2Boxes(unittest.TestCase):
     """Tests for canonical JP2 boxes."""
 
     def setUp(self):
+        self.jp2file = glymur.data.nemo()
         self.jpxfile = glymur.data.jpxfile()
+
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
+    def test_no_ihdr_box(self):
+        """
+        SCENARIO:  The JP2/IHDR box cannot be parsed.
+
+        EXPECTED RESULT:  An IOError is issued.
+        """
+        # Write a new JP2 file that omits the IHDR box.
+        j = Jp2k(self.jp2file)
+        jp2h = [box for box in j.box if box.box_id == 'jp2h'][0]
+        ihdr = jp2h.box[0]
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            numbytes = ihdr.offset
+            with open(self.jp2file, 'rb') as ifile:
+                # Write all the way up to the ihdr box
+                tfile.write(ifile.read(numbytes))
+
+                # Seek past the ihdr box
+                ifile.seek(ihdr.length, os.SEEK_CUR)
+
+                # Write the rest of the JP2 file
+                tfile.write(ifile.read(numbytes))
+
+            tfile.flush()
+
+            with self.assertRaises(InvalidJP2File):
+                with warnings.catch_warnings():
+                    # Lots of things wrong with this file.
+                    warnings.simplefilter('ignore')
+                    Jp2k(tfile.name)
+
+    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
+    def test_no_jp2c_box(self):
+        """
+        SCENARIO:  The JP2/JP2C box cannot be parsed.
+
+        EXPECTED RESULT:  An IOError is issued.
+        """
+        # Write a new JP2 file that omits the JP2C box.
+        j = Jp2k(self.jp2file)
+        jp2c = [box for box in j.box if box.box_id == 'jp2c'][0]
+        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            numbytes = jp2c.offset
+            with open(self.jp2file, 'rb') as ifile:
+                tfile.write(ifile.read(numbytes))
+            tfile.flush()
+
+            with self.assertRaises(InvalidJP2File):
+                Jp2k(tfile.name)
 
     def test_default_jp2k(self):
         """Should be able to instantiate a JPEG2000SignatureBox"""

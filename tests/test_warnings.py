@@ -39,25 +39,6 @@ class TestSuite(unittest.TestCase):
         warnings.resetwarnings()
         glymur.reset_option('all')
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
-    def test_warning_when_no_jp2c_box(self):
-        """
-        SCENARIO:  The JP2/JP2C box cannot be parsed.
-
-        EXPECTED RESULT:  An IOError is issued.
-        """
-        # Write a new JP2 file that omits the JP2C box.
-        j = Jp2k(self.jp2file)
-        jp2c = [box for box in j.box if box.box_id == 'jp2c'][0]
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-            numbytes = jp2c.offset
-            with open(self.jp2file, 'rb') as ifile:
-                tfile.write(ifile.read(numbytes))
-            tfile.flush()
-
-            with self.assertRaises(IOError):
-                Jp2k(tfile.name)
-
     def test_parsing_bad_fptr_box(self):
         """
         SCENARIO: An ftyp box advertises too many bytes to be read.
