@@ -8,10 +8,10 @@ import numpy as np
 
 import glymur
 
-# If openjpeg is not installed, many tests cannot be run.
-if glymur.version.openjpeg_version < '2.2.0':
+# Require at least a certain version of openjpeg for running most tests.
+if glymur.version.openjpeg_version < '2.2.0':  # pragma: no cover
     OPENJPEG_NOT_AVAILABLE = True
-    OPENJPEG_NOT_AVAILABLE_MSG = ('A version of OPENJPEG of at least v2.1.2 '
+    OPENJPEG_NOT_AVAILABLE_MSG = ('A version of OPENJPEG of at least v2.2.0 '
                                   'must be installed.')
 else:
     OPENJPEG_NOT_AVAILABLE = False
@@ -35,7 +35,7 @@ class MetadataBase(unittest.TestCase):
     def tearDown(self):
         pass
 
-    def verify_codeblock_style(self, actual, style):
+    def verify_codeblock_style(self, actual, styles):
         """
         Verify the code-block style for SPcod and SPcoc parameters.
 
@@ -43,24 +43,18 @@ class MetadataBase(unittest.TestCase):
         Table A-17 in FCD15444-1
         """
         expected = 0
-        if style[0]:
-            # Selective arithmetic coding bypass
-            expected |= 0x01
-        if style[1]:
-            # Reset context probabilities
-            expected |= 0x02
-        if style[2]:
-            # Termination on each coding pass
-            expected |= 0x04
-        if style[3]:
-            # Vertically causal context
-            expected |= 0x08
-        if style[4]:
-            # Predictable termination
-            expected |= 0x10
-        if style[5]:
-            # Segmentation symbols
-            expected |= 0x20
+        masks = [
+            0x01,  # Selective arithmetic coding bypass
+            0x02,  # Reset context probabilities
+            0x04,  # Termination on each coding pass
+            0x08,  # Vertically causal context
+            0x10,  # Predictable termination
+            0x20,  # Segmentation symbols
+        ]
+        for style, mask in zip(styles, masks):
+            if style:
+                expected |= mask
+
         self.assertEqual(actual, expected)
 
     def verify_filetype_box(self, actual, expected):
@@ -88,9 +82,8 @@ class MetadataBase(unittest.TestCase):
 # Do we have gdal?
 try:
     import gdal  # noqa: F401
-    HAVE_GDAL = True
-except ImportError:
-    HAVE_GDAL = False
+except ImportError:  # pragma: no cover
+    pass
 
 
 def mse(amat, bmat):
@@ -138,3 +131,4 @@ SIMPLE_RDF = load_test_data('simple_rdf')
 TEXT_GBR_34 = load_test_data('text_gbr_34')
 TEXT_GBR_35 = load_test_data('text_gbr_35')
 TEXT_GBR_RREQ = load_test_data('text_GBR_rreq')
+P1_07 = load_test_data('p1_07')

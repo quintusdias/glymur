@@ -5,6 +5,7 @@ from configparser import ConfigParser, NoOptionError, NoSectionError
 import ctypes
 from ctypes.util import find_library
 import os
+import pathlib
 import platform
 import sys
 import warnings
@@ -20,9 +21,9 @@ def glymurrc_fname():
     """
 
     # Current directory.
-    fname = os.path.join(os.getcwd(), 'glymurrc')
-    if os.path.exists(fname):
-        return fname
+    path = pathlib.Path.home() / 'glymurrc'
+    if path.exists():
+        return path
 
     confdir = get_configdir()
     if confdir is not None:
@@ -34,46 +35,61 @@ def glymurrc_fname():
     return None
 
 
-def load_openjpeg_library(libname):
+def _determine_full_path(libname):
+    """
+    Try to determine the path to the openjp2 library.
+
+    Parameters
+    ----------
+    libname : str
+        Short name for library (openjp2).
+
+    Returns
+    -------
+    Path to openjp2 library.
+    """
 
     # A location specified by the glymur configuration file has precedence.
     path = read_config_file(libname)
     if path is not None:
-        return load_library_handle(libname, path)
+        return path
 
+    # No joy on configuration file.
+    # Are we using Anaconda?
     if ((('Anaconda' in sys.version) or
          ('Continuum Analytics, Inc.' in sys.version) or
          ('packaged by conda-forge' in sys.version))):
         # If Anaconda, then openjpeg may have been installed via conda.
         if platform.system() in ['Linux', 'Darwin']:
             suffix = '.so' if platform.system() == 'Linux' else '.dylib'
-            basedir = os.path.dirname(os.path.dirname(sys.executable))
-            lib = os.path.join(basedir, 'lib', 'lib' + libname + suffix)
+            basedir = pathlib.Path(sys.executable).parents[1]
+            path = basedir / 'lib' / ('lib' + libname + suffix)
         elif platform.system() == 'Windows':
-            basedir = os.path.dirname(sys.executable)
-            lib = os.path.join(basedir, 'Library', 'bin', libname + '.dll')
+            basedir = pathlib.Path(sys.executable).parents[0]
+            path = basedir / 'Library' / 'bin' / (libname + '.dll')
 
-        if os.path.exists(lib):
-            path = lib
+        return path
 
-    if path is None:
-        # Can ctypes find it in the default system locations?
-        path = find_library(libname)
+    # No joy on config file or Anaconda.
+    # MacPorts?
+    path = pathlib.Path('/opt/local/lib/libopenjp2.dylib')
+    if platform.system() == 'Darwin' and path.exists():
+        return path
 
-    if path is None:
-        if platform.system() == 'Darwin':
-            # OpenJPEG may have been installed via MacPorts
-            path = '/opt/local/lib/libopenjp2.dylib'
-
-        if path is not None and not os.path.exists(path):
-            # the mac/win default location does not exist.
-            return None
-
-    return load_library_handle(libname, path)
+    # No joy on config file, not Anaconda or MacPorts.
+    # Can ctypes find it anyway?
+    path = find_library(libname)
+    if path is not None:
+        return pathlib.Path(path)
+    else:
+        return None
 
 
-def load_library_handle(libname, path):
-    """Load the library, return the ctypes handle."""
+def load_openjpeg_library(libname):
+    """
+    Determine the path to the openjp2 library and load it via CTYPES.
+    """
+    path = _determine_full_path(libname)
 
     if path is None or path in ['None', 'none']:
         # Either could not find a library via ctypes or
@@ -82,11 +98,9 @@ def load_library_handle(libname, path):
         # one of the libraries to load.
         return None
 
+    loader = ctypes.windll.LoadLibrary if os.name == 'nt' else ctypes.CDLL
     try:
-        if os.name == "nt":
-            opj_lib = ctypes.windll.LoadLibrary(path)
-        else:
-            opj_lib = ctypes.CDLL(path)
+        opj_lib = loader(path)
     except (TypeError, OSError):
         msg = f'The {libname} library at {path} could not be loaded.'
         warnings.warn(msg, UserWarning)
@@ -106,7 +120,7 @@ def read_config_file(libname):
 
     Returns
     -------
-    path : None or str
+    path : None or path
         None if no location is specified, otherwise a path to the library
     """
     filename = glymurrc_fname()
@@ -121,6 +135,9 @@ def read_config_file(libname):
         path = parser.get('library', libname)
     except (NoOptionError, NoSectionError):
         path = None
+    else:
+        # Turn it into a pathlib object.
+        path = pathlib.Path(path)
     return path
 
 
@@ -147,12 +164,12 @@ def get_configdir():
     XDG_CONFIG_HOME environment variable.
     """
     if 'XDG_CONFIG_HOME' in os.environ:
-        return os.path.join(os.environ['XDG_CONFIG_HOME'], 'glymur')
+        return pathlib.Path(os.environ['XDG_CONFIG_HOME']) / 'glymur'
 
-    if 'HOME' in os.environ and os.name != 'nt':
+    if 'HOME' in os.environ and platform.system() != 'Windows':
         # HOME is set by WinPython to something unusual, so we don't
         # necessarily want that.
-        return os.path.join(os.environ['HOME'], '.config', 'glymur')
+        return pathlib.Path(os.environ['HOME']) / '.config' / 'glymur'
 
     # Last stand.  Should handle windows... others?
-    return os.path.join(os.path.expanduser('~'), 'glymur')
+    return pathlib.Path.home() / 'glymur'

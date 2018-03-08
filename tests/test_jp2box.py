@@ -35,11 +35,11 @@ from .fixtures import WINDOWS_TMP_FILE_MSG, MetadataBase
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
-def docTearDown(doctest_obj):
+def docTearDown(doctest_obj):  # pragma: no cover
     glymur.set_option('parse.full_codestream', False)
 
 
-def load_tests(loader, tests, ignore):
+def load_tests(loader, tests, ignore):  # pragma: no cover
     """Run doc tests as well."""
     if os.name == "nt":
         # Can't do it on windows, temporary file issue.

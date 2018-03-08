@@ -4,6 +4,7 @@ Test suite for codestream oddities
 """
 
 # Standard library imports ...
+from io import BytesIO
 import os
 import struct
 import sys
@@ -29,6 +30,22 @@ class TestSuite(unittest.TestCase):
 
         relpath = os.path.join('data', 'p0_06.j2k')
         self.p0_06 = pkg.resource_filename(__name__, relpath)
+
+    def test_tlm_segment(self):
+        """
+        Verify parsing of the TLM segment.
+
+        In this case there's only a single tile.
+        """
+        j2k = Jp2k(self.p0_06)
+
+        buffer = b'\xffU\x00\x08\x00@\x00\x00YW'
+        b = BytesIO(buffer[2:])
+        segment = j2k.codestream._parse_tlm_segment(b)
+
+        self.assertEqual(segment.ztlm, 0)
+        self.assertIsNone(segment.ttlm)
+        self.assertEqual(segment.ptlm, (22871,))
 
     def test_ppt_segment(self):
         """

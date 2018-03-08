@@ -154,10 +154,10 @@ class Codestream(object):
             0xff6d: self._parse_reserved_segment,
             0xff6e: self._parse_reserved_segment,
             0xff6f: self._parse_reserved_segment,
-            0xff79: self._parse_unrecognized_segment,
+            0xff79: self._parse_reserved_segment,
             0xff90: self._parse_sot_segment,
-            0xff91: self._parse_unrecognized_segment,
-            0xff92: self._parse_unrecognized_segment,
+            0xff91: self._parse_reserved_segment,
+            0xff92: self._parse_reserved_segment,
             0xff93: self._parse_sod_segment,
             0xffd9: self._parse_eoc_segment
         }
@@ -217,25 +217,6 @@ class Codestream(object):
 
                 new_offset = self._tile_offset[-1] + self._tile_length[-1]
                 fptr.seek(new_offset)
-
-    def _parse_unrecognized_segment(self, fptr):
-        """Looks like a valid marker, but not sure from reading the specs.
-        """
-        msg = (f"Unrecognized codestream marker 0x{self._marker_id:x} "
-               f"encountered at byte offset {fptr.tell()}.")
-        warnings.warn(msg, UserWarning)
-        cpos = fptr.tell()
-        read_buffer = fptr.read(2)
-        next_item, = struct.unpack('>H', read_buffer)
-        fptr.seek(cpos)
-        if ((next_item & 0xff00) >> 8) == 255:
-                # No segment associated with this marker, so reset
-                # to two bytes after it.
-            segment = Segment(id=f'0x{self._marker_id:x}',
-                              offset=self._offset, length=0)
-        else:
-            segment = self._parse_reserved_segment(fptr)
-        return segment
 
     def _parse_reserved_segment(self, fptr):
         """Parse valid marker segment, segment description is unknown.
@@ -801,6 +782,8 @@ class Codestream(object):
         -------
         TLMSegment
             The current TLM segment.
+
+        See tables A-33 and A-34 in 15444.pdf.
         """
         offset = fptr.tell() - 2
 
@@ -809,31 +792,18 @@ class Codestream(object):
 
         read_buffer = fptr.read(length - 2)
         ztlm, stlm = struct.unpack_from('>BB', read_buffer)
-        ttlm_st = (stlm >> 4) & 0x3
-        ptlm_sp = (stlm >> 6) & 0x1
+        st = (stlm >> 4) & 0x3
+        sp = (stlm >> 6) & 0x1
 
         nbytes = length - 4
-        if ttlm_st == 0:
-            ntiles = nbytes / ((ptlm_sp + 1) * 2)
-        else:
-            ntiles = nbytes / (ttlm_st + (ptlm_sp + 1) * 2)
+        ntiles = nbytes / (st + (sp + 1) * 2)
 
-        if ttlm_st == 0:
-            ttlm = None
-            fmt = ''
-        elif ttlm_st == 1:
-            fmt = 'B'
-        elif ttlm_st == 2:
-            fmt = 'H'
-
-        if ptlm_sp == 0:
-            fmt += 'H'
-        else:
-            fmt += 'I'
+        fmt = {0: '', 1: 'B', 2: 'H'}[st]
+        fmt += {0: 'H', 1: 'I'}[sp]
 
         data = struct.unpack_from('>' + fmt * int(ntiles), read_buffer,
                                   offset=2)
-        if ttlm_st == 0:
+        if st == 0:
             ttlm = None
             ptlm = data
         else:

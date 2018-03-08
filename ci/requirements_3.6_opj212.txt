@@ -1,4 +1,0 @@
-numpy
-openjpeg=2.1.2
-lxml
-scikit-image

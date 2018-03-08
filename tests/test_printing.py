@@ -24,6 +24,7 @@ from glymur.core import COLOR, RED, GREEN, BLUE, RESTRICTED_ICC_PROFILE
 from glymur.jp2box import BitsPerComponentBox, ColourSpecificationBox
 from glymur.jp2box import LabelBox
 from glymur import Jp2k, command_line
+from glymur.lib import openjp2 as opj2
 from . import fixtures
 from .fixtures import (WINDOWS_TMP_FILE_MSG,
                        OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
@@ -1405,6 +1406,36 @@ class TestPrinting(unittest.TestCase):
         opt = glymur.get_option('print.codestream')
         self.assertTrue(opt)
 
+    def test_reserved_marker(self):
+        file = os.path.join('data', 'p0_02.j2k')
+        file = pkg.resource_filename(__name__, file)
+        j = Jp2k(file)
+        actual = str(j.codestream.segment[6])
+        expected = '0xff30 marker segment @ (132, 0)'
+        self.assertEqual(actual, expected)
+
+    def test_scalar_implicit_quantization_file(self):
+        file = os.path.join('data', 'p0_03.j2k')
+        file = pkg.resource_filename(__name__, file)
+        j = Jp2k(file)
+        actual = str(j.codestream.segment[3])
+        self.assertIn('scalar implicit', actual)
+
+    def test_scalar_explicit_quantization_file(self):
+        file = os.path.join('data', 'p0_06.j2k')
+        file = pkg.resource_filename(__name__, file)
+        j = Jp2k(file)
+        actual = str(j.codestream.segment[3])
+        self.assertIn('scalar explicit', actual)
+
+    def test_non_default_precinct_size(self):
+        file = os.path.join('data', 'p1_07.j2k')
+        file = pkg.resource_filename(__name__, file)
+        j = Jp2k(file)
+        actual = str(j.codestream.segment[3])
+        expected = fixtures.P1_07
+        self.assertEqual(actual, expected)
+
 
 class TestJp2dump(unittest.TestCase):
     """Tests for verifying how jp2dump console script works."""
@@ -1536,3 +1567,64 @@ class TestJp2dump(unittest.TestCase):
             self.assertNotIn('UserWarning', line)
 
         self.assertIn('UserWarning', lines[-1])
+
+    def test_default_component_parameters(self):
+        """printing default image component parameters"""
+        icpt = glymur.lib.openjp2.ImageComptParmType()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(icpt)
+            actual = fake_out.getvalue().strip()
+        expected = ("<class 'glymur.lib.openjp2.ImageComptParmType'>:\n"
+                    "    dx: 0\n"
+                    "    dy: 0\n"
+                    "    w: 0\n"
+                    "    h: 0\n"
+                    "    x0: 0\n"
+                    "    y0: 0\n"
+                    "    prec: 0\n"
+                    "    bpp: 0\n"
+                    "    sgnd: 0")
+        self.assertEqual(actual, expected)
+
+    def test_default_image_type(self):
+        """printing default image type"""
+        it = glymur.lib.openjp2.ImageType()
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            print(it)
+            actual = fake_out.getvalue().strip()
+
+        expected = (
+            "<class 'glymur.lib.openjp2.ImageType'>:\n"
+            "    x0: 0\n"
+            "    y0: 0\n"
+            "    x1: 0\n"
+            "    y1: 0\n"
+            "    numcomps: 0\n"
+            "    color_space: 0\n"
+            "    icc_profile_buf: "
+            "<glymur.lib.openjp2.LP_c_ubyte object at 0x[0-9A-Fa-f]*>\n"
+            "    icc_profile_len: 0")
+        self.assertRegex(actual, expected)
+
+    @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
+    def test_image_comp_type(self):
+        obj = opj2.ImageCompType()
+        actual = str(obj)
+        expected = (
+            r'''<class 'glymur.lib.openjp2.ImageCompType'>:\n'''
+            '''    dx: 0\n'''
+            '''    dy: 0\n'''
+            '''    w: 0\n'''
+            '''    h: 0\n'''
+            '''    x0: 0\n'''
+            '''    y0: 0\n'''
+            '''    prec: 0\n'''
+            '''    bpp: 0\n'''
+            '''    sgnd: 0\n'''
+            '''    resno_decoded: 0\n'''
+            '''    factor: 0\n'''
+            '''    data: <glymur.lib.openjp2.LP_c_int object at '''
+            '''0x[a-f0-9]+>\n'''
+            '''    alpha: 0\n'''
+        )
+        self.assertRegex(actual, expected)

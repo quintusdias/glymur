@@ -2,9 +2,12 @@
 Wraps individual functions in openjp2 library.
 """
 
+# Standard library imports
 import ctypes
+import queue
 import textwrap
 
+# Local imports
 from ..config import glymur_config
 
 OPENJP2 = glymur_config()
@@ -33,7 +36,7 @@ if OPENJP2 is not None:
 else:
     _MAJOR, _MINOR, _PATCH = 0, 0, 0
 
-ERROR_MSG_LST = []
+ERROR_MSG_LST = queue.Queue()
 
 # Map certain atomic OpenJPEG datatypes to the ctypes equivalents.
 BOOL_TYPE = ctypes.c_int32
@@ -524,7 +527,7 @@ class ImageType(ctypes.Structure):
 
             if field_name == "numcomps":
                 msg += "    numcomps: {0}\n".format(self.numcomps)
-                for j in range(self.numcomps):
+                for j in range(self.numcomps):  # pragma: no cover
                     msg += "        comps[#{0}]:\n".format(j)
                     msg += textwrap.indent(str(self.comps[j]), ' ' * 12)
 
@@ -581,16 +584,12 @@ def check_error(status):
     for error status in each wrapping function and an exception will always be
     appropriately raised.
     """
-    global ERROR_MSG_LST
     if status != 1:
-        if len(ERROR_MSG_LST) > 0:
-            # clear out the existing error message so that we don't pick up
-            # a bad one next time around.
-            msg = '\n'.join(ERROR_MSG_LST)
-            ERROR_MSG_LST = []
-            raise OpenJPEGLibraryError(msg)
-        else:
-            raise OpenJPEGLibraryError("OpenJPEG function failure.")
+        lst = []
+        while ERROR_MSG_LST.qsize() > 0:
+            lst.append(ERROR_MSG_LST.get())
+        msg = '\n'.join(lst)
+        raise OpenJPEGLibraryError(msg)
 
 
 def create_compress(codec_format):
@@ -632,11 +631,6 @@ def codec_set_threads(codec, num_threads):
     RuntimeError
         If the OpenJPEG library routine opj_decode fails.
     """
-    if not hasattr(OPENJP2, 'opj_codec_set_threads'):
-        msg = ("The opj_codec_set_threads function is not implemented in this "
-               "version of OpenJPEG ({version}).")
-        msg = msg.format(version=version())
-        raise NotImplementedError(msg)
     OPENJP2.opj_codec_set_threads.argtypes = [CODEC_TYPE, ctypes.c_int32]
     OPENJP2.opj_codec_set_threads.restype = check_error
     OPENJP2.opj_codec_set_threads(codec, num_threads)
@@ -1381,4 +1375,4 @@ def write_tile(codec, tile_index, data, data_size, stream):
 
 def set_error_message(msg):
     """The openjpeg error handler has recorded an error message."""
-    ERROR_MSG_LST.append(msg)
+    ERROR_MSG_LST.put(msg)

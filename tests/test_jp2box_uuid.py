@@ -305,7 +305,8 @@ class TestSuite(unittest.TestCase):
         expected = 'UTM Zone 16N NAD27"|Clarke, 1866 by Default| '
         self.assertEqual(box.data['GeoAsciiParams'], expected)
 
-    @unittest.skipIf(not fixtures.HAVE_GDAL, "needs gdal to make sense")
+    @unittest.skipIf('gdal' not in sys.modules.keys(),
+                     "needs gdal to make sense")
     def test_print_bad_geotiff(self):
         """
         Geotiff UUID is corrupt.  Print that instead of erroring out.
@@ -397,15 +398,30 @@ class TestSuiteHiRISE(unittest.TestCase):
             0.0, 0.0, 0.0, -2523306.125, -268608.875, 0.0
         ))
 
-    def test_printing(self):
+    @unittest.skipIf('gdal' not in sys.modules.keys(), 'Needs gdal.')
+    def test_printing_geotiff_uuid(self):
+        """
+        SCENARIO:  Print a geotiff UUID.
+
+        EXPECTED RESULT:  Should match a known geotiff UUID.
+        """
         jp2 = Jp2k(self.hirise_jp2file_name)
         actual = str(jp2.box[4])
-        if fixtures.HAVE_GDAL:
-            expected = fixtures.GEOTIFF_UUID
-        else:
-            # Only verify if PY3K, don't bother with Python2.  OrderedDicts
-            # print out differently.
-            expected = fixtures.GEOTIFF_UUID_WITHOUT_GDAL
+        expected = fixtures.GEOTIFF_UUID
+        self.assertEqual(actual, expected)
+
+    @unittest.skipIf('gdal' in sys.modules.keys(),
+                     'Should only be run if gdal is not present.')
+    def test_printing_geotiff_uuid_without_gdal(self):  # pragma: no cover
+        """
+        SCENARIO:  Print a geotiff UUID when gdal is not present.
+
+        EXPECTED RESULT:  The UUID should be printed with no specific gdal-ish
+        information.
+        """
+        jp2 = Jp2k(self.hirise_jp2file_name)
+        actual = str(jp2.box[4])
+        expected = fixtures.GEOTIFF_UUID_WITHOUT_GDAL
         self.assertEqual(actual, expected)
 
 

@@ -129,33 +129,6 @@ class TestSuite(unittest.TestCase):
 
         self.assertIsNone(box.xml)
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
-    def test_unknown_marker_segment(self):
-        """
-        Should warn for an unknown marker.
-
-        Let's inject a marker segment whose marker does not appear to
-        be valid.  We still parse the file, but warn about the offending
-        marker.
-        """
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            with open(self.j2kfile, 'rb') as ifile:
-                # Everything up until the first QCD marker.
-                read_buffer = ifile.read(65)
-                tfile.write(read_buffer)
-
-                # Write the new marker segment, 0xff79 = 65401
-                read_buffer = struct.pack('>HHB', int(65401), int(3), int(0))
-                tfile.write(read_buffer)
-
-                # Get the rest of the input file.
-                read_buffer = ifile.read()
-                tfile.write(read_buffer)
-                tfile.flush()
-
-            with self.assertWarns(UserWarning):
-                Jp2k(tfile.name).get_codestream()
-
     def test_tile_height_is_zero(self):
         """
         Zero tile height should not cause an exception.

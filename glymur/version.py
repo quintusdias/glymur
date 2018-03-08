@@ -36,32 +36,14 @@ This is glymur **{glymur_version}**
 """.format(glymur_version=version,
            openjpeg=openjpeg_version)
 
-info = """\
+info = f"""\
 Summary of glymur configuration
 -------------------------------
 
-glymur        {glymur}
-OpenJPEG      {openjpeg}
-Python        {python}
-sys.platform  {platform}
-sys.maxsize   {maxsize}
-numpy         {numpy}
+glymur        {version}
+OpenJPEG      {openjpeg_version}
+Python        {sys.version}
+sys.platform  {sys.platform}
+sys.maxsize   {sys.maxsize}
+numpy         {np.__version__}
 """
-
-kwargs = {
-    'glymur': version,
-    'openjpeg': openjpeg_version,
-    'python': sys.version,
-    'platform': sys.platform,
-    'maxsize': sys.maxsize,
-    'numpy': np.__version__,
-}
-
-try:
-    import lxml.etree
-    info += "lxml.etree    {elxml}\n"
-    kwargs['elxml'] = lxml.etree.__version__
-except Exception:
-    pass
-
-info = info.format(**kwargs)

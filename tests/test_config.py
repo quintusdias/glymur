@@ -5,6 +5,8 @@ OPENJP2 may be present in some form or other.
 import contextlib
 import imp
 import os
+import pathlib
+import platform
 import sys
 import tempfile
 import unittest
@@ -36,6 +38,105 @@ def chdir(dirname=None):
         yield
     finally:
         os.chdir(curdir)
+
+
+class TestSuite(unittest.TestCase):
+
+    @unittest.skipIf(platform.system() == 'Windows', 'nonsensical on windows')
+    @patch('glymur.config.platform.system')
+    @patch('glymur.config.sys.version', 'Anaconda')
+    @patch('glymur.config.sys.executable', '/usr/bin/python')
+    def test_windows_path(self, mock_platform_system):
+        """
+        SCENARIO:  the platform is Anaconda on windows, even though we are not
+        actually running on windows.
+
+        EXPECTED RESULT:  the path of the openjp2 library is an Anaconda DLL
+        """
+        mock_platform_system.return_value = 'Windows'
+
+        actual = glymur.config._determine_full_path('openjp2')
+        expected = pathlib.Path('/usr/bin/Library/bin/openjp2.dll')
+
+        self.assertEqual(actual, expected)
+
+    @patch('pathlib.Path.exists')
+    @patch('glymur.config.sys.version', 'not anaconda')
+    @patch('glymur.config.platform.system')
+    def test_macports(self, mock_platform_system, mock_path_exists):
+        """
+        SCENARIO:  the platform is MacPorts.
+
+        EXPECTED RESULT:  the path of the openjp2 library is in /opt/local
+        """
+        mock_platform_system.return_value = 'Darwin'
+        mock_path_exists.return_value = True
+
+        actual = glymur.config._determine_full_path('openjp2')
+        expected = pathlib.Path('/opt/local/lib/libopenjp2.dylib')
+
+        self.assertEqual(actual, expected)
+
+    @patch('glymur.config.sys.version', 'not anaconda')
+    @patch('glymur.config.find_library')
+    @patch('glymur.config.platform.system')
+    def test_via_ctypes(self, mock_platform_system, mock_find_library):
+        """
+        SCENARIO:  the platform is not anaconda and not MacPorts.  The ctypes
+        module finds the library.
+
+        EXPECTED RESULT:  the path of the openjp2 library is on standard
+        system paths
+        """
+        mock_platform_system.return_value = 'not darwin'
+        mock_find_library.return_value = '/usr/lib/libopenjp2.so'
+
+        actual = glymur.config._determine_full_path('openjp2')
+        expected = pathlib.Path('/usr/lib/libopenjp2.so')
+
+        self.assertEqual(actual, expected)
+
+    @patch('glymur.config.sys.version', 'not anaconda')
+    @patch('glymur.config.find_library')
+    @patch('glymur.config.platform.system')
+    def test_not_via_ctypes(self,
+                            mock_platform_system,
+                            mock_find_library):
+        """
+        SCENARIO:  the platform is not anaconda and not MacPorts.  The ctypes
+        module does NOT find the library.
+
+        EXPECTED RESULT:  the path of the openjp2 library is None
+        """
+        mock_platform_system.return_value = 'not darwin'
+        mock_find_library.return_value = None
+
+        actual = glymur.config.load_openjpeg_library('openjp2')
+        self.assertIsNone(actual)
+
+    @unittest.skipIf(platform.system() == 'Windows', 'nonsensical on windows')
+    @patch('glymur.config.platform.system')
+    @patch('pathlib.Path.home')
+    def test_config_dir_on_windows(self,
+                                   mock_pathlib_path_home,
+                                   mock_platform_system):
+        """
+        SCENARIO:  the XDG_CONFIG_HOME environment variable is not present, the
+        os.name *IS* 'nt'.  Don't bother running on windows because that's what
+        we are trying to test from other platforms.
+
+        EXPECTED RESULT:  the path to the configuration directory should be
+        under the home directory
+        """
+        mock_platform_system.return_value = 'Windows'
+
+        expected_path = pathlib.Path('/neither/here/nor/there')
+        mock_pathlib_path_home.return_value = expected_path
+
+        with patch.dict('os.environ', values=()):
+            # Just make sure XDG_CONFIG_HOME is not present.
+            actual = glymur.config.get_configdir()
+        self.assertEqual(actual, expected_path / 'glymur')
 
 
 class TestSuiteOptions(unittest.TestCase):

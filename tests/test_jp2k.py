@@ -2,6 +2,7 @@
 Tests for general glymur functionality.
 """
 # Standard library imports ...
+import collections
 import datetime
 import doctest
 from io import BytesIO
@@ -34,12 +35,12 @@ from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 from . import fixtures
 
 
-def docTearDown(doctest_obj):
+def docTearDown(doctest_obj):  # pragma: no cover
     glymur.set_option('parse.full_codestream', False)
 
 
 # Doc tests should be run as well.
-def load_tests(loader, tests, ignore):
+def load_tests(loader, tests, ignore):  # pragma: no cover
     """Should run doc tests as well"""
     if os.name == "nt":
         # Can't do it on windows, temporary file issue.
@@ -227,6 +228,8 @@ class TestSliceProtocolRead(SliceProtocolBase):
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
+@unittest.skipIf(glymur.version.openjpeg_version < '2.3.0',
+                 "Requires as least v2.3.0")
 class TestJp2k(unittest.TestCase):
     """These tests should be run by just about all configuration."""
 
@@ -242,6 +245,37 @@ class TestJp2k(unittest.TestCase):
 
     def setUp(self):
         glymur.reset_option('all')
+
+    def test_read_bands_unequal_subsampling(self):
+        """
+        SCENARIO:  The read_bands method is used on an image with unequal
+        subsampling.
+
+        EXPECTED RESPONSE: The image is a list of arrays of unequal size.
+        """
+        file = os.path.join('data', 'p0_06.j2k')
+        file = pkg.resource_filename(__name__, file)
+        j = Jp2k(file)
+        d = j.read_bands()
+        actual = [band.shape for band in d]
+        expected = [(129, 513), (129, 257), (65, 513), (65, 257)]
+        self.assertEqual(actual, expected)
+
+    def test_read_bands(self):
+        """
+        SCENARIO:  The read_bands method really should only be used on images
+        with different subsampling values.  But for backwards compatibility
+        it also reads images with the same subsampling value.  Read data via
+        both the slicing protocol and the read_bands method.
+
+        EXPECTED RESULT: The shape of the data read via the slicing
+        protocol should be the same as the shape read by the
+        read_bands method.
+        """
+        j = Jp2k(self.jp2file)
+        d1 = j[:]
+        d2 = j.read_bands()
+        self.assertEqual(d1.shape, d2.shape)
 
     def test_pathlib(self):
         """
@@ -1004,8 +1038,6 @@ class TestJp2k(unittest.TestCase):
         j = Jp2k(file)
         self.assertEqual(j.layer, 0)
 
-    @unittest.skipIf(glymur.version.openjpeg_version < '2.2.0',
-                     "Requires as least v2.2.0")
     def test_thread_support(self):
         """
         SCENARIO:  Set a non-default thread support value.
@@ -1017,12 +1049,6 @@ class TestJp2k(unittest.TestCase):
         jp2[:]
         t1 = time.time()
         delta0 = t1 - t0
-
-        num_cpus = glymur.lib.openjp2.get_num_cpus()
-        if num_cpus == 1:
-            # Nothing to do, can't use more threads.
-            self.assertTrue(True)
-            return
 
         glymur.set_option('lib.num_threads', 4)
         t0 = time.time()
@@ -1054,6 +1080,57 @@ class TestJp2k(unittest.TestCase):
         with patch('glymur.jp2k.version.openjpeg_version', new='2.2.0'):
             with self.assertRaises(RuntimeError):
                 glymur.set_option('lib.num_threads', 4)
+
+
+class TestComponent(unittest.TestCase):
+    """
+    Test how a component's precision translates into a datatype.
+    """
+    @classmethod
+    def setUpClass(cls):
+        cls.jp2file = glymur.data.nemo()
+
+    def test_nbits_lt_9(self):
+        """
+        SCENARIO:  A layer has less than 9 bits per sample
+
+        EXPECTED RESULT:  np.int8
+        """
+        j = Jp2k(self.jp2file)
+
+        # Fake a data structure that resembles the openjpeg component.
+        Component = collections.namedtuple('Component', ['prec', 'sgnd'])
+        c = Component(prec=7, sgnd=True)
+        dtype = j._component2dtype(c)
+        self.assertEqual(dtype, np.int8)
+
+    def test_nbits_lt_16_gt_8(self):
+        """
+        SCENARIO:  A layer has between 9 and 16 bits per sample.
+
+        EXPECTED RESULT:  np.int16
+        """
+        j = Jp2k(self.jp2file)
+
+        # Fake a data structure that resembles the openjpeg component.
+        Component = collections.namedtuple('Component', ['prec', 'sgnd'])
+        c = Component(prec=15, sgnd=True)
+        dtype = j._component2dtype(c)
+        self.assertEqual(dtype, np.int16)
+
+    def test_nbits_gt_16(self):
+        """
+        SCENARIO:  One of the layers has more than 16 bits per sample.
+
+        EXPECTED RESULT:  IOError
+        """
+        j = Jp2k(self.jp2file)
+
+        # Fake a data structure that resembles the openjpeg component.
+        Component = collections.namedtuple('Component', ['prec', 'sgnd'])
+        c = Component(prec=17, sgnd=True)
+        with self.assertRaises(IOError):
+            j._component2dtype(c)
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)

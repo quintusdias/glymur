@@ -25,6 +25,15 @@ class TestOpenJP2(unittest.TestCase):
 
     Some tests correspond to those in the openjpeg test suite.
     """
+    def test_no_openjp2_library(self):
+        """
+        SCENARIO:  There is no openjp2 library.
+
+        EXPECTED RESPONSE:  The version method should return "0.0.0"
+        """
+        with patch.object(openjp2, 'OPENJP2', new=None):
+            actual = openjp2.version()
+        self.assertEqual(actual, '0.0.0')
 
     @unittest.skipIf(glymur.lib.openjp2.version() < '2.2.0', 'Not implemented')
     def test_get_num_cpus(self):
@@ -383,41 +392,3 @@ class TestPrintingOpenjp2(unittest.TestCase):
             actual = fake_out.getvalue().strip()
         expected = fixtures.DEFAULT_COMPRESSION_PARAMETERS_TYPE
         self.assertEqual(actual, expected)
-
-    def test_default_component_parameters(self):
-        """printing default image component parameters"""
-        icpt = glymur.lib.openjp2.ImageComptParmType()
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(icpt)
-            actual = fake_out.getvalue().strip()
-        expected = ("<class 'glymur.lib.openjp2.ImageComptParmType'>:\n"
-                    "    dx: 0\n"
-                    "    dy: 0\n"
-                    "    w: 0\n"
-                    "    h: 0\n"
-                    "    x0: 0\n"
-                    "    y0: 0\n"
-                    "    prec: 0\n"
-                    "    bpp: 0\n"
-                    "    sgnd: 0")
-        self.assertEqual(actual, expected)
-
-    def test_default_image_type(self):
-        """printing default image type"""
-        it = glymur.lib.openjp2.ImageType()
-        with patch('sys.stdout', new=StringIO()) as fake_out:
-            print(it)
-            actual = fake_out.getvalue().strip()
-
-        expected = (
-            "<class 'glymur.lib.openjp2.ImageType'>:\n"
-            "    x0: 0\n"
-            "    y0: 0\n"
-            "    x1: 0\n"
-            "    y1: 0\n"
-            "    numcomps: 0\n"
-            "    color_space: 0\n"
-            "    icc_profile_buf: "
-            "<glymur.lib.openjp2.LP_c_ubyte object at 0x[0-9A-Fa-f]*>\n"
-            "    icc_profile_len: 0")
-        self.assertRegex(actual, expected)

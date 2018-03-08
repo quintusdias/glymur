@@ -1,0 +1,15 @@
+COC marker segment @ (64, 11)
+    Associated component:  1
+    Coding style for this component:  Entropy coder, PARTITION = 1
+    Coding style parameters:
+        Number of resolutions:  2
+        Code block height, width:  (64 x 64)
+        Wavelet transform:  5-3 reversible
+        Precinct size:  ((2, 2), (4, 4))
+        Code block context:
+            Selective arithmetic coding bypass:  False
+            Reset context probabilities on coding pass boundaries:  False
+            Termination on each coding pass:  False
+            Vertically stripe causal context:  False
+            Predictable termination:  False
+            Segmentation symbols:  False
