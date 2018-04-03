@@ -1085,6 +1085,37 @@ class TestPrinting(unittest.TestCase):
                ' 2188, 2223]')
         self.assertEqual(actual, exp)
 
+    def test_invalid_pod_segment(self):
+        """
+        SCENARIO:  A progression order parameter is out of range.
+
+        EXPECTED RESPONSE:  Should not error out.  The invalid progression
+        order should be clearly displayed.
+        """
+        params = (0, 0, 1, 33, 128, 1, 0, 128, 1, 33, 257, 16)
+        segment = glymur.codestream.PODsegment(params, 20, 878)
+        actual = str(segment)
+
+        expected = (
+            'POD marker segment @ (878, 20)\n'
+            '    Progression change 0:\n'
+            '        Resolution index start:  0\n'
+            '        Component index start:  0\n'
+            '        Layer index end:  1\n'
+            '        Resolution index end:  33\n'
+            '        Component index end:  128\n'
+            '        Progression order:  RLCP\n'
+            '    Progression change 1:\n'
+            '        Resolution index start:  0\n'
+            '        Component index start:  128\n'
+            '        Layer index end:  1\n'
+            '        Resolution index end:  33\n'
+            '        Component index end:  257\n'
+            '        Progression order:  invalid value: 16'
+        )
+
+        self.assertEqual(actual, expected)
+
     def test_pod_segment(self):
         """
         verify printing of POD segment
