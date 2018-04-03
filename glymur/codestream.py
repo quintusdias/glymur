@@ -1200,13 +1200,18 @@ class PODsegment(Segment):
                   '        Progression order:  {6}\n')
         for j in range(len(self.rspod)):
 
+            try:
+                progorder = _PROGRESSION_ORDER_DISPLAY[self.ppod[j]]
+            except KeyError:
+                progorder = f'invalid value: {self.ppod[j]}'
+
             msg += submsg.format(j,
                                  self.rspod[j],
                                  self.cspod[j],
                                  self.lyepod[j],
                                  self.repod[j],
                                  self.cdpod[j],
-                                 _PROGRESSION_ORDER_DISPLAY[self.ppod[j]])
+                                 progorder)
 
         return msg.rstrip()
 
