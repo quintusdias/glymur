@@ -2,6 +2,11 @@
 Changes in glymur 0.8
 =====================
 
+Changes in 0.8.15
+=================
+    * Fix link to readthedocs.
+    * Fix for invalid progression order display.
+
 Changes in 0.8.14
 =================
     * Fix bug preventing reads on layers other than the first.
