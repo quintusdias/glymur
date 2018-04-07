@@ -1,4 +1,7 @@
 January 10, 2017 - v0.8.13
+    Fix layers bug.
+
+January 10, 2017 - v0.8.13
     Clarify PSNR usage.
     Add support for openjpeg threads.
 
