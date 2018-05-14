@@ -241,7 +241,7 @@ main codestream header.  You can suppress the codestream and XML details by
 making use of the :py:meth:`set_option` function::
 
     >>> glymur.set_option('print.codestream', False)
-    >>> glymur.set_option(print.xml', False)
+    >>> glymur.set_option('print.xml', False)
     >>> print(jp2)
     File:  nemo.jp2
     JPEG 2000 Signature Box (jP  ) @ (0, 12)
