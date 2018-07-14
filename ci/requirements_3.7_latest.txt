@@ -1,0 +1,4 @@
+numpy
+openjpeg=2.3.0
+lxml
+scikit-image

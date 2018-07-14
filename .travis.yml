@@ -40,6 +40,11 @@ matrix:
       env:
           - JOB_NAME "36_latest"
           - JOB_TAG=latest
+    - python: 3.7
+      dist: xenial
+      env:
+          - JOB_NAME "37_latest"
+          - JOB_TAG=latest
 before_install:
   - sh -c "if test $OPJ15 -eq 1; then bash ci/install_openjpeg15.sh; fi"
 install:
