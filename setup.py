@@ -22,26 +22,27 @@ kwargs = {
     'install_requires': ['numpy>=1.7.1', 'setuptools'],
 }
 
-clssfrs = ["Programming Language :: Python",
-           "Programming Language :: Python :: 3.4",
-           "Programming Language :: Python :: 3.5",
-           "Programming Language :: Python :: 3.6",
-           "Programming Language :: Python :: Implementation :: CPython",
-           "License :: OSI Approved :: MIT License",
-           "Development Status :: 5 - Production/Stable",
-           "Operating System :: MacOS",
-           "Operating System :: POSIX :: Linux",
-           "Operating System :: Microsoft :: Windows :: Windows XP",
-           "Intended Audience :: Science/Research",
-           "Intended Audience :: Information Technology",
-           "Topic :: Software Development :: Libraries :: Python Modules"]
+clssfrs = [
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "License :: OSI Approved :: MIT License",
+    "Development Status :: 5 - Production/Stable",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: Microsoft :: Windows :: Windows XP",
+    "Intended Audience :: Science/Research",
+    "Intended Audience :: Information Technology",
+    "Topic :: Software Development :: Libraries :: Python Modules"
+]
 kwargs['classifiers'] = clssfrs
 
 # Get the version string.  Cannot do this by importing glymur!
 version_file = os.path.join('glymur', 'version.py')
 with open(version_file, 'rt') as fptr:
     contents = fptr.read()
-    match = re.search('version\s*=\s*"(?P<version>\d*.\d*.\d*.*)"\n', contents)
-    kwargs['version'] = match.group('version')
+match = re.search('version\s*=\s*"(?P<version>\d*.\d*.\d*.*)"\n', contents)
+kwargs['version'] = match.group('version')
 
 setup(**kwargs)
