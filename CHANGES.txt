@@ -1,3 +1,7 @@
+September 18, 2018 - v0.8.16
+    Qualify on Python 3.7.
+    Fix documentation typo.
+
 April 07, 2018 - v0.8.15
     Fix link to readthedocs.
     Fix for invalid progression order display.

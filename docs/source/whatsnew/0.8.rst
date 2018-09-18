@@ -2,6 +2,11 @@
 Changes in glymur 0.8
 =====================
 
+Changes in 0.8.16
+=================
+    * Update for Python 3.7.
+    * Fix documentation bug.
+
 Changes in 0.8.15
 =================
     * Fix link to readthedocs.
