@@ -170,10 +170,10 @@ class TestOpenJP2(unittest.TestCase):
 
 def tile_encoder(**kwargs):
     """Fixture used by many tests."""
-    num_tiles = ((kwargs['image_width'] / kwargs['tile_width']) *
-                 (kwargs['image_height'] / kwargs['tile_height']))
-    tile_size = ((kwargs['tile_width'] * kwargs['tile_height']) *
-                 (kwargs['num_comps'] * kwargs['comp_prec'] / 8))
+    num_tiles = ((kwargs['image_width'] / kwargs['tile_width'])
+                 * (kwargs['image_height'] / kwargs['tile_height']))
+    tile_size = ((kwargs['tile_width'] * kwargs['tile_height'])
+                 * (kwargs['num_comps'] * kwargs['comp_prec'] / 8))
 
     data = np.random.random((kwargs['tile_height'],
                              kwargs['tile_width'],

@@ -307,8 +307,9 @@ class Jp2k(Jp2kBox):
             box_length = values[0]
             box_id = values[1]
             signature = values[2:]
-            if (((box_length != 12) or (box_id != b'jP  ') or
-                 (signature != (13, 10, 135, 10)))):
+            if (((box_length != 12)
+                 or (box_id != b'jP  ')
+                 or (signature != (13, 10, 135, 10)))):
                 msg = '{filename} is not a JPEG 2000 file.'
                 msg = msg.format(filename=self.filename)
                 raise IOError(msg)
@@ -400,8 +401,8 @@ class Jp2k(Jp2kBox):
         """
         other_args = (mct, cratios, psnr, irreversible, cbsize, eph,
                       grid_offset, modesw, numres, prog, psizes, sop, subsam)
-        if (((cinema2k is not None or cinema4k is not None) and
-             (not all([arg is None for arg in other_args])))):
+        if (((cinema2k is not None or cinema4k is not None)
+             and (not all([arg is None for arg in other_args])))):
             msg = ("Cannot specify cinema2k/cinema4k along with any other "
                    "options.")
             raise IOError(msg)
@@ -416,8 +417,8 @@ class Jp2k(Jp2kBox):
                        "argument, it must be in the final position.")
                 raise IOError(msg)
 
-            if (((0 in psnr and np.any(np.diff(psnr[:-1]) < 0)) or
-                 (0 not in psnr and np.any(np.diff(psnr) < 0)))):
+            if (((0 in psnr and np.any(np.diff(psnr[:-1]) < 0))
+                 or (0 not in psnr and np.any(np.diff(psnr) < 0)))):
                 msg = ("PSNR values must be increasing, with one exception - "
                        "zero may be in the final position to indicate a "
                        "lossless layer.")
@@ -561,12 +562,16 @@ class Jp2k(Jp2kBox):
             # set image offset and reference grid
             image.contents.x0 = self._cparams.image_offset_x0
             image.contents.y0 = self._cparams.image_offset_y0
-            image.contents.x1 = (image.contents.x0 +
-                                 (numcols - 1) * self._cparams.subsampling_dx +
-                                 1)
-            image.contents.y1 = (image.contents.y0 +
-                                 (numrows - 1) * self._cparams.subsampling_dy +
-                                 1)
+            image.contents.x1 = (
+                image.contents.x0
+                + (numcols - 1) * self._cparams.subsampling_dx
+                + 1
+            )
+            image.contents.y1 = (
+                image.contents.y0
+                + (numrows - 1) * self._cparams.subsampling_dy
+                + 1
+            )
 
             # Stage the image data to the openjpeg data structure.
             for k in range(0, numlayers):
@@ -635,8 +640,8 @@ class Jp2k(Jp2kBox):
                 msg = msg.format(height=height, width=width,
                                  area=height * width)
                 raise IOError(msg)
-            if ((math.log(height, 2) != math.floor(math.log(height, 2)) or
-                 math.log(width, 2) != math.floor(math.log(width, 2)))):
+            if ((math.log(height, 2) != math.floor(math.log(height, 2))
+                 or math.log(width, 2) != math.floor(math.log(width, 2)))):
                 msg = ("Bad code block size ({height} x {width}).  "
                        "The dimensions must be powers of 2.")
                 msg = msg.format(height=height, width=width)
@@ -668,8 +673,8 @@ class Jp2k(Jp2kBox):
                         msg = msg.format(prch=prch, prcw=prcw,
                                          cbh=height, cbw=width)
                         raise IOError(msg)
-                if ((math.log(prch, 2) != math.floor(math.log(prch, 2)) or
-                     math.log(prcw, 2) != math.floor(math.log(prcw, 2)))):
+                if ((math.log(prch, 2) != math.floor(math.log(prch, 2))
+                     or math.log(prcw, 2) != math.floor(math.log(prcw, 2)))):
                     msg = ("Bad precinct size ({height} x {width}).  "
                            "Precinct dimensions must be powers of 2.")
                     msg = msg.format(height=prch, width=prcw)
@@ -800,9 +805,9 @@ class Jp2k(Jp2kBox):
             msg = "Only JP2 files can currently have boxes appended to them."
             raise IOError(msg)
 
-        if not ((box.box_id == 'xml ') or
-                (box.box_id == 'uuid' and
-                 box.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac'))):
+        xmp_uuid = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
+        if not ((box.box_id == 'xml ')
+                or (box.box_id == 'uuid' and box.uuid == xmp_uuid)):
             msg = ("Only XML boxes and XMP UUID boxes can currently be "
                    "appended.")
             raise IOError(msg)
@@ -959,10 +964,11 @@ class Jp2k(Jp2kBox):
         """
         Slicing protocol.
         """
-        if ((isinstance(index, slice) and
-            (index.start is None and
-                index.stop is None and
-                index.step is None)) or (index is Ellipsis)):
+        if (((isinstance(index, slice)
+              and (index.start is None
+              and index.stop is None
+              and index.step is None))
+             or (index is Ellipsis))):
             # Case of jp2[:] = data, i.e. write the entire image.
             #
             # Should have a slice object where start = stop = step = None
@@ -1034,9 +1040,11 @@ class Jp2k(Jp2kBox):
             return self._read()
 
         if isinstance(pargs, slice):
-            if (((pargs.start is None) and
-                 (pargs.stop is None) and
-                 (pargs.step is None))):
+            if (
+                pargs.start is None
+                and pargs.stop is None
+                and pargs.step is None
+            ):
                 # Case of jp2[:]
                 return self._read()
 
@@ -1605,10 +1613,16 @@ class Jp2k(Jp2kBox):
         # set image offset and reference grid
         image.contents.x0 = self._cparams.image_offset_x0
         image.contents.y0 = self._cparams.image_offset_y0
-        image.contents.x1 = (image.contents.x0 +
-                             (numcols - 1) * self._cparams.subsampling_dx + 1)
-        image.contents.y1 = (image.contents.y0 +
-                             (numrows - 1) * self._cparams.subsampling_dy + 1)
+        image.contents.x1 = (
+            image.contents.x0
+            + (numcols - 1) * self._cparams.subsampling_dx
+            + 1
+        )
+        image.contents.y1 = (
+            image.contents.y0
+            + (numrows - 1) * self._cparams.subsampling_dy
+            + 1
+        )
 
         # Stage the image data to the openjpeg data structure.
         for k in range(0, num_comps):
@@ -1782,8 +1796,8 @@ class Jp2k(Jp2kBox):
         elif len(cdef_lst) == 1:
             cdef = jp2h.box[cdef_lst[0]]
             if colr.colorspace == core.SRGB:
-                if any([chan + 1 not in cdef.association or
-                        cdef.channel_type[chan] != 0 for chan in [0, 1, 2]]):
+                if any([chan + 1 not in cdef.association
+                       or cdef.channel_type[chan] != 0 for chan in [0, 1, 2]]):
                     msg = ("All color channels must be defined in the "
                            "channel definition box.")
                     raise IOError(msg)

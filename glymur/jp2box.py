@@ -541,8 +541,8 @@ class ChannelDefinitionBox(Jp2kBox):
     def _validate(self, writing=False):
         """Verify that the box obeys the specifications."""
         # channel type and association must be specified.
-        if not ((len(self.index) == len(self.channel_type)) and
-                (len(self.channel_type) == len(self.association))):
+        if not ((len(self.index) == len(self.channel_type))
+                and (len(self.channel_type) == len(self.association))):
             msg = ("The length of the index ({index}), channel_type "
                    "({channel_type}), and association ({association}) inputs "
                    "must be the same.")
@@ -1362,8 +1362,8 @@ class FragmentListBox(Jp2kBox):
 
     def _validate(self, writing=False):
         """Validate internal correctness."""
-        if (((len(self.fragment_offset) != len(self.fragment_length)) or
-             (len(self.fragment_length) != len(self.data_reference)))):
+        if (((len(self.fragment_offset) != len(self.fragment_length))
+             or (len(self.fragment_length) != len(self.data_reference)))):
             msg = ("The lengths of the fragment offsets ({len_offsets}), "
                    "fragment lengths ({len_fragments}), and "
                    "data reference items ({len_drefs}) must be the same.")
@@ -2040,8 +2040,8 @@ class PaletteBox(Jp2kBox):
 
     def _validate(self, writing=False):
         """Verify that the box obeys the specifications."""
-        if ((len(self.bits_per_component) != len(self.signed)) or
-                (len(self.signed) != self.palette.shape[1])):
+        if (((len(self.bits_per_component) != len(self.signed))
+             or (len(self.signed) != self.palette.shape[1]))):
             msg = ("The length of the 'bits_per_component' and the 'signed' "
                    "members must equal the number of columns of the palette.")
             self._dispatch_validation_error(msg, writing=writing)
@@ -2581,7 +2581,7 @@ class CaptureResolutionBox(Jp2kBox):
             Instance of the current capture resolution box.
         """
         read_buffer = fptr.read(10)
-        (rn1, rd1, rn2, rd2, re1, re2) = struct.unpack('>HHHHBB', read_buffer)
+        (rn1, rd1, rn2, rd2, re1, re2) = struct.unpack('>HHHHbb', read_buffer)
         vres = rn1 / rd1 * math.pow(10, re1)
         hres = rn2 / rd2 * math.pow(10, re2)
 
@@ -2657,7 +2657,7 @@ class DisplayResolutionBox(Jp2kBox):
         """
 
         read_buffer = fptr.read(10)
-        (rn1, rd1, rn2, rd2, re1, re2) = struct.unpack('>HHHHBB', read_buffer)
+        (rn1, rd1, rn2, rd2, re1, re2) = struct.unpack('>HHHHbb', read_buffer)
         vres = rn1 / rd1 * math.pow(10, re1)
         hres = rn2 / rd2 * math.pow(10, re2)
 
@@ -3452,8 +3452,8 @@ class UUIDBox(Jp2kBox):
 
         # transform the point into georeferenced coordinates
         geo_transform = hDataset.GetGeoTransform(can_return_null=True)
-        dfGeoX = (geo_transform[0] + geo_transform[1] * x +
-                  geo_transform[2] * y)
+        dfGeoX = (geo_transform[0] + geo_transform[1] * x
+                  + geo_transform[2] * y)
         dfGeoY = geo_transform[3] + geo_transform[4] * x
         dfGeoY += geo_transform[5] * y
 

@@ -28,7 +28,7 @@ from glymur import Jp2k
 from glymur.jp2box import ColourSpecificationBox, ContiguousCodestreamBox
 from glymur.jp2box import FileTypeBox, ImageHeaderBox, JP2HeaderBox
 from glymur.jp2box import JPEG2000SignatureBox, BitsPerComponentBox
-from glymur.jp2box import PaletteBox, UnknownBox
+from glymur.jp2box import PaletteBox, UnknownBox, CaptureResolutionBox
 from glymur.core import COLOR, OPACITY, SRGB, GREYSCALE
 from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE
 from .fixtures import WINDOWS_TMP_FILE_MSG, MetadataBase
@@ -110,9 +110,9 @@ class TestDataEntryURL(unittest.TestCase):
             with open(tfile.name, 'rb') as fptr:
                 fptr.seek(jp22.box[-1].offset + 4 + 4 + 1 + 3)
 
-                nbytes = (jp22.box[-1].offset +
-                          jp22.box[-1].length -
-                          fptr.tell())
+                nbytes = (jp22.box[-1].offset
+                          + jp22.box[-1].length
+                          - fptr.tell())
                 read_buffer = fptr.read(nbytes)
                 read_url = read_buffer.decode('utf-8')
                 self.assertEqual(url + chr(0), read_url)
@@ -986,8 +986,8 @@ class TestWrap(unittest.TestCase):
         """Rewrap a jpx file."""
         with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile1:
             jpx = Jp2k(self.jpxfile)
-            idx = (list(range(5)) +
-                   list(range(9, 12)) + list(range(6, 9))) + [12]
+            idx = (list(range(5)) + list(range(9, 12)) + list(range(6, 9))
+                   + [12])
             boxes = [jpx.box[j] for j in idx]
             jpx2 = jpx.wrap(tfile1.name, boxes=boxes)
             exp_ids = [box.box_id for box in boxes]
@@ -1004,6 +1004,25 @@ class TestJp2Boxes(unittest.TestCase):
 
     def setUp(self):
         self.jpxfile = glymur.data.jpxfile()
+
+    def test_capture_resolution_with_negative_exponents(self):
+        """
+        SCENARIO:  The cres box has negative exponents and unity for the
+        numerator and denominator of the resolutions.
+
+        EXPECTED RESULT:  The resolutions are less than one.
+        """
+        b = BytesIO()
+
+        pargs = (18, b'cres', 1, 1, 1, 1, -2, -2)
+        buffer = struct.pack('>I4s4H2b', *pargs)
+        b.write(buffer)
+        b.seek(8)
+
+        # Now try to parse
+        box = CaptureResolutionBox.parse(b, 8, 18)
+        self.assertEqual(box.vertical_resolution, 0.01)
+        self.assertEqual(box.horizontal_resolution, 0.01)
 
     def test_default_jp2k(self):
         """Should be able to instantiate a JPEG2000SignatureBox"""
