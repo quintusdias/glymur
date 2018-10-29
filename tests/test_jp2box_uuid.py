@@ -398,31 +398,21 @@ class TestSuiteHiRISE(unittest.TestCase):
             0.0, 0.0, 0.0, -2523306.125, -268608.875, 0.0
         ))
 
-    @unittest.skipIf('gdal' not in sys.modules.keys(), 'Needs gdal.')
     def test_printing_geotiff_uuid(self):
         """
         SCENARIO:  Print a geotiff UUID.
 
-        EXPECTED RESULT:  Should match a known geotiff UUID.
+        EXPECTED RESULT:  Should match a known geotiff UUID.  If gdal is not
+        installed, then expect a degraded response.
         """
         jp2 = Jp2k(self.hirise_jp2file_name)
         actual = str(jp2.box[4])
-        expected = fixtures.GEOTIFF_UUID
+        if 'gdal' in sys.modules.keys():
+            expected = fixtures.GEOTIFF_UUID
+        else:
+            expected = fixtures.GEOTIFF_UUID_WITHOUT_GDAL
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf('gdal' in sys.modules.keys(),
-                     'Should only be run if gdal is not present.')
-    def test_printing_geotiff_uuid_without_gdal(self):  # pragma: no cover
-        """
-        SCENARIO:  Print a geotiff UUID when gdal is not present.
-
-        EXPECTED RESULT:  The UUID should be printed with no specific gdal-ish
-        information.
-        """
-        jp2 = Jp2k(self.hirise_jp2file_name)
-        actual = str(jp2.box[4])
-        expected = fixtures.GEOTIFF_UUID_WITHOUT_GDAL
-        self.assertEqual(actual, expected)
 
 
 @unittest.skipIf(sys.platform == 'win32', fixtures.WINDOWS_TMP_FILE_MSG)
