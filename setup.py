@@ -42,7 +42,10 @@ kwargs['classifiers'] = clssfrs
 version_file = os.path.join('glymur', 'version.py')
 with open(version_file, 'rt') as fptr:
     contents = fptr.read()
-match = re.search('version\s*=\s*"(?P<version>\d*.\d*.\d*.*)"\n', contents)
+pattern = r'''
+           version\s*=\s*"(?P<version>\d*.\d*.\d*.*)"\s
+           '''
+match = re.search(pattern)
 kwargs['version'] = match.group('version')
 
 setup(**kwargs)

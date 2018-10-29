@@ -414,7 +414,6 @@ class TestSuiteHiRISE(unittest.TestCase):
         self.assertEqual(actual, expected)
 
 
-
 @unittest.skipIf(sys.platform == 'win32', fixtures.WINDOWS_TMP_FILE_MSG)
 class TestSuiteWarns(unittest.TestCase):
     """Tests for XMP, Exif UUIDs, issues warnings."""
