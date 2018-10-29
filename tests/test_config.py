@@ -42,6 +42,23 @@ def chdir(dirname=None):
 
 class TestSuite(unittest.TestCase):
 
+    @patch('glymur.config.platform.system')
+    @patch('glymur.config.sys.version', 'Anaconda')
+    @patch('glymur.config.sys.executable', '/opt/anaconda/bin/python')
+    def test_anaconda_on_mac(self, mock_platform_system):
+        """
+        SCENARIO:  the platform is Anaconda on mac.
+
+        EXPECTED RESULT:  the path of the openjp2 library is under the anaconda
+        root.
+        """
+        mock_platform_system.return_value = 'Darwin'
+
+        actual = glymur.config._determine_full_path('openjp2')
+        expected = pathlib.Path('/opt/anaconda/lib/libopenjp2.dylib')
+
+        self.assertEqual(actual, expected)
+
     @unittest.skipIf(platform.system() == 'Windows', 'nonsensical on windows')
     @patch('glymur.config.platform.system')
     @patch('glymur.config.sys.version', 'Anaconda')
