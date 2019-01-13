@@ -1,5 +1,5 @@
 # Standard library imports ...
-import os
+import pathlib
 import re
 
 # Third party library imports ...
@@ -39,13 +39,10 @@ clssfrs = [
 kwargs['classifiers'] = clssfrs
 
 # Get the version string.  Cannot do this by importing glymur!
-version_file = os.path.join('glymur', 'version.py')
-with open(version_file, 'rt') as fptr:
-    contents = fptr.read()
-pattern = r'''
-           version\s*=\s*"(?P<version>\d*.\d*.\d*.*)"\s
-           '''
-match = re.search(pattern)
+p = pathlib.Path('glymur') / 'version.py'
+contents = p.read_text()
+pattern = r'''version\s=\s"(?P<version>\d*.\d*.\d*.*)"\s'''
+match = re.search(pattern, contents)
 kwargs['version'] = match.group('version')
 
 setup(**kwargs)
