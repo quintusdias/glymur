@@ -2550,7 +2550,7 @@ class CaptureResolutionBox(Jp2kBox):
             Instance of the current capture resolution box.
         """
         read_buffer = fptr.read(10)
-        (rn1, rd1, rn2, rd2, re1, re2) = struct.unpack('>HHHHBB', read_buffer)
+        (rn1, rd1, rn2, rd2, re1, re2) = struct.unpack('>HHHHbb', read_buffer)
         vres = rn1 / rd1 * math.pow(10, re1)
         hres = rn2 / rd2 * math.pow(10, re2)
 
@@ -2626,7 +2626,7 @@ class DisplayResolutionBox(Jp2kBox):
         """
 
         read_buffer = fptr.read(10)
-        (rn1, rd1, rn2, rd2, re1, re2) = struct.unpack('>HHHHBB', read_buffer)
+        (rn1, rd1, rn2, rd2, re1, re2) = struct.unpack('>HHHHbb', read_buffer)
         vres = rn1 / rd1 * math.pow(10, re1)
         hres = rn2 / rd2 * math.pow(10, re2)
 
