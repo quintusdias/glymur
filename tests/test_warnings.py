@@ -467,11 +467,15 @@ class TestSuite(unittest.TestCase):
 
     def test_colr_with_cspace_and_icc(self):
         """Colour specification boxes can't have both."""
+        relpath = os.path.join('data', 'sgray.icc')
+        iccfile = pkg.resource_filename(__name__, relpath)
+        with open(iccfile, mode='rb') as f:
+            buffer = f.read()
+
         with self.assertWarns(UserWarning):
             colorspace = glymur.core.SRGB
-            rawb = b'\x01\x02\x03\x04'
             glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
-                                                 icc_profile=rawb)
+                                                 icc_profile=buffer)
 
     def test_colr_with_bad_method(self):
         """colr must have a valid method field"""

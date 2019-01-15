@@ -283,7 +283,10 @@ class ColourSpecificationBox(Jp2kBox):
     colorspace : int or None
         Enumerated colorspace, corresponds to one of 'sRGB', 'greyscale', or
         'YCC'.  If not None, then icc_profile must be None.
-    icc_profile : dict
+    icc_profile : bytes or None
+        Raw bytes constituting the ICC profile.  This may be read by any
+        software capable of interpreting ICC profiles
+    icc_profile_header : dict
         ICC profile header according to ICC profile specification.  If
         colorspace is not None, then icc_profile must be empty.
     """
@@ -301,6 +304,10 @@ class ColourSpecificationBox(Jp2kBox):
 
         self.colorspace = colorspace
         self.icc_profile = icc_profile
+        if icc_profile is None:
+            self.icc_profile_header = None
+        else:
+            self.icc_profile_header = _ICCProfile(self.icc_profile).header
         self.length = length
         self.offset = offset
 
@@ -389,7 +396,7 @@ class ColourSpecificationBox(Jp2kBox):
             if self.icc_profile is None:
                 text = 'ICC Profile:  None'
             else:
-                text = pprint.pformat(self.icc_profile)
+                text = pprint.pformat(self.icc_profile_header)
                 text = textwrap.indent(text, ' ' * 4)
                 text = '\n'.join(['ICC Profile:', text])
 
@@ -458,8 +465,7 @@ class ColourSpecificationBox(Jp2kBox):
                 warnings.warn(msg, UserWarning)
                 icc_profile = None
             else:
-                profile = _ICCProfile(read_buffer[3:])
-                icc_profile = profile.header
+                icc_profile = read_buffer[3:]
 
         return cls(method=method,
                    precedence=precedence,

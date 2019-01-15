@@ -961,7 +961,7 @@ class TestJp2k(unittest.TestCase):
         fp.seek(8)
 
         box = glymur.jp2box.ColourSpecificationBox.parse(fp, 0, 557)
-        profile = box.icc_profile
+        profile = box.icc_profile_header
 
         self.assertEqual(profile['Size'], 546)
         self.assertEqual(profile['Preferred CMM Type'], 0)

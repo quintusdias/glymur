@@ -6,3 +6,4 @@ Changes in 0.9.0
 =================
     * Restricted to Python 3.6 and above.
     * Backwards incompatibility: the read_bands method no longer takes the layer argument, you must set this using the layer property.
+    * Backwards incompatibility: the icc_profile member of the ColourSpecificationBox is no longer a dictionary, but is instead a series of raw bytes that may be read by any software capable of interpreting ICC profiles.  The dictionary of metadata has been renamed to "icc_profile_header".
