@@ -311,6 +311,9 @@ class ColourSpecificationBox(Jp2kBox):
     colorspace : int or None
         Enumerated colorspace, corresponds to one of 'sRGB', 'greyscale', or
         'YCC'.  If not None, then icc_profile must be None.
+    icc_profile_data : bytes
+        Raw ICC profile which may be read by software capable of interpreting
+        ICC profiles.
     icc_profile : dict
         ICC profile header according to ICC profile specification.  If
         colorspace is not None, then icc_profile must be empty.
@@ -320,7 +323,7 @@ class ColourSpecificationBox(Jp2kBox):
 
     def __init__(self, method=ENUMERATED_COLORSPACE, precedence=0,
                  approximation=0, colorspace=None, icc_profile=None,
-                 length=0, offset=-1):
+                 icc_profile_data=None, length=0, offset=-1):
         Jp2kBox.__init__(self)
 
         self.method = method
@@ -328,7 +331,14 @@ class ColourSpecificationBox(Jp2kBox):
         self.approximation = approximation
 
         self.colorspace = colorspace
+
         self.icc_profile = icc_profile
+        self.icc_profile_data = icc_profile_data
+        if self.icc_profile is None and icc_profile_data is not None:
+            # Form the ordered dict from the raw data.
+            profile = _ICCProfile(icc_profile_data)
+            self.icc_profile = profile.header
+
         self.length = length
         self.offset = offset
 
@@ -479,24 +489,26 @@ class ColourSpecificationBox(Jp2kBox):
                 msg = msg.format(colorspace=colorspace)
                 warnings.warn(msg, UserWarning)
             icc_profile = None
+            icc_profile_data = None
 
         else:
             # ICC profile
             colorspace = None
+            icc_profile = None
             if (num_bytes - 3) < 128:
                 msg = ("ICC profile header is corrupt, length is "
                        "only {length} when it should be at least 128.")
                 warnings.warn(msg.format(length=num_bytes - 3), UserWarning)
-                icc_profile = None
+                icc_profile_data = None
             else:
-                profile = _ICCProfile(read_buffer[3:])
-                icc_profile = profile.header
+                icc_profile_data = read_buffer[3:]
 
         return cls(method=method,
                    precedence=precedence,
                    approximation=approximation,
                    colorspace=colorspace,
                    icc_profile=icc_profile,
+                   icc_profile_data=icc_profile_data,
                    length=length,
                    offset=offset)
 

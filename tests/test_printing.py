@@ -1581,6 +1581,6 @@ class TestJp2dump(unittest.TestCase):
 
         # The "CME marker segment" part is the last segment in the codestream
         # header.
-        pattern = 'JPEG\s2000.*?CME\smarker\ssegment.*?UserWarning'
+        pattern = r'''JPEG\s2000.*?CME\smarker\ssegment.*?UserWarning'''
         r = re.compile(pattern, re.DOTALL)
         self.assertRegex(actual, r)

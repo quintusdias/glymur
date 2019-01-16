@@ -488,6 +488,25 @@ class TestColourSpecificationBox(unittest.TestCase):
         self.assertEqual(colr.colorspace, SRGB)
         self.assertIsNone(colr.icc_profile)
 
+    def test_icc_profile_data(self):
+        """basic colr box with ICC profile"""
+
+        relpath = os.path.join('data', 'sgray.icc')
+        iccfile = pkg.resource_filename(__name__, relpath)
+        with open(iccfile, mode='rb') as f:
+            raw_icc_profile = f.read()
+
+        colr = ColourSpecificationBox(icc_profile_data=raw_icc_profile)
+        self.assertEqual(colr.method, glymur.core.ENUMERATED_COLORSPACE)
+        self.assertEqual(colr.precedence, 0)
+        self.assertEqual(colr.approximation, 0)
+
+        self.assertEqual(colr.icc_profile['Version'], '2.1.0')
+        self.assertEqual(colr.icc_profile['Color Space'], 'gray')
+        self.assertIsNone(colr.icc_profile['Datetime'])
+
+        self.assertEqual(len(colr.icc_profile_data), 416)
+
     def test_colr_with_bad_color(self):
         """colr must have a valid color, strange as though that may sound."""
         colorspace = -1
@@ -719,6 +738,7 @@ class TestWrap(unittest.TestCase):
         self.assertEqual(jp2.box[2].box[1].approximation, 0)
         self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.SRGB)
         self.assertIsNone(jp2.box[2].box[1].icc_profile)
+        self.assertIsNone(jp2.box[2].box[1].icc_profile_data)
 
     def test_wrap(self):
         """basic test for rewrapping a j2c file, no specified boxes"""
@@ -1172,6 +1192,7 @@ class TestRepr(MetadataBase):
         self.assertEqual(newbox.approximation, 0)
         self.assertEqual(newbox.colorspace, glymur.core.SRGB)
         self.assertIsNone(newbox.icc_profile)
+        self.assertIsNone(newbox.icc_profile_data)
 
     def test_channeldefinition_box(self):
         """Verify __repr__ method on cdef box."""
@@ -1315,9 +1336,9 @@ class TestRepr(MetadataBase):
         tree = ET.ElementTree(elt)
         box = glymur.jp2box.XMLBox(xml=tree)
 
-        regexp = r"""glymur.jp2box.XMLBox"""
-        regexp += r"""[(]xml=<lxml.etree._ElementTree\sobject\s"""
-        regexp += """at\s0x([a-fA-F0-9]*)>[)]"""
+        regexp = r'''glymur.jp2box.XMLBox'''
+        regexp += r'''[(]xml=<lxml.etree._ElementTree\sobject\s'''
+        regexp += r'''at\s0x([a-fA-F0-9]*)>[)]'''
 
         if sys.hexversion < 0x03000000:
             self.assertRegexpMatches(repr(box), regexp)
@@ -1347,10 +1368,10 @@ class TestRepr(MetadataBase):
 
         # Since the raw_data parameter is a sequence of bytes which could be
         # quite long, don't bother trying to make it conform to eval(repr()).
-        regexp = r"""glymur.jp2box.UUIDBox\("""
-        regexp += """the_uuid="""
-        regexp += """UUID\('00000000-0000-0000-0000-000000000000'\),\s"""
-        regexp += """raw_data=<byte\sarray\s10\selements>\)"""
+        regexp = r'''glymur.jp2box.UUIDBox\('''
+        regexp += r'''the_uuid='''
+        regexp += r'''UUID\('00000000-0000-0000-0000-000000000000'\),\s'''
+        regexp += r'''raw_data=<byte\sarray\s10\selements>\)'''
 
         if sys.hexversion < 0x03000000:
             self.assertRegexpMatches(repr(box), regexp)
@@ -1365,10 +1386,10 @@ class TestRepr(MetadataBase):
 
         # Since the raw_data parameter is a sequence of bytes which could be
         # quite long, don't bother trying to make it conform to eval(repr()).
-        regexp = r"""glymur.jp2box.UUIDBox\("""
-        regexp += """the_uuid="""
-        regexp += """UUID\('be7acfcb-97a9-42e8-9c71-999491e3afac'\),\s"""
-        regexp += """raw_data=<byte\sarray\s3122\selements>\)"""
+        regexp = r'''glymur.jp2box.UUIDBox\('''
+        regexp += r'''the_uuid='''
+        regexp += r'''UUID\('be7acfcb-97a9-42e8-9c71-999491e3afac'\),\s'''
+        regexp += r'''raw_data=<byte\sarray\s3122\selements>\)'''
 
         if sys.hexversion < 0x03000000:
             self.assertRegexpMatches(repr(box), regexp)
@@ -1382,9 +1403,9 @@ class TestRepr(MetadataBase):
         box = jp2.box[-1]
 
         # Difficult to eval(repr()) this, so just match the general pattern.
-        regexp = "glymur.jp2box.ContiguousCodeStreamBox"
-        regexp += "[(]codestream=<glymur.codestream.Codestream\sobject\s"
-        regexp += "at\s0x([a-fA-F0-9]*)>[)]"
+        regexp = r'''glymur.jp2box.ContiguousCodeStreamBox'''
+        regexp += r'''[(]codestream=<glymur.codestream.Codestream\sobject\s'''
+        regexp += r'''at\s0x([a-fA-F0-9]*)>[)]'''
 
         if sys.hexversion < 0x03000000:
             self.assertRegexpMatches(repr(box), regexp)
