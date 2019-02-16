@@ -22,7 +22,7 @@ kwargs = {
     'install_requires': ['numpy>=1.7.1', 'setuptools'],
 }
 
-clssfrs = [
+kwargs['classifiers'] = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3.6",
     "Programming Language :: Python :: 3.7",
@@ -36,7 +36,6 @@ clssfrs = [
     "Intended Audience :: Information Technology",
     "Topic :: Software Development :: Libraries :: Python Modules"
 ]
-kwargs['classifiers'] = clssfrs
 
 # Get the version string.  Cannot do this by importing glymur!
 p = pathlib.Path('glymur') / 'version.py'
