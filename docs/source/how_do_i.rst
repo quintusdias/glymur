@@ -5,10 +5,11 @@ How do I...?
 
 ... read images?
 ================
-Jp2k implements slicing via the :py:meth:`__getitem__` method, meaning that 
-multiple resolution imagery in a JPEG 2000 file can
-easily be accessed via array-style slicing.  For example here's how to
-retrieve a full resolution and first lower-resolution image ::
+Jp2k implements slicing via the :py:meth:`__getitem__` method and
+hooks it into the multiple resolution property of JPEG 2000 imagery.
+This means that lower-resolution imagery can be accessed via
+array-style slicing that utilizes strides.  For example here's how
+to retrieve a full resolution and first lower-resolution image ::
 
     >>> import glymur
     >>> jp2file = glymur.data.nemo() # just a path to a JPEG2000 file
@@ -24,7 +25,7 @@ retrieve a full resolution and first lower-resolution image ::
 =========================================================
 If you have glymur 0.8.13 or higher
 and OpenJPEG 2.2.0 or higher,
-you can make use of OpenJPEG's thread support to speed up read operations ::
+you can make use of OpenJPEG's thread support to speed-up read operations ::
 
     >>> import glymur
     >>> import time
@@ -396,7 +397,7 @@ as such.  In order to do so, we need to re-wrap such an image in a
 set of boxes that includes a channel definition box.
 
 This example is based on SciPy example code found at 
-http://scipy-lectures.github.io/advanced/image_processing/#basic-manipulations . 
+http://scipy-lectures.org/advanced/image_processing/#basic-manipulations . 
 Instead of a circular mask we'll make it an ellipse since the source
 image isn't square. ::
 
