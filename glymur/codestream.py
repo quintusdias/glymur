@@ -233,8 +233,8 @@ class Codestream(object):
         next_item, = struct.unpack('>H', read_buffer)
         fptr.seek(cpos)
         if ((next_item & 0xff00) >> 8) == 255:
-                # No segment associated with this marker, so reset
-                # to two bytes after it.
+            # No segment associated with this marker, so reset
+            # to two bytes after it.
             segment = Segment(id='0x{0:x}'.format(self._marker_id),
                               offset=self._offset, length=0)
         else:

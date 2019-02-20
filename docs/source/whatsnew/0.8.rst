@@ -4,8 +4,13 @@ Changes in glymur 0.8
 
 Changes in 0.8.17
 =================
-    * Fix resolution box parsing with negative exponents.
-    * Add support for ICC profile buffers.
+    * Fix parsing of resolution box with negative exponents.
+    * Add support for ICC profile buffers.  The undecoded ICC profile
+      can be accessed via the "icc_profile_data" member of a
+      ColourSpecification box.  In version 0.9.0, this will change to
+      "icc_profile" to store the raw data, and the old dictionary
+      for ICC profile metadata will be accessed as
+      "icc_profile_header".
 
 Changes in 0.8.16
 =================
