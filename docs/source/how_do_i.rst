@@ -388,6 +388,33 @@ As to the question of which method you should use, :py:meth:`append` or
 produces a new JP2 file, while :py:meth:`append` modifies an existing file and
 is currently limited to XML and UUID boxes.
 
+... work with ICC profiles?
+===========================
+
+A detailed answer is beyond my capabilities.  What I can tell you is how to
+gain access to ICC profiles that JPEG 2000 images may or may not provide for
+you.  If there is an ICC profile, it will be provided in a ColourSpecification
+box, but only if the :py:attr:`colorspace` attribute is None.  Here is an example
+of how you can access an ICC profile in an `example JPX file
+<https://github.com/uclouvain/openjpeg-data/blob/master/input/nonregression/text_GBR.jp2?raw=true>`_.
+Basically what is done is that the raw bytes corresponding to the ICC profile
+are wrapped in a BytesIO object, which is fed to the most-excellent Pillow package.
+::
+
+    >>> from glymur import Jp2k
+    >>> from PIL import ImageCms
+    >>> from io import BytesIO
+    >>> # This next step produces a harmless warning that has nothing to do with ICC profiles.
+    >>> j = Jp2k('text_GBR.jp2')
+    >>> # The 2nd sub box of the 4th box is a ColourSpecification box.
+    >>> print(j.box[3].box[1].colorspace)
+    None
+    >>> b = BytesIO(j.box[3].box[1].icc_profile_data)
+    >>> icc = ImageCms.ImageCmsProfile(b)
+
+To go any further with this, you will want to consult
+`the Pillow documentation <https://pillow.readthedocs.io/en/stable/>`_.
+
 ... create an image with an alpha layer?
 ========================================
 
