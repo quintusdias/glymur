@@ -2,6 +2,47 @@
 Changes in glymur 0.8
 =====================
 
+Changes in 0.8.17
+=================
+    * Fix parsing of resolution box with negative exponents.
+    * Add support for ICC profile buffers.  The undecoded ICC profile
+      can be accessed via the "icc_profile_data" member of a
+      ColourSpecification box.  In version 0.9.0, this will change to
+      "icc_profile" to store the raw data, and the old dictionary
+      for ICC profile metadata will be accessed as
+      "icc_profile_header".
+
+Changes in 0.8.16
+=================
+    * Update for Python 3.7.
+    * Fix documentation bug.
+
+Changes in 0.8.15
+=================
+    * Fix link to readthedocs.
+    * Fix for invalid progression order display.
+
+Changes in 0.8.14
+=================
+    * Fix bug preventing reads on layers other than the first.
+
+Changes in 0.8.13
+=================
+    * Add support for OpenJPEG threads.
+
+Changes in 0.8.12
+=================
+    * Qualified on OpenJPEG 2.3.0.
+    * Drop support for Python 3.3.
+
+Changes in 0.8.11
+=================
+    * Qualified on OpenJPEG 2.2.0.
+
+Changes in 0.8.10
+=================
+    * Add pathlib support.
+
 Changes in 0.8.9
 =================
     * Qualified on Python 3.6.
