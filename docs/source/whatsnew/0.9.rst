@@ -5,5 +5,6 @@ Changes in glymur 0.9
 Changes in 0.9.0
 =================
     * Restricted to Python 3.6 and more recent.  If you are still using Python 2.7, you should remain with the 0.8.x series.
+    * Restricted to OpenJPEG version 2.3.x and higher.  If you still need to use older versions of OpenJPEG, you should remain with with 0.8.x series.
     * Backwards incompatibility: the read_bands method no longer takes the layer argument, you must set this using the layer property.
     * Backwards incompatibility: the icc_profile member of the ColourSpecificationBox is no longer a dictionary of metadata, but is instead a series of raw bytes that may be read by any software capable of interpreting ICC profiles.  The dictionary of metadata has been renamed to "icc_profile_header".
