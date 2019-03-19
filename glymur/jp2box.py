@@ -378,7 +378,7 @@ class ColourSpecificationBox(Jp2kBox):
         text = f'Precedence:  {self.precedence}'
         lst.append(text)
 
-        if self.approximation is not 0:
+        if self.approximation != 0:
             try:
                 dispvalue = _APPROXIMATION_MEASURES[self.approximation]
             except KeyError:
