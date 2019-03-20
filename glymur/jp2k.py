@@ -1081,7 +1081,7 @@ class Jp2k(Jp2kBox):
         if re.match("0|1.[01234]", version.openjpeg_version):
             msg = (
                 f"You must have a version of OpenJPEG at least as high as "
-                f"2.1.0 before you can read JPEG2000 images with glymur.  "
+                f"2.3.0 before you can read JPEG2000 images with glymur.  "
                 f"Your version is {version.openjpeg_version}"
             )
             raise TypeError(msg)
