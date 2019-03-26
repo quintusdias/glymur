@@ -560,8 +560,8 @@ class Jp2k(Jp2kBox):
         This method can only be used to create JPEG 2000 images that can fit
         in memory.
         """
-        if version.openjpeg_version < '2.1.0':
-            msg = ("You must have at least version 2.1.0 of OpenJPEG "
+        if version.openjpeg_version < '2.3.0':
+            msg = ("You must have at least version 2.3.0 of OpenJPEG "
                    "in order to write images.")
             raise RuntimeError(msg)
 
@@ -1324,8 +1324,8 @@ class Jp2k(Jp2kBox):
         >>> jp = glymur.Jp2k(jfile)
         >>> components_lst = jp.read_bands(rlevel=1)
         """
-        if version.openjpeg_version < '2.1.0':
-            msg = ("You must have at least version 2.1.0 of OpenJPEG "
+        if version.openjpeg_version < '2.3.0':
+            msg = ("You must have at least version 2.3.0 of OpenJPEG "
                    "installed before using this method.  Your version of "
                    "OpenJPEG is {version.openjpeg_version}.")
             raise IOError(msg)
