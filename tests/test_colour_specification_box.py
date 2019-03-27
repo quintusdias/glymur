@@ -7,7 +7,6 @@ Test suite specifically targeting ICC profiles
 from datetime import datetime
 import os
 import struct
-import sys
 import tempfile
 import unittest
 import warnings
@@ -25,14 +24,14 @@ from glymur.jp2box import (
     ImageHeaderBox, JP2HeaderBox, JPEG2000SignatureBox
 )
 from glymur.core import SRGB
-from .fixtures import WINDOWS_TMP_FILE_MSG
+from . import fixtures
 
 
-class TestColourSpecificationBox(unittest.TestCase):
+class TestColourSpecificationBox(fixtures.TestCommon):
     """Test suite for colr box instantiation."""
 
     def setUp(self):
-        self.j2kfile = glymur.data.goodstuff()
+        super(TestColourSpecificationBox, self).setUp()
 
         j2k = Jp2k(self.j2kfile)
         codestream = j2k.get_codestream()
@@ -68,35 +67,32 @@ class TestColourSpecificationBox(unittest.TestCase):
                 box = ColourSpecificationBox.parse(f, length=80, offset=0)
         str(box)
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_colr_with_out_enum_cspace(self):
         """must supply an enumerated colorspace when writing"""
         j2k = Jp2k(self.j2kfile)
 
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
         boxes[2].box = [self.ihdr, ColourSpecificationBox(colorspace=None)]
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_missing_colr_box(self):
         """jp2h must have a colr box"""
         j2k = Jp2k(self.j2kfile)
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
         boxes[2].box = [self.ihdr]
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_bad_approx_jp2_field(self):
         """JP2 has requirements for approx field"""
         j2k = Jp2k(self.j2kfile)
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
         colr = ColourSpecificationBox(colorspace=SRGB, approximation=1)
         boxes[2].box = [self.ihdr, colr]
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 

@@ -8,7 +8,6 @@ import pkg_resources as pkg
 import shutil
 import struct
 import sys
-import tempfile
 import unittest
 import uuid
 import warnings
@@ -53,15 +52,8 @@ GEOKEYDIRECTORY = 34735
 GEOASCIIPARAMS = 34737
 
 
-@unittest.skipIf(sys.platform == 'win32', fixtures.WINDOWS_TMP_FILE_MSG)
-class TestSuite(unittest.TestCase):
+class TestSuite(fixtures.TestCommon):
     """Tests for XMP, Exif UUIDs."""
-
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
-
-    def tearDown(self):
-        pass
 
     def _create_degenerate_geotiff(self, e):
         """
@@ -207,24 +199,28 @@ class TestSuite(unittest.TestCase):
         return b.read()
 
     def test_append_xmp_uuid(self):
-        """Should be able to append an XMP UUID box."""
+        """
+        SCENARIO:  Append an XMP UUID box to an existing JP2 file.
+
+        EXPECTED RESULT:  The new last box in the JP2 file is UUID.
+        """
         the_uuid = uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
         raw_data = fixtures.SIMPLE_RDF.encode('utf-8')
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-            shutil.copyfile(self.jp2file, tfile.name)
-            jp2 = Jp2k(tfile.name)
-            ubox = glymur.jp2box.UUIDBox(the_uuid=the_uuid, raw_data=raw_data)
-            jp2.append(ubox)
 
-            # Should be two UUID boxes now.
-            expected_ids = ['jP  ', 'ftyp', 'jp2h', 'uuid', 'jp2c', 'uuid']
-            actual_ids = [b.box_id for b in jp2.box]
-            self.assertEqual(actual_ids, expected_ids)
+        shutil.copyfile(self.jp2file, self.temp_jp2_filename)
 
-            # The data should be an XMP packet, which gets interpreted as
-            # an ElementTree.
-            self.assertTrue(isinstance(jp2.box[-1].data,
-                                       lxml.etree._ElementTree))
+        jp2 = Jp2k(self.temp_jp2_filename)
+        ubox = glymur.jp2box.UUIDBox(the_uuid=the_uuid, raw_data=raw_data)
+        jp2.append(ubox)
+
+        # Should be two UUID boxes now.
+        expected_ids = ['jP  ', 'ftyp', 'jp2h', 'uuid', 'jp2c', 'uuid']
+        actual_ids = [b.box_id for b in jp2.box]
+        self.assertEqual(actual_ids, expected_ids)
+
+        # The data should be an XMP packet, which gets interpreted as
+        # an ElementTree.
+        self.assertTrue(isinstance(jp2.box[-1].data, lxml.etree._ElementTree))
 
     def test_bad_exif_tag(self):
         """
@@ -329,11 +325,12 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(actual, expected)
 
 
-@unittest.skipIf(sys.platform == 'win32', fixtures.WINDOWS_TMP_FILE_MSG)
-class TestSuiteHiRISE(unittest.TestCase):
+class TestSuiteHiRISE(fixtures.TestCommon):
     """Tests for HiRISE RDRs."""
 
     def setUp(self):
+        super(TestSuiteHiRISE, self).setUp()
+
         # Hand-create the boxes needed for HiRISE.
         the_uuid = uuid.UUID('2b0d7e97-aa2e-317d-9a33-e53161a2f7d0')
         ulst = glymur.jp2box.UUIDListBox([the_uuid])
@@ -355,16 +352,12 @@ class TestSuiteHiRISE(unittest.TestCase):
         # Fabricate a new JP2 file out of the signature, file type, header,
         # and codestream out of nemo.jp2, but add in the UUIDInfo and UUID
         # box from HiRISE.
-        jp2 = Jp2k(glymur.data.nemo())
+        jp2 = Jp2k(self.jp2file)
         boxes = [jp2.box[0], jp2.box[1], jp2.box[2], uuidinfo, geotiff_uuid,
                  jp2.box[-1]]
 
-        with tempfile.NamedTemporaryFile(suffix=".jp2", delete=False) as tfile:
-            jp2.wrap(tfile.name, boxes=boxes)
-        self.hirise_jp2file_name = tfile.name
-
-    def tearDown(self):
-        os.unlink(self.hirise_jp2file_name)
+        self.hirise_jp2file_name = self.test_dir_path / 'hirise.jp2'
+        jp2.wrap(self.hirise_jp2file_name, boxes=boxes)
 
     def test_tags(self):
         jp2 = Jp2k(self.hirise_jp2file_name)
@@ -412,78 +405,3 @@ class TestSuiteHiRISE(unittest.TestCase):
         else:
             expected = fixtures.GEOTIFF_UUID_WITHOUT_GDAL
         self.assertEqual(actual, expected)
-
-
-@unittest.skipIf(sys.platform == 'win32', fixtures.WINDOWS_TMP_FILE_MSG)
-class TestSuiteWarns(unittest.TestCase):
-    """Tests for XMP, Exif UUIDs, issues warnings."""
-
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
-
-    def tearDown(self):
-        pass
-
-    def test_bad_tag_datatype(self):
-        """Only certain datatypes are allowable"""
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
-
-            with open(self.jp2file, 'rb') as ifptr:
-                tfile.write(ifptr.read())
-
-            # Write L, T, UUID identifier.
-            tfile.write(struct.pack('>I4s', 52, b'uuid'))
-            tfile.write(b'JpgTiffExif->JP2')
-
-            tfile.write(b'Exif\x00\x00')
-            xbuffer = struct.pack('<BBHI', 73, 73, 42, 8)
-            tfile.write(xbuffer)
-
-            # We will write just a single tag.
-            tfile.write(struct.pack('<H', 1))
-
-            # 2000 is not an allowable TIFF datatype.
-            tfile.write(struct.pack('<HHI4s', 271, 2000, 3, b'HTC\x00'))
-            tfile.flush()
-
-            with warnings.catch_warnings():
-                # Ignore the invalid datatype warnings.
-                warnings.simplefilter('ignore')
-                j = glymur.Jp2k(tfile.name)
-
-            self.assertEqual(j.box[-1].box_id, 'uuid')
-
-            # Invalid tag, so no data
-            self.assertIsNone(j.box[-1].data)
-
-    def test_bad_tiff_header_byte_order_indication(self):
-        """Only b'II' and b'MM' are allowed."""
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
-
-            with open(self.jp2file, 'rb') as ifptr:
-                tfile.write(ifptr.read())
-
-            # Write L, T, UUID identifier.
-            tfile.write(struct.pack('>I4s', 52, b'uuid'))
-            tfile.write(b'JpgTiffExif->JP2')
-
-            tfile.write(b'Exif\x00\x00')
-            xbuffer = struct.pack('<BBHI', 74, 73, 42, 8)
-            tfile.write(xbuffer)
-
-            # We will write just a single tag.
-            tfile.write(struct.pack('<H', 1))
-
-            # 271 is the Make.
-            tfile.write(struct.pack('<HHI4s', 271, 2, 3, b'HTC\x00'))
-            tfile.flush()
-
-            with warnings.catch_warnings():
-                # Ignore the warning about the endian order, we test for that
-                # elsewhere.
-                warnings.simplefilter('ignore')
-                jp2 = glymur.Jp2k(tfile.name)
-
-            # We should still get a UUID box out of it.  But we get no data.
-            self.assertEqual(jp2.box[-1].box_id, 'uuid')
-            self.assertIsNone(jp2.box[-1].data)

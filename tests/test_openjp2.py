@@ -3,8 +3,6 @@ Tests for libopenjp2 wrapping functions.
 """
 # Standard library imports ...
 from io import StringIO
-import sys
-import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -19,8 +17,7 @@ from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-@unittest.skipIf(sys.platform == 'win32', fixtures.WINDOWS_TMP_FILE_MSG)
-class TestOpenJP2(unittest.TestCase):
+class TestOpenJP2(fixtures.TestCommon):
     """Test openjp2 library functionality.
 
     Some tests correspond to those in the openjpeg test suite.
@@ -74,25 +71,34 @@ class TestOpenJP2(unittest.TestCase):
         self.assertEqual(dparams.DA_y1, 0)
 
     def test_tte0(self):
-        """Runs test designated tte0 in OpenJPEG test suite."""
-        with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
-            ttx0_setup(tfile.name)
+        """
+        SCENARIO:  create a J2K file with the following characteristics:
+
+            8-bit
+            3 components
+            irreversible wavelet transform
+            200x200 image
+            2x2 tiling
+
+        This corresponds to test tte0 in OpenJPEG test suite.
+
+        EXPECTED RESULT:  no exceptions are raised
+        """
+        ttx0_setup(str(self.temp_j2k_filename))
         self.assertTrue(True)
 
     def test_ttd0(self):
         """Runs test designated ttd0 in OpenJPEG test suite."""
-        with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
+        filename = str(self.temp_j2k_filename)
+        ttx0_setup(filename)
 
-            # Produce the tte0 output file for ttd0 input.
-            ttx0_setup(tfile.name)
-
-            kwargs = {'x0': 0,
-                      'y0': 0,
-                      'x1': 1000,
-                      'y1': 1000,
-                      'filename': tfile.name,
-                      'codec_format': openjp2.CODEC_J2K}
-            tile_decoder(**kwargs)
+        kwargs = {'x0': 0,
+                  'y0': 0,
+                  'x1': 1000,
+                  'y1': 1000,
+                  'filename': filename,
+                  'codec_format': openjp2.CODEC_J2K}
+        tile_decoder(**kwargs)
         self.assertTrue(True)
 
     def xtx1_setup(self, filename):
@@ -111,62 +117,62 @@ class TestOpenJP2(unittest.TestCase):
 
     def test_tte1(self):
         """Runs test designated tte1 in OpenJPEG test suite."""
-        with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
-            self.xtx1_setup(tfile.name)
+        filename = str(self.temp_j2k_filename)
+        self.xtx1_setup(filename)
 
     def test_ttd1(self):
         """Runs test designated ttd1 in OpenJPEG test suite."""
-        with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
+        filename = str(self.temp_j2k_filename)
 
-            # Produce the tte0 output file for ttd0 input.
-            self.xtx1_setup(tfile.name)
+        # Produce the tte0 output file for ttd0 input.
+        self.xtx1_setup(filename)
 
-            kwargs = {'x0': 0,
-                      'y0': 0,
-                      'x1': 128,
-                      'y1': 128,
-                      'filename': tfile.name,
-                      'codec_format': openjp2.CODEC_J2K}
-            tile_decoder(**kwargs)
+        kwargs = {'x0': 0,
+                  'y0': 0,
+                  'x1': 128,
+                  'y1': 128,
+                  'filename': filename,
+                  'codec_format': openjp2.CODEC_J2K}
+        tile_decoder(**kwargs)
         self.assertTrue(True)
 
     def test_tte2(self):
         """Runs test designated tte2 in OpenJPEG test suite."""
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
-            xtx2_setup(tfile.name)
+        filename = str(self.temp_j2k_filename)
+        xtx2_setup(filename)
         self.assertTrue(True)
 
     def test_ttd2(self):
         """Runs test designated ttd2 in OpenJPEG test suite."""
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
-            # Produce the tte0 output file for ttd0 input.
-            xtx2_setup(tfile.name)
+        filename = str(self.temp_j2k_filename)
 
-            kwargs = {'x0': 0,
-                      'y0': 0,
-                      'x1': 128,
-                      'y1': 128,
-                      'filename': tfile.name,
-                      'codec_format': openjp2.CODEC_JP2}
-            tile_decoder(**kwargs)
+        xtx2_setup(filename)
+
+        kwargs = {'x0': 0,
+                  'y0': 0,
+                  'x1': 128,
+                  'y1': 128,
+                  'filename': filename,
+                  'codec_format': openjp2.CODEC_JP2}
+        tile_decoder(**kwargs)
         self.assertTrue(True)
 
     def test_tte3(self):
         """Runs test designated tte3 in OpenJPEG test suite."""
-        with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
-            xtx3_setup(tfile.name)
+        filename = str(self.temp_j2k_filename)
+        xtx3_setup(filename)
         self.assertTrue(True)
 
     def test_tte4(self):
         """Runs test designated tte4 in OpenJPEG test suite."""
-        with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
-            xtx4_setup(tfile.name)
+        filename = str(self.temp_j2k_filename)
+        xtx4_setup(filename)
         self.assertTrue(True)
 
     def test_tte5(self):
         """Runs test designated tte5 in OpenJPEG test suite."""
-        with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
-            xtx5_setup(tfile.name)
+        filename = str(self.temp_j2k_filename)
+        xtx5_setup(filename)
         self.assertTrue(True)
 
 

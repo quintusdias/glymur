@@ -8,7 +8,6 @@ import os
 import pkg_resources as pkg
 import struct
 import sys
-import tempfile
 import unittest
 from unittest.mock import patch
 from uuid import UUID
@@ -26,24 +25,21 @@ from glymur.jp2box import LabelBox
 from glymur import Jp2k, command_line
 from glymur.lib import openjp2 as opj2
 from . import fixtures
-from .fixtures import (WINDOWS_TMP_FILE_MSG,
-                       OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
+from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
-@unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
-class TestPrinting(unittest.TestCase):
+class TestPrinting(fixtures.TestCommon):
     """
     Tests for verifying how printing works.
     """
     def setUp(self):
-        self.jpxfile = glymur.data.jpxfile()
-        self.jp2file = glymur.data.nemo()
-        self.j2kfile = glymur.data.goodstuff()
+        super(TestPrinting, self).setUp()
 
         # Reset printoptions for every test.
         glymur.reset_option('all')
 
     def tearDown(self):
+        super(TestPrinting, self).tearDown()
         glymur.reset_option('all')
 
     def test_bad_color_specification(self):
@@ -355,7 +351,7 @@ class TestPrinting(unittest.TestCase):
 
         EXPECTED RESULT:  str should produce a predictable result.
         """
-        with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
+        with open(self.temp_jpx_filename, mode='wb') as tfile:
             with open(self.jpxfile, 'rb') as ifile:
                 tfile.write(ifile.read())
 
@@ -386,13 +382,21 @@ class TestPrinting(unittest.TestCase):
 
     @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
     def test_asoc_label_box(self):
-        """verify printing of asoc, label boxes"""
+        """
+        SCENARIO:  A JPX file has both asoc and labl boxes.
+
+        EXPECTED RESULT:  str representations validate
+        """
         # Construct a fake file with an asoc and a label box, as
         # OpenJPEG doesn't have such a file.
         data = glymur.Jp2k(self.jp2file)[::2, ::2]
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-            with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile2:
-                glymur.Jp2k(tfile.name, data=data)
+
+        # Create a JP2 file with only the basic JP2 boxes.
+        vanilla_jp2_file = self.test_dir_path / 'tmp_test.jp2'
+        glymur.Jp2k(vanilla_jp2_file, data=data)
+
+        with open(vanilla_jp2_file, mode='rb') as tfile:
+            with open(self.temp_jp2_filename, mode='wb') as tfile2:
 
                 # Offset of the codestream is where we start.
                 wbuffer = tfile.read(77)
@@ -752,10 +756,9 @@ class TestPrinting(unittest.TestCase):
 
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_less_common_boxes(self):
         """verify uinf, ulst, url, res, resd, resc box printing"""
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with open(self.jp2file, 'rb') as ifile:
                 # Everything up until the jp2c box.
                 wbuffer = ifile.read(77)
@@ -952,8 +955,12 @@ class TestPrinting(unittest.TestCase):
         self.assertEqual(actual, 'Codestream Header Box (jpch) @ (887, 8)')
 
     def test_exif_uuid(self):
-        """Verify printing of exif information"""
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
+        """
+        SCENARIO:  A JP2 file has an Exif UUID box.
+
+        EXPECTED RESULT:  Verify printing of Exif information.
+        """
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
 
             with open(self.jp2file, 'rb') as ifptr:
                 tfile.write(ifptr.read())
@@ -1306,18 +1313,20 @@ class TestPrinting(unittest.TestCase):
     @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
     def test_precincts(self):
         """
-        verify that we print precincts correctly
+        SCENARIO:  print the first COD segment
+
+        EXPECTED RESULT:  the precinct information validates predetermined
+        values
         """
         data = Jp2k(self.jp2file)[:]
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            j = Jp2k(tfile.name, data=data, psizes=[(128, 128)] * 3)
+        j = Jp2k(self.temp_j2k_filename, data=data, psizes=[(128, 128)] * 3)
 
-            # Should be three layers.
-            codestream = j.get_codestream()
+        # Should be three layers.
+        codestream = j.get_codestream()
 
         actual = str(codestream.segment[2])
-
-        self.assertEqual(actual, fixtures.MULTIPLE_PRECINCT_SIZE)
+        expected = fixtures.MULTIPLE_PRECINCT_SIZE
+        self.assertEqual(actual, expected)
 
     def test_old_short_option(self):
         """

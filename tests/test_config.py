@@ -7,7 +7,6 @@ import imp
 import os
 import pathlib
 import platform
-import sys
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -17,7 +16,6 @@ import warnings
 import glymur
 from glymur import Jp2k
 from . import fixtures
-from .fixtures import WINDOWS_TMP_FILE_MSG
 
 
 @contextlib.contextmanager
@@ -229,7 +227,6 @@ class TestSuiteConfigFile(unittest.TestCase):
                     imp.reload(glymur.lib.openjp2)
                     Jp2k(self.jp2file)
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_config_file_without_library_section(self):
         """
         must ignore if no library section
@@ -247,30 +244,30 @@ class TestSuiteConfigFile(unittest.TestCase):
                     # It's enough that we did not error out
                     self.assertTrue(True)
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_xdg_env_config_file_is_bad(self):
         """A non-existant library location should be rejected."""
         with tempfile.TemporaryDirectory() as tdir:
             configdir = os.path.join(tdir, 'glymur')
             os.mkdir(configdir)
+
+            library_file = os.path.join(tdir, 'libopenjp2.dylib')
+
             fname = os.path.join(configdir, 'glymurrc')
             with open(fname, 'w') as fptr:
-                with tempfile.NamedTemporaryFile(suffix='.dylib') as tfile:
-                    fptr.write('[library]\n')
-                    fptr.write('openjp2: {0}.not.there\n'.format(tfile.name))
-                    fptr.flush()
-                    with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
-                        # Misconfigured new configuration file should
-                        # be rejected.
-                        with warnings.catch_warnings():
-                            # Ignore a wa
-                            warnings.simplefilter('ignore')
-                            imp.reload(glymur.lib.openjp2)
-                        self.assertIsNone(glymur.lib.openjp2.OPENJP2)
+                fptr.write('[library]\n')
+                fptr.write(f'openjp2: {library_file}.not.there\n')
+                fptr.flush()
+                with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
+                    # Misconfigured new configuration file should
+                    # be rejected.
+                    with warnings.catch_warnings():
+                        # Ignore a wa
+                        warnings.simplefilter('ignore')
+                        imp.reload(glymur.lib.openjp2)
+                    self.assertIsNone(glymur.lib.openjp2.OPENJP2)
 
     @unittest.skipIf(fixtures.OPENJPEG_NOT_AVAILABLE,
                      fixtures.OPENJPEG_NOT_AVAILABLE_MSG)
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_config_dir_but_no_config_file(self):
 
         with tempfile.TemporaryDirectory() as tdir:
@@ -282,7 +279,6 @@ class TestSuiteConfigFile(unittest.TestCase):
                 imp.reload(glymur.lib.openjp2)
                 self.assertIsNotNone(glymur.lib.openjp2.OPENJP2)
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_config_file_in_current_directory(self):
         """A configuration file in the current directory should be honored."""
         libloc = glymur.lib.openjp2.OPENJP2._name

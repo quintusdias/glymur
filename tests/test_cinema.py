@@ -3,8 +3,6 @@ Module for tests specifically devoted to cinema profile.
 """
 
 # Standard library imports
-import sys
-import tempfile
 import unittest
 import warnings
 
@@ -53,41 +51,20 @@ class CinemaBase(fixtures.MetadataBase):
 
 @unittest.skipIf(fixtures.OPENJPEG_NOT_AVAILABLE,
                  fixtures.OPENJPEG_NOT_AVAILABLE_MSG)
-@unittest.skipIf(sys.platform == 'win32', fixtures.WINDOWS_TMP_FILE_MSG)
 class WriteCinema(CinemaBase):
 
     @classmethod
     def setUpClass(cls):
-        cls.jp2file = glymur.data.nemo()
-        cls.jp2_data = glymur.Jp2k(cls.jp2file)[:]
+        cls.jp2_data = glymur.Jp2k(glymur.data.nemo())[:]
 
     def test_NR_ENC_X_6_2K_24_FULL_CBR_CIRCLE_000_tif_17_encode(self):
         """
-        Original test file was
+        SCENARIO:  create JP2 file with cinema2k profile at 24 fps
 
-            input/nonregression/X_6_2K_24_FULL_CBR_CIRCLE_000.tif
+        EXPECTED RESULT:  JP2 file has cinema2k profile
 
-        """
-        # Need to provide the proper size image
-        data = np.concatenate((self.jp2_data, self.jp2_data), axis=0)
-        data = np.concatenate((data, data), axis=1).astype(np.uint16)
-        data = data[:1080, :2048, :]
-
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            with warnings.catch_warnings():
-                # Ignore a warning issued by the library.
-                warnings.simplefilter('ignore')
-                j = Jp2k(tfile.name, data=data, cinema2k=24)
-
-            codestream = j.get_codestream()
-            self.check_cinema2k_codestream(codestream, (2048, 1080))
-
-    def test_NR_ENC_X_6_2K_24_FULL_CBR_CIRCLE_000_tif_20_encode(self):
-        """
-        Original test file was
-
-            input/nonregression/X_6_2K_24_FULL_CBR_CIRCLE_000.tif
-
+        The openjpeg test suite used the following input file for this test,
+        input/nonregression/X_6_2K_24_FULL_CBR_CIRCLE_000.tif
         """
         # Need to provide the proper size image
         data = np.concatenate((self.jp2_data, self.jp2_data), axis=0)
@@ -97,27 +74,51 @@ class WriteCinema(CinemaBase):
         with warnings.catch_warnings():
             # Ignore a warning issued by the library.
             warnings.simplefilter('ignore')
-            with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-                j = Jp2k(tfile.name, data=data, cinema2k=48)
-                codestream = j.get_codestream()
-                self.check_cinema2k_codestream(codestream, (2048, 1080))
+            j = Jp2k(self.temp_jp2_filename, data=data, cinema2k=24)
+
+        codestream = j.get_codestream()
+        self.check_cinema2k_codestream(codestream, (2048, 1080))
+
+    def test_NR_ENC_X_6_2K_24_FULL_CBR_CIRCLE_000_tif_20_encode(self):
+        """
+        SCENARIO:  create JP2 file with cinema2k profile at 48 fps
+
+        EXPECTED RESULT:  JP2 file has cinema2k profile
+
+        The openjpeg test suite used the following input file for this test,
+        input/nonregression/X_6_2K_24_FULL_CBR_CIRCLE_000.tif
+        """
+        # Need to provide the proper size image
+        data = np.concatenate((self.jp2_data, self.jp2_data), axis=0)
+        data = np.concatenate((data, data), axis=1).astype(np.uint16)
+        data = data[:1080, :2048, :]
+
+        with warnings.catch_warnings():
+            # Ignore a warning issued by the library.
+            warnings.simplefilter('ignore')
+            j = Jp2k(self.temp_j2k_filename, data=data, cinema2k=48)
+
+        codestream = j.get_codestream()
+        self.check_cinema2k_codestream(codestream, (2048, 1080))
 
     def test_NR_ENC_ElephantDream_4K_tif_21_encode(self):
         """
-        Verify basic cinema4k write
+        SCENARIO:  create JP2 file with cinema4k profile
 
-        Original test file is input/nonregression/ElephantDream_4K.tif
+        EXPECTED RESULT:  JP2 file has cinema4k profile
+
+        The openjpeg test suite used the following input file for this test,
+        input/nonregression/ElephantDream_4K.tif
         """
         # Need to provide the proper size image
         data = np.concatenate((self.jp2_data, self.jp2_data), axis=0)
         data = np.concatenate((data, data), axis=1).astype(np.uint16)
         data = data[:2160, :4096, :]
 
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            with warnings.catch_warnings():
-                # Ignore a warning issued by the library.
-                warnings.simplefilter('ignore')
-                j = Jp2k(tfile.name, data=data, cinema4k=True)
+        with warnings.catch_warnings():
+            # Ignore a warning issued by the library.
+            warnings.simplefilter('ignore')
+            j = Jp2k(self.temp_j2k_filename, data=data, cinema4k=True)
 
-            codestream = j.get_codestream()
-            self.check_cinema4k_codestream(codestream, (4096, 2160))
+        codestream = j.get_codestream()
+        self.check_cinema4k_codestream(codestream, (4096, 2160))
