@@ -5,6 +5,7 @@ Test suite specifically targeting the JP2 XML box layout.
 from io import BytesIO
 import os
 import pkg_resources as pkg
+import shutil
 import struct
 import tempfile
 import unittest
@@ -24,13 +25,11 @@ from glymur.jp2box import JPEG2000SignatureBox
 from . import fixtures
 
 
-@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
-class TestXML(unittest.TestCase):
+class TestXML(fixtures.TestCommon):
     """Test suite for XML boxes."""
 
     def setUp(self):
-        self.jp2file = glymur.data.nemo()
-        self.j2kfile = glymur.data.goodstuff()
+        super(TestXML, self).setUp()
 
         raw_xml = b"""<?xml version="1.0"?>
         <data>
@@ -55,10 +54,10 @@ class TestXML(unittest.TestCase):
                 <neighbor name="Colombia" direction="E"/>
             </country>
         </data>"""
-        with tempfile.NamedTemporaryFile(suffix=".xml", delete=False) as tfile:
+        self.xmlfile = os.path.join(self.test_dir, 'countries.xml')
+        with open(self.xmlfile, mode='wb') as tfile:
             tfile.write(raw_xml)
             tfile.flush()
-        self.xmlfile = tfile.name
 
         j2k = Jp2k(self.j2kfile)
         codestream = j2k.get_codestream()
@@ -73,9 +72,6 @@ class TestXML(unittest.TestCase):
         self.ihdr = ImageHeaderBox(height=height, width=width,
                                    num_components=num_components)
         self.colr = ColourSpecificationBox(colorspace=glymur.core.SRGB)
-
-    def tearDown(self):
-        os.unlink(self.xmlfile)
 
     def test_negative_file_and_xml(self):
         """The XML should come from only one source."""
@@ -96,7 +92,7 @@ class TestXML(unittest.TestCase):
 
         boxes = [self.jp2b, self.ftyp, self.jp2h, xmlb, self.jp2c]
 
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             j2k.wrap(tfile.name, boxes=boxes)
             jp2 = Jp2k(tfile.name)
             self.assertEqual(jp2.box[3].box_id, 'xml ')
@@ -111,7 +107,7 @@ class TestXML(unittest.TestCase):
 
         xmlb = glymur.jp2box.XMLBox(filename=self.xmlfile)
         boxes = [self.jp2b, self.ftyp, self.jp2h, xmlb, self.jp2c]
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             j2k.wrap(tfile.name, boxes=boxes)
             jp2 = Jp2k(tfile.name)
 
@@ -133,27 +129,28 @@ class TestXML(unittest.TestCase):
         # 'Россия' is 'Russia' in Cyrillic, not that it matters.
         xml = u"""<?xml version="1.0" encoding="utf-8"?>
         <country>Россия</country>"""
-        with tempfile.NamedTemporaryFile(suffix=".xml") as xmlfile:
-            xmlfile.write(xml.encode('utf-8'))
-            xmlfile.flush()
+        xmlfile = os.path.join(self.test_dir, 'cyrillic.xml')
+        with open(xmlfile, mode='wb') as tfile:
+            tfile.write(xml.encode('utf-8'))
+            tfile.flush()
 
-            j2k = glymur.Jp2k(self.j2kfile)
-            with tempfile.NamedTemporaryFile(suffix=".jp2") as jfile:
-                jp2 = j2k.wrap(jfile.name)
-                xmlbox = glymur.jp2box.XMLBox(filename=xmlfile.name)
-                jp2.append(xmlbox)
+        j2k = glymur.Jp2k(self.j2kfile)
+        with open(self.temp_jp2_filename, mode='wb') as jfile:
+            jp2 = j2k.wrap(jfile.name)
+            xmlbox = glymur.jp2box.XMLBox(filename=xmlfile)
+            jp2.append(xmlbox)
 
-                box_xml = jp2.box[-1].xml.getroot()
-                box_xml_str = ET.tostring(box_xml,
-                                          encoding='utf-8').decode('utf-8')
-                self.assertEqual(box_xml_str,
-                                 u'<country>Россия</country>')
+            box_xml = jp2.box[-1].xml.getroot()
+            box_xml_str = ET.tostring(box_xml,
+                                      encoding='utf-8').decode('utf-8')
+            self.assertEqual(box_xml_str,
+                             u'<country>Россия</country>')
 
     def test_xml_box_with_encoding_declaration(self):
         """
         Read JP2 file with XML box having encoding declaration
         """
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as ofile:
+        with open(self.temp_jp2_filename, mode="wb") as ofile:
             with open(self.jp2file, mode='rb') as ifile:
                 ofile.write(ifile.read())
 
@@ -188,7 +185,8 @@ class TestXML(unittest.TestCase):
             self.assertEqual(len(elts), 1)
 
             # Write it back out, read it back in.
-            with tempfile.NamedTemporaryFile(suffix=".jp2") as ofile2:
+            file2 = os.path.join(self.test_dir, 'file2.jp2')
+            with open(file2, mode="wb") as ofile2:
                 jp2_2 = jp2.wrap(ofile2.name, boxes=jp2.box)
 
                 # Verify that XML box
@@ -204,7 +202,7 @@ class TestXML(unittest.TestCase):
                 self.assertEqual(len(elts), 1)
 
 
-class TestJp2kBadXmlFile(unittest.TestCase):
+class TestJp2kBadXmlFile(fixtures.TestCommon):
     """Test suite for bad XML box situations"""
 
     @classmethod
@@ -213,8 +211,9 @@ class TestJp2kBadXmlFile(unittest.TestCase):
         per class rather than once per test.
         """
         jp2file = glymur.data.nemo()
-        with tempfile.NamedTemporaryFile(suffix='.jp2', delete=False) as tfile:
-            cls._bad_xml_file = tfile.name
+        cls.xml_test_dir = tempfile.mkdtemp()
+        cls._bad_xml_file = os.path.join(cls.xml_test_dir, 'bad_xml_box.jp2')
+        with open(cls._bad_xml_file, mode='wb') as tfile:
             with open(jp2file, 'rb') as ifile:
                 # Everything up until the UUID box.
                 write_buffer = ifile.read(77)
@@ -236,13 +235,7 @@ class TestJp2kBadXmlFile(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        os.unlink(cls._bad_xml_file)
-
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
-
-    def tearDown(self):
-        pass
+        shutil.rmtree(cls.xml_test_dir)
 
     def test_invalid_xml_box(self):
         """Should be able to recover info from xml box with bad xml."""
@@ -256,7 +249,6 @@ class TestJp2kBadXmlFile(unittest.TestCase):
         self.assertIsNone(jp2k.box[3].xml)
 
 
-@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
 class TestBadButRecoverableXmlFile(unittest.TestCase):
     """Test suite for XML box that is bad, but we can still recover the XML."""
 
@@ -266,7 +258,11 @@ class TestBadButRecoverableXmlFile(unittest.TestCase):
         to do this once per class rather than once per test.
         """
         jp2file = glymur.data.nemo()
-        with tempfile.NamedTemporaryFile(suffix='.jp2', delete=False) as tfile:
+
+        cls.xml_test_dir = tempfile.mkdtemp()
+        cls._bad_xml_file = os.path.join(cls.xml_test_dir, 'bad_xml_box.jp2')
+
+        with open(cls._bad_xml_file, mode='wb') as tfile:
             cls._bad_xml_file = tfile.name
             with open(jp2file, 'rb') as ifile:
                 # Everything up until the UUID box.

@@ -1,12 +1,15 @@
 """
 Test fixtures common to more than one test point.
 """
+import os
 try:
     import pathlib
 except ImportError:
     import pathlib2 as pathlib
+import shutil
 import subprocess
 import sys
+import tempfile
 import unittest
 
 import numpy as np
@@ -20,9 +23,6 @@ if glymur.version.openjpeg_version < '2.1.0':
 else:
     OPENJPEG_NOT_AVAILABLE = False
     OPENJPEG_NOT_AVAILABLE_MSG = None
-
-# Cannot reopen a named temporary file in windows.
-WINDOWS_TMP_FILE_MSG = "cannot use NamedTemporaryFile like this in windows"
 
 
 def low_memory_linux_machine():
@@ -54,19 +54,34 @@ def low_memory_linux_machine():
     return nbytes < 2000
 
 
-class MetadataBase(unittest.TestCase):
+class TestCommon(unittest.TestCase):
+    """
+    Common setup for many if not all tests.
+    """
+    def setUp(self):
+        # Supply paths to these two shipping example files.
+        self.jp2file = glymur.data.nemo()
+        self.j2kfile = glymur.data.goodstuff()
+        self.jpxfile = glymur.data.jpxfile()
+
+        # Create a temporary directory to be cleaned up following each test, as
+        # well as names for a JP2 and a J2K file.
+        self.test_dir = tempfile.mkdtemp()
+        self.temp_jp2_filename = os.path.join(self.test_dir, 'test.jp2')
+        self.temp_j2k_filename = os.path.join(self.test_dir, 'test.j2k')
+        self.temp_jpx_filename = os.path.join(self.test_dir, 'test.jpx')
+
+    def tearDown(self):
+        shutil.rmtree(self.test_dir)
+
+
+class MetadataBase(TestCommon):
     """
     Base class for testing metadata.
 
     This class has helper routines defined for testing metadata so that it can
     be subclassed and used easily.
     """
-
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
 
     def verify_codeblock_style(self, actual, style):
         """

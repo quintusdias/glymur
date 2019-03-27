@@ -25,16 +25,14 @@ from glymur import Jp2k
 from glymur.jp2box import DataEntryURLBox, FileTypeBox, JPEG2000SignatureBox
 from glymur.jp2box import DataReferenceBox, FragmentListBox, FragmentTableBox
 from glymur.jp2box import ColourSpecificationBox
+from . import fixtures
 
 
-@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-class TestJPXWrap(unittest.TestCase):
+class TestJPXWrap(fixtures.TestCommon):
     """Test suite for wrapping JPX files."""
 
     def setUp(self):
-        self.jpxfile = glymur.data.jpxfile()
-        self.jp2file = glymur.data.nemo()
-        self.j2kfile = glymur.data.goodstuff()
+        super(TestJPXWrap, self).setUp()
 
         raw_xml = b"""<?xml version="1.0"?>
         <data>
@@ -46,9 +44,9 @@ class TestJPXWrap(unittest.TestCase):
                 <neighbor name="Switzerland" direction="W"/>
             </country>
         </data>"""
-        with tempfile.NamedTemporaryFile(suffix=".xml", delete=False) as tfile:
+        self.xmlfile = os.path.join(self.test_dir, 'liechtenstein.xml')
+        with open(self.xmlfile, mode="wb") as tfile:
             tfile.write(raw_xml)
-            tfile.flush()
         self.xmlfile = tfile.name
 
     def tearDown(self):
@@ -56,7 +54,8 @@ class TestJPXWrap(unittest.TestCase):
 
     def test_jpx_ftbl_no_codestream(self):
         """Can have a jpx with no codestream."""
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile1:
+        file1 = os.path.join(self.test_dir, 'file1.jp2')
+        with open(file1, mode='wb') as tfile1:
             with open(self.jp2file, 'rb') as fptr:
                 tfile1.write(fptr.read())
             tfile1.flush()
@@ -79,7 +78,8 @@ class TestJPXWrap(unittest.TestCase):
             url1 = DataEntryURLBox(0, [0, 0, 0], 'file://' + tfile1.name)
             url1_name_len = len(url1.url) + 1
 
-            with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile2:
+            file2 = os.path.join(self.test_dir, 'file2.jp2')
+            with open(file2, mode='wb') as tfile2:
 
                 j2k = Jp2k(self.j2kfile)
                 jp2_2 = j2k.wrap(tfile2.name)
@@ -97,7 +97,8 @@ class TestJPXWrap(unittest.TestCase):
                                      compatibility_list=['jpx ',
                                                          'jp2 ', 'jpxb']),
                          jp2h]
-                with tempfile.NamedTemporaryFile(suffix='.jpx') as tjpx:
+                jpxfile = os.path.join(self.test_dir, 'file3.jpx')
+                with open(jpxfile, mode='wb') as tjpx:
                     for box in boxes:
                         box.write(tjpx)
 
@@ -127,7 +128,7 @@ class TestJPXWrap(unittest.TestCase):
 
         boxes.append(glymur.jp2box.AssociationBox())
 
-        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+        with open(self.temp_jpx_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
@@ -145,7 +146,7 @@ class TestJPXWrap(unittest.TestCase):
         jplh = glymur.jp2box.CompositingLayerHeaderBox()
         boxes.append(jplh)
 
-        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+        with open(self.temp_jpx_filename, mode='wb') as tfile:
             jpx = jp2.wrap(tfile.name, boxes=boxes)
 
             self.assertEqual(jpx.box[-2].box_id, 'jpch')
@@ -167,7 +168,7 @@ class TestJPXWrap(unittest.TestCase):
         cgrp = glymur.jp2box.ColourGroupBox(box=box)
         boxes.append(cgrp)
 
-        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+        with open(self.temp_jpx_filename, mode='wb') as tfile:
             jpx = jp2.wrap(tfile.name, boxes=boxes)
 
             self.assertEqual(jpx.box[-1].box_id, 'cgrp')
@@ -189,7 +190,7 @@ class TestJPXWrap(unittest.TestCase):
         cgrp = glymur.jp2box.ColourGroupBox(box=box)
         boxes.append(cgrp)
 
-        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+        with open(self.temp_jpx_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
@@ -209,7 +210,7 @@ class TestJPXWrap(unittest.TestCase):
         cgrp = glymur.jp2box.ColourGroupBox(box=box)
         boxes.append(cgrp)
 
-        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+        with open(self.temp_jpx_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
@@ -234,7 +235,7 @@ class TestJPXWrap(unittest.TestCase):
         ftbl = glymur.jp2box.FragmentTableBox(box=[flst])
         boxes.append(ftbl)
 
-        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+        with open(self.temp_jpx_filename, mode='wb') as tfile:
             jpx = jp2.wrap(tfile.name, boxes=boxes)
 
             self.assertEqual(jpx.box[1].compatibility_list, ['jp2 ', 'jpxb'])
@@ -258,7 +259,7 @@ class TestJPXWrap(unittest.TestCase):
         asoc = glymur.jp2box.AssociationBox([nlst, xmlb])
         boxes.append(asoc)
 
-        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+        with open(self.temp_jpx_filename, mode='wb') as tfile:
             jpx = jp2.wrap(tfile.name, boxes=boxes)
 
             self.assertEqual(jpx.box[1].compatibility_list, ['jp2 ', 'jpxb'])
@@ -288,7 +289,7 @@ class TestJPXWrap(unittest.TestCase):
         asoc = glymur.jp2box.AssociationBox([nlst, xmlb, lblb])
         boxes.append(asoc)
 
-        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+        with open(self.temp_jpx_filename, mode='wb') as tfile:
             jpx = jp2.wrap(tfile.name, boxes=boxes)
 
             self.assertEqual(jpx.box[1].compatibility_list, ['jp2 ', 'jpx '])
@@ -311,7 +312,7 @@ class TestJPXWrap(unittest.TestCase):
         dref = glymur.jp2box.DataReferenceBox()
         boxes.append(dref)
 
-        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+        with open(self.temp_jpx_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
@@ -331,7 +332,7 @@ class TestJPXWrap(unittest.TestCase):
 
         boxes.append(dref)
 
-        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+        with open(self.temp_jpx_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
@@ -351,7 +352,7 @@ class TestJPXWrap(unittest.TestCase):
         boxes.append(dref)
         boxes.append(dref)
 
-        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+        with open(self.temp_jpx_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
@@ -368,7 +369,7 @@ class TestJPXWrap(unittest.TestCase):
         # Put it inside the jp2 header box.
         boxes[2].box.append(lblb)
 
-        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+        with open(self.temp_jpx_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
@@ -389,7 +390,7 @@ class TestJPXWrap(unittest.TestCase):
         # Put it inside the jp2 header box.
         boxes[2].box.append(dref)
 
-        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+        with open(self.temp_jpx_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
@@ -409,7 +410,7 @@ class TestJPXWrap(unittest.TestCase):
         asoc = glymur.jp2box.AssociationBox([nlst, xmlb])
         boxes.append(asoc)
 
-        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+        with open(self.temp_jpx_filename, mode='wb') as tfile:
             with self.assertRaises(RuntimeError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
@@ -425,21 +426,13 @@ class TestJPXWrap(unittest.TestCase):
         asoc = glymur.jp2box.AssociationBox([nlst, xmlb])
         boxes.append(asoc)
 
-        with tempfile.NamedTemporaryFile(suffix=".jpx") as tfile:
+        with open(self.temp_jpx_filename, mode='wb') as tfile:
             with self.assertRaises(RuntimeError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
 
-@unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
-class TestJPX(unittest.TestCase):
+class TestJPX(fixtures.TestCommon):
     """Test suite for other JPX boxes."""
-
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
-        self.jpxfile = glymur.data.jpxfile()
-
-    def tearDown(self):
-        pass
 
     def test_reader_requirements_box(self):
         """
@@ -534,7 +527,7 @@ class TestJPX(unittest.TestCase):
         dref = glymur.jp2box.DataReferenceBox([deurl1, deurl2])
         boxes.append(dref)
 
-        with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
+        with open(self.temp_jpx_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 jpx1.wrap(tfile.name, boxes=boxes)
 
@@ -545,7 +538,7 @@ class TestJPX(unittest.TestCase):
         version = (0, 0, 0)
         url1 = 'file:////usr/local/bin'
         url2 = 'http://glymur.readthedocs.org' + chr(0) * 3
-        with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
+        with open(self.temp_jpx_filename, mode='wb') as tfile:
             with open(self.jpxfile, 'rb') as ifile:
                 tfile.write(ifile.read())
 
@@ -572,7 +565,7 @@ class TestJPX(unittest.TestCase):
     def test_ftbl(self):
         """Verify that we can interpret Fragment Table boxes."""
         # Copy the existing JPX file, add a fragment table box onto the end.
-        with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
+        with open(self.temp_jpx_filename, mode='wb') as tfile:
             with open(self.jpxfile, 'rb') as ifile:
                 tfile.write(ifile.read())
             write_buffer = struct.pack('>I4s', 32, b'ftbl')
@@ -629,7 +622,7 @@ class TestJPX(unittest.TestCase):
 
         # Ok, done with the box, we can now insert it into the jpx file after
         # the ftyp box.
-        with tempfile.NamedTemporaryFile(suffix=".jpx") as ofile:
+        with open(self.temp_jpx_filename, mode="wb") as ofile:
             with open(self.jpxfile, 'rb') as ifile:
                 ofile.write(ifile.read(40))
                 ofile.write(rreq_buffer)

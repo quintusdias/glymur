@@ -6,7 +6,6 @@ Test suite for codestream oddities
 # Standard library imports ...
 import os
 import struct
-import tempfile
 import unittest
 import warnings
 
@@ -16,6 +15,7 @@ import pkg_resources as pkg
 # Local imports ...
 import glymur
 from glymur import Jp2k
+from . import fixtures
 
 
 class TestSuite(unittest.TestCase):
@@ -127,17 +127,9 @@ class TestCodestreamRepr(unittest.TestCase):
         self.assertEqual(newseg.signed, (False, False, False))
 
 
-class TestCodestream(unittest.TestCase):
+class TestCodestream(fixtures.TestCommon):
     """Test suite for unusual codestream cases."""
 
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
-        self.j2kfile = glymur.data.goodstuff()
-
-    def tearDown(self):
-        pass
-
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_reserved_marker_segment(self):
         """Reserved marker segments are ok."""
 
@@ -146,7 +138,7 @@ class TestCodestream(unittest.TestCase):
         #
         # Let's inject a reserved marker segment into a file that
         # we know something about to make sure we can still parse it.
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             with open(self.j2kfile, 'rb') as ifile:
                 # Everything up until the first QCD marker.
                 read_buffer = ifile.read(65)
@@ -161,11 +153,11 @@ class TestCodestream(unittest.TestCase):
                 tfile.write(read_buffer)
                 tfile.flush()
 
-            codestream = Jp2k(tfile.name).get_codestream()
+        codestream = Jp2k(tfile.name).get_codestream()
 
-            self.assertEqual(codestream.segment[3].marker_id, '0xff6f')
-            self.assertEqual(codestream.segment[3].length, 3)
-            self.assertEqual(codestream.segment[3].data, b'\x00')
+        self.assertEqual(codestream.segment[3].marker_id, '0xff6f')
+        self.assertEqual(codestream.segment[3].length, 3)
+        self.assertEqual(codestream.segment[3].data, b'\x00')
 
     def test_siz_segment_ssiz_unsigned(self):
         """ssiz attribute to be removed in future release"""

@@ -31,7 +31,8 @@ from glymur.jp2box import JPEG2000SignatureBox, BitsPerComponentBox
 from glymur.jp2box import PaletteBox, UnknownBox, CaptureResolutionBox
 from glymur.core import COLOR, OPACITY, SRGB, GREYSCALE
 from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE
-from .fixtures import WINDOWS_TMP_FILE_MSG, MetadataBase
+from . import fixtures
+from .fixtures import MetadataBase
 
 
 def docTearDown(doctest_obj):
@@ -48,11 +49,8 @@ def load_tests(loader, tests, ignore):
     return tests
 
 
-@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
-class TestDataEntryURL(unittest.TestCase):
+class TestDataEntryURL(fixtures.TestCommon):
     """Test suite for DataEntryURL boxes."""
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
 
     @unittest.skipIf(re.match("1.5|2",
                               glymur.version.openjpeg_version) is None,
@@ -64,14 +62,14 @@ class TestDataEntryURL(unittest.TestCase):
         red = data[:, :, 0]
 
         # Write it back out as a raw codestream.
-        with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile1:
-            j2k = glymur.Jp2k(tfile1.name, data=red)
+        with open(self.temp_j2k_filename, mode="wb") as tfile:
+            j2k = glymur.Jp2k(tfile.name, data=red)
 
-            # Ok, now rewrap it as JP2.  The colorspace should be GREYSCALE.
-            with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile2:
-                jp2 = j2k.wrap(tfile2.name)
-                self.assertEqual(jp2.box[2].box[1].colorspace,
-                                 glymur.core.GREYSCALE)
+        # Ok, now rewrap it as JP2.  The colorspace should be GREYSCALE.
+        with open(self.temp_jp2_filename, mode="wb") as tfile2:
+            jp2 = j2k.wrap(tfile2.name)
+            self.assertEqual(jp2.box[2].box[1].colorspace,
+                             glymur.core.GREYSCALE)
 
     def test_basic_url(self):
         """Just your most basic URL box."""
@@ -82,7 +80,7 @@ class TestDataEntryURL(unittest.TestCase):
         deurl = glymur.jp2box.DataEntryURLBox(0, (0, 0, 0), url)
         boxes = [box for box in jp2.box if box.box_id != 'uuid']
         boxes.append(deurl)
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             jp22 = jp2.wrap(tfile.name, boxes=boxes)
 
         actdata = [box.box_id for box in jp22.box]
@@ -100,7 +98,7 @@ class TestDataEntryURL(unittest.TestCase):
         deurl = glymur.jp2box.DataEntryURLBox(0, (0, 0, 0), url)
         boxes = [box for box in jp2.box if box.box_id != 'uuid']
         boxes.append(deurl)
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             jp22 = jp2.wrap(tfile.name, boxes=boxes)
 
             self.assertEqual(jp22.box[-1].length, 42)
@@ -121,8 +119,7 @@ class TestDataEntryURL(unittest.TestCase):
 @unittest.skipIf(re.match(r'''0|1|2.0.0''',
                           glymur.version.openjpeg_version) is not None,
                  "Not supported until 2.1")
-@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
-class TestChannelDefinition(unittest.TestCase):
+class TestChannelDefinition(fixtures.TestCommon):
     """Test suite for channel definition boxes."""
 
     @classmethod
@@ -130,31 +127,30 @@ class TestChannelDefinition(unittest.TestCase):
         """Need a one_plane plane image for greyscale testing."""
         j2k = Jp2k(glymur.data.goodstuff())
         data = j2k[:]
+
+        cls.channel_def_test_dir = tempfile.mkdtemp()
+
         # Write the first component back out to file.
-        with tempfile.NamedTemporaryFile(suffix=".j2k", delete=False) as tfile:
-            Jp2k(tfile.name, data=data[:, :, 0])
-            cls.one_plane = tfile.name
+        cls.one_plane = os.path.join(cls.channel_def_test_dir, 'one_plane.j2k')
+        Jp2k(cls.one_plane, data=data[:, :, 0])
+
         # Write the first two components back out to file.
-        with tempfile.NamedTemporaryFile(suffix=".j2k", delete=False) as tfile:
-            Jp2k(tfile.name, data=data[:, :, 0:1])
-            cls.two_planes = tfile.name
+        cls.two_planes = os.path.join(cls.channel_def_test_dir, 'two.j2k')
+        Jp2k(cls.two_planes, data=data[:, :, 0:1])
+
         # Write four components back out to file.
-        with tempfile.NamedTemporaryFile(suffix=".j2k", delete=False) as tfile:
-            shape = (data.shape[0], data.shape[1], 1)
-            alpha = np.zeros((shape), dtype=data.dtype)
-            data4 = np.concatenate((data, alpha), axis=2)
-            Jp2k(tfile.name, data=data4)
-            cls.four_planes = tfile.name
+        cls.four_planes = os.path.join(cls.channel_def_test_dir, 'four.j2k')
+        shape = (data.shape[0], data.shape[1], 1)
+        alpha = np.zeros((shape), dtype=data.dtype)
+        data4 = np.concatenate((data, alpha), axis=2)
+        Jp2k(cls.four_planes, data=data4)
 
     @classmethod
     def tearDownClass(cls):
-        os.unlink(cls.one_plane)
-        os.unlink(cls.two_planes)
-        os.unlink(cls.four_planes)
+        shutil.rmtree(cls.channel_def_test_dir)
 
     def setUp(self):
-        self.jp2file = glymur.data.nemo()
-        self.j2kfile = glymur.data.goodstuff()
+        super(TestChannelDefinition, self).setUp()
 
         j2k = Jp2k(self.j2kfile)
         codestream = j2k.get_codestream()
@@ -170,9 +166,6 @@ class TestChannelDefinition(unittest.TestCase):
                                    num_components=num_components)
         self.colr_rgb = ColourSpecificationBox(colorspace=SRGB)
         self.colr_gr = ColourSpecificationBox(colorspace=GREYSCALE)
-
-    def tearDown(self):
-        pass
 
     def test_cdef_no_inputs(self):
         """channel_type and association are required inputs."""
@@ -190,7 +183,7 @@ class TestChannelDefinition(unittest.TestCase):
         boxes = [self.ihdr, self.colr_rgb, cdef]
         self.jp2h.box = boxes
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             j2k.wrap(tfile.name, boxes=boxes)
 
             jp2 = Jp2k(tfile.name)
@@ -213,7 +206,7 @@ class TestChannelDefinition(unittest.TestCase):
         boxes = [self.ihdr, self.colr_rgb, cdef]
         self.jp2h.box = boxes
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             j2k.wrap(tfile.name, boxes=boxes)
 
             jp2 = Jp2k(tfile.name)
@@ -236,7 +229,7 @@ class TestChannelDefinition(unittest.TestCase):
         boxes = [self.ihdr, self.colr_rgb, cdef]
         self.jp2h.box = boxes
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             j2k.wrap(tfile.name, boxes=boxes)
 
             jp2 = Jp2k(tfile.name)
@@ -257,7 +250,7 @@ class TestChannelDefinition(unittest.TestCase):
         boxes = [self.ihdr, self.colr_rgb, cdef]
         self.jp2h.box = boxes
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
@@ -271,7 +264,7 @@ class TestChannelDefinition(unittest.TestCase):
         boxes = [self.ihdr, self.colr_gr, cdef]
         self.jp2h.box = boxes
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             j2k.wrap(tfile.name, boxes=boxes)
 
             jp2 = Jp2k(tfile.name)
@@ -292,7 +285,7 @@ class TestChannelDefinition(unittest.TestCase):
         boxes = [self.ihdr, self.colr_gr, cdef]
         self.jp2h.box = boxes
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             j2k.wrap(tfile.name, boxes=boxes)
 
             jp2 = Jp2k(tfile.name)
@@ -316,7 +309,7 @@ class TestChannelDefinition(unittest.TestCase):
         boxes = [self.ihdr, self.colr_gr, cdef]
         self.jp2h.box = boxes
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises((OSError, IOError)):
                 j2k.wrap(tfile.name, boxes=boxes)
 
@@ -334,7 +327,7 @@ class TestChannelDefinition(unittest.TestCase):
 
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
 
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
@@ -351,16 +344,13 @@ class TestChannelDefinition(unittest.TestCase):
 
         boxes = [self.jp2b, self.ftyp, self.jp2h, cdef, self.jp2c]
 
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises((IOError, OSError)):
                 j2k.wrap(tfile.name, boxes=boxes)
 
 
-class TestFileTypeBox(unittest.TestCase):
+class TestFileTypeBox(fixtures.TestCommon):
     """Test suite for ftyp box issues."""
-
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
 
     def test_bad_brand_on_parse(self):
         """The JP2 file file type box does not contain a valid brand.
@@ -394,7 +384,6 @@ class TestFileTypeBox(unittest.TestCase):
             with self.assertRaises(IOError):
                 ftyp.write(tfile)
 
-    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
     @unittest.skipIf(sys.hexversion < 0x03000000,
                      "assertWarns not introduced until 3.2")
     def test_cl_entry_not_utf8(self):
@@ -404,7 +393,7 @@ class TestFileTypeBox(unittest.TestCase):
 
         # Replace bytes 28-32 with bad utf-8 data
         data = data[:28] + b'\xff\xff\xff\xff' + data[32:]
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             tfile.write(data)
             tfile.flush()
 
@@ -412,11 +401,11 @@ class TestFileTypeBox(unittest.TestCase):
                 Jp2k(tfile.name)
 
 
-class TestColourSpecificationBox(unittest.TestCase):
+class TestColourSpecificationBox(fixtures.TestCommon):
     """Test suite for colr box instantiation."""
 
     def setUp(self):
-        self.j2kfile = glymur.data.goodstuff()
+        super(TestColourSpecificationBox, self).setUp()
 
         j2k = Jp2k(self.j2kfile)
         codestream = j2k.get_codestream()
@@ -447,35 +436,32 @@ class TestColourSpecificationBox(unittest.TestCase):
                 box = ColourSpecificationBox.parse(f, length=80, offset=0)
         str(box)
 
-    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
     def test_colr_with_out_enum_cspace(self):
         """must supply an enumerated colorspace when writing"""
         j2k = Jp2k(self.j2kfile)
 
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
         boxes[2].box = [self.ihdr, ColourSpecificationBox(colorspace=None)]
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
-    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
     def test_missing_colr_box(self):
         """jp2h must have a colr box"""
         j2k = Jp2k(self.j2kfile)
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
         boxes[2].box = [self.ihdr]
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
-    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
     def test_bad_approx_jp2_field(self):
         """JP2 has requirements for approx field"""
         j2k = Jp2k(self.j2kfile)
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
         colr = ColourSpecificationBox(colorspace=SRGB, approximation=1)
         boxes[2].box = [self.ihdr, colr]
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
@@ -531,15 +517,8 @@ class TestColourSpecificationBox(unittest.TestCase):
                 colr.write(tfile)
 
 
-@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
-class TestPaletteBox(unittest.TestCase):
+class TestPaletteBox(fixtures.TestCommon):
     """Test suite for pclr box instantiation."""
-
-    def setUp(self):
-        pass
-
-    def tearDown(self):
-        pass
 
     def test_writing_with_different_bitdepths(self):
         """Bitdepths must be the same when writing."""
@@ -548,7 +527,7 @@ class TestPaletteBox(unittest.TestCase):
         signed = (False, False, False)
         pclr = glymur.jp2box.PaletteBox(palette, bits_per_component=bps,
                                         signed=signed)
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 pclr.write(tfile)
 
@@ -583,20 +562,12 @@ class TestPaletteBox(unittest.TestCase):
             PaletteBox.parse(b, 8, 20)
 
 
-@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
-class TestAppend(unittest.TestCase):
+class TestAppend(fixtures.TestCommon):
     """Tests for append method."""
-
-    def setUp(self):
-        self.j2kfile = glymur.data.goodstuff()
-        self.jp2file = glymur.data.nemo()
-
-    def tearDown(self):
-        pass
 
     def test_append_xml(self):
         """Should be able to append an XML box."""
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             shutil.copyfile(self.jp2file, tfile.name)
 
             jp2 = Jp2k(tfile.name)
@@ -615,7 +586,7 @@ class TestAppend(unittest.TestCase):
 
     def test_only_jp2_allowed_to_append(self):
         """Only JP2 files are allowed to be appended."""
-        with tempfile.NamedTemporaryFile(suffix=".j2k") as tfile:
+        with open(self.temp_j2k_filename, mode="wb") as tfile:
             shutil.copyfile(self.j2kfile, tfile.name)
 
             j2k = Jp2k(tfile.name)
@@ -634,7 +605,7 @@ class TestAppend(unittest.TestCase):
         handled properly, the appended box is never seen.
         """
         baseline_jp2 = Jp2k(self.jp2file)
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with open(self.jp2file, 'rb') as ifile:
                 # Everything up until the jp2c box.
                 offset = baseline_jp2.box[-1].offset
@@ -665,7 +636,7 @@ class TestAppend(unittest.TestCase):
 
     def test_append_allowable_boxes(self):
         """Only XML boxes are allowed to be appended."""
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             shutil.copyfile(self.jp2file, tfile.name)
 
             jp2 = Jp2k(tfile.name)
@@ -678,17 +649,8 @@ class TestAppend(unittest.TestCase):
                 jp2.append(uuidbox)
 
 
-@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
-class TestWrap(unittest.TestCase):
+class TestWrap(fixtures.TestCommon):
     """Tests for wrap method."""
-
-    def setUp(self):
-        self.j2kfile = glymur.data.goodstuff()
-        self.jp2file = glymur.data.nemo()
-        self.jpxfile = glymur.data.jpxfile()
-
-    def tearDown(self):
-        pass
 
     def verify_wrapped_raw(self, jp2file):
         """Shared fixture"""
@@ -743,7 +705,7 @@ class TestWrap(unittest.TestCase):
     def test_wrap(self):
         """basic test for rewrapping a j2c file, no specified boxes"""
         j2k = Jp2k(self.j2kfile)
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             j2k.wrap(tfile.name)
             self.verify_wrapped_raw(tfile.name)
 
@@ -753,7 +715,7 @@ class TestWrap(unittest.TestCase):
         # Use only the signature, file type, header, and 1st codestream.
         lst = [0, 1, 2, 5]
         boxes = [jpx.box[idx] for idx in lst]
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             jp2 = jpx.wrap(tfile.name, boxes=boxes)
 
         # Verify the outer boxes.
@@ -771,14 +733,14 @@ class TestWrap(unittest.TestCase):
     def test_wrap_jp2(self):
         """basic test for rewrapping a jp2 file, no specified boxes"""
         j2k = Jp2k(self.jp2file)
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             jp2 = j2k.wrap(tfile.name)
         boxes = [box.box_id for box in jp2.box]
         self.assertEqual(boxes, ['jP  ', 'ftyp', 'jp2h', 'jp2c'])
 
     def test_wrap_jp2_Lzero(self):
         """Wrap jp2 with jp2c box length is zero"""
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with open(self.jp2file, 'rb') as ifile:
                 tfile.write(ifile.read())
             # Rewrite with codestream length as zero.
@@ -787,14 +749,15 @@ class TestWrap(unittest.TestCase):
             tfile.flush()
             jp2 = Jp2k(tfile.name)
 
-            with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile2:
-                jp2 = jp2.wrap(tfile2.name)
+        file2 = os.path.join(self.test_dir, 'file2.jp2')
+        jp2 = jp2.wrap(file2)
+
         boxes = [box for box in jp2.box]
         self.assertEqual(boxes[3].length, 1132296)
 
     def test_wrap_jp2_Lone(self):
         """Wrap jp2 with jp2c box length is 1, implies Q field"""
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with open(self.jp2file, 'rb') as ifile:
                 tfile.write(ifile.read(3223))
                 # Write new L, T, Q fields
@@ -805,8 +768,9 @@ class TestWrap(unittest.TestCase):
             tfile.flush()
             jp2 = Jp2k(tfile.name)
 
-            with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile2:
-                jp2 = jp2.wrap(tfile2.name)
+        file2 = os.path.join(self.test_dir, 'file2.jp2')
+        jp2 = jp2.wrap(file2)
+
         boxes = [box for box in jp2.box]
         self.assertEqual(boxes[3].length, 1132296 + 8)
 
@@ -815,14 +779,14 @@ class TestWrap(unittest.TestCase):
         jp2 = Jp2k(self.jp2file)
         boxes = [box for box in jp2.box]
         boxes[1].compatibility_list = ['jpx ']
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
     def test_empty_jp2h(self):
         """JP2H box list cannot be empty."""
         jp2 = Jp2k(self.jp2file)
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             boxes = jp2.box
             # Right here the jp2h superbox has two child boxes.  Empty out that
             # list to trigger the error.
@@ -845,7 +809,7 @@ class TestWrap(unittest.TestCase):
                                        width=width,
                                        num_components=num_components),
                         ColourSpecificationBox(colorspace=glymur.core.SRGB)]
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             j2k.wrap(tfile.name, boxes=boxes)
             self.verify_wrapped_raw(tfile.name)
 
@@ -864,7 +828,7 @@ class TestWrap(unittest.TestCase):
                         ImageHeaderBox(height=height,
                                        width=width,
                                        num_components=num_components)]
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
@@ -885,7 +849,7 @@ class TestWrap(unittest.TestCase):
                               num_components=num_components)
         jp2h.box = [ihdr, colr]
         boxes = [ftyp, jp2b, jp2h, jp2c]
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
@@ -912,7 +876,7 @@ class TestWrap(unittest.TestCase):
                               num_components=num_components)
         jp2h.box = [ihdr, colr]
         boxes = [jp2b, ftyp, jp2h, jp2c, pclr]
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
@@ -933,7 +897,7 @@ class TestWrap(unittest.TestCase):
                               num_components=num_components)
         jp2h.box = [ihdr, colr]
         boxes = [jp2b, ftyp, jp2c, jp2h]
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
@@ -952,13 +916,13 @@ class TestWrap(unittest.TestCase):
                               num_components=num_components)
         jp2h.box = [ihdr]
         boxes = [jp2k, ftyp, jp2h]
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
     def test_wrap_jpx_to_jp2_with_unadorned_jpch(self):
         """A JPX file rewrapped with plain jpch is not allowed."""
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile1:
+        with open(self.temp_jp2_filename, mode='wb') as tfile1:
             jpx = Jp2k(self.jpxfile)
             boxes = [jpx.box[0], jpx.box[1], jpx.box[2],
                      glymur.jp2box.ContiguousCodestreamBox()]
@@ -967,7 +931,7 @@ class TestWrap(unittest.TestCase):
 
     def test_wrap_jpx_to_jp2_with_incorrect_jp2c_offset(self):
         """Reject A JPX file rewrapped with bad jp2c offset."""
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile1:
+        with open(self.temp_jp2_filename, mode='wb') as tfile1:
             jpx = Jp2k(self.jpxfile)
             jpch = jpx.box[5]
 
@@ -980,7 +944,7 @@ class TestWrap(unittest.TestCase):
 
     def test_wrap_jpx_to_jp2_with_correctly_specified_jp2c(self):
         """Accept A JPX file rewrapped with good jp2c."""
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile1:
+        with open(self.temp_jp2_filename, mode='wb') as tfile1:
             jpx = Jp2k(self.jpxfile)
             jpch = jpx.box[5]
 
@@ -1004,7 +968,7 @@ class TestWrap(unittest.TestCase):
 
     def test_full_blown_jpx(self):
         """Rewrap a jpx file."""
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile1:
+        with open(self.temp_jp2_filename, mode='wb') as tfile1:
             jpx = Jp2k(self.jpxfile)
             idx = (list(range(5)) + list(range(9, 12)) + list(range(6, 9))
                    + [12])

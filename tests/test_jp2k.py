@@ -7,6 +7,7 @@ import doctest
 from io import BytesIO
 import os
 import re
+import shutil
 import struct
 import sys
 import tempfile
@@ -37,10 +38,8 @@ from glymur.core import COLOR, RED, GREEN, BLUE, RESTRICTED_ICC_PROFILE
 from glymur.codestream import SIZsegment
 from glymur.version import openjpeg_version
 
-from .fixtures import WINDOWS_TMP_FILE_MSG
-from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
-
 from . import fixtures
+from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
 def docTearDown(doctest_obj):
@@ -59,7 +58,7 @@ def load_tests(loader, tests, ignore):
     return tests
 
 
-class SliceProtocolBase(unittest.TestCase):
+class SliceProtocolBase(fixtures.TestCommon):
     """
     Test slice protocol, i.e. when using [ ] to read image data.
     """
@@ -80,13 +79,12 @@ class SliceProtocolBase(unittest.TestCase):
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 @unittest.skipIf(re.match("1.5|2", glymur.version.openjpeg_version) is None,
                  "Must have openjpeg 1.5 or higher to run")
-@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
 class TestSliceProtocolBaseWrite(SliceProtocolBase):
 
     def test_write_ellipsis(self):
         expected = self.j2k_data
 
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, shape=expected.shape)
             j[...] = expected
             actual = j[:]
@@ -96,14 +94,14 @@ class TestSliceProtocolBaseWrite(SliceProtocolBase):
     def test_basic_write(self):
         expected = self.j2k_data
 
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, data=self.j2k_data)
             actual = j[:]
 
         np.testing.assert_array_equal(actual, expected)
 
     def test_cannot_write_with_non_default_single_slice(self):
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, shape=self.j2k_data.shape)
             with self.assertRaises(TypeError):
                 j[slice(None, 0)] = self.j2k_data
@@ -115,31 +113,31 @@ class TestSliceProtocolBaseWrite(SliceProtocolBase):
                 j[slice(0, 640)] = self.j2k_data
 
     def test_cannot_write_a_row(self):
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, shape=self.j2k_data.shape)
             with self.assertRaises(TypeError):
                 j[5] = self.j2k_data
 
     def test_cannot_write_a_pixel(self):
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, shape=self.j2k_data.shape)
             with self.assertRaises(TypeError):
                 j[25, 35] = self.j2k_data[25, 35]
 
     def test_cannot_write_a_column(self):
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, shape=self.j2k_data.shape)
             with self.assertRaises(TypeError):
                 j[:, 25, :] = self.j2k_data[:, :25, :]
 
     def test_cannot_write_a_band(self):
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, shape=self.j2k_data.shape)
             with self.assertRaises(TypeError):
                 j[:, :, 0] = self.j2k_data[:, :, 0]
 
     def test_cannot_write_a_subarray(self):
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, shape=self.j2k_data.shape)
             with self.assertRaises(TypeError):
                 j[:25, :45, :] = self.j2k_data[:25, :25, :]
@@ -240,20 +238,11 @@ class TestSliceProtocolRead(SliceProtocolBase):
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-class TestJp2k(unittest.TestCase):
+class TestJp2k(fixtures.TestCommon):
     """These tests should be run by just about all configuration."""
 
-    @classmethod
-    def setUpClass(cls):
-        cls.jp2file = glymur.data.nemo()
-        cls.j2kfile = glymur.data.goodstuff()
-        cls.jpxfile = glymur.data.jpxfile()
-
-    @classmethod
-    def tearDownClass(cls):
-        pass
-
     def setUp(self):
+        super(TestJp2k, self).setUp()
         glymur.reset_option('all')
 
     def test_pathlib(self):
@@ -303,7 +292,6 @@ class TestJp2k(unittest.TestCase):
                 rgb_from_idx[r, c] = palette[idx[r, c]]
         np.testing.assert_array_equal(rgb, rgb_from_idx)
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_no_cxform_cmap(self):
         """
         Reorder the components.
@@ -332,7 +320,7 @@ class TestJp2k(unittest.TestCase):
         boxes.append(jp2h)
         boxes.append(glymur.jp2box.ContiguousCodestreamBox())
 
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             jp2 = j2k.wrap(tfile.name, boxes=boxes)
 
             jp2.ignore_pclr_cmap_cdef = False
@@ -340,7 +328,6 @@ class TestJp2k(unittest.TestCase):
 
         np.testing.assert_array_equal(rgb, bgr[:, :, [2, 1, 0]])
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_bad_tile_part_pointer(self):
         """
         Should error out if we don't read a valid marker.
@@ -348,7 +335,7 @@ class TestJp2k(unittest.TestCase):
         Rewrite the Psot value such that the SOT marker segment points far
         beyond the end of the EOC marker (and the end of the file).
         """
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
+        with open(self.temp_jp2_filename, mode='wb') as ofile:
             with open(self.jp2file, 'rb') as ifile:
                 # Copy up until Psot field.
                 ofile.write(ifile.read(3350))
@@ -365,7 +352,6 @@ class TestJp2k(unittest.TestCase):
             with self.assertRaises(IOError):
                 j.get_codestream(header_only=False)
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_read_differing_subsamples(self):
         """
         should error out with read used on differently subsampled images
@@ -377,7 +363,7 @@ class TestJp2k(unittest.TestCase):
 
         Copy nemo.jp2 but change the SIZ segment to have differing subsamples.
         """
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
+        with open(self.temp_jp2_filename, mode='wb') as ofile:
             with open(self.jp2file, 'rb') as ifile:
                 # Copy up until codestream box.
                 ofile.write(ifile.read(3223))
@@ -424,7 +410,7 @@ class TestJp2k(unittest.TestCase):
         """Irreversible"""
         j = Jp2k(self.jp2file)
         expdata = j[:]
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             j2 = Jp2k(tfile.name, data=expdata, irreversible=True)
 
             codestream = j2.get_codestream()
@@ -643,13 +629,12 @@ class TestJp2k(unittest.TestCase):
         jp2k = Jp2k(self.j2kfile)
         self.assertEqual(len(jp2k.box), 0)
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_64bit_xl_field(self):
         """XL field should be supported"""
         # Verify that boxes with the XL field are properly read.
         # Don't have such a file on hand, so we create one.  Copy our example
         # file, but making the codestream have a 64-bit XL field.
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with open(self.jp2file, 'rb') as ifile:
                 # Everything up until the jp2c box.
                 write_buffer = ifile.read(3223)
@@ -677,14 +662,13 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(jp2k.box[4].offset, 3223)
             self.assertEqual(jp2k.box[4].length, 1133427 + 8)
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_length_field_is_zero(self):
         """L=0 (length field in box header) is allowed"""
         # Verify that boxes with the L field as zero are correctly read.
         # This should only happen in the last box of a JPEG 2000 file.
         # Our example image has its last box at byte 588458.
         baseline_jp2 = Jp2k(self.jp2file)
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with open(self.jp2file, 'rb') as ifile:
                 # Everything up until the jp2c box.
                 write_buffer = ifile.read(588458)
@@ -736,13 +720,12 @@ class TestJp2k(unittest.TestCase):
         j = Jp2k(self.j2kfile)
         self.assertEqual(j.box, [])
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_uinf_ulst_url_boxes(self):
         """Verify that we can read UINF, ULST, and URL boxes"""
         # Verify that we can read UINF, ULST, and URL boxes.  I don't have
         # easy access to such a file, and there's no such file in the
         # openjpeg repository, so I'll fake one.
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with open(self.jp2file, 'rb') as ifile:
                 # Everything up until the jp2c box.
                 write_buffer = ifile.read(77)
@@ -795,10 +778,9 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(jp2k.box[3].box[1].flag, (0, 0, 0))
             self.assertEqual(jp2k.box[3].box[1].url, 'abcd')
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_xml_with_trailing_nulls(self):
         """ElementTree doesn't like trailing null chars after valid XML text"""
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with open(self.jp2file, 'rb') as ifile:
                 # Everything up until the jp2c box.
                 write_buffer = ifile.read(77)
@@ -872,14 +854,13 @@ class TestJp2k(unittest.TestCase):
                 with self.assertRaises(exp_error):
                     glymur.Jp2k(self.jp2file).read_bands()
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_zero_length_reserved_segment(self):
         """
         Zero length reserved segment.  Unsure if this is invalid or not.
 
         Just make sure we can parse all of it without erroring out.
         """
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
+        with open(self.temp_jp2_filename, mode='wb') as ofile:
             with open(self.jp2file, 'rb') as ifile:
                 # Copy up until codestream box.
                 ofile.write(ifile.read(3223))
@@ -904,12 +885,11 @@ class TestJp2k(unittest.TestCase):
             self.assertEqual(cstr.segment[11].marker_id, '0xff00')
             self.assertEqual(cstr.segment[11].length, 0)
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_psot_is_zero(self):
         """
         Psot=0 in SOT is perfectly legal.  Issue #78.
         """
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as ofile:
+        with open(self.temp_j2k_filename, mode='wb') as ofile:
             with open(self.j2kfile, 'rb') as ifile:
                 # Write up until the SOD segment.
                 ofile.write(ifile.read(164))
@@ -1094,7 +1074,6 @@ class CinemaBase(fixtures.MetadataBase):
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
 @unittest.skipIf(re.match(r'''(1|2.0.0)''',
                           glymur.version.openjpeg_version) is not None,
                  "Uses features not supported until 2.0.1")
@@ -1102,8 +1081,7 @@ class WriteCinema(CinemaBase):
 
     @classmethod
     def setUpClass(cls):
-        cls.jp2file = glymur.data.nemo()
-        cls.jp2_data = glymur.Jp2k(cls.jp2file)[:]
+        cls.jp2_data = glymur.Jp2k(glymur.data.nemo())[:]
 
     def test_NR_ENC_X_6_2K_24_FULL_CBR_CIRCLE_000_tif_17_encode(self):
         """
@@ -1117,14 +1095,13 @@ class WriteCinema(CinemaBase):
         data = np.concatenate((data, data), axis=1).astype(np.uint16)
         data = data[:1080, :2048, :]
 
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            with warnings.catch_warnings():
-                # Ignore a warning issued by the library.
-                warnings.simplefilter('ignore')
-                j = Jp2k(tfile.name, data=data, cinema2k=24)
+        with warnings.catch_warnings():
+            # Ignore a warning issued by the library.
+            warnings.simplefilter('ignore')
+            j = Jp2k(self.temp_j2k_filename, data=data, cinema2k=24)
 
-            codestream = j.get_codestream()
-            self.check_cinema2k_codestream(codestream, (2048, 1080))
+        codestream = j.get_codestream()
+        self.check_cinema2k_codestream(codestream, (2048, 1080))
 
     def test_NR_ENC_X_6_2K_24_FULL_CBR_CIRCLE_000_tif_20_encode(self):
         """
@@ -1141,10 +1118,10 @@ class WriteCinema(CinemaBase):
         with warnings.catch_warnings():
             # Ignore a warning issued by the library.
             warnings.simplefilter('ignore')
-            with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-                j = Jp2k(tfile.name, data=data, cinema2k=48)
-                codestream = j.get_codestream()
-                self.check_cinema2k_codestream(codestream, (2048, 1080))
+            j = Jp2k(self.temp_j2k_filename, data=data, cinema2k=48)
+
+        codestream = j.get_codestream()
+        self.check_cinema2k_codestream(codestream, (2048, 1080))
 
     def test_NR_ENC_ElephantDream_4K_tif_21_encode(self):
         """
@@ -1157,18 +1134,16 @@ class WriteCinema(CinemaBase):
         data = np.concatenate((data, data), axis=1).astype(np.uint16)
         data = data[:2160, :4096, :]
 
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
-            with warnings.catch_warnings():
-                # Ignore a warning issued by the library.
-                warnings.simplefilter('ignore')
-                j = Jp2k(tfile.name, data=data, cinema4k=True)
+        with warnings.catch_warnings():
+            # Ignore a warning issued by the library.
+            warnings.simplefilter('ignore')
+            j = Jp2k(self.temp_j2k_filename, data=data, cinema4k=True)
 
-            codestream = j.get_codestream()
-            self.check_cinema4k_codestream(codestream, (4096, 2160))
+        codestream = j.get_codestream()
+        self.check_cinema4k_codestream(codestream, (4096, 2160))
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
 class TestJp2k_write(fixtures.MetadataBase):
     """Write tests, can be run by versions 1.5+"""
 
@@ -1180,19 +1155,20 @@ class TestJp2k_write(fixtures.MetadataBase):
         cls.j2k_data = glymur.Jp2k(cls.j2kfile)[:]
         cls.jp2_data = glymur.Jp2k(cls.jp2file)[:]
 
-        # Make single channel jp2 and j2k files.
-        obj = tempfile.NamedTemporaryFile(delete=False, suffix=".j2k")
-        glymur.Jp2k(obj.name, data=cls.j2k_data[:, :, 0])
-        cls.single_channel_j2k = obj
+        cls.test_dir = tempfile.mkdtemp()
 
-        obj = tempfile.NamedTemporaryFile(delete=False, suffix=".jp2")
-        glymur.Jp2k(obj.name, data=cls.j2k_data[:, :, 0])
-        cls.single_channel_jp2 = obj
+        # Make single channel jp2 and j2k files.
+        filename = os.path.join(cls.test_dir, 'single_channel.j2k')
+        glymur.Jp2k(filename, data=cls.j2k_data[:, :, 0])
+        cls.single_channel_j2k = filename
+
+        filename = os.path.join(cls.test_dir, 'single_channel.jp2')
+        glymur.Jp2k(filename, data=cls.jp2_data[:, :, 0])
+        cls.single_channel_jp2 = filename
 
     @classmethod
     def tearDownClass(cls):
-        os.unlink(cls.single_channel_j2k.name)
-        os.unlink(cls.single_channel_jp2.name)
+        shutil.rmtree(cls.test_dir)
 
     def test_psnr(self):
         """
@@ -1205,7 +1181,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             'data': skimage.data.camera(),
             'psnr': [30, 35, 40, 0],
         }
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, **kwargs)
 
             d = {}
@@ -1242,7 +1218,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             'data': skimage.data.camera(),
             'psnr': [0, 35, 40, 30],
         }
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 Jp2k(tfile.name, **kwargs)
 
@@ -1257,7 +1233,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             'data': skimage.data.camera(),
             'psnr': [30, 35, 40, 30],
         }
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 Jp2k(tfile.name, **kwargs)
 
@@ -1270,7 +1246,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         # Remove the last box, which is a codestream.
         boxes = j.box[:-1]
 
-        with tempfile.NamedTemporaryFile(suffix=".jp2") as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 j.wrap(tfile.name, boxes=boxes)
 
@@ -1280,7 +1256,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         """
         Verify that we prevent trying to write images with one dimension zero.
         """
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 Jp2k(tfile.name, data=np.zeros((0, 256), dtype=np.uint8))
 
@@ -1291,7 +1267,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             input/nonregression/Bretagne1.ppm
 
         """
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, data=self.jp2_data, psnr=[30, 35, 40],
                      numres=2)
 
@@ -1321,7 +1297,7 @@ class TestJp2k_write(fixtures.MetadataBase):
 
         """
         data = self.jp2_data
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             # Should be written with 3 layers.
             j = Jp2k(tfile.name, data=data, cratios=[200, 100, 50])
             c = j.get_codestream()
@@ -1353,7 +1329,7 @@ class TestJp2k_write(fixtures.MetadataBase):
 
         """
         data = self.jp2_data
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             with patch('glymur.jp2k.version.openjpeg_version_tuple',
                        new=(1, 5, 0)):
                 with patch('glymur.jp2k.opj2.OPENJP2', new=None):
@@ -1384,7 +1360,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             input/nonregression/Bretagne1.ppm
 
         """
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, data=self.jp2_data,
                      psnr=[30, 35, 40], cbsize=(16, 16), psizes=[(64, 64)])
 
@@ -1415,7 +1391,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             input/nonregression/Bretagne2.ppm
 
         """
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name,
                      data=self.jp2_data,
                      psizes=[(128, 128)] * 3,
@@ -1456,7 +1432,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             input/nonregression/Bretagne2.ppm
 
         """
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, data=self.jp2_data,
                      tilesize=(127, 127), prog="PCRL")
 
@@ -1490,7 +1466,7 @@ class TestJp2k_write(fixtures.MetadataBase):
 
             input/nonregression/Bretagne2.ppm
         """
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, data=self.jp2_data, subsam=(2, 2), sop=True)
 
             codestream = j.get_codestream(header_only=False)
@@ -1529,7 +1505,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             input/nonregression/Bretagne2.ppm
 
         """
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, data=self.jp2_data, modesw=38, eph=True)
 
             codestream = j.get_codestream(header_only=False)
@@ -1562,7 +1538,7 @@ class TestJp2k_write(fixtures.MetadataBase):
 
             input/nonregression/Bretagne2.ppm
         """
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name,
                      data=self.jp2_data, grid_offset=[300, 150], cratios=[800])
 
@@ -1597,7 +1573,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             input/nonregression/Cevennes1.bmp
 
         """
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, data=self.jp2_data, cratios=[800])
 
             codestream = j.get_codestream(header_only=False)
@@ -1627,7 +1603,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             input/nonregression/Cevennes2.ppm
 
         """
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, data=self.jp2_data, cratios=[50])
 
             codestream = j.get_codestream(header_only=False)
@@ -1657,7 +1633,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             input/nonregression/Rome.bmp
 
         """
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             jp2 = Jp2k(tfile.name, data=self.jp2_data,
                        psnr=[30, 35, 50], prog='LRCP', numres=3)
 
@@ -1728,7 +1704,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             input/nonregression/random-issue-0005.tif
         """
         data = self.jp2_data[:1024, :1024, 0].astype(np.uint16)
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, data=data)
 
             codestream = j.get_codestream(header_only=False)
@@ -1767,7 +1743,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             input/nonregression/issue141.rawl
 
         """
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, data=self.jp2_data, irreversible=True)
 
             codestream = j.get_codestream()
@@ -1787,7 +1763,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         versions = ["1.5.0", "2.0.0"]
         for version in versions:
             with patch('glymur.version.openjpeg_version', new=version):
-                with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+                with open(self.temp_j2k_filename, mode='wb') as tfile:
                     with self.assertRaises(IOError):
                         Jp2k(tfile.name, data=data, cinema2k=48)
 
@@ -1799,7 +1775,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         input/nonregression/X_5_2K_24_235_CBR_STEM24_000.tif
         """
         data = np.zeros((857, 2048, 3), dtype=np.uint8)
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 Jp2k(tfile.name, data=data,
                      cinema2k=48, cratios=[200, 100, 50])
@@ -1811,7 +1787,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         Original test file was input/nonregression/ElephantDream_4K.tif
         """
         data = np.zeros((4096, 2160, 3), dtype=np.uint8)
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 Jp2k(tfile.name, data=data,
                      cinema4k=True, cratios=[200, 100, 50])
@@ -1820,7 +1796,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         """
         code block sizes should never exceed half that of precinct size.
         """
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 Jp2k(tfile.name, data=self.j2k_data,
                      cbsize=(64, 64), psizes=[(64, 64)])
@@ -1829,7 +1805,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         """
         code block sizes should be powers of two.
         """
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 Jp2k(tfile.name, data=self.j2k_data, cbsize=(13, 12))
 
@@ -1837,7 +1813,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         """
         precinct sizes should be powers of two.
         """
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 Jp2k(tfile.name, data=self.j2k_data, psizes=[(173, 173)])
 
@@ -1848,7 +1824,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         # opj_compress doesn't allow the dimensions of a codeblock
         # to be too small or too big, so neither will we.
         data = self.j2k_data
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             # opj_compress doesn't allow code block area to exceed 4096.
             with self.assertRaises(IOError):
                 Jp2k(tfile.name, data=data, cbsize=(256, 256))
@@ -1863,7 +1839,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         """
         Using psnr with cratios options is not allowed.
         """
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 Jp2k(tfile.name, data=self.j2k_data, psnr=[30, 35, 40],
                      cratios=[2, 3, 4])
@@ -1875,7 +1851,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         Original test input file was
         input/nonregression/X_5_2K_24_235_CBR_STEM24_000.tif
         """
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 Jp2k(tfile.name, data=self.j2k_data, cinema2k=36)
 
@@ -1884,7 +1860,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         Verify that the Irreversible option works
         """
         expdata = self.j2k_data
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, data=expdata, irreversible=True, numres=5)
 
             codestream = j.get_codestream()
@@ -1897,20 +1873,20 @@ class TestJp2k_write(fixtures.MetadataBase):
     def test_shape_greyscale_jp2(self):
         """verify shape attribute for greyscale JP2 file
         """
-        jp2 = Jp2k(self.single_channel_jp2.name)
-        self.assertEqual(jp2.shape, (800, 480))
+        jp2 = Jp2k(self.single_channel_jp2)
+        self.assertEqual(jp2.shape, (1456, 2592))
         self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.GREYSCALE)
 
     def test_shape_single_channel_j2k(self):
         """verify shape attribute for single channel J2K file
         """
-        j2k = Jp2k(self.single_channel_j2k.name)
+        j2k = Jp2k(self.single_channel_j2k)
         self.assertEqual(j2k.shape, (800, 480))
 
     def test_precinct_size_too_small(self):
         """first precinct size must be >= 2x that of the code block size"""
         data = np.zeros((640, 480), dtype=np.uint8)
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 Jp2k(tfile.name, data=data,
                      cbsize=(16, 16), psizes=[(16, 16)])
@@ -1918,7 +1894,7 @@ class TestJp2k_write(fixtures.MetadataBase):
     def test_precinct_size_not_power_of_two(self):
         """must be power of two"""
         data = np.zeros((640, 480), dtype=np.uint8)
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 Jp2k(tfile.name, data=data,
                      cbsize=(16, 16), psizes=[(48, 48)])
@@ -1926,14 +1902,14 @@ class TestJp2k_write(fixtures.MetadataBase):
     def test_unsupported_int32(self):
         """Should raise a runtime error if trying to write int32"""
         data = np.zeros((128, 128), dtype=np.int32)
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             with self.assertRaises(RuntimeError):
                 Jp2k(tfile.name, data=data)
 
     def test_unsupported_uint32(self):
         """Should raise a runtime error if trying to write uint32"""
         data = np.zeros((128, 128), dtype=np.uint32)
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             with self.assertRaises(RuntimeError):
                 Jp2k(tfile.name, data=data)
 
@@ -1943,7 +1919,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         versions = ["1.0.0", "1.1.0", "1.2.0", "1.3.0"]
         for version in versions:
             with patch('glymur.version.openjpeg_version', new=version):
-                with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+                with open(self.temp_j2k_filename, mode='wb') as tfile:
                     with self.assertRaises(RuntimeError):
                         Jp2k(tfile.name, data=data)
 
@@ -1952,7 +1928,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         width.
         """
         data = np.zeros((128, 128), dtype=np.uint8)
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             # The code block dimensions are given as rows x columns.
             j = Jp2k(tfile.name, data=data, cbsize=(16, 32))
             codestream = j.get_codestream()
@@ -1962,14 +1938,14 @@ class TestJp2k_write(fixtures.MetadataBase):
 
     def test_too_many_dimensions(self):
         """OpenJP2 only allows 2D or 3D images."""
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 Jp2k(tfile.name,
                      data=np.zeros((128, 128, 2, 2), dtype=np.uint8))
 
     def test_2d_rgb(self):
         """RGB must have at least 3 components."""
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 Jp2k(tfile.name,
                      data=np.zeros((128, 128, 2), dtype=np.uint8),
@@ -1977,7 +1953,7 @@ class TestJp2k_write(fixtures.MetadataBase):
 
     def test_colorspace_with_j2k(self):
         """Specifying a colorspace with J2K does not make sense"""
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 Jp2k(tfile.name,
                      data=np.zeros((128, 128, 3), dtype=np.uint8),
@@ -1985,7 +1961,7 @@ class TestJp2k_write(fixtures.MetadataBase):
 
     def test_specify_rgb(self):
         """specify RGB explicitly"""
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name,
                      data=np.zeros((128, 128, 3), dtype=np.uint8),
                      colorspace='rgb')
@@ -1993,7 +1969,7 @@ class TestJp2k_write(fixtures.MetadataBase):
 
     def test_specify_gray(self):
         """test gray explicitly specified (that's GRAY, not GREY)"""
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             data = np.zeros((128, 128), dtype=np.uint8)
             j = Jp2k(tfile.name, data=data, colorspace='gray')
             self.assertEqual(j.box[2].box[1].colorspace,
@@ -2001,7 +1977,7 @@ class TestJp2k_write(fixtures.MetadataBase):
 
     def test_specify_grey(self):
         """test grey explicitly specified"""
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             data = np.zeros((128, 128), dtype=np.uint8)
             j = Jp2k(tfile.name, data=data, colorspace='grey')
             self.assertEqual(j.box[2].box[1].colorspace,
@@ -2009,7 +1985,7 @@ class TestJp2k_write(fixtures.MetadataBase):
 
     def test_grey_with_two_extra_comps(self):
         """should be able to write gray + two extra components"""
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             data = np.zeros((128, 128, 3), dtype=np.uint8)
             j = Jp2k(tfile.name, data=data, colorspace='gray')
             self.assertEqual(j.box[2].box[0].height, 128)
@@ -2021,7 +1997,7 @@ class TestJp2k_write(fixtures.MetadataBase):
     def test_specify_ycc(self):
         """Should reject YCC"""
         data = np.zeros((128, 128, 3), dtype=np.uint8)
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 Jp2k(tfile.name, data=data, colorspace='ycc')
 
@@ -2029,16 +2005,16 @@ class TestJp2k_write(fixtures.MetadataBase):
         """should be able to write with JP2 suffix."""
         j2k = Jp2k(self.j2kfile)
         expdata = j2k[:]
-        with tempfile.NamedTemporaryFile(suffix='.JP2') as tfile:
-            ofile = Jp2k(tfile.name, data=expdata)
-            actdata = ofile[:]
-            np.testing.assert_array_equal(actdata, expdata)
+        filename = self.temp_jp2_filename.replace('.jp2', 'JP2')
+        j = Jp2k(filename, data=expdata)
+        actdata = j[:]
+        np.testing.assert_array_equal(actdata, expdata)
 
     def test_write_srgb_without_mct(self):
         """should be able to write RGB without specifying mct"""
         j2k = Jp2k(self.j2kfile)
         expdata = j2k[:]
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             ofile = Jp2k(tfile.name, data=expdata, mct=False)
             actdata = ofile[:]
             np.testing.assert_array_equal(actdata, expdata)
@@ -2052,7 +2028,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         """
         j2k = Jp2k(self.j2kfile)
         expdata = j2k[:]
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 Jp2k(tfile.name, data=expdata[:, :, 0], mct=True)
 
@@ -2061,7 +2037,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         # Issue 17
         j = Jp2k(self.jp2file)
         expdata = j[::2, ::2]
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             ofile = Jp2k(tfile.name, data=expdata, prog='CPRL')
             actdata = ofile[:]
             np.testing.assert_array_equal(actdata, expdata)
@@ -2118,15 +2094,8 @@ class TestJp2k_1_x(unittest.TestCase):
 
 @unittest.skipIf(glymur.version.openjpeg_version_tuple[0] < 2,
                  "Requires as least v2.0")
-class TestJp2k_2_0(unittest.TestCase):
+class TestJp2k_2_0(fixtures.TestCommon):
     """Test suite requiring at least version 2.0"""
-
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
-        self.j2kfile = glymur.data.goodstuff()
-
-    def tearDown(self):
-        pass
 
     def test_bad_area_parameter(self):
         """Should error out appropriately if given a bad area parameter."""
@@ -2141,24 +2110,25 @@ class TestJp2k_2_0(unittest.TestCase):
             # End corner must be >= start corner
             j[10:8, 10:8]
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_unrecognized_jp2_clrspace(self):
         """We only allow RGB and GRAYSCALE.  Should error out with others"""
         data = np.zeros((128, 128, 3), dtype=np.uint8)
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(IOError):
                 Jp2k(tfile.name, data=data, colorspace='cmyk')
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_asoc_label_box(self):
         """Test asoc and label box"""
         # Construct a fake file with an asoc and a label box, as
         # OpenJPEG doesn't have such a file.
         data = Jp2k(self.jp2file)[::2, ::2]
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
-            Jp2k(tfile.name, data=data)
+        file1 = os.path.join(self.test_dir, 'file1.jp2')
+        Jp2k(file1, data=data)
 
-            with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile2:
+        file2 = os.path.join(self.test_dir, 'file2.jp2')
+        with open(file1, mode='rb') as tfile:
+
+            with open(file2, mode='wb') as tfile2:
 
                 # Offset of the codestream is where we start.
                 read_buffer = tfile.read(77)
@@ -2199,16 +2169,8 @@ class TestJp2k_2_0(unittest.TestCase):
 
 @unittest.skipIf(glymur.version.openjpeg_version < '2.0.0',
                  "Not to be run until unless 2.0.1 or higher is present")
-class TestJp2k_2_1(unittest.TestCase):
+class TestJp2k_2_1(fixtures.TestCommon):
     """Only to be run in 2.0+."""
-
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
-        self.j2kfile = glymur.data.goodstuff()
-        self.jpxfile = glymur.data.jpxfile()
-
-    def tearDown(self):
-        pass
 
     def test_ignore_pclr_cmap_cdef_on_old_read(self):
         """
@@ -2227,10 +2189,9 @@ class TestJp2k_2_1(unittest.TestCase):
 
         np.testing.assert_array_equal(actual, expected)
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_grey_with_extra_component(self):
         """version 2.0 cannot write gray + extra"""
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             data = np.zeros((128, 128, 2), dtype=np.uint8)
             j = Jp2k(tfile.name, data=data)
             self.assertEqual(j.box[2].box[0].height, 128)
@@ -2239,10 +2200,9 @@ class TestJp2k_2_1(unittest.TestCase):
             self.assertEqual(j.box[2].box[1].colorspace,
                              glymur.core.GREYSCALE)
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_rgb_with_extra_component(self):
         """v2.0+ should be able to write extra components"""
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             data = np.zeros((128, 128, 4), dtype=np.uint8)
             j = Jp2k(tfile.name, data=data)
             self.assertEqual(j.box[2].box[0].height, 128)
@@ -2250,7 +2210,6 @@ class TestJp2k_2_1(unittest.TestCase):
             self.assertEqual(j.box[2].box[0].num_components, 4)
             self.assertEqual(j.box[2].box[1].colorspace, glymur.core.SRGB)
 
-    @unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
     def test_openjpeg_library_message(self):
         """
         Verify the error message produced by the openjpeg library
@@ -2258,7 +2217,7 @@ class TestJp2k_2_1(unittest.TestCase):
         # This will confirm that the error callback mechanism is working.
         with open(self.jp2file, 'rb') as fptr:
             data = fptr.read()
-            with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+            with open(self.temp_jp2_filename, mode='wb') as tfile:
                 # Codestream starts at byte 3323. SIZ marker at 3233.
                 # COD marker at 3282.  Subsampling at 3276.
                 offset = 3223

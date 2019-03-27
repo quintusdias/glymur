@@ -52,15 +52,8 @@ YRESOLUTION = 283
 PLANARCONFIG = 284
 
 
-@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
-class TestSuite(unittest.TestCase):
+class TestSuite(fixtures.TestCommon):
     """Tests for XMP, Exif UUIDs."""
-
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
-
-    def tearDown(self):
-        pass
 
     def _create_degenerate_geotiff(self, e):
         """
@@ -221,7 +214,7 @@ class TestSuite(unittest.TestCase):
         """Should be able to append an XMP UUID box."""
         the_uuid = uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
         raw_data = fixtures.SIMPLE_RDF.encode('utf-8')
-        with tempfile.NamedTemporaryFile(suffix='.jp2') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             shutil.copyfile(self.jp2file, tfile.name)
             jp2 = Jp2k(tfile.name)
             ubox = glymur.jp2box.UUIDBox(the_uuid=the_uuid, raw_data=raw_data)
@@ -345,8 +338,7 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(actual, expected)
 
 
-@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
-class TestSuiteHiRISE(unittest.TestCase):
+class TestSuiteHiRISE(fixtures.TestCommon):
     """Tests for HiRISE RDRs."""
 
     def setUp(self):
@@ -375,15 +367,16 @@ class TestSuiteHiRISE(unittest.TestCase):
         boxes = [jp2.box[0], jp2.box[1], jp2.box[2], uuidinfo, geotiff_uuid,
                  jp2.box[-1]]
 
-        with tempfile.NamedTemporaryFile(suffix=".jp2", delete=False) as tfile:
-            jp2.wrap(tfile.name, boxes=boxes)
-        self.hirise_jp2file_name = tfile.name
+        self.hirise_tmp_dir = tempfile.mkdtemp()
+        self.hirise_jp2_filename = os.path.join(self.hirise_tmp_dir,
+                                                'hirise.jp2')
+        jp2.wrap(self.hirise_jp2_filename, boxes=boxes)
 
     def tearDown(self):
-        os.unlink(self.hirise_jp2file_name)
+        shutil.rmtree(self.hirise_tmp_dir)
 
     def test_tags(self):
-        jp2 = Jp2k(self.hirise_jp2file_name)
+        jp2 = Jp2k(self.hirise_jp2_filename)
         self.assertEqual(jp2.box[4].data['GeoDoubleParams'],
                          (0.0, 180.0, 0.0, 0.0, 3396190.0, 3396190.0))
         self.assertEqual(jp2.box[4].data['GeoAsciiParams'],
@@ -415,7 +408,7 @@ class TestSuiteHiRISE(unittest.TestCase):
         ))
 
     def test_printing(self):
-        jp2 = Jp2k(self.hirise_jp2file_name)
+        jp2 = Jp2k(self.hirise_jp2_filename)
         actual = str(jp2.box[4])
         if fixtures.HAVE_GDAL:
             self.assertEqual(actual, fixtures.GEOTIFF_UUID)
@@ -426,19 +419,12 @@ class TestSuiteHiRISE(unittest.TestCase):
                 self.assertEqual(actual, fixtures.GEOTIFF_UUID_WITHOUT_GDAL)
 
 
-@unittest.skipIf(os.name == "nt", fixtures.WINDOWS_TMP_FILE_MSG)
-class TestSuiteWarns(unittest.TestCase):
+class TestSuiteWarns(fixtures.TestCommon):
     """Tests for XMP, Exif UUIDs, issues warnings."""
-
-    def setUp(self):
-        self.jp2file = glymur.data.nemo()
-
-    def tearDown(self):
-        pass
 
     def test_bad_tag_datatype(self):
         """Only certain datatypes are allowable"""
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
 
             with open(self.jp2file, 'rb') as ifptr:
                 tfile.write(ifptr.read())
@@ -470,7 +456,7 @@ class TestSuiteWarns(unittest.TestCase):
 
     def test_bad_tiff_header_byte_order_indication(self):
         """Only b'II' and b'MM' are allowed."""
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
 
             with open(self.jp2file, 'rb') as ifptr:
                 tfile.write(ifptr.read())

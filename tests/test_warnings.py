@@ -8,7 +8,6 @@ import os
 import re
 import struct
 import sys
-import tempfile
 import unittest
 import warnings
 import numpy as np
@@ -22,33 +21,32 @@ from glymur import Jp2k
 import glymur
 from glymur.core import COLOR, RED, GREEN, BLUE
 
-from .fixtures import WINDOWS_TMP_FILE_MSG
+from . import fixtures
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
 @unittest.skipIf(sys.hexversion < 0x03000000, 'Do not bother on python2')
-class TestSuite(unittest.TestCase):
+class TestSuite(fixtures.TestCommon):
 
     def setUp(self):
-        self.jp2file = glymur.data.nemo()
-        self.j2kfile = glymur.data.goodstuff()
-        self.jpxfile = glymur.data.jpxfile()
+        super(TestSuite, self).setUp()
 
         # Reset printoptions for every test.
         glymur.reset_option('all')
 
     def tearDown(self):
+        super(TestSuite, self).tearDown()
+
         warnings.resetwarnings()
         glymur.reset_option('all')
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_unrecognized_marker(self):
         """
         EOC marker is not retrieved because there is an unrecognized marker
 
         Original file tested was input/nonregression/illegalcolortransform.j2k
         """
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             with open(self.j2kfile, 'rb') as ifile:
                 # Everything up until the SOT marker.
                 read_buffer = ifile.read(98)
@@ -65,11 +63,13 @@ class TestSuite(unittest.TestCase):
 
             if sys.hexversion < 0x03000000:
                 with warnings.catch_warnings(record=True) as w:
-                    c = Jp2k(tfile.name).get_codestream(header_only=False)
+                    j = Jp2k(self.temp_j2k_filename)
+                    c = j.get_codestream(header_only=False)
                 assert issubclass(w[-1].category, UserWarning)
             else:
                 with self.assertWarns(UserWarning):
-                    c = Jp2k(tfile.name).get_codestream(header_only=False)
+                    j = Jp2k(self.temp_j2k_filename)
+                    c = j.get_codestream(header_only=False)
 
         # Verify that the last segment returned in the codestream is SOT,
         # not EOC.  It was after SOT that the invalid marker was inserted.
@@ -99,7 +99,6 @@ class TestSuite(unittest.TestCase):
 
         self.assertIsNone(box.xml)
 
-    @unittest.skipIf(os.name == "nt", "Temporary file issue on window.")
     def test_unknown_marker_segment(self):
         """
         Should warn for an unknown marker.
@@ -108,7 +107,7 @@ class TestSuite(unittest.TestCase):
         be valid.  We still parse the file, but warn about the offending
         marker.
         """
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             with open(self.j2kfile, 'rb') as ifile:
                 # Everything up until the first QCD marker.
                 read_buffer = ifile.read(65)
@@ -260,7 +259,6 @@ class TestSuite(unittest.TestCase):
             with self.assertWarns(UserWarning):
                 glymur.codestream.Codestream._parse_siz_segment(fp)
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_read_past_end_of_box(self):
         """
         should warn if reading past end of a box
@@ -270,7 +268,7 @@ class TestSuite(unittest.TestCase):
 
         The original file tested was input/nonregression/mem-b2ace68c-1381.jp2
         """
-        with tempfile.NamedTemporaryFile(mode='wb', suffix='.jp2') as ofile:
+        with open(self.temp_jp2_filename, mode='wb') as ofile:
             with open(self.jpxfile, 'rb') as ifile:
                 ofile.write(ifile.read(93))
 
@@ -346,7 +344,6 @@ class TestSuite(unittest.TestCase):
             with self.assertWarns(UserWarning):
                 glymur.codestream.CODsegment(*pargs, length=12, offset=174)
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_file_pointer_badly_positioned(self):
         """
         The file pointer should not be positioned beyond end of superbox
@@ -355,7 +352,7 @@ class TestSuite(unittest.TestCase):
 
         Original file tested was nput/nonregression/broken1.jp2
         """
-        with tempfile.NamedTemporaryFile(mode='wb', suffix='.jp2') as ofile:
+        with open(self.temp_jp2_filename, mode='wb') as ofile:
             with open(self.jp2file, 'rb') as ifile:
 
                 # Write up to the colr box
@@ -379,7 +376,6 @@ class TestSuite(unittest.TestCase):
                 with self.assertWarns(UserWarning):
                     Jp2k(ofile.name)
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_NR_DEC_issue188_beach_64bitsbox_jp2_41_decode(self):
         """
         Has an 'XML ' box instead of 'xml '.  Yes that is pedantic, but it
@@ -390,7 +386,7 @@ class TestSuite(unittest.TestCase):
         The best way to test this really is to tack a new box onto the end of
         an existing file.
         """
-        with tempfile.NamedTemporaryFile(mode='wb', suffix='.jp2') as ofile:
+        with open(self.temp_jp2_filename, mode='wb') as ofile:
             with open(self.jp2file, 'rb') as ifile:
                 ofile.write(ifile.read())
 
@@ -479,11 +475,10 @@ class TestSuite(unittest.TestCase):
             with self.assertWarns(UserWarning):
                 jp2._validate()
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_unknown_superbox(self):
         """Verify warning for an unknown superbox."""
 
-        with tempfile.NamedTemporaryFile(suffix='.jpx') as tfile:
+        with open(self.temp_jpx_filename, mode='wb') as tfile:
             with open(self.jpxfile, 'rb') as ifile:
                 tfile.write(ifile.read())
 
@@ -584,15 +579,13 @@ class TestSuite(unittest.TestCase):
             glymur.jp2box.PaletteBox(palette, bits_per_component=bps,
                                      signed=signed)
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_invalid_xml_box(self):
         """
         Should be able to recover info from xml box with bad xml.
         """
-        jp2file = glymur.data.nemo()
-        with tempfile.NamedTemporaryFile(suffix='.jp2', delete=False) as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
             bad_xml_file = tfile.name
-            with open(jp2file, 'rb') as ifile:
+            with open(self.jp2file, 'rb') as ifile:
                 # Everything up until the UUID box.
                 write_buffer = ifile.read(77)
                 tfile.write(write_buffer)
@@ -668,10 +661,9 @@ class TestSuite(unittest.TestCase):
             with self.assertWarns(UserWarning):
                 glymur.jp2box.FragmentListBox(offset, length, reference)
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_unrecognized_exif_tag(self):
         """Verify warning in case of unrecognized tag."""
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
 
             with open(self.jp2file, 'rb') as ifptr:
                 tfile.write(ifptr.read())
@@ -694,10 +686,9 @@ class TestSuite(unittest.TestCase):
             with self.assertWarns(UserWarning):
                 glymur.Jp2k(tfile.name)
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_bad_tag_datatype(self):
         """Only certain datatypes are allowable"""
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
 
             with open(self.jp2file, 'rb') as ifptr:
                 tfile.write(ifptr.read())
@@ -720,10 +711,9 @@ class TestSuite(unittest.TestCase):
             with self.assertWarns(UserWarning):
                 glymur.Jp2k(tfile.name)
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_bad_tiff_header_byte_order_indication(self):
         """Only b'II' and b'MM' are allowed."""
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as tfile:
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
 
             with open(self.jp2file, 'rb') as ifptr:
                 tfile.write(ifptr.read())
@@ -752,7 +742,6 @@ class TestSuite(unittest.TestCase):
         with self.assertWarns(DeprecationWarning):
             Jp2k(self.jp2file).read()
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_bad_rsiz(self):
         """
         Should not warn if RSIZ when parsing is turned off.
@@ -765,7 +754,7 @@ class TestSuite(unittest.TestCase):
 
         Issue196
         """
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
+        with open(self.temp_jp2_filename, mode='wb') as ofile:
             with open(self.jp2file, 'rb') as ifile:
                 # Copy up until the RSIZ value.
                 ofile.write(ifile.read(3237))
@@ -792,7 +781,6 @@ class TestSuite(unittest.TestCase):
                 with self.assertWarns(UserWarning):
                     Jp2k(ofile.name)
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_undecodeable_box_id(self):
         """
         Should warn in case of undecodeable box ID but not error out.
@@ -803,7 +791,7 @@ class TestSuite(unittest.TestCase):
             input/nonregression/edf_c2_1013627.jp2
         """
         bad_box_id = b'abcd'
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
+        with open(self.temp_jp2_filename, mode='wb') as ofile:
             with open(self.jp2file, 'rb') as ifile:
                 ofile.write(ifile.read())
 
@@ -825,7 +813,6 @@ class TestSuite(unittest.TestCase):
             self.assertEqual(box_ids, ['jP  ', 'ftyp', 'jp2h', 'uuid', 'jp2c',
                                        bad_box_id])
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_bad_ftyp_brand(self):
         """
         Should warn in case of bad ftyp brand.
@@ -835,7 +822,7 @@ class TestSuite(unittest.TestCase):
 
             input/nonregression/edf_c2_1000290.jp2
         """
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
+        with open(self.temp_jp2_filename, mode='wb') as ofile:
             with open(self.jp2file, 'rb') as ifile:
                 # Write the JPEG2000 signature box
                 ofile.write(ifile.read(12))
@@ -859,12 +846,11 @@ class TestSuite(unittest.TestCase):
                 with self.assertWarns(UserWarning):
                     Jp2k(ofile.name)
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_bad_ftyp_compatibility_list_item(self):
         """
         Should warn in case of bad ftyp compatibility list item
         """
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
+        with open(self.temp_jp2_filename, mode='wb') as ofile:
             with open(self.jp2file, 'rb') as ifile:
                 # Write the JPEG2000 signature box
                 ofile.write(ifile.read(12))
@@ -887,7 +873,6 @@ class TestSuite(unittest.TestCase):
                 with self.assertWarns(UserWarning):
                     Jp2k(ofile.name)
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_invalid_approximation(self):
         """
         Should warn in case of invalid approximation.
@@ -899,7 +884,7 @@ class TestSuite(unittest.TestCase):
 
         Rewrite nemo.jp2 to have an invalid approximation.
         """
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
+        with open(self.temp_jp2_filename, mode='wb') as ofile:
             with open(self.jp2file, 'rb') as ifile:
                 # Copy the signature, file type, and jp2 header, image header
                 # box as-is.
@@ -923,7 +908,6 @@ class TestSuite(unittest.TestCase):
                 with self.assertWarns(UserWarning):
                     Jp2k(ofile.name)
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_invalid_colorspace(self):
         """
         Should warn in case of invalid colorspace.
@@ -935,7 +919,7 @@ class TestSuite(unittest.TestCase):
 
         Rewrite nemo.jp2 to have an invalid colorspace.
         """
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
+        with open(self.temp_jp2_filename, mode='wb') as ofile:
             with open(self.jp2file, 'rb') as ifile:
                 # Copy the signature, file type, and jp2 header, image header
                 # box as-is.
@@ -959,7 +943,6 @@ class TestSuite(unittest.TestCase):
                 with self.assertWarns(UserWarning):
                     Jp2k(ofile.name)
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_stupid_windows_eol_at_end(self):
         """
         Garbage characters at the end of the file.
@@ -971,7 +954,7 @@ class TestSuite(unittest.TestCase):
         Rewrite nemo.jp2 to have a few additional bytes at the end (less than
         8 because then it would be interpreted as a box).
         """
-        with tempfile.NamedTemporaryFile(suffix='.jp2', mode='wb') as ofile:
+        with open(self.temp_jp2_filename, mode='wb') as ofile:
             with open(self.jp2file, 'rb') as ifile:
                 # Copy the file all the way until the end.
                 ofile.write(ifile.read())
@@ -989,7 +972,6 @@ class TestSuite(unittest.TestCase):
                     Jp2k(ofile.name)
 
     @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-    @unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
     @unittest.skipIf(re.match(r'''(1|2.0.0)''',
                               glymur.version.openjpeg_version) is not None,
                      "Uses features not supported until 2.0.1")
@@ -1006,7 +988,7 @@ class TestSuite(unittest.TestCase):
         data = np.concatenate((data, data), axis=1).astype(np.uint16)
         data = data[:1080, :2048, :]
 
-        with tempfile.NamedTemporaryFile(suffix='.j2k') as tfile:
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
             if sys.hexversion < 0x03000000:
                 with warnings.catch_warnings(record=True) as w:
                     Jp2k(tfile.name, data=data, cinema2k=24)
@@ -1038,12 +1020,11 @@ class TestSuite(unittest.TestCase):
             glymur.get_parseoptions()
 
 
-@unittest.skipIf(os.name == "nt", WINDOWS_TMP_FILE_MSG)
 @unittest.skipIf(sys.hexversion < 0x03020000,
                  "TemporaryDirectory introduced in 3.2.")
 @unittest.skipIf(glymur.lib.openjp2.OPENJP2 is None,
                  "Needs openjp2 library first before these tests make sense.")
-class TestConfigurationWarnings(unittest.TestCase):
+class TestConfigurationWarnings(fixtures.TestCommon):
     """Test suite for configuration file warnings."""
 
     @classmethod
@@ -1056,22 +1037,23 @@ class TestConfigurationWarnings(unittest.TestCase):
         imp.reload(glymur)
         imp.reload(glymur.lib.openjp2)
 
-    @unittest.skipIf(sys.platform == 'win32', WINDOWS_TMP_FILE_MSG)
     def test_xdg_env_config_file_is_bad(self):
         """A non-existant library location should be rejected."""
-        with tempfile.TemporaryDirectory() as tdir:
-            configdir = os.path.join(tdir, 'glymur')
-            os.mkdir(configdir)
-            fname = os.path.join(configdir, 'glymurrc')
-            with open(fname, 'w') as fptr:
-                with tempfile.NamedTemporaryFile(suffix='.dylib') as tfile:
-                    fptr.write('[library]\n')
-                    fptr.write('openjp2: {0}.not.there\n'.format(tfile.name))
-                    fptr.flush()
-                    with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
-                        # Warn about a bad library being rejected.
-                        with self.assertWarns(UserWarning):
-                            imp.reload(glymur.lib.openjp2)
+        fake_lib = 'libopenjp2.dylib.not.there.not.anywhere'
+
+        configdir = os.path.join(self.test_dir, 'glymur')
+        os.mkdir(configdir)
+        rc_file = os.path.join(configdir, 'glymurrc')
+
+        with open(rc_file, 'w') as fptr:
+            fptr.write('[library]\n')
+            fptr.write('openjp2: {0}.not.there\n'.format(fake_lib))
+            fptr.flush()
+
+        with patch.dict('os.environ', {'XDG_CONFIG_HOME': self.test_dir}):
+            # Warn about a bad library being rejected.
+            with self.assertWarns(UserWarning):
+                imp.reload(glymur.lib.openjp2)
 
 
 class TestSuiteXML(unittest.TestCase):
