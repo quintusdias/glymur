@@ -4,8 +4,12 @@ Test suite specifically targeting JPX box layout.
 """
 # Standard library imports ...
 import ctypes
+try:
+    import importlib.resources as ir
+except ImportError:
+    # before 3.7
+    import importlib_resources as ir
 from io import BytesIO
-import os
 import shutil
 import struct
 import tempfile
@@ -13,7 +17,6 @@ import warnings
 
 # Third party library imports ...
 import lxml.etree as ET
-import pkg_resources as pkg
 
 # Local imports ...
 import glymur
@@ -21,7 +24,7 @@ from glymur import Jp2k
 from glymur.jp2box import DataEntryURLBox, FileTypeBox, JPEG2000SignatureBox
 from glymur.jp2box import DataReferenceBox, FragmentListBox, FragmentTableBox
 from glymur.jp2box import ColourSpecificationBox
-from . import fixtures
+from . import fixtures, data
 
 
 class TestJPXWrap(fixtures.TestCommon):
@@ -429,29 +432,35 @@ class TestJPX(fixtures.TestCommon):
 
     def test_reader_requirements_box(self):
         """
-        Simple test for parsing a reader requirements box.
+        SCENARIO:  A JPX file with a valid reader requirements box is
+        encountered.
+
+        EXPECTED RESULT:  The box is parsed without error.
         """
-        file = os.path.join('data', 'text_GBR.jp2')
-        file = pkg.resource_filename(__name__, file)
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            j = Jp2k(file)
-            self.assertEqual(len(j.box[2].vendor_feature), 4)
+        with ir.path(data, 'text_GBR.jp2') as path:
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                j = Jp2k(path)
+
+        self.assertEqual(len(j.box[2].vendor_feature), 4)
 
     def test_reader_requirements_box_writing(self):
         """
-        If a box does not have writing specifically enabled, must error out.
-        """
-        file = os.path.join('data', 'text_GBR.jp2')
-        file = pkg.resource_filename(__name__, file)
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            j = Jp2k(file)
-            box = j.box[2]
+        SCENARIO:  Write a JPX box out to file.  The box does not have a write
+        method implemented.
 
-            b = BytesIO()
-            with self.assertRaises(NotImplementedError):
-                box.write(b)
+        EXPECTED RESULT:  NotImplementedError
+        """
+        with ir.path(data, 'text_GBR.jp2') as path:
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                j = Jp2k(path)
+
+        box = j.box[2]
+
+        b = BytesIO()
+        with self.assertRaises(NotImplementedError):
+            box.write(b)
 
     def test_flst_lens_not_the_same(self):
         """A fragment list box items must be the same length."""

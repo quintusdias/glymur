@@ -2,6 +2,11 @@
 """
 # Standard library imports ...
 import doctest
+try:
+    import importlib.resources as ir
+except ImportError:
+    # before 3.7
+    import importlib_resources as ir
 from io import BytesIO
 import os
 import pathlib
@@ -13,12 +18,9 @@ from uuid import UUID
 import unittest
 import warnings
 
-# Third party library import, favored over standard library.
-import lxml.etree as ET
-
 # Third party library imports ...
+import lxml.etree as ET
 import numpy as np
-import pkg_resources as pkg
 
 # Local imports ...
 import glymur
@@ -31,7 +33,7 @@ from glymur.jp2box import (
 )
 from glymur.core import COLOR, OPACITY, SRGB, GREYSCALE
 from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE
-from . import fixtures
+from . import fixtures, data
 from .fixtures import MetadataBase
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
@@ -358,17 +360,17 @@ class TestFileTypeBox(fixtures.TestCommon):
     """Test suite for ftyp box issues."""
 
     def test_bad_brand_on_parse(self):
-        """The JP2 file file type box does not contain a valid brand.
-
-        Expect a specific validation error.
         """
-        relpath = os.path.join('data', 'issue396.jp2')
-        filename = pkg.resource_filename(__name__, relpath)
-        with warnings.catch_warnings():
-            # Lots of things wrong with this file.
-            warnings.simplefilter('ignore')
-            with self.assertRaises(IOError):
-                Jp2k(filename)
+        SCENARIO:  The JP2 file file type box does not contain a valid brand.
+
+        EXPECTED RESULT:  IOError
+        """
+        with ir.path(data, 'issue396.jp2') as path:
+            with warnings.catch_warnings():
+                # Lots of things wrong with this file.
+                warnings.simplefilter('ignore')
+                with self.assertRaises(IOError):
+                    Jp2k(path)
 
     def test_brand_unknown(self):
         """A ftyp box brand must be 'jp2 ' or 'jpx '."""

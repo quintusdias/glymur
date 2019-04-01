@@ -5,7 +5,11 @@ Test suite specifically targeting ICC profiles
 
 # Standard library imports ...
 from datetime import datetime
-import os
+try:
+    import importlib.resources as ir
+except ImportError:
+    # before 3.7
+    import importlib_resources as ir
 import struct
 import tempfile
 import unittest
@@ -13,7 +17,6 @@ import warnings
 
 # Third party library imports
 import numpy as np
-import pkg_resources as pkg
 
 # Local imports
 import glymur
@@ -24,7 +27,7 @@ from glymur.jp2box import (
     ImageHeaderBox, JP2HeaderBox, JPEG2000SignatureBox
 )
 from glymur.core import SRGB
-from . import fixtures
+from . import fixtures, data
 
 
 class TestColourSpecificationBox(fixtures.TestCommon):
@@ -46,10 +49,7 @@ class TestColourSpecificationBox(fixtures.TestCommon):
         self.ihdr = ImageHeaderBox(height=height, width=width,
                                    num_components=num_components)
 
-        relpath = os.path.join('data', 'sgray.icc')
-        iccfile = pkg.resource_filename(__name__, relpath)
-        with open(iccfile, mode='rb') as f:
-            self.icc_profile = f.read()
+        self.icc_profile = ir.read_binary(data, 'sgray.icc')
 
     def test_bad_method_printing(self):
         """
@@ -57,15 +57,14 @@ class TestColourSpecificationBox(fixtures.TestCommon):
 
         It's enough that it doesn't error out.
         """
-        relpath = os.path.join('data', 'issue405.dat')
-        filename = pkg.resource_filename(__name__, relpath)
-        with open(filename, 'rb') as f:
-            f.seek(8)
-            with warnings.catch_warnings():
-                # Lots of things wrong with this file.
-                warnings.simplefilter('ignore')
-                box = ColourSpecificationBox.parse(f, length=80, offset=0)
-        str(box)
+        with ir.path(data, 'issue405.dat') as path:
+            with path.open('rb') as f:
+                f.seek(8)
+                with warnings.catch_warnings():
+                    # Lots of things wrong with this file.
+                    warnings.simplefilter('ignore')
+                    box = ColourSpecificationBox.parse(f, length=80, offset=0)
+                    str(box)
 
     def test_colr_with_out_enum_cspace(self):
         """must supply an enumerated colorspace when writing"""
@@ -148,10 +147,7 @@ class TestSuite(unittest.TestCase):
     """Test suite for ICC Profile code."""
 
     def setUp(self):
-        relpath = os.path.join('data', 'sgray.icc')
-        iccfile = pkg.resource_filename(__name__, relpath)
-        with open(iccfile, mode='rb') as f:
-            self.buffer = f.read()
+        self.buffer = ir.read_binary(data, 'sgray.icc')
 
     def test_bad_rendering_intent(self):
         """
@@ -178,13 +174,14 @@ class TestSuite(unittest.TestCase):
 
     def test_icc_profile(self):
         """
-        Verify full ICC profile
+        SCENARIO:  The ColourDefinitionBox has an ICC profile.
+
+        EXPECTED RESULT:  Verify the ICC profile metadata.
         """
-        relpath = os.path.join('data', 'text_GBR.jp2')
-        jfile = pkg.resource_filename(__name__, relpath)
-        with self.assertWarns(UserWarning):
-            # The brand is wrong, this is JPX, not JP2.
-            j = Jp2k(jfile)
+        with ir.path(data, 'text_GBR.jp2') as path:
+            with self.assertWarns(UserWarning):
+                # The brand is wrong, this is JPX, not JP2.
+                j = Jp2k(path)
         box = j.box[3].box[1]
 
         self.assertEqual(box.icc_profile_header['Size'], 1328)

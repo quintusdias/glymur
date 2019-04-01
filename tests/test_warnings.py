@@ -4,22 +4,24 @@ Test suite for warnings issued by glymur.
 # Standard library imports
 import codecs
 import imp
+try:
+    import importlib.resources as ir
+except ImportError:
+    # before 3.7
+    import importlib_resources as ir
 from io import BytesIO
-import os
 import struct
 import unittest
 import warnings
 import numpy as np
 from unittest.mock import patch
 
-# Third party library imports
-import pkg_resources as pkg
-
+# Local imports
 from glymur import Jp2k
 import glymur
 from glymur.core import COLOR, RED, GREEN, BLUE
 
-from . import fixtures
+from . import fixtures, data
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
@@ -44,10 +46,10 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  A warning is issued.  In this case we also end up
         erroring out anyway since we don't get a valid FileType box.
         """
-        filename = pkg.resource_filename(__name__, 'data/issue438.jp2')
-        with self.assertWarns(UserWarning):
-            with self.assertRaises(OSError):
-                Jp2k(filename)
+        with ir.path(data, 'issue438.jp2') as path:
+            with self.assertWarns(UserWarning):
+                with self.assertRaises(OSError):
+                    Jp2k(path)
 
     def test_siz_ihdr_mismatch(self):
         """
@@ -458,10 +460,7 @@ class TestSuite(fixtures.TestCommon):
 
     def test_colr_with_cspace_and_icc(self):
         """Colour specification boxes can't have both."""
-        relpath = os.path.join('data', 'sgray.icc')
-        iccfile = pkg.resource_filename(__name__, relpath)
-        with open(iccfile, mode='rb') as f:
-            buffer = f.read()
+        buffer = ir.read_binary(data, 'sgray.icc')
 
         with self.assertWarns(UserWarning):
             colorspace = glymur.core.SRGB

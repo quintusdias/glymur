@@ -2,9 +2,12 @@
 """Test suite for printing.
 """
 # Standard library imports
+try:
+    import importlib.resources as ir
+except ImportError:
+    # before 3.7
+    import importlib_resources as ir
 from io import BytesIO
-import os
-import pkg_resources as pkg
 import shutil
 import struct
 import sys
@@ -18,7 +21,7 @@ import lxml.etree
 # Local imports
 import glymur
 from glymur import Jp2k
-from . import fixtures
+from . import fixtures, data
 
 TIFF_ASCII = 2
 TIFF_SHORT = 3
@@ -305,17 +308,19 @@ class TestSuite(fixtures.TestCommon):
                      "needs gdal to make sense")
     def test_print_bad_geotiff(self):
         """
-        Geotiff UUID is corrupt.  Print that instead of erroring out.
+        SCENARIO:  A GeoTIFF UUID is corrupt.
+
+        EXPECTED RESULT:  The string representation should validate and clearly
+        state that the UUID box is corrupt.
         """
-        relpath = os.path.join('data', 'issue398.dat')
-        path = pkg.resource_filename(__name__, relpath)
-        with open(path, 'rb') as f:
-            f.seek(8)
-            with warnings.catch_warnings():
-                # Ignore the warnings about invalid TIFF tags, we already know
-                # that.
-                warnings.simplefilter('ignore')
-                box = glymur.jp2box.UUIDBox.parse(f, 0, 380)
+        with ir.path(data, 'issue398.dat') as path:
+            with path.open('rb') as f:
+                f.seek(8)
+                with warnings.catch_warnings():
+                    # Ignore the warnings about invalid TIFF tags, we already
+                    # know that.
+                    warnings.simplefilter('ignore')
+                    box = glymur.jp2box.UUIDBox.parse(f, 0, 380)
 
         actual = str(box)
         expected = ("UUID Box (uuid) @ (0, 380)\n"
@@ -342,10 +347,7 @@ class TestSuiteHiRISE(fixtures.TestCommon):
 
         uuidinfo = glymur.jp2box.UUIDInfoBox([ulst, debox])
 
-        relpath = os.path.join('data', 'degenerate_geotiff.tif')
-        path = pkg.resource_filename(__name__, relpath)
-        with open(path, 'rb') as fptr:
-            uuid_data = fptr.read()
+        uuid_data = ir.read_binary(data, 'degenerate_geotiff.tif')
         the_uuid = uuid.UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03')
         geotiff_uuid = glymur.jp2box.UUIDBox(the_uuid, uuid_data)
 

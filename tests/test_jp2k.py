@@ -5,6 +5,11 @@ Tests for general glymur functionality.
 import collections
 import datetime
 import doctest
+try:
+    import importlib.resources as ir
+except ImportError:
+    # before 3.7
+    import importlib_resources as ir
 from io import BytesIO
 import os
 import pathlib
@@ -19,7 +24,6 @@ from xml.etree import cElementTree as ET
 
 # Third party library imports ...
 import numpy as np
-import pkg_resources as pkg
 import skimage.data
 import skimage.measure
 
@@ -30,7 +34,7 @@ from glymur.core import COLOR, RED, GREEN, BLUE, RESTRICTED_ICC_PROFILE
 
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
-from . import fixtures
+from . import fixtures, data
 
 
 def docTearDown(doctest_obj):  # pragma: no cover
@@ -279,10 +283,9 @@ class TestJp2k(fixtures.TestCommon):
 
         EXPECTED RESPONSE: The image is a list of arrays of unequal size.
         """
-        file = os.path.join('data', 'p0_06.j2k')
-        file = pkg.resource_filename(__name__, file)
-        j = Jp2k(file)
-        d = j.read_bands()
+        with ir.path(data, 'p0_06.j2k') as path:
+            d = Jp2k(path).read_bands()
+
         actual = [band.shape for band in d]
         expected = [(129, 513), (129, 257), (65, 513), (65, 257)]
         self.assertEqual(actual, expected)
@@ -501,10 +504,14 @@ class TestJp2k(fixtures.TestCommon):
             j[::64, ::64]
 
     def test_not_jpeg2000(self):
-        """Should error out appropriately if not given a JPEG 2000 file."""
-        filename = pkg.resource_filename(glymur.__name__, "jp2k.py")
-        with self.assertRaises(IOError):
-            Jp2k(filename)
+        """
+        SCENARIO:  The Jp2k constructor is passed a file that is not JPEG 2000.
+
+        EXPECTED RESULT:  IOError
+        """
+        with ir.path(glymur, 'jp2k.py') as path:
+            with self.assertRaises(IOError):
+                Jp2k(path)
 
     def test_file_not_present(self):
         """Should error out if reading from a file that does not exist"""
@@ -1043,11 +1050,12 @@ class TestJp2k(fixtures.TestCommon):
     @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
     def test_different_layers(self):
         """
-        Verify that setting the layer property results in different images.
+        SCENARIO:  Set the layer property to specify the 2nd layer.
+
+        EXPECTED RESULT:  The 2nd image read in is not the same as the first.
         """
-        file = os.path.join('data', 'p0_03.j2k')
-        file = pkg.resource_filename(__name__, file)
-        j = Jp2k(file)
+        with ir.path(data, 'p0_03.j2k') as path:
+            j = Jp2k(path)
         d0 = j[:]
 
         j.layer = 1
@@ -1059,34 +1067,42 @@ class TestJp2k(fixtures.TestCommon):
         """
         SCENARIO:  an improper layer value is set
 
-        EXPECTED RESULT:  should error out
+        EXPECTED RESULT:  IOError when an invalid layer number is supplied
         """
         # There are 8 layers, so only values [0-7] are valid.
-        file = os.path.join('data', 'p0_03.j2k')
-        file = pkg.resource_filename(__name__, file)
-        j = Jp2k(file)
+        with ir.path(data, 'p0_03.j2k') as path:
+            j = Jp2k(path)
+
         with self.assertRaises(IOError):
             j.layer = -1
+
+        for layer in range(8):
+            # 0-7 are all valid.
+            j.layer
 
         with self.assertRaises(IOError):
             j.layer = 8
 
     def test_default_verbosity(self):
         """
-        By default, verbosity should be false.
+        SCENARIO:  Check the default verbosity property.
+
+        EXPECTED RESULT:  The default verbosity setting is False.
         """
-        file = os.path.join('data', 'p0_03.j2k')
-        file = pkg.resource_filename(__name__, file)
-        j = Jp2k(file)
+        with ir.path(data, 'p0_03.j2k') as path:
+            j = Jp2k(path)
+
         self.assertFalse(j.verbose)
 
     def test_default_layer(self):
         """
-        By default, the layer should be 0
+        SCENARIO:  Check the default layer property.
+
+        EXPECTED RESULT:  The default layer property value is 0.
         """
-        file = os.path.join('data', 'p0_03.j2k')
-        file = pkg.resource_filename(__name__, file)
-        j = Jp2k(file)
+        with ir.path(data, 'p0_03.j2k') as path:
+            j = Jp2k(path)
+
         self.assertEqual(j.layer, 0)
 
     def test_thread_support(self):

@@ -3,9 +3,12 @@
 Test suite specifically targeting the JP2 XML box layout.
 """
 # Standard library imports
+try:
+    import importlib.resources as ir
+except ImportError:
+    # before 3.7
+    import importlib_resources as ir
 from io import BytesIO
-import os
-import pkg_resources as pkg
 import struct
 import warnings
 
@@ -19,7 +22,7 @@ from glymur.jp2box import ColourSpecificationBox, ContiguousCodestreamBox
 from glymur.jp2box import FileTypeBox, ImageHeaderBox, JP2HeaderBox
 from glymur.jp2box import JPEG2000SignatureBox
 
-from . import fixtures
+from . import fixtures, data
 
 
 class TestXML(fixtures.TestCommon):
@@ -149,11 +152,8 @@ class TestXML(fixtures.TestCommon):
             write_buffer = struct.pack('>I4s', int(1777), b'xml ')
             ofile.write(write_buffer)
 
-            relpath = os.path.join('data', 'encoding_declaration.xml')
-            xml_file_path = pkg.resource_filename(__name__, relpath)
-
-            with open(xml_file_path, 'rb') as xfptr:
-                ofile.write(xfptr.read())
+            xmldata = ir.read_binary(data, 'encoding_declaration.xml')
+            ofile.write(xmldata)
 
             ofile.flush()
             ofile.seek(0)

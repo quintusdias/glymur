@@ -3,9 +3,12 @@
 Test suite for printing.
 """
 # Standard library imports ...
+try:
+    import importlib.resources as ir
+except ImportError:
+    # before 3.7
+    import importlib_resources as ir
 from io import BytesIO, StringIO
-import os
-import pkg_resources as pkg
 import struct
 import sys
 import unittest
@@ -24,7 +27,7 @@ from glymur.jp2box import BitsPerComponentBox, ColourSpecificationBox
 from glymur.jp2box import LabelBox
 from glymur import Jp2k, command_line
 from glymur.lib import openjp2 as opj2
-from . import fixtures
+from . import fixtures, data
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
@@ -46,12 +49,10 @@ class TestPrinting(fixtures.TestCommon):
         """
         Invalid channel type should not prevent printing.
         """
-        relfile = os.path.join('data', 'issue392.jp2')
-        file = pkg.resource_filename(__name__, relfile)
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            jp2 = Jp2k(file)
-        str(jp2)
+        with ir.path(data, 'issue392.jp2') as path:
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                str(Jp2k(path))
 
     def test_palette(self):
         """
@@ -1240,12 +1241,13 @@ class TestPrinting(fixtures.TestCommon):
     def test_icc_profile(self):
         """
         SCENARIO:  print a colr box with an ICC profile
+
+        EXPECTED RESULT:  validate the string representation
         """
-        relpath = os.path.join('data', 'text_GBR.jp2')
-        jfile = pkg.resource_filename(__name__, relpath)
-        with self.assertWarns(UserWarning):
-            # The brand is wrong, this is JPX, not JP2.
-            j = Jp2k(jfile)
+        with ir.path(data, 'text_GBR.jp2') as path:
+            with self.assertWarns(UserWarning):
+                # The brand is wrong, this is JPX, not JP2.
+                j = Jp2k(path)
         box = j.box[3].box[1]
         actual = str(box)
         # Don't bother verifying the OrderedDict part of the colr box.
@@ -1447,31 +1449,32 @@ class TestPrinting(fixtures.TestCommon):
         self.assertTrue(opt)
 
     def test_reserved_marker(self):
-        file = os.path.join('data', 'p0_02.j2k')
-        file = pkg.resource_filename(__name__, file)
-        j = Jp2k(file)
+        """
+        SCENARIO:  print a marker segment with a reserver marker value
+
+        EXPECTED RESULT:  validate the string representation
+        """
+        with ir.path(data, 'p0_02.j2k') as path:
+            j = Jp2k(path)
         actual = str(j.codestream.segment[6])
         expected = '0xff30 marker segment @ (132, 0)'
         self.assertEqual(actual, expected)
 
     def test_scalar_implicit_quantization_file(self):
-        file = os.path.join('data', 'p0_03.j2k')
-        file = pkg.resource_filename(__name__, file)
-        j = Jp2k(file)
+        with ir.path(data, 'p0_03.j2k') as path:
+            j = Jp2k(path)
         actual = str(j.codestream.segment[3])
         self.assertIn('scalar implicit', actual)
 
     def test_scalar_explicit_quantization_file(self):
-        file = os.path.join('data', 'p0_06.j2k')
-        file = pkg.resource_filename(__name__, file)
-        j = Jp2k(file)
+        with ir.path(data, 'p0_06.j2k') as path:
+            j = Jp2k(path)
         actual = str(j.codestream.segment[3])
         self.assertIn('scalar explicit', actual)
 
     def test_non_default_precinct_size(self):
-        file = os.path.join('data', 'p1_07.j2k')
-        file = pkg.resource_filename(__name__, file)
-        j = Jp2k(file)
+        with ir.path(data, 'p1_07.j2k') as path:
+            j = Jp2k(path)
         actual = str(j.codestream.segment[3])
         expected = fixtures.P1_07
         self.assertEqual(actual, expected)
@@ -1598,9 +1601,8 @@ class TestJp2dump(unittest.TestCase):
         EXPECTED RESULT:  The warning is suppressed until the very end of the
         output.
         """
-        file = os.path.join('data', 'edf_c2_1178956.jp2')
-        file = pkg.resource_filename(__name__, file)
-        actual = self.run_jp2dump(['', '-x', file])
+        with ir.path(data, 'edf_c2_1178956.jp2') as path:
+            actual = self.run_jp2dump(['', '-x', str(path)])
         lines = actual.splitlines()
 
         for line in lines[:-1]:

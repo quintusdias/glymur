@@ -1,3 +1,4 @@
+importlib_resources
 numpy
 openjpeg=2.3.0
 lxml
