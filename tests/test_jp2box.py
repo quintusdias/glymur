@@ -2,6 +2,10 @@
 """
 # Standard library imports ...
 import doctest
+try:
+    import importlib.resources as ir
+except ImportError:
+    import importlib_resources as ir
 from io import BytesIO
 import os
 import re
@@ -20,7 +24,6 @@ except ImportError:
 
 # Third party library imports ...
 import numpy as np
-import pkg_resources as pkg
 
 # Local imports ...
 import glymur
@@ -31,7 +34,7 @@ from glymur.jp2box import JPEG2000SignatureBox, BitsPerComponentBox
 from glymur.jp2box import PaletteBox, UnknownBox, CaptureResolutionBox
 from glymur.core import COLOR, OPACITY, SRGB, GREYSCALE
 from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE
-from . import fixtures
+from . import fixtures, data
 from .fixtures import MetadataBase
 
 
@@ -357,13 +360,12 @@ class TestFileTypeBox(fixtures.TestCommon):
 
         Expect a specific validation error.
         """
-        relpath = os.path.join('data', 'issue396.jp2')
-        filename = pkg.resource_filename(__name__, relpath)
-        with warnings.catch_warnings():
-            # Lots of things wrong with this file.
-            warnings.simplefilter('ignore')
-            with self.assertRaises(IOError):
-                Jp2k(filename)
+        with ir.path(data, 'issue396.jp2') as path:
+            with warnings.catch_warnings():
+                # Lots of things wrong with this file.
+                warnings.simplefilter('ignore')
+                with self.assertRaises(IOError):
+                    Jp2k(path)
 
     def test_brand_unknown(self):
         """A ftyp box brand must be 'jp2 ' or 'jpx '."""
@@ -426,14 +428,13 @@ class TestColourSpecificationBox(fixtures.TestCommon):
 
         It's enough that it doesn't error out.
         """
-        relpath = os.path.join('data', 'issue405.dat')
-        filename = pkg.resource_filename(__name__, relpath)
-        with open(filename, 'rb') as f:
-            f.seek(8)
-            with warnings.catch_warnings():
-                # Lots of things wrong with this file.
-                warnings.simplefilter('ignore')
-                box = ColourSpecificationBox.parse(f, length=80, offset=0)
+        with ir.path(data, 'issue405.dat') as path:
+            with path.open('rb') as f:
+                f.seek(8)
+                with warnings.catch_warnings():
+                    # Lots of things wrong with this file.
+                    warnings.simplefilter('ignore')
+                    box = ColourSpecificationBox.parse(f, length=80, offset=0)
         str(box)
 
     def test_colr_with_out_enum_cspace(self):
@@ -477,10 +478,7 @@ class TestColourSpecificationBox(fixtures.TestCommon):
     def test_icc_profile_data(self):
         """basic colr box with ICC profile"""
 
-        relpath = os.path.join('data', 'sgray.icc')
-        iccfile = pkg.resource_filename(__name__, relpath)
-        with open(iccfile, mode='rb') as f:
-            raw_icc_profile = f.read()
+        raw_icc_profile = ir.read_binary(data, 'sgray.icc')
 
         colr = ColourSpecificationBox(icc_profile_data=raw_icc_profile)
         self.assertEqual(colr.method, glymur.core.ENUMERATED_COLORSPACE)

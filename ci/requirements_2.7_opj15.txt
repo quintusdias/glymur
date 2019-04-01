@@ -1,3 +1,4 @@
+importlib_resources
 numpy
 pathlib2
 scikit-image

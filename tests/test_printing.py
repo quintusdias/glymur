@@ -3,9 +3,12 @@
 Test suite for printing.
 """
 # Standard library imports ...
+try:
+    import importlib.resources as ir
+except ImportError:
+    import importlib_resources as ir
 from io import BytesIO
 import os
-import pkg_resources as pkg
 import re
 import struct
 import sys
@@ -31,13 +34,14 @@ try:
 except ImportError:
     import xml.etree.ElementTree as ET
 
+# Local imports
 import glymur
 from glymur.codestream import LRCP, WAVELET_XFORM_5X3_REVERSIBLE
 from glymur.core import COLOR, RED, GREEN, BLUE, RESTRICTED_ICC_PROFILE
 from glymur.jp2box import BitsPerComponentBox, ColourSpecificationBox
 from glymur.jp2box import LabelBox
 from glymur import Jp2k, command_line
-from . import fixtures
+from . import fixtures, data
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
@@ -59,11 +63,10 @@ class TestPrinting(fixtures.TestCommon):
         """
         Invalid channel type should not prevent printing.
         """
-        relfile = os.path.join('data', 'issue392.jp2')
-        file = pkg.resource_filename(__name__, relfile)
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            jp2 = Jp2k(file)
+        with ir.path(data, 'issue392.jp2') as path:
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                jp2 = Jp2k(path)
         str(jp2)
 
     def test_palette(self):
@@ -1574,9 +1577,8 @@ class TestJp2dump(unittest.TestCase):
         """
         Warnings about invalid JP2/J2K syntax should be suppressed until end
         """
-        file = os.path.join('data', 'edf_c2_1178956.jp2')
-        file = pkg.resource_filename(__name__, file)
-        actual = self.run_jp2dump(['', '-x', file])
+        with ir.path(data, 'edf_c2_1178956.jp2') as path:
+            actual = self.run_jp2dump(['', '-x', str(path)])
 
         # The "CME marker segment" part is the last segment in the codestream
         # header.

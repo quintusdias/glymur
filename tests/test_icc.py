@@ -5,29 +5,29 @@ Test suite specifically targeting ICC profiles
 
 # Standard library imports ...
 from datetime import datetime
+try:
+    import importlib.resources as ir
+except ImportError:
+    import importlib_resources as ir
 from io import BytesIO
-import os
 import struct
 import unittest
 
 # Third party library imports
 import numpy as np
-import pkg_resources as pkg
 
 # Local imports
 from glymur._iccprofile import _ICCProfile
 from glymur.core import ANY_ICC_PROFILE
 from glymur.jp2box import ColourSpecificationBox
+from . import data
 
 
 class TestSuite(unittest.TestCase):
     """Test suite for ICC Profile code."""
 
     def setUp(self):
-        relpath = os.path.join('data', 'sgray.icc')
-        iccfile = pkg.resource_filename(__name__, relpath)
-        with open(iccfile, mode='rb') as f:
-            self.buffer = f.read()
+        self.buffer = ir.read_binary(data, 'sgray.icc')
 
     def test_gray(self):
         """

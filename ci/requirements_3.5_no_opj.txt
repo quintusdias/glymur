@@ -1,2 +1,3 @@
+importlib_resources
 numpy
 scikit-image

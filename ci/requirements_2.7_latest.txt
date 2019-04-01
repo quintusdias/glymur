@@ -1,5 +1,6 @@
 contextlib2
 gdal
+importlib_resources
 libgdal
 lxml
 mock

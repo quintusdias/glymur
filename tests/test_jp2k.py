@@ -4,6 +4,10 @@ Tests for general glymur functionality.
 # Standard library imports ...
 import datetime
 import doctest
+try:
+    import importlib.resources as ir
+except ImportError:
+    import importlib_resources as ir
 from io import BytesIO
 import os
 import re
@@ -27,7 +31,6 @@ from xml.etree import cElementTree as ET
 
 # Third party library imports ...
 import numpy as np
-import pkg_resources as pkg
 import skimage.data
 import skimage.measure
 
@@ -38,7 +41,7 @@ from glymur.core import COLOR, RED, GREEN, BLUE, RESTRICTED_ICC_PROFILE
 from glymur.codestream import SIZsegment
 from glymur.version import openjpeg_version
 
-from . import fixtures
+from . import fixtures, data
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
@@ -454,9 +457,9 @@ class TestJp2k(fixtures.TestCommon):
 
     def test_not_jpeg2000(self):
         """Should error out appropriately if not given a JPEG 2000 file."""
-        filename = pkg.resource_filename(glymur.__name__, "jp2k.py")
-        with self.assertRaises(IOError):
-            Jp2k(filename)
+        with ir.path(glymur, 'jp2k.py') as path:
+            with self.assertRaises(IOError):
+                Jp2k(path)
 
     def test_file_not_present(self):
         """Should error out if reading from a file that does not exist"""
@@ -973,9 +976,9 @@ class TestJp2k(fixtures.TestCommon):
         """
         Verify that setting the layer property results in different images.
         """
-        file = os.path.join('data', 'p0_03.j2k')
-        file = pkg.resource_filename(__name__, file)
-        j = Jp2k(file)
+        with ir.path(data, 'p0_03.j2k') as path:
+            j = Jp2k(path)
+
         d0 = j[:]
 
         j.layer = 1
@@ -987,18 +990,16 @@ class TestJp2k(fixtures.TestCommon):
         """
         By default, verbosity should be false.
         """
-        file = os.path.join('data', 'p0_03.j2k')
-        file = pkg.resource_filename(__name__, file)
-        j = Jp2k(file)
+        with ir.path(data, 'p0_03.j2k') as path:
+            j = Jp2k(path)
         self.assertFalse(j.verbose)
 
     def test_default_layer(self):
         """
         By default, the layer should be 0
         """
-        file = os.path.join('data', 'p0_03.j2k')
-        file = pkg.resource_filename(__name__, file)
-        j = Jp2k(file)
+        with ir.path(data, 'p0_03.j2k') as path:
+            j = Jp2k(path)
         self.assertEqual(j.layer, 0)
 
     @unittest.skipIf(glymur.version.openjpeg_version < '2.2.0',

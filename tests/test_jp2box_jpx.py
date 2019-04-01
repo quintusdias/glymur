@@ -4,6 +4,10 @@ Test suite specifically targeting JPX box layout.
 """
 # Standard library imports ...
 import ctypes
+try:
+    import importlib.resources as ir
+except ImportError:
+    import importlib_resources as ir
 from io import BytesIO
 import os
 import struct
@@ -17,7 +21,6 @@ try:
     import lxml.etree as ET
 except ImportError:
     import xml.etree.ElementTree as ET
-import pkg_resources as pkg
 
 # Local imports ...
 import glymur
@@ -25,7 +28,7 @@ from glymur import Jp2k
 from glymur.jp2box import DataEntryURLBox, FileTypeBox, JPEG2000SignatureBox
 from glymur.jp2box import DataReferenceBox, FragmentListBox, FragmentTableBox
 from glymur.jp2box import ColourSpecificationBox
-from . import fixtures
+from . import fixtures, data
 
 
 class TestJPXWrap(fixtures.TestCommon):
@@ -438,28 +441,27 @@ class TestJPX(fixtures.TestCommon):
         """
         Simple test for parsing a reader requirements box.
         """
-        file = os.path.join('data', 'text_GBR.jp2')
-        file = pkg.resource_filename(__name__, file)
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            j = Jp2k(file)
-            self.assertEqual(len(j.box[2].vendor_feature), 4)
+        with ir.path(data, 'text_GBR.jp2') as path:
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                j = Jp2k(path)
+                self.assertEqual(len(j.box[2].vendor_feature), 4)
 
     @unittest.skipIf(sys.hexversion < 0x03000000, "assertWarns is PY3K")
     def test_reader_requirements_box_writing(self):
         """
         If a box does not have writing specifically enabled, must error out.
         """
-        file = os.path.join('data', 'text_GBR.jp2')
-        file = pkg.resource_filename(__name__, file)
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            j = Jp2k(file)
-            box = j.box[2]
+        with ir.path(data, 'text_GBR.jp2') as path:
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                j = Jp2k(path)
 
-            b = BytesIO()
-            with self.assertRaises(NotImplementedError):
-                box.write(b)
+        box = j.box[2]
+        b = BytesIO()
+
+        with self.assertRaises(NotImplementedError):
+            box.write(b)
 
     def test_flst_lens_not_the_same(self):
         """A fragment list box items must be the same length."""
