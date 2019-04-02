@@ -7,7 +7,6 @@ import imp
 import os
 import pathlib
 import platform
-import tempfile
 import unittest
 from unittest.mock import patch
 import warnings
@@ -189,7 +188,7 @@ class TestSuiteOptions(unittest.TestCase):
 
 @unittest.skipIf(fixtures.OPENJPEG_NOT_AVAILABLE,
                  fixtures.OPENJPEG_NOT_AVAILABLE_MSG)
-class TestSuiteConfigFile(unittest.TestCase):
+class TestSuiteConfigFile(fixtures.TestCommon):
     """Test suite for configuration file operation."""
 
     @classmethod
@@ -203,92 +202,103 @@ class TestSuiteConfigFile(unittest.TestCase):
         imp.reload(glymur.lib.openjp2)
 
     def setUp(self):
-        self.jp2file = glymur.data.nemo()
+        super(TestSuiteConfigFile, self).setUp()
 
-    def tearDown(self):
-        pass
+        # Setup a config root for glymur.
+        self.config_root = self.test_dir_path / 'config'
+        self.config_root.mkdir()
+
+        self.glymur_configdir = self.config_root / 'glymur'
+        self.glymur_configdir.mkdir()
+
+        self.config_file = self.glymur_configdir / 'glymurrc'
 
     def test_config_file_via_environ(self):
-        """Verify that we can read a configuration file set via environ var."""
-        with tempfile.TemporaryDirectory() as tdir:
-            configdir = os.path.join(tdir, 'glymur')
-            os.mkdir(configdir)
-            filename = os.path.join(configdir, 'glymurrc')
-            with open(filename, 'wt') as tfile:
-                tfile.write('[library]\n')
+        """
+        SCENARIO:  Specify the configuration file via an environment variable.
 
-                # Need to reliably recover the location of the openjp2 library,
-                # so using '_name' appears to be the only way to do it.
-                libloc = glymur.lib.openjp2.OPENJP2._name
-                line = 'openjp2: {0}\n'.format(libloc)
-                tfile.write(line)
-                tfile.flush()
-                with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
-                    imp.reload(glymur.lib.openjp2)
-                    Jp2k(self.jp2file)
+        EXPECTED RESULT:  The openjp2 library is loaded normally.
+        """
+        with self.config_file.open('wt') as f:
+            f.write('[library]\n')
+
+            # Need to reliably recover the location of the openjp2 library,
+            # so using '_name' appears to be the only way to do it.
+            libloc = glymur.lib.openjp2.OPENJP2._name
+            line = 'openjp2: {0}\n'.format(libloc)
+            f.write(line)
+
+        new = {'XDG_CONFIG_HOME': str(self.config_root)}
+        with patch.dict('os.environ', new):
+            imp.reload(glymur.lib.openjp2)
+            Jp2k(self.jp2file)
 
     def test_config_file_without_library_section(self):
         """
-        must ignore if no library section
+        SCENARIO:  A config directory is specified via the environment
+        variable, but the config file does not have a library section.
+
+        EXPECTED RESULT:  Just don't error out.
         """
-        with tempfile.TemporaryDirectory() as tdir:
-            configdir = os.path.join(tdir, 'glymur')
-            os.mkdir(configdir)
-            fname = os.path.join(configdir, 'glymurrc')
-            with open(fname, 'w') as fptr:
-                fptr.write('[testing]\n')
-                fptr.write('opj_data_root: blah\n')
-                fptr.flush()
-                with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
-                    imp.reload(glymur.lib.openjp2)
-                    # It's enough that we did not error out
-                    self.assertTrue(True)
+        with self.config_file.open('wt') as f:
+            f.write('[testing]\n')
+            f.write('opj_data_root: blah\n')
+
+        new = {'XDG_CONFIG_HOME': str(self.config_root)}
+        with patch.dict('os.environ', new):
+            imp.reload(glymur.lib.openjp2)
+            # It's enough that we did not error out
+            self.assertTrue(True)
 
     def test_xdg_env_config_file_is_bad(self):
-        """A non-existant library location should be rejected."""
-        with tempfile.TemporaryDirectory() as tdir:
-            configdir = os.path.join(tdir, 'glymur')
-            os.mkdir(configdir)
+        """
+        SCENARIO:  A config directory is specified via the environment
+        variable, but the library location specified does not exist.
 
-            library_file = os.path.join(tdir, 'libopenjp2.dylib')
+        EXPECTED RESULT:  A warning is issued.
+        """
+        with self.config_file.open('wt') as f:
+            f.write('[library]\n')
+            f.write(f'openjp2: libopenjp2.dylib..not.there\n')
 
-            fname = os.path.join(configdir, 'glymurrc')
-            with open(fname, 'w') as fptr:
-                fptr.write('[library]\n')
-                fptr.write(f'openjp2: {library_file}.not.there\n')
-                fptr.flush()
-                with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
-                    # Misconfigured new configuration file should
-                    # be rejected.
-                    with warnings.catch_warnings():
-                        # Ignore a wa
-                        warnings.simplefilter('ignore')
-                        imp.reload(glymur.lib.openjp2)
-                    self.assertIsNone(glymur.lib.openjp2.OPENJP2)
-
-    @unittest.skipIf(fixtures.OPENJPEG_NOT_AVAILABLE,
-                     fixtures.OPENJPEG_NOT_AVAILABLE_MSG)
-    def test_config_dir_but_no_config_file(self):
-
-        with tempfile.TemporaryDirectory() as tdir:
-            configdir = os.path.join(tdir, 'glymur')
-            os.mkdir(configdir)
-            with patch.dict('os.environ', {'XDG_CONFIG_HOME': tdir}):
-                # Should still be able to load openjpeg, despite the
-                # configuration file not being there
+        new = {'XDG_CONFIG_HOME': str(self.config_root)}
+        with patch.dict('os.environ', new):
+            # Misconfigured new configuration file should
+            # be rejected.
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
                 imp.reload(glymur.lib.openjp2)
-                self.assertIsNotNone(glymur.lib.openjp2.OPENJP2)
+
+        self.assertIsNone(glymur.lib.openjp2.OPENJP2)
+
+    def test_config_dir_but_no_config_file(self):
+        """
+        SCENARIO:  A config directory is specified via the environment
+        variable, but no config file exists.
+
+        EXPECTED RESULT:  openjp2 library is still loaded from default
+        location, but a warning is also issued.
+        """
+
+        new = {'XDG_CONFIG_HOME': str(self.config_root)}
+        with patch.dict('os.environ', new):
+            imp.reload(glymur.lib.openjp2)
+            self.assertIsNotNone(glymur.lib.openjp2.OPENJP2)
 
     def test_config_file_in_current_directory(self):
         """A configuration file in the current directory should be honored."""
+        """
+        SCENARIO:  A configuration file exists in the current directory.
+
+        EXPECTED RESULT:  openjp2 library is loaded normally.
+        """
         libloc = glymur.lib.openjp2.OPENJP2._name
-        with tempfile.TemporaryDirectory() as tdir1:
-            fname = os.path.join(tdir1, 'glymurrc')
-            with open(fname, 'w') as fptr:
-                fptr.write('[library]\n')
-                fptr.write('openjp2: {0}\n'.format(libloc))
-                fptr.flush()
-                with chdir(tdir1):
-                    # Should be able to load openjp2 as before.
-                    imp.reload(glymur.lib.openjp2)
-                    self.assertEqual(glymur.lib.openjp2.OPENJP2._name, libloc)
+        with self.config_file.open('wt') as f:
+            f.write('[library]\n')
+            f.write(f'openjp2: {libloc}\n')
+
+        with chdir(self.glymur_configdir):
+            # Should be able to load openjp2 as before.
+            imp.reload(glymur.lib.openjp2)
+
+        self.assertEqual(glymur.lib.openjp2.OPENJP2._name, libloc)
