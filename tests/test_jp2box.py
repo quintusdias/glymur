@@ -4,7 +4,7 @@
 import doctest
 try:
     import importlib.resources as ir
-except ImportError:
+except ImportError:  # pragma:  no cover
     # before 3.7
     import importlib_resources as ir
 from io import BytesIO

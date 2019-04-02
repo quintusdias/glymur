@@ -7,7 +7,7 @@ Test suite specifically targeting ICC profiles
 from datetime import datetime
 try:
     import importlib.resources as ir
-except ImportError:
+except ImportError:  # pragma:  no cover
     # before 3.7
     import importlib_resources as ir
 import struct

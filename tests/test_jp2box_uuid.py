@@ -4,14 +4,13 @@
 # Standard library imports
 try:
     import importlib.resources as ir
-except ImportError:
+except ImportError:  # pragma:  no cover
     # before 3.7
     import importlib_resources as ir
 from io import BytesIO
 import shutil
 import struct
-import sys
-import unittest
+from unittest.mock import patch
 import uuid
 import warnings
 
@@ -304,8 +303,6 @@ class TestSuite(fixtures.TestCommon):
         expected = 'UTM Zone 16N NAD27"|Clarke, 1866 by Default| '
         self.assertEqual(box.data['GeoAsciiParams'], expected)
 
-    @unittest.skipIf('gdal' not in sys.modules.keys(),
-                     "needs gdal to make sense")
     def test_print_bad_geotiff(self):
         """
         SCENARIO:  A GeoTIFF UUID is corrupt.
@@ -393,17 +390,29 @@ class TestSuiteHiRISE(fixtures.TestCommon):
             0.0, 0.0, 0.0, -2523306.125, -268608.875, 0.0
         ))
 
-    def test_printing_geotiff_uuid(self):
+    def test_printing_geotiff_uuid_with_gdal(self):
         """
-        SCENARIO:  Print a geotiff UUID.
+        SCENARIO:  Print a geotiff UUID when gdal is installed.
 
-        EXPECTED RESULT:  Should match a known geotiff UUID.  If gdal is not
-        installed, then expect a degraded response.
+        EXPECTED RESULT:  Should match a known geotiff UUID.  The string
+        representation validates.
         """
         jp2 = Jp2k(self.hirise_jp2file_name)
         actual = str(jp2.box[4])
-        if 'gdal' in sys.modules.keys():
-            expected = fixtures.GEOTIFF_UUID
-        else:
-            expected = fixtures.GEOTIFF_UUID_WITHOUT_GDAL
+
+        expected = fixtures.GEOTIFF_UUID
+        self.assertEqual(actual, expected)
+
+    def test_printing_geotiff_uuid_without_gdal(self):
+        """
+        SCENARIO:  Print a geotiff UUID when gdal is not installed.
+
+        EXPECTED RESULT:  Should match a known geotiff UUID.  The string
+        representation validates with a degraded response.
+        """
+        jp2 = Jp2k(self.hirise_jp2file_name)
+        with patch.object(glymur.jp2box, 'HAVE_GDAL', False):
+            actual = str(jp2.box[4])
+
+        expected = fixtures.GEOTIFF_UUID_WITHOUT_GDAL
         self.assertEqual(actual, expected)

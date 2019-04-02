@@ -5,7 +5,7 @@ Test suite specifically targeting the JP2 XML box layout.
 # Standard library imports
 try:
     import importlib.resources as ir
-except ImportError:
+except ImportError:  # pragma:  no cover
     # before 3.7
     import importlib_resources as ir
 from io import BytesIO

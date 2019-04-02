@@ -17,7 +17,6 @@ import math
 import os
 import pprint
 import struct
-import sys
 import textwrap
 from uuid import UUID
 import warnings
@@ -29,8 +28,9 @@ try:
     import gdal
     import osr
     gdal.UseExceptions()
+    HAVE_GDAL = True
 except ImportError:  # pragma: no cover
-    pass
+    HAVE_GDAL = False
 
 
 # Local imports ...
@@ -3335,9 +3335,9 @@ class UUIDBox(Jp2kBox):
             text = f'UUID Data:  {self.data}'
             lst.append(text)
         elif self.uuid == _GEOTIFF_UUID:
-            if 'gdal' in sys.modules.keys():
+            if HAVE_GDAL:
                 item = self._print_geotiff()
-            else:  # pragma: no cover
+            else:
                 item = str(self.data)
             txt = f'UUID Data:  {item}'
             lst.append(txt)

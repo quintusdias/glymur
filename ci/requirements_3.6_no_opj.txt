@@ -1,3 +1,4 @@
+gdal
 importlib_resources
 lxml
 numpy
