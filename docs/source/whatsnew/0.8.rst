@@ -2,6 +2,12 @@
 Changes in glymur 0.8
 =====================
 
+Changes in 0.8.18
+=================
+      * Remove build/test on Python 3.4 (EOL).
+      * Improve warning message when ICC profile is corrupt.
+      * Improve how-do-I doc recipes, include example for ICC profiles.
+
 Changes in 0.8.17
 =================
     * Fix parsing of resolution box with negative exponents.

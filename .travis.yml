@@ -11,10 +11,6 @@ matrix:
       env:
           - JOB_NAME "27_latest"
           - JOB_TAG=latest
-    - python: 3.4
-      env:
-          - JOB_NAME "34_latest"
-          - JOB_TAG=latest
     - python: 3.5
       env:
           - JOB_NAME "35_latest"
