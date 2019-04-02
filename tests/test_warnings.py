@@ -104,10 +104,8 @@ class TestSuite(fixtures.TestCommon):
                 tfile.write(read_buffer)
                 tfile.flush()
 
-            with self.assertWarns(UserWarning):
-                c = Jp2k(tfile.name).get_codestream(header_only=False)
-
-        self.assertEqual(c.segment[-1].marker_id, 'SOT')
+            with self.assertRaises(IOError):
+                Jp2k(tfile.name).get_codestream(header_only=False)
 
     def test_unrecoverable_xml(self):
         """

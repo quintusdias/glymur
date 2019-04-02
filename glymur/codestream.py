@@ -47,18 +47,6 @@ _CAPABILITIES_DISPLAY = {
     _PROFILE_4: 'Cinema 4K',
 }
 
-# Need a catch-all list of valid markers.
-# See table A-1 in ISO/IEC FCD15444-1.
-_VALID_MARKERS = [0xff00, 0xff01, 0xfffe]
-for _marker in range(0xffc0, 0xffe0):
-    _VALID_MARKERS.append(_marker)
-for _marker in range(0xfff0, 0xfff9):
-    _VALID_MARKERS.append(_marker)
-for _marker in range(0xff4f, 0xff70):
-    _VALID_MARKERS.append(_marker)
-for _marker in range(0xff90, 0xff94):
-    _VALID_MARKERS.append(_marker)
-
 
 class Codestream(object):
     """Container for codestream information.
@@ -102,9 +90,18 @@ class Codestream(object):
             Supplying False may impose a large performance penalty.
         """
         # Map each of the known markers to a method that processes them.
-        process_marker_segment = {
-            0xff00: self._parse_reserved_segment,
-            0xff01: self._parse_reserved_segment,
+        # Consult table A-1 in ISO/IEC FCD15444-1 for the definitive list.
+        #
+        # Some markers are mentiond in the following specs:
+        #     ITU-T Rec. T.81
+        #     ITU-T Rec. T.84
+        #     ITU-T Rec. T.87
+        # We really don't know what to do with them, so they are treated as if
+        # they are reserved markers.
+        parse_marker_segment_fcn = {
+
+            # The following are definitively reserved markers according to
+            # table A-1 in ISO/IEC FCD15444-1.
             0xff30: self._parse_reserved_marker,
             0xff31: self._parse_reserved_marker,
             0xff32: self._parse_reserved_marker,
@@ -121,7 +118,8 @@ class Codestream(object):
             0xff3d: self._parse_reserved_marker,
             0xff3e: self._parse_reserved_marker,
             0xff3f: self._parse_reserved_marker,
-            0xff4f: self._parse_reserved_segment,
+
+            # 0xff4f:  SOC (already encountered by the time we get here)
             0xff50: self._parse_reserved_segment,
             0xff51: self._parse_siz_segment,
             0xff52: self._parse_cod_segment,
@@ -154,12 +152,12 @@ class Codestream(object):
             0xff6d: self._parse_reserved_segment,
             0xff6e: self._parse_reserved_segment,
             0xff6f: self._parse_reserved_segment,
-            0xff79: self._parse_reserved_segment,
             0xff90: self._parse_sot_segment,
-            0xff91: self._parse_reserved_segment,
-            0xff92: self._parse_reserved_segment,
-            0xff93: self._parse_sod_segment,
-            0xffd9: self._parse_eoc_segment
+            # 0xff91:  SOP (only found in bit stream)
+            # 0xff92:  EPH (only found in bit stream)
+            0xff93: self._parse_sod_marker,
+            0xffd9: self._parse_eoc_marker,
+
         }
 
         self.offset = fptr.tell()
@@ -178,12 +176,15 @@ class Codestream(object):
         while True:
 
             read_buffer = fptr.read(2)
-            try:
-                self._marker_id, = struct.unpack('>H', read_buffer)
-            except struct.error:
+            self._marker_id, = struct.unpack('>H', read_buffer)
+            if self._marker_id < 0xff00:
                 offset = fptr.tell() - 2
-                msg = (f'Invalid codestream, expected to find a marker '
-                       f'at byte position {offset}.')
+                msg = (
+                    f'Invalid codestream marker at byte offset {offset}.  It '
+                    f'must be must be greater than 0xff00, but '
+                    f'found 0x{self._marker_id:04x} instead.  Codestream '
+                    f'parsing will cease.'
+                )
                 raise IOError(msg)
 
             self._offset = fptr.tell() - 2
@@ -194,12 +195,9 @@ class Codestream(object):
                 break
 
             try:
-                segment = process_marker_segment[self._marker_id](fptr)
+                segment = parse_marker_segment_fcn[self._marker_id](fptr)
             except KeyError:
-                msg = (f'Invalid marker ID 0x{self._marker_id:x} encountered '
-                       f'at byte {self._offset:d}.')
-                warnings.warn(msg, UserWarning)
-                break
+                segment = self._parse_reserved_segment(fptr)
 
             self.segment.append(segment)
 
@@ -219,17 +217,17 @@ class Codestream(object):
                 fptr.seek(new_offset)
 
     def _parse_reserved_segment(self, fptr):
-        """Parse valid marker segment, segment description is unknown.
+        """
+        Parse valid marker segment, segment description is unknown.
 
         Parameters
         ----------
-        fptr : file object
+        fptr : file-like object
             The file to parse.
 
         Returns
         -------
-        Segment
-            The current segment.
+        The current segment.
         """
         offset = fptr.tell() - 2
 
@@ -407,8 +405,8 @@ class Codestream(object):
 
         return CRGsegment(xcrg, ycrg, length, offset)
 
-    def _parse_eoc_segment(self, fptr):
-        """Parse the EOC (end-of-codestream) marker segment.
+    def _parse_eoc_marker(self, fptr):
+        """Parse the EOC (end-of-codestream) marker.
 
         Parameters
         ----------
@@ -713,7 +711,7 @@ class Codestream(object):
 
         return segment
 
-    def _parse_sod_segment(self, fptr):
+    def _parse_sod_marker(self, fptr):
         """Parse the SOD (start-of-data) segment.
 
         Parameters

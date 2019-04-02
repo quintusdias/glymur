@@ -386,7 +386,7 @@ class TestJp2k(fixtures.TestCommon):
         far beyond the end of the EOC marker) when requesting a fully parsed
         codestream.
 
-        EXPECTED RESULT:  IOError
+        EXPECTED RESULT:  struct.error
         """
         with open(self.temp_jp2_filename, 'wb') as ofile:
             with open(self.jp2file, 'rb') as ifile:
@@ -402,7 +402,7 @@ class TestJp2k(fixtures.TestCommon):
                 ofile.flush()
 
         j = Jp2k(self.temp_jp2_filename)
-        with self.assertRaises(IOError):
+        with self.assertRaises(struct.error):
             j.get_codestream(header_only=False)
 
     def test_read_differing_subsamples(self):
@@ -931,9 +931,10 @@ class TestJp2k(fixtures.TestCommon):
         """
         SCENARIO:  There is a zero-length reserved marker segment just before
         the EOC marker segment.  It is unclear to me if this is valid or not.
+        It looks valid.
 
         EXPECTED RESULT:  The file is parsed without error and the zero-length
-        marker is detected in the codestream.
+        segment is detected in the codestream.  No warning is issued.
         """
         with open(self.temp_jp2_filename, mode='wb') as ofile:
             with open(self.jp2file, 'rb') as ifile:
@@ -949,16 +950,16 @@ class TestJp2k(fixtures.TestCommon):
                 ofile.write(ifile.read(1132286))
 
                 # Write the zero-length reserved segment.
-                buffer = struct.pack('>BBH', 255, 0, 0)
+                buffer = struct.pack('>BBH', 0xff, 0x00, 0)
                 ofile.write(buffer)
 
                 # Write the EOC marker and be done with it.
                 ofile.write(ifile.read())
                 ofile.flush()
 
-            cstr = Jp2k(ofile.name).get_codestream(header_only=False)
-            self.assertEqual(cstr.segment[11].marker_id, '0xff00')
-            self.assertEqual(cstr.segment[11].length, 0)
+        cstr = Jp2k(ofile.name).get_codestream(header_only=False)
+        self.assertEqual(cstr.segment[11].marker_id, '0xff00')
+        self.assertEqual(cstr.segment[11].length, 0)
 
     def test_psot_is_zero(self):
         """
