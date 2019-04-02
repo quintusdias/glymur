@@ -53,9 +53,11 @@ class TestColourSpecificationBox(fixtures.TestCommon):
 
     def test_bad_method_printing(self):
         """
-        A bad method should not cause a printing failure.
+        SCENARIO:  An ICC profile is both too short and has an invalid method
+        value.
 
-        It's enough that it doesn't error out.
+        EXPECTED RESULT:  Warnings are issued.  Printing the string
+        representation should not error out.
         """
         with ir.path(data, 'issue405.dat') as path:
             with path.open('rb') as f:

@@ -459,8 +459,9 @@ class ColourSpecificationBox(Jp2kBox):
             colorspace = None
             if (num_bytes - 3) < 128:
                 msg = (
-                    "ICC profile header is corrupt, length is only "
-                    "{num_bytes - 3} when it should be at least 128."
+                    f"An ICC profile header in a ColourSpecificationBox at "
+                    f"byte offset {offset} is corrupt, the length is only "
+                    f"{num_bytes - 3} when it should be at least 128."
                 )
                 warnings.warn(msg, UserWarning)
                 icc_profile = None
