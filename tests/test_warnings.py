@@ -40,9 +40,10 @@ class TestSuite(fixtures.TestCommon):
         warnings.resetwarnings()
         glymur.reset_option('all')
 
-    def test_unrecognized_marker(self):
+    def test_illegal_marker(self):
         """
-        EOC marker is not retrieved because there is an unrecognized marker
+        EOC marker is not retrieved because there is an illegal marker
+        preceding it.
 
         Original file tested was input/nonregression/illegalcolortransform.j2k
         """
@@ -98,37 +99,6 @@ class TestSuite(fixtures.TestCommon):
                 box = glymur.jp2box.XMLBox.parse(fptr, 0, 8 + len(payload))
 
         self.assertIsNone(box.xml)
-
-    def test_unknown_marker_segment(self):
-        """
-        Should warn for an unknown marker.
-
-        Let's inject a marker segment whose marker does not appear to
-        be valid.  We still parse the file, but warn about the offending
-        marker.
-        """
-        with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with open(self.j2kfile, 'rb') as ifile:
-                # Everything up until the first QCD marker.
-                read_buffer = ifile.read(65)
-                tfile.write(read_buffer)
-
-                # Write the new marker segment, 0xff79 = 65401
-                read_buffer = struct.pack('>HHB', int(65401), int(3), int(0))
-                tfile.write(read_buffer)
-
-                # Get the rest of the input file.
-                read_buffer = ifile.read()
-                tfile.write(read_buffer)
-                tfile.flush()
-
-            if sys.hexversion < 0x03000000:
-                with warnings.catch_warnings(record=True) as w:
-                    Jp2k(tfile.name).get_codestream()
-                assert issubclass(w[-1].category, UserWarning)
-            else:
-                with self.assertWarns(UserWarning):
-                    Jp2k(tfile.name).get_codestream()
 
     def test_tile_height_is_zero(self):
         """

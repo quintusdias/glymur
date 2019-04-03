@@ -352,7 +352,7 @@ class TestJp2k(fixtures.TestCommon):
                 ofile.flush()
 
             j = Jp2k(ofile.name)
-            with self.assertRaises(IOError):
+            with self.assertRaises(struct.error):
                 j.get_codestream(header_only=False)
 
     def test_read_differing_subsamples(self):
@@ -857,6 +857,37 @@ class TestJp2k(fixtures.TestCommon):
                 with self.assertRaises(exp_error):
                     glymur.Jp2k(self.jp2file).read_bands()
 
+    def test_reserved_marker(self):
+        """
+        SCENARIO:  The codestream has a 0xff30 marker, which is reserved.
+
+        EXPECTED RESULT:  Parse without issue.
+        """
+        with open(self.temp_jp2_filename, mode='wb') as ofile:
+            with open(self.jp2file, 'rb') as ifile:
+                # Copy up until codestream box.
+                ofile.write(ifile.read(3223))
+
+                # Write the new codestream length (+4) and the box ID.
+                buffer = struct.pack('>I4s', 1132296 + 4, b'jp2c')
+                ofile.write(buffer)
+
+                # Copy up until the EOC marker.
+                ifile.seek(3231)
+                ofile.write(ifile.read(1132286))
+
+                # Write the reserved marker.
+                buffer = struct.pack('>BB', 0xff, 0x30)
+                ofile.write(buffer)
+
+                # Write the EOC marker and be done with it.
+                ofile.write(ifile.read())
+                ofile.flush()
+
+            cstr = Jp2k(ofile.name).get_codestream(header_only=False)
+            self.assertEqual(cstr.segment[11].marker_id, '0xff30')
+            self.assertEqual(cstr.segment[11].length, 0)
+
     def test_zero_length_reserved_segment(self):
         """
         Zero length reserved segment.  Unsure if this is invalid or not.
@@ -877,7 +908,7 @@ class TestJp2k(fixtures.TestCommon):
                 ofile.write(ifile.read(1132286))
 
                 # Write the zero-length reserved segment.
-                buffer = struct.pack('>BBH', 255, 0, 0)
+                buffer = struct.pack('>BBH', 0xff, 0x00, 0)
                 ofile.write(buffer)
 
                 # Write the EOC marker and be done with it.

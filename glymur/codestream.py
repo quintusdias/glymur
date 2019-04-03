@@ -47,18 +47,6 @@ _CAPABILITIES_DISPLAY = {
     _PROFILE_4: 'Cinema 4K',
 }
 
-# Need a catch-all list of valid markers.
-# See table A-1 in ISO/IEC FCD15444-1.
-_VALID_MARKERS = [0xff00, 0xff01, 0xfffe]
-for _marker in range(0xffc0, 0xffe0):
-    _VALID_MARKERS.append(_marker)
-for _marker in range(0xfff0, 0xfff9):
-    _VALID_MARKERS.append(_marker)
-for _marker in range(0xff4f, 0xff70):
-    _VALID_MARKERS.append(_marker)
-for _marker in range(0xff90, 0xff94):
-    _VALID_MARKERS.append(_marker)
-
 
 class Codestream(object):
     """Container for codestream information.
@@ -102,9 +90,18 @@ class Codestream(object):
             Supplying False may impose a large performance penalty.
         """
         # Map each of the known markers to a method that processes them.
-        process_marker_segment = {
-            0xff00: self._parse_reserved_segment,
-            0xff01: self._parse_reserved_segment,
+        #
+        # Some markers are listed in table table A-1 in ISO/IEC FCD15444-1 as
+        # being defined in other standards such as
+        #
+        #     ITU-T Rec. T.81
+        #     ITU-T Rec. T.84
+        #     ITU-T Rec. T.87
+        #
+        # These segments are handled as if they are reserved segments.
+        parse_marker_segment_fcn = {
+
+            # Reserved markers according to table A-1 in ISO/IEC FCD15444-1.
             0xff30: self._parse_reserved_marker,
             0xff31: self._parse_reserved_marker,
             0xff32: self._parse_reserved_marker,
@@ -121,7 +118,8 @@ class Codestream(object):
             0xff3d: self._parse_reserved_marker,
             0xff3e: self._parse_reserved_marker,
             0xff3f: self._parse_reserved_marker,
-            0xff4f: self._parse_reserved_segment,
+
+            # 0xff4f:  SOC (already encountered by the time we get here)
             0xff50: self._parse_reserved_segment,
             0xff51: self._parse_siz_segment,
             0xff52: self._parse_cod_segment,
@@ -154,12 +152,9 @@ class Codestream(object):
             0xff6d: self._parse_reserved_segment,
             0xff6e: self._parse_reserved_segment,
             0xff6f: self._parse_reserved_segment,
-            0xff79: self._parse_unrecognized_segment,
             0xff90: self._parse_sot_segment,
-            0xff91: self._parse_unrecognized_segment,
-            0xff92: self._parse_unrecognized_segment,
             0xff93: self._parse_sod_segment,
-            0xffd9: self._parse_eoc_segment
+            0xffd9: self._parse_eoc_marker,
         }
 
         self.offset = fptr.tell()
@@ -178,14 +173,18 @@ class Codestream(object):
         while True:
 
             read_buffer = fptr.read(2)
-            try:
-                self._marker_id, = struct.unpack('>H', read_buffer)
-            except struct.error:
+            self._marker_id, = struct.unpack('>H', read_buffer)
+            if self._marker_id < 0xff00:
                 offset = fptr.tell() - 2
-                msg = ('Invalid codestream, expected to find a marker '
-                       'at byte position {offset}.')
-                msg = msg.format(offset=offset)
-                raise IOError(msg)
+                msg = (
+                    'Invalid codestream marker at byte offset {offset}.  It '
+                    'must be must be greater than 0xff00, but '
+                    'found 0x{marker:04x} instead.  Codestream parsing '
+                    'will cease.'
+                )
+                msg = msg.format(offset=offset, marker=self._marker_id)
+                warnings.warn(msg, UserWarning)
+                break
 
             self._offset = fptr.tell() - 2
 
@@ -195,19 +194,14 @@ class Codestream(object):
                 break
 
             try:
-                segment = process_marker_segment[self._marker_id](fptr)
+                segment = parse_marker_segment_fcn[self._marker_id](fptr)
             except KeyError:
-                msg = ('Invalid marker ID 0x{marker_id:x} encountered at byte '
-                       '{offset:d}.')
-                msg = msg.format(offset=self._offset,
-                                 marker_id=self._marker_id)
-                warnings.warn(msg, UserWarning)
-                break
+                segment = self._parse_reserved_marker_segment(fptr)
 
             self.segment.append(segment)
 
             if self._marker_id == 0xffd9:
-                # end of codestream, should break.
+                # end of codestream, we are done
                 break
 
             if self._marker_id == 0xff93:
@@ -221,13 +215,9 @@ class Codestream(object):
                 new_offset = self._tile_offset[-1] + self._tile_length[-1]
                 fptr.seek(new_offset)
 
-    def _parse_unrecognized_segment(self, fptr):
-        """Looks like a valid marker, but not sure from reading the specs.
+    def _parse_reserved_marker_segment(self, fptr):
+        """We have a marker, but it's not defined by the specs.
         """
-        msg = ("Unrecognized codestream marker 0x{marker_id:x} encountered at "
-               "byte offset {offset}.")
-        msg = msg.format(marker_id=self._marker_id, offset=fptr.tell())
-        warnings.warn(msg, UserWarning)
         cpos = fptr.tell()
         read_buffer = fptr.read(2)
         next_item, = struct.unpack('>H', read_buffer)
@@ -235,7 +225,8 @@ class Codestream(object):
         if ((next_item & 0xff00) >> 8) == 255:
             # No segment associated with this marker, so reset
             # to two bytes after it.
-            segment = Segment(id='0x{0:x}'.format(self._marker_id),
+            marker_id = '0x{0:x}'.format(self._marker_id)
+            segment = Segment(marker_id=marker_id,
                               offset=self._offset, length=0)
         else:
             segment = self._parse_reserved_segment(fptr)
@@ -430,8 +421,8 @@ class Codestream(object):
 
         return CRGsegment(xcrg, ycrg, length, offset)
 
-    def _parse_eoc_segment(self, fptr):
-        """Parse the EOC (end-of-codestream) marker segment.
+    def _parse_eoc_marker(self, fptr):
+        """Parse the EOC (end-of-codestream) marker.
 
         Parameters
         ----------
