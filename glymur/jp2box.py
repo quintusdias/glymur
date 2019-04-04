@@ -16,6 +16,7 @@ import io
 import os
 import pprint
 import struct
+import sys
 import textwrap
 from uuid import UUID
 import warnings
@@ -2922,15 +2923,17 @@ class XMLBox(Jp2kBox):
 
         # Strip out any trailing nulls, as they can foul up XML parsing.
         text = text.rstrip(chr(0))
-        bfptr = io.BytesIO(text.encode('utf-8'))
+        f = io.BytesIO(text.encode('utf-8'))
 
         try:
-            xml = ET.parse(bfptr)
+            xml = ET.parse(f)
         except ET.ParseError as err:
+            exc_type, _, _ = sys.exc_info()
             msg = (
-                f'A problem was encountered while parsing an XML box:'
+                f'{exc_type.__name__} encountered while parsing an XML '
+                f'box at byte offset {offset:d}:'
                 f'\n\n\t'
-                f'"{str(err)}"'
+                f'"{err}"'
                 f'\n\n'
                 f'No XML was retrieved.'
             )
