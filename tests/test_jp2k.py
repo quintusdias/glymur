@@ -20,9 +20,9 @@ import unittest
 from unittest.mock import patch
 import uuid
 import warnings
-from xml.etree import cElementTree as ET
 
 # Third party library imports ...
+from lxml import etree as ET
 import numpy as np
 import skimage.data
 import skimage.measure
