@@ -13,7 +13,6 @@ References
 
 # Standard library imports ...
 import io
-import math
 import os
 import pprint
 import struct
@@ -2558,8 +2557,8 @@ class CaptureResolutionBox(Jp2kBox):
         """
         read_buffer = fptr.read(10)
         (rn1, rd1, rn2, rd2, re1, re2) = struct.unpack('>HHHHbb', read_buffer)
-        vres = rn1 / rd1 * math.pow(10, re1)
-        hres = rn2 / rd2 * math.pow(10, re2)
+        vres = rn1 / rd1 * 10 ** re1
+        hres = rn2 / rd2 * 10 ** re2
 
         return cls(vres, hres, length=length, offset=offset)
 
@@ -2634,8 +2633,8 @@ class DisplayResolutionBox(Jp2kBox):
 
         read_buffer = fptr.read(10)
         (rn1, rd1, rn2, rd2, re1, re2) = struct.unpack('>HHHHbb', read_buffer)
-        vres = rn1 / rd1 * math.pow(10, re1)
-        hres = rn2 / rd2 * math.pow(10, re2)
+        vres = rn1 / rd1 * 10 ** re1
+        hres = rn2 / rd2 * 10 ** re2
 
         return cls(vres, hres, length=length, offset=offset)
 
