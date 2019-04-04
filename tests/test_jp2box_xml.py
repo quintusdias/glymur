@@ -14,11 +14,13 @@ import tempfile
 import unittest
 import warnings
 
+# 3rd party library imports
 try:
-    import lxml.etree as ET
+    from lxml import etree as ET
 except ImportError:
     import xml.etree.ElementTree as ET
 
+# Local imports
 import glymur
 from glymur import Jp2k
 from glymur.jp2box import ColourSpecificationBox, ContiguousCodestreamBox

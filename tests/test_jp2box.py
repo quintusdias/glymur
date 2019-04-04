@@ -16,14 +16,13 @@ import tempfile
 from uuid import UUID
 import unittest
 import warnings
-try:
-    # Third party library import, favored over standard library.
-    import lxml.etree as ET
-except ImportError:
-    import xml.etree.ElementTree as ET
 
 # Third party library imports ...
 import numpy as np
+try:
+    from lxml import etree as ET
+except ImportError:
+    import xml.etree.ElementTree as ET
 
 # Local imports ...
 import glymur

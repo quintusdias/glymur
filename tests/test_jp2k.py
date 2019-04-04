@@ -27,9 +27,12 @@ if sys.hexversion >= 0x03040000:
     import pathlib
 else:
     import pathlib2 as pathlib
-from xml.etree import cElementTree as ET
 
 # Third party library imports ...
+try:
+    from lxml import etree as ET
+except ImportError:
+    import xml.etree.ElementTree as ET
 import numpy as np
 import skimage.data
 import skimage.measure

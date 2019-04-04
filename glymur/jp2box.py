@@ -25,7 +25,7 @@ import warnings
 # Third party library imports ...
 try:
     import lxml.etree as ET
-except ImportError:
+except ImportError:  # pragma: no cover
     import xml.etree.ElementTree as ET
 import numpy as np
 try:
@@ -33,7 +33,7 @@ try:
     import osr
     _HAVE_GDAL = True
     gdal.UseExceptions()
-except ImportError:
+except ImportError:  # pragma: no cover
     _HAVE_GDAL = False
 
 

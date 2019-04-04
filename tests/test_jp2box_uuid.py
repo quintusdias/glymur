@@ -20,7 +20,7 @@ import warnings
 try:
     import lxml.etree
 except ImportError:
-    import xml.etree.ElementTree as ET
+    import xml.etree
 
 # Local imports
 import glymur
@@ -230,12 +230,12 @@ class TestSuite(fixtures.TestCommon):
 
             # The data should be an XMP packet, which gets interpreted as
             # an ElementTree.
-            if 'lxml' in sys.modules.keys():
+            if 'lxml' in sys.modules:
                 self.assertTrue(isinstance(jp2.box[-1].data,
                                            lxml.etree._ElementTree))
-            else:
+            else:  # pragma: no cover
                 self.assertTrue(isinstance(jp2.box[-1].data,
-                                           ET.ElementTree))
+                                           xml.etree.ElementTree.ElementTree))
 
     @unittest.skipIf(sys.hexversion < 0x03000000, "assertWarns is PY3K")
     def test_bad_exif_tag(self):

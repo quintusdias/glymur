@@ -10,10 +10,11 @@ License:  MIT
 from collections import Counter
 try:
     from contextlib import ExitStack
-    from itertools import filterfalse
-except ImportError:
-    # v2.7, third party library import ...
+except ImportError:  # pragma: no cover
     from contextlib2 import ExitStack
+try:
+    from itertools import filterfalse
+except ImportError:  # pragma: no cover
     from itertools import ifilterfalse as filterfalse
 import ctypes
 import os
