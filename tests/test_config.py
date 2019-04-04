@@ -318,19 +318,29 @@ class TestSuiteConfigFile(fixtures.TestCommon):
             self.assertIsNotNone(glymur.lib.openjp2.OPENJP2)
 
     def test_config_file_in_current_directory(self):
-        """A configuration file in the current directory should be honored."""
         """
         SCENARIO:  A configuration file exists in the current directory.
 
         EXPECTED RESULT:  openjp2 library is loaded normally.
         """
-        libloc = glymur.lib.openjp2.OPENJP2._name
+        existing_library = glymur.lib.openjp2.OPENJP2._name
+
+        # Make a soft link from a fake library directory to the existing
+        # location.
+        new_lib_dir = self.test_dir_path / 'lib'
+        new_lib_dir.mkdir()
+
+        new_library_path = new_lib_dir / 'libopenjp2.dylib'
+        new_library_path.symlink_to(existing_library)
+
         with self.config_file.open('wt') as f:
             f.write('[library]\n')
-            f.write(f'openjp2: {libloc}\n')
+            f.write(f'openjp2: {new_library_path}\n')
 
         with chdir(self.glymur_configdir):
             # Should be able to load openjp2 as before.
             imp.reload(glymur.lib.openjp2)
 
-        self.assertEqual(glymur.lib.openjp2.OPENJP2._name, libloc)
+        actual = glymur.lib.openjp2.OPENJP2._name
+        expected = new_library_path
+        self.assertEqual(actual, expected)

@@ -21,7 +21,7 @@ def glymurrc_fname():
     """
 
     # Current directory.
-    path = pathlib.Path.home() / 'glymurrc'
+    path = pathlib.Path.cwd() / 'glymurrc'
     if path.exists():
         return path
 
