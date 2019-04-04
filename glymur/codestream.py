@@ -4,7 +4,6 @@ The module contains classes used to store information parsed from JPEG 2000
 codestreams.
 """
 
-import math
 import struct
 import sys
 import warnings
@@ -705,7 +704,7 @@ class Codestream(object):
                              col_offset=xytosiz[0])
             warnings.warn(msg, UserWarning)
         else:
-            numtiles = math.ceil(num_tiles_x) * math.ceil(num_tiles_y)
+            numtiles = np.ceil(num_tiles_x) * np.ceil(num_tiles_y)
             if numtiles > 65535:
                 msg = "Invalid number of tiles: ({numtiles})."
                 msg = msg.format(numtiles=numtiles)
@@ -916,8 +915,7 @@ class COCsegment(Segment):
         self.scoc = scoc
         self.spcoc = spcoc
 
-        self.code_block_size = (4 * math.pow(2, self.spcoc[2]),
-                                4 * math.pow(2, self.spcoc[1]))
+        self.code_block_size = 4 * 2 ** self.spcoc[2], 4 * 2 ** self.spcoc[1]
 
         if len(self.spcoc) > 5:
             self.precinct_size = _parse_precinct_size(self.spcoc[5:])
@@ -1022,10 +1020,7 @@ class CODsegment(Segment):
             msg = msg.format(xform=xform)
             warnings.warn(msg, UserWarning)
 
-        cblk_width = 4 * math.pow(2, xcb)
-        cblk_height = 4 * math.pow(2, ycb)
-        code_block_size = (cblk_height, cblk_width)
-        self.code_block_size = code_block_size
+        self.code_block_size = 4 * 2 ** ycb, 4 * 2 ** xcb
 
         if precinct_size is None:
             self.precinct_size = ((2 ** 15, 2 ** 15))

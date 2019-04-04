@@ -16,7 +16,6 @@ except ImportError:
     from contextlib2 import ExitStack
     from itertools import ifilterfalse as filterfalse
 import ctypes
-import math
 import os
 import re
 import struct
@@ -640,8 +639,8 @@ class Jp2k(Jp2kBox):
                 msg = msg.format(height=height, width=width,
                                  area=height * width)
                 raise IOError(msg)
-            if ((math.log(height, 2) != math.floor(math.log(height, 2))
-                 or math.log(width, 2) != math.floor(math.log(width, 2)))):
+            if ((np.log2(height) != np.floor(np.log2(height))
+                 or np.log2(width) != np.floor(np.log2(width)))):
                 msg = ("Bad code block size ({height} x {width}).  "
                        "The dimensions must be powers of 2.")
                 msg = msg.format(height=height, width=width)
@@ -673,8 +672,8 @@ class Jp2k(Jp2kBox):
                         msg = msg.format(prch=prch, prcw=prcw,
                                          cbh=height, cbw=width)
                         raise IOError(msg)
-                if ((math.log(prch, 2) != math.floor(math.log(prch, 2))
-                     or math.log(prcw, 2) != math.floor(math.log(prcw, 2)))):
+                if ((np.log2(prch) != np.floor(np.log2(prch))
+                     or np.log2(prcw) != np.floor(np.log2(prcw)))):
                     msg = ("Bad precinct size ({height} x {width}).  "
                            "Precinct dimensions must be powers of 2.")
                     msg = msg.format(height=prch, width=prcw)
