@@ -37,7 +37,29 @@ def chdir(dirname=None):
         os.chdir(curdir)
 
 
-class TestSuite(unittest.TestCase):
+@patch('glymur.config.glymurrc_fname', lambda: None)
+class TestSuitePathToLibrary(fixtures.TestCommon):
+    """
+    Test the path determined for the openjp2 library.
+
+    This test suite assumes NO rc config file, so we have to force that code
+    path to not run in case we are actively using it.  This should not be a
+    problem in CI environments, just development environments.
+    """
+
+    def setUp(self):
+        super(TestSuitePathToLibrary, self).setUp()
+
+    def tearDown(self):
+        """
+        Do the normal tear-down, but then make sure that we reload the openjp2
+        library normally.  Otherwise a bad library configuration might
+        contaminate the next test.
+        """
+        super(TestSuitePathToLibrary, self).tearDown()
+
+        imp.reload(glymur)
+        imp.reload(glymur.lib.openjp2)
 
     @patch('glymur.config.platform.system')
     @patch('glymur.config.sys.version', 'Anaconda')
@@ -109,6 +131,15 @@ class TestSuite(unittest.TestCase):
         expected = pathlib.Path('/usr/lib/libopenjp2.so')
 
         self.assertEqual(actual, expected)
+
+
+@patch('glymur.config.glymurrc_fname', lambda: None)
+class TestSuite(fixtures.TestCommon):
+    """
+    This test suite assumes NO rc config file, so we have to force that code
+    path to not run in case we are actively using it.  This should not be a
+    problem in CI environments, just development environments.
+    """
 
     @patch('glymur.config.sys.version', 'not anaconda')
     @patch('glymur.config.find_library')
@@ -191,16 +222,6 @@ class TestSuiteOptions(unittest.TestCase):
 class TestSuiteConfigFile(fixtures.TestCommon):
     """Test suite for configuration file operation."""
 
-    @classmethod
-    def setUpClass(cls):
-        imp.reload(glymur)
-        imp.reload(glymur.lib.openjp2)
-
-    @classmethod
-    def tearDownClass(cls):
-        imp.reload(glymur)
-        imp.reload(glymur.lib.openjp2)
-
     def setUp(self):
         super(TestSuiteConfigFile, self).setUp()
 
@@ -212,6 +233,17 @@ class TestSuiteConfigFile(fixtures.TestCommon):
         self.glymur_configdir.mkdir()
 
         self.config_file = self.glymur_configdir / 'glymurrc'
+
+    def tearDown(self):
+        """
+        Do the normal tear-down, but then make sure that we reload the openjp2
+        library normally.  Otherwise a bad library configuration might
+        contaminate the next test.
+        """
+        super(TestSuiteConfigFile, self).tearDown()
+
+        imp.reload(glymur)
+        imp.reload(glymur.lib.openjp2)
 
     def test_config_file_via_environ(self):
         """
