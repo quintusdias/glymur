@@ -2969,14 +2969,22 @@ class XMLBox(Jp2kBox):
 
         # Strip out any trailing nulls, as they can foul up XML parsing.
         text = text.rstrip(chr(0))
-        bfptr = io.BytesIO(text.encode('utf-8'))
+        f = io.BytesIO(text.encode('utf-8'))
 
         try:
-            xml = ET.parse(bfptr)
+            xml = ET.parse(f)
         except ET.ParseError as err:
-            msg = ('A problem was encountered while parsing an XML box:'
-                   '\n\n\t"{reason}"\n\nNo XML was retrieved.')
-            msg = msg.format(reason=str(err))
+            exc_type, _, _ = sys.exc_info()
+            msg = (
+                '{error_name} was encountered while parsing an XML box at '
+                'byte offset {offset}:'
+                '\n\n\t'
+                '"{reason}"'
+                '\n\n'
+                'No XML was retrieved.'
+            )
+            msg = msg.format(error_name=exc_type.__name__, offset=offset,
+                             reason=str(err))
             warnings.warn(msg, UserWarning)
             xml = None
 
