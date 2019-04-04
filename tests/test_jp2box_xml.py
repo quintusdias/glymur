@@ -9,6 +9,7 @@ except ImportError:  # pragma:  no cover
     # before 3.7
     import importlib_resources as ir
 from io import BytesIO
+import pathlib
 import struct
 import warnings
 
@@ -104,9 +105,25 @@ class TestXML(fixtures.TestCommon):
         self.assertEqual(ET.tostring(jp2.box[3].xml.getroot()),
                          b'<data>0</data>')
 
-    def test_xml_from_file(self):
+    def test_xml_from_file_as_path(self):
         """
-        SCENARIO:  Create an xml box by pointing at an XML file.
+        SCENARIO:  Create an xml box by pointing at an XML file via a pathlib
+        path.
+
+        EXPECTED RESULT:  The xml box is validated.
+        """
+        box = glymur.jp2box.XMLBox(filename=pathlib.Path(self.xmlfile))
+
+        elts = box.xml.findall('country')
+        self.assertEqual(len(elts), 3)
+
+        neighbor = elts[1].find('neighbor')
+        self.assertEqual(neighbor.attrib['name'], 'Malaysia')
+        self.assertEqual(neighbor.attrib['direction'], 'N')
+
+    def test_xml_from_file_as_string(self):
+        """
+        SCENARIO:  Create an xml box by pointing at an XML file via string
 
         EXPECTED RESULT:  The xml box is validated.
         """

@@ -2827,7 +2827,7 @@ class XMLBox(Jp2kBox):
         ----------
         xml : ElementTree
             An ElementTree object already existing in python.
-        filename : str
+        filename : str or path
             File from which to read XML.  If filename is not None, then the xml
             keyword argument must be None.
         """
@@ -2837,7 +2837,7 @@ class XMLBox(Jp2kBox):
                    "should be provided.")
             raise IOError(msg)
         if filename is not None:
-            self.xml = ET.parse(filename)
+            self.xml = ET.parse(str(filename))
         else:
             self.xml = xml
         self.length = length
