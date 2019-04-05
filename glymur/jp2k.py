@@ -11,7 +11,6 @@ from collections import Counter
 from contextlib import ExitStack
 from itertools import filterfalse
 import ctypes
-import os
 import pathlib
 import re
 import struct

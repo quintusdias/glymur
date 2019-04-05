@@ -463,13 +463,20 @@ class TestJPX(fixtures.TestCommon):
             box.write(b)
 
     def test_flst_lens_not_the_same(self):
-        """A fragment list box items must be the same length."""
+        """
+        SCENARIO:  A FramentListBox is passed parameters with inconsistent
+        lengths.
+
+        EXPECTED RESULT:  A warning is issued upon initialization, but an
+        IOError is issued when trying to write to file.
+        """
         offset = [89]
         length = [1132288]
         reference = [0, 0]
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
+
+        with self.assertWarns(UserWarning):
             flst = glymur.jp2box.FragmentListBox(offset, length, reference)
+
         with tempfile.TemporaryFile() as tfile:
             with self.assertRaises(IOError):
                 flst.write(tfile)

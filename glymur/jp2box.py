@@ -1344,11 +1344,13 @@ class FragmentListBox(Jp2kBox):
         if (((len(self.fragment_offset) != len(self.fragment_length)) or
              (len(self.fragment_length) != len(self.data_reference)))):
             msg = (
-                f"The lengths of the "
-                f"fragment offsets ({len(self.fragment_offset)}),"
-                f"fragment lengths ({len(self.fragment_length)}), and "
-                f"data reference items ({len(self.data_reference)}) "
-                f"must be the same."
+                f"A FragmentListBox at byte offset {self.offset} has invalid "
+                f"parameters.  The lengths of the fragment offsets, fragment "
+                f"lengths, and reference items must be the same.  The lengths "
+                f"are "
+                f"{len(self.fragment_offset)}, "
+                f"{len(self.fragment_length)}, and "
+                f"{len(self.data_reference)}."
             )
             self._dispatch_validation_error(msg, writing=writing)
         if any([x <= 0 for x in self.fragment_offset]):
