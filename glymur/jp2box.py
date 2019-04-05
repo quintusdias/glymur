@@ -1377,14 +1377,23 @@ class FragmentListBox(Jp2kBox):
 
     def _validate(self, writing=False):
         """Validate internal correctness."""
-        if (((len(self.fragment_offset) != len(self.fragment_length))
-             or (len(self.fragment_length) != len(self.data_reference)))):
-            msg = ("The lengths of the fragment offsets ({len_offsets}), "
-                   "fragment lengths ({len_fragments}), and "
-                   "data reference items ({len_drefs}) must be the same.")
-            msg = msg.format(len_offsets=len(self.fragment_offset),
-                             len_fragments=len(self.fragment_length),
-                             len_drefs=len(self.data_reference))
+        if (
+            len(self.fragment_offset) != len(self.fragment_length)
+            or len(self.fragment_length) != len(self.data_reference)
+        ):
+            msg = (
+                "A FragmentListBox at byte offset {offset} has invalid "
+                "parameters.  The number of fragment offsets, fragment "
+                "lengths, and reference items must be the same.  Those items "
+                "number {num_offsets}, {num_lengths}, and {num_refitems} "
+                "respectively."
+            )
+            msg = msg.format(
+                offset=self.offset,
+                num_offsets=len(self.fragment_offset),
+                num_lengths=len(self.fragment_length),
+                num_refitems=len(self.data_reference)
+            )
             self._dispatch_validation_error(msg, writing=writing)
         if any([x <= 0 for x in self.fragment_offset]):
             msg = "Fragment offsets must all be positive."

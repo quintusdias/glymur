@@ -468,9 +468,11 @@ class TestJPX(fixtures.TestCommon):
         offset = [89]
         length = [1132288]
         reference = [0, 0]
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
+
+        with warnings.catch_warnings(record=True) as w:
             flst = glymur.jp2box.FragmentListBox(offset, length, reference)
+            assert issubclass(w[-1].category, UserWarning)
+
         with tempfile.TemporaryFile() as tfile:
             with self.assertRaises(IOError):
                 flst.write(tfile)
