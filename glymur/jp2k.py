@@ -12,6 +12,7 @@ from contextlib import ExitStack
 from itertools import filterfalse
 import ctypes
 import os
+import pathlib
 import re
 import struct
 from uuid import UUID
@@ -102,6 +103,8 @@ class Jp2k(Jp2kBox):
         ----------
         filename : str
             The path to JPEG 2000 file.
+        path : pathlib.Path
+            The path to JPEG 2000 file.
         image_data : ndarray, optional
             Image data to be written to file.
         shape : tuple, optional
@@ -155,6 +158,7 @@ class Jp2k(Jp2kBox):
 
         # In case of pathlib.Paths...
         self.filename = str(filename)
+        self.path = pathlib.Path(self.filename)
 
         self.box = []
         self._codec_format = None
@@ -270,11 +274,11 @@ class Jp2k(Jp2kBox):
         self._shape = shape
 
     def __repr__(self):
-        msg = f"glymur.Jp2k('{self.filename}')".format(self.filename)
+        msg = f"glymur.Jp2k('{self.path}')"
         return msg
 
     def __str__(self):
-        metadata = ['File:  ' + os.path.basename(self.filename)]
+        metadata = [f'File:  {self.path.name}']
         if len(self.box) > 0:
             for box in self.box:
                 metadata.append(str(box))
@@ -290,9 +294,9 @@ class Jp2k(Jp2kBox):
         IOError
             The file was not JPEG 2000.
         """
-        self.length = os.path.getsize(self.filename)
+        self.length = self.path.stat().st_size
 
-        with open(self.filename, 'rb') as fptr:
+        with self.path.open('rb') as fptr:
 
             # Make sure we have a JPEG2000 file.  It could be either JP2 or
             # J2C.  Check for J2C first, single box in that case.
@@ -769,21 +773,21 @@ class Jp2k(Jp2kBox):
 
         # Check the last box.  If the length field is zero, then rewrite
         # the length field to reflect the true length of the box.
-        with open(self.filename, 'rb') as ifile:
+        with self.path.open('rb') as ifile:
             offset = self.box[-1].offset
             ifile.seek(offset)
             read_buffer = ifile.read(4)
             box_length, = struct.unpack('>I', read_buffer)
             if box_length == 0:
                 # Reopen the file in write mode and rewrite the length field.
-                true_box_length = os.path.getsize(ifile.name) - offset
-                with open(self.filename, 'r+b') as ofile:
+                true_box_length = self.path.stat().st_size - offset
+                with self.path.open('r+b') as ofile:
                     ofile.seek(offset)
                     write_buffer = struct.pack('>I', true_box_length)
                     ofile.write(write_buffer)
 
         # Can now safely append the box.
-        with open(self.filename, 'ab') as ofile:
+        with self.path.open('ab') as ofile:
             box.write(ofile)
 
         self.parse()
@@ -876,7 +880,7 @@ class Jp2k(Jp2kBox):
             if L == 0:
                 # The length of the box is presumed to last until the end of
                 # the file.  Compute the effective length of the box.
-                L = os.path.getsize(ifile.name) - ifile.tell() + 8
+                L = self.path.stat().st_size - ifile.tell() + 8
 
             elif L == 1:
                 # The length of the box is in the XL field, a 64-bit value.
@@ -1455,7 +1459,7 @@ class Jp2k(Jp2kBox):
             Signed:  (False, False, False)
             Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))
         """
-        with open(self.filename, 'rb') as fptr:
+        with self.path.open('rb') as fptr:
             if self._codec_format == opj2.CODEC_J2K:
                 codestream = Codestream(fptr, self.length,
                                         header_only=header_only)
@@ -1467,7 +1471,7 @@ class Jp2k(Jp2kBox):
                 if box_length == 0:
                     # The length of the box is presumed to last until the end
                     # of the file.  Compute the effective length of the box.
-                    box_length = os.path.getsize(fptr.name) - fptr.tell() + 8
+                    box_length = self.path.stat().st_size - fptr.tell() + 8
                 elif box_length == 1:
                     # Seek past the XL field.
                     read_buffer = fptr.read(8)

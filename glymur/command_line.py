@@ -3,7 +3,7 @@ Entry point for console script jp2dump.
 """
 # Standard library imports ...
 import argparse
-import os
+import pathlib
 import warnings
 
 # Local imports ...
@@ -52,20 +52,20 @@ def main():
     elif codestream_level == 2:
         set_option('parse.full_codestream', True)
 
-    filename = args.filename
+    path = pathlib.Path(args.filename)
 
     # JP2 metadata can be extensive, so don't print any warnings until we
     # are done with the metadata.
     with warnings.catch_warnings(record=True) as wctx:
 
-        jp2 = Jp2k(filename)
+        jp2 = Jp2k(path)
         if jp2._codec_format == lib.openjp2.CODEC_J2K:
             if codestream_level == 0:
-                print(f'File:  {os.path.basename(filename)}')
+                print(f'File:  {path.name}')
             elif codestream_level == 1:
                 print(jp2)
             elif codestream_level == 2:
-                print(f'File:  {os.path.basename(filename)}')
+                print(f'File:  {path.name}')
                 print(jp2.get_codestream(header_only=False))
         else:
             print(jp2)

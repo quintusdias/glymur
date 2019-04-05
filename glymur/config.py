@@ -25,11 +25,11 @@ def glymurrc_fname():
     if path.exists():
         return path
 
-    confdir = get_configdir()
-    if confdir is not None:
-        fname = os.path.join(confdir, 'glymurrc')
-        if os.path.exists(fname):
-            return fname
+    confdir_path = get_configdir()
+    if confdir_path is not None:
+        path = confdir_path / 'glymurrc'
+        if path.exists():
+            return path
 
     # didn't find a configuration file.
     return None
