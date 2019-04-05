@@ -18,7 +18,7 @@ Codestream:
             Progression order:  LRCP
             Number of layers:  1
             Multiple component transformation usage:  reversible
-            Number of resolutions:  6
+            Number of decomposition levels:  5
             Code block height, width:  (64 x 64)
             Wavelet transform:  5-3 reversible
             Precinct size:  (32768, 32768)
@@ -41,7 +41,7 @@ Codestream:
         Associated component:  1
         Coding style for this component:  Entropy coder, PARTITION = 0
         Coding style parameters:
-            Number of resolutions:  6
+            Number of decomposition levels:  5
             Code block height, width:  (64 x 64)
             Wavelet transform:  5-3 reversible
             Precinct size:  (32768, 32768)
@@ -60,7 +60,7 @@ Codestream:
         Associated component:  2
         Coding style for this component:  Entropy coder, PARTITION = 0
         Coding style parameters:
-            Number of resolutions:  6
+            Number of decomposition levels:  5
             Code block height, width:  (64 x 64)
             Wavelet transform:  5-3 reversible
             Precinct size:  (32768, 32768)

@@ -19,7 +19,7 @@ Codestream:
             Progression order:  LRCP
             Number of layers:  1
             Multiple component transformation usage:  reversible
-            Number of resolutions:  6
+            Number of decomposition levels:  5
             Code block height, width:  (64 x 64)
             Wavelet transform:  5-3 reversible
             Precinct size:  (32768, 32768)

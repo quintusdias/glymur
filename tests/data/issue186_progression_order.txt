@@ -7,7 +7,7 @@ COD marker segment @ (174, 12)
         Progression order:  33 (invalid)
         Number of layers:  1
         Multiple component transformation usage:  reversible
-        Number of resolutions:  6
+        Number of decomposition levels:  5
         Code block height, width:  (32 x 32)
         Wavelet transform:  9-7 irreversible
         Precinct size:  (32768, 32768)

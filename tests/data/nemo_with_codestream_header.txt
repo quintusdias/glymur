@@ -122,7 +122,7 @@ Contiguous Codestream Box (jp2c) @ (3223, 1132296)
             Progression order:  LRCP
             Number of layers:  2
             Multiple component transformation usage:  reversible
-            Number of resolutions:  2
+            Number of decomposition levels:  1
             Code block height, width:  (64 x 64)
             Wavelet transform:  5-3 reversible
             Precinct size:  (32768, 32768)

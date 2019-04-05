@@ -4,15 +4,19 @@ The module contains classes used to store information parsed from JPEG 2000
 codestreams.
 """
 
+# standard library imports
 import struct
 import sys
 import warnings
 
+# 3rd party library imports
 import numpy as np
 
-from .core import (LRCP, RLCP, RPCL, PCRL, CPRL,
-                   WAVELET_XFORM_9X7_IRREVERSIBLE,
-                   WAVELET_XFORM_5X3_REVERSIBLE)
+# local imports
+from .core import (
+    LRCP, RLCP, RPCL, PCRL, CPRL,
+    WAVELET_XFORM_9X7_IRREVERSIBLE, WAVELET_XFORM_5X3_REVERSIBLE
+)
 from .lib import openjp2 as opj2
 
 
@@ -901,7 +905,7 @@ class COCsegment(Segment):
             f'    Coding style for this component:  '
             f'Entropy coder, PARTITION = {partition}\n'
             f'    Coding style parameters:\n'
-            f'        Number of resolutions:  {self.spcoc[0] + 1}\n'
+            f'        Number of decomposition levels:  {self.spcoc[0]}\n'
             f'        Code block height, width:  ({width} x {height})\n'
             f'        Wavelet transform:  {xform}\n'
             f'        Precinct size:  {self.precinct_size}\n'
@@ -934,7 +938,7 @@ class CODsegment(Segment):
     mct : int
         Multiple component transform usage
     num_res : int
-        Number of layers
+        Number of decomposition levels.  Zero implies no transformation.
     xform : int
         Wavelet transform used
     cstyle : int
@@ -990,19 +994,21 @@ class CODsegment(Segment):
         msg = Segment.__str__(self)
 
         msg += '\n'
-        msg += ('    Coding style:\n'
-                '        Entropy coder, {with_without} partitions\n'
-                '        SOP marker segments:  {sop}\n'
-                '        EPH marker segments:  {eph}\n'
-                '    Coding style parameters:\n'
-                '        Progression order:  {prog}\n'
-                '        Number of layers:  {num_layers}\n'
-                '        Multiple component transformation usage:  {mct}\n'
-                '        Number of resolutions:  {num_resolutions}\n'
-                '        Code block height, width:  ({cbh} x {cbw})\n'
-                '        Wavelet transform:  {xform}\n'
-                '        Precinct size:  {precinct_size}\n'
-                '        {code_block_context}')
+        msg += (
+            '    Coding style:\n'
+            '        Entropy coder, {with_without} partitions\n'
+            '        SOP marker segments:  {sop}\n'
+            '        EPH marker segments:  {eph}\n'
+            '    Coding style parameters:\n'
+            '        Progression order:  {prog}\n'
+            '        Number of layers:  {num_layers}\n'
+            '        Multiple component transformation usage:  {mct}\n'
+            '        Number of decomposition levels:  {num_dlevels}\n'
+            '        Code block height, width:  ({cbh} x {cbw})\n'
+            '        Wavelet transform:  {xform}\n'
+            '        Precinct size:  {precinct_size}\n'
+            '        {code_block_context}'
+        )
 
         if self.mct == 0:
             mct_str = 'no transform specified'
@@ -1027,7 +1033,7 @@ class CODsegment(Segment):
                          prog=progression_order,
                          num_layers=self.layers,
                          mct=mct_str,
-                         num_resolutions=self.num_res + 1,
+                         num_dlevels=self.num_res,
                          cbh=int(self.code_block_size[0]),
                          cbw=int(self.code_block_size[1]),
                          xform=xform,

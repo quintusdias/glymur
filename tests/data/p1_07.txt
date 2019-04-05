@@ -2,7 +2,7 @@ COC marker segment @ (64, 11)
     Associated component:  1
     Coding style for this component:  Entropy coder, PARTITION = 1
     Coding style parameters:
-        Number of resolutions:  2
+        Number of decomposition levels:  1
         Code block height, width:  (64 x 64)
         Wavelet transform:  5-3 reversible
         Precinct size:  ((2, 2), (4, 4))
