@@ -110,9 +110,8 @@ class TestDataEntryURL(fixtures.TestCommon):
             with open(tfile.name, 'rb') as fptr:
                 fptr.seek(jp22.box[-1].offset + 4 + 4 + 1 + 3)
 
-                nbytes = (jp22.box[-1].offset +
-                          jp22.box[-1].length -
-                          fptr.tell())
+                nbytes = (jp22.box[-1].offset
+                          + jp22.box[-1].length - fptr.tell())
                 read_buffer = fptr.read(nbytes)
                 read_url = read_buffer.decode('utf-8')
                 self.assertEqual(url + chr(0), read_url)
@@ -856,8 +855,8 @@ class TestWrap(fixtures.TestCommon):
         """Rewrap a jpx file."""
         with open(self.temp_jp2_filename, mode='wb') as tfile1:
             jpx = Jp2k(self.jpxfile)
-            idx = (list(range(5)) +
-                   list(range(9, 12)) + list(range(6, 9))) + [12]
+            idx = (list(range(5))
+                   + list(range(9, 12)) + list(range(6, 9))) + [12]
             boxes = [jpx.box[j] for j in idx]
             jpx2 = jpx.wrap(tfile1.name, boxes=boxes)
             exp_ids = [box.box_id for box in boxes]

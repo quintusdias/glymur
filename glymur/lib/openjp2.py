@@ -79,63 +79,64 @@ class PocType(ctypes.Structure):
     """
     # Resolution num start, Component num start, given by POC
     _fields_ = [
-        ("resno0",     ctypes.c_uint32),
-        ("compno0",    ctypes.c_uint32),
+        ("resno0",     ctypes.c_uint32),  # noqa
+        ("compno0",    ctypes.c_uint32),  # noqa
 
         # Layer num end,Resolution num end, Component num end, given by POC
-        ("layno1",     ctypes.c_uint32),
-        ("resno1",     ctypes.c_uint32),
-        ("compno1",    ctypes.c_uint32),
+        ("layno1",     ctypes.c_uint32),  # noqa
+        ("resno1",     ctypes.c_uint32),  # noqa
+        ("compno1",    ctypes.c_uint32),  # noqa
 
         # Layer num start,Precinct num start, Precinct num end
-        ("layno0",     ctypes.c_uint32),
-        ("precno0",    ctypes.c_uint32),
-        ("precno1",    ctypes.c_uint32),
+        ("layno0",     ctypes.c_uint32),  # noqa
+        ("precno0",    ctypes.c_uint32),  # noqa
+        ("precno1",    ctypes.c_uint32),  # noqa
 
         # Progression order enum
-        ("prg1",       PROG_ORDER_TYPE),
-        ("prg",        PROG_ORDER_TYPE),
+        ("prg1",       PROG_ORDER_TYPE),  # noqa
+        ("prg",        PROG_ORDER_TYPE),  # noqa
 
         # Progression order string
-        ("progorder",  ctypes.c_char * 5),
+        ("progorder",  ctypes.c_char * 5),  # noqa
 
         # Tile number
-        ("tile",       ctypes.c_uint32),
+        ("tile",       ctypes.c_uint32),  # noqa
 
         # Start and end values for Tile width and height*
-        ("tx0",       ctypes.c_int32),
-        ("tx1",       ctypes.c_int32),
-        ("ty0",       ctypes.c_int32),
-        ("ty1",       ctypes.c_int32),
+        ("tx0",       ctypes.c_int32),  # noqa
+        ("tx1",       ctypes.c_int32),  # noqa
+        ("ty0",       ctypes.c_int32),  # noqa
+        ("ty1",       ctypes.c_int32),  # noqa
 
         # Start value, initialised in pi_initialise_encode
-        ("layS",       ctypes.c_uint32),
-        ("resS",       ctypes.c_uint32),
-        ("compS",      ctypes.c_uint32),
-        ("prcS",       ctypes.c_uint32),
+        ("layS",       ctypes.c_uint32),  # noqa
+        ("resS",       ctypes.c_uint32),  # noqa
+        ("compS",      ctypes.c_uint32),  # noqa
+        ("prcS",       ctypes.c_uint32),  # noqa
 
         # End value, initialised in pi_initialise_encode
-        ("layE",       ctypes.c_uint32),
-        ("resE",       ctypes.c_uint32),
-        ("compE",      ctypes.c_uint32),
-        ("prcE",       ctypes.c_uint32),
+        ("layE",       ctypes.c_uint32),  # noqa
+        ("resE",       ctypes.c_uint32),  # noqa
+        ("compE",      ctypes.c_uint32),  # noqa
+        ("prcE",       ctypes.c_uint32),  # noqa
 
         # Start and end values of Tile width and height, initialised in
         # pi_initialise_encode
-        ("txS",        ctypes.c_uint32),
-        ("txE",        ctypes.c_uint32),
-        ("tyS",        ctypes.c_uint32),
-        ("tyE",        ctypes.c_uint32),
-        ("dx",         ctypes.c_uint32),
-        ("dy",         ctypes.c_uint32),
+        ("txS",        ctypes.c_uint32),  # noqa
+        ("txE",        ctypes.c_uint32),  # noqa
+        ("tyS",        ctypes.c_uint32),  # noqa
+        ("tyE",        ctypes.c_uint32),  # noqa
+        ("dx",         ctypes.c_uint32),  # noqa
+        ("dy",         ctypes.c_uint32),  # noqa
 
         # Temporary values for Tile parts, initialised in pi_create_encode
-        ("lay_t",      ctypes.c_uint32),
-        ("res_t",      ctypes.c_uint32),
-        ("comp_t",     ctypes.c_uint32),
-        ("prec_t",     ctypes.c_uint32),
-        ("tx0_t",      ctypes.c_uint32),
-        ("ty0_t",      ctypes.c_uint32)]
+        ("lay_t",      ctypes.c_uint32),  # noqa
+        ("res_t",      ctypes.c_uint32),  # noqa
+        ("comp_t",     ctypes.c_uint32),  # noqa
+        ("prec_t",     ctypes.c_uint32),  # noqa
+        ("tx0_t",      ctypes.c_uint32),  # noqa
+        ("ty0_t",      ctypes.c_uint32),  # noqa
+    ]
 
     def __str__(self):
         msg = "{0}:\n".format(self.__class__)
@@ -158,7 +159,7 @@ class DecompressionParametersType(ctypes.Structure):
         # zero, then the original dimension is divided by 2^(reduce).  If
         # equal to zero or not used, the image is decoded to the full
         # resolution.
-        ("cp_reduce",         ctypes.c_uint32),
+        ("cp_reduce",         ctypes.c_uint32), # noqa
 
         # Set the maximum number of quality layers to decode.  If there are
         # fewer quality layers than the specified number, all the quality
@@ -166,46 +167,47 @@ class DecompressionParametersType(ctypes.Structure):
         #
         # If != 0, then only the first cp_layer layers are decoded.
         # If == 0 or not used, all the quality layers are decoded.
-        ("cp_layer",          ctypes.c_uint32),
+        ("cp_layer",          ctypes.c_uint32), # noqa
 
         # input file name
-        ("infile",            ctypes.c_char * PATH_LEN),
+        ("infile",            ctypes.c_char * PATH_LEN), # noqa
 
         # output file name
-        ("outfile",           ctypes.c_char * PATH_LEN),
+        ("outfile",           ctypes.c_char * PATH_LEN), # noqa
 
         # input file format 0: PGX, 1: PxM, 2: BMP 3:TIF
         # output file format 0: J2K, 1: JP2, 2: JPT
-        ("decod_format",      ctypes.c_int),
-        ("cod_format",        ctypes.c_int),
+        ("decod_format",      ctypes.c_int), # noqa
+        ("cod_format",        ctypes.c_int), # noqa
 
         # Decoding area left and right boundary.
         # Decoding area upper and lower boundary.
-        ("DA_x0",             ctypes.c_uint32),
-        ("DA_x1",             ctypes.c_uint32),
-        ("DA_y0",             ctypes.c_uint32),
-        ("DA_y1",             ctypes.c_uint32),
+        ("DA_x0",             ctypes.c_uint32), # noqa
+        ("DA_x1",             ctypes.c_uint32), # noqa
+        ("DA_y0",             ctypes.c_uint32), # noqa
+        ("DA_y1",             ctypes.c_uint32), # noqa
 
         # verbose mode
-        ("m_verbose",         BOOL_TYPE),
+        ("m_verbose",         BOOL_TYPE), # noqa
 
         # tile number of the decoded tile
-        ("tile_index",        ctypes.c_uint32),
+        ("tile_index",        ctypes.c_uint32), # noqa
 
         # number of tiles to decode
-        ("nb_tile_to_decode", ctypes.c_uint32),
+        ("nb_tile_to_decode", ctypes.c_uint32), # noqa
 
         # activates the JPWL correction capabilities
-        ("jpwl_correct",      BOOL_TYPE),
+        ("jpwl_correct",      BOOL_TYPE), # noqa
 
         # activates the JPWL correction capabilities
-        ("jpwl_exp_comps",    ctypes.c_int32),
+        ("jpwl_exp_comps",    ctypes.c_int32), # noqa
 
         # maximum number of tiles
-        ("jpwl_max_tiles",    ctypes.c_int32),
+        ("jpwl_max_tiles",    ctypes.c_int32), # noqa
 
         # maximum number of tiles
-        ("flags",             ctypes.c_uint32)]
+        ("flags",             ctypes.c_uint32), # noqa
+    ]
 
     def __str__(self):
         msg = "{0}:\n".format(self.__class__)
@@ -224,186 +226,187 @@ class CompressionParametersType(ctypes.Structure):
         # size of tile:
         #     tile_size_on = false (not in argument) or
         #                  = true (in argument)
-        ("tile_size_on",     BOOL_TYPE),
+        ("tile_size_on",     BOOL_TYPE),  # noqa
 
         # XTOsiz, YTOsiz
-        ("cp_tx0",           ctypes.c_int),
-        ("cp_ty0",           ctypes.c_int),
+        ("cp_tx0",           ctypes.c_int),  # noqa
+        ("cp_ty0",           ctypes.c_int),  # noqa
 
         # XTsiz, YTsiz
-        ("cp_tdx",           ctypes.c_int),
-        ("cp_tdy",           ctypes.c_int),
+        ("cp_tdx",           ctypes.c_int),  # noqa
+        ("cp_tdy",           ctypes.c_int),  # noqa
 
         # allocation by rate/distortion
-        ("cp_disto_alloc",   ctypes.c_int),
+        ("cp_disto_alloc",   ctypes.c_int),  # noqa
 
         # allocation by fixed layer
-        ("cp_fixed_alloc",   ctypes.c_int),
+        ("cp_fixed_alloc",   ctypes.c_int),  # noqa
 
         # add fixed_quality
-        ("cp_fixed_quality", ctypes.c_int),
+        ("cp_fixed_quality", ctypes.c_int),  # noqa
 
         # fixed layer
-        ("cp_matrice",       ctypes.c_void_p),
+        ("cp_matrice",       ctypes.c_void_p),  # noqa
 
         # comment for coding
-        ("cp_comment",       ctypes.c_char_p),
+        ("cp_comment",       ctypes.c_char_p),  # noqa
 
         # csty : coding style
-        ("csty",             ctypes.c_int),
+        ("csty",             ctypes.c_int),  # noqa
 
         # progression order (default OPJ_LRCP)
-        ("prog_order",       ctypes.c_int),
+        ("prog_order",       ctypes.c_int),  # noqa
 
         # progression order changes
-        ("poc",              PocType * 32),
+        ("poc",              PocType * 32),  # noqa
 
         # number of progression order changes (POC), default to 0
-        ("numpocs",          ctypes.c_uint),
+        ("numpocs",          ctypes.c_uint),  # noqa
 
         # number of layers
-        ("tcp_numlayers",    ctypes.c_int),
+        ("tcp_numlayers",    ctypes.c_int),  # noqa
 
         # rates of layers
-        ("tcp_rates",        ctypes.c_float * 100),
+        ("tcp_rates",        ctypes.c_float * 100),  # noqa
 
         # different psnr for successive layers
-        ("tcp_distoratio",   ctypes.c_float * 100),
+        ("tcp_distoratio",   ctypes.c_float * 100),  # noqa
 
         # number of resolutions
-        ("numresolution",    ctypes.c_int),
+        ("numresolution",    ctypes.c_int),  # noqa
 
         # initial code block width, default to 64
-        ("cblockw_init",     ctypes.c_int),
+        ("cblockw_init",     ctypes.c_int),  # noqa
 
         # initial code block height, default to 64
-        ("cblockh_init",     ctypes.c_int),
+        ("cblockh_init",     ctypes.c_int),  # noqa
 
         # mode switch (cblk_style)
-        ("mode",             ctypes.c_int),
+        ("mode",             ctypes.c_int),  # noqa
 
         # 1 : use the irreversible DWT 9-7
         # 0 : use lossless compression (default)
-        ("irreversible",     ctypes.c_int),
+        ("irreversible",     ctypes.c_int),  # noqa
 
         # region of interest: affected component in [0..3], -1 means no ROI
-        ("roi_compno",       ctypes.c_int),
+        ("roi_compno",       ctypes.c_int),  # noqa
 
         # region of interest: upshift value
-        ("roi_shift",        ctypes.c_int),
+        ("roi_shift",        ctypes.c_int),  # noqa
 
         # number of precinct size specifications
-        ("res_spec",         ctypes.c_int),
+        ("res_spec",         ctypes.c_int),  # noqa
 
         # initial precinct width
-        ("prcw_init",        ctypes.c_int * J2K_MAXRLVLS),
+        ("prcw_init",        ctypes.c_int * J2K_MAXRLVLS),  # noqa
 
         # initial precinct height
-        ("prch_init",        ctypes.c_int * J2K_MAXRLVLS),
+        ("prch_init",        ctypes.c_int * J2K_MAXRLVLS),  # noqa
 
         # input file name
-        ("infile",           ctypes.c_char * PATH_LEN),
+        ("infile",           ctypes.c_char * PATH_LEN),  # noqa
 
         # output file name
-        ("outfile",          ctypes.c_char * PATH_LEN),
+        ("outfile",          ctypes.c_char * PATH_LEN),  # noqa
 
         # DEPRECATED.
-        ("index_on",         ctypes.c_int),
+        ("index_on",         ctypes.c_int),  # noqa
 
         # DEPRECATED.
-        ("index",            ctypes.c_char * PATH_LEN),
+        ("index",            ctypes.c_char * PATH_LEN),  # noqa
 
         # subimage encoding: origin image offset in x direction
         # subimage encoding: origin image offset in y direction
-        ("image_offset_x0",  ctypes.c_int),
-        ("image_offset_y0",  ctypes.c_int),
+        ("image_offset_x0",  ctypes.c_int),  # noqa
+        ("image_offset_y0",  ctypes.c_int),  # noqa
 
         # subsampling value for dx
         # subsampling value for dy
-        ("subsampling_dx",  ctypes.c_int),
-        ("subsampling_dy",  ctypes.c_int),
+        ("subsampling_dx",  ctypes.c_int),  # noqa
+        ("subsampling_dy",  ctypes.c_int),  # noqa
 
         # input file format 0: PGX, 1: PxM, 2: BMP 3:TIF
         # output file format 0: J2K, 1: JP2, 2: JPT
-        ("decod_format",    ctypes.c_int),
-        ("cod_format",      ctypes.c_int),
+        ("decod_format",    ctypes.c_int),  # noqa
+        ("cod_format",      ctypes.c_int),  # noqa
 
         # JPWL encoding parameters
         # enables writing of EPC in MH, thus activating JPWL
-        ("jpwl_epc_on",     BOOL_TYPE),
+        ("jpwl_epc_on",     BOOL_TYPE),  # noqa
 
         # error protection method for MH (0,1,16,32,37-128)
-        ("jpwl_hprot_mh",   ctypes.c_int),
+        ("jpwl_hprot_mh",   ctypes.c_int),  # noqa
 
         # tile number of header protection specification (>=0)
-        ("jpwl_hprot_tph_tileno", ctypes.c_int * JPWL_MAX_NO_TILESPECS),
+        ("jpwl_hprot_tph_tileno", ctypes.c_int * JPWL_MAX_NO_TILESPECS),  # noqa
 
         # error protection methods for TPHs (0,1,16,32,37-128)
-        ("jpwl_hprot_tph",        ctypes.c_int * JPWL_MAX_NO_TILESPECS),
+        ("jpwl_hprot_tph",        ctypes.c_int * JPWL_MAX_NO_TILESPECS),  # noqa
 
         # tile number of packet protection specification (>=0)
-        ("jpwl_pprot_tileno",     ctypes.c_int * JPWL_MAX_NO_TILESPECS),
+        ("jpwl_pprot_tileno",     ctypes.c_int * JPWL_MAX_NO_TILESPECS),  # noqa
 
         # packet number of packet protection specification (>=0)
-        ("jpwl_pprot_packno",     ctypes.c_int * JPWL_MAX_NO_TILESPECS),
+        ("jpwl_pprot_packno",     ctypes.c_int * JPWL_MAX_NO_TILESPECS),  # noqa
 
         # error protection methods for packets (0,1,16,32,37-128)
-        ("jpwl_pprot",            ctypes.c_int * JPWL_MAX_NO_TILESPECS),
+        ("jpwl_pprot",            ctypes.c_int * JPWL_MAX_NO_TILESPECS),  # noqa
 
         # enables writing of ESD, (0=no/1/2 bytes)
-        ("jpwl_sens_size",        ctypes.c_int),
+        ("jpwl_sens_size",        ctypes.c_int),  # noqa
 
         # sensitivity addressing size (0=auto/2/4 bytes)
-        ("jpwl_sens_addr",        ctypes.c_int),
+        ("jpwl_sens_addr",        ctypes.c_int),  # noqa
 
         # sensitivity range (0-3)
-        ("jpwl_sens_range",       ctypes.c_int),
+        ("jpwl_sens_range",      ctypes.c_int),  # noqa
 
         # sensitivity method for MH (-1=no,0-7)
-        ("jpwl_sens_mh",          ctypes.c_int),
+        ("jpwl_sens_mh",         ctypes.c_int),  # noqa
 
         # tile number of sensitivity specification (>=0)
-        ("jpwl_sens_tph_tileno",  ctypes.c_int * JPWL_MAX_NO_TILESPECS),
+        ("jpwl_sens_tph_tileno", ctypes.c_int * JPWL_MAX_NO_TILESPECS),  # noqa
 
         # sensitivity methods for TPHs (-1=no,0-7)
-        ("jpwl_sens_tph",         ctypes.c_int * JPWL_MAX_NO_TILESPECS),
+        ("jpwl_sens_tph",        ctypes.c_int * JPWL_MAX_NO_TILESPECS),  # noqa
 
         # Digital Cinema compliance 0-not compliant, 1-compliant
-        ("cp_cinema",             CINEMA_MODE_TYPE),
+        ("cp_cinema",            CINEMA_MODE_TYPE),  # noqa
 
         # Maximum rate for each component.
         # If == 0, component size limitation is not considered
-        ("max_comp_size",         ctypes.c_int),
+        ("max_comp_size",        ctypes.c_int),  # noqa
 
         # Profile name
-        ("cp_rsiz",               RSIZ_CAPABILITIES_TYPE),
+        ("cp_rsiz",              RSIZ_CAPABILITIES_TYPE),  # noqa
 
         # Tile part generation
-        ("tp_on",                 ctypes.c_uint8),
+        ("tp_on",                ctypes.c_uint8),  # noqa
 
         # Flag for Tile part generation
-        ("tp_flag",               ctypes.c_uint8),
+        ("tp_flag",              ctypes.c_uint8),  # noqa
 
         # MCT (multiple component transform)
-        ("tcp_mct",               ctypes.c_uint8),
+        ("tcp_mct",              ctypes.c_uint8),  # noqa
 
         # Enable JPIP indexing
-        ("jpip_on",               BOOL_TYPE),
+        ("jpip_on",              BOOL_TYPE),  # noqa
 
         # Naive implementation of MCT restricted to a single reversible array
         # based encoding without offset concerning all the components.
-        ("mct_data",              ctypes.c_void_p)]
+        ("mct_data",             ctypes.c_void_p),  # noqa
+    ]
 
     if _MAJOR >= 2 and _MINOR >= 1:
         # Maximum size (in bytes) for the whole codestream.
         # If == 0, codestream size limitation is not considered.
         # If it does not comply with tcp_rates, max_cs_size prevails and a
         # warning is issued.
-        _fields_.append(("max_cs_size",               ctypes.c_int32))
+        _fields_.append(("max_cs_size", ctypes.c_int32))
 
         # To be used to combine OPJ_PROFILE_*, OPJ_EXTENSION_* and (sub)levels
         # values.
-        _fields_.append(("rsiz",                      ctypes.c_uint16))
+        _fields_.append(("rsiz", ctypes.c_uint16))
 
     def __str__(self):
         msg = "{0}:\n".format(self.__class__)
@@ -450,38 +453,39 @@ class ImageCompType(ctypes.Structure):
     _fields_ = [
         # XRsiz, YRsiz:  horizontal, vertical separation of ith component with
         # respect to the reference grid
-        ("dx",                  ctypes.c_uint32),
-        ("dy",                  ctypes.c_uint32),
+        ("dx",                  ctypes.c_uint32), # noqa
+        ("dy",                  ctypes.c_uint32), # noqa
 
         # data width and height
-        ("w",                   ctypes.c_uint32),
-        ("h",                   ctypes.c_uint32),
+        ("w",                   ctypes.c_uint32), # noqa
+        ("h",                   ctypes.c_uint32), # noqa
 
         # x, y component offset compared to the whole image
-        ("x0",                  ctypes.c_uint32),
-        ("y0",                  ctypes.c_uint32),
+        ("x0",                  ctypes.c_uint32), # noqa
+        ("y0",                  ctypes.c_uint32), # noqa
 
         # component depth in bits
-        ("prec",                ctypes.c_uint32),
+        ("prec",                ctypes.c_uint32), # noqa
 
         # component depth in bits
-        ("bpp",                 ctypes.c_uint32),
+        ("bpp",                 ctypes.c_uint32), # noqa
 
         # signed (1) or unsigned (0)
-        ("sgnd",                ctypes.c_uint32),
+        ("sgnd",                ctypes.c_uint32), # noqa
 
         # number of decoded resolution
-        ("resno_decoded",       ctypes.c_uint32),
+        ("resno_decoded",       ctypes.c_uint32), # noqa
 
         # number of division by 2 of the out image component as compared to the
         # original size of the image
-        ("factor",              ctypes.c_uint32),
+        ("factor",              ctypes.c_uint32), # noqa
 
         # image component data
-        ("data",                ctypes.POINTER(ctypes.c_int32))]
+        ("data",                ctypes.POINTER(ctypes.c_int32)),  # noqa
+    ]
 
     if _MAJOR >= 2 and _MINOR >= 1:
-        _fields_.append(("alpha",               ctypes.c_uint16))
+        _fields_.append(("alpha", ctypes.c_uint16))
 
     def __str__(self):
         msg = "{0}:\n".format(self.__class__)
@@ -499,27 +503,28 @@ class ImageType(ctypes.Structure):
     _fields_ = [
         # XOsiz, YOsiz:  horizontal and vertical offset from the origin of the
         # reference grid to the left side of the image area
-        ("x0",                  ctypes.c_uint32),
-        ("y0",                  ctypes.c_uint32),
+        ("x0",              ctypes.c_uint32), # noqa
+        ("y0",              ctypes.c_uint32), # noqa
 
         # Xsiz, Ysiz:  width and height of the reference grid.
-        ("x1",                  ctypes.c_uint32),
-        ("y1",                  ctypes.c_uint32),
+        ("x1",              ctypes.c_uint32), # noqa
+        ("y1",              ctypes.c_uint32), # noqa
 
         # number of components in the image
-        ("numcomps",            ctypes.c_uint32),
+        ("numcomps",        ctypes.c_uint32), # noqa
 
         # color space:  should be sRGB, greyscale, or YUV
-        ("color_space",         COLOR_SPACE_TYPE),
+        ("color_space",     COLOR_SPACE_TYPE), # noqa
 
         # image components
-        ("comps",               ctypes.POINTER(ImageCompType)),
+        ("comps",           ctypes.POINTER(ImageCompType)), # noqa
 
         # restricted ICC profile buffer
-        ("icc_profile_buf",     ctypes.POINTER(ctypes.c_uint8)),
+        ("icc_profile_buf", ctypes.POINTER(ctypes.c_uint8)),
 
         # restricted ICC profile buffer length
-        ("icc_profile_len",     ctypes.c_uint32)]
+        ("icc_profile_len", ctypes.c_uint32),
+    ]
 
     def __str__(self):
         msg = "{0}:\n".format(self.__class__)
@@ -550,25 +555,26 @@ class ImageComptParmType(ctypes.Structure):
     _fields_ = [
         # XRsiz, YRsiz: horizontal, vertical separation of a sample of ith
         # component with respect to the reference grid
-        ("dx",              ctypes.c_uint32),
-        ("dy",              ctypes.c_uint32),
+        ("dx",   ctypes.c_uint32), # noqa
+        ("dy",   ctypes.c_uint32), # noqa
 
         # data width, height
-        ("w",              ctypes.c_uint32),
-        ("h",              ctypes.c_uint32),
+        ("w",    ctypes.c_uint32), # noqa
+        ("h",    ctypes.c_uint32), # noqa
 
         # x, y component offset compared to the whole image
-        ("x0",              ctypes.c_uint32),
-        ("y0",              ctypes.c_uint32),
+        ("x0",   ctypes.c_uint32), # noqa
+        ("y0",   ctypes.c_uint32), # noqa
 
         # precision
-        ("prec",            ctypes.c_uint32),
+        ("prec", ctypes.c_uint32),
 
         # image depth in bits
-        ("bpp",             ctypes.c_uint32),
+        ("bpp",  ctypes.c_uint32), # noqa
 
         # signed (1) / unsigned (0)
-        ("sgnd",            ctypes.c_uint32)]
+        ("sgnd", ctypes.c_uint32),
+    ]
 
     def __str__(self):
         msg = "{0}:\n".format(self.__class__)

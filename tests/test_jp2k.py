@@ -96,7 +96,8 @@ class TestSliceProtocolBaseWrite(SliceProtocolBase):
         """
         expected = self.j2k_data
 
-        j = Jp2k(self.temp_j2k_filename, data=self.j2k_data)
+        j = Jp2k(self.temp_j2k_filename, shape=expected.shape)
+        j[:] = expected
         actual = j[:]
 
         np.testing.assert_array_equal(actual, expected)

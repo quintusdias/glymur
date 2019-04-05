@@ -24,13 +24,10 @@ import warnings
 # Third party library imports ...
 import lxml.etree as ET
 import numpy as np
-try:
-    import gdal
-    import osr
-    gdal.UseExceptions()
-    HAVE_GDAL = True
-except ImportError:  # pragma: no cover
-    HAVE_GDAL = False
+import gdal
+import osr
+
+gdal.UseExceptions()
 
 
 # Local imports ...
@@ -517,8 +514,8 @@ class ChannelDefinitionBox(Jp2kBox):
     def _validate(self, writing=False):
         """Verify that the box obeys the specifications."""
         # channel type and association must be specified.
-        if not ((len(self.index) == len(self.channel_type)) and
-                (len(self.channel_type) == len(self.association))):
+        if not ((len(self.index) == len(self.channel_type))
+                and (len(self.channel_type) == len(self.association))):
             msg = (
                 f"The length of the index ({len(self.index)}), "
                 f"channel_type ({len(self.channel_type)}), "
@@ -1248,9 +1245,9 @@ class FileTypeBox(Jp2kBox):
         for item in self.compatibility_list:
             if item not in self._valid_cls:
                 msg = (
-                   f"The file type compatibility list "
-                   f"{self.compatibility_list} is not valid.  All items "
-                   f"should be members of {self._valid_cls}."
+                    f"The file type compatibility list "
+                    f"{self.compatibility_list} is not valid.  All items "
+                    f"should be members of {self._valid_cls}."
                 )
                 if writing:
                     raise IOError(msg)
@@ -1341,8 +1338,8 @@ class FragmentListBox(Jp2kBox):
 
     def _validate(self, writing=False):
         """Validate internal correctness."""
-        if (((len(self.fragment_offset) != len(self.fragment_length)) or
-             (len(self.fragment_length) != len(self.data_reference)))):
+        if ((((len(self.fragment_offset) != len(self.fragment_length))
+              or (len(self.fragment_length) != len(self.data_reference))))):
             msg = (
                 f"A FragmentListBox at byte offset {self.offset} has invalid "
                 f"parameters.  The lengths of the fragment offsets, fragment "
@@ -2013,8 +2010,8 @@ class PaletteBox(Jp2kBox):
 
     def _validate(self, writing=False):
         """Verify that the box obeys the specifications."""
-        if ((len(self.bits_per_component) != len(self.signed)) or
-                (len(self.signed) != self.palette.shape[1])):
+        if (((len(self.bits_per_component) != len(self.signed))
+             or (len(self.signed) != self.palette.shape[1]))):
             msg = ("The length of the 'bits_per_component' and the 'signed' "
                    "members must equal the number of columns of the palette.")
             self._dispatch_validation_error(msg, writing=writing)
@@ -3325,8 +3322,7 @@ class UUIDBox(Jp2kBox):
 
         lst = [text]
 
-        if (((get_option('print.xml') is False) and
-             (self.uuid == _XMP_UUID))):
+        if not get_option('print.xml') and self.uuid == _XMP_UUID:
             # If it's an XMP UUID, don't print the XML contents.
             pass
 
@@ -3339,11 +3335,7 @@ class UUIDBox(Jp2kBox):
             text = f'UUID Data:  {self.data}'
             lst.append(text)
         elif self.uuid == _GEOTIFF_UUID:
-            if HAVE_GDAL:
-                item = self._print_geotiff()
-            else:
-                item = str(self.data)
-            txt = f'UUID Data:  {item}'
+            txt = f'UUID Data:  {self._print_geotiff()}'
             lst.append(txt)
         else:
             text = f'UUID Data:  {len(self.raw_data)} bytes'
@@ -3430,8 +3422,8 @@ class UUIDBox(Jp2kBox):
 
         # transform the point into georeferenced coordinates
         geo_transform = hDataset.GetGeoTransform(can_return_null=True)
-        dfGeoX = (geo_transform[0] + geo_transform[1] * x +
-                  geo_transform[2] * y)
+        dfGeoX = (geo_transform[0] + geo_transform[1] * x
+                  + geo_transform[2] * y)
         dfGeoY = geo_transform[3] + geo_transform[4] * x
         dfGeoY += geo_transform[5] * y
 

@@ -253,7 +253,7 @@ class TestPrinting(fixtures.TestCommon):
         Original test file was edf_c2_1015644.jp2
         """
         kwargs = {
-            'colorspace':  1,
+            'colorspace': 1,
             'precedence': 2,
             'approximation': 32,
         }

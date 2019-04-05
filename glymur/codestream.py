@@ -759,8 +759,7 @@ class Codestream(object):
 
         self._tile_offset.append(segment.offset)
         if segment.psot == 0:
-            tile_part_length = (self.offset + self.length -
-                                segment.offset - 2)
+            tile_part_length = self.offset + self.length - segment.offset - 2
         else:
             tile_part_length = segment.psot
         self._tile_length.append(tile_part_length)

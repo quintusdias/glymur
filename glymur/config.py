@@ -56,9 +56,11 @@ def _determine_full_path(libname):
 
     # No joy on configuration file.
     # Are we using Anaconda?
-    if ((('Anaconda' in sys.version) or
-         ('Continuum Analytics, Inc.' in sys.version) or
-         ('packaged by conda-forge' in sys.version))):
+    if (
+        'Anaconda' in sys.version
+        or 'Continuum Analytics, Inc.' in sys.version
+        or 'packaged by conda-forge' in sys.version
+    ):
         # If Anaconda, then openjpeg may have been installed via conda.
         if platform.system() in ['Linux', 'Darwin']:
             suffix = '.so' if platform.system() == 'Linux' else '.dylib'
