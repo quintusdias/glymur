@@ -975,7 +975,7 @@ class Jp2k(Jp2kBox):
             self._write(data)
         else:
             msg = "Partial write operations are currently not allowed."
-            raise TypeError(msg)
+            raise ValueError(msg)
 
     def _remove_ellipsis(self, index, numrows, numcols, numbands):
         """
@@ -1088,7 +1088,7 @@ class Jp2k(Jp2kBox):
         cols_step = 1 if cols.step is None else cols.step
         if rows_step != cols_step:
             msg = "Row and column strides must be the same."
-            raise IndexError(msg)
+            raise ValueError(msg)
 
         # Ok, reduce layer step is the same in both xy directions, so just take
         # one of them.
@@ -1097,7 +1097,7 @@ class Jp2k(Jp2kBox):
         # Check if the step size is a power of 2.
         if np.abs(np.log2(step) - np.round(np.log2(step))) > 1e-6:
             msg = "Row and column strides must be powers of 2."
-            raise IndexError(msg)
+            raise ValueError(msg)
         rlevel = np.int(np.round(np.log2(step)))
 
         area = (0 if rows.start is None else rows.start,

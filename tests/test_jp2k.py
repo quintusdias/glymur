@@ -109,43 +109,43 @@ class TestSliceProtocolBaseWrite(SliceProtocolBase):
     def test_cannot_write_with_non_default_single_slice(self):
         with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, shape=self.j2k_data.shape)
-            with self.assertRaises(TypeError):
+            with self.assertRaises(ValueError):
                 j[slice(None, 0)] = self.j2k_data
-            with self.assertRaises(TypeError):
+            with self.assertRaises(ValueError):
                 j[slice(0, None)] = self.j2k_data
-            with self.assertRaises(TypeError):
+            with self.assertRaises(ValueError):
                 j[slice(0, 0, None)] = self.j2k_data
-            with self.assertRaises(TypeError):
+            with self.assertRaises(ValueError):
                 j[slice(0, 640)] = self.j2k_data
 
     def test_cannot_write_a_row(self):
         with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, shape=self.j2k_data.shape)
-            with self.assertRaises(TypeError):
+            with self.assertRaises(ValueError):
                 j[5] = self.j2k_data
 
     def test_cannot_write_a_pixel(self):
         with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, shape=self.j2k_data.shape)
-            with self.assertRaises(TypeError):
+            with self.assertRaises(ValueError):
                 j[25, 35] = self.j2k_data[25, 35]
 
     def test_cannot_write_a_column(self):
         with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, shape=self.j2k_data.shape)
-            with self.assertRaises(TypeError):
+            with self.assertRaises(ValueError):
                 j[:, 25, :] = self.j2k_data[:, :25, :]
 
     def test_cannot_write_a_band(self):
         with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, shape=self.j2k_data.shape)
-            with self.assertRaises(TypeError):
+            with self.assertRaises(ValueError):
                 j[:, :, 0] = self.j2k_data[:, :, 0]
 
     def test_cannot_write_a_subarray(self):
         with open(self.temp_j2k_filename, mode='wb') as tfile:
             j = Jp2k(tfile.name, shape=self.j2k_data.shape)
-            with self.assertRaises(TypeError):
+            with self.assertRaises(ValueError):
                 j[:25, :45, :] = self.j2k_data[:25, :25, :]
 
 
@@ -153,12 +153,12 @@ class TestSliceProtocolBaseWrite(SliceProtocolBase):
 class TestSliceProtocolRead(SliceProtocolBase):
 
     def test_resolution_strides_cannot_differ(self):
-        with self.assertRaises(IndexError):
+        with self.assertRaises(ValueError):
             # Strides in x/y directions cannot differ.
             self.j2k[::2, ::3]
 
     def test_resolution_strides_must_be_powers_of_two(self):
-        with self.assertRaises(IndexError):
+        with self.assertRaises(ValueError):
             self.j2k[::3, ::3]
 
     def test_integer_index_in_3d(self):
