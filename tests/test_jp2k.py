@@ -107,16 +107,16 @@ class TestSliceProtocolBaseWrite(SliceProtocolBase):
         SCENARIO:  Write image using single non-default slices.  Only ':' is
         currently valid as a single slice argument.
 
-        EXPECTED RESULT:  TypeError
+        EXPECTED RESULT:  ValueError
         """
         j = Jp2k(self.temp_j2k_filename, shape=self.j2k_data.shape)
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             j[slice(None, 0)] = self.j2k_data
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             j[slice(0, None)] = self.j2k_data
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             j[slice(0, 0, None)] = self.j2k_data
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             j[slice(0, 640)] = self.j2k_data
 
     def test_cannot_write_a_row(self):
@@ -124,10 +124,10 @@ class TestSliceProtocolBaseWrite(SliceProtocolBase):
         SCENARIO:  Write image row by specifying slicing.  Only ':' is
         currently valid as a single slice argument.
 
-        EXPECTED RESULT:  TypeError
+        EXPECTED RESULT:  ValueError
         """
         j = Jp2k(self.temp_j2k_filename, shape=self.j2k_data.shape)
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             j[5] = self.j2k_data
 
     def test_cannot_write_a_pixel(self):
@@ -135,10 +135,10 @@ class TestSliceProtocolBaseWrite(SliceProtocolBase):
         SCENARIO:  Write pixel by specifying slicing.  Only ':' is
         currently valid as a single slice argument.
 
-        EXPECTED RESULT:  TypeError
+        EXPECTED RESULT:  ValueError
         """
         j = Jp2k(self.temp_j2k_filename, shape=self.j2k_data.shape)
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             j[25, 35] = self.j2k_data[25, 35]
 
     def test_cannot_write_a_column(self):
@@ -146,10 +146,10 @@ class TestSliceProtocolBaseWrite(SliceProtocolBase):
         SCENARIO:  Write column by specifying slicing.  Only ':' is
         currently valid as a single slice argument.
 
-        EXPECTED RESULT:  TypeError
+        EXPECTED RESULT:  ValueError
         """
         j = Jp2k(self.temp_j2k_filename, shape=self.j2k_data.shape)
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             j[:, 25, :] = self.j2k_data[:, :25, :]
 
     def test_cannot_write_a_band(self):
@@ -157,10 +157,10 @@ class TestSliceProtocolBaseWrite(SliceProtocolBase):
         SCENARIO:  Write band by specifying slicing.  Only ':' is
         currently valid as a single slice argument.
 
-        EXPECTED RESULT:  TypeError
+        EXPECTED RESULT:  ValueError
         """
         j = Jp2k(self.temp_j2k_filename, shape=self.j2k_data.shape)
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             j[:, :, 0] = self.j2k_data[:, :, 0]
 
     def test_cannot_write_a_subarray(self):
@@ -168,10 +168,10 @@ class TestSliceProtocolBaseWrite(SliceProtocolBase):
         SCENARIO:  Write area by specifying slicing.  Only ':' is
         currently valid as a single slice argument.
 
-        EXPECTED RESULT:  TypeError
+        EXPECTED RESULT:  ValueError
         """
         j = Jp2k(self.temp_j2k_filename, shape=self.j2k_data.shape)
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             j[:25, :45, :] = self.j2k_data[:25, :25, :]
 
 
@@ -179,12 +179,12 @@ class TestSliceProtocolBaseWrite(SliceProtocolBase):
 class TestSliceProtocolRead(SliceProtocolBase):
 
     def test_resolution_strides_cannot_differ(self):
-        with self.assertRaises(IndexError):
+        with self.assertRaises(ValueError):
             # Strides in x/y directions cannot differ.
             self.j2k[::2, ::3]
 
     def test_resolution_strides_must_be_powers_of_two(self):
-        with self.assertRaises(IndexError):
+        with self.assertRaises(ValueError):
             self.j2k[::3, ::3]
 
     def test_integer_index_in_3d(self):
