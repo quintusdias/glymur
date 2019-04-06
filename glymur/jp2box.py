@@ -63,6 +63,13 @@ _EXIF_UUID = UUID(bytes=b'JpgTiffExif->JP2')
 _XMP_UUID = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
 
 
+class InvalidJp2kError(RuntimeError):
+    """
+    Raise this exception in case we cannot parse a valid JP2 file.
+    """
+    pass
+
+
 class Jp2kBox(object):
     """Superclass for JPEG 2000 boxes.
 
@@ -97,7 +104,7 @@ class Jp2kBox(object):
         JP2 files.  If reading, then we should be more lenient and just warn.
         """
         if writing:
-            raise IOError(msg)
+            raise InvalidJp2kError(msg)
         else:
             warnings.warn(msg)
 
@@ -320,7 +327,7 @@ class ColourSpecificationBox(Jp2kBox):
         if self.method not in _COLORSPACE_METHODS.keys():
             msg = f"Invalid colorspace method value ({self.method})."
             if writing:
-                raise IOError(msg)
+                raise InvalidJp2kError(msg)
             else:
                 warnings.warn(msg, UserWarning)
 
@@ -1239,7 +1246,7 @@ class FileTypeBox(Jp2kBox):
                 f"It should be either 'jp2 ' or 'jpx '."
             )
             if writing:
-                raise IOError(msg)
+                raise InvalidJp2kError(msg)
             else:
                 warnings.warn(msg, UserWarning)
         for item in self.compatibility_list:
@@ -1250,7 +1257,7 @@ class FileTypeBox(Jp2kBox):
                     f"should be members of {self._valid_cls}."
                 )
                 if writing:
-                    raise IOError(msg)
+                    raise InvalidJp2kError(msg)
                 else:
                     warnings.warn(msg, UserWarning)
 
@@ -2100,7 +2107,7 @@ class PaletteBox(Jp2kBox):
         if any(signed) or len(set(bps)) != 1:
             msg = ("Palettes with signed components or differently sized "
                    "components are not supported.")
-            raise IOError(msg)
+            raise InvalidJp2kError(msg)
 
         # The palette is unsigned and all components have the same width.
         # This should cover all but a vanishingly small share of palettes.
@@ -2834,7 +2841,7 @@ class XMLBox(Jp2kBox):
         if filename is not None and xml is not None:
             msg = ("Only one of either a filename or an ElementTree instance "
                    "should be provided.")
-            raise IOError(msg)
+            raise RuntimeError(msg)
         if filename is not None:
             self.xml = ET.parse(str(filename))
         else:
@@ -3280,7 +3287,7 @@ class UUIDBox(Jp2kBox):
 
         try:
             self._parse_raw_data()
-        except IOError as error:
+        except RuntimeError as error:
             # Such as when Exif byte order is unrecognized.
             warnings.warn(str(error))
 

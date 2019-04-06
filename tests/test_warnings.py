@@ -20,6 +20,7 @@ from unittest.mock import patch
 from glymur import Jp2k
 import glymur
 from glymur.core import COLOR, RED, GREEN, BLUE
+from glymur.jp2box import InvalidJp2kError
 
 from . import fixtures, data
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
@@ -48,7 +49,7 @@ class TestSuite(fixtures.TestCommon):
         """
         with ir.path(data, 'issue438.jp2') as path:
             with self.assertWarns(UserWarning):
-                with self.assertRaises(OSError):
+                with self.assertRaises(InvalidJp2kError):
                     Jp2k(path)
 
     def test_siz_ihdr_mismatch(self):
@@ -84,7 +85,8 @@ class TestSuite(fixtures.TestCommon):
     def test_unrecognized_marker(self):
         """
         SCENARIO:  There is an unrecognized marker just after an SOT marker but
-        before the EOC marker.
+        before the EOC marker.  All markers must have a leading byte value of
+        0xff.
 
         EXPECTED RESULT:  The SOT marker is the last one retrieved from the
         codestream.
@@ -104,7 +106,7 @@ class TestSuite(fixtures.TestCommon):
                 tfile.write(read_buffer)
                 tfile.flush()
 
-            with self.assertRaises(IOError):
+            with self.assertRaises(ValueError):
                 Jp2k(tfile.name).get_codestream(header_only=False)
 
     def test_unrecoverable_xml(self):

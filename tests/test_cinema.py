@@ -57,6 +57,16 @@ class WriteCinema(CinemaBase):
     def setUpClass(cls):
         cls.jp2_data = glymur.Jp2k(glymur.data.nemo())[:]
 
+    def test_cinema2K_bad_frame_rate(self):
+        """
+        SCENARIO:  The cinema2k frame rate is not either 24 or 48.
+
+        EXPECTED RESULT:  ValueError
+        """
+        with open(self.temp_j2k_filename, mode='wb') as tfile:
+            with self.assertRaises(ValueError):
+                Jp2k(tfile.name, data=self.jp2_data, cinema2k=36)
+
     def test_NR_ENC_X_6_2K_24_FULL_CBR_CIRCLE_000_tif_17_encode(self):
         """
         SCENARIO:  create JP2 file with cinema2k profile at 24 fps

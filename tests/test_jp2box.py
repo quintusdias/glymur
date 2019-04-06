@@ -25,11 +25,10 @@ import numpy as np
 # Local imports ...
 import glymur
 from glymur import Jp2k
-from glymur.jp2k import InvalidJP2File
 from glymur.jp2box import (
     ColourSpecificationBox, ContiguousCodestreamBox, FileTypeBox,
     ImageHeaderBox, JP2HeaderBox, JPEG2000SignatureBox, BitsPerComponentBox,
-    PaletteBox, UnknownBox
+    PaletteBox, UnknownBox, InvalidJp2kError
 )
 from glymur.core import COLOR, OPACITY, SRGB, GREYSCALE
 from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE
@@ -257,7 +256,7 @@ class TestChannelDefinition(fixtures.TestCommon):
         self.jp2h.box = boxes
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
         with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
     def test_grey(self):
@@ -316,7 +315,7 @@ class TestChannelDefinition(fixtures.TestCommon):
         self.jp2h.box = boxes
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
         with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with self.assertRaises((OSError, IOError)):
+            with self.assertRaises((OSError, RuntimeError)):
                 j2k.wrap(tfile.name, boxes=boxes)
 
     def test_only_one_cdef_in_jp2h(self):
@@ -334,7 +333,7 @@ class TestChannelDefinition(fixtures.TestCommon):
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
 
         with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
     def test_not_in_jp2h(self):
@@ -351,7 +350,7 @@ class TestChannelDefinition(fixtures.TestCommon):
         boxes = [self.jp2b, self.ftyp, self.jp2h, cdef, self.jp2c]
 
         with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with self.assertRaises((IOError, OSError)):
+            with self.assertRaises((RuntimeError, OSError)):
                 j2k.wrap(tfile.name, boxes=boxes)
 
 
@@ -362,13 +361,13 @@ class TestFileTypeBox(fixtures.TestCommon):
         """
         SCENARIO:  The JP2 file file type box does not contain a valid brand.
 
-        EXPECTED RESULT:  IOError
+        EXPECTED RESULT:  RuntimeError
         """
         with ir.path(data, 'issue396.jp2') as path:
             with warnings.catch_warnings():
                 # Lots of things wrong with this file.
                 warnings.simplefilter('ignore')
-                with self.assertRaises(IOError):
+                with self.assertRaises(InvalidJp2kError):
                     Jp2k(path)
 
     def test_brand_unknown(self):
@@ -377,7 +376,7 @@ class TestFileTypeBox(fixtures.TestCommon):
             warnings.simplefilter('ignore')
             ftyp = glymur.jp2box.FileTypeBox(brand='jp3')
         with tempfile.TemporaryFile() as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(InvalidJp2kError):
                 ftyp.write(tfile)
 
     def test_cl_entry_unknown(self):
@@ -387,7 +386,7 @@ class TestFileTypeBox(fixtures.TestCommon):
             # Bad compatibility list item.
             ftyp = glymur.jp2box.FileTypeBox(compatibility_list=['jp3'])
         with tempfile.TemporaryFile() as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(InvalidJp2kError):
                 ftyp.write(tfile)
 
     def test_cl_entry_not_utf8(self):
@@ -416,7 +415,7 @@ class TestPaletteBox(fixtures.TestCommon):
         pclr = glymur.jp2box.PaletteBox(palette, bits_per_component=bps,
                                         signed=signed)
         with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(InvalidJp2kError):
                 pclr.write(tfile)
 
     def test_signed_components(self):
@@ -446,7 +445,7 @@ class TestPaletteBox(fixtures.TestCommon):
 
         # Seek back to point after L, T
         b.seek(8)
-        with self.assertRaises(IOError):
+        with self.assertRaises(InvalidJp2kError):
             PaletteBox.parse(b, 8, 20)
 
 
@@ -483,7 +482,7 @@ class TestAppend(fixtures.TestCommon):
             # files.
             the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
             xmlbox = glymur.jp2box.XMLBox(xml=the_xml)
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 j2k.append(xmlbox)
 
     def test_length_field_is_zero(self):
@@ -533,7 +532,7 @@ class TestAppend(fixtures.TestCommon):
             uuid_instance = UUID('00000000-0000-0000-0000-000000000000')
             data = b'0123456789'
             uuidbox = glymur.jp2box.UUIDBox(uuid_instance, data)
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 jp2.append(uuidbox)
 
 
@@ -665,7 +664,7 @@ class TestWrap(fixtures.TestCommon):
         boxes = [box for box in jp2.box]
         boxes[1].compatibility_list = ['jpx ']
         with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
     def test_empty_jp2h(self):
@@ -676,7 +675,7 @@ class TestWrap(fixtures.TestCommon):
             # Right here the jp2h superbox has two child boxes.  Empty out that
             # list to trigger the error.
             boxes[2].box = []
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
     def test_default_layout_with_boxes(self):
@@ -714,7 +713,7 @@ class TestWrap(fixtures.TestCommon):
                                        width=width,
                                        num_components=num_components)]
         with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
     def test_first_boxes_jp_and_ftyp(self):
@@ -735,7 +734,7 @@ class TestWrap(fixtures.TestCommon):
         jp2h.box = [ihdr, colr]
         boxes = [ftyp, jp2b, jp2h, jp2c]
         with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
     def test_pclr_not_in_jp2h(self):
@@ -762,7 +761,7 @@ class TestWrap(fixtures.TestCommon):
         jp2h.box = [ihdr, colr]
         boxes = [jp2b, ftyp, jp2h, jp2c, pclr]
         with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
     def test_jp2h_not_preceeding_jp2c(self):
@@ -783,7 +782,7 @@ class TestWrap(fixtures.TestCommon):
         jp2h.box = [ihdr, colr]
         boxes = [jp2b, ftyp, jp2c, jp2h]
         with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
     def test_missing_codestream(self):
@@ -802,7 +801,7 @@ class TestWrap(fixtures.TestCommon):
         jp2h.box = [ihdr]
         boxes = [jp2k, ftyp, jp2h]
         with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
     def test_wrap_jpx_to_jp2_with_unadorned_jpch(self):
@@ -811,7 +810,7 @@ class TestWrap(fixtures.TestCommon):
             jpx = Jp2k(self.jpxfile)
             boxes = [jpx.box[0], jpx.box[1], jpx.box[2],
                      glymur.jp2box.ContiguousCodestreamBox()]
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 jpx.wrap(tfile1.name, boxes=boxes)
 
     def test_wrap_jpx_to_jp2_with_incorrect_jp2c_offset(self):
@@ -824,7 +823,7 @@ class TestWrap(fixtures.TestCommon):
             jpch.offset = 901
             jpch.length = 313274
             boxes = [jpx.box[0], jpx.box[1], jpx.box[2], jpch]
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 jpx.wrap(tfile1.name, boxes=boxes)
 
     def test_wrap_jpx_to_jp2_with_correctly_specified_jp2c(self):
@@ -875,7 +874,7 @@ class TestJp2Boxes(fixtures.TestCommon):
         """
         SCENARIO:  The JP2/IHDR box cannot be parsed.
 
-        EXPECTED RESULT:  An IOError is issued.
+        EXPECTED RESULT:  An RuntimeError is issued.
         """
         # Write a new JP2 file that omits the IHDR box.
         j = Jp2k(self.jp2file)
@@ -895,7 +894,7 @@ class TestJp2Boxes(fixtures.TestCommon):
 
             tfile.flush()
 
-            with self.assertRaises(InvalidJP2File):
+            with self.assertRaises(InvalidJp2kError):
                 with warnings.catch_warnings():
                     # Lots of things wrong with this file.
                     warnings.simplefilter('ignore')
@@ -905,7 +904,7 @@ class TestJp2Boxes(fixtures.TestCommon):
         """
         SCENARIO:  The JP2/JP2C box cannot be parsed.
 
-        EXPECTED RESULT:  An IOError is issued.
+        EXPECTED RESULT:  An RuntimeError is issued.
         """
         # Write a new JP2 file that omits the JP2C box.
         j = Jp2k(self.jp2file)
@@ -916,7 +915,7 @@ class TestJp2Boxes(fixtures.TestCommon):
                 tfile.write(ifile.read(numbytes))
             tfile.flush()
 
-            with self.assertRaises(InvalidJP2File):
+            with self.assertRaises(InvalidJp2kError):
                 Jp2k(tfile.name)
 
     def test_default_jp2k(self):

@@ -30,6 +30,7 @@ import skimage.measure
 # Local imports
 import glymur
 from glymur import Jp2k
+from glymur.jp2box import InvalidJp2kError
 from glymur.core import COLOR, RED, GREEN, BLUE, RESTRICTED_ICC_PROFILE
 
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
@@ -412,7 +413,7 @@ class TestJp2k(fixtures.TestCommon):
         subsampling.  This causes the decoded components to have different
         sizes.
 
-        EXPECTED RESULT:  IOError
+        EXPECTED RESULT:  RuntimeError
         """
         # copy nemo.jp2 but change the SIZ segment to have differing subsamples
         with open(self.temp_jp2_filename, mode='wb') as ofile:
@@ -434,7 +435,7 @@ class TestJp2k(fixtures.TestCommon):
                 ofile.flush()
 
             j = Jp2k(ofile.name)
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 j[:]
 
     def test_shape_jp2(self):
@@ -501,17 +502,17 @@ class TestJp2k(fixtures.TestCommon):
     def test_rlevel_too_high(self):
         """Should error out appropriately if reduce level too high"""
         j = Jp2k(self.jp2file)
-        with self.assertRaises(IOError):
+        with self.assertRaises(ValueError):
             j[::64, ::64]
 
     def test_not_jpeg2000(self):
         """
         SCENARIO:  The Jp2k constructor is passed a file that is not JPEG 2000.
 
-        EXPECTED RESULT:  IOError
+        EXPECTED RESULT:  RuntimeError
         """
         with ir.path(glymur, 'jp2k.py') as path:
-            with self.assertRaises(IOError):
+            with self.assertRaises(InvalidJp2kError):
                 Jp2k(path)
 
     def test_file_not_present(self):
@@ -910,19 +911,19 @@ class TestJp2k(fixtures.TestCommon):
         """
         with patch('glymur.version.openjpeg_version_tuple', new=(0, 0, 0)):
             with patch('glymur.version.openjpeg_version', new='0.0.0'):
-                with self.assertRaises(TypeError):
+                with self.assertRaises(RuntimeError):
                     with warnings.catch_warnings():
                         # Suppress a deprecation warning for raw read method.
                         warnings.simplefilter("ignore")
                         glymur.Jp2k(self.jp2file).read()
-                with self.assertRaises(TypeError):
+                with self.assertRaises(RuntimeError):
                     glymur.Jp2k(self.jp2file)[:]
 
     def test_read_bands_without_openjp2(self):
         """
         Don't have openjp2 library?  Must error out.
         """
-        exp_error = IOError
+        exp_error = RuntimeError
         with patch('glymur.version.openjpeg_version_tuple', new=(1, 5, 0)):
             with patch('glymur.version.openjpeg_version', new='1.5.0'):
                 with self.assertRaises(exp_error):
@@ -1069,20 +1070,20 @@ class TestJp2k(fixtures.TestCommon):
         """
         SCENARIO:  an improper layer value is set
 
-        EXPECTED RESULT:  IOError when an invalid layer number is supplied
+        EXPECTED RESULT:  RuntimeError when an invalid layer number is supplied
         """
         # There are 8 layers, so only values [0-7] are valid.
         with ir.path(data, 'p0_03.j2k') as path:
             j = Jp2k(path)
 
-        with self.assertRaises(IOError):
+        with self.assertRaises(ValueError):
             j.layer = -1
 
         for layer in range(8):
             # 0-7 are all valid.
             j.layer
 
-        with self.assertRaises(IOError):
+        with self.assertRaises(ValueError):
             j.layer = 8
 
     def test_default_verbosity(self):
@@ -1191,14 +1192,14 @@ class TestComponent(unittest.TestCase):
         """
         SCENARIO:  One of the layers has more than 16 bits per sample.
 
-        EXPECTED RESULT:  IOError
+        EXPECTED RESULT:  RuntimeError
         """
         j = Jp2k(self.jp2file)
 
         # Fake a data structure that resembles the openjpeg component.
         Component = collections.namedtuple('Component', ['prec', 'sgnd'])
         c = Component(prec=17, sgnd=True)
-        with self.assertRaises(IOError):
+        with self.assertRaises(ValueError):
             j._component2dtype(c)
 
 
@@ -1234,7 +1235,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         SCENARIO:  A JP2 file is encountered without a JP2C box in the outer-
         most list of boxes.
 
-        EXPECTED RESULT:  IOError
+        EXPECTED RESULT:  RuntimeError
         """
         j = glymur.Jp2k(self.jp2file)
 
@@ -1242,17 +1243,17 @@ class TestJp2k_write(fixtures.MetadataBase):
         boxes = j.box[:-1]
 
         with open(self.temp_jp2_filename, mode="wb") as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 j.wrap(tfile.name, boxes=boxes)
 
     def test_null_data(self):
         """
         SCENARIO:  An image with a dimension with length 0 is provided.
 
-        EXPECTED RESULT:  IOError
+        EXPECTED RESULT:  RuntimeError
         """
         with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(InvalidJp2kError):
                 Jp2k(tfile.name, data=np.zeros((0, 256), dtype=np.uint8))
 
     def test_psnr_zero_value_not_last(self):
@@ -1260,13 +1261,13 @@ class TestJp2k_write(fixtures.MetadataBase):
         SCENARIO:  The PSNR keyword argument has a zero value, but it is not
         the last value.
 
-        EXPECTED RESULT:  IOError
+        EXPECTED RESULT:  RuntimeError
         """
         kwargs = {
             'data': skimage.data.camera(),
             'psnr': [0, 35, 40, 30],
         }
-        with self.assertRaises(IOError):
+        with self.assertRaises(RuntimeError):
             Jp2k(self.temp_jp2_filename, **kwargs)
 
     def test_psnr_non_zero_non_monotonically_decreasing(self):
@@ -1274,13 +1275,13 @@ class TestJp2k_write(fixtures.MetadataBase):
         SCENARIO:  The PSNR keyword argument is non-monotonically increasing
         and does not contain zero.
 
-        EXPECTED RESULT:  IOError
+        EXPECTED RESULT:  RuntimeError
         """
         kwargs = {
             'data': skimage.data.camera(),
             'psnr': [30, 35, 40, 30],
         }
-        with self.assertRaises(IOError):
+        with self.assertRaises(RuntimeError):
             Jp2k(self.temp_jp2_filename, **kwargs)
 
     def test_psnr(self):
@@ -1789,7 +1790,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         """
         data = np.zeros((857, 2048, 3), dtype=np.uint8)
         with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 Jp2k(tfile.name, data=data,
                      cinema2k=48, cratios=[200, 100, 50])
 
@@ -1801,7 +1802,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         """
         data = np.zeros((4096, 2160, 3), dtype=np.uint8)
         with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 Jp2k(tfile.name, data=data,
                      cinema4k=True, cratios=[200, 100, 50])
 
@@ -1810,7 +1811,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         code block sizes should never exceed half that of precinct size.
         """
         with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 Jp2k(tfile.name, data=self.j2k_data,
                      cbsize=(64, 64), psizes=[(64, 64)])
 
@@ -1819,7 +1820,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         code block sizes should be powers of two.
         """
         with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 Jp2k(tfile.name, data=self.j2k_data, cbsize=(13, 12))
 
     def test_precinct_size_not_p2(self):
@@ -1827,7 +1828,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         precinct sizes should be powers of two.
         """
         with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 Jp2k(tfile.name, data=self.j2k_data, psizes=[(173, 173)])
 
     def test_code_block_dimensions(self):
@@ -1839,13 +1840,13 @@ class TestJp2k_write(fixtures.MetadataBase):
         data = self.j2k_data
         with open(self.temp_j2k_filename, mode='wb') as tfile:
             # opj_compress doesn't allow code block area to exceed 4096.
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 Jp2k(tfile.name, data=data, cbsize=(256, 256))
 
             # opj_compress doesn't allow either dimension to be less than 4.
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 Jp2k(tfile.name, data=data, cbsize=(2048, 2))
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 Jp2k(tfile.name, data=data, cbsize=(2, 2048))
 
     def test_psnr_with_cratios(self):
@@ -1853,20 +1854,9 @@ class TestJp2k_write(fixtures.MetadataBase):
         Using psnr with cratios options is not allowed.
         """
         with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 Jp2k(tfile.name, data=self.j2k_data, psnr=[30, 35, 40],
                      cratios=[2, 3, 4])
-
-    def test_cinema2K_bad_frame_rate(self):
-        """
-        Cinema2k frame rate must be either 24 or 48.
-
-        Original test input file was
-        input/nonregression/X_5_2K_24_235_CBR_STEM24_000.tif
-        """
-        with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
-                Jp2k(tfile.name, data=self.j2k_data, cinema2k=36)
 
     def test_irreversible(self):
         """
@@ -1897,17 +1887,26 @@ class TestJp2k_write(fixtures.MetadataBase):
         self.assertEqual(j2k.shape, (800, 480))
 
     def test_precinct_size_too_small(self):
-        """first precinct size must be >= 2x that of the code block size"""
+        """
+        SCENARIO:  The first precinct size is less than 2x that of the code
+        block size.
+
+        EXPECTED RESULT:  InvalidJp2kError
+        """
         data = np.zeros((640, 480), dtype=np.uint8)
         with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(InvalidJp2kError):
                 Jp2k(tfile.name, data=data, cbsize=(16, 16), psizes=[(16, 16)])
 
     def test_precinct_size_not_power_of_two(self):
-        """must be power of two"""
+        """
+        SCENARIO:  A precinct size is specified that is not a power of 2.
+
+        EXPECTED RESULT:  InvalidJp2kError
+        """
         data = np.zeros((640, 480), dtype=np.uint8)
         with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(InvalidJp2kError):
                 Jp2k(tfile.name, data=data,
                      cbsize=(16, 16), psizes=[(48, 48)])
 
@@ -1954,14 +1953,14 @@ class TestJp2k_write(fixtures.MetadataBase):
     def test_too_many_dimensions(self):
         """OpenJP2 only allows 2D or 3D images."""
         with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 Jp2k(tfile.name,
                      data=np.zeros((128, 128, 2, 2), dtype=np.uint8))
 
     def test_2d_rgb(self):
         """RGB must have at least 3 components."""
         with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 Jp2k(tfile.name,
                      data=np.zeros((128, 128, 2), dtype=np.uint8),
                      colorspace='rgb')
@@ -1969,7 +1968,7 @@ class TestJp2k_write(fixtures.MetadataBase):
     def test_colorspace_with_j2k(self):
         """Specifying a colorspace with J2K does not make sense"""
         with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 Jp2k(tfile.name,
                      data=np.zeros((128, 128, 3), dtype=np.uint8),
                      colorspace='rgb')
@@ -2013,7 +2012,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         """Should reject YCC"""
         data = np.zeros((128, 128, 3), dtype=np.uint8)
         with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 Jp2k(tfile.name, data=data, colorspace='ycc')
 
     def test_write_with_jp2_in_caps(self):
@@ -2047,7 +2046,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         j2k = Jp2k(self.j2kfile)
         expdata = j2k[:]
         with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 Jp2k(tfile.name, data=expdata[:, :, 0], mct=True)
 
     def test_write_cprl(self):
@@ -2072,13 +2071,14 @@ class TestJp2k_2_0(fixtures.TestCommon):
     def test_bad_area_parameter(self):
         """Should error out appropriately if given a bad area parameter."""
         j = Jp2k(self.jp2file)
-        with self.assertRaises(IOError):
+        error = glymur.lib.openjp2.OpenJPEGLibraryError
+        with self.assertRaises(ValueError):
             # Start corner must be >= 0
             j[-1:1, -1:1]
-        with self.assertRaises(IOError):
+        with self.assertRaises(ValueError):
             # End corner must be > 0
             j[10:0, 10:0]
-        with self.assertRaises(IOError):
+        with self.assertRaises(error):
             # End corner must be >= start corner
             j[10:8, 10:8]
 
@@ -2086,7 +2086,7 @@ class TestJp2k_2_0(fixtures.TestCommon):
         """We only allow RGB and GRAYSCALE.  Should error out with others"""
         data = np.zeros((128, 128, 3), dtype=np.uint8)
         with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 Jp2k(tfile.name, data=data, colorspace='cmyk')
 
     def test_asoc_label_box(self):
@@ -2176,9 +2176,12 @@ class TestJp2k_2_0(fixtures.TestCommon):
             self.assertEqual(j.box[2].box[0].num_components, 4)
             self.assertEqual(j.box[2].box[1].colorspace, glymur.core.SRGB)
 
-    def test_openjpeg_library_message(self):
+    def test_openjpeg_library_error(self):
         """
-        Verify the error message produced by the openjpeg library
+        SCENARIO:  A zero subsampling factor should produce as error by the
+        library.
+
+        EXPECTED RESULT:  OpenJPEGLibraryError
         """
         # This will confirm that the error callback mechanism is working.
         with open(self.jp2file, 'rb') as fptr:
@@ -2202,7 +2205,8 @@ class TestJp2k_2_0(fixtures.TestCommon):
                 with warnings.catch_warnings():
                     warnings.simplefilter('ignore')
                     j = Jp2k(tfile.name)
-                    with self.assertRaises((IOError, OSError)):
+                    error = glymur.lib.openjp2.OpenJPEGLibraryError
+                    with self.assertRaises(error):
                         j[::2, ::2]
 
 
@@ -2341,7 +2345,7 @@ class TestReadArea(unittest.TestCase):
 
     def test_NR_DEC_p1_06_j2k_75_decode(self):
         # Image size would be 0 x 0.
-        with self.assertRaises((IOError, OSError)):
+        with self.assertRaises(InvalidJp2kError):
             self.j2k[9:12:4, 9:12:4]
 
     def test_NR_DEC_p0_04_j2k_85_decode(self):

@@ -24,7 +24,7 @@ from glymur import Jp2k
 from glymur._iccprofile import _ICCProfile
 from glymur.jp2box import (
     ColourSpecificationBox, ContiguousCodestreamBox, FileTypeBox,
-    ImageHeaderBox, JP2HeaderBox, JPEG2000SignatureBox
+    ImageHeaderBox, JP2HeaderBox, JPEG2000SignatureBox, InvalidJp2kError
 )
 from glymur.core import SRGB
 from . import fixtures, data
@@ -75,7 +75,7 @@ class TestColourSpecificationBox(fixtures.TestCommon):
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
         boxes[2].box = [self.ihdr, ColourSpecificationBox(colorspace=None)]
         with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(InvalidJp2kError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
     def test_missing_colr_box(self):
@@ -84,7 +84,7 @@ class TestColourSpecificationBox(fixtures.TestCommon):
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
         boxes[2].box = [self.ihdr]
         with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(InvalidJp2kError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
     def test_bad_approx_jp2_field(self):
@@ -94,7 +94,7 @@ class TestColourSpecificationBox(fixtures.TestCommon):
         colr = ColourSpecificationBox(colorspace=SRGB, approximation=1)
         boxes[2].box = [self.ihdr, colr]
         with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(InvalidJp2kError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
     def test_default_colr(self):
@@ -128,20 +128,20 @@ class TestColourSpecificationBox(fixtures.TestCommon):
         colr = ColourSpecificationBox(colorspace=colorspace,
                                       approximation=approx)
         with tempfile.TemporaryFile() as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(InvalidJp2kError):
                 colr.write(tfile)
 
     def test_write_colr_with_bad_method(self):
         """
-        A colr box has an invalid method.
+        SCENARIO:  A colr box has an invalid method value.
 
-        Expect an IOError when trying to write to file.
+        EXPECTED RESULT:  InvalidJp2kError
         """
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             colr = ColourSpecificationBox(colorspace=SRGB, method=5)
         with tempfile.TemporaryFile() as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(InvalidJp2kError):
                 colr.write(tfile)
 
 

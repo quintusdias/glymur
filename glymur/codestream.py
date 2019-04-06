@@ -63,11 +63,6 @@ class Codestream(object):
     length : int
         Length of the codestream in bytes.
 
-    Raises
-    ------
-    IOError
-        If the file does not parse properly.
-
     References
     ----------
     .. [JP2K15444-1i] International Organization for Standardication.  ISO/IEC
@@ -188,7 +183,7 @@ class Codestream(object):
                     f'found 0x{self._marker_id:04x} instead.  Codestream '
                     f'parsing will cease.'
                 )
-                raise IOError(msg)
+                raise ValueError(msg)
 
             self._offset = fptr.tell() - 2
 

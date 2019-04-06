@@ -21,9 +21,10 @@ import lxml.etree as ET
 # Local imports ...
 import glymur
 from glymur import Jp2k
-from glymur.jp2box import DataEntryURLBox, FileTypeBox, JPEG2000SignatureBox
-from glymur.jp2box import DataReferenceBox, FragmentListBox, FragmentTableBox
-from glymur.jp2box import ColourSpecificationBox
+from glymur.jp2box import (
+    DataEntryURLBox, FileTypeBox, JPEG2000SignatureBox, DataReferenceBox,
+    FragmentListBox, FragmentTableBox, ColourSpecificationBox, InvalidJp2kError
+)
 from . import fixtures, data
 
 
@@ -125,7 +126,7 @@ class TestJPXWrap(fixtures.TestCommon):
         boxes.append(glymur.jp2box.AssociationBox())
 
         with open(self.temp_jpx_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
     def test_jpch_jplh(self):
@@ -187,7 +188,7 @@ class TestJPXWrap(fixtures.TestCommon):
         boxes.append(cgrp)
 
         with open(self.temp_jpx_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(InvalidJp2kError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
     def test_cgrp_neg(self):
@@ -207,7 +208,7 @@ class TestJPXWrap(fixtures.TestCommon):
         boxes.append(cgrp)
 
         with open(self.temp_jpx_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
     def test_ftbl(self):
@@ -309,7 +310,7 @@ class TestJPXWrap(fixtures.TestCommon):
         boxes.append(dref)
 
         with open(self.temp_jpx_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(InvalidJp2kError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
     def test_deurl_child_of_dtbl(self):
@@ -329,7 +330,7 @@ class TestJPXWrap(fixtures.TestCommon):
         boxes.append(dref)
 
         with open(self.temp_jpx_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(RuntimeError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
     def test_only_one_data_reference(self):
@@ -349,7 +350,7 @@ class TestJPXWrap(fixtures.TestCommon):
         boxes.append(dref)
 
         with open(self.temp_jpx_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(InvalidJp2kError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
     def test_lbl_at_top_level(self):
@@ -366,7 +367,7 @@ class TestJPXWrap(fixtures.TestCommon):
         boxes[2].box.append(lblb)
 
         with open(self.temp_jpx_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(InvalidJp2kError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
     def test_data_reference_in_subbox(self):
@@ -387,7 +388,7 @@ class TestJPXWrap(fixtures.TestCommon):
         boxes[2].box.append(dref)
 
         with open(self.temp_jpx_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(InvalidJp2kError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
     def test_jp2_to_jpx_sans_jp2_compatibility(self):
@@ -468,7 +469,7 @@ class TestJPX(fixtures.TestCommon):
         lengths.
 
         EXPECTED RESULT:  A warning is issued upon initialization, but an
-        IOError is issued when trying to write to file.
+        InvalidJp2kError is issued when trying to write to file.
         """
         offset = [89]
         length = [1132288]
@@ -478,7 +479,7 @@ class TestJPX(fixtures.TestCommon):
             flst = glymur.jp2box.FragmentListBox(offset, length, reference)
 
         with tempfile.TemporaryFile() as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(InvalidJp2kError):
                 flst.write(tfile)
 
     def test_flst_offsets_not_positive(self):
@@ -490,7 +491,7 @@ class TestJPX(fixtures.TestCommon):
             warnings.simplefilter('ignore')
             flst = glymur.jp2box.FragmentListBox(offset, length, reference)
         with tempfile.TemporaryFile() as tfile:
-            with self.assertRaises((IOError, OSError)):
+            with self.assertRaises(InvalidJp2kError):
                 flst.write(tfile)
 
     def test_flst_lengths_not_positive(self):
@@ -502,14 +503,14 @@ class TestJPX(fixtures.TestCommon):
             warnings.simplefilter('ignore')
             flst = glymur.jp2box.FragmentListBox(offset, length, reference)
         with tempfile.TemporaryFile() as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(InvalidJp2kError):
                 flst.write(tfile)
 
     def test_ftbl_boxes_empty(self):
         """A fragment table box must have at least one child box."""
         ftbl = glymur.jp2box.FragmentTableBox()
         with tempfile.TemporaryFile() as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(InvalidJp2kError):
                 ftbl.write(tfile)
 
     def test_ftbl_child_not_flst(self):
@@ -517,7 +518,7 @@ class TestJPX(fixtures.TestCommon):
         free = glymur.jp2box.FreeBox()
         ftbl = glymur.jp2box.FragmentTableBox(box=[free])
         with tempfile.TemporaryFile() as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(InvalidJp2kError):
                 ftbl.write(tfile)
 
     def test_data_reference_requires_dtbl(self):
@@ -536,7 +537,7 @@ class TestJPX(fixtures.TestCommon):
         boxes.append(dref)
 
         with open(self.temp_jpx_filename, mode='wb') as tfile:
-            with self.assertRaises(IOError):
+            with self.assertRaises(InvalidJp2kError):
                 jpx1.wrap(tfile.name, boxes=boxes)
 
     def test_dtbl_free(self):
