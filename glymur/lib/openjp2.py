@@ -11,7 +11,7 @@ from ..config import glymur_config
 OPENJP2, _ = glymur_config()
 
 
-class OpenJPEGLibraryError(IOError):
+class OpenJPEGLibraryError(RuntimeError):
     """
     Issue when the OpenJPEG library signals an error.
     """

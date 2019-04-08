@@ -29,9 +29,11 @@ import numpy as np
 # Local imports...
 from .codestream import Codestream
 from . import core, version, get_option
-from .jp2box import (Jp2kBox, JPEG2000SignatureBox, FileTypeBox,
-                     JP2HeaderBox, ColourSpecificationBox,
-                     ContiguousCodestreamBox, ImageHeaderBox)
+from .jp2box import (
+    Jp2kBox, JPEG2000SignatureBox, FileTypeBox, JP2HeaderBox, 
+    ColourSpecificationBox, ContiguousCodestreamBox, ImageHeaderBox,
+    InvalidJp2kError
+)
 from .lib import openjpeg as opj, openjp2 as opj2
 
 
@@ -195,7 +197,7 @@ class Jp2k(Jp2kBox):
                    "library version is 2.1 or higher.  The installed version "
                    "is {version}.")
             msg = msg.format(version=version.openjpeg_version)
-            raise IOError(msg)
+            raise ValueError(msg)
 
         self._layer = 0 if layer is None else layer
 
@@ -278,7 +280,7 @@ class Jp2k(Jp2kBox):
 
         Raises
         ------
-        IOError
+        InvalidJp2kError
             The file was not JPEG 2000.
         """
         self.length = os.path.getsize(self.filename)
@@ -312,7 +314,7 @@ class Jp2k(Jp2kBox):
                  or (signature != (13, 10, 135, 10)))):
                 msg = '{filename} is not a JPEG 2000 file.'
                 msg = msg.format(filename=self.filename)
-                raise IOError(msg)
+                raise InvalidJp2kError(msg)
 
             # Back up and start again, we know we have a superbox (box of
             # boxes) here.
@@ -329,7 +331,7 @@ class Jp2k(Jp2kBox):
         if not isinstance(self.box[1], FileTypeBox):
             msg = "{filename} does not contain a valid File Type box."
             msg = msg.format(filename=self.filename)
-            raise IOError(msg)
+            raise InvalidJp2kError(msg)
 
         # A jp2-branded file cannot contain an "any ICC profile
         ftyp = self.box[1]
@@ -362,7 +364,7 @@ class Jp2k(Jp2kBox):
                    "OpenJPEG library versions less than 2.1.0.  The installed "
                    "version of OpenJPEG is {version}.")
             msg = msg.format(version=version.openjpeg_version)
-            raise IOError(msg)
+            raise InvalidJp2kError(msg)
 
         # Cinema modes imply MCT.
         self._cparams.tcp_mct = 1
@@ -370,7 +372,7 @@ class Jp2k(Jp2kBox):
         if cinema_mode == 'cinema2k':
             if fps not in [24, 48]:
                 msg = 'Cinema2K frame rate must be either 24 or 48.'
-                raise IOError(msg)
+                raise ValueError(msg)
 
             if fps == 24:
                 self._cparams.rsiz = core.OPJ_PROFILE_CINEMA_2K
@@ -405,24 +407,24 @@ class Jp2k(Jp2kBox):
              and (not all([arg is None for arg in other_args])))):
             msg = ("Cannot specify cinema2k/cinema4k along with any other "
                    "options.")
-            raise IOError(msg)
+            raise InvalidJp2kError(msg)
 
         if psnr is not None:
             if cratios is not None:
                 msg = "Cannot specify cratios and psnr options together."
-                raise IOError(msg)
+                raise InvalidJp2kError(msg)
 
             if 0 in psnr and psnr[-1] != 0:
                 msg = ("If a zero value is supplied in the PSNR keyword "
                        "argument, it must be in the final position.")
-                raise IOError(msg)
+                raise InvalidJp2kError(msg)
 
             if (((0 in psnr and np.any(np.diff(psnr[:-1]) < 0))
                  or (0 not in psnr and np.any(np.diff(psnr) < 0)))):
                 msg = ("PSNR values must be increasing, with one exception - "
                        "zero may be in the final position to indicate a "
                        "lossless layer.")
-                raise IOError(msg)
+                raise InvalidJp2kError(msg)
 
         if version.openjpeg_version_tuple[0] == 1:
             cparams = opj.set_default_encoder_parameters()
@@ -508,7 +510,7 @@ class Jp2k(Jp2kBox):
             if self._colorspace == opj2.CLRSPC_GRAY:
                 msg = ("Cannot specify usage of the multi component transform "
                        "if the colorspace is gray.")
-                raise IOError(msg)
+                raise InvalidJp2kError(msg)
             cparams.tcp_mct = 1 if mct else 0
 
         # Set defaults to lossless to begin.
@@ -601,7 +603,7 @@ class Jp2k(Jp2kBox):
             stack.callback(opj.cio_close, cio)
 
             if not opj.encode(cinfo, cio, image):
-                raise IOError("Encode error.")
+                raise Invalidjp2kError("Encode error.")
 
             pos = opj.cio_tell(cio)
 
@@ -618,7 +620,7 @@ class Jp2k(Jp2kBox):
         """
         if cparams.codec_fmt == opj2.CODEC_J2K and colorspace is not None:
             msg = 'Do not specify a colorspace when writing a raw codestream.'
-            raise IOError(msg)
+            raise InvalidJp2kError(msg)
 
     def _validate_codeblock_size(self, cparams):
         """
@@ -639,13 +641,13 @@ class Jp2k(Jp2kBox):
                        "than 4 pixels.")
                 msg = msg.format(height=height, width=width,
                                  area=height * width)
-                raise IOError(msg)
+                raise InvalidJp2kError(msg)
             if ((np.log2(height) != np.floor(np.log2(height))
                  or np.log2(width) != np.floor(np.log2(width)))):
                 msg = ("Bad code block size ({height} x {width}).  "
                        "The dimensions must be powers of 2.")
                 msg = msg.format(height=height, width=width)
-                raise IOError(msg)
+                raise InvalidJp2kError(msg)
 
     def _validate_precinct_size(self, cparams):
         """
@@ -672,13 +674,13 @@ class Jp2k(Jp2kBox):
                                "({cbh} x {cbw}).")
                         msg = msg.format(prch=prch, prcw=prcw,
                                          cbh=height, cbw=width)
-                        raise IOError(msg)
+                        raise InvalidJp2kError(msg)
                 if ((np.log2(prch) != np.floor(np.log2(prch))
                      or np.log2(prcw) != np.floor(np.log2(prcw)))):
                     msg = ("Bad precinct size ({height} x {width}).  "
                            "Precinct dimensions must be powers of 2.")
                     msg = msg.format(height=prch, width=prcw)
-                    raise IOError(msg)
+                    raise InvalidJp2kError(msg)
 
     def _validate_image_rank(self, img_array):
         """
@@ -686,7 +688,7 @@ class Jp2k(Jp2kBox):
         """
         if img_array.ndim == 1 or img_array.ndim > 3:
             msg = "{0}D imagery is not allowed.".format(img_array.ndim)
-            raise IOError(msg)
+            raise InvalidJp2kError(msg)
 
     def _validate_image_datatype(self, img_array):
         """
@@ -695,7 +697,7 @@ class Jp2k(Jp2kBox):
         if img_array.dtype != np.uint8 and img_array.dtype != np.uint16:
             msg = ("Only uint8 and uint16 datatypes are currently supported "
                    "when writing.")
-            raise RuntimeError(msg)
+            raise InvalidJp2kError(msg)
 
     def _validate_compression_params(self, img_array, cparams, colorspace):
         """Check that the compression parameters are valid.
@@ -736,10 +738,10 @@ class Jp2k(Jp2kBox):
         else:
             if colorspace.lower() not in ('rgb', 'grey', 'gray'):
                 msg = 'Invalid colorspace "{0}".'.format(colorspace)
-                raise IOError(msg)
+                raise InvalidJp2kError(msg)
             elif colorspace.lower() == 'rgb' and self.shape[2] < 3:
                 msg = 'RGB colorspace requires at least 3 components.'
-                raise IOError(msg)
+                raise InvalidJp2kError(msg)
 
             # Turn the colorspace from a string to the enumerated value that
             # the library expects.
@@ -803,14 +805,14 @@ class Jp2k(Jp2kBox):
         """
         if self._codec_format == opj2.CODEC_J2K:
             msg = "Only JP2 files can currently have boxes appended to them."
-            raise IOError(msg)
+            raise RuntimeError(msg)
 
         xmp_uuid = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
         if not ((box.box_id == 'xml ')
                 or (box.box_id == 'uuid' and box.uuid == xmp_uuid)):
             msg = ("Only XML boxes and XMP UUID boxes can currently be "
                    "appended.")
-            raise IOError(msg)
+            raise InvalidJp2kError(msg)
 
         # Check the last box.  If the length field is zero, then rewrite
         # the length field to reflect the true length of the box.
@@ -902,7 +904,7 @@ class Jp2k(Jp2kBox):
                 msg = ("The codestream box must have its offset and length "
                        "attributes fully specified if the file type brand is "
                        "JPX.")
-                raise IOError(msg)
+                raise InvalidJp2kError(msg)
 
             # Find the first codestream in the file.
             jp2c = [_box for _box in self.box if _box.box_id == 'jp2c']
@@ -917,7 +919,7 @@ class Jp2k(Jp2kBox):
             L, T = struct.unpack_from('>I4s', read_buffer, 0)
             if T != b'jp2c':
                 msg = "Unable to locate the specified codestream."
-                raise IOError(msg)
+                raise InvalidJp2kError(msg)
             if L == 0:
                 # The length of the box is presumed to last until the end of
                 # the file.  Compute the effective length of the box.
@@ -1129,7 +1131,7 @@ class Jp2k(Jp2kBox):
             msg = ("You must have a version of OpenJPEG at least as high as "
                    "1.5.0 before you can read JPEG2000 images with glymur.  "
                    "Your version is {version}")
-            raise TypeError(msg.format(version=version.openjpeg_version))
+            raise RuntimeError(msg.format(version=version.openjpeg_version))
 
         if version.openjpeg_version_tuple[0] < 2:
             img = self._read_openjpeg(**kwargs)
@@ -1162,11 +1164,6 @@ class Jp2k(Jp2kBox):
         # -------
         # img_array : ndarray
         #     The image data.
-        #
-        # Raises
-        # ------
-        # IOError
-        #     If the image has differing subsample factors.
 
         if 'ignore_pclr_cmap_cdef' in kwargs:
             self.ignore_pclr_cmap_cdef = kwargs['ignore_pclr_cmap_cdef']
@@ -1185,7 +1182,7 @@ class Jp2k(Jp2kBox):
                    "factors are different. "
                    "\n\n{siz_segment}")
             msg = msg.format(siz_segment=str(self.codestream.segment[1]))
-            raise IOError(msg)
+            raise InvalidJp2kError(msg)
 
     def _read_openjpeg(self, rlevel=0, verbose=False, area=None):
         """Read a JPEG 2000 image using libopenjpeg.
@@ -1381,7 +1378,7 @@ class Jp2k(Jp2kBox):
                 msg = ("rlevel must be in the range [-1, {max_rlevel}] "
                        "for this image.")
                 msg = msg.format(max_rlevel=max_rlevel)
-                raise IOError(msg)
+                raise ValueError(msg)
 
         dparam.cp_reduce = rlevel
 
@@ -1393,7 +1390,7 @@ class Jp2k(Jp2kBox):
                        "coordinates are ({y0}, {x0}) and ({y1}, {x1}).")
                 msg = msg.format(x0=area[1], y0=area[0],
                                  x1=area[3], y1=area[2])
-                raise IOError(msg)
+                raise ValueError(msg)
             dparam.DA_y0 = area[0]
             dparam.DA_x0 = area[1]
             dparam.DA_y1 = area[2]
@@ -1451,7 +1448,7 @@ class Jp2k(Jp2kBox):
                    "installed before using this method.  Your version of "
                    "OpenJPEG is {version}.")
             msg = msg.format(version=version.openjpeg_version)
-            raise IOError(msg)
+            raise RuntimeError(msg)
 
         self.ignore_pclr_cmap_cdef = ignore_pclr_cmap_cdef
         self.layer = layer
@@ -1533,7 +1530,7 @@ class Jp2k(Jp2kBox):
         """
         if component.prec > 16:
             msg = "Unhandled precision: {0} bits.".format(component.prec)
-            raise IOError(msg)
+            raise ValueError(msg)
 
         if component.sgnd:
             dtype = np.int8 if component.prec <= 8 else np.int16
@@ -1679,7 +1676,7 @@ class Jp2k(Jp2kBox):
             # Letting this situation continue would segfault openjpeg.
             msg = "Component {0} has dimensions {1} x {2}"
             msg = msg.format(component_index, nrows, ncols)
-            raise IOError(msg)
+            raise InvalidJp2kError(msg)
 
     def _validate_jp2_box_sequence(self, boxes):
         """Run through series of tests for JP2 box legality.
@@ -1702,7 +1699,7 @@ class Jp2k(Jp2kBox):
                 if box_id not in JP2_IDS:
                     msg = ("The presence of a '{0}' box requires that the "
                            "file type brand be set to 'jpx '.")
-                    raise IOError(msg.format(box_id))
+                    raise InvalidJp2kError(msg.format(box_id))
 
             self._validate_jp2_colr(boxes)
 
@@ -1716,7 +1713,7 @@ class Jp2k(Jp2kBox):
             if colr.approximation != 0:
                 msg = ("A JP2 colr box cannot have a non-zero approximation "
                        "field.")
-                raise IOError(msg)
+                raise InvalidJp2kError(msg)
 
     def _validate_jpx_box_sequence(self, boxes):
         """Run through series of tests for JPX box legality."""
@@ -1732,12 +1729,12 @@ class Jp2k(Jp2kBox):
         if boxes[0].box_id != 'jP  ' or boxes[1].box_id != 'ftyp':
             msg = ("The first box must be the signature box and the second "
                    "must be the file type box.")
-            raise IOError(msg)
+            raise InvalidJp2kError(msg)
 
         # The compatibility list must contain at a minimum 'jp2 '.
         if 'jp2 ' not in boxes[1].compatibility_list:
             msg = "The ftyp box must contain 'jp2 ' in the compatibility list."
-            raise IOError(msg)
+            raise InvalidJp2kError(msg)
 
     def _validate_jp2c(self, boxes):
         """Validate the codestream box in relation to other boxes."""
@@ -1750,12 +1747,12 @@ class Jp2k(Jp2kBox):
         if len(jp2c_lst) == 0:
             msg = ("A codestream box must be defined in the outermost "
                    "list of boxes.")
-            raise IOError(msg)
+            raise InvalidJp2kError(msg)
 
         jp2c_idx = jp2c_lst[0]
         if jp2h_idx >= jp2c_idx:
             msg = "The codestream box must be preceeded by a jp2 header box."
-            raise IOError(msg)
+            raise InvalidJp2kError(msg)
 
     def _validate_jp2h(self, boxes):
         """Validate the JP2 Header box."""
@@ -1767,20 +1764,20 @@ class Jp2k(Jp2kBox):
         # 1st jp2 header box cannot be empty.
         if len(jp2h.box) == 0:
             msg = "The JP2 header superbox cannot be empty."
-            raise IOError(msg)
+            raise InvalidJp2kError(msg)
 
         # 1st jp2 header box must be ihdr
         if jp2h.box[0].box_id != 'ihdr':
             msg = ("The first box in the jp2 header box must be the image "
                    "header box.")
-            raise IOError(msg)
+            raise InvalidJp2kError(msg)
 
         # colr must be present in jp2 header box.
         colr_lst = [j for (j, box) in enumerate(jp2h.box)
                     if box.box_id == 'colr']
         if len(colr_lst) == 0:
             msg = "The jp2 header box must contain a color definition box."
-            raise IOError(msg)
+            raise InvalidJp2kError(msg)
         colr = jp2h.box[colr_lst[0]]
 
         self._validate_channel_definition(jp2h, colr)
@@ -1792,7 +1789,7 @@ class Jp2k(Jp2kBox):
         if len(cdef_lst) > 1:
             msg = ("Only one channel definition box is allowed in the "
                    "JP2 header.")
-            raise IOError(msg)
+            raise InvalidJp2kError(msg)
         elif len(cdef_lst) == 1:
             cdef = jp2h.box[cdef_lst[0]]
             if colr.colorspace == core.SRGB:
@@ -1800,12 +1797,12 @@ class Jp2k(Jp2kBox):
                        or cdef.channel_type[chan] != 0 for chan in [0, 1, 2]]):
                     msg = ("All color channels must be defined in the "
                            "channel definition box.")
-                    raise IOError(msg)
+                    raise InvalidJp2kError(msg)
             elif colr.colorspace == core.GREYSCALE:
                 if 0 not in cdef.channel_type:
                     msg = ("All color channels must be defined in the "
                            "channel definition box.")
-                    raise IOError(msg)
+                    raise InvalidJp2kError(msg)
 
     def _check_jp2h_child_boxes(self, boxes, parent_box_name):
         """Certain boxes can only reside in the JP2 header."""
@@ -1815,7 +1812,7 @@ class Jp2k(Jp2kBox):
         intersection = box_ids.intersection(JP2H_CHILDREN)
         if len(intersection) > 0 and parent_box_name not in ['jp2h', 'jpch']:
             msg = "A {0} box can only be nested in a JP2 header box."
-            raise IOError(msg.format(list(intersection)[0]))
+            raise InvalidJp2kError(msg.format(list(intersection)[0]))
 
         # Recursively check any contained superboxes.
         for box in boxes:
@@ -1842,7 +1839,7 @@ class Jp2k(Jp2kBox):
         intersection = box_ids.intersection(TOP_LEVEL_ONLY_BOXES)
         if len(intersection) > 0:
             msg = "A {0} box cannot be nested in a superbox."
-            raise IOError(msg.format(list(intersection)[0]))
+            raise InvalidJp2kError(msg.format(list(intersection)[0]))
 
         # Recursively check any contained superboxes.
         for box in boxes:
@@ -1862,7 +1859,7 @@ class Jp2k(Jp2kBox):
         if 'dtbl' in count and 'ftbl' not in count:
             msg = ('The presence of a data reference box requires the '
                    'presence of a fragment table box as well.')
-            raise IOError(msg)
+            raise InvalidJp2kError(msg)
 
     def _validate_singletons(self, boxes):
         """Several boxes can only occur once."""
@@ -1870,7 +1867,7 @@ class Jp2k(Jp2kBox):
         # Which boxes occur more than once?
         multiples = [box_id for box_id, bcount in count.items() if bcount > 1]
         if 'dtbl' in multiples:
-            raise IOError('There can only be one dtbl box in a file.')
+            raise InvalidJp2kError('There can only be one dtbl box in a file.')
 
     def _validate_jpx_compatibility(self, boxes, compatibility_list):
         """
@@ -1884,7 +1881,7 @@ class Jp2k(Jp2kBox):
                 if len(set(['jpx ', 'jpxb']).intersection(jpx_cl)) == 0:
                     msg = ("A JPX box requires that either 'jpx ' or 'jpxb' "
                            "be present in the ftype compatibility list.")
-                    raise RuntimeError(msg)
+                    raise InvalidJp2kError(msg)
             if hasattr(box, 'box') != 0:
                 # Same set of checks on any child boxes.
                 self._validate_jpx_compatibility(box.box, compatibility_list)
@@ -1902,7 +1899,7 @@ class Jp2k(Jp2kBox):
                             msg = ("A label box cannot be nested inside a "
                                    "{0} box.")
                             msg = msg.format(box.box_id)
-                            raise IOError(msg)
+                            raise InvalidJp2kError(msg)
                     # Same set of checks on any child boxes.
                     self._validate_label(box.box)
 

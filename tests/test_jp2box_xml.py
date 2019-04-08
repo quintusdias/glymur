@@ -25,7 +25,7 @@ import glymur
 from glymur import Jp2k
 from glymur.jp2box import ColourSpecificationBox, ContiguousCodestreamBox
 from glymur.jp2box import FileTypeBox, ImageHeaderBox, JP2HeaderBox
-from glymur.jp2box import JPEG2000SignatureBox
+from glymur.jp2box import JPEG2000SignatureBox, InvalidJp2kError
 
 from . import fixtures, data
 
@@ -81,7 +81,7 @@ class TestXML(fixtures.TestCommon):
     def test_negative_file_and_xml(self):
         """The XML should come from only one source."""
         xml_object = ET.parse(self.xmlfile)
-        with self.assertRaises((IOError, OSError)):
+        with self.assertRaises(InvalidJp2kError):
             glymur.jp2box.XMLBox(filename=self.xmlfile, xml=xml_object)
 
     def test_basic_xml(self):

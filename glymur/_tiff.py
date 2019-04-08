@@ -27,7 +27,7 @@ def tiff_header(read_buffer):
         msg = msg.format(byte_order=read_buffer[6:8],
                          little_endian=bytes([73, 73]),
                          big_endian=bytes([77, 77]))
-        raise IOError(msg)
+        raise RuntimeError(msg)
 
     _, offset = struct.unpack(endian + 'HI', read_buffer[2:8])
 
@@ -95,7 +95,7 @@ class Ifd(object):
             payload_size = self.datatype2fmt[dtype][1] * count
         except KeyError:
             msg = 'Invalid TIFF tag datatype ({0}).'.format(dtype)
-            raise IOError(msg)
+            raise RuntimeError(msg)
 
         if payload_size <= 4:
             # Interpret the payload from the 4 bytes in the tag entry.
