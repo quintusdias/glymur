@@ -805,8 +805,8 @@ class TestSuite(fixtures.TestCommon):
                 ofile.write(ifile.read())
                 ofile.flush()
 
-            with self.assertWarns(UserWarning):
-                Jp2k(ofile.name)
+        with self.assertWarns(UserWarning):
+            Jp2k(ofile.name)
 
     def test_stupid_windows_eol_at_end(self):
         """

@@ -453,8 +453,13 @@ class ColourSpecificationBox(Jp2kBox):
         if method == 1:
             # enumerated colour space
             colorspace, = struct.unpack_from('>I', read_buffer, offset=3)
-            if colorspace not in _COLORSPACE_MAP_DISPLAY.keys():
-                msg = f"Unrecognized colorspace ({colorspace})."
+            if colorspace not in _COLORSPACE_MAP_DISPLAY:
+                msg = (
+                    f"An unrecognized colorspace value ({colorspace}) was "
+                    f"encountered in a ColourSpecificationBox at byte offset "
+                    f"{offset}.  The supported colorspace mappings are "
+                    f"{_COLORSPACE_MAP_DISPLAY}."
+                )
                 warnings.warn(msg, UserWarning)
             icc_profile = None
 
