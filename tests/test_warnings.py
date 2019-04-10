@@ -476,12 +476,15 @@ class TestSuite(fixtures.TestCommon):
                                                  method=method)
 
     def test_colr_with_bad_approx(self):
-        """colr should have a valid approximation field"""
-        colorspace = glymur.core.SRGB
-        approx = -1
+        """
+        SCENARIO:  An ColourSpecificationBox is given an invalid approximation
+        value.
+
+        EXPECTED RESULT:  A warning is issued.
+        """
         with self.assertWarns(UserWarning):
-            glymur.jp2box.ColourSpecificationBox(colorspace=colorspace,
-                                                 approximation=approx)
+            glymur.jp2box.ColourSpecificationBox(colorspace=glymur.core.SRGB,
+                                                 approximation=-1)
 
     def test_mismatched_bitdepth_signed(self):
         """bitdepth and signed arguments must have equal length"""

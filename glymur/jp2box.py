@@ -324,15 +324,21 @@ class ColourSpecificationBox(Jp2kBox):
                    "creating a ColourSpecificationBox.")
             self._dispatch_validation_error(msg, writing=writing)
 
-        if self.method not in _COLORSPACE_METHODS.keys():
+        if self.method not in _COLORSPACE_METHODS:
             msg = f"Invalid colorspace method value ({self.method})."
             if writing:
                 raise InvalidJp2kError(msg)
             else:
                 warnings.warn(msg, UserWarning)
 
-        if self.approximation not in _APPROXIMATION_MEASURES.keys():
-            msg = f"Invalid color approximation value ({self.approximation})."
+        if self.approximation not in _APPROXIMATION_MEASURES:
+            msg = (
+                f"An unrecognized color approximation value "
+                f"({self.approximation}) was encountered in a "
+                f"ColourSpecificationBox at byte offset {self.offset}.  "
+                f"Permitted approximation mappings include "
+                f"{_APPROXIMATION_MEASURES}."
+            )
             if not writing:
                 # Don't bother to check this for the case of writing=True
                 # because it's already handles in the wrapping code.
