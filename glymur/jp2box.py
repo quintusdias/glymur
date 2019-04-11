@@ -344,6 +344,21 @@ class ColourSpecificationBox(Jp2kBox):
                 # because it's already handles in the wrapping code.
                 warnings.warn(msg, UserWarning)
 
+        if (
+            self.icc_profile is None
+            and self.colorspace is not None
+            and self.colorspace not in _COLORSPACE_MAP_DISPLAY
+        ):
+            # This only happens if there is not a valid ICC profile and the
+            # colorspace is present but invalid.
+            msg = (
+                f"An unrecognized colorspace value ({self.colorspace}) was "
+                f"encountered in a ColourSpecificationBox at byte offset "
+                f"{self.offset}.  The supported colorspace mappings are "
+                f"{_COLORSPACE_MAP_DISPLAY}."
+            )
+            warnings.warn(msg, UserWarning)
+
     def _write_validate(self):
         """In addition to constructor validation steps, run validation steps
         for writing."""
@@ -459,14 +474,6 @@ class ColourSpecificationBox(Jp2kBox):
         if method == 1:
             # enumerated colour space
             colorspace, = struct.unpack_from('>I', read_buffer, offset=3)
-            if colorspace not in _COLORSPACE_MAP_DISPLAY:
-                msg = (
-                    f"An unrecognized colorspace value ({colorspace}) was "
-                    f"encountered in a ColourSpecificationBox at byte offset "
-                    f"{offset}.  The supported colorspace mappings are "
-                    f"{_COLORSPACE_MAP_DISPLAY}."
-                )
-                warnings.warn(msg, UserWarning)
             icc_profile = None
 
         else:
@@ -3482,7 +3489,6 @@ class UUIDBox(Jp2kBox):
         Returns
         -------
         UUIDBox
-            Instance of the current UUID box.
         """
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)

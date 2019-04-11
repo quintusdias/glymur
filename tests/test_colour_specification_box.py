@@ -122,11 +122,16 @@ class TestColourSpecificationBox(fixtures.TestCommon):
         self.assertFalse('Profile Id' in icc_profile.header.keys())
 
     def test_colr_with_bad_color(self):
-        """colr must have a valid color, strange as though that may sound."""
-        colorspace = -1
-        approx = 0
-        colr = ColourSpecificationBox(colorspace=colorspace,
-                                      approximation=approx)
+        """
+        SCENARIO:  A colr box has an invalid colorspace.
+
+        EXPECTED RESULT:  An InvalidJp2kError is raised when attempting to
+        write the box.
+        """
+        with self.assertWarns(UserWarning):
+            # A warning is issued due to the bad colorspace.
+            colr = ColourSpecificationBox(colorspace=-1, approximation=0)
+
         with tempfile.TemporaryFile() as tfile:
             with self.assertRaises(InvalidJp2kError):
                 colr.write(tfile)
