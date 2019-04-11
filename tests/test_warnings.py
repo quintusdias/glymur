@@ -644,7 +644,12 @@ class TestSuite(fixtures.TestCommon):
             tfile.write(b'JpgTiffExif->JP2')
 
             tfile.write(b'Exif\x00\x00')
-            xbuffer = struct.pack('<BBHI', 74, 73, 42, 8)
+
+            # Here's the bad byte order.
+            tfile.write(b'JI')
+
+            # Write the rest of the header.
+            xbuffer = struct.pack('<HI', 42, 8)
             tfile.write(xbuffer)
 
             # We will write just a single tag.

@@ -23,7 +23,7 @@ def tiff_header(read_buffer):
     else:
         msg = (
             f"The byte order indication in the TIFF header "
-            f"({read_buffer[6:8]}) is invalid.  It should be either "
+            f"({read_buffer[0:2]}) is invalid.  It should be either "
             f"{bytes([73, 73])} or {bytes([77, 77])}."
         )
         raise RuntimeError(msg)
