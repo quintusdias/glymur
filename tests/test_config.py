@@ -156,7 +156,7 @@ class TestSuite(fixtures.TestCommon):
         mock_platform_system.return_value = 'not darwin'
         mock_find_library.return_value = None
 
-        actual = glymur.config.load_openjpeg_library('openjp2')
+        actual = glymur.config.glymur_config()
         self.assertIsNone(actual)
 
     @unittest.skipIf(platform.system() == 'Windows', 'nonsensical on windows')

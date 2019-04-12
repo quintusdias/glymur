@@ -87,30 +87,6 @@ def _determine_full_path(libname):
         return None
 
 
-def load_openjpeg_library(libname):
-    """
-    Determine the path to the openjp2 library and load it via CTYPES.
-    """
-    path = _determine_full_path(libname)
-
-    if path is None or path in ['None', 'none']:
-        # Either could not find a library via ctypes or
-        # user-configuration-file, or we could not find it in any of the
-        # default locations, or possibly the user intentionally does not want
-        # one of the libraries to load.
-        return None
-
-    loader = ctypes.windll.LoadLibrary if os.name == 'nt' else ctypes.CDLL
-    try:
-        opj_lib = loader(path)
-    except (TypeError, OSError):
-        msg = f'The {libname} library at {path} could not be loaded.'
-        warnings.warn(msg, UserWarning)
-        opj_lib = None
-
-    return opj_lib
-
-
 def read_config_file(libname):
     """
     Extract library locations from a configuration file.
@@ -152,11 +128,25 @@ def glymur_config():
     tuple
         tuple of library handles
     """
-    handle = load_openjpeg_library('openjp2')
-    if handle is None:
-        msg = "The openjp2 library could not be loaded.  "
-        warnings.warn(msg)
-    return handle
+    libname = 'openjp2'
+    path = _determine_full_path(libname)
+
+    if path is None or path in ['None', 'none']:
+        # Either could not find a library via ctypes or
+        # user-configuration-file, or we could not find it in any of the
+        # default locations, or possibly the user intentionally does not want
+        # one of the libraries to load.
+        return None
+
+    loader = ctypes.windll.LoadLibrary if os.name == 'nt' else ctypes.CDLL
+    try:
+        opj_lib = loader(path)
+    except (TypeError, OSError):
+        msg = f'The {libname} library at {path} could not be loaded.'
+        warnings.warn(msg, UserWarning)
+        opj_lib = None
+
+    return opj_lib
 
 
 def get_configdir():
