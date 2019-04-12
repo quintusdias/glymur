@@ -380,6 +380,23 @@ class ColourSpecificationBox(Jp2kBox):
                 # because it's already handles in the wrapping code.
                 warnings.warn(msg, UserWarning)
 
+        if (
+            self.icc_profile_data is None
+            and self.colorspace is not None
+            and self.colorspace not in _COLORSPACE_MAP_DISPLAY
+        ):
+            msg = (
+                "An unrecognized colorspace value ({colorspace}) was "
+                "encountered in a ColourSpecificationBox at byte offset "
+                "{offset}.  The supported colorspace mappings are "
+                "{mappings}."
+            )
+
+            msg = msg.format(colorspace=self.colorspace,
+                             offset=self.offset,
+                             mappings=_COLORSPACE_MAP_DISPLAY)
+            warnings.warn(msg, UserWarning)
+
     def _write_validate(self):
         """In addition to constructor validation steps, run validation steps
         for writing."""
@@ -497,18 +514,6 @@ class ColourSpecificationBox(Jp2kBox):
         if method == 1:
             # enumerated colour space
             colorspace, = struct.unpack_from('>I', read_buffer, offset=3)
-            if colorspace not in _COLORSPACE_MAP_DISPLAY.keys():
-                msg = (
-                    "An unrecognized colorspace value ({colorspace}) was "
-                    "encountered in a ColourSpecificationBox at byte offset "
-                    "{offset}.  The supported colorspace mappings are "
-                    "{mappings}."
-                )
-
-                msg = msg.format(colorspace=colorspace,
-                                 offset=offset,
-                                 mappings=_COLORSPACE_MAP_DISPLAY)
-                warnings.warn(msg, UserWarning)
             icc_profile = None
             icc_profile_data = None
 

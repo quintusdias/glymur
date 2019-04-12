@@ -283,12 +283,15 @@ class TestPrinting(fixtures.TestCommon):
 
     def test_invalid_colorspace(self):
         """
-        An invalid colorspace shouldn't cause an error.
+        SCENARIO:  An invalid colorspace shouldn't cause an error when
+        printing.
 
-        Original test file was edf_c2_1103421.jp2
+        EXPECTED RESULT:  No error, although there is a warning.
         """
-        colr = ColourSpecificationBox(colorspace=276)
-        colr.colorspace = 276
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            colr = ColourSpecificationBox(colorspace=276)
+
         str(colr)
 
     def test_label_box_short(self):

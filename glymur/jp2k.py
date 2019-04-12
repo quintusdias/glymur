@@ -30,7 +30,7 @@ import numpy as np
 from .codestream import Codestream
 from . import core, version, get_option
 from .jp2box import (
-    Jp2kBox, JPEG2000SignatureBox, FileTypeBox, JP2HeaderBox, 
+    Jp2kBox, JPEG2000SignatureBox, FileTypeBox, JP2HeaderBox,
     ColourSpecificationBox, ContiguousCodestreamBox, ImageHeaderBox,
     InvalidJp2kError
 )
@@ -603,7 +603,7 @@ class Jp2k(Jp2kBox):
             stack.callback(opj.cio_close, cio)
 
             if not opj.encode(cinfo, cio, image):
-                raise Invalidjp2kError("Encode error.")
+                raise InvalidJp2kError("Encode error.")
 
             pos = opj.cio_tell(cio)
 
