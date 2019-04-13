@@ -43,7 +43,7 @@ from .core import (_COLORSPACE_MAP_DISPLAY, _COLOR_TYPE_MAP_DISPLAY,
                    SRGB, GREYSCALE, YCC,
                    ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE,
                    ANY_ICC_PROFILE, VENDOR_COLOR_METHOD)
-from ._tiff import tiff_header
+from ._tiff import tiff_header, BadTiffTagDatatype
 from . import get_option
 from ._iccprofile import _ICCProfile
 
@@ -3361,6 +3361,14 @@ class UUIDBox(Jp2kBox):
 
         try:
             self._parse_raw_data()
+        except BadTiffTagDatatype as error:
+            orig_msg = str(error)
+            new_msg = (
+                "An issue was encountered while parsing a UUIDBox at byte "
+                "offset {offset}.  {orig_msg}"
+            )
+            new_msg = new_msg.format(offset=self.offset, orig_msg=orig_msg)
+            warnings.warn(new_msg)
         except RuntimeError as error:
             # Such as when Exif byte order is unrecognized.
             warnings.warn(str(error))

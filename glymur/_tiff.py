@@ -38,6 +38,14 @@ def tiff_header(read_buffer):
     return exif.processed_ifd
 
 
+class BadTiffTagDatatype(RuntimeError):
+    """
+    This exception exists soley to better communicate up the stack that the
+    problem exists.
+    """
+    pass
+
+
 class Ifd(object):
     """
     Attributes
@@ -97,7 +105,7 @@ class Ifd(object):
             payload_size = self.datatype2fmt[dtype][1] * count
         except KeyError:
             msg = 'Invalid TIFF tag datatype ({0}).'.format(dtype)
-            raise RuntimeError(msg)
+            raise BadTiffTagDatatype(msg)
 
         if payload_size <= 4:
             # Interpret the payload from the 4 bytes in the tag entry.
