@@ -35,6 +35,14 @@ def tiff_header(read_buffer):
     return exif.processed_ifd
 
 
+class BadTiffTagDatatype(RuntimeError):
+    """
+    This exception exists soley to better communicate up the stack that the
+    problem exists.
+    """
+    pass
+
+
 class Ifd(object):
     """
     Attributes
@@ -93,8 +101,8 @@ class Ifd(object):
             fmt = self.datatype2fmt[dtype][0] * count
             payload_size = self.datatype2fmt[dtype][1] * count
         except KeyError:
-            msg = 'Invalid TIFF tag datatype ({dtype}).'
-            raise RuntimeError(msg)
+            msg = f'Invalid TIFF tag datatype ({dtype}).'
+            raise BadTiffTagDatatype(msg)
 
         if payload_size <= 4:
             # Interpret the payload from the 4 bytes in the tag entry.
@@ -133,7 +141,7 @@ class Ifd(object):
                 tag_name = tagnum2name[tag]
             except KeyError:
                 # Ok, we don't recognize this tag.  Just use the numeric id.
-                msg = 'Unrecognized Exif tag ({tag}).'
+                msg = 'Unrecognized UUID box TIFF tag ({tag}).'
                 warnings.warn(msg, UserWarning)
                 tag_name = tag
             self.processed_ifd[tag_name] = value
