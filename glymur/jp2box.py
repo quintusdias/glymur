@@ -3466,8 +3466,8 @@ class UUIDBox(Jp2kBox):
         if hTransform is not None:
             point = hTransform.TransformPoint(dfGeoX, dfGeoY, 0)
             if point is not None:
-                line += '({},{}'.format(gdal.DecToDMS(point[0], 'Long', 2),
-                                        gdal.DecToDMS(point[1], 'Lat', 2))
+                line += '({},{})'.format(gdal.DecToDMS(point[0], 'Long', 2),
+                                         gdal.DecToDMS(point[1], 'Lat', 2))
 
         return line
 
