@@ -11,6 +11,7 @@ from collections import Counter
 from contextlib import ExitStack
 from itertools import filterfalse
 import ctypes
+from multiprocessing import Lock
 import pathlib
 import re
 import struct
@@ -113,6 +114,8 @@ class Jp2k(Jp2kBox):
             The image color space.
         cratios : iterable, optional
             Compression ratios for successive layers.
+        dtype : data-type
+            The data-type for the image array, e.g. `numpy.uint8`.
         eph : bool, optional
             If true, write SOP marker after each header packet.
         grid_offset : tuple, optional
@@ -157,11 +160,14 @@ class Jp2k(Jp2kBox):
         self.box = []
         self._codec_format = None
         self._colorspace = None
+        self._dtype = None
         self._layer = 0
         self._codestream = None
 
         self._ignore_pclr_cmap_cdef = False
         self._verbose = False
+
+        self.lock = Lock()
 
         if data is not None:
             # We are writing a JP2/J2K/JPX file.
@@ -237,10 +243,49 @@ class Jp2k(Jp2kBox):
         self._layer = layer
 
     @property
+    def dtype(self):
+        if self._dtype is not None:
+            return self._dtype
+
+        # Derive the dtype from the bitdepth and signed components of the
+        # SIZ segment.
+        siz = [
+            segment for segment in self.codestream.segment
+            if segment.marker_id == 'SIZ'
+        ][0]
+
+        # All the bitdepths and signs had better be identical in order for
+        # this to work.
+        if np.any(np.diff(siz.bitdepth)) or np.any(np.diff(siz.signed)):
+            msg = (
+                f"dtype cannot be assigned because the bitdepth and signed "
+                f"components are not all the same, bitdepth={siz.bitdepth}, "
+                f"signed={siz.signed}."
+            )
+            raise RuntimeError(msg)
+
+        if siz.signed[0]:
+            if siz.bitdepth[0] <= 8:
+                self._dtype = np.int8
+            else:
+                self._dtype = np.int16
+        else:
+            if siz.bitdepth[0] <= 8:
+                self._dtype = np.uint8
+            else:
+                self._dtype = np.uint16
+
+        return self._dtype
+
+    @property
     def codestream(self):
         if self._codestream is None:
             self._codestream = self.get_codestream(header_only=True)
         return self._codestream
+
+    @property
+    def ndim(self):
+        return len(self.shape)
 
     @property
     def verbose(self):
@@ -1185,8 +1230,9 @@ class Jp2k(Jp2kBox):
             If the image has differing subsample factors.
         """
         self._subsampling_sanity_check()
-        self._populate_dparams(rlevel, tile=tile, area=area)
-        image = self._read_openjp2_common()
+        with self.lock:
+            self._populate_dparams(rlevel, tile=tile, area=area)
+            image = self._read_openjp2_common()
         return image
 
     def _read_openjp2_common(self):
