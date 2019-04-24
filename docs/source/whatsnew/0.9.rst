@@ -1,0 +1,10 @@
+============================
+Changes coming in 0.9
+============================
+
+    * Python 2.7, 3.5 dropped, support limited to 3.6 and newer.
+    * OpenJPEG 1.5 dropped, support limited to 2.3.0 and newer.
+    * lxml and gdal will be required.   
+    * The ColourSpecificationBox instance attribute "icc_profile_data"
+      will change names to "icc_profile", and the old "icc_profile" will
+      change names to "icc_profile_header".

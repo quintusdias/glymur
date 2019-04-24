@@ -1,3 +1,10 @@
+April 24, 2019 - v0.8.18
+    Fix geotiff UUID corner coordinate string representation.
+    Improve warning and error messages.
+    Correct improperly raised exception types.
+    Remove build/test for Python 3.4 (EOL).
+    Fix read-the-docs requirements.
+
 February 19, 2019 - v0.8.17
     Add support for ICC profile raw data.
     Fix parsing of negative resolution box exponents.

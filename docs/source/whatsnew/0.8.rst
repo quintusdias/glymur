@@ -2,27 +2,20 @@
 Changes in glymur 0.8
 =====================
 
-Changes coming in 0.9.x
-=======================
-    * Python 2.7 dropped, support limited to 3.6 and newer.
-    * OpenJPEG 1.5 dropped, support limited to 2.3.0 and newer.
-    * lxml and gdal will be required.   
-
-Changes coming in 0.8.18
-========================
-      * Remove build/test on Python 3.4 (EOL).
-      * Improve warning message when ICC profile is corrupt.
-      * Improve how-do-I doc recipes, include example for ICC profiles.
+Changes in 0.8.18
+=================
+    * Fix geotiff UUID corner coordinate string representation.
+    * Improve parsing warning and error messages.
+    * Correct improperly raised exception types.
+    * Remove build/test for Python 3.4 (EOL).
+    * Fix read-the-docs requirements, improved examples.
 
 Changes in 0.8.17
 =================
     * Fix parsing of resolution box with negative exponents.
     * Add support for ICC profile buffers.  The undecoded ICC profile
       can be accessed via the "icc_profile_data" member of a
-      ColourSpecification box.  In version 0.9.0, this will change to
-      "icc_profile" to store the raw data, and the old dictionary
-      for ICC profile metadata will be accessed as
-      "icc_profile_header".
+      ColourSpecification box.  
 
 Changes in 0.8.16
 =================
