@@ -7,8 +7,8 @@ How do I...?
 ================
 Jp2k implements slicing via the :py:meth:`__getitem__` method and
 hooks it into the multiple resolution property of JPEG 2000 imagery.
-This means that lower-resolution imagery can be accessed via
-array-style slicing that utilizes strides.  For example here's how
+This allows you to retrieve multiresolution imagery via
+array-style slicing, i.e. strides.  For example, here's how
 to retrieve a full resolution and first lower-resolution image ::
 
     >>> import glymur
@@ -25,7 +25,7 @@ to retrieve a full resolution and first lower-resolution image ::
 =========================================================
 If you have glymur 0.8.13 or higher
 and OpenJPEG 2.2.0 or higher,
-you can make use of OpenJPEG's thread support to speed-up read operations ::
+you can make use of OpenJPEG's thread support to speed-up read operations.  ::
 
     >>> import glymur
     >>> import time
@@ -42,10 +42,17 @@ you can make use of OpenJPEG's thread support to speed-up read operations ::
 ... write images?
 =================
 It's pretty simple, just supply the image data as a keyword argument to the
-Jp2k constructor.
+Jp2k constructor::
     
     >>> import glymur, numpy as np
     >>> jp2 = glymur.Jp2k('zeros.jp2', data=np.zeros((640, 480), dtype=np.uint8))
+
+or::
+
+    >>> jp2 = glymur.Jp2k('zeros.jp2')
+    >>> data=np.zeros((640, 480), dtype=np.uint8)
+    >>> jp2[:] = data
+
 
 ... write images with different compression ratios for different layers?
 =========================================================================
@@ -69,7 +76,7 @@ for a basic understanding of PSNR.
 
 Values must be increasing, but the last value may be 0 to indicate
 the layer is lossless.  However, the OpenJPEG library will reorder
-the layers to make the first layer lossless, not the last.
+the layers to make the first layer lossless, not the last. ::
 
     >>> import skimage.data, skimage.measure, glymur
     >>> truth = skimage.data.camera()
@@ -417,24 +424,20 @@ To go any further with this, you will want to consult
 OpenJPEG can create JP2 files with more than 3 components (use version 2.1.0+ 
 for this), but by default, any extra components are not described
 as such.  In order to do so, we need to re-wrap such an image in a
-set of boxes that includes a channel definition box.
-
-This example is based on SciPy example code found at 
-http://scipy-lectures.org/advanced/image_processing/#basic-manipulations . 
-Instead of a circular mask we'll make it an ellipse since the source
-image isn't square. ::
+set of boxes that includes a channel definition box.  The following example
+creates an ellipical mask. ::
 
     >>> import numpy as np
     >>> import glymur
     >>> from glymur import Jp2k
     >>> rgb = Jp2k(glymur.data.goodstuff())[:]
-    >>> lx, ly = rgb.shape[0:2]
-    >>> X, Y = np.ogrid[0:lx, 0:ly]
-    >>> mask = ly**2*(X - lx / 2) ** 2 + lx**2*(Y - ly / 2) ** 2 > (lx * ly / 2)**2
-    >>> alpha = 255 * np.ones((lx, ly, 1), dtype=np.uint8)
+    >>> ny, nx = rgb.shape[:2]
+    >>> Y, X = np.ogrid[:ny, :nx]
+    >>> mask = nx ** 2 * (Y - ny / 2) ** 2 + ny ** 2 * (X - nx / 2) ** 2 > (nx * ny / 2)**2
+    >>> alpha = 255 * np.ones((ny, nx, 1), dtype=np.uint8)
     >>> alpha[mask] = 0
     >>> rgba = np.concatenate((rgb, alpha), axis=2)
-    >>> jp2 = Jp2k('tmp.jp2', data=rgba)
+    >>> jp2 = Jp2k('myfile.jp2', data=rgba)
 
 Next we need to specify what types of channels we have.
 The first three channels are color channels, but we identify the fourth as
