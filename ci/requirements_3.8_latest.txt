@@ -1,5 +1,5 @@
-importlib_resources
-numpy
 gdal<3.0.0
 lxml
+numpy
+openjpeg
 scikit-image

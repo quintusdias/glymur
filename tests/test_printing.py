@@ -768,27 +768,26 @@ class TestPrinting(fixtures.TestCommon):
     @unittest.skipIf(sys.hexversion < 0x03000000,
                      "Only trusting python3 for printing non-ascii chars")
     def test_xml_cyrrilic(self):
-        """Should be able to print XMLBox with utf-8 encoding (cyrrillic)."""
-        # Seems to be inconsistencies between different versions of python2.x
-        # as to what gets printed.
-        #
-        # 2.7.5 (fedora 19) prints xml entities.
-        # 2.7.3 seems to want to print hex escapes.
-        text = u"""<country>Россия</country>"""
-        if sys.hexversion < 0x03000000:
-            xml = ET.parse(StringIO(text.encode('utf-8')))
-        else:
-            xml = ET.parse(StringIO(text))
+        """
+        SCENARIO:  An XMLBox contains cyrrillic characters.
 
+        There seems to be inconsistencies between different versions of
+        python2.x as to what gets printed.
+
+        2.7.5 (fedora 19) prints xml entities.
+        2.7.3 seems to want to print hex escapes.
+
+        EXPECTED RESULT:  The box should print as expected under python3.
+        """
+        text = u"""<country>Россия</country>"""
+        xml = ET.parse(StringIO(text))
         xmlbox = glymur.jp2box.XMLBox(xml=xml)
+
         actual = str(xmlbox)
-        if sys.hexversion < 0x03000000:
-            expected = ("XML Box (xml ) @ (-1, 0)\n"
-                        ("    <country>&#1056;&#1086;&#1089;&#1089;"
-                         "&#1080;&#1103;</country>"))
-        else:
-            expected = ("XML Box (xml ) @ (-1, 0)\n"
-                        "    <country>Россия</country>")
+        expected = (
+            "XML Box (xml ) @ (-1, 0)\n"
+            "    <country>Россия</country>"
+        )
 
         self.assertEqual(actual, expected)
 

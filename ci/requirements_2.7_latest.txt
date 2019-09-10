@@ -1,10 +1,10 @@
 contextlib2
-gdal
+gdal<3.0.0
 importlib_resources
 libgdal
 lxml
 mock
 numpy
-openjpeg=2.2.0
+openjpeg
 pathlib2
 scikit-image

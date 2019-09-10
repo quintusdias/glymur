@@ -414,7 +414,7 @@ class TestSuiteHiRISE(fixtures.TestCommon):
         else:
             # Only verify if PY3K, don't bother with Python2.  OrderedDicts
             # print out differently.
-            if sys.hexversion >= 0x03040000:
+            if sys.hexversion > 0x03040000:
                 self.assertEqual(actual, fixtures.GEOTIFF_UUID_WITHOUT_GDAL)
 
 

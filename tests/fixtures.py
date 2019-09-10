@@ -238,6 +238,5 @@ NEMO_DUMP_NO_CODESTREAM_NO_XML = data
 NEMO_DUMP_SHORT = load_test_data('nemo_dump_short')
 NEMO_XMP_BOX = load_test_data('nemo_xmp_box')
 SIMPLE_RDF = load_test_data('simple_rdf')
-TEXT_GBR_34 = load_test_data('text_gbr_34')
 TEXT_GBR_35 = load_test_data('text_gbr_35')
 TEXT_GBR_RREQ = load_test_data('text_GBR_rreq')
