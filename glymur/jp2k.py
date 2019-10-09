@@ -19,6 +19,7 @@ import warnings
 
 # Third party library imports
 import numpy as np
+import xarray as xr
 
 # Local imports...
 from .codestream import Codestream
@@ -279,6 +280,16 @@ class Jp2k(Jp2kBox):
         else:
             metadata.append(str(self.codestream))
         return '\n'.join(metadata)
+
+    def toxarray(self):
+        """Return an xarray.Dataset
+        """
+        y = list(range(self.shape[0]))
+        x = list(range(self.shape[1]))
+        bands = list(range(self.shape[2]))
+        coords = [y, x, bands]
+        dims = ('y', 'x', 'bands')
+        return xr.DataArray(self, coords=coords, dims=dims)
 
     def parse(self):
         """Parses the JPEG 2000 file.
