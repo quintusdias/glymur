@@ -282,14 +282,14 @@ class Jp2k(Jp2kBox):
         return '\n'.join(metadata)
 
     def toxarray(self):
-        """Return an xarray.Dataset
+        """Return as an xarray.Dataset
         """
         y = list(range(self.shape[0]))
         x = list(range(self.shape[1]))
         bands = list(range(self.shape[2]))
         coords = [y, x, bands]
         dims = ('y', 'x', 'bands')
-        return xr.DataArray(self, coords=coords, dims=dims)
+        return xr.DataArray(self[:], coords=coords, dims=dims)
 
     def parse(self):
         """Parses the JPEG 2000 file.
