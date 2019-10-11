@@ -286,9 +286,14 @@ class Jp2k(Jp2kBox):
         """
         y = list(range(self.shape[0]))
         x = list(range(self.shape[1]))
-        bands = list(range(self.shape[2]))
-        coords = [y, x, bands]
-        dims = ('y', 'x', 'bands')
+
+        dims = ['y', 'x']
+        coords = [y, x]
+
+        if len(self.shape) > 2:
+            dims.append('bands')
+            coords.append(list(range(self.shape[2])))
+
         return xr.DataArray(self[:], coords=coords, dims=dims)
 
     def parse(self):
