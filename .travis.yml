@@ -15,6 +15,11 @@ matrix:
       env:
           - JOB_NAME "37_latest"
           - JOB_TAG=latest
+    - python: 3.8
+      dist: xenial
+      env:
+          - JOB_NAME "38_latest"
+          - JOB_TAG=latest
 install:
   - sudo apt-get update
   # We do this conditionally because it saves us some downloading if the
