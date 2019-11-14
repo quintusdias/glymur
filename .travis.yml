@@ -34,7 +34,7 @@ install:
   - conda info -a
 
   # Replace dep1 dep2 ... with your dependencies
-  - conda config --append channels conda-forge
+  - conda config --prepend channels conda-forge
   - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
   - source activate test-environment
   - conda install --file ci/requirements_"$TRAVIS_PYTHON_VERSION"_"$JOB_TAG".txt
