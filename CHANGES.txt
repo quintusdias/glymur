@@ -1,3 +1,6 @@
+November 15, 2019 - v0.8.19
+    Qualify on Python 3.8.
+    
 April 24, 2019 - v0.8.18
     Fix geotiff UUID corner coordinate string representation.
     Improve warning and error messages.

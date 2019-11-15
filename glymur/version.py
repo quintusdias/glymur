@@ -3,7 +3,7 @@ This file is part of glymur, a Python interface for accessing JPEG 2000.
 
 http://glymur.readthedocs.org
 
-Copyright 2013 John Evans
+Copyright 2013-2019 John Evans
 
 License:  MIT
 """
@@ -20,7 +20,7 @@ from .lib import openjpeg as opj, openjp2 as opj2
 
 # Do not change the format of this next line!  Doing so risks breaking
 # setup.py
-version = "0.8.18"
+version = "0.8.19"
 _sv = LooseVersion(version)
 version_tuple = _sv.version
 

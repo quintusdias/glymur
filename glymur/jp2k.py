@@ -2,7 +2,7 @@
 
 http://glymur.readthedocs.org
 
-Copyright 2013 John Evans
+Copyright 2013-2019 John Evans
 
 License:  MIT
 """
