@@ -23,10 +23,6 @@ Glymur Installation
 ===================
 The easiest way to install Glymur is via Anaconda using conda-forge ::
 
-    $ conda config --append channels conda-forge
-    $ conda install glymur
+    $ conda create -n testglymur -c conda-forge python glymur
+    $ conda activate testglymur
 
-You can also should be able to install Glymur via pip, although you should 
-be sure that OpenJPEG is installed first ::
-
-    $ pip install glymur
