@@ -69,7 +69,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'glymur'
-copyright = u'2013, John Evans'
+copyright = u'2013-2019, John Evans'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
