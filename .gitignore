@@ -1,6 +1,9 @@
 *.pyc
 *.swp
 .coverage
+build
 cover
 dist
+docs/build
+docs/latex
 Glymur.egg-info
