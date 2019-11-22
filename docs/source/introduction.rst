@@ -1,6 +1,6 @@
-----------------------------------------
+########################################
 Glymur: a Python interface for JPEG 2000
-----------------------------------------
+########################################
 
 **Glymur** is an interface to the OpenJPEG library
 which allows one to read and write JPEG 2000 files from Python.  
@@ -19,8 +19,9 @@ The current version of glymur works on Python versions 3.6, 3.7, and 3.8.
 
 For more information about OpenJPEG, please consult http://www.openjpeg.org.
 
+*******************
 Glymur Installation
-===================
+*******************
 The easiest way to install Glymur is via Anaconda using conda-forge ::
 
     $ conda create -n testglymur -c conda-forge python glymur

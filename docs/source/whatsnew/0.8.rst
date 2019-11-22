@@ -1,9 +1,10 @@
-=====================
+#####################
 Changes in glymur 0.8
-=====================
+#####################
 
+*****************
 Changes in 0.8.17
-=================
+*****************
     * Fix parsing of resolution box with negative exponents.
     * Add support for ICC profile buffers.  The undecoded ICC profile
       can be accessed via the "icc_profile_data" member of a
@@ -12,69 +13,83 @@ Changes in 0.8.17
       for ICC profile metadata will be accessed as
       "icc_profile_header".
 
+*****************
 Changes in 0.8.16
-=================
+*****************
     * Update for Python 3.7.
     * Fix documentation bug.
 
+*****************
 Changes in 0.8.15
-=================
+*****************
     * Fix link to readthedocs.
     * Fix for invalid progression order display.
 
+*****************
 Changes in 0.8.14
-=================
+*****************
     * Fix bug preventing reads on layers other than the first.
 
+*****************
 Changes in 0.8.13
-=================
+*****************
     * Add support for OpenJPEG threads.
 
+*****************
 Changes in 0.8.12
-=================
+*****************
     * Qualified on OpenJPEG 2.3.0.
     * Drop support for Python 3.3.
 
+*****************
 Changes in 0.8.11
-=================
+*****************
     * Qualified on OpenJPEG 2.2.0.
 
+*****************
 Changes in 0.8.10
-=================
+*****************
     * Add pathlib support.
 
+*****************
 Changes in 0.8.9
-=================
+*****************
     * Qualified on Python 3.6.
     * Changed travis-ci testing to use Anaconda.
 
+*****************
 Changes in 0.8.8
-=================
+*****************
     * Refactor test suite.
     * Fix printing errors in case of bad colr box.
     * Fix tests on CentOS when seeing OpenJPEG 1.3
 
+*****************
 Changes in 0.8.7
-=================
+*****************
     * Qualified on OPENJPEG v2.1.2.
 
+*****************
 Changes in 0.8.6
-=================
+*****************
     * State explicit dependence on setuptools.
 
+*****************
 Changes in 0.8.5
-=================
+*****************
     * Relax dependency on lxml; use stdlib ElementTree if necessary.
     * Fix bug in XML box processing with certain XML declarations.
     * Qualified on OPENJPEG v2.1.1.
 
+*****************
 Changes in 0.8.4
-=================
+*****************
     * Add Anaconda awareness to config module, favor over system package manager.
     * Fix issue locating openjpeg dll on windows.
 
+*****************
 Changes in 0.8.3
-=================
+*****************
 
     * Add gdal interpretation of UUIDBox with GeoTIFF Box specification for JPEG2000 metadata.
     * Add support for Python 3.5.
@@ -83,19 +98,22 @@ Changes in 0.8.3
     * Relax installation requirement of lxml package from 3.0 to 2.3.2.
     * Fix parsing error of bits-per-component box in Python 2.7.
 
+*****************
 Changes in 0.8.2
-=================
+*****************
 
     * Require at least version 1.5.0 of OpenJPEG.
     * Improve read error message when openjpeg library not found.
 
+*****************
 Changes in 0.8.1
-=================
+*****************
 
     * Add support for bits per component box.
 
+*****************
 Changes in 0.8.0
-=================
+*****************
 
     * Simplify writing images by moving image data and options into the 
       constructor.

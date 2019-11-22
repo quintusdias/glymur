@@ -1,10 +1,10 @@
-----------------------------------
+##################################
 Advanced Installation Instructions
-----------------------------------
+##################################
 
-''''''''''''''''''''''
+********************
 Glymur Configuration
-''''''''''''''''''''''
+********************
 If you installed OpenJPEG via conda, you don't have to do any
 configuration, as glymur can find the OpenJPEG library within the
 Anaconda directory structure.

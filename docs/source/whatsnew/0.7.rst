@@ -1,25 +1,29 @@
-=====================
+#####################
 Changes in glymur 0.7
-=====================
+#####################
 
+****************
 Changes in 0.7.3
-=================
+****************
     
     * added read support back for metadata only when the OpenJPEG library is
       not installed
 
+****************
 Changes in 0.7.2
-=================
+****************
 
     * added ellipsis support in array-style slicing
 
+*****************
 Changes in 0.7.1
-=================
+*****************
 
     * fixed release notes regarding Python 3.4
 
+*****************
 Changes in 0.7.0
-=================
+*****************
 
     * implemented :py:meth:`__getitem__`, :py:meth:`__setitem__` support
     * added back windows support

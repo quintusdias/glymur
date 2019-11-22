@@ -1,9 +1,6 @@
-=====================
+#####################
 Changes in glymur 0.6
-=====================
-
-Changes in 0.6.0
-=================
+#####################
 
 * Added Cinema2K, Cinema4K write support.
 * Added irreversible 9-7 transform write support.

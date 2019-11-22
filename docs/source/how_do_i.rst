@@ -1,10 +1,11 @@
-------------
+############
 How do I...?
-------------
+############
 
 
+****************
 ... read images?
-================
+****************
 Jp2k implements slicing via the :py:meth:`__getitem__` method and
 hooks it into the multiple resolution property of JPEG 2000 imagery.
 This allows you to retrieve multiresolution imagery via
@@ -21,8 +22,9 @@ to retrieve a full resolution and first lower-resolution image ::
     >>> thumbnail.shape
     (728, 1296, 3)
 
+*********************************************************
 ... make use of OpenJPEG's thread support to read images?
-=========================================================
+*********************************************************
 If you have glymur 0.8.13 or higher
 and OpenJPEG 2.2.0 or higher,
 you can make use of OpenJPEG's thread support to speed-up read operations.  ::
@@ -39,8 +41,9 @@ you can make use of OpenJPEG's thread support to speed-up read operations.  ::
     >>> t1 - t0
     0.4060473537445068
 
+*****************
 ... write images?
-=================
+*****************
 It's pretty simple, just supply the image data as a keyword argument to the
 Jp2k constructor::
     
@@ -54,8 +57,9 @@ or::
     >>> jp2[:] = data
 
 
+************************************************************************
 ... write images with different compression ratios for different layers?
-=========================================================================
+************************************************************************
 Different compression factors may be specified with the cratios parameter ::
 
     >>> import skimage.data, glymur
@@ -68,8 +72,9 @@ Different compression factors may be specified with the cratios parameter ::
     >>> jp2.layer = 2
     >>> data = jp2[:]
 
+*************************************************************************
 ... write images with different PSNR (or "quality") for different layers?
-=========================================================================
+*************************************************************************
 Different PSNR values may be specified with the psnr parameter.  Please read
 https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio
 for a basic understanding of PSNR.  
@@ -88,8 +93,9 @@ the layers to make the first layer lossless, not the last. ::
     >>> print(psnr)
     [inf, 29.028560403833303, 39.206919416670402, 47.593129828702246]
 
+*********************
 ... display metadata?
-=====================
+*********************
 There are two ways.  From the command line, the console script **jp2dump** is
 available. ::
 
@@ -276,8 +282,9 @@ It is possible to easily print the codestream header details as well, i.e. ::
 
     >>> print(j.codestream)   # details not show
 
+*********************
 ... add XML metadata?
-=====================
+*********************
 You can append any number of XML boxes to a JP2 file (not to a raw codestream).
 Consider the following XML file `data.xml` : ::
 
@@ -307,8 +314,9 @@ The :py:meth:`append` method can add an XML box as shown below::
     >>> jp2.append(xmlbox)
     >>> print(jp2)
 
+*******************************************
 ... add metadata in a more general fashion?
-===========================================
+*******************************************
 An existing raw codestream (or JP2 file) can be wrapped (re-wrapped) in a 
 user-defined set of JP2 boxes.  To get just a minimal JP2 jacket on the 
 codestream provided by `goodstuff.j2k` (a file consisting of a raw codestream),
@@ -391,8 +399,9 @@ As to the question of which method you should use, :py:meth:`append` or
 produces a new JP2 file, while :py:meth:`append` modifies an existing file and
 is currently limited to XML and UUID boxes.
 
+***************************
 ... work with ICC profiles?
-===========================
+***************************
 
 A detailed answer is beyond my capabilities.  What I can tell you is how to
 gain access to ICC profiles that JPEG 2000 images may or may not provide for
@@ -418,8 +427,9 @@ are wrapped in a BytesIO object, which is fed to the most-excellent Pillow packa
 To go any further with this, you will want to consult
 `the Pillow documentation <https://pillow.readthedocs.io/en/stable/>`_.
 
+****************************************
 ... create an image with an alpha layer?
-========================================
+****************************************
 
 OpenJPEG can create JP2 files with more than 3 components (use version 2.1.0+ 
 for this), but by default, any extra components are not described
@@ -474,9 +484,12 @@ Here's how the Preview application on the mac shows the RGBA image.
 
 .. image:: goodstuff_alpha.png
 
+
     
+************************
 ... work with XMP UUIDs?
-========================
+************************
+
 `Wikipedia <http://en.wikipedia.org/wiki/Extensible_Metadata_Platform>`_ states
 that "The Extensible Metadata Platform (XMP) is an ISO standard,
 originally created by Adobe Systems Inc., for the creation, processing
