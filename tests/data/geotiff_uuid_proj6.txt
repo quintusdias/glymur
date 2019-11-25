@@ -1,0 +1,27 @@
+UUID Box (uuid) @ (149, 523)
+    UUID:  b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03 (GeoTIFF)
+    UUID Data:  Coordinate System =
+        PROJCS["Equirectangular MARS",
+            GEOGCS["GCS_MARS",
+                DATUM["unnamed",
+                    SPHEROID["unnamed",3396190,0]],
+                PRIMEM["Reference meridian",0],
+                UNIT["degree",0.0174532925199433,
+                    AUTHORITY["EPSG","9122"]]],
+            PROJECTION["Equirectangular"],
+            PARAMETER["standard_parallel_1",0],
+            PARAMETER["central_meridian",180],
+            PARAMETER["false_easting",0],
+            PARAMETER["false_northing",0],
+            UNIT["metre",1,
+                AUTHORITY["EPSG","9001"]],
+            AXIS["Easting",EAST],
+            AXIS["Northing",NORTH]]
+    Origin = (-2523306.125000000000000,-268608.875000000000000)
+    Pixel Size = (0.250000000000000,-0.250000000000000)
+    Corner Coordinates:
+    Upper Left  (-2523306.125, -268608.875) (137d25'49.08"E,  4d31'53.74"S)
+    Lower Left  (-2523306.125, -268609.125) (137d25'49.08"E,  4d31'53.75"S)
+    Upper Right (-2523305.875, -268608.875) (137d25'49.09"E,  4d31'53.74"S)
+    Lower Right (-2523305.875, -268609.125) (137d25'49.09"E,  4d31'53.75"S)
+    Center      (-2523306.000, -268609.000) (137d25'49.09"E,  4d31'53.75"S)

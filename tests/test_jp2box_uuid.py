@@ -397,6 +397,7 @@ class TestSuiteHiRISE(fixtures.TestCommon):
         representation validates.
         """
         jp2 = Jp2k(self.hirise_jp2file_name)
+        self.maxDiff = None
         actual = str(jp2.box[4])
 
         expected = fixtures.GEOTIFF_UUID
