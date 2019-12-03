@@ -98,13 +98,6 @@ class MetadataBase(TestCommon):
             self.assertEqual(getattr(actual, field), getattr(expected, field))
 
 
-# Do we have gdal?
-try:
-    import gdal  # noqa: F401
-except ImportError:  # pragma: no cover
-    pass
-
-
 def mse(amat, bmat):
     """Mean Square Error"""
     diff = amat.astype(np.double) - bmat.astype(np.double)
@@ -132,7 +125,10 @@ DEFAULT_PROGRESSION_ORDER_CHANGES_TYPE = load_test_data(id)
 FILE1_XML = load_test_data('file1_xml')
 FILE1_XML_BOX = load_test_data('file1_xml_box')
 
-GEOTIFF_UUID = load_test_data('geotiff_uuid_proj6')
+if gdal.VersionInfo() < '3':
+    GEOTIFF_UUID = load_test_data('geotiff_uuid')
+else:
+    GEOTIFF_UUID = load_test_data('geotiff_uuid_proj6')
 
 GOODSTUFF_CODESTREAM_HEADER = load_test_data('goodstuff_codestream_header')
 GOODSTUFF_WITH_FULL_HEADER = load_test_data('goodstuff_with_full_header')

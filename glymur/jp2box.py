@@ -3380,6 +3380,12 @@ class UUIDBox(Jp2kBox):
         return text
 
     def _print_geotiff(self):
+        try:
+            return self._print_geotiff_as_geotiff()
+        except RuntimeError:
+            return self.data
+
+    def _print_geotiff_as_geotiff(self):
         """
         Print geotiff information.  Shamelessly ripped off from gdalinfo.py
 
@@ -3414,10 +3420,9 @@ class UUIDBox(Jp2kBox):
                 hLatLong = hProj.CloneGeogCS()
 
             if hLatLong is not None:
-                gdal.PushErrorHandler('CPLQuietErrorHandler')
                 hTransform = osr.CoordinateTransformation(hProj, hLatLong)
-                gdal.PopErrorHandler()
-                msg = 'Unable to load PROJ.4 library'
+            else:
+                raise RuntimeError('Unable to proceed.')
 
         # report corners
         uleft = self.GDALInfoReportCorner(gtif, hTransform, "Upper Left", 0, 0)

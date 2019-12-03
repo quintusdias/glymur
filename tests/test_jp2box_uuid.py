@@ -7,7 +7,7 @@ try:
 except ImportError:  # pragma:  no cover
     # before 3.7
     import importlib_resources as ir
-from io import BytesIO
+import io
 import shutil
 import struct
 import uuid
@@ -19,6 +19,7 @@ import lxml.etree
 # Local imports
 import glymur
 from glymur import Jp2k
+from glymur.jp2box import UUIDBox
 from . import fixtures, data
 
 TIFF_ASCII = 2
@@ -90,7 +91,7 @@ class TestSuite(fixtures.TestCommon):
             34735 (0x87af) SHORT (3) 24<1 1 0 5 1024 0 1 1 1025 0 1 1 ...>
             34737 (0x87b1) ASCII (2) 45<UTM Zone 16N NAD27"|Clar ...>
         """
-        b = BytesIO()
+        b = io.BytesIO()
 
         # Create the header.
         # Signature, version, offset to IFD
@@ -199,6 +200,18 @@ class TestSuite(fixtures.TestCommon):
         b.seek(0)
         return b.read()
 
+    def test__printing__geotiff_uuid__xml_sidecar(self):
+        """
+        SCENARIO:  Print a geotiff UUID with XML sidecar file
+
+        EXPECTED RESULT:  Should not error out.
+        """
+        box_data = ir.read_binary('tests.data.0220000800', 'uuid.dat')
+        bf = io.BytesIO(box_data)
+        bf.seek(8)
+        box = UUIDBox.parse(bf, 0, 703)
+        str(box)
+
     def test_append_xmp_uuid(self):
         """
         SCENARIO:  Append an XMP UUID box to an existing JP2 file.
@@ -237,7 +250,7 @@ class TestSuite(fixtures.TestCommon):
         tag = struct.pack('<HHII', 0, 3, 0, 0)
         buffer = buffer[:40] + tag + buffer[52:]
 
-        b = BytesIO()
+        b = io.BytesIO()
         b.write(buffer)
         b.seek(8)
 
@@ -266,7 +279,7 @@ class TestSuite(fixtures.TestCommon):
         endian : str
             Either '<' for little endian or '>' for big endian
         """
-        b = BytesIO()
+        b = io.BytesIO()
         # Write L, T, UUID identifier.
         # 388 = length of degenerate tiff
         # 6 = Exif\x0\x0
