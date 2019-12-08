@@ -11,12 +11,10 @@ matrix:
           - JOB_NAME "36_latest"
           - JOB_TAG=latest
     - python: 3.7
-      dist: xenial
       env:
           - JOB_NAME "37_latest"
           - JOB_TAG=latest
     - python: 3.8
-      dist: xenial
       env:
           - JOB_NAME "38_latest"
           - JOB_TAG=latest
