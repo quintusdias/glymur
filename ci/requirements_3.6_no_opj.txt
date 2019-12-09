@@ -1,5 +1,0 @@
-gdal
-importlib_resources
-lxml
-numpy
-scikit-image

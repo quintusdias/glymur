@@ -1,5 +1,0 @@
-gdal
-numpy
-lxml
-openjpeg
-scikit-image

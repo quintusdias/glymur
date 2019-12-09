@@ -1,0 +1,13 @@
+name: glymur
+channels:
+    - defaults
+dependencies:
+    - python=3.6.*
+    - gdal<=3.0.0
+    - lxml
+    - numpy
+    - scikit-image
+    - pip:
+      - importlib_resources
+
+

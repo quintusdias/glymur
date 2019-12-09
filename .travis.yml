@@ -4,40 +4,31 @@ matrix:
     include:
     - python: 3.6
       env:
-          - JOB_NAME "36_no_opj"
-          - JOB_TAG=no_opj
+        - JOB="3.6 No OPENJPEG" ENV_FILE="ci/travis-36-no-opj.yaml"
     - python: 3.6
       env:
-          - JOB_NAME "36_latest"
-          - JOB_TAG=latest
+        - JOB="3.6" ENV_FILE="ci/travis-36.yaml"
     - python: 3.7
       env:
-          - JOB_NAME "37_latest"
-          - JOB_TAG=latest
+        - JOB="3.7" ENV_FILE="ci/travis-37.yaml"
     - python: 3.8
       env:
-          - JOB_NAME "38_latest"
-          - JOB_TAG=latest
-install:
+        - JOB="3.8" ENV_FILE="ci/travis-38.yaml"
+before_install:
+  - echo "before_install"
   - sudo apt-get update
-  # We do this conditionally because it saves us some downloading if the
-  # version is the same.
-  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh;
-  - bash miniconda.sh -b -p $HOME/miniconda
-  - export PATH="$HOME/miniconda/bin:$PATH"
+  - df -h
+  - pwd
+  - uname -a
+  - git --version
   - hash -r
-  - conda config --set always_yes yes --set changeps1 no
-  - conda update -q conda
-  # Useful for debugging any issues with conda
-  - conda info -a
 
-  # Replace dep1 dep2 ... with your dependencies
-  - conda config --prepend channels conda-forge
-  - conda create -q -n test-environment python=$TRAVIS_PYTHON_VERSION
-  - source activate test-environment
-  - conda install --file ci/requirements_"$TRAVIS_PYTHON_VERSION"_"$JOB_TAG".txt
-  - python setup.py install
+install:
+  - echo "install"
+  - ci/setup_env.sh
+  - echo "install done"
 
 script:
-  - python -m unittest discover
-  - python -c "import glymur; print(glymur.version.info)"
+  - echo "run script"
+  - ci/run_script.sh
+  - echo "script done"
