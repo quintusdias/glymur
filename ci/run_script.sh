@@ -5,7 +5,8 @@ MINICONDA_DIR="$HOME/miniconda3"
 echo "Set MINICONDA_DIR to ""$MINICONDA_DIR"
 
 export PATH=$MINICONDA_DIR/bin:$PATH
-export PATH=$MINICONDA_DIR/envs/glymur/bin:$PATH
+
+source activate glymur
 
 echo
 echo "which conda"
