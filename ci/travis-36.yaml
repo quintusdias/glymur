@@ -7,6 +7,7 @@ dependencies:
     - lxml
     - numpy
     - openjpeg
+    - pip
     - scikit-image
     - pip:
       - importlib_resources

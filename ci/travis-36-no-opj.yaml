@@ -6,6 +6,7 @@ dependencies:
     - gdal
     - lxml
     - numpy
+    - pip
     - scikit-image
     - pip:
       - importlib_resources
