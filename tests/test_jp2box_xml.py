@@ -163,15 +163,14 @@ class TestXML(fixtures.TestCommon):
 
         EXPECTED RESULT:  The xml box is validated.
         """
+        xmldata = ir.read_binary(data, 'encoding_declaration.xml')
         with open(self.temp_jp2_filename, mode="wb") as ofile:
             with open(self.jp2file, mode='rb') as ifile:
                 ofile.write(ifile.read())
 
             # Write the additional box.
-            write_buffer = struct.pack('>I4s', int(1777), b'xml ')
-            ofile.write(write_buffer)
-
-            xmldata = ir.read_binary(data, 'encoding_declaration.xml')
+            box_header = struct.pack('>I4s', len(xmldata) + 8, b'xml ')
+            ofile.write(box_header)
             ofile.write(xmldata)
 
             ofile.flush()
