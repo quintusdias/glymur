@@ -474,14 +474,6 @@ class TestJp2k(fixtures.TestCommon):
         actdata = j2[:]
         self.assertTrue(fixtures.mse(actdata[0], expdata[0]) < 0.38)
 
-    def test_repr(self):
-        """Verify that results of __repr__ are eval-able."""
-        j = Jp2k(self.j2kfile)
-        newjp2 = eval(repr(j))
-
-        self.assertEqual(newjp2.filename, self.j2kfile)
-        self.assertEqual(len(newjp2.box), 0)
-
     def test_rlevel_max_backwards_compatibility(self):
         """
         Verify that rlevel=-1 gets us the lowest resolution image
