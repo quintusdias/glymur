@@ -141,7 +141,12 @@ def glymur_config():
     loader = ctypes.windll.LoadLibrary if os.name == 'nt' else ctypes.CDLL
     try:
         opj_lib = loader(path)
-    except (TypeError, OSError):
+    except TypeError:
+        # This can happen on Windows.  Apparently ctypes.windll.LoadLibrary
+        # is no longer taking a WindowsPath
+        path = str(path)
+        opj_lib = loader(path)
+    except OSError:
         msg = f'The {libname} library at {path} could not be loaded.'
         warnings.warn(msg, UserWarning)
         opj_lib = None
