@@ -282,27 +282,6 @@ class TestSuiteConfigFile(fixtures.TestCommon):
             # It's enough that we did not error out
             self.assertTrue(True)
 
-    def test_xdg_env_config_file_is_bad(self):
-        """
-        SCENARIO:  A config directory is specified via the environment
-        variable, but the library location specified does not exist.
-
-        EXPECTED RESULT:  A warning is issued.
-        """
-        with self.config_file.open('wt') as f:
-            f.write('[library]\n')
-            f.write(f'openjp2: libopenjp2.dylib..not.there\n')
-
-        new = {'XDG_CONFIG_HOME': str(self.config_root)}
-        with patch.dict('os.environ', new):
-            # Misconfigured new configuration file should
-            # be rejected.
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore')
-                imp.reload(glymur.lib.openjp2)
-
-        self.assertIsNone(glymur.lib.openjp2.OPENJP2)
-
     def test_config_dir_but_no_config_file(self):
         """
         SCENARIO:  A config directory is specified via the environment

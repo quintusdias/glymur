@@ -10,11 +10,14 @@ except ImportError:  # pragma:  no cover
     # before 3.7
     import importlib_resources as ir
 from io import BytesIO
+import platform
 import struct
 import unittest
 import warnings
-import numpy as np
 from unittest.mock import patch
+
+# 3rd party library imports
+import numpy as np
 
 # Local imports
 from glymur import Jp2k
@@ -873,47 +876,6 @@ class TestSuite(fixtures.TestCommon):
             glymur.set_parseoptions(full_codestream=True)
         with self.assertWarns(DeprecationWarning):
             glymur.get_parseoptions()
-
-
-@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-class TestConfigurationWarnings(fixtures.TestCommon):
-    """Test suite for configuration file warnings."""
-
-    @classmethod
-    def setUpClass(cls):
-        imp.reload(glymur)
-        imp.reload(glymur.lib.openjp2)
-
-    @classmethod
-    def tearDownClass(cls):
-        imp.reload(glymur)
-        imp.reload(glymur.lib.openjp2)
-
-    def test_xdg_env_config_file_is_bad(self):
-        """
-        SCENARIO:  The glymurrc configuration file points to a library location
-        that cannot be loaded.
-
-        EXPECTED RESULT:  A warning is issued.
-        """
-        # Write an invalid library.
-        lib_path = self.test_dir_path / 'libopenjp2.dylib.not.there'
-        with lib_path.open(mode='wb') as f:
-            f.write(b'\0')
-
-        # Create the configuration directory to point to the bad library.
-        configdir = self.test_dir_path / 'glymur'
-        configdir.mkdir()
-
-        rc_path = configdir / 'glymurrc'
-        with rc_path.open(mode='w') as fptr:
-            fptr.write('[library]\n')
-            fptr.write(f'openjp2: {str(lib_path)}\n')
-            fptr.flush()
-            with patch.dict('os.environ', {'XDG_CONFIG_HOME': self.test_dir}):
-                # Warn about a bad library being rejected.
-                with self.assertWarns(UserWarning):
-                    imp.reload(glymur.lib.openjp2)
 
 
 class TestSuiteXML(unittest.TestCase):
