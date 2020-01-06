@@ -296,6 +296,8 @@ class TestSuiteConfigFile(fixtures.TestCommon):
             imp.reload(glymur.lib.openjp2)
             self.assertIsNotNone(glymur.lib.openjp2.OPENJP2)
 
+    @unittest.skipIf(platform.system() == 'Windows',
+                     'Symlinks require elevated privs on Windows')
     def test_config_file_in_current_directory(self):
         """
         SCENARIO:  A configuration file exists in the current directory.

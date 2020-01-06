@@ -3,18 +3,15 @@ Test suite for warnings issued by glymur.
 """
 # Standard library imports
 import codecs
-import imp
 try:
     import importlib.resources as ir
 except ImportError:  # pragma:  no cover
     # before 3.7
     import importlib_resources as ir
 from io import BytesIO
-import platform
 import struct
 import unittest
 import warnings
-from unittest.mock import patch
 
 # 3rd party library imports
 import numpy as np
