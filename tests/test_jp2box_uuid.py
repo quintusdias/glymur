@@ -10,6 +10,7 @@ except ImportError:  # pragma:  no cover
 import io
 import shutil
 import struct
+import unittest
 import uuid
 import warnings
 
@@ -402,6 +403,7 @@ class TestSuiteHiRISE(fixtures.TestCommon):
             0.0, 0.0, 0.0, -2523306.125, -268608.875, 0.0
         ))
 
+    @unittest.skipIf(not fixtures._HAVE_GDAL, 'Could not load GDAL')
     def test_printing_geotiff_uuid(self):
         """
         SCENARIO:  Print a geotiff UUID.

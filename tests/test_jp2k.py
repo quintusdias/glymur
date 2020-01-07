@@ -24,8 +24,12 @@ import warnings
 # Third party library imports ...
 from lxml import etree as ET
 import numpy as np
-import skimage.data
-import skimage.measure
+try:
+    import skimage.data
+    import skimage.measure
+    _HAVE_SCIKIT_IMAGE = True
+except ModuleNotFoundError:
+    _HAVE_SCIKIT_IMAGE = False
 
 # Local imports
 import glymur
@@ -1248,6 +1252,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             with self.assertRaises(InvalidJp2kError):
                 Jp2k(tfile.name, data=np.zeros((0, 256), dtype=np.uint8))
 
+    @unittest.skipIf(not _HAVE_SCIKIT_IMAGE, "No scikit-image found")
     def test_psnr_zero_value_not_last(self):
         """
         SCENARIO:  The PSNR keyword argument has a zero value, but it is not
@@ -1262,6 +1267,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         with self.assertRaises(RuntimeError):
             Jp2k(self.temp_jp2_filename, **kwargs)
 
+    @unittest.skipIf(not _HAVE_SCIKIT_IMAGE, "No scikit-image found")
     def test_psnr_non_zero_non_monotonically_decreasing(self):
         """
         SCENARIO:  The PSNR keyword argument is non-monotonically increasing
@@ -1276,6 +1282,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         with self.assertRaises(RuntimeError):
             Jp2k(self.temp_jp2_filename, **kwargs)
 
+    @unittest.skipIf(not _HAVE_SCIKIT_IMAGE, "No scikit-image found")
     def test_psnr(self):
         """
         SCENARIO:  Four peak signal-to-noise ratio values are supplied, the

@@ -78,7 +78,20 @@ def _determine_full_path(libname):
     if platform.system() == 'Darwin' and path.exists():
         return path
 
-    # No joy on config file, not Anaconda or MacPorts.
+    # No joy on config file or Anaconda or macports.
+    # Cygwin?
+    g = pathlib.Path('/usr/bin').glob('cygopenjp2*.dll')
+    try:
+        path = list(g)[0]
+    except IndexError:
+        # If the generator is None... probably not on cygwin.
+        # Try something else.
+        pass
+    else:
+        if platform.system().startswith('CYGWIN') and path.exists():
+            return path
+
+    # No joy on config file, not Anaconda or MacPorts or Cygwin.
     # Can ctypes find it anyway?
     path = find_library(libname)
     if path is not None:

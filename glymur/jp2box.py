@@ -24,10 +24,16 @@ import warnings
 # Third party library imports ...
 import lxml.etree as ET
 import numpy as np
-import gdal
-import osr
+try:
+    import gdal
+    import osr
+    _HAVE_GDAL = True
+except ModuleNotFoundError:
+    _HAVE_GDAL = False
+else:
+    gdal.UseExceptions()
+import numpy as np
 
-gdal.UseExceptions()
 
 
 # Local imports ...
@@ -3382,7 +3388,13 @@ class UUIDBox(Jp2kBox):
     def _print_geotiff(self):
         try:
             return self._print_geotiff_as_geotiff()
+        except NameError:
+            # gdal not found?  The representation of the TIFF IFD will have to
+            # do.
+            return self.data
         except RuntimeError:
+            # Unusual situation where gdal code fails
+            # The representation of the TIFF IFD will have to do.
             return self.data
 
     def _print_geotiff_as_geotiff(self):
