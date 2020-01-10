@@ -13,9 +13,9 @@ environment:
   matrix:
 
     - CONDA_ROOT: "C:\\Miniconda3_64"
-      PYTHON_VERSION: "3.8"
+      PYTHON_VERSION: "3.6"
       PYTHON_ARCH: "64"
-      CONDA_PY: "38"
+      CONDA_PY: "36"
       CONDA_NPY: "117"
 
     - CONDA_ROOT: "C:\\Miniconda3_64"
@@ -25,9 +25,9 @@ environment:
       CONDA_NPY: "117"
 
     - CONDA_ROOT: "C:\\Miniconda3_64"
-      PYTHON_VERSION: "3.6"
+      PYTHON_VERSION: "3.8"
       PYTHON_ARCH: "64"
-      CONDA_PY: "36"
+      CONDA_PY: "38"
       CONDA_NPY: "117"
 
 # We always use a 64-bit machine, but can build x86 distributions
@@ -61,8 +61,6 @@ install:
   - cmd: conda update -q conda
   - cmd: conda config --set ssl_verify false
 
-  - cmd: conda config --add channels conda-forge
-
   # this is now the downloaded conda...
   - cmd: conda info -a
 
@@ -79,5 +77,9 @@ install:
 
 test_script:
   # tests
-  - cmd: activate glymur
-  - cmd: python -m unittest discover -v
+  - cmd: conda activate glymur
+  - cmd: conda list
+  - cmd: cd c:\projects\glymur
+  - ls -ltr
+  - cmd: python -c "import sys; print(sys.executable)"
+  - cmd: c:\miniconda3_64\envs\glymur\python -m unittest discover -v
