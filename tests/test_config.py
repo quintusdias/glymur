@@ -7,6 +7,7 @@ import imp
 import os
 import pathlib
 import platform
+import sys
 import unittest
 from unittest.mock import patch
 import warnings
@@ -297,7 +298,9 @@ class TestSuiteConfigFile(fixtures.TestCommon):
             self.assertIsNotNone(glymur.lib.openjp2.OPENJP2)
 
     @unittest.skipIf(platform.system() == 'Windows',
-                     'Symlinks require elevated privs on Windows')
+                     'Symlinks require elevated privs on Windows, GH#505')
+    @unittest.skipIf(platform.system() == 'Linux' and sys.prefix == '/usr',
+                     'Difficult to run on Linux unless Anaconda, GH#496')
     def test_config_file_in_current_directory(self):
         """
         SCENARIO:  A configuration file exists in the current directory.

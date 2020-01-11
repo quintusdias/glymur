@@ -22,8 +22,6 @@ from uuid import UUID
 import warnings
 
 # Third party library imports ...
-import lxml.etree as ET
-import numpy as np
 try:
     import gdal
     import osr
@@ -32,8 +30,8 @@ except ModuleNotFoundError:
     _HAVE_GDAL = False
 else:
     gdal.UseExceptions()
+import lxml.etree as ET
 import numpy as np
-
 
 
 # Local imports ...
