@@ -1,3 +1,42 @@
+January 14, 2020 - v0.9.0
+    Removed support for python2.7.
+    Fixed Cygwin support.
+    Fixed appveyor builds, Travis-CI framework reworked.
+    Some fragile tests removed.
+    
+November 15, 2019 - v0.8.19
+    Qualify on Python 3.8.
+    
+April 24, 2019 - v0.8.18
+    Fix geotiff UUID corner coordinate string representation.
+    Improve warning and error messages.
+    Correct improperly raised exception types.
+    Remove build/test for Python 3.4 (EOL).
+    Fix read-the-docs requirements.
+
+February 19, 2019 - v0.8.17
+    Add support for ICC profile raw data.
+    Fix parsing of negative resolution box exponents.
+
+September 18, 2018 - v0.8.16
+    Qualify on Python 3.7.
+    Fix documentation typo.
+
+April 07, 2018 - v0.8.15
+    Fix link to readthedocs.
+    Fix for invalid progression order display.
+
+January 21, 2018 - v0.8.14
+    Fix layers bug.
+
+January 10, 2018 - v0.8.13
+    Clarify PSNR usage.
+    Add support for openjpeg threads.
+
+October 14, 2017 - v0.8.12
+    Qualify on OpenJPEG v2.3.0
+    Drop support for Python 3.3
+
 August 15, 2017 - v0.8.11
     Qualify on OpenJPEG v2.2.0
     State LTS plans.
