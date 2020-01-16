@@ -1,3 +1,6 @@
+January 15, 2020 - v0.9.1
+    Remove GDAL from setup.py requirements
+
 January 14, 2020 - v0.9.0
     Removed support for python2.7.
     Fixed Cygwin support.

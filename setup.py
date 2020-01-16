@@ -19,7 +19,7 @@ kwargs = {
     },
     'license': 'MIT',
     'test_suite': 'glymur.test',
-    'install_requires': ['gdal', 'lxml', 'numpy', 'setuptools'],
+    'install_requires': ['lxml', 'numpy', 'setuptools'],
 }
 
 kwargs['classifiers'] = [
