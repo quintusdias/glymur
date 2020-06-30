@@ -12,7 +12,7 @@ kwargs = {
     'author': 'John Evans',
     'author_email': 'john.g.evans.ne@gmail.com',
     'url': 'https://github.com/quintusdias/glymur',
-    'packages': ['glymur', 'glymur.data', 'glymur.lib'],
+    'packages': ['glymur', 'glymur.data', 'glymur.lib', 'tests'],
     'package_data': {'glymur': ['data/*.jp2', 'data/*.j2k', 'data/*.jpx']},
     'entry_points': {
         'console_scripts': ['jp2dump=glymur.command_line:main'],
