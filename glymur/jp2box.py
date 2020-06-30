@@ -23,8 +23,8 @@ import warnings
 
 # Third party library imports ...
 try:
-    import gdal
-    import osr
+    from osgeo import gdal
+    from osgeo import osr
     _HAVE_GDAL = True
 except ModuleNotFoundError:
     _HAVE_GDAL = False

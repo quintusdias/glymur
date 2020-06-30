@@ -9,7 +9,7 @@ import unittest
 
 # 3rd party library imports
 try:
-    import gdal
+    from osgeo import gdal
     _HAVE_GDAL = True
 except ModuleNotFoundError:
     _HAVE_GDAL = False
