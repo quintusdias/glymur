@@ -1,3 +1,7 @@
+June 30, 2020 - v0.9.2
+    Update setup.py to include tests.
+    Update gdal imports to stop DeprecationWarning.
+
 January 15, 2020 - v0.9.1
     Remove GDAL from setup.py requirements
 
