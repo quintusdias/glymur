@@ -62,59 +62,6 @@ class TestSuitePathToLibrary(fixtures.TestCommon):
         imp.reload(glymur)
         imp.reload(glymur.lib.openjp2)
 
-    @patch('glymur.config.platform.system')
-    @patch('glymur.config.sys.version', 'Anaconda')
-    @patch('glymur.config.sys.executable', '/opt/anaconda/bin/python')
-    def test_anaconda_on_mac(self, mock_platform_system):
-        """
-        SCENARIO:  the platform is Anaconda on mac.
-
-        EXPECTED RESULT:  the path of the openjp2 library is under the anaconda
-        root.
-        """
-        mock_platform_system.return_value = 'Darwin'
-
-        actual = glymur.config._determine_full_path('openjp2')
-        expected = pathlib.Path('/opt/anaconda/lib/libopenjp2.dylib')
-
-        self.assertEqual(actual, expected)
-
-    @unittest.skipIf(platform.system() == 'Windows', 'nonsensical on windows')
-    @patch('glymur.config.platform.system')
-    @patch('glymur.config.sys.version', 'Anaconda')
-    @patch('glymur.config.sys.executable', '/usr/bin/python')
-    def test_windows_path(self, mock_platform_system):
-        """
-        SCENARIO:  the platform is Anaconda on windows, even though we are not
-        actually running on windows.
-
-        EXPECTED RESULT:  the path of the openjp2 library is an Anaconda DLL
-        """
-        mock_platform_system.return_value = 'Windows'
-
-        actual = glymur.config._determine_full_path('openjp2')
-        expected = pathlib.Path('/usr/bin/Library/bin/openjp2.dll')
-
-        self.assertEqual(actual, expected)
-
-    @patch('pathlib.Path.exists')
-    @patch('glymur.config.sys.version', 'not anaconda')
-    @patch('glymur.config.platform.system')
-    def test_macports(self, mock_platform_system, mock_path_exists):
-        """
-        SCENARIO:  the platform is MacPorts.
-
-        EXPECTED RESULT:  the path of the openjp2 library is in /opt/local
-        """
-        mock_platform_system.return_value = 'Darwin'
-        mock_path_exists.return_value = True
-
-        actual = glymur.config._determine_full_path('openjp2')
-        expected = pathlib.Path('/opt/local/lib/libopenjp2.dylib')
-
-        self.assertEqual(actual, expected)
-
-    @patch('glymur.config.sys.version', 'not anaconda')
     @patch('glymur.config.find_library')
     @patch('glymur.config.platform.system')
     def test_via_ctypes(self, mock_platform_system, mock_find_library):
@@ -142,7 +89,6 @@ class TestSuite(fixtures.TestCommon):
     problem in CI environments, just development environments.
     """
 
-    @patch('glymur.config.sys.version', 'not anaconda')
     @patch('glymur.config.find_library')
     @patch('glymur.config.platform.system')
     def test_not_via_ctypes(self,
