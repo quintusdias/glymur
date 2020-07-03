@@ -7,7 +7,6 @@ from ctypes.util import find_library
 import os
 import pathlib
 import platform
-import sys
 import warnings
 
 
@@ -52,30 +51,6 @@ def _determine_full_path(libname):
     # A location specified by the glymur configuration file has precedence.
     path = read_config_file(libname)
     if path is not None:
-        return path
-
-    # No joy on configuration file.
-    # Are we using Anaconda?
-    if (
-        'Anaconda' in sys.version
-        or 'Continuum Analytics, Inc.' in sys.version
-        or 'packaged by conda-forge' in sys.version
-    ):
-        # If Anaconda, then openjpeg may have been installed via conda.
-        if platform.system() in ['Linux', 'Darwin']:
-            suffix = '.so' if platform.system() == 'Linux' else '.dylib'
-            basedir = pathlib.Path(sys.executable).parents[1]
-            path = basedir / 'lib' / ('lib' + libname + suffix)
-        elif platform.system() == 'Windows':
-            basedir = pathlib.Path(sys.executable).parents[0]
-            path = basedir / 'Library' / 'bin' / (libname + '.dll')
-
-        return path
-
-    # No joy on config file or Anaconda.
-    # MacPorts?
-    path = pathlib.Path('/opt/local/lib/libopenjp2.dylib')
-    if platform.system() == 'Darwin' and path.exists():
         return path
 
     # No joy on config file or Anaconda or macports.
