@@ -5,5 +5,3 @@ dependencies:
     - python=3.7
     - numpydoc>=0.8
     - sphinx_rtd_theme>=0.4.2
-    - mock>=2.0.0
-    - contextlib2>=0.5.5
