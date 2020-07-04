@@ -41,11 +41,11 @@ def _determine_full_path(libname):
     Parameters
     ----------
     libname : str
-        Short name for library (openjp2).
+        short name for library (openjp2)
 
     Returns
     -------
-    Path to openjp2 library.
+    path to openjp2 library or None if openjp2 library not found
     """
 
     # A location specified by the glymur configuration file has precedence.
@@ -53,21 +53,19 @@ def _determine_full_path(libname):
     if path is not None:
         return path
 
-    # No joy on config file or Anaconda or macports.
-    # Cygwin?
-    g = pathlib.Path('/usr/bin').glob('cygopenjp2*.dll')
-    try:
-        path = list(g)[0]
-    except IndexError:
-        # If the generator is None... probably not on cygwin.
-        # Try something else.
-        pass
-    else:
-        if platform.system().startswith('CYGWIN') and path.exists():
-            return path
+    # No joy on config file.  Cygwin?  Cygwin is a bit of an odd case.
+    if platform.system().startswith('CYGWIN'):
+        g = pathlib.Path('/usr/bin').glob('cygopenjp2*.dll')
+        try:
+            path = list(g)[0]
+        except IndexError:
+            # openjpeg possibly not installed
+            pass
+        else:
+            if path.exists():
+                return path
 
-    # No joy on config file, not Anaconda or MacPorts or Cygwin.
-    # Can ctypes find it anyway?
+    # No joy on config file and not Cygwin.  Can ctypes find it anyway?
     path = find_library(libname)
     if path is not None:
         return pathlib.Path(path)
