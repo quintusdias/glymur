@@ -1667,8 +1667,9 @@ class TestJp2dump(unittest.TestCase):
             '''    sgnd: 0\n'''
             '''    resno_decoded: 0\n'''
             '''    factor: 0\n'''
-            '''    data: <glymur.lib.openjp2.LP_c_(int|long) object at '''
-            '''0x[a-fA-F0-9]+>\n'''
+            '''    data: '''
+            '''<(glymur.lib.openjp2|ctypes.wintypes).LP_c_(int|long) '''
+            '''object at 0x[a-fA-F0-9]+>\n'''
             '''    alpha: 0\n'''
         )
         self.assertRegex(actual, expected)
