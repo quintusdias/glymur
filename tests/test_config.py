@@ -7,7 +7,6 @@ import imp
 import os
 import pathlib
 import platform
-import sys
 import unittest
 from unittest.mock import patch
 import warnings
@@ -243,34 +242,23 @@ class TestSuiteConfigFile(fixtures.TestCommon):
             imp.reload(glymur.lib.openjp2)
             self.assertIsNotNone(glymur.lib.openjp2.OPENJP2)
 
-    @unittest.skipIf(platform.system() == 'Windows',
-                     'Symlinks require elevated privs on Windows, GH#505')
-    @unittest.skipIf(platform.system() == 'Linux' and sys.prefix == '/usr',
-                     'Difficult to run on Linux unless Anaconda, GH#496')
     def test_config_file_in_current_directory(self):
         """
         SCENARIO:  A configuration file exists in the current directory.
 
-        EXPECTED RESULT:  openjp2 library is loaded normally.
+        EXPECTED RESULT:  the path to the specified openjp2 library is returned
         """
-        existing_library = glymur.lib.openjp2.OPENJP2._name
-
-        # Make a soft link from a fake library directory to the existing
-        # location.
         new_lib_dir = self.test_dir_path / 'lib'
         new_lib_dir.mkdir()
 
-        new_library_path = new_lib_dir / 'libopenjp2.dylib'
-        new_library_path.symlink_to(existing_library)
+        expected = new_lib_dir / 'libopenjp2.dylib'
 
         with self.config_file.open('wt') as f:
             f.write('[library]\n')
-            f.write(f'openjp2: {new_library_path}\n')
+            f.write(f'openjp2: {expected}\n')
 
         with chdir(self.glymur_configdir):
             # Should be able to load openjp2 as before.
-            imp.reload(glymur.lib.openjp2)
+            actual = glymur.config.read_config_file('openjp2')
 
-        actual = glymur.lib.openjp2.OPENJP2._name
-        expected = new_library_path
         self.assertEqual(actual, expected)
