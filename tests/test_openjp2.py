@@ -175,6 +175,12 @@ class TestOpenJP2(fixtures.TestCommon):
         xtx5_setup(filename)
         self.assertTrue(True)
 
+    def test_tte5_short_write_tile_signature(self):
+        """Runs test designated tte5 in OpenJPEG test suite."""
+        filename = str(self.temp_j2k_filename)
+        xtx5_setup(filename, short_sig=True)
+        self.assertTrue(True)
+
 
 def tile_encoder(**kwargs):
     """Fixture used by many tests."""
@@ -243,7 +249,10 @@ def tile_encoder(**kwargs):
     openjp2.start_compress(codec, l_image, stream)
 
     for j in np.arange(num_tiles):
-        openjp2.write_tile(codec, j, data, tile_size, stream)
+        if 'short_sig' in kwargs and kwargs['short_sig']:
+            openjp2.write_tile(codec, j, data, stream)
+        else:
+            openjp2.write_tile(codec, j, data, tile_size, stream)
 
     openjp2.end_compress(codec, stream)
     openjp2.stream_destroy(stream)
@@ -352,17 +361,20 @@ def xtx4_setup(filename):
     tile_encoder(**kwargs)
 
 
-def xtx5_setup(filename):
+def xtx5_setup(filename, short_sig=False):
     """Runs tests rta5, tte5."""
-    kwargs = {'filename': filename,
-              'codec': openjp2.CODEC_J2K,
-              'comp_prec': 8,
-              'irreversible': 0,
-              'num_comps': 1,
-              'image_height': 512,
-              'image_width': 512,
-              'tile_height': 256,
-              'tile_width': 256}
+    kwargs = {
+        'filename': filename,
+        'codec': openjp2.CODEC_J2K,
+        'comp_prec': 8,
+        'irreversible': 0,
+        'num_comps': 1,
+        'image_height': 512,
+        'image_width': 512,
+        'tile_height': 256,
+        'tile_width': 256,
+        'short_sig': short_sig
+    }
     tile_encoder(**kwargs)
 
 
