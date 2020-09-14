@@ -1341,7 +1341,7 @@ def stream_destroy(stream):
     OPENJP2.opj_stream_destroy(stream)
 
 
-def write_tile(codec, tile_index, data, data_size, stream):
+def write_tile(codec, tile_index, data, *pargs):
     """Wraps openjp2 library function opj_write_tile.
 
     Write a tile into an image.
@@ -1354,8 +1354,8 @@ def write_tile(codec, tile_index, data, data_size, stream):
         The index of the tile to write, zero-indexing assumed
     data : array
         Image data arranged in usual C-order
-    data_size : int
-        Size of a tile in bytes
+    data_size : int, optional
+        Size of a tile in bytes.  If not provided, it will be inferred.
     stream : STREAM_TYPE_P
         The stream to write data to
 
@@ -1364,6 +1364,14 @@ def write_tile(codec, tile_index, data, data_size, stream):
     RuntimeError
         If the OpenJPEG library routine opj_write_tile fails.
     """
+    if len(pargs) == 2:
+        # old signature
+        data_size, stream = pargs
+    else:
+        # new signature
+        data_size = data.nbytes
+        stream = pargs[0]
+
     OPENJP2.opj_write_tile.argtypes = [CODEC_TYPE,
                                        ctypes.c_uint32,
                                        ctypes.POINTER(ctypes.c_uint8),
