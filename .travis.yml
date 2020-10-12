@@ -17,6 +17,9 @@ matrix:
     - python: 3.8
       env:
         - JOB="3.8" ENV_FILE="ci/travis-38.yaml"
+    - python: 3.9
+      env:
+        - JOB="3.9" ENV_FILE="ci/travis-39.yaml"
 before_install:
   - echo "before_install"
   - sudo apt-get update
