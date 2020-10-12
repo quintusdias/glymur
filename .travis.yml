@@ -2,21 +2,24 @@ language: python
 matrix:
     fast_finish: true
     include:
-    - python: 3.6
-      env:
-        - JOB="3.6 No OPENJPEG" ENV_FILE="ci/travis-36-no-opj.yaml"
-    - python: 3.6
-      env:
-        - JOB="3.6" ENV_FILE="ci/travis-36.yaml"
-    - python: 3.7
-      env:
-        - JOB="3.7" ENV_FILE="ci/travis-37.yaml"
-    - python: 3.7
-      env:
-        - JOB="3.7" ENV_FILE="ci/travis-37-no-gdal.yaml"
-    - python: 3.8
-      env:
-        - JOB="3.8" ENV_FILE="ci/travis-38.yaml"
+      - python: 3.9-dev
+        env:
+          - JOB="3.9" ENV_FILE="ci/travis-39.yaml"
+      - python: 3.8
+        env:
+          - JOB="3.8" ENV_FILE="ci/travis-38.yaml"
+      - python: 3.7
+        env:
+          - JOB="3.7" ENV_FILE="ci/travis-37.yaml"
+      - python: 3.7
+        env:
+          - JOB="3.7" ENV_FILE="ci/travis-37-no-gdal.yaml"
+      - python: 3.6
+        env:
+          - JOB="3.6 No OPENJPEG" ENV_FILE="ci/travis-36-no-opj.yaml"
+      - python: 3.6
+        env:
+          - JOB="3.6" ENV_FILE="ci/travis-36.yaml"
 before_install:
   - echo "before_install"
   - sudo apt-get update
