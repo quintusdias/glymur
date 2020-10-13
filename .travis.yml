@@ -2,8 +2,7 @@ language: python
 matrix:
     fast_finish: true
     include:
-      - dist: bionic
-        python: 3.9
+      - python: 3.9-dev
         env:
           - JOB="3.9" ENV_FILE="ci/travis-39.yaml"
       - python: 3.8
