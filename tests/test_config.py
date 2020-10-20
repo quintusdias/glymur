@@ -3,7 +3,7 @@ OPENJP2 may be present in some form or other.
 """
 # Standard library imports ...
 import contextlib
-import imp
+import importlib
 import os
 import pathlib
 import platform
@@ -58,8 +58,8 @@ class TestSuitePathToLibrary(fixtures.TestCommon):
         """
         super(TestSuitePathToLibrary, self).tearDown()
 
-        imp.reload(glymur)
-        imp.reload(glymur.lib.openjp2)
+        importlib.reload(glymur)
+        importlib.reload(glymur.lib.openjp2)
 
     @patch('glymur.config.find_library')
     @patch('glymur.config.platform.system')
@@ -188,8 +188,8 @@ class TestSuiteConfigFile(fixtures.TestCommon):
         """
         super(TestSuiteConfigFile, self).tearDown()
 
-        imp.reload(glymur)
-        imp.reload(glymur.lib.openjp2)
+        importlib.reload(glymur)
+        importlib.reload(glymur.lib.openjp2)
 
     def test_config_file_via_environ(self):
         """
@@ -208,7 +208,7 @@ class TestSuiteConfigFile(fixtures.TestCommon):
 
         new = {'XDG_CONFIG_HOME': str(self.config_root)}
         with patch.dict('os.environ', new):
-            imp.reload(glymur.lib.openjp2)
+            importlib.reload(glymur.lib.openjp2)
             Jp2k(self.jp2file)
 
     def test_config_file_without_library_section(self):
@@ -224,7 +224,7 @@ class TestSuiteConfigFile(fixtures.TestCommon):
 
         new = {'XDG_CONFIG_HOME': str(self.config_root)}
         with patch.dict('os.environ', new):
-            imp.reload(glymur.lib.openjp2)
+            importlib.reload(glymur.lib.openjp2)
             # It's enough that we did not error out
             self.assertTrue(True)
 
@@ -239,7 +239,7 @@ class TestSuiteConfigFile(fixtures.TestCommon):
 
         new = {'XDG_CONFIG_HOME': str(self.config_root)}
         with patch.dict('os.environ', new):
-            imp.reload(glymur.lib.openjp2)
+            importlib.reload(glymur.lib.openjp2)
             self.assertIsNotNone(glymur.lib.openjp2.OPENJP2)
 
     def test_config_file_in_current_directory(self):
