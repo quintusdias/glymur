@@ -26,7 +26,7 @@ from lxml import etree as ET
 import numpy as np
 try:
     import skimage.data
-    import skimage.measure
+    import skimage.metrics
     _HAVE_SCIKIT_IMAGE = True
 except ModuleNotFoundError:
     _HAVE_SCIKIT_IMAGE = False
@@ -1307,7 +1307,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             # warning
             warnings.simplefilter('ignore')
             psnr = [
-                skimage.measure.compare_psnr(skimage.data.camera(), d[j])
+                skimage.metrics.peak_signal_noise_ratio(skimage.data.camera(), d[j])
                 for j in range(4)
             ]
 
