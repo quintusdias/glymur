@@ -2,16 +2,19 @@
 Tests for libopenjp2 wrapping functions.
 """
 # Standard library imports ...
+from contextlib import ExitStack
 from io import StringIO
 import unittest
 from unittest.mock import patch
 
 # Third party library imports ...
 import numpy as np
+import skimage.data
 
 # Local imports ...
 import glymur
 from glymur.lib import openjp2
+from glymur.jp2k import _INFO_CALLBACK, _WARNING_CALLBACK, _ERROR_CALLBACK
 from . import fixtures
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
@@ -180,6 +183,207 @@ class TestOpenJP2(fixtures.TestCommon):
         filename = str(self.temp_j2k_filename)
         xtx5_setup(filename, short_sig=True)
         self.assertTrue(True)
+
+    def test_tile_write_moon(self):
+        """
+        Test writing tiles for a 2D image.
+        """
+        img = skimage.data.moon()
+
+        num_comps = 1
+        image_height, image_width = img.shape
+
+        tile_height, tile_width = 256, 256
+
+        comp_prec = 8
+        irreversible = True
+
+        cblockh_init, cblockw_init = 64, 64
+
+        numresolution = 6
+
+        cparams = openjp2.set_default_encoder_parameters()
+
+        cparams.tile_size_on = openjp2.TRUE
+        cparams.cp_tdx = tile_width
+        cparams.cp_tdy = tile_height
+
+        cparams.cblockw_init, cparams.cblockh_init = cblockw_init, cblockh_init
+
+        cparams.irreversible = 1 if irreversible else 0
+
+        cparams.numresolution = numresolution
+        cparams.prog_order = glymur.core.PROGRESSION_ORDER['LRCP']
+
+        # greyscale so no mct
+        cparams.tcp_mct = 0
+
+        # comptparms == l_params
+        comptparms = (openjp2.ImageComptParmType * num_comps)()
+        for j in range(num_comps):
+            comptparms[j].dx = 1
+            comptparms[j].dy = 1
+            comptparms[j].w = tile_width
+            comptparms[j].h = tile_height
+            comptparms[j].x0 = 0
+            comptparms[j].y0 = 0
+            comptparms[j].prec = comp_prec
+            comptparms[j].bpp = comp_prec
+            comptparms[j].sgnd = 0
+
+        with ExitStack() as stack:
+
+            codec = openjp2.create_compress(openjp2.CODEC_J2K)
+            stack.callback(openjp2.destroy_codec, codec)
+
+            info_handler = _INFO_CALLBACK
+
+            openjp2.set_info_handler(codec, info_handler)
+            openjp2.set_warning_handler(codec, _WARNING_CALLBACK)
+            openjp2.set_error_handler(codec, _ERROR_CALLBACK)
+
+            # l_params == comptparms
+            # l_image == tile
+            image = openjp2.image_tile_create(comptparms, openjp2.CLRSPC_GRAY)
+            stack.callback(openjp2.image_destroy, image)
+
+            image.contents.x0, image.contents.y0 = 0, 0
+            image.contents.x1, image.contents.y1 = image_width, image_height
+            image.contents.color_space = openjp2.CLRSPC_GRAY
+
+            openjp2.setup_encoder(codec, cparams, image)
+
+            filename = str(self.temp_j2k_filename)
+            strm = openjp2.stream_create_default_file_stream(filename, False)
+            stack.callback(openjp2.stream_destroy, strm)
+
+            openjp2.start_compress(codec, image, strm)
+
+            openjp2.write_tile(codec, 0, img[0:256, 0:256].copy(), strm)
+            openjp2.write_tile(codec, 1, img[0:256, 256:512].copy(), strm)
+            openjp2.write_tile(codec, 2, img[256:512, 0:256].copy(), strm)
+            openjp2.write_tile(codec, 3, img[256:512, 256:512].copy(), strm)
+
+            openjp2.end_compress(codec, strm)
+
+    def test_write_tiles_3D(self):
+        """
+        Test writing tiles for an RGB image.
+        """
+
+        img = skimage.data.astronaut()
+
+        image_height, image_width, num_comps = img.shape
+
+        tile_height, tile_width = 256, 256
+
+        comp_prec = 8
+        irreversible = False
+
+        cblockh_init, cblockw_init = 64, 64
+
+        numresolution = 6
+
+        cparams = openjp2.set_default_encoder_parameters()
+
+        outfile = str(self.temp_j2k_filename).encode()
+        num_pad_bytes = openjp2.PATH_LEN - len(outfile)
+        outfile += b'0' * num_pad_bytes
+        cparams.outfile = outfile
+
+        # not from openjpeg test file
+        cparams.cp_disto_alloc = 1
+
+        cparams.tile_size_on = openjp2.TRUE
+        cparams.cp_tdx = tile_width
+        cparams.cp_tdy = tile_height
+
+        cparams.cblockw_init, cparams.cblockh_init = cblockw_init, cblockh_init
+
+        # not from openjpeg test file
+        cparams.mode = 0
+
+        cparams.irreversible = 1 if irreversible else 0
+
+        cparams.numresolution = numresolution
+        cparams.prog_order = glymur.core.PROGRESSION_ORDER['LRCP']
+
+        cparams.tcp_mct = 1
+
+        cparams.tcp_numlayers = 1
+        cparams.tcp_rates[0] = 0
+        cparams.tcp_distoratio[0] = 0
+
+        # comptparms == l_params
+        comptparms = (openjp2.ImageComptParmType * num_comps)()
+        for j in range(num_comps):
+            comptparms[j].dx = 1
+            comptparms[j].dy = 1
+            comptparms[j].w = image_width
+            comptparms[j].h = image_height
+            comptparms[j].x0 = 0
+            comptparms[j].y0 = 0
+            comptparms[j].prec = comp_prec
+            comptparms[j].bpp = comp_prec
+            comptparms[j].sgnd = 0
+
+        with ExitStack() as stack:
+            codec = openjp2.create_compress(openjp2.CODEC_J2K)
+            stack.callback(openjp2.destroy_codec, codec)
+
+            info_handler = _INFO_CALLBACK
+
+            openjp2.set_info_handler(codec, info_handler)
+            openjp2.set_warning_handler(codec, _WARNING_CALLBACK)
+            openjp2.set_error_handler(codec, _ERROR_CALLBACK)
+
+            image = openjp2.image_tile_create(comptparms, openjp2.CLRSPC_SRGB)
+            stack.callback(openjp2.image_destroy, image)
+
+            image.contents.x0, image.contents.y0 = 0, 0
+            image.contents.x1, image.contents.y1 = image_width, image_height
+            image.contents.color_space = openjp2.CLRSPC_SRGB
+
+            openjp2.setup_encoder(codec, cparams, image)
+
+            filename = str(self.temp_j2k_filename)
+            strm = openjp2.stream_create_default_file_stream(filename, False)
+            stack.callback(openjp2.stream_destroy, strm)
+
+            openjp2.start_compress(codec, image, strm)
+
+            # have to change the memory layout of 3D images in order to use
+            # opj_write_tile
+            openjp2.write_tile(
+                codec, 0, _set_planar_pixel_order(img[0:256, 0:256, :]), strm
+            )
+            openjp2.write_tile(
+                codec, 1, _set_planar_pixel_order(img[0:256, 256:512, :]), strm
+            )
+            openjp2.write_tile(
+                codec, 2, _set_planar_pixel_order(img[256:512, 0:256, :]), strm
+            )
+            openjp2.write_tile(
+                codec, 3, _set_planar_pixel_order(img[256:512, 256:512, :]),
+                strm
+            )
+
+            openjp2.end_compress(codec, strm)
+
+
+def _set_planar_pixel_order(img):
+    """
+    Reorder the image pixels so that plane-0 comes first, then plane-1, etc.
+    This is a requirement for using opj_write_tile.
+    """
+    if img.ndim == 3:
+        # C-order increments along the y-axis slowest (0), then x-axis (1),
+        # then z-axis (2).  We want it to go along the z-axis slowest, then
+        # y-axis, then x-axis.
+        img = np.swapaxes(img, 1, 2)
+        img = np.swapaxes(img, 0, 1)
+
+    return img.copy()
 
 
 def tile_encoder(**kwargs):

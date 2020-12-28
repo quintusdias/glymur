@@ -664,8 +664,11 @@ def decode(codec, stream, image):
     RuntimeError
         If the OpenJPEG library routine opj_decode fails.
     """
-    OPENJP2.opj_decode.argtypes = [CODEC_TYPE, STREAM_TYPE_P,
-                                   ctypes.POINTER(ImageType)]
+    OPENJP2.opj_decode.argtypes = [
+        CODEC_TYPE,
+        STREAM_TYPE_P,
+        ctypes.POINTER(ImageType)
+    ]
     OPENJP2.opj_decode.restype = check_error
 
     OPENJP2.opj_decode(codec, stream, image)
@@ -694,19 +697,23 @@ def decode_tile_data(codec, tidx, data, data_size, stream):
     RuntimeError
         If the OpenJPEG library routine opj_decode fails.
     """
-    OPENJP2.opj_decode_tile_data.argtypes = [CODEC_TYPE,
-                                             ctypes.c_uint32,
-                                             ctypes.POINTER(ctypes.c_uint8),
-                                             ctypes.c_uint32,
-                                             STREAM_TYPE_P]
+    OPENJP2.opj_decode_tile_data.argtypes = [
+        CODEC_TYPE,
+        ctypes.c_uint32,
+        ctypes.POINTER(ctypes.c_uint8),
+        ctypes.c_uint32,
+        STREAM_TYPE_P
+    ]
     OPENJP2.opj_decode_tile_data.restype = check_error
 
     datap = data.ctypes.data_as(ctypes.POINTER(ctypes.c_uint8))
-    OPENJP2.opj_decode_tile_data(codec,
-                                 ctypes.c_uint32(tidx),
-                                 datap,
-                                 ctypes.c_uint32(data_size),
-                                 stream)
+    OPENJP2.opj_decode_tile_data(
+        codec,
+        ctypes.c_uint32(tidx),
+        datap,
+        ctypes.c_uint32(data_size),
+        stream
+    )
 
 
 def create_decompress(codec_format):
@@ -789,10 +796,12 @@ def get_decoded_tile(codec, stream, imagep, tile_index):
     RuntimeError
         If the OpenJPEG library routine opj_get_decoded_tile fails.
     """
-    OPENJP2.opj_get_decoded_tile.argtypes = [CODEC_TYPE,
-                                             STREAM_TYPE_P,
-                                             ctypes.POINTER(ImageType),
-                                             ctypes.c_uint32]
+    OPENJP2.opj_get_decoded_tile.argtypes = [
+        CODEC_TYPE,
+        STREAM_TYPE_P,
+        ctypes.POINTER(ImageType),
+        ctypes.c_uint32
+    ]
     OPENJP2.opj_get_decoded_tile.restype = check_error
 
     OPENJP2.opj_get_decoded_tile(codec, stream, imagep, tile_index)
@@ -902,14 +911,18 @@ def image_create(comptparms, clrspc):
     image : ImageType
         Reference to ImageType instance.
     """
-    OPENJP2.opj_image_create.argtypes = [ctypes.c_uint32,
-                                         ctypes.POINTER(ImageComptParmType),
-                                         COLOR_SPACE_TYPE]
+    OPENJP2.opj_image_create.argtypes = [
+        ctypes.c_uint32,
+        ctypes.POINTER(ImageComptParmType),
+        COLOR_SPACE_TYPE
+    ]
     OPENJP2.opj_image_create.restype = ctypes.POINTER(ImageType)
 
-    image = OPENJP2.opj_image_create(len(comptparms),
-                                     comptparms,
-                                     clrspc)
+    image = OPENJP2.opj_image_create(
+        len(comptparms),
+        comptparms,
+        clrspc
+    )
     return image
 
 
@@ -930,15 +943,19 @@ def image_tile_create(comptparms, clrspc):
     image : ImageType
         Reference to ImageType instance.
     """
-    ARGTYPES = [ctypes.c_uint32,
-                ctypes.POINTER(ImageComptParmType),
-                COLOR_SPACE_TYPE]
+    ARGTYPES = [
+        ctypes.c_uint32,
+        ctypes.POINTER(ImageComptParmType),
+        COLOR_SPACE_TYPE
+    ]
     OPENJP2.opj_image_tile_create.argtypes = ARGTYPES
     OPENJP2.opj_image_tile_create.restype = ctypes.POINTER(ImageType)
 
-    image = OPENJP2.opj_image_tile_create(len(comptparms),
-                                          comptparms,
-                                          clrspc)
+    image = OPENJP2.opj_image_tile_create(
+        len(comptparms),
+        comptparms,
+        clrspc
+    )
     return image
 
 
@@ -964,8 +981,11 @@ def read_header(stream, codec):
     RuntimeError
         If the OpenJPEG library routine opj_read_header fails.
     """
-    ARGTYPES = [STREAM_TYPE_P, CODEC_TYPE,
-                ctypes.POINTER(ctypes.POINTER(ImageType))]
+    ARGTYPES = [
+        STREAM_TYPE_P,
+        CODEC_TYPE,
+        ctypes.POINTER(ctypes.POINTER(ImageType))
+    ]
     OPENJP2.opj_read_header.argtypes = ARGTYPES
     OPENJP2.opj_read_header.restype = check_error
 
@@ -1006,16 +1026,18 @@ def read_tile_header(codec, stream):
     RuntimeError
         If the OpenJPEG library routine opj_read_tile_header fails.
     """
-    ARGTYPES = [CODEC_TYPE,
-                STREAM_TYPE_P,
-                ctypes.POINTER(ctypes.c_uint32),
-                ctypes.POINTER(ctypes.c_uint32),
-                ctypes.POINTER(ctypes.c_int32),
-                ctypes.POINTER(ctypes.c_int32),
-                ctypes.POINTER(ctypes.c_int32),
-                ctypes.POINTER(ctypes.c_int32),
-                ctypes.POINTER(ctypes.c_uint32),
-                ctypes.POINTER(BOOL_TYPE)]
+    ARGTYPES = [
+        CODEC_TYPE,
+        STREAM_TYPE_P,
+        ctypes.POINTER(ctypes.c_uint32),
+        ctypes.POINTER(ctypes.c_uint32),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_int32),
+        ctypes.POINTER(ctypes.c_uint32),
+        ctypes.POINTER(BOOL_TYPE)
+    ]
     OPENJP2.opj_read_tile_header.argtypes = ARGTYPES
     OPENJP2.opj_read_tile_header.restype = check_error
 
@@ -1027,25 +1049,29 @@ def read_tile_header(codec, stream):
     row1 = ctypes.c_int32()
     ncomps = ctypes.c_uint32()
     go_on = BOOL_TYPE()
-    OPENJP2.opj_read_tile_header(codec,
-                                 stream,
-                                 ctypes.byref(tile_index),
-                                 ctypes.byref(data_size),
-                                 ctypes.byref(col0),
-                                 ctypes.byref(row0),
-                                 ctypes.byref(col1),
-                                 ctypes.byref(row1),
-                                 ctypes.byref(ncomps),
-                                 ctypes.byref(go_on))
+    OPENJP2.opj_read_tile_header(
+        codec,
+        stream,
+        ctypes.byref(tile_index),
+        ctypes.byref(data_size),
+        ctypes.byref(col0),
+        ctypes.byref(row0),
+        ctypes.byref(col1),
+        ctypes.byref(row1),
+        ctypes.byref(ncomps),
+        ctypes.byref(go_on)
+    )
     go_on = bool(go_on.value)
-    return (tile_index.value,
-            data_size.value,
-            col0.value,
-            row0.value,
-            col1.value,
-            row1.value,
-            ncomps.value,
-            go_on)
+    return (
+        tile_index.value,
+        data_size.value,
+        col0.value,
+        row0.value,
+        col1.value,
+        row1.value,
+        ncomps.value,
+        go_on
+    )
 
 
 def set_decode_area(codec, image, start_x=0, start_y=0, end_x=0, end_y=0):
@@ -1070,19 +1096,23 @@ def set_decode_area(codec, image, start_x=0, start_y=0, end_x=0, end_y=0):
     RuntimeError
         If the OpenJPEG library routine opj_set_decode_area fails.
     """
-    OPENJP2.opj_set_decode_area.argtypes = [CODEC_TYPE,
-                                            ctypes.POINTER(ImageType),
-                                            ctypes.c_int32,
-                                            ctypes.c_int32,
-                                            ctypes.c_int32,
-                                            ctypes.c_int32]
+    OPENJP2.opj_set_decode_area.argtypes = [
+        CODEC_TYPE,
+        ctypes.POINTER(ImageType),
+        ctypes.c_int32,
+        ctypes.c_int32,
+        ctypes.c_int32,
+        ctypes.c_int32
+    ]
     OPENJP2.opj_set_decode_area.restype = check_error
 
-    OPENJP2.opj_set_decode_area(codec, image,
-                                ctypes.c_int32(start_x),
-                                ctypes.c_int32(start_y),
-                                ctypes.c_int32(end_x),
-                                ctypes.c_int32(end_y))
+    OPENJP2.opj_set_decode_area(
+        codec, image,
+        ctypes.c_int32(start_x),
+        ctypes.c_int32(start_y),
+        ctypes.c_int32(end_x),
+        ctypes.c_int32(end_y)
+    )
 
 
 def set_decoded_components(codec, comp_indices):
@@ -1201,9 +1231,11 @@ def set_error_handler(codec, handler, data=None):
     RuntimeError
         If the OpenJPEG library routine opj_set_error_handler fails.
     """
-    OPENJP2.opj_set_error_handler.argtypes = [CODEC_TYPE,
-                                              ctypes.c_void_p,
-                                              ctypes.c_void_p]
+    OPENJP2.opj_set_error_handler.argtypes = [
+        CODEC_TYPE,
+        ctypes.c_void_p,
+        ctypes.c_void_p
+    ]
     OPENJP2.opj_set_error_handler.restype = check_error
     OPENJP2.opj_set_error_handler(codec, handler, data)
 
@@ -1227,9 +1259,9 @@ def set_info_handler(codec, handler, data=None):
     RuntimeError
         If the OpenJPEG library routine opj_set_info_handler fails.
     """
-    OPENJP2.opj_set_info_handler.argtypes = [CODEC_TYPE,
-                                             ctypes.c_void_p,
-                                             ctypes.c_void_p]
+    OPENJP2.opj_set_info_handler.argtypes = [
+        CODEC_TYPE, ctypes.c_void_p, ctypes.c_void_p
+    ]
     OPENJP2.opj_set_info_handler.restype = check_error
     OPENJP2.opj_set_info_handler(codec, handler, data)
 
@@ -1253,9 +1285,9 @@ def set_warning_handler(codec, handler, data=None):
     RuntimeError
         If the OpenJPEG library routine opj_set_warning_handler fails.
     """
-    OPENJP2.opj_set_warning_handler.argtypes = [CODEC_TYPE,
-                                                ctypes.c_void_p,
-                                                ctypes.c_void_p]
+    OPENJP2.opj_set_warning_handler.argtypes = [
+        CODEC_TYPE, ctypes.c_void_p, ctypes.c_void_p
+    ]
     OPENJP2.opj_set_warning_handler.restype = check_error
 
     OPENJP2.opj_set_warning_handler(codec, handler, data)
@@ -1305,9 +1337,11 @@ def setup_encoder(codec, cparams, image):
     RuntimeError
         If the OpenJPEG library routine opj_setup_encoder fails.
     """
-    ARGTYPES = [CODEC_TYPE,
-                ctypes.POINTER(CompressionParametersType),
-                ctypes.POINTER(ImageType)]
+    ARGTYPES = [
+        CODEC_TYPE,
+        ctypes.POINTER(CompressionParametersType),
+        ctypes.POINTER(ImageType)
+    ]
     OPENJP2.opj_setup_encoder.argtypes = ARGTYPES
     OPENJP2.opj_setup_encoder.restype = check_error
     OPENJP2.opj_setup_encoder(codec, ctypes.byref(cparams), image)
@@ -1332,9 +1366,9 @@ def start_compress(codec, image, stream):
     RuntimeError
         If the OpenJPEG library routine opj_start_compress fails.
     """
-    OPENJP2.opj_start_compress.argtypes = [CODEC_TYPE,
-                                           ctypes.POINTER(ImageType),
-                                           STREAM_TYPE_P]
+    OPENJP2.opj_start_compress.argtypes = [
+        CODEC_TYPE, ctypes.POINTER(ImageType), STREAM_TYPE_P
+    ]
     OPENJP2.opj_start_compress.restype = check_error
 
     OPENJP2.opj_start_compress(codec, image, stream)
@@ -1395,7 +1429,7 @@ def write_tile(codec, tile_index, data, *pargs):
     tile_index : int
         The index of the tile to write, zero-indexing assumed
     data : array
-        Image data arranged in usual C-order
+        Image data.  The memory layout is planar, not the usual C-order.
     data_size : int, optional
         Size of a tile in bytes.  If not provided, it will be inferred.
     stream : STREAM_TYPE_P
@@ -1414,19 +1448,23 @@ def write_tile(codec, tile_index, data, *pargs):
         data_size = data.nbytes
         stream = pargs[0]
 
-    OPENJP2.opj_write_tile.argtypes = [CODEC_TYPE,
-                                       ctypes.c_uint32,
-                                       ctypes.POINTER(ctypes.c_uint8),
-                                       ctypes.c_uint32,
-                                       STREAM_TYPE_P]
+    OPENJP2.opj_write_tile.argtypes = [
+        CODEC_TYPE,
+        ctypes.c_uint32,
+        ctypes.POINTER(ctypes.c_uint8),
+        ctypes.c_uint32,
+        STREAM_TYPE_P
+    ]
     OPENJP2.opj_write_tile.restype = check_error
 
     datap = data.ctypes.data_as(ctypes.POINTER(ctypes.c_uint8))
-    OPENJP2.opj_write_tile(codec,
-                           ctypes.c_uint32(int(tile_index)),
-                           datap,
-                           ctypes.c_uint32(int(data_size)),
-                           stream)
+    OPENJP2.opj_write_tile(
+        codec,
+        ctypes.c_uint32(int(tile_index)),
+        datap,
+        ctypes.c_uint32(int(data_size)),
+        stream
+    )
 
 
 def set_error_message(msg):

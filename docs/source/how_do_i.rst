@@ -114,6 +114,30 @@ With a puny 2015 macbook, just two cores, and a 5824x10368x3 image, we get::
     7.24 seconds
 
 
+*********************************************
+... write images that cannot fit into memory?
+*********************************************
+If you have glymur 0.9.4 or higher, you can write out an image tile-by-tile.
+In this example, we take a 512x512x3 image and tile it into a 20x20 grid, 
+resulting in a 10240x10240x3 image.
+
+    >>> import skimage.data
+    >>> from glymur import Jp2k
+    >>> img = skimage.data.astronaut()
+    >>> print(img.shape)
+    (512, 512, 3)
+    >>> shape = img.shape[0] * 20, img.shape[1] * 20, 3
+    >>> tilesize = (img.shape[0], img.shape[1])
+    >>> j = Jp2k('400astronauts.jp2', shape=shape, tilesize=tilesize, verbose=True)
+    >>> for tw in j.get_tilewriters():
+            tw[:] = img
+    >>> j = Jp2k('400astronauts.jp2')
+    >>> print(j.shape)
+    (10240, 10240, 3)
+
+Note that the tiles are written out left-to-right, tile-row-by-tile-row.  You must
+have image data ready to feed each tile writer, you cannot skip a tile.
+
 ************************************************************************
 ... write images with different compression ratios for different layers?
 ************************************************************************
