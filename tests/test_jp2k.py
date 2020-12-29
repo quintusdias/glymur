@@ -2346,9 +2346,22 @@ class TestReadArea(unittest.TestCase):
         self.assertEqual(ssdata.shape, (1, 1, 3))
 
     def test_NR_DEC_p1_06_j2k_75_decode(self):
-        # Image size would be 0 x 0.
-        with self.assertRaises(InvalidJp2kError):
-            self.j2k[9:12:4, 9:12:4]
+        """
+        SCENARIO:  Try to read an image area with an impossible stride.
+
+        EXPECTED RESULT:  An error is raised.
+        """
+        if glymur.version.openjpeg_version >= '2.4.0':
+            # The library catches this on its own.
+            expected_error = glymur.lib.openjp2.OpenJPEGLibraryError
+        else:
+            # Image size would be 0 x 0.  We have to manually detect this.
+            expected_error = InvalidJp2kError
+        with self.assertRaises(expected_error):
+            with warnings.catch_warnings():
+                # Only openjpeg 2.4.0 issues warnings
+                warnings.simplefilter('ignore')
+                self.j2k[9:12:4, 9:12:4]
 
     def test_NR_DEC_p0_04_j2k_85_decode(self):
         actual = self.j2k[:256, :256]
