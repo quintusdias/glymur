@@ -5,4 +5,4 @@ dependencies:
     - python=3.9.*
     - lxml
     - numpy
-    - openjpeg
+    - openjpeg >= 2.4.0
