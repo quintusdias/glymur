@@ -5,6 +5,9 @@ matrix:
       - python: 3.9-dev
         env:
           - JOB="3.9" ENV_FILE="ci/travis-39.yaml"
+      - python: 3.9-dev
+        env:
+          - JOB="3.9 opj 2.4" ENV_FILE="ci/travis-39-opj2p4.yaml"
       - python: 3.8
         env:
           - JOB="3.8" ENV_FILE="ci/travis-38.yaml"
