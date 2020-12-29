@@ -83,13 +83,13 @@ Values must be increasing, but the last value may be 0 to indicate
 the layer is lossless.  However, the OpenJPEG library will reorder
 the layers to make the first layer lossless, not the last. ::
 
-    >>> import skimage.data, skimage.measure, glymur
+    >>> import skimage.data, skimage.metrics, glymur
     >>> truth = skimage.data.camera()
     >>> jp2 = glymur.Jp2k('myfile.jp2', data=truth, psnr=[30, 40, 50, 0])
     >>> psnr = []
     >>> for layer in range(4):
     ...     jp2.layer = layer
-    ...     psnr.append(skimage.measure.compare_psnr(truth, jp2[:]))
+    ...     psnr.append(skimage.metrics.peak_signal_noise_ratio(truth, jp2[:]))
     >>> print(psnr)
     [inf, 29.028560403833303, 39.206919416670402, 47.593129828702246]
 
