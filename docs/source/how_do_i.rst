@@ -57,6 +57,30 @@ or::
     >>> jp2[:] = data
 
 
+**********************************************
+... write images using multithreaded encoding?
+**********************************************
+If you have glymur 0.9.2 or higher
+and OpenJPEG 2.4.0 or higher,
+you can make use of OpenJPEG's thread support to speed-up read operations.
+With a puny 2015 macbook, just two cores, and a 5824x10368x3 image, we get::
+
+    >>> import time, numpy as np, glymur
+    >>> data = glymur.Jp2k(glymur.data.nemo())[:]
+    >>> data = np.tile(data, (4, 4, 1))
+    >>> t0 = time.time()
+    >>> glymur.Jp2k('1thread.jp2', data)
+    >>> t1 = time.time()
+    >>> print(f'1 thread:  {(t1 - t0):.3} seconds')
+    12.0 seconds
+    >>> t0 = time.time()
+    >>> glymur.set_option('lib.num_threads', 2)
+    >>> glymur.Jp2k('2threads.jp2', data)
+    >>> t1 = time.time()
+    >>> print(f'2 threads:  {(t1 - t0):.3} seconds')
+    7.24 seconds
+
+
 ************************************************************************
 ... write images with different compression ratios for different layers?
 ************************************************************************

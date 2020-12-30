@@ -750,6 +750,17 @@ class Jp2k(Jp2kBox):
 
             strm = opj2.stream_create_default_file_stream(self.filename,
                                                           False)
+            num_threads = get_option('lib.num_threads')
+            if version.openjpeg_version >= '2.4.0':
+                opj2.codec_set_threads(codec, num_threads)
+            elif num_threads > 1:
+                msg = (
+                    f'Threaded encoding is not supported in library versions '
+                    f'prior to 2.4.0.  Your version is '
+                    f'{version.openjpeg_version}.'
+                )
+                warnings.warn(msg, UserWarning)
+
             stack.callback(opj2.stream_destroy, strm)
 
             opj2.start_compress(codec, image, strm)
