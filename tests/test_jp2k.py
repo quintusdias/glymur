@@ -1229,6 +1229,24 @@ class TestJp2k_write(fixtures.MetadataBase):
         os.unlink(cls.single_channel_j2k)
         os.unlink(cls.single_channel_jp2)
 
+    @unittest.skipIf(os.cpu_count() < 2, "makes no sense if 2 cores not there")
+    def test_threads(self):
+        """
+        SCENARIO:  Attempt to encode with threading support.  This feature is
+        new as of openjpeg library version 2.4.0.
+
+        EXPECTED RESULT:  In library versions prior to 2.4.0, a warning is
+        issued.
+        """
+        glymur.set_option('lib.num_threads', 2)
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
+            with warnings.catch_warnings(record=True) as w:
+                Jp2k(tfile.name, data=self.jp2_data)
+                if glymur.version.openjpeg_version >= '2.4.0':
+                    self.assertEqual(len(w), 0)
+                else:
+                    self.assertEqual(len(w), 1)
+
     def test_no_jp2c_box_in_outermost_jp2_list(self):
         """
         SCENARIO:  A JP2 file is encountered without a JP2C box in the outer-
@@ -1310,7 +1328,9 @@ class TestJp2k_write(fixtures.MetadataBase):
             # warning
             warnings.simplefilter('ignore')
             psnr = [
-                skimage.metrics.peak_signal_noise_ratio(skimage.data.camera(), d[j])
+                skimage.metrics.peak_signal_noise_ratio(
+                    skimage.data.camera(), d[j]
+                )
                 for j in range(4)
             ]
 
