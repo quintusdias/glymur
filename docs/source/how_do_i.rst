@@ -60,10 +60,10 @@ or::
 **********************************************
 ... write images using multithreaded encoding?
 **********************************************
-If you have glymur 0.9.2 or higher
-and OpenJPEG 2.4.0 or higher,
-you can make use of OpenJPEG's thread support to speed-up read operations.
-With a puny 2015 macbook, just two cores, and a 5824x10368x3 image, we get::
+If you have glymur 0.9.3 or higher and OpenJPEG 2.4.0 or higher, you
+can make use of OpenJPEG's thread support to speed-up write operations.
+With a puny 2015 macbook, just two cores, and a 5824x10368x3 image,
+we get::
 
     >>> import time, numpy as np, glymur
     >>> data = glymur.Jp2k(glymur.data.nemo())[:]
