@@ -6,8 +6,7 @@ These include:
     goodstuff.j2k:  my favorite bevorage.
 
 """
-import pkg_resources
-
+import importlib.resources as ir
 
 def nemo():
     """Shortcut for specifying path to nemo.jp2.
@@ -17,8 +16,8 @@ def nemo():
     file : str
         Platform-independent path to nemo.jp2.
     """
-    filename = pkg_resources.resource_filename(__name__, "nemo.jp2")
-    return filename
+    with ir.path('glymur.data', 'nemo.jp2') as filename:
+        return str(filename)
 
 
 def goodstuff():
@@ -29,8 +28,8 @@ def goodstuff():
     file : str
         Platform-independent path to goodstuff.j2k.
     """
-    filename = pkg_resources.resource_filename(__name__, "goodstuff.j2k")
-    return filename
+    with ir.path('glymur.data', 'goodstuff.j2k') as filename:
+        return str(filename)
 
 
 def jpxfile():
@@ -41,5 +40,5 @@ def jpxfile():
     file : str
         Platform-independent path to 12-v6.4.jpx
     """
-    filename = pkg_resources.resource_filename(__name__, "heliov.jpx")
-    return filename
+    with ir.path('glymur.data', 'heliov.jpx') as filename:
+        return str(filename)

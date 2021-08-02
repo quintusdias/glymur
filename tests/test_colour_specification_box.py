@@ -5,11 +5,7 @@ Test suite specifically targeting ICC profiles
 
 # Standard library imports ...
 from datetime import datetime
-try:
-    import importlib.resources as ir
-except ImportError:  # pragma:  no cover
-    # before 3.7
-    import importlib_resources as ir
+import importlib.resources as ir
 import struct
 import tempfile
 import unittest

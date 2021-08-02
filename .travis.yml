@@ -17,12 +17,9 @@ matrix:
       - python: 3.7
         env:
           - JOB="3.7" ENV_FILE="ci/travis-37-no-gdal.yaml"
-      - python: 3.6
+      - python: 3.7
         env:
-          - JOB="3.6 No OPENJPEG" ENV_FILE="ci/travis-36-no-opj.yaml"
-      - python: 3.6
-        env:
-          - JOB="3.6" ENV_FILE="ci/travis-36.yaml"
+          - JOB="3.7 No OPENJPEG" ENV_FILE="ci/travis-37-no-opj.yaml"
 before_install:
   - echo "before_install"
   - sudo apt-get update
