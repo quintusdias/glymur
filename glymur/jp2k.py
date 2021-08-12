@@ -42,6 +42,8 @@ class Jp2k(Jp2kBox):
         List of top-level boxes in the file.  Each box may in turn contain
         its own list of boxes.  Will be empty if the file consists only of a
         raw codestream.
+    decoded_components : sequence or None
+        If set, decode only these components.  The MCT will not be used. 
     shape : tuple
         Size of the image.
 
@@ -159,6 +161,7 @@ class Jp2k(Jp2kBox):
         self._colorspace = None
         self._layer = 0
         self._codestream = None
+        self._decoded_components = None
 
         self._ignore_pclr_cmap_cdef = False
         self._verbose = False
@@ -279,6 +282,14 @@ class Jp2k(Jp2kBox):
         else:
             metadata.append(str(self.codestream))
         return '\n'.join(metadata)
+
+    def set_decoded_components(self, components):
+        """Set the list of components to decode.
+        """
+        if np.isscalar(components):
+            self._decoded_components = [components]
+        else:
+            self._decoded_components = components
 
     def parse(self):
         """Parses the JPEG 2000 file.
@@ -1231,6 +1242,9 @@ class Jp2k(Jp2kBox):
 
             raw_image = opj2.read_header(stream, codec)
             stack.callback(opj2.image_destroy, raw_image)
+
+            if self._decoded_components is not None:
+                opj2.set_decoded_components(self._decoded_components)
 
             if self._dparams.nb_tile_to_decode:
                 opj2.get_decoded_tile(codec, stream, raw_image,
