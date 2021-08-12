@@ -49,6 +49,8 @@ class Jp2k(Jp2kBox):
     ----------
     codestream : glymur.codestream.Codestream
         JP2 or J2K codestream object.
+    decoded_components : sequence or None
+        If set, decode only these components.  The MCT will not be used.
     ignore_pclr_cmap_cdef : bool
         Whether or not to ignore the pclr, cmap, or cdef boxes during any
         color transformation, defaults to False.
@@ -120,8 +122,8 @@ class Jp2k(Jp2kBox):
         irreversible : bool, optional
             If true, use the irreversible DWT 9-7 transform.
         mct : bool, optional
-            Usage of the multi component transform.  If not specified, defaults
-            to True if the color space is RGB.
+            Usage of the multi component transform to write an image.  If not
+            specified, defaults to True if the color space is RGB.
         modesw : int, optional
             mode switch
                 1 = BYPASS(LAZY)
@@ -159,6 +161,7 @@ class Jp2k(Jp2kBox):
         self._colorspace = None
         self._layer = 0
         self._codestream = None
+        self._decoded_components = None
 
         self._ignore_pclr_cmap_cdef = False
         self._verbose = False
@@ -218,6 +221,32 @@ class Jp2k(Jp2kBox):
     @ignore_pclr_cmap_cdef.setter
     def ignore_pclr_cmap_cdef(self, ignore_pclr_cmap_cdef):
         self._ignore_pclr_cmap_cdef = ignore_pclr_cmap_cdef
+
+    @property
+    def decoded_components(self):
+        return self._decoded_components
+
+    @decoded_components.setter
+    def decoded_components(self, components):
+
+        if components is None:
+            # this is a special case where we are restoring the original
+            # behavior of reading all bands
+            self._decoded_components = components
+            return
+
+        if np.isscalar(components):
+            components = [components]
+
+        if any(x > len(self.codestream.segment[1].xrsiz) for x in components):
+            msg = (
+                f"{components} has at least one invalid component, "
+                f"cannot be greater than "
+                f"{len(self.codestream.segment[1].xrsiz)}."
+            )
+            raise ValueError(msg)
+
+        self._decoded_components = components
 
     @property
     def layer(self):
@@ -1155,8 +1184,19 @@ class Jp2k(Jp2kBox):
     def _subsampling_sanity_check(self):
         """Check for differing subsample factors.
         """
-        dxs = np.array(self.codestream.segment[1].xrsiz)
-        dys = np.array(self.codestream.segment[1].yrsiz)
+        if self._decoded_components is None:
+            dxs = np.array(self.codestream.segment[1].xrsiz)
+            dys = np.array(self.codestream.segment[1].yrsiz)
+        else:
+            dxs = np.array([
+                self.codestream.segment[1].xrsiz[i]
+                for i in self._decoded_components
+            ])
+            dys = np.array([
+                self.codestream.segment[1].yrsiz[i]
+                for i in self._decoded_components
+            ])
+
         if np.any(dxs - dxs[0]) or np.any(dys - dys[0]):
             msg = (
                 f"The read_bands method should be used when the subsampling "
@@ -1231,6 +1271,9 @@ class Jp2k(Jp2kBox):
 
             raw_image = opj2.read_header(stream, codec)
             stack.callback(opj2.image_destroy, raw_image)
+
+            if self._decoded_components is not None:
+                opj2.set_decoded_components(codec, self._decoded_components)
 
             if self._dparams.nb_tile_to_decode:
                 opj2.get_decoded_tile(codec, stream, raw_image,

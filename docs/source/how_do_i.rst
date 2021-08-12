@@ -41,6 +41,39 @@ you can make use of OpenJPEG's thread support to speed-up read operations.  ::
     >>> t1 - t0
     0.4060473537445068
 
+**************************************************
+... efficiently read just one band of a big image?
+**************************************************
+For really large images, before v0.9.4 you had to read in all bands of an
+image, even if you were only interested in just one of those bands.  With
+v0.9.4 or higher, you can make use of the :py:meth:`decoded_components`
+property, which will inform the openjpeg library to just decode the
+specified component(s), which can significantly speed up read operations
+on large images.  Be aware, however, that the openjpeg library will not
+employ the MCT when decoding these components.
+
+You can set the property to None to restore the behavior of decoding all
+bands.
+
+    >>> import glymur
+    >>> jp2file = glymur.data.nemo()
+    >>> jp2 = glymur.Jp2k(jp2file)
+    >>> data = jp2[:]
+    >>> data.shape
+    (1456, 2592, 3)
+    >>> jp2.decoded_components = 1
+    >>> data = jp2[:]
+    >>> data.shape
+    (1456, 2592)
+    >>> jp2.decoded_components = [0, 2]
+    >>> data = jp2[:]
+    >>> data.shape
+    (1456, 2592, 2)
+    >>> jp2.decoded_components = None
+    >>> data = jp2[:]
+    >>> data.shape
+    (1456, 2592, 3)
+
 *****************
 ... write images?
 *****************

@@ -3,6 +3,13 @@ Changes in glymur 0.9
 #####################
 
 ****************
+Changes in 0.9.4
+****************
+
+    * Remove support for Python 3.6.
+    * Add support for opj_set_decoded_components.
+
+****************
 Changes in 0.9.3
 ****************
 

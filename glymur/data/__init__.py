@@ -8,6 +8,7 @@ These include:
 """
 import importlib.resources as ir
 
+
 def nemo():
     """Shortcut for specifying path to nemo.jp2.
 
