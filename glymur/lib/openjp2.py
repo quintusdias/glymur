@@ -7,6 +7,9 @@ import ctypes
 import queue
 import textwrap
 
+# 3rd party library imports
+import numpy as np
+
 # Local imports
 from ..config import glymur_config
 
@@ -1080,6 +1083,45 @@ def set_decode_area(codec, image, start_x=0, start_y=0, end_x=0, end_y=0):
                                 ctypes.c_int32(start_y),
                                 ctypes.c_int32(end_x),
                                 ctypes.c_int32(end_y))
+
+
+def set_decoded_components(codec, comp_indices):
+    """Wraps openjp2 library function opj_set_decoded_components.
+
+    Restrict the number of components to decode.  This function should be
+    called right after read_header.
+
+    Parameters
+    ----------
+    codec : CODEC_TYPE
+        Codec initialized by create_decompress function.
+    comp_indices : list-like
+        The indices of the components to decode (relative to the codestream,
+        starting at 0).
+
+    Raises
+    ------
+    RuntimeError
+        If the OpenJPEG library routine opj_set_decoded_components fails.
+    """
+    comp_indices = np.uint32(comp_indices)
+    OPENJP2.opj_set_decoded_components.argtypes = [
+        CODEC_TYPE,
+        ctypes.c_uint32,
+        ctypes.POINTER(ctypes.c_uint32),
+        ctypes.c_int32
+    ]
+    OPENJP2.opj_set_decoded_components.restype = check_error
+
+    ncomps = len(comp_indices)
+    indices_p = comp_indices.ctypes.data_as(ctypes.POINTER(ctypes.c_uint32))
+
+    # This is always False (0) for now.
+    apply_color_xforms = ctypes.c_int32(0)
+
+    OPENJP2.opj_set_decoded_components(
+        codec, ncomps, indices_p, apply_color_xforms
+    )
 
 
 def set_default_decoder_parameters():

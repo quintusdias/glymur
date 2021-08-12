@@ -1244,7 +1244,7 @@ class Jp2k(Jp2kBox):
             stack.callback(opj2.image_destroy, raw_image)
 
             if self._decoded_components is not None:
-                opj2.set_decoded_components(self._decoded_components)
+                opj2.set_decoded_components(codec, self._decoded_components)
 
             if self._dparams.nb_tile_to_decode:
                 opj2.get_decoded_tile(codec, stream, raw_image,
