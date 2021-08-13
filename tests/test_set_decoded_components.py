@@ -19,7 +19,7 @@ class TestSuite(unittest.TestCase):
 
         self.jp2 = Jp2k(glymur.data.nemo())
 
-    def get_openjpeg_data(self, components, area=None):
+    def get_openjpeg_data(self, components, area=None, resolution=None):
 
         with tempfile.NamedTemporaryFile(suffix='.tif') as t:
             command = (
@@ -31,6 +31,9 @@ class TestSuite(unittest.TestCase):
 
             if area is not None:
                 command += f" -d {area}"
+
+            if resolution is not None:
+                command += f" -r {resolution}"
 
             args = shlex.split(command)
             p = subprocess.Popen(command, shell=True)
@@ -73,8 +76,7 @@ class TestSuite(unittest.TestCase):
 
     def test_partial_component_decoding_with_area(self):
         """
-        SCENARIO:  Decode three components without using the MCT with a
-        specific area.
+        SCENARIO:  Decode one component with a specific area.
 
         EXPECTED RESULT:  Match results of opj_decompress
         """
@@ -83,5 +85,19 @@ class TestSuite(unittest.TestCase):
         actual = self.jp2[20:40, 10:30]
 
         expected = self.get_openjpeg_data([0], area='10,20,30,40')
+
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_reduced_resolution(self):
+        """
+        SCENARIO:  Decode one component with reduced resolution.
+
+        EXPECTED RESULT:  Match results of opj_decompress
+        """
+
+        self.jp2.set_decoded_components([0])
+        actual = self.jp2[::2, ::2]
+
+        expected = self.get_openjpeg_data([0], resolution=1)
 
         np.testing.assert_array_equal(actual, expected)
