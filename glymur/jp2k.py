@@ -1166,8 +1166,19 @@ class Jp2k(Jp2kBox):
     def _subsampling_sanity_check(self):
         """Check for differing subsample factors.
         """
-        dxs = np.array(self.codestream.segment[1].xrsiz)
-        dys = np.array(self.codestream.segment[1].yrsiz)
+        if self._decoded_components is None:
+            dxs = np.array(self.codestream.segment[1].xrsiz)
+            dys = np.array(self.codestream.segment[1].yrsiz)
+        else:
+            dxs = np.array([
+                self.codestream.segment[1].xrsiz[i]
+                for i in self._decoded_components
+            ])
+            dys = np.array([
+                self.codestream.segment[1].yrsiz[i]
+                for i in self._decoded_components
+            ])
+
         if np.any(dxs - dxs[0]) or np.any(dys - dys[0]):
             msg = (
                 f"The read_bands method should be used when the subsampling "
