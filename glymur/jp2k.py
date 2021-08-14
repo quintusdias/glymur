@@ -1081,7 +1081,7 @@ class Jp2k(Jp2kBox):
         if np.abs(np.log2(step) - np.round(np.log2(step))) > 1e-6:
             msg = "Row and column strides must be powers of 2."
             raise ValueError(msg)
-        rlevel = np.int(np.round(np.log2(step)))
+        rlevel = int(np.round(np.log2(step)))
 
         area = (0 if rows.start is None else rows.start,
                 0 if cols.start is None else cols.start,

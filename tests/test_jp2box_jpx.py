@@ -4,11 +4,7 @@ Test suite specifically targeting JPX box layout.
 """
 # Standard library imports ...
 import ctypes
-try:
-    import importlib.resources as ir
-except ImportError:  # pragma:  no cover
-    # before 3.7
-    import importlib_resources as ir
+import importlib.resources as ir
 from io import BytesIO
 import shutil
 import struct

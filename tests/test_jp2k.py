@@ -5,11 +5,7 @@ Tests for general glymur functionality.
 import collections
 import datetime
 import doctest
-try:
-    import importlib.resources as ir
-except ImportError:  # pragma:  no cover
-    # before 3.7
-    import importlib_resources as ir
+import importlib.resources as ir
 from io import BytesIO
 import os
 import pathlib
