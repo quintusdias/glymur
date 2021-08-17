@@ -32,7 +32,7 @@ class TestSuite(unittest.TestCase):
         numresolution = 6
         offsetx, offsety = 0, 0
 
-        output_file = "test.j2k"
+        filename = "test.j2k"
 
         nb_tiles_width, nb_tiles_height = 2, 2
         nb_tiles = nb_tiles_width * nb_tiles_height
@@ -56,6 +56,7 @@ class TestSuite(unittest.TestCase):
         # greyscale so no mct
         cparams.tcp_mct = 0
 
+        # comptparms == l_params
         comptparms = (opj2.ImageComptParmType * num_comps)()
         for j in range(num_comps):
             comptparms[j].dx = 1
@@ -83,14 +84,16 @@ class TestSuite(unittest.TestCase):
             opj2.set_warning_handler(codec, _WARNING_CALLBACK)
             opj2.set_error_handler(codec, _ERROR_CALLBACK)
 
-            tile = opj2.image_tile_create(comptparms, opj2.CLRSPC_GRAY)
-            stack.callback(opj2.image_destroy, tile)
+            # l_params == comptparms
+            # l_image == tile
+            image = opj2.image_tile_create(comptparms, opj2.CLRSPC_GRAY)
+            stack.callback(opj2.image_destroy, image)
 
-            tile.x0, tile.y0 = 0, 0
-            tile.x1, tile.y1 = image_width, image_height
-            tile.color_space = opj2.CLRSPC_GRAY
+            image.contents.x0, image.contents.y0 = 0, 0
+            image.contents.x1, image.contents.y1 = image_width, image_height
+            image.contents.color_space = opj2.CLRSPC_GRAY
 
-            opj2.setup_encoder(codec, cparams, tile)
+            opj2.setup_encoder(codec, cparams, image)
 
             strm = opj2.stream_create_default_file_stream(filename, False)
             stack.callback(opj2.stream_destroy, strm)
@@ -100,6 +103,6 @@ class TestSuite(unittest.TestCase):
             opj2.write_tile(codec, 0, img[0:256, 0:256].copy(), strm)
             opj2.write_tile(codec, 1, img[0:256, 256:512].copy(), strm)
             opj2.write_tile(codec, 2, img[256:512, 0:256].copy(), strm)
-            opj2.write_tile(codec, 1, img[256:512, 256:512].copy(), strm)
+            opj2.write_tile(codec, 3, img[256:512, 256:512].copy(), strm)
 
             opj2.end_compress(codec, strm)
