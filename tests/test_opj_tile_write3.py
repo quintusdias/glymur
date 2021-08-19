@@ -48,9 +48,9 @@ class TestSuite(unittest.TestCase):
         cparams.cp_tdy = tile_height
 
         cparams.cblockw_init, cparams.cblockh_init = cblockw_init, cblockh_init
+
         # not from openjpeg test file
         cparams.mode = 0
-
 
         cparams.irreversible = 1 if irreversible else 0
 
@@ -64,8 +64,6 @@ class TestSuite(unittest.TestCase):
         for j in range(num_comps):
             comptparms[j].dx = 1
             comptparms[j].dy = 1
-            #comptparms[j].w = tile_width
-            #comptparms[j].h = tile_height
             comptparms[j].w = image_width
             comptparms[j].h = image_height
             comptparms[j].x0 = 0
@@ -75,11 +73,6 @@ class TestSuite(unittest.TestCase):
             comptparms[j].sgnd = 0
 
         with ExitStack() as stack:
-            #image = opj2.image_create(self._comptparms, self._colorspace)
-            #stack.callback(opj2.image_destroy, image)
-
-            #self._populate_image_struct(image, img_array)
-
             codec = opj2.create_compress(opj2.CODEC_JP2)
             stack.callback(opj2.destroy_codec, codec)
 
@@ -89,8 +82,6 @@ class TestSuite(unittest.TestCase):
             opj2.set_warning_handler(codec, _WARNING_CALLBACK)
             opj2.set_error_handler(codec, _ERROR_CALLBACK)
 
-            # l_params == comptparms
-            # l_image == tile
             image = opj2.image_tile_create(comptparms, opj2.CLRSPC_SRGB)
             stack.callback(opj2.image_destroy, image)
 
