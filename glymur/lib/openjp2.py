@@ -1395,7 +1395,7 @@ def write_tile(codec, tile_index, data, *pargs):
     tile_index : int
         The index of the tile to write, zero-indexing assumed
     data : array
-        Image data arranged in usual C-order
+        Image data.  The memory layout is planar, not the usual C-order.
     data_size : int, optional
         Size of a tile in bytes.  If not provided, it will be inferred.
     stream : STREAM_TYPE_P
