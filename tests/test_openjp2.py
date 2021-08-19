@@ -343,12 +343,38 @@ class TestOpenJP2(fixtures.TestCommon):
 
             openjp2.start_compress(codec, image, strm)
 
-            openjp2.write_tile(codec, 0, img[0:256, 0:256, :].copy(), strm)
-            openjp2.write_tile(codec, 1, img[0:256, 256:512, :].copy(), strm)
-            openjp2.write_tile(codec, 2, img[256:512, 0:256, :].copy(), strm)
-            openjp2.write_tile(codec, 3, img[256:512, 256:512, :].copy(), strm)
+            # have to change the memory layout of 3D images in order to use
+            # opj_write_tile
+            openjp2.write_tile(
+                codec, 0, _set_planar_pixel_order(img[0:256, 0:256, :]), strm
+            )
+            openjp2.write_tile(
+                codec, 1, _set_planar_pixel_order(img[0:256, 256:512, :]), strm
+            )
+            openjp2.write_tile(
+                codec, 2, _set_planar_pixel_order(img[256:512, 0:256, :]), strm
+            )
+            openjp2.write_tile(
+                codec, 3, _set_planar_pixel_order(img[256:512, 256:512, :]),
+                strm
+            )
 
             openjp2.end_compress(codec, strm)
+
+
+def _set_planar_pixel_order(img):
+    """
+    Reorder the image pixels so that plane-0 comes first, then plane-1, etc.
+    This is a requirement for using opj_write_tile.
+    """
+    if img.ndim == 3:
+        # C-order increments along the y-axis slowest (0), then x-axis (1),
+        # then z-axis (2).  We want it to go along the z-axis slowest, then
+        # y-axis, then x-axis.
+        img = np.swapaxes(img, 1, 2)
+        img = np.swapaxes(img, 0, 1)
+
+    return img.copy()
 
 
 def tile_encoder(**kwargs):

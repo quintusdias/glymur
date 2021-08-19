@@ -1414,19 +1414,23 @@ def write_tile(codec, tile_index, data, *pargs):
         data_size = data.nbytes
         stream = pargs[0]
 
-    OPENJP2.opj_write_tile.argtypes = [CODEC_TYPE,
-                                       ctypes.c_uint32,
-                                       ctypes.POINTER(ctypes.c_uint8),
-                                       ctypes.c_uint32,
-                                       STREAM_TYPE_P]
+    OPENJP2.opj_write_tile.argtypes = [
+        CODEC_TYPE,
+        ctypes.c_uint32,
+        ctypes.POINTER(ctypes.c_uint8),
+        ctypes.c_uint32,
+        STREAM_TYPE_P
+    ]
     OPENJP2.opj_write_tile.restype = check_error
 
     datap = data.ctypes.data_as(ctypes.POINTER(ctypes.c_uint8))
-    OPENJP2.opj_write_tile(codec,
-                           ctypes.c_uint32(int(tile_index)),
-                           datap,
-                           ctypes.c_uint32(int(data_size)),
-                           stream)
+    OPENJP2.opj_write_tile(
+        codec,
+        ctypes.c_uint32(int(tile_index)),
+        datap,
+        ctypes.c_uint32(int(data_size)),
+        stream
+    )
 
 
 def set_error_message(msg):
