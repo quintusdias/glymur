@@ -266,6 +266,90 @@ class TestOpenJP2(fixtures.TestCommon):
 
             openjp2.end_compress(codec, strm)
 
+    def test_write_tiles_3D(self):
+        """
+        Test writing tiles for an RGB image.
+        """
+
+        img = skimage.data.astronaut()
+
+        image_height, image_width, num_comps = img.shape
+
+        tile_height, tile_width = 256, 256
+
+        comp_prec = 8
+        irreversible = True
+
+        cblockh_init, cblockw_init = 64, 64
+
+        numresolution = 6
+
+        cparams = openjp2.set_default_encoder_parameters()
+
+        # not from openjpeg test file
+        cparams.cp_disto_alloc = 1
+
+        cparams.tile_size_on = openjp2.TRUE
+        cparams.cp_tdx = tile_width
+        cparams.cp_tdy = tile_height
+
+        cparams.cblockw_init, cparams.cblockh_init = cblockw_init, cblockh_init
+
+        # not from openjpeg test file
+        cparams.mode = 0
+
+        cparams.irreversible = 1 if irreversible else 0
+
+        cparams.numresolution = numresolution
+        cparams.prog_order = glymur.core.PROGRESSION_ORDER['LRCP']
+
+        cparams.tcp_mct = 1
+
+        # comptparms == l_params
+        comptparms = (openjp2.ImageComptParmType * num_comps)()
+        for j in range(num_comps):
+            comptparms[j].dx = 1
+            comptparms[j].dy = 1
+            comptparms[j].w = image_width
+            comptparms[j].h = image_height
+            comptparms[j].x0 = 0
+            comptparms[j].y0 = 0
+            comptparms[j].prec = comp_prec
+            comptparms[j].bpp = comp_prec
+            comptparms[j].sgnd = 0
+
+        with ExitStack() as stack:
+            codec = openjp2.create_compress(openjp2.CODEC_JP2)
+            stack.callback(openjp2.destroy_codec, codec)
+
+            info_handler = _INFO_CALLBACK
+
+            openjp2.set_info_handler(codec, info_handler)
+            openjp2.set_warning_handler(codec, _WARNING_CALLBACK)
+            openjp2.set_error_handler(codec, _ERROR_CALLBACK)
+
+            image = openjp2.image_tile_create(comptparms, openjp2.CLRSPC_SRGB)
+            stack.callback(openjp2.image_destroy, image)
+
+            image.contents.x0, image.contents.y0 = 0, 0
+            image.contents.x1, image.contents.y1 = image_width, image_height
+            image.contents.color_space = openjp2.CLRSPC_SRGB
+
+            openjp2.setup_encoder(codec, cparams, image)
+
+            filename = str(self.temp_jp2_filename)
+            strm = openjp2.stream_create_default_file_stream(filename, False)
+            stack.callback(openjp2.stream_destroy, strm)
+
+            openjp2.start_compress(codec, image, strm)
+
+            openjp2.write_tile(codec, 0, img[0:256, 0:256, :].copy(), strm)
+            openjp2.write_tile(codec, 1, img[0:256, 256:512, :].copy(), strm)
+            openjp2.write_tile(codec, 2, img[256:512, 0:256, :].copy(), strm)
+            openjp2.write_tile(codec, 3, img[256:512, 256:512, :].copy(), strm)
+
+            openjp2.end_compress(codec, strm)
+
 
 def tile_encoder(**kwargs):
     """Fixture used by many tests."""
