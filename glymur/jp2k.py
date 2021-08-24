@@ -93,7 +93,9 @@ class Jp2k(Jp2kBox):
     0.4060473537445068
     """
 
-    def __init__(self, filename, data=None, shape=None, **kwargs):
+    def __init__(
+        self, filename, data=None, shape=None, tilesize=None, **kwargs
+    ):
         """
         Parameters
         ----------
@@ -162,17 +164,25 @@ class Jp2k(Jp2kBox):
         self._layer = 0
         self._codestream = None
         self._decoded_components = None
+        self._tilesize = tilesize
 
         self._ignore_pclr_cmap_cdef = False
         self._verbose = False
+        self._writing_tile_by_tile = False
 
         if data is not None:
-            # We are writing a JP2/J2K/JPX file.
+            # We are writing a JP2/J2K/JPX file where the image is
+            # contained in memory.
             self._shape = data.shape
             self._write(data, **kwargs)
+        elif data is None and shape is not None and tilesize is not None:
+            # We are writing an image tile-by-tile
+            self._shape = shape
+            self._writing_tile_by_tile = True
         elif shape is not None:
             # Only if J2X?
             self._shape = shape
+
         if data is None and shape is None:
             # We must be just reading a JP2/J2K/JPX file.  Parse its
             # contents, then determine "shape".
@@ -461,7 +471,7 @@ class Jp2k(Jp2kBox):
                           cinema2k=None, cinema4k=None, irreversible=None,
                           cbsize=None, eph=None, grid_offset=None, modesw=None,
                           numres=None, prog=None, psizes=None, sop=None,
-                          subsam=None, tilesize=None, colorspace=None):
+                          subsam=None, colorspace=None):
         """Directs processing of write method arguments.
 
         Parameters
@@ -568,9 +578,9 @@ class Jp2k(Jp2kBox):
             cparams.subsampling_dy = subsam[0]
             cparams.subsampling_dx = subsam[1]
 
-        if tilesize is not None:
-            cparams.cp_tdx = tilesize[1]
-            cparams.cp_tdy = tilesize[0]
+        if self._tilesize is not None:
+            cparams.cp_tdx = self._tilesize[1]
+            cparams.cp_tdy = self._tilesize[0]
             cparams.tile_size_on = opj2.TRUE
 
         if mct is None:
