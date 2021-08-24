@@ -602,6 +602,13 @@ class Jp2k(Jp2kBox):
         self._determine_colorspace(**kwargs)
         self._populate_cparams(img_array, **kwargs)
 
+        if img_array.ndim == 2:
+            # Force the image to be 3D.  Just makes things easier later on.
+            numrows, numcols = img_array.shape
+            img_array = img_array.reshape(numrows, numcols, 1)
+
+        self._populate_comptparms(img_array)
+
         self._write_openjp2(img_array, verbose=verbose)
 
     def _validate_j2k_colorspace(self, cparams, colorspace):
@@ -750,13 +757,6 @@ class Jp2k(Jp2kBox):
         """
         Write JPEG 2000 file using OpenJPEG 2.x interface.
         """
-        if img_array.ndim == 2:
-            # Force the image to be 3D.  Just makes things easier later on.
-            numrows, numcols = img_array.shape
-            img_array = img_array.reshape(numrows, numcols, 1)
-
-        self._populate_comptparms(img_array)
-
         with ExitStack() as stack:
             image = opj2.image_create(self._comptparms, self._colorspace)
             stack.callback(opj2.image_destroy, image)
