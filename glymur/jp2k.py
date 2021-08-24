@@ -746,10 +746,12 @@ class Jp2k(Jp2kBox):
 
             # Turn the colorspace from a string to the enumerated value that
             # the library expects.
-            COLORSPACE_MAP = {'rgb': opj2.CLRSPC_SRGB,
-                              'gray': opj2.CLRSPC_GRAY,
-                              'grey': opj2.CLRSPC_GRAY,
-                              'ycc': opj2.CLRSPC_YCC}
+            COLORSPACE_MAP = {
+                'rgb': opj2.CLRSPC_SRGB,
+                'gray': opj2.CLRSPC_GRAY,
+                'grey': opj2.CLRSPC_GRAY,
+                'ycc': opj2.CLRSPC_YCC
+            }
 
             self._colorspace = COLORSPACE_MAP[colorspace.lower()]
 
