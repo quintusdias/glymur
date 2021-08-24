@@ -309,6 +309,13 @@ class Jp2k(Jp2kBox):
             metadata.append(str(self.codestream))
         return '\n'.join(metadata)
 
+    def get_tilewriters(self):
+        """
+        Return an object that facilitates writing tile by tile.
+        """
+
+        return _TileWriter(self)
+
     def parse(self):
         """Parses the JPEG 2000 file.
 
@@ -1868,6 +1875,17 @@ class Jp2k(Jp2kBox):
                     # Same set of checks on any child boxes.
                     self._validate_label(box.box)
 
+
+class _TileWriter(object):
+
+    def __init__(self, jp2k):
+        self.jp2k = jp2k
+
+    def __iter__(self):
+        pass
+
+    def __next__(self):
+        pass
 
 # Setup the default callback handlers.  See the callback functions subsection
 # in the ctypes section of the Python documentation for a solid explanation of
