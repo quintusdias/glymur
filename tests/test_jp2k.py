@@ -91,7 +91,7 @@ class TestSliceProtocolBaseWrite(SliceProtocolBase):
 
     def test_basic_write(self):
         """
-        SCENARIO:  write image by specifying image data in constructor
+        SCENARIO:  write image by specifying image data with slice protocol
 
         EXPECTED RESULT:  image is validated
         """

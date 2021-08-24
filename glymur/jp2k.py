@@ -168,22 +168,18 @@ class Jp2k(Jp2kBox):
 
         self._ignore_pclr_cmap_cdef = False
         self._verbose = False
-        self._writing_tile_by_tile = False
 
         if data is not None:
             # We are writing a JP2/J2K/JPX file where the image is
             # contained in memory.
             self._shape = data.shape
             self._write(data, **kwargs)
-        elif data is None and shape is not None and tilesize is not None:
-            # We are writing an image tile-by-tile
+        elif data is None and shape is not None:
+            # We are writing an entire image via the slice protocol, or we are
+            # writing an image tile-by-tile.  A future course of action will
+            # determine that.
             self._shape = shape
-            self._writing_tile_by_tile = True
-        elif shape is not None:
-            # Only if J2X?
-            self._shape = shape
-
-        if data is None and shape is None:
+        elif data is None and shape is None:
             # We must be just reading a JP2/J2K/JPX file.  Parse its
             # contents, then determine "shape".
             self.parse()
