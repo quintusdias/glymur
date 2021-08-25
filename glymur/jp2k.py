@@ -1920,16 +1920,20 @@ class _TileWriter(object):
         else:
             raise StopIteration
 
-    def __setitem__(self, index, data):
-        self._write(data)
-
-    def _write(self, img_array):
+    def __setitem__(self, index, img_array):
         """Write image data to a JP2/JPX/J2k file.  Intended usage of the
         various parameters follows that of OpenJPEG's opj_compress utility.
         """
         if version.openjpeg_version < '2.3.0':
             msg = ("You must have at least version 2.3.0 of OpenJPEG "
                    "in order to write images.")
+            raise RuntimeError(msg)
+
+        if not isinstance(index, slice):
+            msg = (
+                "When writing tiles, the tile slice object must be "
+                "slice(None, None, None), i.e. [:]."
+            )
             raise RuntimeError(msg)
 
         if self.tile_number == 0:

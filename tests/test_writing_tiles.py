@@ -80,7 +80,18 @@ class TestSuite(fixtures.TestCommon):
         np.testing.assert_array_equal(actual, expected)
 
     def test_tile_slice_has_non_none_elements(self):
-        pass
+        """
+        SCENARIO:  construct a jp2 file by repeating a 2D image in a 2x2 grid,
+        but the tile writer does not receive a degenerate slice object.
 
-    def test_use_verbose_option(self):
-        pass
+        EXPECTED RESULT:  RuntimeError
+        """
+        jp2_data = skimage.data.moon()
+
+        shape = jp2_data.shape[0] * 2, jp2_data.shape[1] * 2
+        tilesize = (jp2_data.shape[0], jp2_data.shape[1])
+
+        j = Jp2k(self.temp_jp2_filename, shape=shape, tilesize=tilesize)
+        with self.assertRaises(RuntimeError):
+            for tw in j.get_tilewriters():
+                tw[:256, :256] = jp2_data
