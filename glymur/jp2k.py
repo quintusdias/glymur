@@ -94,7 +94,8 @@ class Jp2k(Jp2kBox):
     """
 
     def __init__(
-        self, filename, data=None, shape=None, tilesize=None, **kwargs
+        self, filename, data=None, shape=None, tilesize=None, verbose=False,
+        **kwargs
     ):
         """
         Parameters
@@ -167,7 +168,7 @@ class Jp2k(Jp2kBox):
         self._tilesize = tilesize
 
         self._ignore_pclr_cmap_cdef = False
-        self._verbose = False
+        self._verbose = verbose
 
         if data is not None:
             # We are writing a JP2/J2K/JPX file where the image is
@@ -604,7 +605,7 @@ class Jp2k(Jp2kBox):
 
         self._cparams = cparams
 
-    def _write(self, img_array, verbose=False, **kwargs):
+    def _write(self, img_array, **kwargs):
         """Write image data to a JP2/JPX/J2k file.  Intended usage of the
         various parameters follows that of OpenJPEG's opj_compress utility.
 
@@ -626,7 +627,7 @@ class Jp2k(Jp2kBox):
 
         self._populate_comptparms(img_array)
 
-        self._write_openjp2(img_array, verbose=verbose)
+        self._write_openjp2(img_array)
 
     def _validate_j2k_colorspace(self, cparams, colorspace):
         """
@@ -772,7 +773,7 @@ class Jp2k(Jp2kBox):
 
             self._colorspace = COLORSPACE_MAP[colorspace.lower()]
 
-    def _write_openjp2(self, img_array, verbose=False):
+    def _write_openjp2(self, img_array):
         """
         Write JPEG 2000 file using OpenJPEG 2.x interface.
         """
@@ -785,7 +786,7 @@ class Jp2k(Jp2kBox):
             codec = opj2.create_compress(self._cparams.codec_fmt)
             stack.callback(opj2.destroy_codec, codec)
 
-            if self._verbose or verbose:
+            if self._verbose:
                 info_handler = _INFO_CALLBACK
             else:
                 info_handler = None
@@ -1942,17 +1943,14 @@ class _TileWriter(object):
 
             self.jp2k._populate_comptparms(img_array)
 
-        # with ExitStack() as stack:
         if self.tile_number == 0:
             # Only do this for the first tile.
             self.codec = opj2.create_compress(self.jp2k._cparams.codec_fmt)
-            # stack.callback(opj2.destroy_codec, self.codec)
 
-            # if self._verbose or verbose:
-            #     info_handler = _INFO_CALLBACK
-            # else:
-            #     info_handler = None
-            info_handler = None
+            if self.jp2k.verbose:
+                info_handler = _INFO_CALLBACK
+            else:
+                info_handler = None
 
             opj2.set_info_handler(self.codec, info_handler)
             opj2.set_warning_handler(self.codec, _WARNING_CALLBACK)
@@ -1961,7 +1959,6 @@ class _TileWriter(object):
             self.image = opj2.image_tile_create(
                 self.jp2k._comptparms, self.jp2k._colorspace
             )
-            # stack.callback(opj2.image_destroy, self.image)
 
             self.jp2k._populate_image_struct(
                 self.image, img_array,
@@ -1976,7 +1973,6 @@ class _TileWriter(object):
             self.strm = opj2.stream_create_default_file_stream(
                 self.jp2k.filename, False
             )
-            # stack.callback(opj2.stream_destroy, self.strm)
 
             num_threads = get_option('lib.num_threads')
             if version.openjpeg_version >= '2.4.0':

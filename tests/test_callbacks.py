@@ -7,6 +7,9 @@ import warnings
 import unittest
 from unittest.mock import patch
 
+# 3rd party library imports
+import skimage.data
+
 # Local imports ...
 import glymur
 from . import fixtures
@@ -66,3 +69,26 @@ class TestSuite(fixtures.TestCommon):
             actual = fake_out.getvalue().strip()
 
         self.assertIn('[INFO]', actual)
+
+    def test_info_callbacks_on_writing_tiles(self):
+        """
+        SCENARIO:  the verbose attribute is set to True
+
+        EXPECTED RESULT:  The info callback handler should be enabled.  There
+        should be [INFO] output present in sys.stdout.
+        """
+        jp2_data = skimage.data.moon()
+
+        shape = jp2_data.shape[0] * 3, jp2_data.shape[1] * 2
+        tilesize = (jp2_data.shape[0], jp2_data.shape[1])
+
+        j = glymur.Jp2k(
+            self.temp_jp2_filename, shape=shape, tilesize=tilesize,
+            verbose=True
+        )
+        with patch('sys.stdout', new=StringIO()) as fake_out:
+            for tw in j.get_tilewriters():
+                tw[:] = jp2_data
+            actual = fake_out.getvalue().strip()
+
+        self.assertIn('[INFO] tile number', actual)
