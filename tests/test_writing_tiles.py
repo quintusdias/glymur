@@ -39,7 +39,7 @@ class TestSuite(fixtures.TestCommon):
 
     def test_smoke(self):
         """
-        SCENARIO:  construct a jp2 file by repeating an image in a 2x2 grid.
+        SCENARIO:  construct a j2k file by repeating a 3D image in a 2x2 grid.
 
         EXPECTED RESULT:  the written image matches the 2x2 grid
         """
@@ -57,6 +57,26 @@ class TestSuite(fixtures.TestCommon):
         new_j = Jp2k(self.temp_j2k_filename)
         actual = new_j[:]
         expected = np.tile(j2k_data, (2, 2, 1))
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_moon(self):
+        """
+        SCENARIO:  construct a jp2 file by repeating a 2D image in a 3x2 grid.
+
+        EXPECTED RESULT:  the written image matches the 3x2 grid
+        """
+        jp2_data = skimage.data.moon()
+
+        shape = jp2_data.shape[0] * 3, jp2_data.shape[1] * 2
+        tilesize = (jp2_data.shape[0], jp2_data.shape[1])
+
+        j = Jp2k(self.temp_jp2_filename, shape=shape, tilesize=tilesize)
+        for tw in j.get_tilewriters():
+            tw[:] = jp2_data
+
+        new_j = Jp2k(self.temp_jp2_filename)
+        actual = new_j[:]
+        expected = np.tile(jp2_data, (3, 2))
         np.testing.assert_array_equal(actual, expected)
 
     def test_tile_slice_has_non_none_elements(self):
