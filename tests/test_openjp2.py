@@ -278,13 +278,18 @@ class TestOpenJP2(fixtures.TestCommon):
         tile_height, tile_width = 256, 256
 
         comp_prec = 8
-        irreversible = True
+        irreversible = False
 
         cblockh_init, cblockw_init = 64, 64
 
         numresolution = 6
 
         cparams = openjp2.set_default_encoder_parameters()
+
+        outfile = str(self.temp_j2k_filename).encode()
+        num_pad_bytes = openjp2.PATH_LEN - len(outfile)
+        outfile += b'0' * num_pad_bytes
+        cparams.outfile = outfile
 
         # not from openjpeg test file
         cparams.cp_disto_alloc = 1
@@ -305,6 +310,10 @@ class TestOpenJP2(fixtures.TestCommon):
 
         cparams.tcp_mct = 1
 
+        cparams.tcp_numlayers = 1
+        cparams.tcp_rates[0] = 0
+        cparams.tcp_distoratio[0] = 0
+
         # comptparms == l_params
         comptparms = (openjp2.ImageComptParmType * num_comps)()
         for j in range(num_comps):
@@ -319,7 +328,7 @@ class TestOpenJP2(fixtures.TestCommon):
             comptparms[j].sgnd = 0
 
         with ExitStack() as stack:
-            codec = openjp2.create_compress(openjp2.CODEC_JP2)
+            codec = openjp2.create_compress(openjp2.CODEC_J2K)
             stack.callback(openjp2.destroy_codec, codec)
 
             info_handler = _INFO_CALLBACK
@@ -337,7 +346,7 @@ class TestOpenJP2(fixtures.TestCommon):
 
             openjp2.setup_encoder(codec, cparams, image)
 
-            filename = str(self.temp_jp2_filename)
+            filename = str(self.temp_j2k_filename)
             strm = openjp2.stream_create_default_file_stream(filename, False)
             stack.callback(openjp2.stream_destroy, strm)
 

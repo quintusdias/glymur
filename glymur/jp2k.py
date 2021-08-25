@@ -278,6 +278,10 @@ class Jp2k(Jp2kBox):
         return self._codestream
 
     @property
+    def tilesize(self):
+        return self._tilesize
+
+    @property
     def verbose(self):
         return self._verbose
 
@@ -1561,15 +1565,20 @@ class Jp2k(Jp2kBox):
 
             return codestream
 
-    def _populate_image_struct(self, image, imgdata):
+    def _populate_image_struct(
+        self, image, imgdata, tile_x_factor=1, tile_y_factor=1
+    ):
         """Populates image struct needed for compression.
 
         Parameters
         ----------
         image : ImageType(ctypes.Structure)
             Corresponds to image_t type in openjp2 headers.
-        img_array : ndarray
+        imgdata : ndarray
             Image data to be written to file.
+        tile_x_factor, tile_y_factor: int
+            Used only when writing tile-by-tile.  In this case, the image data
+            that we have is only the size of a single tile.
         """
 
         numrows, numcols, num_comps = imgdata.shape
@@ -1581,14 +1590,18 @@ class Jp2k(Jp2kBox):
         image.contents.y0 = self._cparams.image_offset_y0
         image.contents.x1 = (
             image.contents.x0
-            + (numcols - 1) * self._cparams.subsampling_dx
+            + (numcols - 1) * self._cparams.subsampling_dx * tile_x_factor
             + 1
         )
         image.contents.y1 = (
             image.contents.y0
-            + (numrows - 1) * self._cparams.subsampling_dy
+            + (numrows - 1) * self._cparams.subsampling_dy * tile_y_factor
             + 1
         )
+
+        if tile_x_factor != 1 or tile_y_factor != 1:
+            # don't stage the data if writing tiles
+            return image
 
         # Stage the image data to the openjpeg data structure.
         for k in range(0, num_comps):
@@ -1620,7 +1633,11 @@ class Jp2k(Jp2kBox):
         else:
             comp_prec = 16
 
-        numrows, numcols, num_comps = img_array.shape
+        if len(self.shape) < 3:
+            (numrows, numcols), num_comps = self.shape, 1
+        else:
+            numrows, numcols, num_comps = self.shape
+
         comptparms = (opj2.ImageComptParmType * num_comps)()
         for j in range(num_comps):
             comptparms[j].dx = self._cparams.subsampling_dx
@@ -1887,11 +1904,121 @@ class _TileWriter(object):
     def __init__(self, jp2k):
         self.jp2k = jp2k
 
+        self.num_tile_rows = int(self.jp2k.shape[0] / self.jp2k.tilesize[0])
+        self.num_tile_cols = int(self.jp2k.shape[1] / self.jp2k.tilesize[1])
+        self.number_of_tiles = self.num_tile_rows * self.num_tile_cols
+
     def __iter__(self):
-        pass
+        self.tile_number = -1
+        return self
 
     def __next__(self):
-        pass
+        if self.tile_number < self.number_of_tiles - 1:
+            self.tile_number += 1
+            return self
+        else:
+            raise StopIteration
+
+    def __setitem__(self, index, data):
+        self._write(data)
+
+    def _write(self, img_array):
+        """Write image data to a JP2/JPX/J2k file.  Intended usage of the
+        various parameters follows that of OpenJPEG's opj_compress utility.
+        """
+        if version.openjpeg_version < '2.3.0':
+            msg = ("You must have at least version 2.3.0 of OpenJPEG "
+                   "in order to write images.")
+            raise RuntimeError(msg)
+
+        if self.tile_number == 0:
+            self.jp2k._determine_colorspace()
+            self.jp2k._populate_cparams(img_array)
+
+            if img_array.ndim == 2:
+                # Force the image to be 3D.  Just makes things easier later on.
+                numrows, numcols = img_array.shape
+                img_array = img_array.reshape(numrows, numcols, 1)
+
+            self.jp2k._populate_comptparms(img_array)
+
+        # with ExitStack() as stack:
+        if self.tile_number == 0:
+            # Only do this for the first tile.
+            self.codec = opj2.create_compress(self.jp2k._cparams.codec_fmt)
+            # stack.callback(opj2.destroy_codec, self.codec)
+
+            # if self._verbose or verbose:
+            #     info_handler = _INFO_CALLBACK
+            # else:
+            #     info_handler = None
+            info_handler = None
+
+            opj2.set_info_handler(self.codec, info_handler)
+            opj2.set_warning_handler(self.codec, _WARNING_CALLBACK)
+            opj2.set_error_handler(self.codec, _ERROR_CALLBACK)
+
+            self.image = opj2.image_tile_create(
+                self.jp2k._comptparms, self.jp2k._colorspace
+            )
+            # stack.callback(opj2.image_destroy, self.image)
+
+            self.jp2k._populate_image_struct(
+                self.image, img_array,
+                tile_x_factor=self.num_tile_cols,
+                tile_y_factor=self.num_tile_rows
+            )
+            self.image.contents.x1 = self.jp2k.shape[1]
+            self.image.contents.y1 = self.jp2k.shape[0]
+
+            opj2.setup_encoder(self.codec, self.jp2k._cparams, self.image)
+
+            self.strm = opj2.stream_create_default_file_stream(
+                self.jp2k.filename, False
+            )
+            # stack.callback(opj2.stream_destroy, self.strm)
+
+            num_threads = get_option('lib.num_threads')
+            if version.openjpeg_version >= '2.4.0':
+                opj2.codec_set_threads(self.codec, num_threads)
+            elif num_threads > 1:
+                msg = (
+                    f'Threaded encoding is not supported in library versions '
+                    f'prior to 2.4.0.  Your version is '
+                    f'{version.openjpeg_version}.'
+                )
+                warnings.warn(msg, UserWarning)
+
+            opj2.start_compress(self.codec, self.image, self.strm)
+
+        opj2.write_tile(
+            self.codec,
+            self.tile_number,
+            _set_planar_pixel_order(img_array),
+            self.strm
+        )
+
+        if self.tile_number == self.number_of_tiles - 1:
+            opj2.end_compress(self.codec, self.strm)
+            opj2.stream_destroy(self.strm)
+            opj2.image_destroy(self.image)
+            opj2.destroy_codec(self.codec)
+
+
+def _set_planar_pixel_order(img):
+    """
+    Reorder the image pixels so that plane-0 comes first, then plane-1, etc.
+    This is a requirement for using opj_write_tile.
+    """
+    if img.ndim == 3:
+        # C-order increments along the y-axis slowest (0), then x-axis (1),
+        # then z-axis (2).  We want it to go along the z-axis slowest, then
+        # y-axis, then x-axis.
+        img = np.swapaxes(img, 1, 2)
+        img = np.swapaxes(img, 0, 1)
+
+    return img.copy()
+
 
 # Setup the default callback handlers.  See the callback functions subsection
 # in the ctypes section of the Python documentation for a solid explanation of
