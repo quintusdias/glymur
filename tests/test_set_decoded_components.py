@@ -1,5 +1,6 @@
 # standard library imports
 import importlib.resources as ir
+import pathlib
 import shutil
 import tempfile
 import unittest
@@ -21,9 +22,10 @@ class TestSuite(unittest.TestCase):
         layers.
         """
         self.testdir = tempfile.mkdtemp()
-        self.j2kfile = tempfile.NamedTemporaryFile(
-            dir=self.testdir, suffix=".j2k"
-        )
+
+        # windows won't like it if we try using tempfile.NamedTemporaryFile
+        # here
+        self.j2kfile = pathlib.Path(self.testdir) / 'tmp.j2k'
 
         data = Jp2k(glymur.data.goodstuff())[:]
         Jp2k(self.j2kfile.name, data=data, mct=False, cratios=[200, 100, 50])
