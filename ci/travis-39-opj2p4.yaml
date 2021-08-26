@@ -6,3 +6,4 @@ dependencies:
     - lxml
     - numpy
     - openjpeg >= 2.4.0
+    - scikit-image
