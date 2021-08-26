@@ -21,6 +21,7 @@ import warnings
 import numpy as np
 
 # Local imports...
+import glymur
 from .codestream import Codestream
 from . import core, version, get_option
 from .jp2box import (
@@ -2002,12 +2003,20 @@ class _TileWriter(object):
         if self.tile_index == 0:
             self.setup_first_tile(img_array)
 
-        opj2.write_tile(
-            self.codec,
-            self.tile_index,
-            _set_planar_pixel_order(img_array),
-            self.stream
-        )
+        try:
+            opj2.write_tile(
+                self.codec,
+                self.tile_index,
+                _set_planar_pixel_order(img_array),
+                self.stream
+            )
+        except glymur.lib.openjp2.OpenJPEGLibraryError as e:
+            # properly dispose of these resources
+            opj2.end_compress(self.codec, self.stream)
+            opj2.stream_destroy(self.stream)
+            opj2.image_destroy(self.image)
+            opj2.destroy_codec(self.codec)
+            raise(e)
 
         if self.tile_index == self.number_of_tiles - 1:
             # properly dispose of these resources
