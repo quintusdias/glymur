@@ -191,9 +191,12 @@ class Jp2kBox(object):
                 f'The original error message was "{str(err)}".'
             )
             warnings.warn(msg, UserWarning)
-            box = UnknownBox(box_id.decode('utf-8'),
-                             length=num_bytes,
-                             offset=start, longname='Unknown')
+            box = UnknownBox(
+                box_id.decode('utf-8'),
+                length=num_bytes,
+                offset=start,
+                longname='Unknown'
+            )
 
         return box
 
@@ -1003,8 +1006,9 @@ class ContiguousCodestreamBox(Jp2kBox):
             if self._filename is not None:
                 with open(self._filename, 'rb') as fptr:
                     fptr.seek(self.main_header_offset)
-                    codestream = Codestream(fptr, self._length,
-                                            header_only=header_only)
+                    codestream = Codestream(
+                        fptr, self._length, header_only=header_only
+                    )
                     self._codestream = codestream
         return self._codestream
 
@@ -1052,8 +1056,12 @@ class ContiguousCodestreamBox(Jp2kBox):
             codestream = Codestream(fptr, length, header_only=False)
         else:
             codestream = None
-        box = cls(codestream, main_header_offset=main_header_offset,
-                  length=length, offset=offset)
+        box = cls(
+            codestream,
+            main_header_offset=main_header_offset,
+            length=length,
+            offset=offset
+        )
         box._filename = fptr.name
         box._length = length
         return box
@@ -1333,9 +1341,13 @@ class FileTypeBox(Jp2kBox):
 
             compatibility_list.append(entry)
 
-        return cls(brand=brand, minor_version=minor_version,
-                   compatibility_list=compatibility_list,
-                   length=length, offset=offset)
+        return cls(
+            brand=brand,
+            minor_version=minor_version,
+            compatibility_list=compatibility_list,
+            length=length,
+            offset=offset
+        )
 
 
 class FragmentListBox(Jp2kBox):
@@ -1355,8 +1367,10 @@ class FragmentListBox(Jp2kBox):
     box_id = 'flst'
     longname = 'Fragment List'
 
-    def __init__(self, fragment_offset, fragment_length, data_reference,
-                 length=0, offset=-1):
+    def __init__(
+        self, fragment_offset, fragment_length, data_reference, length=0,
+        offset=-1
+    ):
         super().__init__()
         self.fragment_offset = fragment_offset
         self.fragment_length = fragment_length
@@ -1618,9 +1632,11 @@ class ImageHeaderBox(Jp2kBox):
     box_id = 'ihdr'
     longname = 'Image Header'
 
-    def __init__(self, height, width, num_components=1, signed=False,
-                 bits_per_component=8, compression=7, colorspace_unknown=False,
-                 ip_provided=False, length=0, offset=-1):
+    def __init__(
+        self, height, width, num_components=1, signed=False,
+        bits_per_component=8, compression=7, colorspace_unknown=False,
+        ip_provided=False, length=0, offset=-1
+    ):
         """
         Examples
         --------
@@ -2041,8 +2057,10 @@ class PaletteBox(Jp2kBox):
         """Verify that the box obeys the specifications."""
         if (((len(self.bits_per_component) != len(self.signed))
              or (len(self.signed) != self.palette.shape[1]))):
-            msg = ("The length of the 'bits_per_component' and the 'signed' "
-                   "members must equal the number of columns of the palette.")
+            msg = (
+                "The length of the 'bits_per_component' and the 'signed' "
+                "members must equal the number of columns of the palette."
+            )
             self._dispatch_validation_error(msg, writing=writing)
         bps = self.bits_per_component
         if writing and not all(b == bps[0] for b in bps):
@@ -2127,8 +2145,10 @@ class PaletteBox(Jp2kBox):
         # Are any components signed or differently sized?  We don't handle
         # that.
         if any(signed) or len(set(bps)) != 1:
-            msg = ("Palettes with signed components or differently sized "
-                   "components are not supported.")
+            msg = (
+                "Palettes with signed components or differently sized "
+                "components are not supported."
+            )
             raise InvalidJp2kError(msg)
 
         # The palette is unsigned and all components have the same width.
@@ -2861,8 +2881,10 @@ class XMLBox(Jp2kBox):
         """
         super().__init__()
         if filename is not None and xml is not None:
-            msg = ("Only one of either a filename or an ElementTree instance "
-                   "should be provided.")
+            msg = (
+                "Only one of either a filename or an ElementTree instance "
+                "should be provided."
+            )
             raise RuntimeError(msg)
         if filename is not None:
             self.xml = ET.parse(str(filename))
@@ -3436,32 +3458,46 @@ class UUIDBox(Jp2kBox):
 
         # report corners
         uleft = self.GDALInfoReportCorner(gtif, hTransform, "Upper Left", 0, 0)
-        lleft = self.GDALInfoReportCorner(gtif, hTransform, "Lower Left",
-                                          0, gtif.RasterYSize)
-        uright = self.GDALInfoReportCorner(gtif, hTransform, "Upper Right",
-                                           gtif.RasterXSize, 0)
-        lright = self.GDALInfoReportCorner(gtif, hTransform, "Lower Right",
-                                           gtif.RasterXSize, gtif.RasterYSize)
-        center = self.GDALInfoReportCorner(gtif, hTransform, "Center",
-                                           gtif.RasterXSize / 2.0,
-                                           gtif.RasterYSize / 2.0)
+        lleft = self.GDALInfoReportCorner(
+            gtif, hTransform, "Lower Left", 0, gtif.RasterYSize
+        )
+        uright = self.GDALInfoReportCorner(
+            gtif, hTransform, "Upper Right", gtif.RasterXSize, 0
+        )
+        lright = self.GDALInfoReportCorner(
+            gtif,
+            hTransform,
+            "Lower Right",
+            gtif.RasterXSize, gtif.RasterYSize
+        )
+        center = self.GDALInfoReportCorner(
+            gtif,
+            hTransform,
+            "Center",
+            gtif.RasterXSize / 2.0, gtif.RasterYSize / 2.0
+        )
 
         gdal.Unlink(in_mem_name)
 
-        fmt = ("Coordinate System =\n"
-               "{coordinate_system}\n"
-               "{geotransform}\n"
-               "Corner Coordinates:\n"
-               "{upper_left}\n"
-               "{lower_left}\n"
-               "{upper_right}\n"
-               "{lower_right}\n"
-               "{center}")
+        fmt = (
+            "Coordinate System =\n"
+            "{coordinate_system}\n"
+            "{geotransform}\n"
+            "Corner Coordinates:\n"
+            "{upper_left}\n"
+            "{lower_left}\n"
+            "{upper_right}\n"
+            "{lower_right}\n"
+            "{center}"
+        )
         coordinate_system = textwrap.indent(psz_pretty_wkt, ' ' * 4)
-        msg = fmt.format(coordinate_system=coordinate_system,
-                         geotransform=geotransform_str,
-                         upper_left=uleft, upper_right=uright,
-                         lower_left=lleft, lower_right=lright, center=center)
+        msg = fmt.format(
+            coordinate_system=coordinate_system,
+            geotransform=geotransform_str,
+            upper_left=uleft, upper_right=uright,
+            lower_left=lleft, lower_right=lright,
+            center=center
+        )
         return msg
 
     def GDALInfoReportCorner(self, hDataset, hTransform, corner_name, x, y):
@@ -3481,8 +3517,10 @@ class UUIDBox(Jp2kBox):
         if hTransform is not None:
             point = hTransform.TransformPoint(dfGeoX, dfGeoY, 0)
             if point is not None:
-                line += '({},{})'.format(gdal.DecToDMS(point[0], 'Long', 2),
-                                         gdal.DecToDMS(point[1], 'Lat', 2))
+                line += '({},{})'.format(
+                    gdal.DecToDMS(point[0], 'Long', 2),
+                    gdal.DecToDMS(point[1], 'Lat', 2)
+                )
 
         return line
 

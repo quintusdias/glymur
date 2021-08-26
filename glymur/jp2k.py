@@ -737,8 +737,10 @@ class Jp2k(Jp2kBox):
         Only uint8 and uint16 images are currently supported.
         """
         if img_array.dtype != np.uint8 and img_array.dtype != np.uint16:
-            msg = ("Only uint8 and uint16 datatypes are currently supported "
-                   "when writing.")
+            msg = (
+                "Only uint8 and uint16 datatypes are currently supported when "
+                "writing."
+            )
             raise InvalidJp2kError(msg)
 
     def _validate_compression_params(self, img_array, cparams):
@@ -855,8 +857,9 @@ class Jp2k(Jp2kBox):
             and box.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
         )
         if not (box_is_xml or box_is_xmp):
-            msg = ("Only XML boxes and XMP UUID boxes can currently be "
-                   "appended.")
+            msg = (
+                "Only XML boxes and XMP UUID boxes can currently be appended."
+            )
             raise RuntimeError(msg)
 
         # Check the last box.  If the length field is zero, then rewrite
@@ -1149,11 +1152,12 @@ class Jp2k(Jp2kBox):
             raise ValueError(msg)
         rlevel = int(np.round(np.log2(step)))
 
-        area = (0 if rows.start is None else rows.start,
-                0 if cols.start is None else cols.start,
-                numrows if rows.stop is None else rows.stop,
-                numcols if cols.stop is None else cols.stop
-                )
+        area = (
+            0 if rows.start is None else rows.start,
+            0 if cols.start is None else cols.start,
+            numrows if rows.stop is None else rows.stop,
+            numcols if cols.stop is None else cols.stop
+        )
         data = self._read(area=area, rlevel=rlevel)
         if len(pargs) == 2:
             return data
@@ -1316,9 +1320,11 @@ class Jp2k(Jp2kBox):
                 opj2.get_decoded_tile(codec, stream, raw_image,
                                       self._dparams.tile_index)
             else:
-                opj2.set_decode_area(codec, raw_image,
-                                     self._dparams.DA_x0, self._dparams.DA_y0,
-                                     self._dparams.DA_x1, self._dparams.DA_y1)
+                opj2.set_decode_area(
+                    codec, raw_image,
+                    self._dparams.DA_x0, self._dparams.DA_y0,
+                    self._dparams.DA_x1, self._dparams.DA_y1
+                )
                 opj2.decode(codec, stream, raw_image)
 
             opj2.end_decompress(codec, stream)
@@ -1430,9 +1436,11 @@ class Jp2k(Jp2kBox):
         >>> components_lst = jp.read_bands(rlevel=1)
         """
         if version.openjpeg_version < '2.3.0':
-            msg = ("You must have at least version 2.3.0 of OpenJPEG "
-                   "installed before using this method.  Your version of "
-                   "OpenJPEG is {version.openjpeg_version}.")
+            msg = (
+                f"You must have at least version 2.3.0 of OpenJPEG installed "
+                f"before using this method.  Your version of OpenJPEG is "
+                f"{version.openjpeg_version}."
+            )
             raise RuntimeError(msg)
 
         self.ignore_pclr_cmap_cdef = ignore_pclr_cmap_cdef
@@ -1467,8 +1475,10 @@ class Jp2k(Jp2kBox):
             dtypes.append(self._component2dtype(component))
             nrows.append(component.h)
             ncols.append(component.w)
-        is_cube = all(r == nrows[0] and c == ncols[0] and d == dtypes[0]
-                      for r, c, d in zip(nrows, ncols, dtypes))
+        is_cube = all(
+            r == nrows[0] and c == ncols[0] and d == dtypes[0]
+            for r, c, d in zip(nrows, ncols, dtypes)
+        )
 
         if is_cube:
             image = np.zeros((nrows[0], ncols[0], ncomps), dtypes[0])
@@ -1690,9 +1700,11 @@ class Jp2k(Jp2kBox):
 
         This is non-exhaustive.
         """
-        JP2_IDS = ['colr', 'cdef', 'cmap', 'jp2c', 'ftyp', 'ihdr', 'jp2h',
-                   'jP  ', 'pclr', 'res ', 'resc', 'resd', 'xml ', 'ulst',
-                   'uinf', 'url ', 'uuid']
+        JP2_IDS = [
+            'colr', 'cdef', 'cmap', 'jp2c', 'ftyp', 'ihdr', 'jp2h', 'jP  ',
+            'pclr', 'res ', 'resc', 'resd', 'xml ', 'ulst', 'uinf', 'url ',
+            'uuid'
+        ]
 
         self._validate_signature_compatibility(boxes)
         self._validate_jp2h(boxes)
@@ -1720,8 +1732,10 @@ class Jp2k(Jp2kBox):
         jp2h = lst[0]
         for colr in [box for box in jp2h.box if box.box_id == 'colr']:
             if colr.approximation != 0:
-                msg = ("A JP2 colr box cannot have a non-zero approximation "
-                       "field.")
+                msg = (
+                    "A JP2 colr box cannot have a non-zero approximation "
+                    "field."
+                )
                 raise InvalidJp2kError(msg)
 
     def _validate_jpx_box_sequence(self, boxes):
@@ -1736,8 +1750,10 @@ class Jp2k(Jp2kBox):
         # Check for a bad sequence of boxes.
         # 1st two boxes must be 'jP  ' and 'ftyp'
         if boxes[0].box_id != 'jP  ' or boxes[1].box_id != 'ftyp':
-            msg = ("The first box must be the signature box and the second "
-                   "must be the file type box.")
+            msg = (
+                "The first box must be the signature box and the second must "
+                "be the file type box."
+            )
             raise InvalidJp2kError(msg)
 
         # The compatibility list must contain at a minimum 'jp2 '.
@@ -1754,8 +1770,10 @@ class Jp2k(Jp2kBox):
         jp2c_lst = [idx for (idx, box) in enumerate(boxes)
                     if box.box_id == 'jp2c']
         if len(jp2c_lst) == 0:
-            msg = ("A codestream box must be defined in the outermost "
-                   "list of boxes.")
+            msg = (
+                "A codestream box must be defined in the outermost list of "
+                "boxes."
+            )
             raise InvalidJp2kError(msg)
 
         jp2c_idx = jp2c_lst[0]
@@ -1777,13 +1795,16 @@ class Jp2k(Jp2kBox):
 
         # 1st jp2 header box must be ihdr
         if jp2h.box[0].box_id != 'ihdr':
-            msg = ("The first box in the jp2 header box must be the image "
-                   "header box.")
+            msg = (
+                "The first box in the jp2 header box must be the image header "
+                "box."
+            )
             raise InvalidJp2kError(msg)
 
         # colr must be present in jp2 header box.
-        colr_lst = [j for (j, box) in enumerate(jp2h.box)
-                    if box.box_id == 'colr']
+        colr_lst = [
+            j for (j, box) in enumerate(jp2h.box) if box.box_id == 'colr'
+        ]
         if len(colr_lst) == 0:
             msg = "The jp2 header box must contain a color definition box."
             raise InvalidJp2kError(msg)
@@ -1897,8 +1918,10 @@ class Jp2k(Jp2kBox):
         for box in boxes:
             if box.box_id in JPX_IDS:
                 if len(set(['jpx ', 'jpxb']).intersection(jpx_cl)) == 0:
-                    msg = ("A JPX box requires that either 'jpx ' or 'jpxb' "
-                           "be present in the ftype compatibility list.")
+                    msg = (
+                        "A JPX box requires that either 'jpx ' or 'jpxb' be "
+                        "present in the ftype compatibility list."
+                    )
                     raise InvalidJp2kError(msg)
             if hasattr(box, 'box') != 0:
                 # Same set of checks on any child boxes.
@@ -1914,8 +1937,10 @@ class Jp2k(Jp2kBox):
                 if hasattr(box, 'box'):
                     for boxi in box.box:
                         if boxi.box_id == 'lbl ':
-                            msg = (f"A label box cannot be nested inside a "
-                                   f"{box.box_id} box.")
+                            msg = (
+                                f"A label box cannot be nested inside a "
+                                f"{box.box_id} box."
+                            )
                             raise InvalidJp2kError(msg)
                     # Same set of checks on any child boxes.
                     self._validate_label(box.box)
