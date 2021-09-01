@@ -1,3 +1,8 @@
+September 01, 2021 - v0.9.4
+    Add support for writing images tile-by-tile.
+    Add support for opj_set_decoded_components.
+    Remove support for Python 3.6.
+
 December 31, 2020 - v0.9.3
     Qualify support on Python 3.9, OpenJPEG 2.4
     Add support for multithreaded writes
