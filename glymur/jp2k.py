@@ -187,6 +187,7 @@ class Jp2k(Jp2kBox):
         self._subsam = subsam
         self._tilesize = tilesize
 
+        self._shape = None
         self._ignore_pclr_cmap_cdef = False
         self._verbose = verbose
 
@@ -209,7 +210,7 @@ class Jp2k(Jp2kBox):
             # writing an image tile-by-tile.  A future course of action will
             # determine that.
             self._shape = shape
-        elif data is None and shape is None:
+        elif data is None and shape is None and self.path.exists():
             # We must be just reading a JP2/J2K/JPX file.  Parse its
             # contents, then determine "shape".
             self.parse()
@@ -345,6 +346,9 @@ class Jp2k(Jp2kBox):
         if len(self.box) > 0:
             for box in self.box:
                 metadata.append(str(box))
+        elif self._codestream is None and not self.path.exists():
+            # No codestream either.  Empty file?  We are done.
+            return metadata[0]
         else:
             metadata.append(str(self.codestream))
         return '\n'.join(metadata)
@@ -1015,6 +1019,10 @@ class Jp2k(Jp2kBox):
         """
         Slicing protocol.
         """
+        # Need to set this in case it is not set in the constructor.
+        if self._shape is None:
+            self._shape = data.shape
+
         if (
             isinstance(index, slice)
             and index.start is None
@@ -1077,6 +1085,9 @@ class Jp2k(Jp2kBox):
         """
         Slicing protocol.
         """
+        if not self.path.exists():
+            msg = f"Cannot read from {self.filename}, it does not yet exist."
+            raise FileNotFoundError(msg)
         if len(self.shape) == 2:
             numrows, numcols = self.shape
             numbands = 1

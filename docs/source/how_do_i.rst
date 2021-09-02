@@ -80,14 +80,9 @@ bands.
 It's pretty simple, just supply the image data as a keyword argument to the
 Jp2k constructor::
     
-    >>> import glymur, numpy as np
-    >>> jp2 = glymur.Jp2k('zeros.jp2', data=np.zeros((640, 480), dtype=np.uint8))
-
-or::
-
-    >>> jp2 = glymur.Jp2k('zeros.jp2')
-    >>> data=np.zeros((640, 480), dtype=np.uint8)
-    >>> jp2[:] = data
+    >>> import glymur, skimage.data
+    >>> jp2 = glymur.Jp2k('astronaut.jp2')
+    >>> jp2[:] = skimage.data.astronaut()
 
 
 **********************************************

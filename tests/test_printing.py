@@ -41,6 +41,18 @@ class TestPrinting(fixtures.TestCommon):
         super(TestPrinting, self).tearDown()
         glymur.reset_option('all')
 
+    def test_empty_file(self):
+        """
+        SCENARIO:  Print the file after with object is constructed, but
+        before data is written to it.
+
+        EXPECTED RESULT:  Just the single line.
+        """
+        filename = self.test_dir_path / 'a.jp2'
+        actual = str(Jp2k(filename))
+        expected = 'File:  a.jp2'
+        self.assertEqual(actual, expected)
+
     def test_bad_color_specification(self):
         """
         Invalid channel type should not prevent printing.

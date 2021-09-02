@@ -507,13 +507,31 @@ class TestJp2k(fixtures.TestCommon):
             with self.assertRaises(InvalidJp2kError):
                 Jp2k(path)
 
-    def test_file_not_present(self):
+    def test_read_from_a_file_that_does_not_exist(self):
         """Should error out if reading from a file that does not exist"""
         # Verify that we error out appropriately if not given an existing file
         # at all.
         filename = 'this file does not actually exist on the file system.'
-        with self.assertRaises(OSError):
-            Jp2k(filename)
+        j = Jp2k(filename)
+        with self.assertRaises(FileNotFoundError):
+            j[:]
+
+    def test_write_to_a_file_using_context_manager(self):
+        """
+        SCENARIO:  Write to a file using a context manager, read the data back
+        using a context manager.
+
+        EXPECTED RESULT: the data matches
+        """
+        expected = skimage.data.astronaut()
+
+        j1 = Jp2k(self.temp_jp2_filename)
+        j1[:] = expected
+
+        j2 = Jp2k(self.temp_jp2_filename)
+        actual = j2[:]
+
+        np.testing.assert_array_equal(actual, expected)
 
     def test_codestream(self):
         """
