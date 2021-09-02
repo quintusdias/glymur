@@ -1022,18 +1022,20 @@ class CODsegment(Segment):
             xform = _WAVELET_XFORM_DISPLAY[self.xform]
         except KeyError:
             xform = f'{self.xform} (invalid)'
-        msg = msg.format(with_without='with' if (self.scod & 1) else 'without',
-                         sop=((self.scod & 2) > 0),
-                         eph=((self.scod & 4) > 0),
-                         prog=progression_order,
-                         num_layers=self.layers,
-                         mct=mct_str,
-                         num_dlevels=self.num_res,
-                         cbh=int(self.code_block_size[0]),
-                         cbw=int(self.code_block_size[1]),
-                         xform=xform,
-                         precinct_size=self.precinct_size,
-                         code_block_context=_context_string(self.cstyle))
+        msg = msg.format(
+            with_without='with' if (self.scod & 1) else 'without',
+            sop=((self.scod & 2) > 0),
+            eph=((self.scod & 4) > 0),
+            prog=progression_order,
+            num_layers=self.layers,
+            mct=mct_str,
+            num_dlevels=self.num_res,
+            cbh=int(self.code_block_size[0]),
+            cbw=int(self.code_block_size[1]),
+            xform=xform,
+            precinct_size=self.precinct_size,
+            code_block_context=_context_string(self.cstyle)
+        )
 
         return msg
 
@@ -1106,8 +1108,9 @@ class CRGsegment(Segment):
         msg = Segment.__str__(self)
         msg += '\n    Vertical, Horizontal offset: '
         for j in range(len(self.xcrg)):
-            msg += ' ({0:.2f}, {1:.2f})'.format(self.ycrg[j] / 65535.0,
-                                                self.xcrg[j] / 65535.0)
+            msg += ' ({0:.2f}, {1:.2f})'.format(
+                self.ycrg[j] / 65535.0, self.xcrg[j] / 65535.0
+            )
         return msg
 
 
@@ -1198,13 +1201,15 @@ class PODsegment(Segment):
             except KeyError:
                 progorder = f'invalid value: {self.ppod[j]}'
 
-            msg += submsg.format(j,
-                                 self.rspod[j],
-                                 self.cspod[j],
-                                 self.lyepod[j],
-                                 self.repod[j],
-                                 self.cdpod[j],
-                                 progorder)
+            msg += submsg.format(
+                j,
+                self.rspod[j],
+                self.cspod[j],
+                self.lyepod[j],
+                self.repod[j],
+                self.cdpod[j],
+                progorder
+            )
 
         return msg.rstrip()
 
@@ -1559,28 +1564,30 @@ class SIZsegment(Segment):
         msg = Segment.__str__(self)
         msg += '\n'
 
-        msg += ('    Profile:  {profile}\n'
-                '    Reference Grid Height, Width:  ({height} x {width})\n'
-                '    Vertical, Horizontal Reference Grid Offset:  '
-                '({goy} x {gox})\n'
-                '    Reference Tile Height, Width:  ({tileh} x {tilew})\n'
-                '    Vertical, Horizontal Reference Tile Offset:  '
-                '({toy} x {tox})\n'
-                '    Bitdepth:  {bitdepth}\n'
-                '    Signed:  {signed}\n'
-                '    Vertical, Horizontal Subsampling:  {subsampling}')
+        msg += (
+            '    Profile:  {profile}\n'
+            '    Reference Grid Height, Width:  ({height} x {width})\n'
+            '    Vertical, Horizontal Reference Grid Offset:  ({goy} x {gox})\n'  # noqa : E501
+            '    Reference Tile Height, Width:  ({tileh} x {tilew})\n'
+            '    Vertical, Horizontal Reference Tile Offset:  ({toy} x {tox})\n'  # noqa : E501
+            '    Bitdepth:  {bitdepth}\n'
+            '    Signed:  {signed}\n'
+            '    Vertical, Horizontal Subsampling:  {subsampling}'
+        )
         try:
             profile = _CAPABILITIES_DISPLAY[self.rsiz]
         except KeyError:
-            profile = '{rsiz} (invalid)'.format(rsiz=self.rsiz)
-        msg = msg.format(profile=profile,
-                         height=self.ysiz, width=self.xsiz,
-                         goy=self.yosiz, gox=self.xosiz,
-                         tileh=self.ytsiz, tilew=self.xtsiz,
-                         toy=self.ytosiz, tox=self.xtosiz,
-                         bitdepth=self.bitdepth,
-                         signed=self.signed,
-                         subsampling=tuple(zip(self.yrsiz, self.xrsiz)))
+            profile = f'{self.rsiz} (invalid)'
+        msg = msg.format(
+            profile=profile,
+            height=self.ysiz, width=self.xsiz,
+            goy=self.yosiz, gox=self.xosiz,
+            tileh=self.ytsiz, tilew=self.xtsiz,
+            toy=self.ytosiz, tox=self.xtosiz,
+            bitdepth=self.bitdepth,
+            signed=self.signed,
+            subsampling=tuple(zip(self.yrsiz, self.xrsiz))
+        )
 
         return msg
 
@@ -1813,12 +1820,14 @@ def _context_string(context):
              'Predictable termination:  {4}',
              'Segmentation symbols:  {5}']
     msg += '\n            '.join(lines)
-    msg = msg.format(((context & 0x01) > 0),
-                     ((context & 0x02) > 0),
-                     ((context & 0x04) > 0),
-                     ((context & 0x08) > 0),
-                     ((context & 0x10) > 0),
-                     ((context & 0x20) > 0))
+    msg = msg.format(
+        ((context & 0x01) > 0),
+        ((context & 0x02) > 0),
+        ((context & 0x04) > 0),
+        ((context & 0x08) > 0),
+        ((context & 0x10) > 0),
+        ((context & 0x20) > 0)
+    )
     return msg
 
 

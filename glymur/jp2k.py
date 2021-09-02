@@ -191,6 +191,8 @@ class Jp2k(Jp2kBox):
         self._ignore_pclr_cmap_cdef = False
         self._verbose = verbose
 
+        self._validate_kwargs()
+
         if self.filename[-4:].endswith(('.jp2', '.JP2')):
             self._codec_format = opj2.CODEC_JP2
         else:
@@ -215,6 +217,54 @@ class Jp2k(Jp2kBox):
             # contents, then determine "shape".
             self.parse()
             self._initialize_shape()
+
+    def _validate_kwargs(self):
+        """
+        Validate keyword parameters passed to the constructor.
+        """
+        non_cinema_args = (
+            self._mct, self._cratios, self._psnr, self._irreversible,
+            self._cbsize, self._eph, self._grid_offset, self._modesw,
+            self._numres, self._prog, self._psizes, self._sop, self._subsam
+        )
+        if (
+            (
+                self._cinema2k is not None or self._cinema4k is not None
+            )
+            and (not all([arg is None for arg in non_cinema_args]))
+        ):
+            msg = (
+                "Cannot specify cinema2k/cinema4k along with any other "
+                "options."
+            )
+            raise InvalidJp2kError(msg)
+
+        if self._psnr is not None:
+            if self._cratios is not None:
+                msg = "Cannot specify cratios and psnr options together."
+                raise InvalidJp2kError(msg)
+
+            if 0 in self._psnr and self._psnr[-1] != 0:
+                msg = ("If a zero value is supplied in the PSNR keyword "
+                       "argument, it must be in the final position.")
+                raise InvalidJp2kError(msg)
+
+            if (
+                (
+                    0 in self._psnr
+                    and np.any(np.diff(self._psnr[:-1]) < 0)
+                )
+                or (
+                    0 not in self._psnr
+                    and np.any(np.diff(self._psnr) < 0)
+                )
+            ):
+                msg = (
+                    "PSNR values must be increasing, with one exception - "
+                    "zero may be in the final position to indicate a lossless "
+                    "layer."
+                )
+                raise InvalidJp2kError(msg)
 
     def _initialize_shape(self):
         """
@@ -437,9 +487,11 @@ class Jp2k(Jp2kBox):
         for colr in colrs:
             if colr.method not in (core.ENUMERATED_COLORSPACE,
                                    core.RESTRICTED_ICC_PROFILE):
-                msg = ("Color Specification box method must specify "
-                       "either an enumerated colorspace or a restricted "
-                       "ICC profile if the file type box brand is 'jp2 '.")
+                msg = (
+                    "Color Specification box method must specify either an "
+                    "enumerated colorspace or a restricted ICC profile if the "
+                    "file type box brand is 'jp2 '."
+                )
                 warnings.warn(msg, UserWarning)
 
         # We need to have one and only one JP2C box if we have a JP2 file.
@@ -502,7 +554,8 @@ class Jp2k(Jp2kBox):
             self._cparams.rsiz = core.OPJ_PROFILE_CINEMA_4K
 
     def _populate_cparams(self, img_array):
-        """Directs processing of write method arguments.
+        """
+        Directs processing of write method arguments.
 
         Parameters
         ----------
@@ -511,42 +564,6 @@ class Jp2k(Jp2kBox):
         kwargs : dictionary
             Non-image keyword inputs provided to write method.
         """
-        other_args = (
-            self._mct, self._cratios, self._psnr, self._irreversible,
-            self._cbsize, self._eph, self._grid_offset, self._modesw,
-            self._numres, self._prog, self._psizes, self._sop, self._subsam
-        )
-        if (
-            (
-                self._cinema2k is not None or self._cinema4k is not None
-            )
-            and (not all([arg is None for arg in other_args]))
-        ):
-            msg = ("Cannot specify cinema2k/cinema4k along with any other "
-                   "options.")
-            raise InvalidJp2kError(msg)
-
-        if self._psnr is not None:
-            if self._cratios is not None:
-                msg = "Cannot specify cratios and psnr options together."
-                raise InvalidJp2kError(msg)
-
-            if 0 in self._psnr and self._psnr[-1] != 0:
-                msg = ("If a zero value is supplied in the PSNR keyword "
-                       "argument, it must be in the final position.")
-                raise InvalidJp2kError(msg)
-
-            if (
-                (0 in self._psnr and np.any(np.diff(self._psnr[:-1]) < 0))
-                or (0 not in self._psnr and np.any(np.diff(self._psnr) < 0))
-            ):
-                msg = (
-                    "PSNR values must be increasing, with one exception - "
-                    "zero may be in the final position to indicate a lossless "
-                    "layer."
-                )
-                raise InvalidJp2kError(msg)
-
         cparams = opj2.set_default_encoder_parameters()
 
         outfile = self.filename.encode()
@@ -954,9 +971,10 @@ class Jp2k(Jp2kBox):
         offset = box.offset
         if offset == -1:
             if self.box[1].brand == 'jpx ':
-                msg = ("The codestream box must have its offset and length "
-                       "attributes fully specified if the file type brand is "
-                       "JPX.")
+                msg = (
+                    "The codestream box must have its offset and length "
+                    "attributes fully specified if the file type brand is JPX."
+                )
                 raise InvalidJp2kError(msg)
 
             # Find the first codestream in the file.
@@ -990,10 +1008,12 @@ class Jp2k(Jp2kBox):
     def _get_default_jp2_boxes(self):
         """Create a default set of JP2 boxes."""
         # Try to create a reasonable default.
-        boxes = [JPEG2000SignatureBox(),
-                 FileTypeBox(),
-                 JP2HeaderBox(),
-                 ContiguousCodestreamBox()]
+        boxes = [
+            JPEG2000SignatureBox(),
+            FileTypeBox(),
+            JP2HeaderBox(),
+            ContiguousCodestreamBox()
+        ]
         height = self.codestream.segment[1].ysiz
         width = self.codestream.segment[1].xsiz
         num_components = len(self.codestream.segment[1].xrsiz)
@@ -1009,9 +1029,12 @@ class Jp2k(Jp2kBox):
                 jp2hs = [box for box in self.box if box.box_id == 'jp2h']
                 colorspace = jp2hs[0].box[1].colorspace
 
-        boxes[2].box = [ImageHeaderBox(height=height, width=width,
-                                       num_components=num_components),
-                        ColourSpecificationBox(colorspace=colorspace)]
+        boxes[2].box = [
+            ImageHeaderBox(
+                height=height, width=width, num_components=num_components
+            ),
+            ColourSpecificationBox(colorspace=colorspace)
+        ]
 
         return boxes
 
@@ -1106,9 +1129,11 @@ class Jp2k(Jp2kBox):
             return self._read()
 
         if isinstance(pargs, slice):
-            if ((((pargs.start is None)
-                  and (pargs.stop is None)
-                  and (pargs.step is None)))):
+            if (
+                pargs.start is None
+                and pargs.stop is None
+                and pargs.step is None
+            ):
                 # Case of jp2[:]
                 return self._read()
 
@@ -1203,29 +1228,13 @@ class Jp2k(Jp2kBox):
 
     def read(self, **kwargs):
         """
+        Read a JPEG 2000 image.
+
+        Returns
+        -------
+        img_array : ndarray
+            The image data.
         """
-        # Read a JPEG 2000 image.
-        #
-        # Parameters
-        # ----------
-        # rlevel : int, optional
-        #     Factor by which to rlevel output resolution.  Use -1 to get the
-        #     lowest resolution thumbnail.  This is the only keyword option
-        #     available to use when the OpenJPEG version is 1.5 or earlier.
-        # layer : int, optional
-        #     Number of quality layer to decode.
-        # area : tuple, optional
-        #     Specifies decoding image area,
-        #     (first_row, first_col, last_row, last_col)
-        # tile : int, optional
-        #     Number of tile to decode.
-        # verbose : bool, optional
-        #     Print informational messages produced by the OpenJPEG library.
-        #
-        # Returns
-        # -------
-        # img_array : ndarray
-        #     The image data.
 
         if 'ignore_pclr_cmap_cdef' in kwargs:
             self.ignore_pclr_cmap_cdef = kwargs['ignore_pclr_cmap_cdef']

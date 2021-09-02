@@ -142,10 +142,9 @@ class PocType(ctypes.Structure):
     ]
 
     def __str__(self):
-        msg = "{0}:\n".format(self.__class__)
+        msg = f"{self.__class__}:\n"
         for field_name, _ in self._fields_:
-            msg += "    {0}: {1}\n".format(
-                field_name, getattr(self, field_name))
+            msg += f"    {field_name}: {getattr(self, field_name)}\n"
         return msg
 
 
@@ -213,10 +212,9 @@ class DecompressionParametersType(ctypes.Structure):
     ]
 
     def __str__(self):
-        msg = "{0}:\n".format(self.__class__)
+        msg = f"{self.__class__}:\n"
         for field_name, _ in self._fields_:
-            msg += "    {0}: {1}\n".format(
-                field_name, getattr(self, field_name))
+            msg += f"    {field_name}: {getattr(self, field_name)}\n"
         return msg
 
 
@@ -412,17 +410,17 @@ class CompressionParametersType(ctypes.Structure):
         _fields_.append(("rsiz", ctypes.c_uint16))
 
     def __str__(self):
-        msg = "{0}:\n".format(self.__class__)
+        msg = f"{self.__class__}:\n"
         for field_name, _ in self._fields_:
 
             if field_name == 'poc':
-                msg += "    numpocs: {0}\n".format(self.numpocs)
+                msg += f"    numpocs: {self.numpocs}\n"
 
             elif field_name in ['tcp_rates', 'tcp_distoratio']:
                 lst = []
                 arr = getattr(self, field_name)
                 lst = [arr[j] for j in range(self.tcp_numlayers)]
-                msg += "    {0}: {1}\n".format(field_name, lst)
+                msg += f"    {field_name}: {lst}\n"
 
             elif field_name in ['prcw_init', 'prch_init']:
                 pass
@@ -430,9 +428,9 @@ class CompressionParametersType(ctypes.Structure):
             elif field_name == 'res_spec':
                 prcw_init = [self.prcw_init[j] for j in range(self.res_spec)]
                 prch_init = [self.prch_init[j] for j in range(self.res_spec)]
-                msg += "    res_spec: {0}\n".format(self.res_spec)
-                msg += "    prch_init: {0}\n".format(prch_init)
-                msg += "    prcw_init: {0}\n".format(prcw_init)
+                msg += f"    res_spec: {self.res_spec}\n"
+                msg += f"    prch_init: {prch_init}\n"
+                msg += f"    prcw_init: {prcw_init}\n"
 
             elif field_name in [
                     'jpwl_hprot_tph_tileno', 'jpwl_hprot_tph',
@@ -440,11 +438,10 @@ class CompressionParametersType(ctypes.Structure):
                     'jpwl_sens_tph_tileno', 'jpwl_sens_tph']:
                 arr = getattr(self, field_name)
                 lst = [arr[j] for j in range(JPWL_MAX_NO_TILESPECS)]
-                msg += "    {0}: {1}\n".format(field_name, lst)
+                msg += f"    {field_name}: {lst}\n"
 
             else:
-                msg += "    {0}: {1}\n".format(
-                    field_name, getattr(self, field_name))
+                msg += f"    {field_name}: {getattr(self, field_name)}\n"
         return msg
 
 
@@ -491,10 +488,9 @@ class ImageCompType(ctypes.Structure):
         _fields_.append(("alpha", ctypes.c_uint16))
 
     def __str__(self):
-        msg = "{0}:\n".format(self.__class__)
+        msg = f"{self.__class__}:\n"
         for field_name, _ in self._fields_:
-            msg += "    {0}: {1}\n".format(
-                field_name, getattr(self, field_name))
+            msg += f"    {field_name}: {getattr(self, field_name)}\n"
         return msg
 
 
@@ -530,13 +526,13 @@ class ImageType(ctypes.Structure):
     ]
 
     def __str__(self):
-        msg = "{0}:\n".format(self.__class__)
+        msg = f"{self.__class__}:\n"
         for field_name, _ in self._fields_:
 
             if field_name == "numcomps":
-                msg += "    numcomps: {0}\n".format(self.numcomps)
+                msg += f"    numcomps: {self.numcomps}\n"
                 for j in range(self.numcomps):  # pragma: no cover
-                    msg += "        comps[#{0}]:\n".format(j)
+                    msg += f"        comps[#{j}]:\n"
                     msg += textwrap.indent(str(self.comps[j]), ' ' * 12)
 
             elif field_name == "comps":
@@ -544,8 +540,7 @@ class ImageType(ctypes.Structure):
                 pass
 
             else:
-                msg += "    {0}: {1}\n".format(
-                    field_name, getattr(self, field_name))
+                msg += f"    {field_name}: {getattr(self, field_name)}\n"
 
         return msg
 
@@ -580,10 +575,9 @@ class ImageComptParmType(ctypes.Structure):
     ]
 
     def __str__(self):
-        msg = "{0}:\n".format(self.__class__)
+        msg = f"{self.__class__}:\n"
         for field_name, _ in self._fields_:
-            msg += "    {0}: {1}\n".format(
-                field_name, getattr(self, field_name))
+            msg += f"    {field_name}: {getattr(self, field_name)}\n"
         return msg
 
 
@@ -1397,8 +1391,9 @@ def stream_create_default_file_stream(fname, isa_read_stream):
     OPENJP2.opj_stream_create_default_file_stream.restype = STREAM_TYPE_P
     read_stream = 1 if isa_read_stream else 0
     file_argument = ctypes.c_char_p(fname.encode())
-    stream = OPENJP2.opj_stream_create_default_file_stream(file_argument,
-                                                           read_stream)
+    stream = OPENJP2.opj_stream_create_default_file_stream(
+        file_argument, read_stream
+    )
     return stream
 
 

@@ -29,12 +29,11 @@ openjpeg_version = opj2.version()
 _sv = LooseVersion(openjpeg_version)
 openjpeg_version_tuple = _sv.version
 
-__doc__ = """\
-This is glymur **{glymur_version}**
+__doc__ = f"""\
+This is glymur **{version}**
 
-* OpenJPEG version:  **{openjpeg}**
-""".format(glymur_version=version,
-           openjpeg=openjpeg_version)
+* OpenJPEG version:  **{openjpeg_version}**
+"""
 
 info = f"""\
 Summary of glymur configuration

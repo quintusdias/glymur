@@ -36,10 +36,12 @@ import numpy as np
 
 # Local imports ...
 from .codestream import Codestream
-from .core import (_COLORSPACE_MAP_DISPLAY, _COLOR_TYPE_MAP_DISPLAY,
-                   SRGB, GREYSCALE, YCC,
-                   ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE,
-                   ANY_ICC_PROFILE, VENDOR_COLOR_METHOD)
+from .core import (
+    _COLORSPACE_MAP_DISPLAY, _COLOR_TYPE_MAP_DISPLAY,
+    SRGB, GREYSCALE, YCC,
+    ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE,
+    ANY_ICC_PROFILE, VENDOR_COLOR_METHOD
+)
 from ._tiff import tiff_header, BadTiffTagDatatype
 from . import get_option
 from ._iccprofile import _ICCProfile
@@ -177,8 +179,9 @@ class Jp2kBox(object):
                 f'encountered at byte offset {fptr.tell() - 8}.'
             )
             warnings.warn(msg, UserWarning)
-            box = UnknownBox(box_id, offset=start, length=num_bytes,
-                             longname='Unknown')
+            box = UnknownBox(
+                box_id, offset=start, length=num_bytes, longname='Unknown'
+            )
 
             return box
 
@@ -259,10 +262,11 @@ class Jp2kBox(object):
             elif fptr.tell() > start + num_bytes:
                 # The box must be invalid somehow, as the file pointer is
                 # positioned past the end of the box.
-                msg = ('{box_id} box may be invalid, the file pointer is '
-                       'positioned {num_bytes} bytes past the end of the box.')
-                msg = msg.format(box_id=box_id,
-                                 num_bytes=fptr.tell() - (start + num_bytes))
+                msg = (
+                    f'{box_id} box may be invalid, the file pointer is '
+                    f'positioned {fptr.tell() - (start + num_bytes)} bytes '
+                    'past the end of the box.'
+                )
                 warnings.warn(msg, UserWarning)
             fptr.seek(start + num_bytes)
 
@@ -304,9 +308,11 @@ class ColourSpecificationBox(Jp2kBox):
     longname = 'Colour Specification'
     box_id = 'colr'
 
-    def __init__(self, method=ENUMERATED_COLORSPACE, precedence=0,
-                 approximation=0, colorspace=None, icc_profile=None,
-                 length=0, offset=-1):
+    def __init__(
+        self, method=ENUMERATED_COLORSPACE, precedence=0,
+        approximation=0, colorspace=None, icc_profile=None,
+        length=0, offset=-1
+    ):
         super().__init__()
 
         self.method = method
@@ -447,11 +453,13 @@ class ColourSpecificationBox(Jp2kBox):
         length = 15 if self.icc_profile is None else 11 + len(self.icc_profile)
         fptr.write(struct.pack('>I4s', length, b'colr'))
 
-        read_buffer = struct.pack('>BBBI',
-                                  self.method,
-                                  self.precedence,
-                                  self.approximation,
-                                  self.colorspace)
+        read_buffer = struct.pack(
+            '>BBBI',
+            self.method,
+            self.precedence,
+            self.approximation,
+            self.colorspace
+        )
         fptr.write(read_buffer)
 
     @classmethod
@@ -497,13 +505,15 @@ class ColourSpecificationBox(Jp2kBox):
             else:
                 icc_profile = read_buffer[3:]
 
-        return cls(method=method,
-                   precedence=precedence,
-                   approximation=approximation,
-                   colorspace=colorspace,
-                   icc_profile=icc_profile,
-                   length=length,
-                   offset=offset)
+        return cls(
+            method=method,
+            precedence=precedence,
+            approximation=approximation,
+            colorspace=colorspace,
+            icc_profile=icc_profile,
+            length=length,
+            offset=offset
+        )
 
 
 class ChannelDefinitionBox(Jp2kBox):
@@ -574,9 +584,9 @@ class ChannelDefinitionBox(Jp2kBox):
             return title
 
         lst = []
-        for association, channel_type, index in zip(self.association,
-                                                    self.channel_type,
-                                                    self.index):
+        for association, channel_type, index in zip(
+            self.association, self.channel_type, self.index
+        ):
             try:
                 color_type_string = _COLOR_TYPE_MAP_DISPLAY[channel_type]
             except KeyError:
@@ -607,10 +617,12 @@ class ChannelDefinitionBox(Jp2kBox):
         fptr.write(struct.pack('>I4s', 8 + 2 + num_components * 6, b'cdef'))
         fptr.write(struct.pack('>H', num_components))
         for j in range(num_components):
-            fptr.write(struct.pack('>' + 'H' * 3,
-                                   self.index[j],
-                                   self.channel_type[j],
-                                   self.association[j]))
+            fptr.write(struct.pack(
+                '>' + 'H' * 3,
+                self.index[j],
+                self.channel_type[j],
+                self.association[j])
+            )
 
     @classmethod
     def parse(cls, fptr, offset, length):
@@ -636,16 +648,19 @@ class ChannelDefinitionBox(Jp2kBox):
         # Read the number of components.
         num_components, = struct.unpack_from('>H', read_buffer)
 
-        data = struct.unpack_from('>' + 'HHH' * num_components, read_buffer,
-                                  offset=2)
+        data = struct.unpack_from(
+            '>' + 'HHH' * num_components, read_buffer, offset=2
+        )
         index = data[0:num_components * 6:3]
         channel_type = data[1:num_components * 6:3]
         association = data[2:num_components * 6:3]
 
-        return cls(index=tuple(index),
-                   channel_type=tuple(channel_type),
-                   association=tuple(association),
-                   length=length, offset=offset)
+        return cls(
+            index=tuple(index),
+            channel_type=tuple(channel_type),
+            association=tuple(association),
+            length=length, offset=offset
+        )
 
 
 class CodestreamHeaderBox(Jp2kBox):
@@ -925,10 +940,12 @@ class ComponentMappingBox(Jp2kBox):
         fptr.write(write_buffer)
 
         for j in range(len(self.component_index)):
-            write_buffer = struct.pack('>HBB',
-                                       self.component_index[j],
-                                       self.mapping_type[j],
-                                       self.palette_index[j])
+            write_buffer = struct.pack(
+                '>HBB',
+                self.component_index[j],
+                self.mapping_type[j],
+                self.palette_index[j]
+            )
             fptr.write(write_buffer)
 
     @classmethod
@@ -1187,8 +1204,9 @@ class DataReferenceBox(Jp2kBox):
             # Create an in-memory binary stream for each URL box.
             box_fptr = io.BytesIO(read_buffer[box_offset:])
             box_buffer = box_fptr.read(8)
-            (box_length, box_id) = struct.unpack_from('>I4s', box_buffer,
-                                                      offset=0)
+            (box_length, box_id) = struct.unpack_from(
+                '>I4s', box_buffer, offset=0
+            )
             box = DataEntryURLBox.parse(box_fptr, 0, box_length)
 
             # Need to adjust the box start to that of the "real" file.
@@ -1226,8 +1244,10 @@ class FileTypeBox(Jp2kBox):
     longname = 'File Type'
     _valid_cls = ['jp2 ', 'jpx ', 'jpxb']
 
-    def __init__(self, brand='jp2 ', minor_version=0,
-                 compatibility_list=None, length=0, offset=-1):
+    def __init__(
+        self, brand='jp2 ', minor_version=0, compatibility_list=None,
+        length=0, offset=-1
+    ):
         super().__init__()
         self.brand = brand
         self.minor_version = minor_version
@@ -1402,9 +1422,11 @@ class FragmentListBox(Jp2kBox):
 
     def __repr__(self):
         msg = "glymur.jp2box.FragmentListBox({0}, {1}, {2})"
-        msg = msg.format(self.fragment_offset,
-                         self.fragment_length,
-                         self.data_reference)
+        msg = msg.format(
+            self.fragment_offset,
+            self.fragment_length,
+            self.data_reference
+        )
         return msg
 
     def __str__(self):
@@ -1435,10 +1457,12 @@ class FragmentListBox(Jp2kBox):
         fptr.write(struct.pack('>I4s', length, b'flst'))
         fptr.write(struct.pack('>H', num_items))
         for j in range(num_items):
-            write_buffer = struct.pack('>QIH',
-                                       self.fragment_offset[j],
-                                       self.fragment_length[j],
-                                       self.data_reference[j])
+            write_buffer = struct.pack(
+                '>QIH',
+                self.fragment_offset[j],
+                self.fragment_length[j],
+                self.data_reference[j]
+            )
             fptr.write(write_buffer)
 
     @classmethod
@@ -1707,14 +1731,15 @@ class ImageHeaderBox(Jp2kBox):
         # signedness and bps are stored together in a single byte
         bit_depth_signedness = 0x80 if self.signed else 0x00
         bit_depth_signedness |= self.bits_per_component - 1
-        read_buffer = struct.pack('>IIHBBBB',
-                                  self.height,
-                                  self.width,
-                                  self.num_components,
-                                  bit_depth_signedness,
-                                  self.compression,
-                                  1 if self.colorspace_unknown else 0,
-                                  1 if self.ip_provided else 0)
+        read_buffer = struct.pack(
+            '>IIHBBBB',
+            self.height, self.width,
+            self.num_components,
+            bit_depth_signedness,
+            self.compression,
+            1 if self.colorspace_unknown else 0,
+            1 if self.ip_provided else 0
+        )
         fptr.write(read_buffer)
 
     @classmethod
@@ -2108,8 +2133,9 @@ class PaletteBox(Jp2kBox):
 
         # Bits Per Sample.  Signed components aren't supported.
         bps_signed = [x - 1 for x in self.bits_per_component]
-        write_buffer = struct.pack('>' + 'B' * self.palette.shape[1],
-                                   *bps_signed)
+        write_buffer = struct.pack(
+            '>' + 'B' * self.palette.shape[1], *bps_signed
+        )
         fptr.write(write_buffer)
 
         # C(i,j)
@@ -2284,8 +2310,10 @@ class ReaderRequirementsBox(Jp2kBox):
     box_id = 'rreq'
     longname = 'Reader Requirements'
 
-    def __init__(self, fuam, dcm, standard_flag, standard_mask, vendor_feature,
-                 vendor_mask, length=0, offset=-1):
+    def __init__(
+        self, fuam, dcm, standard_flag, standard_mask, vendor_feature,
+        vendor_mask, length=0, offset=-1
+    ):
         super().__init__()
         self.fuam = fuam
         self.dcm = dcm
@@ -2297,15 +2325,19 @@ class ReaderRequirementsBox(Jp2kBox):
         self.offset = offset
 
     def __repr__(self):
-        msg = ("glymur.jp2box.ReaderRequirementsBox(fuam={fuam}, dcm={dcm}, "
-               "standard_flag={standard_flag}, standard_mask={standard_mask}, "
-               "vendor_feature={vendor_feature}, vendor_mask={vendor_mask})")
-        msg = msg.format(fuam=self.fuam,
-                         dcm=self.dcm,
-                         standard_flag=self.standard_flag,
-                         standard_mask=self.standard_mask,
-                         vendor_feature=self.vendor_feature,
-                         vendor_mask=self.vendor_mask)
+        msg = (
+            "glymur.jp2box.ReaderRequirementsBox(fuam={fuam}, dcm={dcm}, "
+            "standard_flag={standard_flag}, standard_mask={standard_mask}, "
+            "vendor_feature={vendor_feature}, vendor_mask={vendor_mask})"
+        )
+        msg = msg.format(
+            fuam=self.fuam,
+            dcm=self.dcm,
+            standard_flag=self.standard_flag,
+            standard_mask=self.standard_mask,
+            vendor_feature=self.vendor_feature,
+            vendor_mask=self.vendor_mask
+        )
         return msg
 
     def __str__(self):
@@ -2342,7 +2374,7 @@ class ReaderRequirementsBox(Jp2kBox):
 
         lst2 = []
         for j in range(len(self.vendor_feature)):
-            text = 'UUID {0}'.format(self.vendor_feature[j])
+            text = f'UUID {self.vendor_feature[j]}'
             lst2.append(text)
         text = '\n'.join(lst2)
         text = textwrap.indent(text, ' ' * 4)
@@ -2554,8 +2586,9 @@ class CaptureResolutionBox(Jp2kBox):
     box_id = 'resc'
     longname = 'Capture Resolution'
 
-    def __init__(self, vertical_resolution, horizontal_resolution, length=0,
-                 offset=-1):
+    def __init__(
+        self, vertical_resolution, horizontal_resolution, length=0, offset=-1
+    ):
         super().__init__()
         self.vertical_resolution = vertical_resolution
         self.horizontal_resolution = horizontal_resolution
@@ -2631,8 +2664,9 @@ class DisplayResolutionBox(Jp2kBox):
     box_id = 'resd'
     longname = 'Display Resolution'
 
-    def __init__(self, vertical_resolution, horizontal_resolution,
-                 length=0, offset=-1):
+    def __init__(
+        self, vertical_resolution, horizontal_resolution, length=0, offset=-1
+    ):
         super().__init__()
         self.vertical_resolution = vertical_resolution
         self.horizontal_resolution = horizontal_resolution
@@ -2792,15 +2826,15 @@ class NumberListBox(Jp2kBox):
 
         lst = []
         for j, association in enumerate(self.associations):
-            text = 'Association[{0}]:  '.format(j)
+            text = f'Association[{j}]:  '
             if association == 0:
                 text += 'the rendered result'
             elif (association >> 24) == 1:
                 idx = association & 0x00FFFFFF
-                text += 'codestream {0}'.format(idx)
+                text += f'codestream {idx}'
             elif (association >> 24) == 2:
                 idx = association & 0x00FFFFFF
-                text += 'compositing layer {0}'.format(idx)
+                text += f'compositing layer {idx}'
             else:
                 text += 'unrecognized'
             lst.append(text)
@@ -3186,10 +3220,12 @@ class DataEntryURLBox(Jp2kBox):
         url = url.encode()
 
         length = 8 + 1 + 3 + len(url)
-        write_buffer = struct.pack('>I4sBBBB',
-                                   length, b'url ',
-                                   self.version,
-                                   self.flag[0], self.flag[1], self.flag[2])
+        write_buffer = struct.pack(
+            '>I4sBBBB',
+            length, b'url ',
+            self.version,
+            self.flag[0], self.flag[1], self.flag[2]
+        )
         fptr.write(write_buffer)
         fptr.write(url)
 
@@ -3359,8 +3395,9 @@ class UUIDBox(Jp2kBox):
             self.data = self.raw_data
 
     def __repr__(self):
-        msg = ("glymur.jp2box.UUIDBox({0}, "
-               "raw_data=<byte array {1} elements>)")
+        msg = (
+            "glymur.jp2box.UUIDBox({0}, raw_data=<byte array {1} elements>)"
+        )
         return msg.format(repr(self.uuid), len(self.raw_data))
 
     def __str__(self):
@@ -3501,7 +3538,7 @@ class UUIDBox(Jp2kBox):
         return msg
 
     def GDALInfoReportCorner(self, hDataset, hTransform, corner_name, x, y):
-        line = '{:<11s} '.format(corner_name)
+        line = f'{corner_name:<11s} '
 
         # transform the point into georeferenced coordinates
         geo_transform = hDataset.GetGeoTransform(can_return_null=True)
