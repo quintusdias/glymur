@@ -152,3 +152,31 @@ class TestSuite(fixtures.TestCommon):
 
         codestream = j.get_codestream()
         self.assertEqual(codestream.segment[2].layers, 3)  # layers = 3
+
+    def test_plt_for_tiled_writing(self):
+        """
+        SCENARIO:  Use the plt keyword.
+
+        EXPECTED RESULT:  Plt segment is detected.
+        """
+        j2k_data = skimage.data.astronaut()
+
+        shape = (
+            j2k_data.shape[0] * 2, j2k_data.shape[1] * 2, j2k_data.shape[2]
+        )
+        tilesize = (j2k_data.shape[0], j2k_data.shape[1])
+
+        j = Jp2k(
+            self.temp_j2k_filename, shape=shape, tilesize=tilesize,
+            plt=True
+        )
+        for tw in j.get_tilewriters():
+            tw[:] = j2k_data
+
+        codestream = j.get_codestream(header_only=False)
+
+        at_least_one_plt = any(
+            isinstance(seg, glymur.codestream.PLTsegment)
+            for seg in codestream.segment
+        )
+        self.assertTrue(at_least_one_plt)

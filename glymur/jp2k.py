@@ -98,8 +98,8 @@ class Jp2k(Jp2kBox):
         self, filename, data=None, shape=None, tilesize=None, verbose=False,
         cbsize=None, cinema2k=None, cinema4k=None, colorspace=None,
         cratios=None, eph=None, grid_offset=None, irreversible=None, mct=None,
-        modesw=None, numres=None, prog=None, psizes=None, psnr=None, sop=None,
-        subsam=None,
+        modesw=None, numres=None, plt=False, prog=None, psizes=None, psnr=None,
+        sop=None, subsam=None,
     ):
         """
         Parameters
@@ -141,6 +141,8 @@ class Jp2k(Jp2kBox):
                 32 = SEGMARK(SEGSYM)
         numres : int, optional
             Number of resolutions.
+        plt : bool, optional
+            Generate PLT markers.
         prog : {"LRCP" "RLCP", "RPCL", "PCRL", "CPRL"}
             Progression order.
         psnr : iterable, optional
@@ -180,6 +182,7 @@ class Jp2k(Jp2kBox):
         self._mct = mct
         self._modesw = modesw
         self._numres = numres
+        self._plt = plt
         self._prog = prog
         self._psizes = psizes
         self._psnr = psnr
@@ -837,6 +840,9 @@ class Jp2k(Jp2kBox):
             opj2.set_error_handler(codec, _ERROR_CALLBACK)
 
             opj2.setup_encoder(codec, self._cparams, image)
+
+            if self._plt:
+                opj2.encoder_set_extra_options(codec, plt=self._plt)
 
             strm = opj2.stream_create_default_file_stream(self.filename, False)
 
@@ -2080,6 +2086,9 @@ class _TileWriter(object):
         self.image.contents.y1 = self.jp2k.shape[0]
 
         opj2.setup_encoder(self.codec, self.jp2k._cparams, self.image)
+
+        if self.jp2k._plt:
+            opj2.encoder_set_extra_options(self.codec, plt=self.jp2k._plt)
 
         self.stream = opj2.stream_create_default_file_stream(
             self.jp2k.filename, False

@@ -953,6 +953,33 @@ def image_tile_create(comptparms, clrspc):
     return image
 
 
+def encoder_set_extra_options(codec, plt=False):
+    """Specify extra options for the encoder.
+
+    Wraps the openjp2 library function opj_encoder_set_extra_options.
+
+    Parameters
+    ----------
+    codec:  codec_t
+        The JPEG2000 codec to read.
+    plt : bool
+        If True, PLT marker segments indicating the length of each packet in
+        the tile-part header will be written.
+    """
+    ARGTYPES = [
+        CODEC_TYPE,
+        ctypes.POINTER(ctypes.c_char_p)
+    ]
+    OPENJP2.opj_encoder_set_extra_options.argtypes = ARGTYPES
+    OPENJP2.opj_encoder_set_extra_options.restype = check_error
+
+    arr = (ctypes.c_char_p * 2)()
+    arr[0] = 'PLT=YES'.encode('utf-8') if plt else 'PLT=NO'.encode('utf-8')
+    arr[1] = None
+
+    OPENJP2.opj_encoder_set_extra_options(codec, arr)
+
+
 def read_header(stream, codec):
     """Decodes an image header.
 

@@ -1302,6 +1302,46 @@ class TestJp2k_write(fixtures.MetadataBase):
         with self.assertRaises(RuntimeError):
             Jp2k(self.temp_jp2_filename, **kwargs)
 
+    def test_plt_yes(self):
+        """
+        SCENARIO:  Use the plt keyword.
+
+        EXPECTED RESULT:  Plt segment is detected.
+        """
+        kwargs = {
+            'data': skimage.data.camera(),
+            'plt': True
+        }
+        j = Jp2k(self.temp_jp2_filename, **kwargs)
+
+        codestream = j.get_codestream(header_only=False)
+
+        at_least_one_plt = any(
+            isinstance(seg, glymur.codestream.PLTsegment)
+            for seg in codestream.segment
+        )
+        self.assertTrue(at_least_one_plt)
+
+    def test_plt_no(self):
+        """
+        SCENARIO:  Use the plt keyword set to false.
+
+        EXPECTED RESULT:  Plt segment is not detected.
+        """
+        kwargs = {
+            'data': skimage.data.camera(),
+            'plt': False
+        }
+        j = Jp2k(self.temp_jp2_filename, **kwargs)
+
+        codestream = j.get_codestream(header_only=False)
+
+        at_least_one_plt = any(
+            isinstance(seg, glymur.codestream.PLTsegment)
+            for seg in codestream.segment
+        )
+        self.assertFalse(at_least_one_plt)
+
     @unittest.skipIf(not _HAVE_SCIKIT_IMAGE, "No scikit-image found")
     def test_psnr_non_zero_non_monotonically_decreasing(self):
         """

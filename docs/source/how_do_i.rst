@@ -133,6 +133,21 @@ resulting in a 10240x10240x3 image.
 Note that the tiles are written out left-to-right, tile-row-by-tile-row.  You must
 have image data ready to feed each tile writer, you cannot skip a tile.
 
+****************************************
+... force the generation of PLT markers?
+****************************************
+With glymur 0.9.5 or higher, you can instruct the encoder to generate PLT markers
+by using either the plt keyword or the plt property.
+
+    >>> import glymur, skimage.data
+    >>> jp2 = glymur.Jp2k('astronaut.jp2', plt=True)
+    >>> jp2[:] = skimage.data.astronaut()
+    >>> c = jp2.get_codestream(header_only=False)
+    >>> print(c.segment[6])
+    PLT marker segment @ (222, 45)
+        Index:  0
+        Iplt:  [271, 201, 208, 749, 551, 548, 2569, 1852, 1814, 8300, 6370, 6061, 26987, 23437, 21431, 88511, 86763, 77253]
+
 ************************************************************************
 ... write images with different compression ratios for different layers?
 ************************************************************************

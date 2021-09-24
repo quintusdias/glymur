@@ -3,6 +3,12 @@ Changes in glymur 0.9
 #####################
 
 ****************
+Changes in 0.9.5
+****************
+
+    * Add support for generation of PLT markers.
+
+****************
 Changes in 0.9.4
 ****************
 
