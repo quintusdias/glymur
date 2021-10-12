@@ -61,24 +61,31 @@ class Ifd(object):
     processed_ifd : dictionary
         Maps tag name to "mildly-interpreted" tag value.
     """
-    datatype2fmt = {1: ('B', 1),
-                    2: ('B', 1),
-                    3: ('H', 2),
-                    4: ('I', 4),
-                    5: ('II', 8),
-                    7: ('B', 1),
-                    9: ('i', 4),
-                    10: ('ii', 8),
-                    11: ('f', 4),
-                    12: ('d', 8)}
+    datatype2fmt = {
+        1: ('B', 1),
+        2: ('B', 1),
+        3: ('H', 2),
+        4: ('I', 4),
+        5: ('II', 8),
+        7: ('B', 1),
+        9: ('i', 4),
+        10: ('ii', 8),
+        11: ('f', 4),
+        12: ('d', 8),
+        13: ('I', 4),
+        16: ('Q', 8),
+        17: ('q', 8),
+        18: ('Q', 8)
+    }
 
     def __init__(self, endian, read_buffer, offset):
         self.endian = endian
         self.read_buffer = read_buffer
         self.processed_ifd = OrderedDict()
 
-        self.num_tags, = struct.unpack(endian + 'H',
-                                       read_buffer[offset:offset + 2])
+        self.num_tags, = struct.unpack(
+            endian + 'H', read_buffer[offset:offset + 2]
+        )
 
         fmt = self.endian + 'HHII' * self.num_tags
         ifd_buffer = read_buffer[offset + 2:offset + 2 + self.num_tags * 12]
@@ -89,14 +96,15 @@ class Ifd(object):
             # plus 2 bytes for the number of tags plus 12 bytes for each
             # tag entry plus 8 bytes to the offset/payload itself.
             toffp = read_buffer[offset + 10 + j * 12:offset + 10 + j * 12 + 4]
-            tag_data = self.parse_tag(data[j * 4 + 1],
-                                      data[j * 4 + 2],
-                                      toffp)
+            tag_data = self.parse_tag(
+                tag, data[j * 4 + 1], data[j * 4 + 2], toffp
+            )
             self.raw_ifd[tag] = tag_data
 
-    def parse_tag(self, dtype, count, offset_buf):
+    def parse_tag(self, tag, dtype, count, offset_buf):
         """Interpret an Exif image tag data payload.
         """
+
         try:
             fmt = self.datatype2fmt[dtype][0] * count
             payload_size = self.datatype2fmt[dtype][1] * count
@@ -141,7 +149,7 @@ class Ifd(object):
                 tag_name = tagnum2name[tag]
             except KeyError:
                 # Ok, we don't recognize this tag.  Just use the numeric id.
-                msg = 'Unrecognized UUID box TIFF tag ({tag}).'
+                msg = f'Unrecognized UUID box TIFF tag ({tag}).'
                 warnings.warn(msg, UserWarning)
                 tag_name = tag
             self.processed_ifd[tag_name] = value
@@ -178,9 +186,13 @@ class ExifImageIfd(Ifd):
         277: 'SamplesPerPixel',
         278: 'RowsPerStrip',
         279: 'StripByteCounts',
+        280: 'MinSampleValue',
+        281: 'MaxSampleValue',
         282: 'XResolution',
         283: 'YResolution',
         284: 'PlanarConfiguration',
+        286: 'XPosition',
+        287: 'YPosition',
         290: 'GrayResponseUnit',
         291: 'GrayResponseCurve',
         292: 'T4Options',
@@ -234,6 +246,9 @@ class ExifImageIfd(Ifd):
         18246: 'Rating',
         18249: 'RatingPercent',
         32781: 'ImageID',
+        32996: 'Datatype',
+        32997: 'ImageDepth',
+        32998: 'TileDepth',
         33421: 'CFARepeatPatternDim',
         33422: 'CFAPattern',
         33423: 'BatteryLevel',
@@ -242,6 +257,7 @@ class ExifImageIfd(Ifd):
         33437: 'FNumber',
         33550: 'ModelPixelScale',
         33723: 'IPTCNAA',
+        33918: 'INGRPacketDataTag',
         33922: 'ModelTiePoint',
         34264: 'ModelTransformation',
         34377: 'ImageResources',
@@ -288,6 +304,8 @@ class ExifImageIfd(Ifd):
         40093: 'XPAuthor',
         40094: 'XPKeywords',
         40095: 'XPSubject',
+        42112: 'GDALMetadata',
+        42113: 'GDALNoData',
         50341: 'PrintImageMatching',
         50706: 'DNGVersion',
         50707: 'DNGBackwardVersion',

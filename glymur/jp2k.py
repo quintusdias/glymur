@@ -123,7 +123,7 @@ class Jp2k(Jp2kBox):
         cratios : iterable, optional
             Compression ratios for successive layers.
         eph : bool, optional
-            If true, write SOP marker after each header packet.
+            If true, write EPH marker after each header packet.
         grid_offset : tuple, optional
             Offset (DY, DX) of the origin of the image in the reference grid.
         irreversible : bool, optional
@@ -220,6 +220,20 @@ class Jp2k(Jp2kBox):
             # contents, then determine "shape".
             self.parse()
             self._initialize_shape()
+
+        if (
+            self.shape is not None
+            and self.tilesize is not None
+            and (
+                self.tilesize[0] > self.shape[0]
+                or self.tilesize[1] > self.shape[1]
+            )
+        ):
+            msg = (
+                f"The tile size {self.tilesize} cannot exceed the image "
+                f"size {self.shape[:2]}."
+            )
+            raise RuntimeError(msg)
 
     def _validate_kwargs(self):
         """
@@ -1994,8 +2008,12 @@ class _TileWriter(object):
     def __init__(self, jp2k):
         self.jp2k = jp2k
 
-        self.num_tile_rows = int(self.jp2k.shape[0] / self.jp2k.tilesize[0])
-        self.num_tile_cols = int(self.jp2k.shape[1] / self.jp2k.tilesize[1])
+        self.num_tile_rows = int(
+            np.ceil(self.jp2k.shape[0] / self.jp2k.tilesize[0])
+        )
+        self.num_tile_cols = int(
+            np.ceil(self.jp2k.shape[1] / self.jp2k.tilesize[1])
+        )
         self.number_of_tiles = self.num_tile_rows * self.num_tile_cols
 
     def __iter__(self):

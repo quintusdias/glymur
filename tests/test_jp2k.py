@@ -1338,7 +1338,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             self.assertFalse(codestream.segment[2].scod & 4)  # no eph
             self.assertEqual(codestream.segment[2].prog_order,
                              glymur.core.PCRL)
-            self.assertEqual(codestream.segment[2].layers, 1)  # layers = 1
+            self.assertEqual(codestream.segment[2].layers, 1)
             self.assertEqual(codestream.segment[2].mct, 1)  # mct
             self.assertEqual(codestream.segment[2].num_res, 5)  # levels
             self.assertEqual(tuple(codestream.segment[2].code_block_size),
@@ -1640,8 +1640,10 @@ class TestJp2k_write(fixtures.MetadataBase):
             j = Jp2k(tfile.name, data=self.jp2_data, irreversible=True)
 
             codestream = j.get_codestream()
-            self.assertEqual(codestream.segment[2].xform,
-                             glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
+            self.assertEqual(
+                codestream.segment[2].xform,
+                glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE
+            )
 
     def test_cinema2K_with_others(self):
         """

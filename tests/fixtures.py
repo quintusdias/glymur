@@ -45,6 +45,7 @@ class TestCommon(unittest.TestCase):
         self.temp_jp2_filename = self.test_dir_path / 'test.jp2'
         self.temp_j2k_filename = self.test_dir_path / 'test.j2k'
         self.temp_jpx_filename = self.test_dir_path / 'test.jpx'
+        self.temp_tiff_filename = self.test_dir_path / 'test.tif'
 
     def tearDown(self):
         shutil.rmtree(self.test_dir)

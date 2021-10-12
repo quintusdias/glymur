@@ -996,10 +996,12 @@ class TestPrinting(fixtures.TestCommon):
 
             actual = str(j.box[5])
 
-        expected = ("UUID Box (uuid) @ (1135519, 76)\n"
-                    "    UUID:  4a706754-6966-6645-7869-662d3e4a5032 (EXIF)\n"
-                    "    UUID Data:  OrderedDict([('ImageWidth', 256), "
-                    "('ImageLength', 512), ('Make', 'HTC')])")
+        expected = (
+            "UUID Box (uuid) @ (1135519, 76)\n"
+            "    UUID:  4a706754-6966-6645-7869-662d3e4a5032 (EXIF)\n"
+            "    UUID Data:  OrderedDict([('ImageWidth', 256), "
+            "('ImageLength', 512), ('Make', 'HTC')])"
+        )
         self.assertEqual(actual, expected)
 
     def test_crg(self):

@@ -15,7 +15,10 @@ kwargs = {
     'packages': ['glymur', 'glymur.data', 'glymur.lib', 'tests'],
     'package_data': {'glymur': ['data/*.jp2', 'data/*.j2k', 'data/*.jpx']},
     'entry_points': {
-        'console_scripts': ['jp2dump=glymur.command_line:main'],
+        'console_scripts': [
+            'jp2dump=glymur.command_line:main',
+            'tiff2jp2=glymur.command_line:tiff2jp2'
+        ],
     },
     'license': 'MIT',
     'test_suite': 'glymur.test',
