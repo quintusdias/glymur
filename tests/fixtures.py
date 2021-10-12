@@ -2,6 +2,7 @@
 Test fixtures common to more than one test point.
 """
 # Standard library imports
+import importlib.resources as ir
 import pathlib
 import shutil
 import tempfile
@@ -37,6 +38,9 @@ class TestCommon(unittest.TestCase):
         self.jp2file = glymur.data.nemo()
         self.j2kfile = glymur.data.goodstuff()
         self.jpxfile = glymur.data.jpxfile()
+
+        with ir.path('tests.data', 'zackthecat.tif') as filename:
+            self.tiff_file = filename
 
         # Create a temporary directory to be cleaned up following each test, as
         # well as names for a JP2 and a J2K file.
