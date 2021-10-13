@@ -25,6 +25,41 @@ class LibTIFFError(RuntimeError):
     pass
 
 
+class Compression(IntEnum):
+    """
+    Compression scheme used on the image data.
+
+    See Also
+    --------
+    Photometric : The color space of the image data.
+    """
+    NONE = 1
+    CCITTRLE = 2  # CCITT modified Huffman RLE
+    CCITTFAX3 = 3  # CCITT Group 3 fax encoding
+    CCITT_T4 = 3  # CCITT T.4 (TIFF 6 name)
+    CCITTFAX4 = 4  # CCITT Group 4 fax encoding
+    CCITT_T6 = 4  # CCITT T.6 (TIFF 6 name)
+    LZW = 5  # Lempel-Ziv  & Welch
+    OJPEG = 6  # 6.0 JPEG
+    JPEG = 7  # JPEG DCT compression
+    T85 = 9  # TIFF/FX T.85 JBIG compression
+    T43 = 10  # TIFF/FX T.43 colour by layered JBIG compression
+    NEXT = 32766  # NeXT 2-bit RLE
+    CCITTRLEW = 32771  # #1 w/ word alignment
+    PACKBITS = 32773  # Macintosh RLE
+    THUNDERSCAN = 32809  # ThunderScan RLE
+    PIXARFILM = 32908   # companded 10bit LZW
+    PIXARLOG = 32909   # companded 11bit ZIP
+    DEFLATE = 32946  # compression
+    ADOBE_DEFLATE = 8       # compression, as recognized by Adobe
+    DCS = 32947   # DCS encoding
+    JBIG = 34661  # JBIG
+    SGILOG = 34676  # Log Luminance RLE
+    SGILOG24 = 34677  # Log 24-bit packed
+    JP2000 = 34712   # JPEG2000
+    LZMA = 34925  # LZMA2
+
+
 class Orientation(IntEnum):
     """
     The orientation of the image with respect to the rows and columns.
@@ -37,6 +72,74 @@ class Orientation(IntEnum):
     RIGHTTOP = 6  # row 0 rhs, col 0 top */
     RIGHTBOT = 7  # row 0 rhs, col 0 bottom */
     LEFTBOT = 8  # row 0 lhs, col 0 bottom */
+
+
+class Photometric(IntEnum):
+    """
+    The color space of the image data.
+
+    Examples
+    --------
+
+    Load an image of astronaut Eileen Collins from scikit-image.
+
+    >>> import numpy as np
+    >>> import skimage.data
+    >>> image = skimage.data.astronaut()
+
+    Create a BigTIFF with JPEG compression.  There is not much reason to do
+    this if you do not also specify YCbCr as the photometric interpretation.
+
+    >>> w, h, nz = image.shape
+    >>> from spiff import TIFF, lib
+    >>> t = TIFF('astronaut-jpeg.tif', mode='w8')
+    >>> t['Photometric'] = lib.Photometric.YCBCR
+    >>> t['Compression'] = lib.Compression.JPEG
+    >>> t['JPEGColorMode'] = lib.JPEGColorMode.RGB
+    >>> t['PlanarConfig'] = lib.PlanarConfig.CONTIG
+    >>> t['JPEGQuality'] = 90
+    >>> t['YCbCrSubsampling'] = (1, 1)
+    >>> t['ImageWidth'] = w
+    >>> t['ImageLength'] = h
+    >>> t['TileWidth'] = int(w/2)
+    >>> t['TileLength'] = int(h/2)
+    >>> t['BitsPerSample'] = 8
+    >>> t['SamplesPerPixel'] = nz
+    >>> t['Software'] = lib.getVersion()
+    >>> t[:] = image
+    >>> t
+    TIFF Directory at offset 0x0 (0)
+      Image Width: 512 Image Length: 512
+      Tile Width: 256 Tile Length: 256
+      Bits/Sample: 8
+      Compression Scheme: JPEG
+      Photometric Interpretation: YCbCr
+      YCbCr Subsampling: 1, 1
+      Samples/Pixel: 3
+      Planar Configuration: single image plane
+      Reference Black/White:
+         0:     0   255
+         1:   128   255
+         2:   128   255
+      Software: LIBTIFF, Version 4.0.9
+    Copyright (c) 1988-1996 Sam Leffler
+    Copyright (c) 1991-1996 Silicon Graphics, Inc.
+      JPEG Tables: (574 bytes)
+    <BLANKLINE>
+    """
+    MINISWHITE = 0  # value is white
+    MINISBLACK = 1  # value is black
+    RGB = 2  # color model
+    PALETTE = 3  # map indexed
+    MASK = 4  # holdout mask
+    SEPARATED = 5  # color separations
+    YCBCR = 6  # CCIR 601
+    CIELAB = 8  # 1976 CIE L*a*b*
+    ICCLAB = 9  # L*a*b* [Adobe TIFF Technote 4]
+    ITULAB = 10  # L*a*b*
+    CFA = 32803  # filter array
+    LOGL = 32844  # Log2(L)
+    LOGLUV = 32845  # Log2(L) (u',v')
 
 
 def _handle_error(module, fmt, ap):
@@ -137,6 +240,26 @@ def getField(fp, tag):
     return value
 
 
+def readEncodedTile(fp, tilenum, tile):
+    """
+    Corresponds to TIFFComputeTile
+    """
+    err_handler, warn_handler = _set_error_warning_handlers()
+
+    ARGTYPES = [
+        ctypes.c_void_p, ctypes.c_uint32, ctypes.c_void_p, ctypes.c_int32
+    ]
+    _LIBTIFF.TIFFReadEncodedTile.argtypes = ARGTYPES
+    _LIBTIFF.TIFFReadEncodedTile.restype = check_error
+    _LIBTIFF.TIFFReadEncodedTile(
+        fp, tilenum, tile.ctypes.data_as(ctypes.c_void_p), -1
+    )
+
+    _reset_error_warning_handlers(err_handler, warn_handler)
+
+    return tile
+
+
 def readRGBAImageOriented(fp, width=None, height=None,
                           orientation=Orientation.TOPLEFT):
     """
@@ -181,6 +304,23 @@ def readRGBAImageOriented(fp, width=None, height=None,
     _reset_error_warning_handlers(err_handler, warn_handler)
 
     return img
+
+
+def writeEncodedTile(fp, tilenum, tiledata, size=-1):
+    """
+    Corresponds to TIFFWriteEncodedTile.
+    """
+    err_handler, warn_handler = _set_error_warning_handlers()
+
+    ARGTYPES = [
+        ctypes.c_void_p, ctypes.c_uint32, ctypes.c_void_p, ctypes.c_uint32
+    ]
+    _LIBTIFF.TIFFWriteEncodedTile.argtypes = ARGTYPES
+    _LIBTIFF.TIFFWriteEncodedTile.restype = check_error
+    raster = tiledata.ctypes.data_as(ctypes.c_void_p)
+    _LIBTIFF.TIFFWriteEncodedTile(fp, tilenum, raster, size)
+
+    _reset_error_warning_handlers(err_handler, warn_handler)
 
 
 def RGBAImageOK(fp):
@@ -334,6 +474,105 @@ def setErrorHandler(func=_ERROR_HANDLER):
     _LIBTIFF.TIFFSetErrorHandler.restype = _WFUNCTYPE
     old_error_handler = _LIBTIFF.TIFFSetErrorHandler(func)
     return old_error_handler
+
+
+def setField(fp, tag, value):
+    """
+    Corresponds to TIFFSetField
+    """
+    err_handler, warn_handler = _set_error_warning_handlers()
+
+    ARGTYPES = [ctypes.c_void_p, ctypes.c_int32]
+
+    # Append the proper return type for the tag.
+    tag_num = TAGS[tag]['number']
+    tag_type = TAGS[tag]['type']
+    if tag_num == 320:
+        # ColorMap
+        # One array passed for each sample.
+        args = [ctypes.POINTER(ctypes.c_uint16) for _ in range(value.shape[1])]
+        ARGTYPES.extend(args)
+    elif tag_num == 330:
+        # SubIFDs
+        ARGTYPES.extend([ctypes.c_uint16, ctypes.POINTER(ctypes.c_uint64)])
+    elif tag_num == 333:
+        # InkNames
+        ARGTYPES.extend([ctypes.c_uint16, ctypes.c_char_p])
+    elif tag_num == 338:
+        # ExtraSamples
+        ARGTYPES.extend([ctypes.c_uint16, ctypes.POINTER(ctypes.c_uint16)])
+    elif tag_num == 530:
+        ARGTYPES.extend(tag_type)
+    else:
+        ARGTYPES.append(tag_type)
+    _LIBTIFF.TIFFSetField.argtypes = ARGTYPES
+    _LIBTIFF.TIFFSetField.restype = check_error
+
+    if tag_num == 284 and value == lib.PlanarConfig.SEPARATE:
+        msg = (
+            "Writing images with planar configuration SEPARATE is not "
+            "supported."
+        )
+        raise NotImplementedError(msg)
+
+    elif tag_num == 320:
+        # ColorMap:  split the colormap into uint16 arrays for each sample.
+        columns = [
+            value[:, j].astype(np.uint16) for j in range(value.shape[1])
+        ]
+
+        red = columns[0].ctypes.data_as(ctypes.POINTER(ctypes.c_uint16))
+        green = columns[1].ctypes.data_as(ctypes.POINTER(ctypes.c_uint16))
+        blue = columns[2].ctypes.data_as(ctypes.POINTER(ctypes.c_uint16))
+        _LIBTIFF.TIFFSetField(fp, tag_num, red, green, blue)
+
+    elif tag_num == 330:
+        # SubIFDs:  the array value should just be zeros.  No need for the
+        # user to pass anything but the count.
+        n = value
+        arr = (ctypes.c_uint64 * n)()
+        for j in range(n):
+            arr[j] = 0
+
+        _LIBTIFF.TIFFSetField(fp, tag_num, n, arr)
+
+    elif tag_num == 333:
+        # InkNames
+        # Input is an iterable of strings.  Turn it into a null-terminated and
+        # null-separated single string.
+        inks = '\0'.join(value) + '\0'
+        inks = inks.encode('utf-8')
+        n = len(inks)
+        _LIBTIFF.TIFFSetField(fp, tag_num, n, ctypes.c_char_p(inks))
+
+    elif tag_num == 338:
+        # ExtraSamples
+        # We pass a count and an array of values.
+        try:
+            n = len(value)
+        except TypeError:
+            # singleton?
+            n = 1
+            value = [value]
+
+        arr = (ctypes.c_uint16 * n)()
+        for j in range(n):
+            arr[j] = value[j]
+
+        _LIBTIFF.TIFFSetField(fp, tag_num, n, arr)
+
+    elif tag_num == 530:
+        _LIBTIFF.TIFFSetField(fp, tag_num, value[0], value[1])
+    elif tag_num == 306 and isinstance(value, datetime.datetime):
+        value = value.strftime('%Y:%m:%d %H:%M:%S').encode('utf-8')
+        _LIBTIFF.TIFFSetField(fp, tag_num, ctypes.c_char_p(value))
+    elif tag_type == ctypes.c_char_p:
+        value = value.encode('utf-8')
+        _LIBTIFF.TIFFSetField(fp, tag_num, ctypes.c_char_p(value))
+    else:
+        _LIBTIFF.TIFFSetField(fp, tag_num, value)
+
+    _reset_error_warning_handlers(err_handler, warn_handler)
 
 
 def setWarningHandler(func=_WARNING_HANDLER):
