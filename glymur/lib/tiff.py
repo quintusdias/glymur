@@ -1,5 +1,6 @@
 # standard library imports
 import ctypes
+import datetime
 from enum import IntEnum
 import os
 import queue
@@ -142,6 +143,18 @@ class Photometric(IntEnum):
     LOGLUV = 32845  # Log2(L) (u',v')
 
 
+class SampleFormat(IntEnum):
+    """
+    Specifies how to interpret each data sample in a pixel.
+    """
+    UINT = 1
+    INT = 2
+    IEEEFP = 3
+    VOID = 4
+    COMPLEXINT = 5
+    COMPLEXIEEEP = 6
+
+
 def _handle_error(module, fmt, ap):
     # Use VSPRINTF in the C library to put together the error message.
     # int vsprintf(char * buffer, const char * restrict format, va_list ap);
@@ -238,6 +251,23 @@ def getField(fp, tag):
     _reset_error_warning_handlers(err_handler, warn_handler)
 
     return value
+
+
+def numberOfTiles(fp):
+    """
+    Corresponds to TIFFNumberOfTiles.
+    """
+    err_handler, warn_handler = _set_error_warning_handlers()
+
+    ARGTYPES = [ctypes.c_void_p]
+    _LIBTIFF.TIFFNumberOfTiles.argtypes = ARGTYPES
+    _LIBTIFF.TIFFNumberOfTiles.restype = ctypes.c_uint32
+
+    numtiles = _LIBTIFF.TIFFNumberOfTiles(fp)
+
+    _reset_error_warning_handlers(err_handler, warn_handler)
+
+    return numtiles
 
 
 def readEncodedTile(fp, tilenum, tile):
@@ -508,7 +538,7 @@ def setField(fp, tag, value):
     _LIBTIFF.TIFFSetField.argtypes = ARGTYPES
     _LIBTIFF.TIFFSetField.restype = check_error
 
-    if tag_num == 284 and value == lib.PlanarConfig.SEPARATE:
+    if tag_num == 284 and value == _LIBTIFF.PlanarConfig.SEPARATE:
         msg = (
             "Writing images with planar configuration SEPARATE is not "
             "supported."

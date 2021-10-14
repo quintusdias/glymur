@@ -55,5 +55,3 @@ class TestSuite(fixtures.TestCommon):
         libtiff.close(fp)
 
         np.testing.assert_array_equal(data, actual_data)
-
-

@@ -1,3 +1,6 @@
+# 3rd party library imports
+import numpy as np
+
 # local imports
 from glymur import Jp2k
 from .lib import tiff as libtiff
@@ -24,6 +27,8 @@ class Tiff2Jp2(object):
         width = libtiff.getFieldDefaulted(self.tiff_fp, 'ImageWidth')
         height = libtiff.getFieldDefaulted(self.tiff_fp, 'ImageLength')
         spp = libtiff.getFieldDefaulted(self.tiff_fp, 'SamplesPerPixel')
+        sf = libtiff.getFieldDefaulted(self.tiff_fp, 'SampleFormat')
+        bps = libtiff.getFieldDefaulted(self.tiff_fp, 'BitsPerSample')
         tw = libtiff.getFieldDefaulted(self.tiff_fp, 'TileWidth')
         th = libtiff.getFieldDefaulted(self.tiff_fp, 'TileLength')
 
@@ -33,8 +38,20 @@ class Tiff2Jp2(object):
             if spp < 4:
                 image = image[:, :, :3]
 
-        self.write(image)
+            Jp2k(self.jp2_filename, data=image)
 
-    def write(self, image):
+        elif (
+            (width % tw) == 0
+            and (height % th) == 0
+            and bps == 8
+            and sf == libtiff.SampleFormat.UINT
+        ):
 
-        Jp2k(self.jp2_filename, data=image)
+            # The image is evenly tiled uint8.  This is ideal.
+            tile = np.zeros((th, tw), dtype=np.uint8)
+            jp2 = Jp2k(
+                self.jp2_filename, shape=(height, width), tilesize=(th, tw)
+            )
+            for idx, tilewriter in enumerate(jp2.get_tilewriters()):
+                libtiff.readEncodedTile(self.tiff_fp, idx, tile)
+                tilewriter[:] = tile
