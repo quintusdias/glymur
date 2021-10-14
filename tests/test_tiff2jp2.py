@@ -103,6 +103,13 @@ class TestSuite(fixtures.TestCommon):
             with Tiff2Jp2(self.moon_tif, self.temp_jp2_filename) as j:
                 j.run()
 
-        actual = Jp2k(self.temp_jp2_filename)[:]
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
 
         np.testing.assert_array_equal(actual, self.moon_data)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 512)
+        self.assertEqual(c.segment[1].ysiz, 512)
+        self.assertEqual(c.segment[1].xtsiz, 256)
+        self.assertEqual(c.segment[1].ytsiz, 256)
