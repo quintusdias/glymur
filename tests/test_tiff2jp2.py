@@ -1,4 +1,5 @@
 # standard library imports
+import importlib.resources as ir
 import pathlib
 import shutil
 import tempfile
@@ -122,6 +123,9 @@ class TestSuite(fixtures.TestCommon):
         cls.test_tiff_dir = tempfile.mkdtemp()
         cls.test_tiff_path = pathlib.Path(cls.test_tiff_dir)
 
+        with ir.path('tests.data', 'zackthecat.tif') as filename:
+            cls.zackthecat = filename
+
         # uint8 spp=1 image
         cls.setup_moon(cls.test_tiff_path / 'moon.tif')
 
@@ -140,7 +144,7 @@ class TestSuite(fixtures.TestCommon):
         """
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            with Tiff2Jp2(self.tiff_file, self.temp_jp2_filename) as j:
+            with Tiff2Jp2(self.zackthecat, self.temp_jp2_filename) as j:
                 j.run()
 
         actual = Jp2k(self.temp_jp2_filename)[:]
