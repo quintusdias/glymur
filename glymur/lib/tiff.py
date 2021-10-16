@@ -61,6 +61,17 @@ class Compression(IntEnum):
     LZMA = 34925  # LZMA2
 
 
+class PlanarConfig(IntEnum):
+    """
+    How the components of each pixel are stored.
+
+    Writing images with a PlanarConfig value of PlanarConfig.SEPARATE is not
+    currently supported.
+    """
+    CONTIG = 1  # single image plane
+    SEPARATE = 2  # separate planes of data
+
+
 class Orientation(IntEnum):
     """
     The orientation of the image with respect to the rows and columns.
@@ -538,7 +549,7 @@ def setField(fp, tag, value):
     _LIBTIFF.TIFFSetField.argtypes = ARGTYPES
     _LIBTIFF.TIFFSetField.restype = check_error
 
-    if tag_num == 284 and value == _LIBTIFF.PlanarConfig.SEPARATE:
+    if tag_num == 284 and value == PlanarConfig.SEPARATE:
         msg = (
             "Writing images with planar configuration SEPARATE is not "
             "supported."

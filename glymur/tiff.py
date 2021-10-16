@@ -48,9 +48,9 @@ class Tiff2Jp2(object):
         ):
 
             # The image is evenly tiled uint8.  This is ideal.
-            tile = np.zeros((th, tw), dtype=np.uint8)
+            tile = np.zeros((th, tw, spp), dtype=np.uint8)
             jp2 = Jp2k(
-                self.jp2_filename, shape=(height, width), tilesize=(th, tw)
+                self.jp2_filename, shape=(height, width, spp), tilesize=(th, tw)
             )
             for idx, tilewriter in enumerate(jp2.get_tilewriters()):
                 libtiff.readEncodedTile(self.tiff_fp, idx, tile)
