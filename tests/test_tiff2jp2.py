@@ -10,7 +10,7 @@ import numpy as np
 import skimage.data
 
 # Local imports
-from glymur import Jp2k, Tiff2Jp2
+from glymur import Jp2k, Tiff2Jp2k
 from . import fixtures
 from glymur.lib import tiff as libtiff
 
@@ -144,7 +144,7 @@ class TestSuite(fixtures.TestCommon):
         """
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            with Tiff2Jp2(self.zackthecat, self.temp_jp2_filename) as j:
+            with Tiff2Jp2k(self.zackthecat, self.temp_jp2_filename) as j:
                 j.run()
 
         actual = Jp2k(self.temp_jp2_filename)[:]
@@ -158,7 +158,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
-        with Tiff2Jp2(self.moon_tif, self.temp_jp2_filename) as j:
+        with Tiff2Jp2k(self.moon_tif, self.temp_jp2_filename) as j:
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)
@@ -172,6 +172,30 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 256)
         self.assertEqual(c.segment[1].ytsiz, 256)
 
+    def test_moon__smaller_tilesize_specified(self):
+        """
+        SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF is evenly
+        tiled 2x2, but we want 4x4.
+
+        EXPECTED RESULT:  The data matches.  The JP2 file has 16 tiles.
+        """
+        with Tiff2Jp2k(
+            self.moon_tif, self.temp_jp2_filename,
+            tilesize=(128, 128)
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+
+        np.testing.assert_array_equal(actual, self.moon_data)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 512)
+        self.assertEqual(c.segment[1].ysiz, 512)
+        self.assertEqual(c.segment[1].xtsiz, 128)
+        self.assertEqual(c.segment[1].ytsiz, 128)
+
     def test_astronaut(self):
         """
         SCENARIO:  Convert RGB TIFF file to JP2.  The TIFF is evenly
@@ -179,7 +203,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
-        with Tiff2Jp2(self.astronaut_tif, self.temp_jp2_filename) as j:
+        with Tiff2Jp2k(self.astronaut_tif, self.temp_jp2_filename) as j:
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)

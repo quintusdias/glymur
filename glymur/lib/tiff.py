@@ -245,6 +245,23 @@ def close(fp):
     _reset_error_warning_handlers(err_handler, warn_handler)
 
 
+def computeTile(fp, x, y, z, sample):
+    """
+    Corresponds to TIFFComputeTile
+    """
+    err_handler, warn_handler = _set_error_warning_handlers()
+
+    ARGTYPES = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_uint32,
+                ctypes.c_uint32, ctypes.c_uint16]
+    _LIBTIFF.TIFFComputeTile.argtypes = ARGTYPES
+    _LIBTIFF.TIFFComputeTile.restype = ctypes.c_uint32
+    tilenum = _LIBTIFF.TIFFComputeTile(fp, x, y, z, sample)
+
+    _reset_error_warning_handlers(err_handler, warn_handler)
+
+    return tilenum
+
+
 def getField(fp, tag):
     """
     Corresponds to TIFFGetField in the TIFF library.

@@ -8,6 +8,7 @@ import warnings
 
 # Local imports ...
 from . import Jp2k, set_option, lib
+from .tiff import Tiff2Jp2k
 
 
 def main():
@@ -78,3 +79,25 @@ def main():
                 f"{warning.filename}:{warning.lineno}: "
                 f"{warning.category.__name__}: {warning.message}"
             )
+
+def tiff2jp2k():
+    """
+    Entry point for console script tiff2jp2k.
+    """
+
+    kwargs = {
+        'description': 'Convert TIFF to JPEG 2000.',
+        'formatter_class': argparse.ArgumentDefaultsHelpFormatter
+    }
+    parser = argparse.ArgumentParser(**kwargs)
+
+    parser.add_argument('tifffile')
+    parser.add_argument('jp2kfile')
+
+    args = parser.parse_args()
+
+    tiffpath = pathlib.Path(args.tifffile)
+    jp2kpath = pathlib.Path(args.jp2kfile)
+
+    with Tiff2Jp2k(tiffpath, jp2kpath) as j:
+        j.run()
