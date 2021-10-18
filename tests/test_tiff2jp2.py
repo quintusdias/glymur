@@ -68,6 +68,43 @@ class TestSuite(fixtures.TestCommon):
         cls.moon_tif = path
 
     @classmethod
+    def setup_moon3(cls, path):
+        """
+        SCENARIO:  create a simple monochromatic 3x3 tiled image
+        """
+        data = skimage.data.moon()
+        data = data[:480, :480]
+
+        h, w = data.shape
+        th, tw = h // 3, w // 3
+
+        fp = libtiff.open(path, mode='w')
+
+        libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
+        libtiff.setField(fp, 'ImageLength', data.shape[0])
+        libtiff.setField(fp, 'ImageWidth', data.shape[1])
+        libtiff.setField(fp, 'TileLength', th)
+        libtiff.setField(fp, 'TileWidth', tw)
+        libtiff.setField(fp, 'BitsPerSample', 8)
+        libtiff.setField(fp, 'SamplesPerPixel', 1)
+
+        libtiff.writeEncodedTile(fp, 0, data[:th, :tw].copy())
+        libtiff.writeEncodedTile(fp, 1, data[:th, tw:2 * w].copy())
+        libtiff.writeEncodedTile(fp, 2, data[:th, tw * 2:w].copy())
+        libtiff.writeEncodedTile(fp, 3, data[th:th * 2, :tw].copy())
+        libtiff.writeEncodedTile(fp, 4, data[th:th * 2, tw:2 * w].copy())
+        libtiff.writeEncodedTile(fp, 5, data[th:th * 2, tw * 2:w].copy())
+        libtiff.writeEncodedTile(fp, 6, data[2 * th:h, :tw].copy())
+        libtiff.writeEncodedTile(fp, 7, data[2 * th:h, tw:2 * w].copy())
+        libtiff.writeEncodedTile(fp, 8, data[2 * th:h, tw * 2:w].copy())
+
+        libtiff.close(fp)
+
+        cls.moon3_data = data
+        cls.moon3_tif = path
+
+    @classmethod
     def setup_astronaut(cls, path):
         """
         SCENARIO:  create a simple color 2x2 tiled image
@@ -128,6 +165,9 @@ class TestSuite(fixtures.TestCommon):
 
         # uint8 spp=1 image
         cls.setup_moon(cls.test_tiff_path / 'moon.tif')
+
+        # uint8 spp=1 image with 3x3 tiles
+        cls.setup_moon3(cls.test_tiff_path / 'moon3.tif')
 
         # uint8 spp=3 image
         cls.setup_astronaut(cls.test_tiff_path / 'astronaut.tif')
