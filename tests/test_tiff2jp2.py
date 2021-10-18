@@ -90,13 +90,13 @@ class TestSuite(fixtures.TestCommon):
         libtiff.setField(fp, 'SamplesPerPixel', 1)
 
         libtiff.writeEncodedTile(fp, 0, data[:th, :tw].copy())
-        libtiff.writeEncodedTile(fp, 1, data[:th, tw:2 * w].copy())
+        libtiff.writeEncodedTile(fp, 1, data[:th, tw:tw * 2].copy())
         libtiff.writeEncodedTile(fp, 2, data[:th, tw * 2:w].copy())
         libtiff.writeEncodedTile(fp, 3, data[th:th * 2, :tw].copy())
-        libtiff.writeEncodedTile(fp, 4, data[th:th * 2, tw:2 * w].copy())
+        libtiff.writeEncodedTile(fp, 4, data[th:th * 2, tw:tw * 2].copy())
         libtiff.writeEncodedTile(fp, 5, data[th:th * 2, tw * 2:w].copy())
         libtiff.writeEncodedTile(fp, 6, data[2 * th:h, :tw].copy())
-        libtiff.writeEncodedTile(fp, 7, data[2 * th:h, tw:2 * w].copy())
+        libtiff.writeEncodedTile(fp, 7, data[2 * th:h, tw:tw * 2].copy())
         libtiff.writeEncodedTile(fp, 8, data[2 * th:h, tw * 2:w].copy())
 
         libtiff.close(fp)
@@ -235,6 +235,30 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].ysiz, 512)
         self.assertEqual(c.segment[1].xtsiz, 128)
         self.assertEqual(c.segment[1].ytsiz, 128)
+
+    def test_moon3__larger_tilesize_specified(self):
+        """
+        SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF is evenly
+        tiled 3x3, but we want 2x2.
+
+        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
+        """
+        with Tiff2Jp2k(
+            self.moon3_tif, self.temp_jp2_filename,
+            tilesize=(240, 240)
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+
+        np.testing.assert_array_equal(actual, self.moon3_data)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 480)
+        self.assertEqual(c.segment[1].ysiz, 480)
+        self.assertEqual(c.segment[1].xtsiz, 240)
+        self.assertEqual(c.segment[1].ytsiz, 240)
 
     def test_astronaut(self):
         """

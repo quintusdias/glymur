@@ -109,35 +109,50 @@ class Tiff2Jp2k(object):
                 jp2k_tile_row = idx // num_jp2k_tile_cols
                 jp2k_tile_col = idx % num_jp2k_tile_cols
 
+                jrow = jp2k_tile_row * jth
+                jcol = jp2k_tile_col * jtw
+
                 # the coordinates of the upper left pixel of the jp2k tile
-                ulr, ulc = jp2k_tile_row * jth, jp2k_tile_col * jtw
+                julr, julc = jp2k_tile_row * jth, jp2k_tile_col * jtw
 
                 # populate the jp2k tile with tiff tiles
-                for row in range(ulr, min(ulr + tw, imagewidth), th):
-                    for col in range(ulc, min(ulc + th, imageheight), tw):
+                for y in range(julr, min(julr + jth, imageheight), th):
+                    for x in range(julc, min(julc + jtw, imagewidth), tw):
                         tilenum = libtiff.computeTile(
-                            self.tiff_fp, col, row, 0, 0
+                            self.tiff_fp, x, y, 0, 0
                         )
                         libtiff.readEncodedTile(
                             self.tiff_fp, tilenum, tiff_tile
                         )
 
+                        tiff_tile_row = tilenum // num_tiff_tile_cols
+                        tiff_tile_col = tilenum % num_tiff_tile_cols
+
+                        # the coordinates of the upper left pixel of the TIFF
+                        # tile
+                        tulr = tiff_tile_row * th
+                        tulc = tiff_tile_col * tw
+
                         # determine how to fit this tiff tile into the jp2k
                         # tile
-                        jtulr = ulr % jth
-                        jtllr = max(ulr + jth, jth)
-                        jtulc = ulc % jtw
-                        # jturc = max(ulc + jtw, jtw)
-                        jturc = jtw
+                        #
+                        # these are the section coordinates in image space
+                        ulr = max(julr, tulr)
+                        llr = min(julr + jth, tulr + th)
 
-                        ttulr = row % th
-                        ttllr = max(ttulr + jth, jth)
-                        ttulc = col % tw
-                        # tturc = max(ttulr + jtw, jtw)
-                        tturc = ttulc + jtw
+                        ulc = max(julc, tulc)
+                        urc = min(julc + jtw, tulc + tw)
+
+                        # convert to JP2K tile coordinates
+                        j2k_rows = slice(ulr % jth, (llr - 1) % jth + 1)
+                        j2k_cols = slice(ulc % jtw, (urc - 1) % jtw + 1)
+
+                        # convert to TIFF tile coordinates
+                        tiff_rows = slice(ulr % th, (llr - 1) % th + 1)
+                        tiff_cols = slice(ulc % tw, (urc - 1) % tw + 1)
 
                         try:
-                            jp2k_tile[jtulr:jtllr, jtulc:jturc, :] = tiff_tile[ttulr:ttllr, ttulc:tturc, :]
+                            jp2k_tile[j2k_rows, j2k_cols, :] = tiff_tile[tiff_rows, tiff_cols, :]
                         except ValueError:
                             breakpoint()
                             raise

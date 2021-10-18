@@ -91,6 +91,9 @@ def tiff2jp2k():
     }
     parser = argparse.ArgumentParser(**kwargs)
 
+    help = 'Dimensions of JP2K tile.'
+    parser.add_argument('--tilesize', nargs=2, type=int, help=help, metavar=('h', 'w'))
+
     parser.add_argument('tifffile')
     parser.add_argument('jp2kfile')
 
@@ -99,5 +102,5 @@ def tiff2jp2k():
     tiffpath = pathlib.Path(args.tifffile)
     jp2kpath = pathlib.Path(args.jp2kfile)
 
-    with Tiff2Jp2k(tiffpath, jp2kpath) as j:
+    with Tiff2Jp2k(tiffpath, jp2kpath, tilesize=args.tilesize) as j:
         j.run()
