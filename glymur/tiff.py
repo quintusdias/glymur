@@ -48,7 +48,7 @@ class Tiff2Jp2k(object):
             th = libtiff.getFieldDefaulted(self.tiff_fp, 'TileLength')
         else:
             tw = imagewidth
-            th = libtiff.getFieldDefaulted(self.tiff_fp, 'RowsPerStrip')
+            rps = libtiff.getFieldDefaulted(self.tiff_fp, 'RowsPerStrip')
 
         if (
             tw > imagewidth
@@ -63,12 +63,12 @@ class Tiff2Jp2k(object):
             Jp2k(self.jp2_filename, data=image)
 
         elif (
-            (imagewidth % tw) == 0
+            isTiled
+            and (imagewidth % tw) == 0
             and (imageheight % th) == 0
             and bps == 8
             and sf == libtiff.SampleFormat.UINT
             and self.tilesize is None
-            and isTiled
         ):
 
             # The image is evenly tiled uint8.  This is ideal.
@@ -83,14 +83,14 @@ class Tiff2Jp2k(object):
                 tilewriter[:] = tile
 
         elif (
-            (imagewidth % tw) == 0
+            isTiled
+            and (imagewidth % tw) == 0
             and (imageheight % th) == 0
             and bps == 8
             and sf == libtiff.SampleFormat.UINT
             and self.tilesize is not None
             and imageheight % self.tilesize[0] == 0
             and imagewidth % self.tilesize[1] == 0
-            and isTiled
         ):
 
             jth, jtw = self.tilesize
@@ -169,21 +169,17 @@ class Tiff2Jp2k(object):
                 tilewriter[:] = jp2k_tile
 
         elif (
-            (imagewidth % tw) == 0
-            and (imageheight % th) == 0
+            not isTiled
+            and (imageheight % rps) == 0
             and bps == 8
             and sf == libtiff.SampleFormat.UINT
             and self.tilesize is not None
             and imageheight % self.tilesize[0] == 0
             and imagewidth % self.tilesize[1] == 0
-            and not isTiled
         ):
 
             jth, jtw = self.tilesize
 
-            # The input image is evenly tiled uint8, but the output image
-            # tiles evenly subtile the input image tiles
-            tile = np.zeros((th, tw, spp), dtype=np.uint8)
             jp2 = Jp2k(
                 self.jp2_filename,
                 shape=(imageheight, imagewidth, spp),
@@ -193,11 +189,10 @@ class Tiff2Jp2k(object):
             num_jp2k_tile_rows = imageheight // jth
             num_jp2k_tile_cols = imagewidth // jtw
 
-            num_tiff_tile_rows = imageheight // th
-            num_tiff_tile_cols = imagewidth // tw
+            num_tiff_rows = imageheight // rps
 
             jp2k_tile = np.zeros((jth, jtw, spp), dtype=np.uint8)
-            tiff_strip = np.zeros((th, tw, spp), dtype=np.uint8)
+            tiff_strip = np.zeros((rps, imagewidth, spp), dtype=np.uint8)
 
             for idx, tilewriter in enumerate(jp2.get_tilewriters()):
 
@@ -211,14 +206,14 @@ class Tiff2Jp2k(object):
                 julr, julc = jp2k_tile_row * jth, jp2k_tile_col * jtw
 
                 # populate the jp2k tile with tiff strips
-                for y in range(julr, min(julr + jth, imageheight), th):
+                for y in range(julr, min(julr + jth, imageheight), rps):
 
                     stripnum = libtiff.computeStrip(self.tiff_fp, y, 0)
                     libtiff.readEncodedStrip(self.tiff_fp, stripnum, tiff_strip)
 
                     # the coordinates of the upper left pixel of the TIFF
                     # strip
-                    tulr = stripnum * th
+                    tulr = stripnum * rps
                     tulc = 0
 
                     # determine how to fit this tiff strip into the jp2k
@@ -226,7 +221,7 @@ class Tiff2Jp2k(object):
                     #
                     # these are the section coordinates in image space
                     ulr = max(julr, tulr)
-                    llr = min(julr + jth, tulr + th)
+                    llr = min(julr + jth, tulr + rps)
 
                     ulc = max(julc, tulc)
                     urc = min(julc + jtw, tulc + tw)
@@ -236,7 +231,7 @@ class Tiff2Jp2k(object):
                     j2k_cols = slice(ulc % jtw, (urc - 1) % jtw + 1)
 
                     # convert to TIFF strip coordinates
-                    tiff_rows = slice(ulr % th, (llr - 1) % th + 1)
+                    tiff_rows = slice(ulr % rps, (llr - 1) % rps + 1)
                     tiff_cols = slice(ulc % tw, (urc - 1) % tw + 1)
 
                     try:
