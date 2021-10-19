@@ -245,6 +245,22 @@ def close(fp):
     _reset_error_warning_handlers(err_handler, warn_handler)
 
 
+def computeStrip(fp, row, sample):
+    """
+    Corresponds to TIFFComputeStrip
+    """
+    err_handler, warn_handler = _set_error_warning_handlers()
+
+    ARGTYPES = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_uint16]
+    _LIBTIFF.TIFFComputeStrip.argtypes = ARGTYPES
+    _LIBTIFF.TIFFComputeStrip.restype = ctypes.c_uint32
+    stripnum = _LIBTIFF.TIFFComputeStrip(fp, row, sample)
+
+    _reset_error_warning_handlers(err_handler, warn_handler)
+
+    return stripnum
+
+
 def computeTile(fp, x, y, z, sample):
     """
     Corresponds to TIFFComputeTile
@@ -279,6 +295,24 @@ def getField(fp, tag):
     _reset_error_warning_handlers(err_handler, warn_handler)
 
     return value
+
+
+def isTiled(fp):
+    """
+    Corresponds to TIFFIsTiled
+    """
+    err_handler, warn_handler = _set_error_warning_handlers()
+
+    ARGTYPES = [ctypes.c_void_p]
+
+    _LIBTIFF.TIFFIsTiled.argtypes = ARGTYPES
+    _LIBTIFF.TIFFIsTiled.restype = ctypes.c_int
+
+    status = _LIBTIFF.TIFFIsTiled(fp)
+
+    _reset_error_warning_handlers(err_handler, warn_handler)
+
+    return status
 
 
 def numberOfTiles(fp):

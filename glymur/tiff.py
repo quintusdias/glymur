@@ -32,16 +32,23 @@ class Tiff2Jp2k(object):
 
     def run(self):
 
-        if not libtiff.isTiled(self.tiff_fp):
-            raise NotImplementedError('Not supported for stripped TIFFs')
+        if libtiff.isTiled(self.tiff_fp):
+            isTiled = True
+        else:
+            isTiled = False
 
         imagewidth = libtiff.getFieldDefaulted(self.tiff_fp, 'ImageWidth')
         imageheight = libtiff.getFieldDefaulted(self.tiff_fp, 'ImageLength')
         spp = libtiff.getFieldDefaulted(self.tiff_fp, 'SamplesPerPixel')
         sf = libtiff.getFieldDefaulted(self.tiff_fp, 'SampleFormat')
         bps = libtiff.getFieldDefaulted(self.tiff_fp, 'BitsPerSample')
-        tw = libtiff.getFieldDefaulted(self.tiff_fp, 'TileWidth')
-        th = libtiff.getFieldDefaulted(self.tiff_fp, 'TileLength')
+
+        if libtiff.isTiled(self.tiff_fp):
+            tw = libtiff.getFieldDefaulted(self.tiff_fp, 'TileWidth')
+            th = libtiff.getFieldDefaulted(self.tiff_fp, 'TileLength')
+        else:
+            tw = imagewidth
+            th = libtiff.getFieldDefaulted(self.tiff_fp, 'RowsPerStrip')
 
         if (
             tw > imagewidth
@@ -61,6 +68,7 @@ class Tiff2Jp2k(object):
             and bps == 8
             and sf == libtiff.SampleFormat.UINT
             and self.tilesize is None
+            and isTiled
         ):
 
             # The image is evenly tiled uint8.  This is ideal.
@@ -82,6 +90,7 @@ class Tiff2Jp2k(object):
             and self.tilesize is not None
             and imageheight % self.tilesize[0] == 0
             and imagewidth % self.tilesize[1] == 0
+            and isTiled
         ):
 
             jth, jtw = self.tilesize
@@ -156,5 +165,84 @@ class Tiff2Jp2k(object):
                         except ValueError:
                             breakpoint()
                             raise
+
+                tilewriter[:] = jp2k_tile
+
+        elif (
+            (imagewidth % tw) == 0
+            and (imageheight % th) == 0
+            and bps == 8
+            and sf == libtiff.SampleFormat.UINT
+            and self.tilesize is not None
+            and imageheight % self.tilesize[0] == 0
+            and imagewidth % self.tilesize[1] == 0
+            and not isTiled
+        ):
+
+            jth, jtw = self.tilesize
+
+            # The input image is evenly tiled uint8, but the output image
+            # tiles evenly subtile the input image tiles
+            tile = np.zeros((th, tw, spp), dtype=np.uint8)
+            jp2 = Jp2k(
+                self.jp2_filename,
+                shape=(imageheight, imagewidth, spp),
+                tilesize=self.tilesize,
+            )
+
+            num_jp2k_tile_rows = imageheight // jth
+            num_jp2k_tile_cols = imagewidth // jtw
+
+            num_tiff_tile_rows = imageheight // th
+            num_tiff_tile_cols = imagewidth // tw
+
+            jp2k_tile = np.zeros((jth, jtw, spp), dtype=np.uint8)
+            tiff_strip = np.zeros((th, tw, spp), dtype=np.uint8)
+
+            for idx, tilewriter in enumerate(jp2.get_tilewriters()):
+
+                jp2k_tile_row = idx // num_jp2k_tile_cols
+                jp2k_tile_col = idx % num_jp2k_tile_cols
+
+                jrow = jp2k_tile_row * jth
+                jcol = jp2k_tile_col * jtw
+
+                # the coordinates of the upper left pixel of the jp2k tile
+                julr, julc = jp2k_tile_row * jth, jp2k_tile_col * jtw
+
+                # populate the jp2k tile with tiff strips
+                for y in range(julr, min(julr + jth, imageheight), th):
+
+                    stripnum = libtiff.computeStrip(self.tiff_fp, y, 0)
+                    libtiff.readEncodedStrip(self.tiff_fp, stripnum, tiff_strip)
+
+                    # the coordinates of the upper left pixel of the TIFF
+                    # strip
+                    tulr = stripnum * th
+                    tulc = 0
+
+                    # determine how to fit this tiff strip into the jp2k
+                    # tile
+                    #
+                    # these are the section coordinates in image space
+                    ulr = max(julr, tulr)
+                    llr = min(julr + jth, tulr + th)
+
+                    ulc = max(julc, tulc)
+                    urc = min(julc + jtw, tulc + tw)
+
+                    # convert to JP2K tile coordinates
+                    j2k_rows = slice(ulr % jth, (llr - 1) % jth + 1)
+                    j2k_cols = slice(ulc % jtw, (urc - 1) % jtw + 1)
+
+                    # convert to TIFF strip coordinates
+                    tiff_rows = slice(ulr % th, (llr - 1) % th + 1)
+                    tiff_cols = slice(ulc % tw, (urc - 1) % tw + 1)
+
+                    try:
+                        jp2k_tile[j2k_rows, j2k_cols, :] = tiff_strip[tiff_rows, tiff_cols, :]
+                    except ValueError:
+                        breakpoint()
+                        raise
 
                 tilewriter[:] = jp2k_tile

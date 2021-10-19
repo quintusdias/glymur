@@ -269,6 +269,30 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 128)
         self.assertEqual(c.segment[1].ytsiz, 128)
 
+    def test_moon3_stripped(self):
+        """
+        SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF is evenly
+        stripped by 3, but we want 2x2.
+
+        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
+        """
+        with Tiff2Jp2k(
+            self.moon3_stripped_tif, self.temp_jp2_filename,
+            tilesize=(240, 240)
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+
+        np.testing.assert_array_equal(actual, self.moon3_data)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 480)
+        self.assertEqual(c.segment[1].ysiz, 480)
+        self.assertEqual(c.segment[1].xtsiz, 240)
+        self.assertEqual(c.segment[1].ytsiz, 240)
+
     def test_moon3__larger_tilesize_specified(self):
         """
         SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF is evenly
