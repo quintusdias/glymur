@@ -298,6 +298,26 @@ def numberOfTiles(fp):
     return numtiles
 
 
+def readEncodedStrip(fp, stripnum, strip):
+    """
+    Corresponds to TIFFReadEncodedStrip
+    """
+    err_handler, warn_handler = _set_error_warning_handlers()
+
+    ARGTYPES = [
+        ctypes.c_void_p, ctypes.c_uint32, ctypes.c_void_p, ctypes.c_int32
+    ]
+    _LIBTIFF.TIFFReadEncodedStrip.argtypes = ARGTYPES
+    _LIBTIFF.TIFFReadEncodedStrip.restype = check_error
+    _LIBTIFF.TIFFReadEncodedStrip(
+        fp, stripnum, strip.ctypes.data_as(ctypes.c_void_p), -1
+    )
+
+    _reset_error_warning_handlers(err_handler, warn_handler)
+
+    return strip
+
+
 def readEncodedTile(fp, tilenum, tile):
     """
     Corresponds to TIFFComputeTile
@@ -364,6 +384,27 @@ def readRGBAImageOriented(fp, width=None, height=None,
     return img
 
 
+def writeEncodedStrip(fp, stripnum, stripdata, size=-1):
+    """
+    Corresponds to TIFFWriteEncodedStrip.
+    """
+    err_handler, warn_handler = _set_error_warning_handlers()
+
+    ARGTYPES = [
+        ctypes.c_void_p, ctypes.c_uint32, ctypes.c_void_p, ctypes.c_uint32
+    ]
+    _LIBTIFF.TIFFWriteEncodedStrip.argtypes = ARGTYPES
+    _LIBTIFF.TIFFWriteEncodedStrip.restype = check_error
+    raster = stripdata.ctypes.data_as(ctypes.c_void_p)
+
+    if size == -1:
+        size = stripdata.nbytes
+
+    _LIBTIFF.TIFFWriteEncodedStrip(fp, stripnum, raster, size)
+
+    _reset_error_warning_handlers(err_handler, warn_handler)
+
+
 def writeEncodedTile(fp, tilenum, tiledata, size=-1):
     """
     Corresponds to TIFFWriteEncodedTile.
@@ -376,6 +417,10 @@ def writeEncodedTile(fp, tilenum, tiledata, size=-1):
     _LIBTIFF.TIFFWriteEncodedTile.argtypes = ARGTYPES
     _LIBTIFF.TIFFWriteEncodedTile.restype = check_error
     raster = tiledata.ctypes.data_as(ctypes.c_void_p)
+
+    if size == -1:
+        size = tiledata.nbytes
+
     _LIBTIFF.TIFFWriteEncodedTile(fp, tilenum, raster, size)
 
     _reset_error_warning_handlers(err_handler, warn_handler)

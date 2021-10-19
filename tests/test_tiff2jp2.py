@@ -105,6 +105,36 @@ class TestSuite(fixtures.TestCommon):
         cls.moon3_tif = path
 
     @classmethod
+    def setup_moon3_stripped(cls, path):
+        """
+        SCENARIO:  create a simple monochromatic 3-strip image
+        """
+        data = skimage.data.moon()
+        data = data[:480, :480]
+
+        h, w = data.shape
+        rps = h // 3
+
+        fp = libtiff.open(path, mode='w')
+
+        libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
+        libtiff.setField(fp, 'ImageLength', data.shape[0])
+        libtiff.setField(fp, 'ImageWidth', data.shape[1])
+        libtiff.setField(fp, 'RowsPerStrip', rps)
+        libtiff.setField(fp, 'BitsPerSample', 8)
+        libtiff.setField(fp, 'SamplesPerPixel', 1)
+        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
+
+        libtiff.writeEncodedStrip(fp, 0, data[:rps, :].copy())
+        libtiff.writeEncodedStrip(fp, 1, data[rps:rps * 2, :].copy())
+        libtiff.writeEncodedStrip(fp, 2, data[rps * 2:rps * 3, :].copy())
+
+        libtiff.close(fp)
+
+        cls.moon3_stripped_tif = path
+
+    @classmethod
     def setup_astronaut(cls, path):
         """
         SCENARIO:  create a simple color 2x2 tiled image
@@ -168,6 +198,9 @@ class TestSuite(fixtures.TestCommon):
 
         # uint8 spp=1 image with 3x3 tiles
         cls.setup_moon3(cls.test_tiff_path / 'moon3.tif')
+
+        # uint8 spp=1 image with 3 strips
+        cls.setup_moon3_stripped(cls.test_tiff_path / 'moon3_stripped.tif')
 
         # uint8 spp=3 image
         cls.setup_astronaut(cls.test_tiff_path / 'astronaut.tif')
