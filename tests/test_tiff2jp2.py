@@ -135,6 +135,42 @@ class TestSuite(fixtures.TestCommon):
         cls.moon3_stripped_tif = path
 
     @classmethod
+    def setup_moon_partial_last_strip(cls, path):
+        """
+        SCENARIO:  create a simple monochromatic 3-strip image
+        """
+        data = skimage.data.moon()
+        data = data[:480, :480]
+
+        h, w = data.shape
+
+        # instead of 160, this 
+        rps = 170
+
+        fp = libtiff.open(path, mode='w')
+
+        libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
+        libtiff.setField(fp, 'ImageLength', data.shape[0])
+        libtiff.setField(fp, 'ImageWidth', data.shape[1])
+        libtiff.setField(fp, 'RowsPerStrip', rps)
+        libtiff.setField(fp, 'BitsPerSample', 8)
+        libtiff.setField(fp, 'SamplesPerPixel', 1)
+        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
+
+        libtiff.writeEncodedStrip(fp, 0, data[:rps, :].copy())
+        libtiff.writeEncodedStrip(fp, 1, data[rps:rps * 2, :].copy())
+
+        data2 = np.vstack((
+            data[340:480, :], np.zeros((30, 480), dtype=np.uint8)
+        ))
+        libtiff.writeEncodedStrip(fp, 2, data2)
+
+        libtiff.close(fp)
+
+        cls.moon_partial_last_strip = path
+
+    @classmethod
     def setup_astronaut(cls, path):
         """
         SCENARIO:  create a simple color 2x2 tiled image
@@ -202,6 +238,9 @@ class TestSuite(fixtures.TestCommon):
         # uint8 spp=1 image with 3 strips
         cls.setup_moon3_stripped(cls.test_tiff_path / 'moon3_stripped.tif')
 
+        path = cls.test_tiff_path / 'moon3_partial_last_strip.tif'
+        cls.setup_moon_partial_last_strip(path)
+
         # uint8 spp=3 image
         cls.setup_astronaut(cls.test_tiff_path / 'astronaut.tif')
 
@@ -223,6 +262,29 @@ class TestSuite(fixtures.TestCommon):
         actual = Jp2k(self.temp_jp2_filename)[:]
 
         self.assertEqual(actual.shape, (213, 234, 3))
+
+    def test_partial_last_strip(self):
+        """
+        SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF has a
+        partial last strip.
+
+        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
+        """
+        with Tiff2Jp2k(
+            self.moon_partial_last_strip, self.temp_jp2_filename, tilesize=(240, 240)
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+
+        np.testing.assert_array_equal(actual, self.moon_data)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 480)
+        self.assertEqual(c.segment[1].ysiz, 480)
+        self.assertEqual(c.segment[1].xtsiz, 240)
+        self.assertEqual(c.segment[1].ytsiz, 240)
 
     def test_moon(self):
         """
