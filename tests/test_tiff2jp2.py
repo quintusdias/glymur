@@ -231,7 +231,9 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
-        with Tiff2Jp2k(self.moon_tif, self.temp_jp2_filename) as j:
+        with Tiff2Jp2k(
+            self.moon_tif, self.temp_jp2_filename, tilesize=(256, 256)
+        ) as j:
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)
@@ -324,7 +326,9 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
-        with Tiff2Jp2k(self.astronaut_tif, self.temp_jp2_filename) as j:
+        with Tiff2Jp2k(
+            self.astronaut_tif, self.temp_jp2_filename, tilesize=(256, 256)
+        ) as j:
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)

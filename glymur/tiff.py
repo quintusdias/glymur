@@ -50,15 +50,14 @@ class Tiff2Jp2k(object):
             tw = imagewidth
             rps = libtiff.getFieldDefaulted(self.tiff_fp, 'RowsPerStrip')
 
-        if (
-            tw > imagewidth
-            and th > imageheight
-            and libtiff.RGBAImageOK(self.tiff_fp)
-        ):
+        if self.tilesize is None and libtiff.RGBAImageOK(self.tiff_fp):
+
+            # if no jp2k tiling was specified and if the image is ok to read
+            # via the RGBA interface, then just do that.
             image = libtiff.readRGBAImageOriented(self.tiff_fp)
 
             if spp < 4:
-                image = image[:, :, :3]
+                image = image[:, :, :spp]
 
             Jp2k(self.jp2_filename, data=image)
 
