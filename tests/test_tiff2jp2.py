@@ -278,7 +278,7 @@ class TestSuite(fixtures.TestCommon):
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
 
-        np.testing.assert_array_equal(actual, self.moon_data)
+        np.testing.assert_array_equal(actual, self.moon3_data)
 
         c = jp2.get_codestream()
         self.assertEqual(c.segment[1].xsiz, 480)

@@ -103,10 +103,8 @@ class Tiff2Jp2k(object):
                 tilesize=self.tilesize,
             )
 
-            num_jp2k_tile_rows = imageheight // jth
             num_jp2k_tile_cols = imagewidth // jtw
 
-            num_tiff_tile_rows = imageheight // th
             num_tiff_tile_cols = imagewidth // tw
 
             jp2k_tile = np.zeros((jth, jtw, spp), dtype=np.uint8)
@@ -169,12 +167,9 @@ class Tiff2Jp2k(object):
 
         elif (
             not isTiled
-            and (imageheight % rps) == 0
             and bps == 8
             and sf == libtiff.SampleFormat.UINT
             and self.tilesize is not None
-            and imageheight % self.tilesize[0] == 0
-            and imagewidth % self.tilesize[1] == 0
         ):
 
             jth, jtw = self.tilesize
@@ -185,7 +180,6 @@ class Tiff2Jp2k(object):
                 tilesize=self.tilesize,
             )
 
-            num_jp2k_tile_rows = imageheight // jth
             num_jp2k_tile_cols = imagewidth // jtw
 
             num_tiff_rows = imageheight // rps
