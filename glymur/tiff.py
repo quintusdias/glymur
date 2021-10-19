@@ -43,6 +43,15 @@ class Tiff2Jp2k(object):
         sf = libtiff.getFieldDefaulted(self.tiff_fp, 'SampleFormat')
         bps = libtiff.getFieldDefaulted(self.tiff_fp, 'BitsPerSample')
 
+        if sf not in [
+            libtiff.SampleFormat.INT, libtiff.SampleFormat.UINT
+        ]:
+            msg = (
+                f"The TIFF SampleFormat is {sf}.  Only INT and UINT is "
+                "supported."
+            )
+            raise RuntimeError(msg)
+
         if libtiff.isTiled(self.tiff_fp):
             tw = libtiff.getFieldDefaulted(self.tiff_fp, 'TileWidth')
             th = libtiff.getFieldDefaulted(self.tiff_fp, 'TileLength')
@@ -66,7 +75,6 @@ class Tiff2Jp2k(object):
             and (imagewidth % tw) == 0
             and (imageheight % th) == 0
             and bps == 8
-            and sf == libtiff.SampleFormat.UINT
             and self.tilesize is None
         ):
 
@@ -86,7 +94,6 @@ class Tiff2Jp2k(object):
             and (imagewidth % tw) == 0
             and (imageheight % th) == 0
             and bps == 8
-            and sf == libtiff.SampleFormat.UINT
             and self.tilesize is not None
             and imageheight % self.tilesize[0] == 0
             and imagewidth % self.tilesize[1] == 0
@@ -168,7 +175,6 @@ class Tiff2Jp2k(object):
         elif (
             not isTiled
             and bps == 8
-            and sf == libtiff.SampleFormat.UINT
             and self.tilesize is not None
         ):
 

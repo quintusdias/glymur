@@ -286,6 +286,40 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 240)
         self.assertEqual(c.segment[1].ytsiz, 240)
 
+    def test_floating_point(self):
+        """
+        SCENARIO:  The sample format is 32bit floating point.
+
+        EXPECTED RESULT:  RuntimeError
+        """
+        data = skimage.data.moon().astype(np.float32)
+
+        h, w = data.shape
+        th, tw = h // 2, w // 2
+
+        fp = libtiff.open(self.temp_tiff_filename, mode='w')
+
+        libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
+        libtiff.setField(fp, 'SampleFormat', libtiff.SampleFormat.IEEEFP)
+        libtiff.setField(fp, 'ImageLength', data.shape[0])
+        libtiff.setField(fp, 'ImageWidth', data.shape[1])
+        libtiff.setField(fp, 'TileLength', th)
+        libtiff.setField(fp, 'TileWidth', tw)
+        libtiff.setField(fp, 'BitsPerSample', 32)
+        libtiff.setField(fp, 'SamplesPerPixel', 1)
+
+        libtiff.writeEncodedTile(fp, 0, data[:th, :tw].copy())
+        libtiff.writeEncodedTile(fp, 1, data[:th, tw:w].copy())
+        libtiff.writeEncodedTile(fp, 2, data[th:h, :tw].copy())
+        libtiff.writeEncodedTile(fp, 3, data[th:h, tw:w].copy())
+
+        libtiff.close(fp)
+
+        with Tiff2Jp2k(self.temp_tiff_filename, self.temp_jp2_filename) as j:
+            with self.assertRaises(RuntimeError):
+                j.run()
+
     def test_moon(self):
         """
         SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF is evenly
