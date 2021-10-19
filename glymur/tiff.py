@@ -52,6 +52,14 @@ class Tiff2Jp2k(object):
             )
             raise RuntimeError(msg)
 
+        if bps not in [8, 16]:
+            msg = (
+                f"The TIFF BitsPerSample is {bps}.  Only 8 and 16 bits per "
+                "sample are supported."
+            )
+            raise RuntimeError(msg)
+
+
         if libtiff.isTiled(self.tiff_fp):
             tw = libtiff.getFieldDefaulted(self.tiff_fp, 'TileWidth')
             th = libtiff.getFieldDefaulted(self.tiff_fp, 'TileLength')
@@ -74,7 +82,6 @@ class Tiff2Jp2k(object):
             isTiled
             and (imagewidth % tw) == 0
             and (imageheight % th) == 0
-            and bps == 8
             and self.tilesize is None
         ):
 
@@ -93,7 +100,6 @@ class Tiff2Jp2k(object):
             isTiled
             and (imagewidth % tw) == 0
             and (imageheight % th) == 0
-            and bps == 8
             and self.tilesize is not None
             and imageheight % self.tilesize[0] == 0
             and imagewidth % self.tilesize[1] == 0
@@ -172,11 +178,7 @@ class Tiff2Jp2k(object):
 
                 tilewriter[:] = jp2k_tile
 
-        elif (
-            not isTiled
-            and bps == 8
-            and self.tilesize is not None
-        ):
+        elif not isTiled and self.tilesize is not None:
 
             jth, jtw = self.tilesize
 
