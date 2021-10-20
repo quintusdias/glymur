@@ -95,14 +95,7 @@ class Tiff2Jp2k(object):
                 libtiff.readEncodedTile(self.tiff_fp, idx, tile)
                 tilewriter[:] = tile
 
-        elif (
-            isTiled
-            and (imagewidth % tw) == 0
-            and (imageheight % th) == 0
-            and self.tilesize is not None
-            and imageheight % self.tilesize[0] == 0
-            and imagewidth % self.tilesize[1] == 0
-        ):
+        elif isTiled and self.tilesize is not None:
 
             jth, jtw = self.tilesize
 
