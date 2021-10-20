@@ -43,13 +43,8 @@ class Tiff2Jp2k(object):
         sf = libtiff.getFieldDefaulted(self.tiff_fp, 'SampleFormat')
         bps = libtiff.getFieldDefaulted(self.tiff_fp, 'BitsPerSample')
 
-        if sf not in [
-            libtiff.SampleFormat.INT, libtiff.SampleFormat.UINT
-        ]:
-            msg = (
-                f"The TIFF SampleFormat is {sf}.  Only INT and UINT is "
-                "supported."
-            )
+        if sf != libtiff.SampleFormat.UINT:
+            msg = f"The TIFF SampleFormat is {sf}.  Only UINT is supported."
             raise RuntimeError(msg)
 
         if bps not in [8, 16]:
