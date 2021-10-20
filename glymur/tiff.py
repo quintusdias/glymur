@@ -59,6 +59,15 @@ class Tiff2Jp2k(object):
             )
             raise RuntimeError(msg)
 
+        if bps == 8 and sf == libtiff.SampleFormat.UINT:
+            dtype = np.uint8
+        elif bps == 8 and sf == libtiff.SampleFormat.INT:
+            dtype = np.int8
+        if bps == 16 and sf == libtiff.SampleFormat.UINT:
+            dtype = np.uint16
+        if bps == 16 and sf == libtiff.SampleFormat.INT:
+            dtype = np.int16
+
         if libtiff.isTiled(self.tiff_fp):
             tw = libtiff.getFieldDefaulted(self.tiff_fp, 'TileWidth')
             th = libtiff.getFieldDefaulted(self.tiff_fp, 'TileLength')
@@ -84,8 +93,8 @@ class Tiff2Jp2k(object):
             and self.tilesize is None
         ):
 
-            # The image is evenly tiled uint8.  This is ideal.
-            tile = np.zeros((th, tw, spp), dtype=np.uint8)
+            # The image is evenly tiled.  This is ideal.
+            tile = np.zeros((th, tw, spp), dtype=dtype)
             jp2 = Jp2k(
                 self.jp2_filename,
                 shape=(imageheight, imagewidth, spp),
@@ -99,9 +108,9 @@ class Tiff2Jp2k(object):
 
             jth, jtw = self.tilesize
 
-            # The input image is evenly tiled uint8, but the output image
+            # The input image is evenly tiled, but the output image
             # tiles evenly subtile the input image tiles
-            tile = np.zeros((th, tw, spp), dtype=np.uint8)
+            tile = np.zeros((th, tw, spp), dtype=dtype)
             jp2 = Jp2k(
                 self.jp2_filename,
                 shape=(imageheight, imagewidth, spp),
@@ -112,8 +121,8 @@ class Tiff2Jp2k(object):
 
             num_tiff_tile_cols = imagewidth // tw
 
-            jp2k_tile = np.zeros((jth, jtw, spp), dtype=np.uint8)
-            tiff_tile = np.zeros((th, tw, spp), dtype=np.uint8)
+            jp2k_tile = np.zeros((jth, jtw, spp), dtype=dtype)
+            tiff_tile = np.zeros((th, tw, spp), dtype=dtype)
 
             for idx, tilewriter in enumerate(jp2.get_tilewriters()):
 
@@ -179,8 +188,8 @@ class Tiff2Jp2k(object):
 
             num_jp2k_tile_cols = imagewidth // jtw
 
-            jp2k_tile = np.zeros((jth, jtw, spp), dtype=np.uint8)
-            tiff_strip = np.zeros((rps, imagewidth, spp), dtype=np.uint8)
+            jp2k_tile = np.zeros((jth, jtw, spp), dtype=dtype)
+            tiff_strip = np.zeros((rps, imagewidth, spp), dtype=dtype)
 
             for idx, tilewriter in enumerate(jp2.get_tilewriters()):
 
