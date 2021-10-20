@@ -586,6 +586,30 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 256)
         self.assertEqual(c.segment[1].ytsiz, 256)
 
+    def test_astronaut_imperfect_tiling(self):
+        """
+        SCENARIO:  Convert RGB TIFF file to JP2.  The TIFF is evenly
+        tiled 2x2 with an image size of 512x512.  An tilesize of 200x200 is
+        specified, though, so we will end up with a 3x3 grid.
+
+        EXPECTED RESULT:  The data matches.  The JP2 file has 9 tiles.
+        """
+        with Tiff2Jp2k(
+            self.astronaut_tif, self.temp_jp2_filename, tilesize=(200, 200)
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+
+        np.testing.assert_array_equal(actual, self.astronaut_data)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 512)
+        self.assertEqual(c.segment[1].ysiz, 512)
+        self.assertEqual(c.segment[1].xtsiz, 200)
+        self.assertEqual(c.segment[1].ytsiz, 200)
+
     def test_astronaut16(self):
         """
         SCENARIO:  Convert RGB TIFF file to JP2.  The TIFF is evenly

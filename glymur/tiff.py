@@ -103,8 +103,6 @@ class Tiff2Jp2k(object):
 
             jth, jtw = self.tilesize
 
-            # The input image is evenly tiled, but the output image
-            # tiles evenly subtile the input image tiles
             tile = np.zeros((th, tw, spp), dtype=dtype)
             jp2 = Jp2k(
                 self.jp2_filename,
@@ -112,17 +110,19 @@ class Tiff2Jp2k(object):
                 tilesize=self.tilesize,
             )
 
-            num_jp2k_tile_cols = imagewidth // jtw
+            num_tiff_tile_rows = int(np.ceil(imageheight / th))
+            num_tiff_tile_cols = int(np.ceil(imagewidth / tw))
 
-            num_tiff_tile_cols = imagewidth // tw
-
-            jp2k_tile = np.zeros((jth, jtw, spp), dtype=dtype)
-            tiff_tile = np.zeros((th, tw, spp), dtype=dtype)
+            num_jp2k_tile_rows = int(np.ceil(imagewidth / jtw))
+            num_jp2k_tile_cols = int(np.ceil(imagewidth / jtw))
 
             for idx, tilewriter in enumerate(jp2.get_tilewriters()):
 
-                jp2k_tile_row = idx // num_jp2k_tile_cols
-                jp2k_tile_col = idx % num_jp2k_tile_cols
+                jp2k_tile = np.zeros((jth, jtw, spp), dtype=dtype)
+                tiff_tile = np.zeros((th, tw, spp), dtype=dtype)
+
+                jp2k_tile_row = int(np.ceil(idx // num_jp2k_tile_cols))
+                jp2k_tile_col = int(np.ceil(idx % num_jp2k_tile_cols))
 
                 # the coordinates of the upper left pixel of the jp2k tile
                 julr, julc = jp2k_tile_row * jth, jp2k_tile_col * jtw
@@ -137,8 +137,8 @@ class Tiff2Jp2k(object):
                             self.tiff_fp, tilenum, tiff_tile
                         )
 
-                        tiff_tile_row = tilenum // num_tiff_tile_cols
-                        tiff_tile_col = tilenum % num_tiff_tile_cols
+                        tiff_tile_row = int(np.ceil(tilenum // num_tiff_tile_cols))
+                        tiff_tile_col = int(np.ceil(tilenum % num_tiff_tile_cols))
 
                         # the coordinates of the upper left pixel of the TIFF
                         # tile
@@ -169,6 +169,12 @@ class Tiff2Jp2k(object):
                             breakpoint()
                             raise
 
+                # last tile column?  If so, we may have a partial tile.
+                if jp2k_tile_col == num_jp2k_tile_cols - 1:
+                    jp2k_tile = jp2k_tile[:, j2k_cols, :].copy()
+                if jp2k_tile_row == num_jp2k_tile_rows - 1:
+                    jp2k_tile = jp2k_tile[j2k_rows, :, :].copy()
+
                 tilewriter[:] = jp2k_tile
 
         elif not isTiled and self.tilesize is not None:
@@ -188,8 +194,8 @@ class Tiff2Jp2k(object):
 
             for idx, tilewriter in enumerate(jp2.get_tilewriters()):
 
-                jp2k_tile_row = idx // num_jp2k_tile_cols
-                jp2k_tile_col = idx % num_jp2k_tile_cols
+                jp2k_tile_row = int(np.ceil(idx / num_jp2k_tile_cols))
+                jp2k_tile_col = int(np.ceil(idx % num_jp2k_tile_cols))
 
                 # the coordinates of the upper left pixel of the jp2k tile
                 julr, julc = jp2k_tile_row * jth, jp2k_tile_col * jtw
