@@ -68,6 +68,37 @@ class TestSuite(fixtures.TestCommon):
         cls.moon_tif = path
 
     @classmethod
+    def setup_moon_partial_tiles(cls, path):
+        """
+        SCENARIO:  create a simple monochromatic 2x2 tiled image with partial
+        tiles.
+        """
+        data = skimage.data.moon()
+        h, w = 480, 480
+        th, tw = 256, 256
+
+        fp = libtiff.open(path, mode='w')
+
+        libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
+        libtiff.setField(fp, 'ImageLength', h)
+        libtiff.setField(fp, 'ImageWidth', w)
+        libtiff.setField(fp, 'TileLength', th)
+        libtiff.setField(fp, 'TileWidth', tw)
+        libtiff.setField(fp, 'BitsPerSample', 8)
+        libtiff.setField(fp, 'SamplesPerPixel', 1)
+
+        libtiff.writeEncodedTile(fp, 0, data[:th, :tw].copy())
+        libtiff.writeEncodedTile(fp, 1, data[:th, tw:w].copy())
+        libtiff.writeEncodedTile(fp, 2, data[th:h, :tw].copy())
+        libtiff.writeEncodedTile(fp, 3, data[th:h, tw:w].copy())
+
+        libtiff.close(fp)
+
+        cls.moon_partial_tiles_data = data[:h, :w]
+        cls.moon_partial_tiles_path = path
+
+    @classmethod
     def setup_moon3(cls, path):
         """
         SCENARIO:  create a simple monochromatic 3x3 tiled image
@@ -241,6 +272,9 @@ class TestSuite(fixtures.TestCommon):
         path = cls.test_tiff_path / 'moon3_partial_last_strip.tif'
         cls.setup_moon_partial_last_strip(path)
 
+        path = cls.test_tiff_path / 'moon_partial_tiles.tif'
+        cls.setup_moon_partial_tiles(path)
+
         # uint8 spp=3 image
         cls.setup_astronaut(cls.test_tiff_path / 'astronaut.tif')
 
@@ -262,6 +296,29 @@ class TestSuite(fixtures.TestCommon):
         actual = Jp2k(self.temp_jp2_filename)[:]
 
         self.assertEqual(actual.shape, (213, 234, 3))
+
+    def test_partial_tiles(self):
+        """
+        SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF has
+        partial tiles.
+
+        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
+        """
+        with Tiff2Jp2k(
+            self.moon_partial_last_strip, self.temp_jp2_filename, tilesize=(240, 240)
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+
+        np.testing.assert_array_equal(actual, self.moon_partial_tiles_data)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 480)
+        self.assertEqual(c.segment[1].ysiz, 480)
+        self.assertEqual(c.segment[1].xtsiz, 240)
+        self.assertEqual(c.segment[1].ytsiz, 240)
 
     def test_partial_last_strip(self):
         """
