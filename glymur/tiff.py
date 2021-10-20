@@ -59,7 +59,6 @@ class Tiff2Jp2k(object):
             )
             raise RuntimeError(msg)
 
-
         if libtiff.isTiled(self.tiff_fp):
             tw = libtiff.getFieldDefaulted(self.tiff_fp, 'TileWidth')
             th = libtiff.getFieldDefaulted(self.tiff_fp, 'TileLength')
@@ -128,9 +127,6 @@ class Tiff2Jp2k(object):
                 jp2k_tile_row = idx // num_jp2k_tile_cols
                 jp2k_tile_col = idx % num_jp2k_tile_cols
 
-                jrow = jp2k_tile_row * jth
-                jcol = jp2k_tile_col * jtw
-
                 # the coordinates of the upper left pixel of the jp2k tile
                 julr, julc = jp2k_tile_row * jth, jp2k_tile_col * jtw
 
@@ -190,8 +186,6 @@ class Tiff2Jp2k(object):
 
             num_jp2k_tile_cols = imagewidth // jtw
 
-            num_tiff_rows = imageheight // rps
-
             jp2k_tile = np.zeros((jth, jtw, spp), dtype=np.uint8)
             tiff_strip = np.zeros((rps, imagewidth, spp), dtype=np.uint8)
 
@@ -200,9 +194,6 @@ class Tiff2Jp2k(object):
                 jp2k_tile_row = idx // num_jp2k_tile_cols
                 jp2k_tile_col = idx % num_jp2k_tile_cols
 
-                jrow = jp2k_tile_row * jth
-                jcol = jp2k_tile_col * jtw
-
                 # the coordinates of the upper left pixel of the jp2k tile
                 julr, julc = jp2k_tile_row * jth, jp2k_tile_col * jtw
 
@@ -210,7 +201,9 @@ class Tiff2Jp2k(object):
                 for y in range(julr, min(julr + jth, imageheight), rps):
 
                     stripnum = libtiff.computeStrip(self.tiff_fp, y, 0)
-                    libtiff.readEncodedStrip(self.tiff_fp, stripnum, tiff_strip)
+                    libtiff.readEncodedStrip(
+                        self.tiff_fp, stripnum, tiff_strip
+                    )
 
                     # the coordinates of the upper left pixel of the TIFF
                     # strip

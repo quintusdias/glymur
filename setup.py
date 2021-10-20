@@ -18,7 +18,7 @@ kwargs = {
         'console_scripts': [
             'jp2dump=glymur.command_line:main',
             'tiff2jp2k=glymur.command_line:tiff2jp2k'
-            ],
+        ],
     },
     'license': 'MIT',
     'test_suite': 'glymur.test',

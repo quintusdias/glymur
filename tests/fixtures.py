@@ -2,7 +2,6 @@
 Test fixtures common to more than one test point.
 """
 # Standard library imports
-import importlib.resources as ir
 import pathlib
 import shutil
 import tempfile

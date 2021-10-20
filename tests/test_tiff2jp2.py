@@ -175,7 +175,7 @@ class TestSuite(fixtures.TestCommon):
 
         h, w = data.shape
 
-        # instead of 160, this 
+        # instead of 160, this will cause an empty last strip
         rps = 170
 
         fp = libtiff.open(path, mode='w')
@@ -305,7 +305,8 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
         with Tiff2Jp2k(
-            self.moon_partial_last_strip, self.temp_jp2_filename, tilesize=(240, 240)
+            self.moon_partial_last_strip, self.temp_jp2_filename,
+            tilesize=(240, 240)
         ) as j:
             j.run()
 
@@ -328,7 +329,8 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
         with Tiff2Jp2k(
-            self.moon_partial_last_strip, self.temp_jp2_filename, tilesize=(240, 240)
+            self.moon_partial_last_strip, self.temp_jp2_filename,
+            tilesize=(240, 240)
         ) as j:
             j.run()
 

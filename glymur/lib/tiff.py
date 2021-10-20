@@ -559,24 +559,6 @@ def getFieldDefaulted(fp, tag):
     return item.value
 
 
-def isTiled(fp):
-    """
-    Corresponds to TIFFIsTiled
-    """
-    err_handler, warn_handler = _set_error_warning_handlers()
-
-    ARGTYPES = [ctypes.c_void_p]
-
-    _LIBTIFF.TIFFIsTiled.argtypes = ARGTYPES
-    _LIBTIFF.TIFFIsTiled.restype = ctypes.c_int
-
-    status = _LIBTIFF.TIFFIsTiled(fp)
-
-    _reset_error_warning_handlers(err_handler, warn_handler)
-
-    return status
-
-
 def open(filename, mode='r'):
     """
     Corresponds to TIFFOpen

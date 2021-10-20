@@ -80,6 +80,7 @@ def main():
                 f"{warning.category.__name__}: {warning.message}"
             )
 
+
 def tiff2jp2k():
     """
     Entry point for console script tiff2jp2k.
@@ -92,7 +93,9 @@ def tiff2jp2k():
     parser = argparse.ArgumentParser(**kwargs)
 
     help = 'Dimensions of JP2K tile.'
-    parser.add_argument('--tilesize', nargs=2, type=int, help=help, metavar=('h', 'w'))
+    parser.add_argument(
+        '--tilesize', nargs=2, type=int, help=help, metavar=('h', 'w')
+    )
 
     parser.add_argument('tifffile')
     parser.add_argument('jp2kfile')
