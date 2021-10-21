@@ -610,6 +610,18 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 200)
         self.assertEqual(c.segment[1].ytsiz, 200)
 
+    def test_tiff_file_not_there(self):
+        """
+        Scenario:  The input TIFF file is not present.
+
+        Expected Result:  FileNotFoundError
+        """
+
+        with self.assertRaises(FileNotFoundError):
+            Tiff2Jp2k(
+                self.test_dir_path / 'not_there.tif', self.temp_jp2_filename
+            )
+
     def test_astronaut16(self):
         """
         SCENARIO:  Convert RGB TIFF file to JP2.  The TIFF is evenly

@@ -19,7 +19,11 @@ class Tiff2Jp2k(object):
     """
 
     def __init__(self, tiff_filename, jp2_filename, tilesize=None):
+
         self.tiff_filename = tiff_filename
+        if not self.tiff_filename.exists():
+            raise FileNotFoundError(f'{tiff_filename} does not exist')
+
         self.jp2_filename = jp2_filename
         self.tilesize = tilesize
 
@@ -123,8 +127,8 @@ class Tiff2Jp2k(object):
 
             num_tiff_tile_cols = int(np.ceil(imagewidth / tw))
 
-            partial_jp2k_tile_rows = (imageheight / jth) != (imageheight // jth) 
-            partial_jp2k_tile_cols = (imagewidth / jtw) != (imagewidth // jtw) 
+            partial_jp2_tile_rows = (imageheight / jth) != (imageheight // jth)
+            partial_jp2_tile_cols = (imagewidth / jtw) != (imagewidth // jtw)
 
             import logging
             logging.warning(f'image:  {imageheight} x {imagewidth}')
@@ -148,7 +152,6 @@ class Tiff2Jp2k(object):
                 # less than the lower left corner of the jp2k tile
                 r = julr
                 while (r // th) * th < min(julr + jth, imageheight):
-                    #for y in range(julr, min(julr + jth, imageheight), th):
                     c = julc
 
                     tilenum = libtiff.computeTile(self.tiff_fp, c, r, 0, 0)
@@ -179,18 +182,14 @@ class Tiff2Jp2k(object):
                         urc = min(julc + jtw, tulc + tw)
 
                         # convert to JP2K tile coordinates
-                        j2k_rows = slice(ulr % jth, (llr - 1) % jth + 1)
-                        j2k_cols = slice(ulc % jtw, (urc - 1) % jtw + 1)
+                        jrows = slice(ulr % jth, (llr - 1) % jth + 1)
+                        jcols = slice(ulc % jtw, (urc - 1) % jtw + 1)
 
                         # convert to TIFF tile coordinates
-                        tiff_rows = slice(ulr % th, (llr - 1) % th + 1)
-                        tiff_cols = slice(ulc % tw, (urc - 1) % tw + 1)
+                        trows = slice(ulr % th, (llr - 1) % th + 1)
+                        tcols = slice(ulc % tw, (urc - 1) % tw + 1)
 
-                        try:
-                            jp2k_tile[j2k_rows, j2k_cols, :] = tiff_tile[tiff_rows, tiff_cols, :]
-                        except ValueError:
-                            breakpoint()
-                            raise
+                        jp2k_tile[jrows, jcols, :] = tiff_tile[trows, tcols, :]
 
                         # move exactly one tiff tile over
                         c += tw
@@ -212,18 +211,20 @@ class Tiff2Jp2k(object):
                     r += th
 
                 # last tile column?  If so, we may have a partial tile.
-                if partial_jp2k_tile_cols and jp2k_tile_col == num_jp2k_tile_cols - 1:
+                if (
+                    partial_jp2_tile_cols
+                    and jp2k_tile_col == num_jp2k_tile_cols - 1
+                ):
                     last_j2k_cols = slice(0, jtw - (ulc - imagewidth))
-                    jp2k_tile = jp2k_tile[:, j2k_cols, :].copy()
-                if partial_jp2k_tile_rows and jp2k_tile_row == num_jp2k_tile_rows - 1:
+                    jp2k_tile = jp2k_tile[:, jcols, :].copy()
+                if (
+                    partial_jp2_tile_rows
+                    and jp2k_tile_row == num_jp2k_tile_rows - 1
+                ):
                     last_j2k_rows = slice(0, jth - (llr - imageheight))
-                    jp2k_tile = jp2k_tile[j2k_rows, :, :].copy()
+                    jp2k_tile = jp2k_tile[jrows, :, :].copy()
 
-                try:
-                    tilewriter[:] = jp2k_tile
-                except Exception as e:
-                    breakpoint()
-                    pass
+                tilewriter[:] = jp2k_tile
 
         elif not isTiled and self.tilesize is not None:
 
@@ -240,8 +241,8 @@ class Tiff2Jp2k(object):
 
             num_jp2k_tile_cols = int(np.ceil(imagewidth / jtw))
 
-            partial_jp2k_tile_rows = (imageheight / jth) != (imageheight // jth) 
-            partial_jp2k_tile_cols = (imagewidth / jtw) != (imagewidth // jtw) 
+            partial_jp2_tile_rows = (imageheight / jth) != (imageheight // jth)  # noqa : E501
+            partial_jp2_tile_cols = (imagewidth / jtw) != (imagewidth // jtw)
 
             tiff_strip = np.zeros((rps, imagewidth, spp), dtype=dtype)
 
@@ -284,33 +285,34 @@ class Tiff2Jp2k(object):
                     urc = min(julc + jtw, tulc + tw)
 
                     # convert to JP2K tile coordinates
-                    j2k_rows = slice(ulr % jth, (llr - 1) % jth + 1)
-                    j2k_cols = slice(ulc % jtw, (urc - 1) % jtw + 1)
+                    jrows = slice(ulr % jth, (llr - 1) % jth + 1)
+                    jcols = slice(ulc % jtw, (urc - 1) % jtw + 1)
 
                     # convert to TIFF strip coordinates
-                    tiff_rows = slice(ulr % rps, (llr - 1) % rps + 1)
-                    tiff_cols = slice(ulc % tw, (urc - 1) % tw + 1)
+                    trows = slice(ulr % rps, (llr - 1) % rps + 1)
+                    tcols = slice(ulc % tw, (urc - 1) % tw + 1)
 
-                    try:
-                        jp2k_tile[j2k_rows, j2k_cols, :] = tiff_strip[tiff_rows, tiff_cols, :]
-                    except ValueError as e:
-                        breakpoint()
-                        raise
+                    jp2k_tile[jrows, jcols, :] = tiff_strip[trows, tcols, :]
 
                 # last tile column?  If so, we may have a partial tile.
                 # j2k_cols is not sufficient here, must shorten it from 250
                 # to 230
-                if partial_jp2k_tile_cols and jp2k_tile_col == num_jp2k_tile_cols - 1:
+                if (
+                    partial_jp2_tile_cols
+                    and jp2k_tile_col == num_jp2k_tile_cols - 1
+                ):
                     # decrease the number of columns by however many it sticks
                     # over the image width
                     last_j2k_cols = slice(0, jtw - (ulc + jtw - imagewidth))
                     jp2k_tile = jp2k_tile[:, last_j2k_cols, :].copy()
-                if partial_jp2k_tile_rows and jp2k_tile_row == num_jp2k_tile_rows - 1:
+
+                if (
+                    partial_jp2_tile_rows
+                    and jp2k_tile_row == num_jp2k_tile_rows - 1
+                ):
                     # decrease the number of rows by however many it sticks
                     # over the image height
                     last_j2k_rows = slice(0, jth - (llr - imageheight))
                     jp2k_tile = jp2k_tile[last_j2k_rows, :, :].copy()
-                try:
-                    tilewriter[:] = jp2k_tile
-                except Exception as e:
-                    raise
+
+                tilewriter[:] = jp2k_tile
