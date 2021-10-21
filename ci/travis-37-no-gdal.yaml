@@ -7,3 +7,4 @@ dependencies:
     - numpy
     - openjpeg
     - scikit-image
+    - libtiff
