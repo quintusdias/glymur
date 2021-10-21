@@ -2,6 +2,7 @@
 import importlib.resources as ir
 import pathlib
 import shutil
+import sys
 import tempfile
 import warnings
 
@@ -10,7 +11,7 @@ import numpy as np
 import skimage.data
 
 # Local imports
-from glymur import Jp2k, Tiff2Jp2k
+from glymur import Jp2k, Tiff2Jp2k, command_line
 from . import fixtures
 from glymur.lib import tiff as libtiff
 
@@ -627,6 +628,30 @@ class TestSuite(fixtures.TestCommon):
         actual = jp2[:]
 
         np.testing.assert_array_equal(actual, self.astronaut_uint16_data)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 512)
+        self.assertEqual(c.segment[1].ysiz, 512)
+        self.assertEqual(c.segment[1].xtsiz, 256)
+        self.assertEqual(c.segment[1].ytsiz, 256)
+
+    def test_commandline_tiff2jp2k(self):
+        """
+        Scenario:  patch sys such that we can run the command line tiff2jp2k
+        script.
+
+        Expected Results:  Same as test_astronaut.
+        """
+        sys.argv = [
+            '', str(self.astronaut_tif), str(self.temp_jp2_filename),
+            '--tilesize', '256', '256'
+        ]
+        command_line.tiff2jp2k()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+
+        np.testing.assert_array_equal(actual, self.astronaut_data)
 
         c = jp2.get_codestream()
         self.assertEqual(c.segment[1].xsiz, 512)
