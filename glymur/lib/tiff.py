@@ -278,25 +278,6 @@ def computeTile(fp, x, y, z, sample):
     return tilenum
 
 
-def getField(fp, tag):
-    """
-    Corresponds to TIFFGetField in the TIFF library.
-    """
-    err_handler, warn_handler = _set_error_warning_handlers()
-
-    tag_num = TAGS[tag]['number']
-
-    if tag_num == 320:
-        # ColorMap
-        value = _getField_colormap(fp, tag)
-    else:
-        value = _getField_default(fp, tag)
-
-    _reset_error_warning_handlers(err_handler, warn_handler)
-
-    return value
-
-
 def isTiled(fp):
     """
     Corresponds to TIFFIsTiled
@@ -313,23 +294,6 @@ def isTiled(fp):
     _reset_error_warning_handlers(err_handler, warn_handler)
 
     return status
-
-
-def numberOfTiles(fp):
-    """
-    Corresponds to TIFFNumberOfTiles.
-    """
-    err_handler, warn_handler = _set_error_warning_handlers()
-
-    ARGTYPES = [ctypes.c_void_p]
-    _LIBTIFF.TIFFNumberOfTiles.argtypes = ARGTYPES
-    _LIBTIFF.TIFFNumberOfTiles.restype = ctypes.c_uint32
-
-    numtiles = _LIBTIFF.TIFFNumberOfTiles(fp)
-
-    _reset_error_warning_handlers(err_handler, warn_handler)
-
-    return numtiles
 
 
 def readEncodedStrip(fp, stripnum, strip):
@@ -480,59 +444,6 @@ def RGBAImageOK(fp):
         return False
 
 
-def _getField_colormap(fp, tag):
-    """
-    """
-    ARGTYPES = [
-        ctypes.POINTER(ctypes.c_uint16),
-        ctypes.POINTER(ctypes.c_uint16),
-        ctypes.POINTER(ctypes.c_uint16)
-    ]
-    _LIBTIFF.TIFFGetField.argtypes = ARGTYPES
-    _LIBTIFF.TIFFGetField.restype = check_error
-
-    bps = _LIBTIFF.TIFFGetFieldDefaulted(fp, 'BitsPerSample')
-
-    n = 1 << bps
-    red = np.zeros((n, 1), dtype=np.uint16)
-    green = np.zeros((n, 1), dtype=np.uint16)
-    blue = np.zeros((n, 1), dtype=np.uint16)
-
-    _LIBTIFF.TIFFGetField(
-        fp, tag,
-        red.ctypes.data_as(np.uint16),
-        green.ctypes.data_as(np.uint16),
-        blue.ctypes.data_as(np.uint16)
-    )
-
-    colormap = np.zeros((n, 3), dtype=np.uint16)
-    colormap[:, 0] = red
-    colormap[:, 1] = green
-    colormap[:, 2] = blue
-    return colormap
-
-
-def _getField_default(fp, tag):
-    """
-    Corresponds to TIFFGetField in the TIFF library.
-    """
-    ARGTYPES = [ctypes.c_void_p, ctypes.c_int32]
-
-    tag_num = TAGS[tag]['number']
-    tag_type = TAGS[tag]['type']
-
-    # Append the proper return type for the tag.
-    _LIBTIFF.TIFFGetField.argtypes = ARGTYPES
-
-    _LIBTIFF.TIFFGetField.restype = check_error
-
-    # instantiate the tag value
-    item = tag_type()
-    _LIBTIFF.TIFFGetField(fp, tag_num, ctypes.byref(item))
-
-    return item.value
-
-
 def getFieldDefaulted(fp, tag):
     """
     Corresponds to the TIFFGetFieldDefaulted library routine.
@@ -606,90 +517,12 @@ def setField(fp, tag, value):
     # Append the proper return type for the tag.
     tag_num = TAGS[tag]['number']
     tag_type = TAGS[tag]['type']
-    if tag_num == 320:
-        # ColorMap
-        # One array passed for each sample.
-        args = [ctypes.POINTER(ctypes.c_uint16) for _ in range(value.shape[1])]
-        ARGTYPES.extend(args)
-    elif tag_num == 330:
-        # SubIFDs
-        ARGTYPES.extend([ctypes.c_uint16, ctypes.POINTER(ctypes.c_uint64)])
-    elif tag_num == 333:
-        # InkNames
-        ARGTYPES.extend([ctypes.c_uint16, ctypes.c_char_p])
-    elif tag_num == 338:
-        # ExtraSamples
-        ARGTYPES.extend([ctypes.c_uint16, ctypes.POINTER(ctypes.c_uint16)])
-    elif tag_num == 530:
-        ARGTYPES.extend(tag_type)
-    else:
-        ARGTYPES.append(tag_type)
+
+    ARGTYPES.append(tag_type)
     _LIBTIFF.TIFFSetField.argtypes = ARGTYPES
     _LIBTIFF.TIFFSetField.restype = check_error
 
-    if tag_num == 284 and value == PlanarConfig.SEPARATE:
-        msg = (
-            "Writing images with planar configuration SEPARATE is not "
-            "supported."
-        )
-        raise NotImplementedError(msg)
-
-    elif tag_num == 320:
-        # ColorMap:  split the colormap into uint16 arrays for each sample.
-        columns = [
-            value[:, j].astype(np.uint16) for j in range(value.shape[1])
-        ]
-
-        red = columns[0].ctypes.data_as(ctypes.POINTER(ctypes.c_uint16))
-        green = columns[1].ctypes.data_as(ctypes.POINTER(ctypes.c_uint16))
-        blue = columns[2].ctypes.data_as(ctypes.POINTER(ctypes.c_uint16))
-        _LIBTIFF.TIFFSetField(fp, tag_num, red, green, blue)
-
-    elif tag_num == 330:
-        # SubIFDs:  the array value should just be zeros.  No need for the
-        # user to pass anything but the count.
-        n = value
-        arr = (ctypes.c_uint64 * n)()
-        for j in range(n):
-            arr[j] = 0
-
-        _LIBTIFF.TIFFSetField(fp, tag_num, n, arr)
-
-    elif tag_num == 333:
-        # InkNames
-        # Input is an iterable of strings.  Turn it into a null-terminated and
-        # null-separated single string.
-        inks = '\0'.join(value) + '\0'
-        inks = inks.encode('utf-8')
-        n = len(inks)
-        _LIBTIFF.TIFFSetField(fp, tag_num, n, ctypes.c_char_p(inks))
-
-    elif tag_num == 338:
-        # ExtraSamples
-        # We pass a count and an array of values.
-        try:
-            n = len(value)
-        except TypeError:
-            # singleton?
-            n = 1
-            value = [value]
-
-        arr = (ctypes.c_uint16 * n)()
-        for j in range(n):
-            arr[j] = value[j]
-
-        _LIBTIFF.TIFFSetField(fp, tag_num, n, arr)
-
-    elif tag_num == 530:
-        _LIBTIFF.TIFFSetField(fp, tag_num, value[0], value[1])
-    elif tag_num == 306 and isinstance(value, datetime.datetime):
-        value = value.strftime('%Y:%m:%d %H:%M:%S').encode('utf-8')
-        _LIBTIFF.TIFFSetField(fp, tag_num, ctypes.c_char_p(value))
-    elif tag_type == ctypes.c_char_p:
-        value = value.encode('utf-8')
-        _LIBTIFF.TIFFSetField(fp, tag_num, ctypes.c_char_p(value))
-    else:
-        _LIBTIFF.TIFFSetField(fp, tag_num, value)
+    _LIBTIFF.TIFFSetField(fp, tag_num, value)
 
     _reset_error_warning_handlers(err_handler, warn_handler)
 
