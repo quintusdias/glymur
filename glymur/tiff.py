@@ -70,6 +70,12 @@ class Tiff2Jp2k(object):
             tw = imagewidth
             rps = libtiff.getFieldDefaulted(self.tiff_fp, 'RowsPerStrip')
 
+        if self.tilesize is not None:
+            jth, jtw = self.tilesize
+
+            num_jp2k_tile_rows = int(np.ceil(imagewidth / jtw))
+            num_jp2k_tile_cols = int(np.ceil(imagewidth / jtw))
+
         if self.tilesize is None and libtiff.RGBAImageOK(self.tiff_fp):
 
             # if no jp2k tiling was specified and if the image is ok to read
@@ -101,8 +107,6 @@ class Tiff2Jp2k(object):
 
         elif isTiled and self.tilesize is not None:
 
-            jth, jtw = self.tilesize
-
             tile = np.zeros((th, tw, spp), dtype=dtype)
             jp2 = Jp2k(
                 self.jp2_filename,
@@ -110,13 +114,19 @@ class Tiff2Jp2k(object):
                 tilesize=self.tilesize,
             )
 
-            num_tiff_tile_rows = int(np.ceil(imageheight / th))
             num_tiff_tile_cols = int(np.ceil(imagewidth / tw))
 
-            num_jp2k_tile_rows = int(np.ceil(imagewidth / jtw))
-            num_jp2k_tile_cols = int(np.ceil(imagewidth / jtw))
+            partial_jp2k_tile_rows = (imageheight / jth) != (imageheight // jth) 
+            partial_jp2k_tile_cols = (imagewidth / jtw) != (imagewidth // jtw) 
 
+            import logging
+            logging.warning(f'image:  {imageheight} x {imagewidth}')
+            logging.warning(f'jptile:  {jth} x {jtw}')
+            logging.warning(f'ttile:  {th} x {tw}')
             for idx, tilewriter in enumerate(jp2.get_tilewriters()):
+
+                # populate the jp2k tile with tiff tiles
+                logging.warning(f'IDX:  {idx}')
 
                 jp2k_tile = np.zeros((jth, jtw, spp), dtype=dtype)
                 tiff_tile = np.zeros((th, tw, spp), dtype=dtype)
@@ -127,23 +137,29 @@ class Tiff2Jp2k(object):
                 # the coordinates of the upper left pixel of the jp2k tile
                 julr, julc = jp2k_tile_row * jth, jp2k_tile_col * jtw
 
-                # populate the jp2k tile with tiff tiles
-                for y in range(julr, min(julr + jth, imageheight), th):
-                    for x in range(julc, min(julc + jtw, imagewidth), tw):
-                        tilenum = libtiff.computeTile(
-                            self.tiff_fp, x, y, 0, 0
-                        )
+                # loop while the upper left corner of the current tiff file is
+                # less than the lower left corner of the jp2k tile
+                r = julr
+                while (r // th) * th < min(julr + jth, imageheight):
+                    #for y in range(julr, min(julr + jth, imageheight), th):
+                    c = julc
+
+                    tilenum = libtiff.computeTile(self.tiff_fp, c, r, 0, 0)
+
+                    tiff_tile_row = int(np.ceil(tilenum // num_tiff_tile_cols))
+                    tiff_tile_col = int(np.ceil(tilenum % num_tiff_tile_cols))
+
+                    # the coordinates of the upper left pixel of the TIFF tile
+                    tulr = tiff_tile_row * th
+                    tulc = tiff_tile_col * tw
+
+                    # loop while the left corner of the current tiff tile is
+                    # less than the right hand corner of the jp2k tile
+                    while ((c // tw) * tw) < min(julc + jtw, imagewidth):
+
                         libtiff.readEncodedTile(
                             self.tiff_fp, tilenum, tiff_tile
                         )
-
-                        tiff_tile_row = int(np.ceil(tilenum // num_tiff_tile_cols))
-                        tiff_tile_col = int(np.ceil(tilenum % num_tiff_tile_cols))
-
-                        # the coordinates of the upper left pixel of the TIFF
-                        # tile
-                        tulr = tiff_tile_row * th
-                        tulc = tiff_tile_col * tw
 
                         # determine how to fit this tiff tile into the jp2k
                         # tile
@@ -169,17 +185,40 @@ class Tiff2Jp2k(object):
                             breakpoint()
                             raise
 
+                        # move exactly one tiff tile over
+                        c += tw
+
+                        tilenum = libtiff.computeTile(self.tiff_fp, c, r, 0, 0)
+
+                        tiff_tile_row = int(
+                            np.ceil(tilenum // num_tiff_tile_cols)
+                        )
+                        tiff_tile_col = int(
+                            np.ceil(tilenum % num_tiff_tile_cols)
+                        )
+
+                        # the coordinates of the upper left pixel of the TIFF
+                        # tile
+                        tulr = tiff_tile_row * th
+                        tulc = tiff_tile_col * tw
+
+                    r += th
+
                 # last tile column?  If so, we may have a partial tile.
-                if jp2k_tile_col == num_jp2k_tile_cols - 1:
+                if partial_jp2k_tile_cols and jp2k_tile_col == num_jp2k_tile_cols - 1:
+                    last_j2k_cols = slice(0, jtw - (ulc - imagewidth))
                     jp2k_tile = jp2k_tile[:, j2k_cols, :].copy()
-                if jp2k_tile_row == num_jp2k_tile_rows - 1:
+                if partial_jp2k_tile_rows and jp2k_tile_row == num_jp2k_tile_rows - 1:
+                    last_j2k_rows = slice(0, jth - (llr - imageheight))
                     jp2k_tile = jp2k_tile[j2k_rows, :, :].copy()
 
-                tilewriter[:] = jp2k_tile
+                try:
+                    tilewriter[:] = jp2k_tile
+                except Exception as e:
+                    breakpoint()
+                    pass
 
         elif not isTiled and self.tilesize is not None:
-
-            jth, jtw = self.tilesize
 
             jp2 = Jp2k(
                 self.jp2_filename,
@@ -187,26 +226,40 @@ class Tiff2Jp2k(object):
                 tilesize=self.tilesize,
             )
 
-            num_jp2k_tile_cols = imagewidth // jtw
+            import logging
+            logging.warning(f'Image size:  {imageheight} x {imagewidth}')
+            logging.warning(f'Jp2k tile size:  {jth} x {jtw}')
+            logging.warning(f'TIFF strip length:  {rps}')
 
-            jp2k_tile = np.zeros((jth, jtw, spp), dtype=dtype)
+            num_jp2k_tile_cols = int(np.ceil(imagewidth / jtw))
+
+            partial_jp2k_tile_rows = (imageheight / jth) != (imageheight // jth) 
+            partial_jp2k_tile_cols = (imagewidth / jtw) != (imagewidth // jtw) 
+
             tiff_strip = np.zeros((rps, imagewidth, spp), dtype=dtype)
 
             for idx, tilewriter in enumerate(jp2.get_tilewriters()):
+                logging.warning(f'jp2k tile idx: {idx}')
 
-                jp2k_tile_row = int(np.ceil(idx / num_jp2k_tile_cols))
-                jp2k_tile_col = int(np.ceil(idx % num_jp2k_tile_cols))
+                jp2k_tile = np.zeros((jth, jtw, spp), dtype=dtype)
+
+                jp2k_tile_row = idx // num_jp2k_tile_cols
+                jp2k_tile_col = idx % num_jp2k_tile_cols
 
                 # the coordinates of the upper left pixel of the jp2k tile
                 julr, julc = jp2k_tile_row * jth, jp2k_tile_col * jtw
+                logging.warning(f'Upper left j coord:  {julr}, {julc}')
 
                 # populate the jp2k tile with tiff strips
-                for y in range(julr, min(julr + jth, imageheight), rps):
+                for r in range(julr, min(julr + jth, imageheight), rps):
 
-                    stripnum = libtiff.computeStrip(self.tiff_fp, y, 0)
+                    stripnum = libtiff.computeStrip(self.tiff_fp, r, 0)
                     libtiff.readEncodedStrip(
                         self.tiff_fp, stripnum, tiff_strip
                     )
+
+                    logging.warning(f'row: {r}')
+                    logging.warning(f'strip: {stripnum}')
 
                     # the coordinates of the upper left pixel of the TIFF
                     # strip
@@ -233,8 +286,24 @@ class Tiff2Jp2k(object):
 
                     try:
                         jp2k_tile[j2k_rows, j2k_cols, :] = tiff_strip[tiff_rows, tiff_cols, :]
-                    except ValueError:
+                    except ValueError as e:
                         breakpoint()
                         raise
 
-                tilewriter[:] = jp2k_tile
+                # last tile column?  If so, we may have a partial tile.
+                # j2k_cols is not sufficient here, must shorten it from 250
+                # to 230
+                if partial_jp2k_tile_cols and jp2k_tile_col == num_jp2k_tile_cols - 1:
+                    # decrease the number of columns by however many it sticks
+                    # over the image width
+                    last_j2k_cols = slice(0, jtw - (ulc + jtw - imagewidth))
+                    jp2k_tile = jp2k_tile[:, last_j2k_cols, :].copy()
+                if partial_jp2k_tile_rows and jp2k_tile_row == num_jp2k_tile_rows - 1:
+                    # decrease the number of rows by however many it sticks
+                    # over the image height
+                    last_j2k_rows = slice(0, jth - (llr - imageheight))
+                    jp2k_tile = jp2k_tile[last_j2k_rows, :, :].copy()
+                try:
+                    tilewriter[:] = jp2k_tile
+                except Exception as e:
+                    raise

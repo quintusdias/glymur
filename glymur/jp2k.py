@@ -1994,8 +1994,12 @@ class _TileWriter(object):
     def __init__(self, jp2k):
         self.jp2k = jp2k
 
-        self.num_tile_rows = int(self.jp2k.shape[0] / self.jp2k.tilesize[0])
-        self.num_tile_cols = int(self.jp2k.shape[1] / self.jp2k.tilesize[1])
+        self.num_tile_rows = int(
+            np.ceil(self.jp2k.shape[0] / self.jp2k.tilesize[0])
+        )
+        self.num_tile_cols = int(
+            np.ceil(self.jp2k.shape[1] / self.jp2k.tilesize[1])
+        )
         self.number_of_tiles = self.num_tile_rows * self.num_tile_cols
 
     def __iter__(self):

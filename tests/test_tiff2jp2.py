@@ -175,7 +175,7 @@ class TestSuite(fixtures.TestCommon):
 
         h, w = data.shape
 
-        # instead of 160, this will cause an empty last strip
+        # instead of 160, this will cause a partially empty last strip
         rps = 170
 
         fp = libtiff.open(path, mode='w')
@@ -352,16 +352,16 @@ class TestSuite(fixtures.TestCommon):
 
         self.assertEqual(actual.shape, (213, 234, 3))
 
-    def test_partial_tiles(self):
+    def test_partial_strip_and_partial_tiles(self):
         """
-        SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF has
-        partial tiles.
+        SCENARIO:  Convert monochromatic stripped TIFF file to JP2.  The TIFF
+        has a partial last strip.  The JP2K will have partial tiles.
 
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
         with Tiff2Jp2k(
             self.moon_partial_last_strip, self.temp_jp2_filename,
-            tilesize=(240, 240)
+            tilesize=(250, 250)
         ) as j:
             j.run()
 
@@ -373,8 +373,8 @@ class TestSuite(fixtures.TestCommon):
         c = jp2.get_codestream()
         self.assertEqual(c.segment[1].xsiz, 480)
         self.assertEqual(c.segment[1].ysiz, 480)
-        self.assertEqual(c.segment[1].xtsiz, 240)
-        self.assertEqual(c.segment[1].ytsiz, 240)
+        self.assertEqual(c.segment[1].xtsiz, 250)
+        self.assertEqual(c.segment[1].ytsiz, 250)
 
     def test_partial_last_strip(self):
         """
