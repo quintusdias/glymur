@@ -77,9 +77,11 @@ class Tiff2Jp2k(object):
         if libtiff.isTiled(self.tiff_fp):
             tw = libtiff.getFieldDefaulted(self.tiff_fp, 'TileWidth')
             th = libtiff.getFieldDefaulted(self.tiff_fp, 'TileLength')
+            num_tiles = libtiff.numberOfTiles(self.tiff_fp)
         else:
             tw = imagewidth
             rps = libtiff.getFieldDefaulted(self.tiff_fp, 'RowsPerStrip')
+            num_strips = libtiff.numberOfStrips(self.tiff_fp)
 
         if self.tilesize is not None:
             jth, jtw = self.tilesize
@@ -241,7 +243,7 @@ class Tiff2Jp2k(object):
 
             num_jp2k_tile_cols = int(np.ceil(imagewidth / jtw))
 
-            partial_jp2_tile_rows = (imageheight / jth) != (imageheight // jth)  # noqa : E501
+            partial_jp2_tile_rows = (imageheight / jth) != (imageheight // jth)
             partial_jp2_tile_cols = (imagewidth / jtw) != (imagewidth // jtw)
 
             tiff_strip = np.zeros((rps, imagewidth, spp), dtype=dtype)
@@ -308,7 +310,7 @@ class Tiff2Jp2k(object):
 
                 if (
                     partial_jp2_tile_rows
-                    and jp2k_tile_row == num_jp2k_tile_rows - 1
+                    and stripnum == num_strips - 1
                 ):
                     # decrease the number of rows by however many it sticks
                     # over the image height

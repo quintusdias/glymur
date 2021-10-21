@@ -315,6 +315,23 @@ def isTiled(fp):
     return status
 
 
+def numberOfStrips(fp):
+    """
+    Corresponds to TIFFNumberOfStrips.
+    """
+    err_handler, warn_handler = _set_error_warning_handlers()
+
+    ARGTYPES = [ctypes.c_void_p]
+    _LIBTIFF.TIFFNumberOfStrips.argtypes = ARGTYPES
+    _LIBTIFF.TIFFNumberOfStrips.restype = ctypes.c_uint32
+
+    numstrips = _LIBTIFF.TIFFNumberOfStrips(fp)
+
+    _reset_error_warning_handlers(err_handler, warn_handler)
+
+    return numstrips
+
+
 def numberOfTiles(fp):
     """
     Corresponds to TIFFNumberOfTiles.
