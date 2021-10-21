@@ -63,12 +63,8 @@ class Tiff2Jp2k(object):
 
         if bps == 8 and sf == libtiff.SampleFormat.UINT:
             dtype = np.uint8
-        elif bps == 8 and sf == libtiff.SampleFormat.INT:
-            dtype = np.int8
         if bps == 16 and sf == libtiff.SampleFormat.UINT:
             dtype = np.uint16
-        if bps == 16 and sf == libtiff.SampleFormat.INT:
-            dtype = np.int16
 
         if libtiff.isTiled(self.tiff_fp):
             tw = libtiff.getFieldDefaulted(self.tiff_fp, 'TileWidth')
@@ -93,24 +89,6 @@ class Tiff2Jp2k(object):
                 image = image[:, :, :spp]
 
             Jp2k(self.jp2_filename, data=image)
-
-        elif (
-            isTiled
-            and (imagewidth % tw) == 0
-            and (imageheight % th) == 0
-            and self.tilesize is None
-        ):
-
-            # The image is evenly tiled.  This is ideal.
-            tile = np.zeros((th, tw, spp), dtype=dtype)
-            jp2 = Jp2k(
-                self.jp2_filename,
-                shape=(imageheight, imagewidth, spp),
-                tilesize=(th, tw)
-            )
-            for idx, tilewriter in enumerate(jp2.get_tilewriters()):
-                libtiff.readEncodedTile(self.tiff_fp, idx, tile)
-                tilewriter[:] = tile
 
         elif isTiled and self.tilesize is not None:
 
