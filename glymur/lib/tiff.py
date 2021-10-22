@@ -349,11 +349,14 @@ def numberOfTiles(fp):
     return numtiles
 
 
-def readEncodedStrip(fp, stripnum, strip):
+def readEncodedStrip(fp, stripnum, strip, size=-1):
     """
     Corresponds to TIFFReadEncodedStrip
     """
     err_handler, warn_handler = _set_error_warning_handlers()
+
+    if size == -1:
+        size = strip.nbytes
 
     ARGTYPES = [
         ctypes.c_void_p, ctypes.c_uint32, ctypes.c_void_p, ctypes.c_int32
@@ -361,7 +364,7 @@ def readEncodedStrip(fp, stripnum, strip):
     _LIBTIFF.TIFFReadEncodedStrip.argtypes = ARGTYPES
     _LIBTIFF.TIFFReadEncodedStrip.restype = check_error
     _LIBTIFF.TIFFReadEncodedStrip(
-        fp, stripnum, strip.ctypes.data_as(ctypes.c_void_p), -1
+        fp, stripnum, strip.ctypes.data_as(ctypes.c_void_p), size
     )
 
     _reset_error_warning_handlers(err_handler, warn_handler)
@@ -369,11 +372,14 @@ def readEncodedStrip(fp, stripnum, strip):
     return strip
 
 
-def readEncodedTile(fp, tilenum, tile):
+def readEncodedTile(fp, tilenum, tile, size=-1):
     """
     Corresponds to TIFFComputeTile
     """
     err_handler, warn_handler = _set_error_warning_handlers()
+
+    if size == -1:
+        size = tile.nbytes
 
     ARGTYPES = [
         ctypes.c_void_p, ctypes.c_uint32, ctypes.c_void_p, ctypes.c_int32

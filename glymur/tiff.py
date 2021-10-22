@@ -41,6 +41,7 @@ class Tiff2Jp2k(object):
         else:
             isTiled = False
 
+        photometric = libtiff.getFieldDefaulted(self.tiff_fp, 'Photometric')
         imagewidth = libtiff.getFieldDefaulted(self.tiff_fp, 'ImageWidth')
         imageheight = libtiff.getFieldDefaulted(self.tiff_fp, 'ImageLength')
         spp = libtiff.getFieldDefaulted(self.tiff_fp, 'SamplesPerPixel')
@@ -89,7 +90,13 @@ class Tiff2Jp2k(object):
             num_jp2k_tile_rows = int(np.ceil(imagewidth / jtw))
             num_jp2k_tile_cols = int(np.ceil(imagewidth / jtw))
 
-        if self.tilesize is None and libtiff.RGBAImageOK(self.tiff_fp):
+        if photometric == libtiff.Photometric.YCBCR:
+
+            image = libtiff.readRGBAImageOriented(self.tiff_fp)
+            image = image[:, :, :spp]
+            Jp2k(self.jp2_filename, data=image)
+
+        elif self.tilesize is None and libtiff.RGBAImageOK(self.tiff_fp):
 
             # if no jp2k tiling was specified and if the image is ok to read
             # via the RGBA interface, then just do that.
@@ -314,7 +321,7 @@ class Tiff2Jp2k(object):
                 ):
                     # decrease the number of rows by however many it sticks
                     # over the image height
-                    last_j2k_rows = slice(0, jth - (llr - imageheight))
+                    last_j2k_rows = slice(0, imageheight - julr)
                     jp2k_tile = jp2k_tile[last_j2k_rows, :, :].copy()
 
                 tilewriter[:] = jp2k_tile
