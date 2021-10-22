@@ -255,6 +255,57 @@ class TestSuite(fixtures.TestCommon):
         cls.astronaut_uint16_filename = path
 
     @classmethod
+    def setup_astronaut_ycbcr_jpeg(cls, path):
+        """
+        SCENARIO:  create a simple color 2x2 tiled image
+        """
+        data = skimage.data.astronaut()
+        h, w, z = data.shape
+        th, tw = h // 2, w // 2
+
+        fp = libtiff.open(path, mode='w')
+
+        libtiff.setField(fp, 'Photometric', libtiff.Photometric.YCBCR)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.JPEG)
+        libtiff.setField(fp, 'ImageLength', data.shape[0])
+        libtiff.setField(fp, 'ImageWidth', data.shape[1])
+        libtiff.setField(fp, 'TileLength', th)
+        libtiff.setField(fp, 'TileWidth', tw)
+        libtiff.setField(fp, 'BitsPerSample', 8)
+        libtiff.setField(fp, 'SamplesPerPixel', 3)
+        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
+
+        libtiff.writeEncodedTile(fp, 0, data[:th, :tw, :].copy())
+        libtiff.writeEncodedTile(fp, 1, data[:th, tw:w, :].copy())
+        libtiff.writeEncodedTile(fp, 2, data[th:h, :tw, :].copy())
+        libtiff.writeEncodedTile(fp, 3, data[th:h, tw:w, :].copy())
+
+        libtiff.close(fp)
+
+        # now read it back
+        fp = libtiff.open(path)
+
+        tile = np.zeros((th, tw, 4), dtype=np.uint8)
+        actual_data = np.zeros((h, w, 3), dtype=np.uint8)
+
+        libtiff.readRGBATile(fp, 0, 0, tile)
+        actual_data[:th, :tw, :] = tile[:, :, :3]
+
+        libtiff.readRGBATile(fp, 0, 256, tile)
+        actual_data[:th, tw:w, :] = tile[:, :, :3]
+
+        libtiff.readRGBATile(fp, 256, 0, tile)
+        actual_data[th:h, :tw, :] = tile[:, :, :3]
+
+        libtiff.readRGBATile(fp, 256, 256, tile)
+        actual_data[th:h, tw:w, :] = tile[:, :, :3]
+
+        libtiff.close(fp)
+
+        cls.astronaut_ycbcr_jpeg_data = actual_data
+        cls.astronaut_ycbcr_jpeg_tif = path
+
+    @classmethod
     def setup_astronaut(cls, path):
         """
         SCENARIO:  create a simple color 2x2 tiled image
@@ -330,6 +381,9 @@ class TestSuite(fixtures.TestCommon):
 
         # uint8 spp=3 image
         cls.setup_astronaut(cls.test_tiff_path / 'astronaut.tif')
+
+        # uint8 spp=3 ycbcr/jpeg image
+        cls.setup_astronaut_ycbcr_jpeg(cls.test_tiff_path / 'astronaut_ycbcr_jpeg.tif')
 
         # uint16 spp=3 uint16 image
         cls.setup_astronaut_uint16(cls.test_tiff_path / 'astronaut_uint16.tif')
@@ -587,6 +641,29 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 256)
         self.assertEqual(c.segment[1].ytsiz, 256)
 
+    def test_astronaut_ycbcr_jpeg(self):
+        """
+        SCENARIO:  Convert YCBCR/JPEG TIFF file to JP2.  The TIFF is evenly
+        tiled 2x2.
+
+        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
+        """
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename, tilesize=(256, 256)
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+
+        np.testing.assert_array_equal(actual, self.astronaut_ycbcr_jpeg_data)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 512)
+        self.assertEqual(c.segment[1].ysiz, 512)
+        self.assertEqual(c.segment[1].xtsiz, 256)
+        self.assertEqual(c.segment[1].ytsiz, 256)
+
     def test_astronaut_imperfect_tiling(self):
         """
         SCENARIO:  Convert RGB TIFF file to JP2.  The TIFF is evenly
@@ -610,6 +687,18 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].ysiz, 512)
         self.assertEqual(c.segment[1].xtsiz, 200)
         self.assertEqual(c.segment[1].ytsiz, 200)
+
+    def test_tiff_file_not_there(self):
+        """
+        Scenario:  The input TIFF file is not present.
+
+        Expected Result:  FileNotFoundError
+        """
+
+        with self.assertRaises(FileNotFoundError):
+            Tiff2Jp2k(
+                self.test_dir_path / 'not_there.tif', self.temp_jp2_filename
+            )
 
     def test_astronaut16(self):
         """

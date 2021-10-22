@@ -184,6 +184,22 @@ the layers to make the first layer lossless, not the last. ::
     >>> print(psnr)
     [inf, 29.028560403833303, 39.206919416670402, 47.593129828702246]
 
+*************************************
+... convert TIFF images to JPEG 2000?
+*************************************
+
+Many TIFFs can be converted to tiled JPEG 2000 files using glymur.
+A command line utility **tiff2jp2k** is provided for this task.
+
+In most cases, you should provide your own choice of a JPEG 2000 tile
+size.  Not providing a tile size will cause glymur to try to covert the
+TIFF into a single-tile JPEG 2000 file.  If your TIFF is large, you may
+not have enough memory to write a single-tile file.
+
+If your TIFF is really big but has an unfortunate choice for the
+RowsPerStrip tag (like the ubiquitous choice of 3, which was reasonable
+only in prehistoric times) ... well that's going to be very inefficient.
+
 *********************
 ... display metadata?
 *********************

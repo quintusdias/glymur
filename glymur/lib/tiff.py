@@ -296,11 +296,48 @@ def isTiled(fp):
     return status
 
 
-def readEncodedStrip(fp, stripnum, strip):
+def numberOfStrips(fp):
+    """
+    Corresponds to TIFFNumberOfStrips.
+    """
+    err_handler, warn_handler = _set_error_warning_handlers()
+
+    ARGTYPES = [ctypes.c_void_p]
+    _LIBTIFF.TIFFNumberOfStrips.argtypes = ARGTYPES
+    _LIBTIFF.TIFFNumberOfStrips.restype = ctypes.c_uint32
+
+    numstrips = _LIBTIFF.TIFFNumberOfStrips(fp)
+
+    _reset_error_warning_handlers(err_handler, warn_handler)
+
+    return numstrips
+
+
+def numberOfTiles(fp):
+    """
+    Corresponds to TIFFNumberOfTiles.
+    """
+    err_handler, warn_handler = _set_error_warning_handlers()
+
+    ARGTYPES = [ctypes.c_void_p]
+    _LIBTIFF.TIFFNumberOfTiles.argtypes = ARGTYPES
+    _LIBTIFF.TIFFNumberOfTiles.restype = ctypes.c_uint32
+
+    numtiles = _LIBTIFF.TIFFNumberOfTiles(fp)
+
+    _reset_error_warning_handlers(err_handler, warn_handler)
+
+    return numtiles
+
+
+def readEncodedStrip(fp, stripnum, strip, size=-1):
     """
     Corresponds to TIFFReadEncodedStrip
     """
     err_handler, warn_handler = _set_error_warning_handlers()
+
+    if size == -1:
+        size = strip.nbytes
 
     ARGTYPES = [
         ctypes.c_void_p, ctypes.c_uint32, ctypes.c_void_p, ctypes.c_int32
@@ -308,7 +345,7 @@ def readEncodedStrip(fp, stripnum, strip):
     _LIBTIFF.TIFFReadEncodedStrip.argtypes = ARGTYPES
     _LIBTIFF.TIFFReadEncodedStrip.restype = check_error
     _LIBTIFF.TIFFReadEncodedStrip(
-        fp, stripnum, strip.ctypes.data_as(ctypes.c_void_p), -1
+        fp, stripnum, strip.ctypes.data_as(ctypes.c_void_p), size
     )
 
     _reset_error_warning_handlers(err_handler, warn_handler)
@@ -316,11 +353,14 @@ def readEncodedStrip(fp, stripnum, strip):
     return strip
 
 
-def readEncodedTile(fp, tilenum, tile):
+def readEncodedTile(fp, tilenum, tile, size=-1):
     """
     Corresponds to TIFFComputeTile
     """
     err_handler, warn_handler = _set_error_warning_handlers()
+
+    if size == -1:
+        size = tile.nbytes
 
     ARGTYPES = [
         ctypes.c_void_p, ctypes.c_uint32, ctypes.c_void_p, ctypes.c_int32
@@ -329,6 +369,26 @@ def readEncodedTile(fp, tilenum, tile):
     _LIBTIFF.TIFFReadEncodedTile.restype = check_error
     _LIBTIFF.TIFFReadEncodedTile(
         fp, tilenum, tile.ctypes.data_as(ctypes.c_void_p), -1
+    )
+
+    _reset_error_warning_handlers(err_handler, warn_handler)
+
+    return tile
+
+
+def readRGBATile(fp, x, y, tile):
+    """
+    Corresponds to TIFFReadRGBATile
+    """
+    err_handler, warn_handler = _set_error_warning_handlers()
+
+    ARGTYPES = [
+        ctypes.c_void_p, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_void_p
+    ]
+    _LIBTIFF.TIFFReadRGBATile.argtypes = ARGTYPES
+    _LIBTIFF.TIFFReadRGBATile.restype = check_error
+    _LIBTIFF.TIFFReadRGBATile(
+        fp, x, y, tile.ctypes.data_as(ctypes.c_void_p)
     )
 
     _reset_error_warning_handlers(err_handler, warn_handler)
