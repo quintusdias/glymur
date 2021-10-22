@@ -90,13 +90,15 @@ class Tiff2Jp2k(object):
             num_jp2k_tile_rows = int(np.ceil(imagewidth / jtw))
             num_jp2k_tile_cols = int(np.ceil(imagewidth / jtw))
 
-        if photometric == libtiff.Photometric.YCBCR:
+        if photometric in [
+            libtiff.Photometric.YCBCR, libtiff.Photometric.PALETTE
+        ]:
+            use_rgba_interface = True
+        else:
+            use_rgba_interface = False
 
-            image = libtiff.readRGBAImageOriented(self.tiff_fp)
-            image = image[:, :, :spp]
-            Jp2k(self.jp2_filename, data=image)
-
-        elif self.tilesize is None and libtiff.RGBAImageOK(self.tiff_fp):
+        breakpoint()
+        if self.tilesize is None and libtiff.RGBAImageOK(self.tiff_fp):
 
             # if no jp2k tiling was specified and if the image is ok to read
             # via the RGBA interface, then just do that.
@@ -139,6 +141,8 @@ class Tiff2Jp2k(object):
             partial_jp2_tile_rows = (imageheight / jth) != (imageheight // jth)
             partial_jp2_tile_cols = (imagewidth / jtw) != (imagewidth // jtw)
 
+            rgba_tile = np.zeros((th, tw, 4), dtype=np.uint8)
+
             import logging
             logging.warning(f'image:  {imageheight} x {imagewidth}')
             logging.warning(f'jptile:  {jth} x {jtw}')
@@ -176,9 +180,15 @@ class Tiff2Jp2k(object):
                     # less than the right hand corner of the jp2k tile
                     while ((c // tw) * tw) < min(julc + jtw, imagewidth):
 
-                        libtiff.readEncodedTile(
-                            self.tiff_fp, tilenum, tiff_tile
-                        )
+                        if use_rgba_interface:
+                            libtiff.readRGBATile(
+                                self.tiff_fp, c, r, rgba_tile
+                            )
+                            tiff_tile = rgba_tile[:, :, :3]
+                        else:
+                            libtiff.readEncodedTile(
+                                self.tiff_fp, tilenum, tiff_tile
+                            )
 
                         # determine how to fit this tiff tile into the jp2k
                         # tile
@@ -254,6 +264,7 @@ class Tiff2Jp2k(object):
             partial_jp2_tile_cols = (imagewidth / jtw) != (imagewidth // jtw)
 
             tiff_strip = np.zeros((rps, imagewidth, spp), dtype=dtype)
+            rgba_strip = np.zeros((rps, imagewidth, 4), dtype=np.uint8)
 
             for idx, tilewriter in enumerate(jp2.get_tilewriters()):
                 logging.warning(f'jp2k tile idx: {idx}')
@@ -271,9 +282,14 @@ class Tiff2Jp2k(object):
                 for r in range(julr, min(julr + jth, imageheight), rps):
 
                     stripnum = libtiff.computeStrip(self.tiff_fp, r, 0)
-                    libtiff.readEncodedStrip(
-                        self.tiff_fp, stripnum, tiff_strip
-                    )
+                    
+                    if use_rgba_interface:
+                        libtiff.readRGBAStrip(self.tiff_fp, r, rgba_strip)
+                        tiff_strip = rgba_strip[:, :, :spp]
+                    else:
+                        libtiff.readEncodedStrip(
+                            self.tiff_fp, stripnum, tiff_strip
+                        )
 
                     logging.warning(f'row: {r}')
                     logging.warning(f'strip: {stripnum}')
