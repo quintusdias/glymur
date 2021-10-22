@@ -1,6 +1,5 @@
 # standard library imports
 import ctypes
-import datetime
 from enum import IntEnum
 import os
 import queue

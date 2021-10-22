@@ -93,7 +93,6 @@ class Tiff2Jp2k(object):
         else:
             use_rgba_interface = False
 
-        breakpoint()
         if self.tilesize is None and libtiff.RGBAImageOK(self.tiff_fp):
 
             # if no jp2k tiling was specified and if the image is ok to read
@@ -107,7 +106,6 @@ class Tiff2Jp2k(object):
 
         elif isTiled and self.tilesize is not None:
 
-            tile = np.zeros((th, tw, spp), dtype=dtype)
             jp2 = Jp2k(
                 self.jp2_filename,
                 shape=(imageheight, imagewidth, spp),
@@ -260,7 +258,7 @@ class Tiff2Jp2k(object):
                 for r in range(julr, min(julr + jth, imageheight), rps):
 
                     stripnum = libtiff.computeStrip(self.tiff_fp, r, 0)
-                    
+
                     if use_rgba_interface:
                         libtiff.readRGBAStrip(self.tiff_fp, r, rgba_strip)
                         tiff_strip = rgba_strip[:, :, :spp]

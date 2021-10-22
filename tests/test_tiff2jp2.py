@@ -291,10 +291,10 @@ class TestSuite(fixtures.TestCommon):
         libtiff.readRGBATile(fp, 0, 0, tile)
         actual_data[:th, :tw, :] = tile[:, :, :3]
 
-        libtiff.readRGBATile(fp, 0, 256, tile)
+        libtiff.readRGBATile(fp, 256, 0, tile)
         actual_data[:th, tw:w, :] = tile[:, :, :3]
 
-        libtiff.readRGBATile(fp, 256, 0, tile)
+        libtiff.readRGBATile(fp, 0, 256, tile)
         actual_data[th:h, :tw, :] = tile[:, :, :3]
 
         libtiff.readRGBATile(fp, 256, 256, tile)
