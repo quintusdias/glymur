@@ -395,6 +395,26 @@ def readEncodedTile(fp, tilenum, tile, size=-1):
     return tile
 
 
+def readRGBATile(fp, x, y, tile):
+    """
+    Corresponds to TIFFReadRGBATile
+    """
+    err_handler, warn_handler = _set_error_warning_handlers()
+
+    ARGTYPES = [
+        ctypes.c_void_p, ctypes.c_uint32, ctypes.c_uint32, ctypes.c_void_p
+    ]
+    _LIBTIFF.TIFFReadRGBATile.argtypes = ARGTYPES
+    _LIBTIFF.TIFFReadRGBATile.restype = check_error
+    _LIBTIFF.TIFFReadRGBATile(
+        fp, x, y, tile.ctypes.data_as(ctypes.c_void_p)
+    )
+
+    _reset_error_warning_handlers(err_handler, warn_handler)
+
+    return tile
+
+
 def readRGBAImageOriented(fp, width=None, height=None,
                           orientation=Orientation.TOPLEFT):
     """
