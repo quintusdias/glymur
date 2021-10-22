@@ -191,7 +191,7 @@ class TestSuite(fixtures.TestCommon):
         libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
 
         libtiff.writeEncodedStrip(fp, 0, data[:rps, :].copy())
-        libtiff.writeEncodedStrip(fp, 1, data[rps:rps * 2, :].copy())
+        libtiff.writeEncodedStrip(fp, 1, data[rps:, :].copy())
 
         data2 = np.vstack((
             data[340:480, :], np.zeros((30, 480), dtype=np.uint8)
@@ -383,7 +383,9 @@ class TestSuite(fixtures.TestCommon):
         cls.setup_astronaut(cls.test_tiff_path / 'astronaut.tif')
 
         # uint8 spp=3 ycbcr/jpeg image
-        cls.setup_astronaut_ycbcr_jpeg(cls.test_tiff_path / 'astronaut_ycbcr_jpeg.tif')
+        cls.setup_astronaut_ycbcr_jpeg(
+            cls.test_tiff_path / 'astronaut_ycbcr_jpeg_tiled.tif'
+        )
 
         # uint16 spp=3 uint16 image
         cls.setup_astronaut_uint16(cls.test_tiff_path / 'astronaut_uint16.tif')
