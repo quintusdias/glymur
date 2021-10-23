@@ -139,7 +139,8 @@ class TestSuite(fixtures.TestCommon):
     @classmethod
     def setup_moon3_stripped(cls, path):
         """
-        SCENARIO:  create a simple monochromatic 3-strip image
+        SCENARIO:  create a simple monochromatic 3-strip image.  The strips
+        evenly divide the image.
         """
         data = skimage.data.moon()
         data = data[:480, :480]
@@ -726,9 +727,9 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 256)
         self.assertEqual(c.segment[1].ytsiz, 256)
 
-    def test_commandline_tiff2jp2k(self):
+    def test_commandline_tiff2jp2(self):
         """
-        Scenario:  patch sys such that we can run the command line tiff2jp2k
+        Scenario:  patch sys such that we can run the command line tiff2jp2
         script.
 
         Expected Results:  Same as test_astronaut.
@@ -737,7 +738,7 @@ class TestSuite(fixtures.TestCommon):
             '', str(self.astronaut_tif), str(self.temp_jp2_filename),
             '--tilesize', '256', '256'
         ]
-        command_line.tiff2jp2k()
+        command_line.tiff2jp2()
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]

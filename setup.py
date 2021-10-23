@@ -17,7 +17,7 @@ kwargs = {
     'entry_points': {
         'console_scripts': [
             'jp2dump=glymur.command_line:main',
-            'tiff2jp2k=glymur.command_line:tiff2jp2k'
+            'tiff2jp2=glymur.command_line:tiff2jp2'
         ],
     },
     'license': 'MIT',

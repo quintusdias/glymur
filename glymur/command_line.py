@@ -81,9 +81,9 @@ def main():
             )
 
 
-def tiff2jp2k():
+def tiff2jp2():
     """
-    Entry point for console script tiff2jp2k.
+    Entry point for console script tiff2jp2.
     """
 
     kwargs = {
