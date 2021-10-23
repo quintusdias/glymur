@@ -260,7 +260,7 @@ class Tiff2Jp2k(object):
                 # Move by strips from the start of the jp2k tile to the bottom
                 # of the jp2k tile.  That last strip may be partially empty,
                 # worry about that later.
-                for r in range(julr, julr + jth, rps):
+                for r in range(julr, min(julr + jth, imageheight), rps):
 
                     stripnum = libtiff.computeStrip(self.tiff_fp, r, 0)
                     if stripnum >= num_strips:

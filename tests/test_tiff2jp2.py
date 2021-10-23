@@ -11,12 +11,44 @@ import numpy as np
 import skimage.data
 
 # Local imports
+import glymur
 from glymur import Jp2k, Tiff2Jp2k, command_line
 from . import fixtures
 from glymur.lib import tiff as libtiff
 
 
 class TestSuite(fixtures.TestCommon):
+
+    @classmethod
+    def setup_goodstuff(cls, path):
+        """
+        SCENARIO:  create a simple RGB stripped image, stripsize of 32
+        """
+        j = Jp2k(glymur.data.goodstuff())
+        data = j[:]
+        h, w, spp = data.shape
+        rps = 32
+
+        fp = libtiff.open(path, mode='w')
+
+        libtiff.setField(fp, 'Photometric', libtiff.Photometric.RGB)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
+        libtiff.setField(fp, 'ImageLength', data.shape[0])
+        libtiff.setField(fp, 'ImageWidth', data.shape[1])
+        libtiff.setField(fp, 'RowsPerStrip', rps)
+        libtiff.setField(fp, 'BitsPerSample', 8)
+        libtiff.setField(fp, 'SamplesPerPixel', spp)
+        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
+
+        for stripnum in range(25):
+            row = rps * stripnum
+            stripdata = data[row:row + rps, :, :].copy()
+            libtiff.writeEncodedStrip(fp, stripnum, stripdata)
+
+        libtiff.close(fp)
+
+        cls.goodstuff_data = data
+        cls.goodstuff_path = path
 
     @classmethod
     def setup_moon(cls, path):
@@ -365,6 +397,9 @@ class TestSuite(fixtures.TestCommon):
         with ir.path('tests.data', 'zackthecat.tif') as filename:
             cls.zackthecat = filename
 
+        # uint8 spp=3 image
+        cls.setup_goodstuff(cls.test_tiff_path / 'goodstuff.tif')
+
         # uint8 spp=1 image
         cls.setup_moon(cls.test_tiff_path / 'moon.tif')
 
@@ -652,7 +687,8 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
         with Tiff2Jp2k(
-            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename, tilesize=(256, 256)
+            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename,
+            tilesize=(256, 256)
         ) as j:
             j.run()
 
@@ -750,3 +786,24 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].ysiz, 512)
         self.assertEqual(c.segment[1].xtsiz, 256)
         self.assertEqual(c.segment[1].ytsiz, 256)
+
+    def test_goodstuff(self):
+        """
+        Scenario:  input TIFF is evenly divided into strips, but the tile size
+        does not evenly divide either dimension.
+        """
+        with Tiff2Jp2k(
+            self.goodstuff_path, self.temp_jp2_filename, tilesize=(64, 64)
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+
+        np.testing.assert_array_equal(actual, self.goodstuff_data)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 480)
+        self.assertEqual(c.segment[1].ysiz, 800)
+        self.assertEqual(c.segment[1].xtsiz, 64)
+        self.assertEqual(c.segment[1].ytsiz, 64)
