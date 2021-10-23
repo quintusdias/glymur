@@ -229,6 +229,8 @@ class Tiff2Jp2k(object):
                 tilesize=self.tilesize,
             )
 
+            num_strips = libtiff.numberOfStrips(self.tiff_fp)
+
             import logging
             logging.warning(f'Image size:  {imageheight} x {imagewidth}')
             logging.warning(f'Jp2k tile size:  {jth} x {jtw}')
@@ -254,14 +256,25 @@ class Tiff2Jp2k(object):
                 julr, julc = jp2k_tile_row * jth, jp2k_tile_col * jtw
                 logging.warning(f'Upper left j coord:  {julr}, {julc}')
 
-                # populate the jp2k tile with tiff strips
-                for r in range(julr, min(julr + jth, imageheight), rps):
+                # Populate the jp2k tile with tiff strips.
+                # Move by strips from the start of the jp2k tile to the bottom
+                # of the jp2k tile.  That last strip may be partially empty,
+                # worry about that later.
+                for r in range(julr, julr + jth, rps):
 
                     stripnum = libtiff.computeStrip(self.tiff_fp, r, 0)
+                    if stripnum >= num_strips:
+                        # we've moved past the end of the tiff
+                        break
 
                     if use_rgba_interface:
-                        libtiff.readRGBAStrip(self.tiff_fp, r, rgba_strip)
+
+                        # must use the first row in the strip
+                        libtiff.readRGBAStrip(
+                            self.tiff_fp, stripnum * rps, rgba_strip
+                        )
                         tiff_strip = rgba_strip[:, :, :spp]
+
                     else:
                         libtiff.readEncodedStrip(
                             self.tiff_fp, stripnum, tiff_strip
@@ -295,6 +308,12 @@ class Tiff2Jp2k(object):
 
                     jp2k_tile[jrows, jcols, :] = tiff_strip[trows, tcols, :]
 
+                    logging.warning(f'strip size is {tiff_strip.shape}')
+                    logging.warning(f'j rows received are {jrows}')
+                    logging.warning(f'j cols received are {jcols}')
+                    logging.warning(f't rows transferred are {trows}')
+                    logging.warning(f't cols transferred are {tcols}')
+
                 # last tile column?  If so, we may have a partial tile.
                 # j2k_cols is not sufficient here, must shorten it from 250
                 # to 230
@@ -302,6 +321,7 @@ class Tiff2Jp2k(object):
                     partial_jp2_tile_cols
                     and jp2k_tile_col == num_jp2k_tile_cols - 1
                 ):
+                    logging.warning('Hit a partial jp2k tile on right side')
                     # decrease the number of columns by however many it sticks
                     # over the image width
                     last_j2k_cols = slice(0, jtw - (ulc + jtw - imagewidth))
@@ -311,6 +331,7 @@ class Tiff2Jp2k(object):
                     partial_jp2_tile_rows
                     and stripnum == num_strips - 1
                 ):
+                    logging.warning('Hit a partial jp2k tile on the bottom')
                     # decrease the number of rows by however many it sticks
                     # over the image height
                     last_j2k_rows = slice(0, imageheight - julr)

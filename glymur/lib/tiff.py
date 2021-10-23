@@ -375,6 +375,26 @@ def readEncodedTile(fp, tilenum, tile, size=-1):
     return tile
 
 
+def readRGBAStrip(fp, row, strip):
+    """
+    Corresponds to TIFFReadRGBAStrip
+    """
+    err_handler, warn_handler = _set_error_warning_handlers()
+
+    ARGTYPES = [
+        ctypes.c_void_p, ctypes.c_uint32, ctypes.c_void_p
+    ]
+    _LIBTIFF.TIFFReadRGBAStrip.argtypes = ARGTYPES
+    _LIBTIFF.TIFFReadRGBAStrip.restype = check_error
+    _LIBTIFF.TIFFReadRGBAStrip(
+        fp, row, strip.ctypes.data_as(ctypes.c_void_p)
+    )
+
+    _reset_error_warning_handlers(err_handler, warn_handler)
+
+    return strip
+
+
 def readRGBATile(fp, x, y, tile):
     """
     Corresponds to TIFFReadRGBATile
