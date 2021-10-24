@@ -158,7 +158,7 @@ class Tiff2Jp2k(object):
 
                         if use_rgba_interface:
                             libtiff.readRGBATile(
-                                self.tiff_fp, c, r, rgba_tile
+                                self.tiff_fp, tulc, tulr, rgba_tile
                             )
 
                             # flip the tile upside down!!

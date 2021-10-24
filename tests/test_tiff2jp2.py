@@ -681,6 +681,30 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 256)
         self.assertEqual(c.segment[1].ytsiz, 256)
 
+    def test_astronaut_ycbcr_jpeg_tilesize_75x75(self):
+        """
+        SCENARIO:  Convert YCBCR/JPEG TIFF file to JP2.  The TIFF is evenly
+        tiled 2x2.  The JPEG 2000 file will be tiled 75x75.
+
+        EXPECTED RESULT:  The data matches.  No errors
+        """
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename,
+            tilesize=(75, 75)
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+
+        np.testing.assert_array_equal(actual, self.astronaut_ycbcr_jpeg_data)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 512)
+        self.assertEqual(c.segment[1].ysiz, 512)
+        self.assertEqual(c.segment[1].xtsiz, 75)
+        self.assertEqual(c.segment[1].ytsiz, 75)
+
     def test_astronaut_ycbcr_jpeg(self):
         """
         SCENARIO:  Convert YCBCR/JPEG TIFF file to JP2.  The TIFF is evenly
