@@ -160,7 +160,9 @@ class Tiff2Jp2k(object):
                             libtiff.readRGBATile(
                                 self.tiff_fp, c, r, rgba_tile
                             )
-                            tiff_tile = rgba_tile[:, :, :3]
+
+                            # flip the tile upside down!!
+                            tiff_tile = np.flipud(rgba_tile[:, :, :3])
                         else:
                             libtiff.readEncodedTile(
                                 self.tiff_fp, tilenum, tiff_tile

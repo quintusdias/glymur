@@ -324,16 +324,16 @@ class TestSuite(fixtures.TestCommon):
         actual_data = np.zeros((h, w, 3), dtype=np.uint8)
 
         libtiff.readRGBATile(fp, 0, 0, tile)
-        actual_data[:th, :tw, :] = tile[:, :, :3]
+        actual_data[:th, :tw, :] = tile[::-1, :, :3]
 
         libtiff.readRGBATile(fp, 256, 0, tile)
-        actual_data[:th, tw:w, :] = tile[:, :, :3]
+        actual_data[:th, tw:w, :] = tile[::-1, :, :3]
 
         libtiff.readRGBATile(fp, 0, 256, tile)
-        actual_data[th:h, :tw, :] = tile[:, :, :3]
+        actual_data[th:h, :tw, :] = tile[::-1, :, :3]
 
         libtiff.readRGBATile(fp, 256, 256, tile)
-        actual_data[th:h, tw:w, :] = tile[:, :, :3]
+        actual_data[th:h, tw:w, :] = tile[::-1, :, :3]
 
         libtiff.close(fp)
 
