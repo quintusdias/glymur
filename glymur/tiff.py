@@ -273,7 +273,9 @@ class Tiff2Jp2k(object):
                         libtiff.readRGBAStrip(
                             self.tiff_fp, stripnum * rps, rgba_strip
                         )
-                        tiff_strip = rgba_strip[:, :, :spp]
+                        # must flip the rows (!!) and get rid of the alpha
+                        # plane
+                        tiff_strip = np.flipud(rgba_strip[:, :, :spp])
 
                     else:
                         libtiff.readEncodedStrip(

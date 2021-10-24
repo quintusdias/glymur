@@ -307,6 +307,8 @@ class TestSuite(fixtures.TestCommon):
         libtiff.setField(fp, 'BitsPerSample', 8)
         libtiff.setField(fp, 'SamplesPerPixel', 3)
         libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
+        libtiff.setField(fp, 'JPEGColorMode', libtiff.PlanarConfig.CONTIG)
+        libtiff.setField(fp, 'JPEGQuality', 100)
 
         libtiff.writeEncodedTile(fp, 0, data[:th, :tw, :].copy())
         libtiff.writeEncodedTile(fp, 1, data[:th, tw:w, :].copy())
@@ -702,6 +704,29 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].ysiz, 512)
         self.assertEqual(c.segment[1].xtsiz, 256)
         self.assertEqual(c.segment[1].ytsiz, 256)
+
+    def test_astronaut_ycbcr_jpeg_single_tile(self):
+        """
+        SCENARIO:  Convert YCBCR/JPEG TIFF file to JP2.  The TIFF is evenly
+        tiled 2x2, but no tilesize is specified.
+
+        EXPECTED RESULT:  The data matches.
+        """
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename,
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+
+        np.testing.assert_array_equal(actual, self.astronaut_ycbcr_jpeg_data)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 512)
+        self.assertEqual(c.segment[1].ysiz, 512)
+        self.assertEqual(c.segment[1].xtsiz, 512)
+        self.assertEqual(c.segment[1].ytsiz, 512)
 
     def test_astronaut_imperfect_tiling(self):
         """

@@ -60,6 +60,20 @@ class Compression(IntEnum):
     LZMA = 34925  # LZMA2
 
 
+class JPEGColorMode(IntEnum):
+    """
+    When writing images with photometric interpretation equal to YCbCr and
+    compression equal to JPEG, the pseudo tag JPEGColorMode should usually be
+    set to RGB, unless the image values truly are in YCbCr.
+
+    See Also
+    --------
+    Photometric : The color space of the image data.
+    """
+    RAW = 0
+    RGB = 1
+
+
 class PlanarConfig(IntEnum):
     """
     How the components of each pixel are stored.
