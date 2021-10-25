@@ -262,9 +262,16 @@ class Tiff2Jp2k(object):
                 # Move by strips from the start of the jp2k tile to the bottom
                 # of the jp2k tile.  That last strip may be partially empty,
                 # worry about that later.
-                for r in range(julr, min(julr + jth, imageheight), rps):
+                #
+                # loop while the upper left corner of the current tiff file is
+                # less than the lower left corner of the jp2k tile
+                r = julr
+                while (r // rps) * rps < min(julr + jth, imageheight):
 
                     stripnum = libtiff.computeStrip(self.tiff_fp, r, 0)
+                    if idx == 15 and stripnum == 13:
+                        breakpoint()
+
                     if stripnum >= num_strips:
                         # we've moved past the end of the tiff
                         break
@@ -319,6 +326,8 @@ class Tiff2Jp2k(object):
                     logging.warning(f'j cols received are {jcols}')
                     logging.warning(f't rows transferred are {trows}')
                     logging.warning(f't cols transferred are {tcols}')
+
+                    r += rps
 
                 # last tile column?  If so, we may have a partial tile.
                 # j2k_cols is not sufficient here, must shorten it from 250

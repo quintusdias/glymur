@@ -856,3 +856,29 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].ysiz, 800)
         self.assertEqual(c.segment[1].xtsiz, 64)
         self.assertEqual(c.segment[1].ytsiz, 64)
+
+    def test_goodstuff__bottom_of_tile_coincides_with_bottom_of_strip(self):
+        """
+        Scenario:  input TIFF is evenly divided into strips, but the tile size
+        does not evenly divide either dimension.  The strip size is 32.  The
+        tile size is 13x13, so the jp2k tile in tile row 4 and column 0 will
+        have it's last row only one pixel past the last row of the tiff tile
+        in row 2 and column 0.
+
+        Expected Result:  no errors
+        """
+        with Tiff2Jp2k(
+            self.goodstuff_path, self.temp_jp2_filename, tilesize=(75, 75)
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+
+        np.testing.assert_array_equal(actual, self.goodstuff_data)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 480)
+        self.assertEqual(c.segment[1].ysiz, 800)
+        self.assertEqual(c.segment[1].xtsiz, 75)
+        self.assertEqual(c.segment[1].ytsiz, 75)
