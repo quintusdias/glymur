@@ -269,8 +269,6 @@ class Tiff2Jp2k(object):
                 while (r // rps) * rps < min(julr + jth, imageheight):
 
                     stripnum = libtiff.computeStrip(self.tiff_fp, r, 0)
-                    if idx == 15 and stripnum == 13:
-                        breakpoint()
 
                     if stripnum >= num_strips:
                         # we've moved past the end of the tiff
