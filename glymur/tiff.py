@@ -313,6 +313,8 @@ class Tiff2Jp2k(object):
                     jp2k_tile[jrows, jcols, :] = tiff_strip[trows, tcols, :]
 
                     logging.warning(f'strip size is {tiff_strip.shape}')
+                    logging.warning(f'upper left coord of intersection:  ({ulr}, {ulc})')
+                    logging.warning(f'lower right coord of intersection:  ({llr}, {urc})')
                     logging.warning(f'j rows received are {jrows}')
                     logging.warning(f'j cols received are {jcols}')
                     logging.warning(f't rows transferred are {trows}')
