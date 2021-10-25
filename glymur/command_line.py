@@ -3,6 +3,7 @@ Entry point for console script jp2dump.
 """
 # Standard library imports ...
 import argparse
+import logging
 import pathlib
 import warnings
 
@@ -97,13 +98,26 @@ def tiff2jp2():
         '--tilesize', nargs=2, type=int, help=help, metavar=('h', 'w')
     )
 
+    help = (
+        'Logging level, one of "critical", "error", "warning", "info", '
+        'or "debug".'
+    )
+    parser.add_argument(
+        '--verbosity', help=help, default='warning',
+        choices=['critical', 'error', 'warning', 'info', 'debug']
+    )
+
     parser.add_argument('tifffile')
     parser.add_argument('jp2kfile')
 
     args = parser.parse_args()
 
+    logging_level = getattr(logging, args.verbosity.upper())
+
     tiffpath = pathlib.Path(args.tifffile)
     jp2kpath = pathlib.Path(args.jp2kfile)
 
-    with Tiff2Jp2k(tiffpath, jp2kpath, tilesize=args.tilesize) as j:
+    with Tiff2Jp2k(
+        tiffpath, jp2kpath, tilesize=args.tilesize, verbosity=logging_level
+    ) as j:
         j.run()

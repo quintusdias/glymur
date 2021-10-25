@@ -1,5 +1,6 @@
 # standard library imports
 import importlib.resources as ir
+import logging
 import pathlib
 import shutil
 import sys
@@ -450,12 +451,13 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  data matches
         """
         with Tiff2Jp2k(
-            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename
+            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename,
+            verbosity=logging.INFO
         ) as j:
-            j.run()
+            with self.assertLogs(logger='tiff2jp2', level=logging.INFO) as cm:
+                j.run()
 
-        actual = Jp2k(self.temp_jp2_filename)[:]
-        self.assertEqual(actual.shape, (512, 512, 3))
+                self.assertEqual(len(cm.output), 1)
 
     def test_partial_strip_and_partial_tiles(self):
         """

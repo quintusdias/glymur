@@ -1,4 +1,5 @@
 # 3rd party library imports
+import logging
 import numpy as np
 
 # local imports
@@ -18,7 +19,10 @@ class Tiff2Jp2k(object):
         The dimensions of a tile in the JP2K file.
     """
 
-    def __init__(self, tiff_filename, jp2_filename, tilesize=None):
+    def __init__(
+        self, tiff_filename, jp2_filename, tilesize=None,
+        verbosity=logging.CRITICAL
+    ):
 
         self.tiff_filename = tiff_filename
         if not self.tiff_filename.exists():
@@ -26,6 +30,12 @@ class Tiff2Jp2k(object):
 
         self.jp2_filename = jp2_filename
         self.tilesize = tilesize
+
+        self.logger = logging.getLogger('tiff2jp2')
+        self.logger.setLevel(verbosity)
+        ch = logging.StreamHandler()
+        ch.setLevel(verbosity)
+        self.logger.addHandler(ch)
 
     def __enter__(self):
         self.tiff_fp = libtiff.open(self.tiff_filename)
@@ -99,6 +109,12 @@ class Tiff2Jp2k(object):
 
             # if no jp2k tiling was specified and if the image is ok to read
             # via the RGBA interface, then just do that.
+            msg = (
+                "Reading using the RGBA interface, writing as a single tile "
+                "image."
+            )
+            self.logger.info(msg)
+
             image = libtiff.readRGBAImageOriented(self.tiff_fp)
 
             if spp < 4:
