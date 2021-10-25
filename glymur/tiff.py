@@ -86,6 +86,8 @@ class Tiff2Jp2k(object):
             num_jp2k_tile_rows = int(np.ceil(imagewidth / jtw))
             num_jp2k_tile_cols = int(np.ceil(imagewidth / jtw))
 
+        # Using the RGBA interface is the only reasonable way to deal with
+        # them.
         if photometric in [
             libtiff.Photometric.YCBCR, libtiff.Photometric.PALETTE
         ]:
@@ -100,7 +102,7 @@ class Tiff2Jp2k(object):
             image = libtiff.readRGBAImageOriented(self.tiff_fp)
 
             if spp < 4:
-                image = image[:, :, :spp]
+                image = image[:, :, :3]
 
             Jp2k(self.jp2_filename, data=image)
 

@@ -396,9 +396,6 @@ class TestSuite(fixtures.TestCommon):
         cls.test_tiff_dir = tempfile.mkdtemp()
         cls.test_tiff_path = pathlib.Path(cls.test_tiff_dir)
 
-        with ir.path('tests.data', 'zackthecat.tif') as filename:
-            cls.zackthecat = filename
-
         # uint8 spp=3 image
         cls.setup_goodstuff(cls.test_tiff_path / 'goodstuff.tif')
 
@@ -438,14 +435,27 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  data matches
         """
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            with Tiff2Jp2k(self.zackthecat, self.temp_jp2_filename) as j:
-                j.run()
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename
+        ) as j:
+            j.run()
 
         actual = Jp2k(self.temp_jp2_filename)[:]
+        self.assertEqual(actual.shape, (512, 512, 3))
 
-        self.assertEqual(actual.shape, (213, 234, 3))
+    def test_smoke_verbosity(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2, use INFO log level.
+
+        EXPECTED RESULT:  data matches
+        """
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename
+        ) as j:
+            j.run()
+
+        actual = Jp2k(self.temp_jp2_filename)[:]
+        self.assertEqual(actual.shape, (512, 512, 3))
 
     def test_partial_strip_and_partial_tiles(self):
         """
