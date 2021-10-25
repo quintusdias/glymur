@@ -189,7 +189,7 @@ the layers to make the first layer lossless, not the last. ::
 *************************************
 
 Many TIFFs can be converted to tiled JPEG 2000 files using glymur.
-A command line utility **tiff2jp2k** is provided for this task.
+A command line utility **tiff2jp2** is provided for this task.
 
 In most cases, you should provide your own choice of a JPEG 2000 tile
 size.  Not providing a tile size will cause glymur to try to covert the
