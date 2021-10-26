@@ -1338,7 +1338,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             self.assertFalse(codestream.segment[2].scod & 4)  # no eph
             self.assertEqual(codestream.segment[2].prog_order,
                              glymur.core.PCRL)
-            self.assertEqual(codestream.segment[2].layers, 1)  # layers = 1
+            self.assertEqual(codestream.segment[2].layers, 1)
             self.assertEqual(codestream.segment[2].mct, 1)  # mct
             self.assertEqual(codestream.segment[2].num_res, 5)  # levels
             self.assertEqual(tuple(codestream.segment[2].code_block_size),

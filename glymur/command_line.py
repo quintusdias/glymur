@@ -107,6 +107,14 @@ def tiff2jp2():
         choices=['critical', 'error', 'warning', 'info', 'debug']
     )
 
+    help = (
+        'Compression ratio for successive layers.  You may specify more '
+        'than once to get multiple layers.'
+    )
+    parser.add_argument(
+        '--cratio', action='append', type=int, help=help,
+    )
+
     help = 'Codeblock size.'
     parser.add_argument(
         '--codeblocksize', nargs=2, type=int, help=help,
@@ -125,6 +133,6 @@ def tiff2jp2():
 
     with Tiff2Jp2k(
         tiffpath, jp2kpath, tilesize=args.tilesize, verbosity=logging_level,
-        cbsize=args.codeblocksize
+        cbsize=args.codeblocksize, cratios=args.cratio
     ) as j:
         j.run()

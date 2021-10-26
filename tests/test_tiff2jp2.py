@@ -432,7 +432,8 @@ class TestSuite(fixtures.TestCommon):
         """
         SCENARIO:  Convert TIFF file to JP2
 
-        EXPECTED RESULT:  data matches, number of resolution is the default
+        EXPECTED RESULT:  data matches, number of resolution is the default.
+        There should be just one layer.
         """
         with Tiff2Jp2k(
             self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename
@@ -444,9 +445,33 @@ class TestSuite(fixtures.TestCommon):
         actual = j[:]
         self.assertEqual(actual.shape, (512, 512, 3))
 
-        actual = j.get_codestream().segment[2].code_block_size
+        c = j.get_codestream()
+        actual = c.segment[2].code_block_size
         expected = (64, 64)
         self.assertEqual(actual, expected)
+
+        self.assertEqual(c.segment[2].layers, 1)
+
+    def test_layers(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2 with multiple compression layers
+
+        EXPECTED RESULT:  data matches, number of layers is 3
+        """
+        expected = (32, 32)
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename,
+            cratios=[200, 50, 10]
+        ) as j:
+            j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        actual = j[:]
+        self.assertEqual(actual.shape, (512, 512, 3))
+
+        c = j.get_codestream()
+        self.assertEqual(c.segment[2].layers, 3)
 
     def test_codeblock_size(self):
         """
@@ -466,7 +491,8 @@ class TestSuite(fixtures.TestCommon):
         actual = j[:]
         self.assertEqual(actual.shape, (512, 512, 3))
 
-        actual = j.get_codestream().segment[2].code_block_size
+        c = j.get_codestream()
+        actual = c.segment[2].code_block_size
         self.assertEqual(actual, expected)
 
     def test_smoke_verbosity(self):
