@@ -130,6 +130,13 @@ def tiff2jp2():
     help = 'Number of decomposition levels.'
     parser.add_argument('--numres', type=int, help=help, default=6)
 
+    help = 'Progression order.'
+    choices = ['lrcp', 'rlcp', 'rpcl', 'prcl', 'cprl']
+    parser.add_argument('--prog', choices=choices, help=help, default='lrcp')
+
+    help = 'Use irreversible 9x7 transform.'
+    parser.add_argument('--irreversible', help=help, action='store_true')
+
     help = 'Generate EPH markers.'
     parser.add_argument('--eph', help=help, action='store_true')
 
@@ -152,6 +159,7 @@ def tiff2jp2():
     with Tiff2Jp2k(
         tiffpath, jp2kpath, tilesize=args.tilesize, verbosity=logging_level,
         cbsize=args.codeblocksize, cratios=args.cratio, numres=args.numres,
-        plt=args.plt, eph=args.eph, sop=args.sop
+        plt=args.plt, eph=args.eph, sop=args.sop, prog=args.prog,
+        irreversible=args.irreversible
     ) as j:
         j.run()

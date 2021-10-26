@@ -1,4 +1,4 @@
-"""
+".""
 Tests for general glymur functionality.
 """
 # Standard library imports ...
@@ -1640,8 +1640,10 @@ class TestJp2k_write(fixtures.MetadataBase):
             j = Jp2k(tfile.name, data=self.jp2_data, irreversible=True)
 
             codestream = j.get_codestream()
-            self.assertEqual(codestream.segment[2].xform,
-                             glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
+            self.assertEqual(
+                codestream.segment[2].xform,
+                glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE
+            )
 
     def test_cinema2K_with_others(self):
         """

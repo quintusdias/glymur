@@ -428,7 +428,8 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  data matches, number of resolution is the default.
         There should be just one layer.  The number of resolutions should be
         the default (5).  There are not PLT segments.  There are no EPH
-        markers.  There are no SOP markers.
+        markers.  There are no SOP markers.  The progression order is LRCP.
+        The irreversible transform will NOT be used.
         """
         with Tiff2Jp2k(
             self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename
@@ -467,6 +468,31 @@ class TestSuite(fixtures.TestCommon):
         )
         self.assertFalse(at_least_one_sop)
 
+        self.assertEqual(c.segment[2].prog_order, glymur.core.LRCP)
+
+        self.assertEqual(
+            c.segment[2].xform, glymur.core.WAVELET_XFORM_5X3_REVERSIBLE
+        )
+
+    def test_irreversible(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2 with the irreversible transform.
+
+        EXPECTED RESULT:  data matches, the irreversible transform is confirmed
+        """
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename,
+            irreversible=True
+        ) as j:
+            j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+        c = j.get_codestream(header_only=False)
+
+        self.assertEqual(
+            c.segment[2].xform, glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE
+        )
+
     def test_sop(self):
         """
         SCENARIO:  Convert TIFF file to JP2 with SOP markers.
@@ -486,6 +512,23 @@ class TestSuite(fixtures.TestCommon):
             for seg in c.segment
         )
         self.assertTrue(at_least_one_sop)
+
+    def test_progression_order(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2 with EPH markers.
+
+        EXPECTED RESULT:  data matches, plt markers confirmed
+        """
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename,
+            prog='rlcp'
+        ) as j:
+            j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+        c = j.get_codestream(header_only=False)
+
+        self.assertEqual(c.segment[2].prog_order, glymur.core.RLCP)
 
     def test_eph(self):
         """
