@@ -131,10 +131,13 @@ def tiff2jp2():
     parser.add_argument('--numres', type=int, help=help, default=6)
 
     help = 'Generate EPH markers.'
-    parser.add_argument('--eph', type=bool, help=help, default=False)
+    parser.add_argument('--eph', help=help, action='store_true')
 
     help = 'Generate PLT markers.'
-    parser.add_argument('--plt', type=bool, help=help, default=False)
+    parser.add_argument('--plt', help=help, action='store_true')
+
+    help = 'Generate SOP markers.'
+    parser.add_argument('--sop', help=help, action='store_true')
 
     parser.add_argument('tifffile')
     parser.add_argument('jp2kfile')
@@ -149,6 +152,6 @@ def tiff2jp2():
     with Tiff2Jp2k(
         tiffpath, jp2kpath, tilesize=args.tilesize, verbosity=logging_level,
         cbsize=args.codeblocksize, cratios=args.cratio, numres=args.numres,
-        plt=args.plt, eph=args.eph
+        plt=args.plt, eph=args.eph, sop=args.sop
     ) as j:
         j.run()
