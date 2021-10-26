@@ -19,7 +19,7 @@ from glymur.lib import tiff as libtiff
 class TestSuite(fixtures.TestCommon):
 
     @classmethod
-    def setup_goodstuff(cls, path):
+    def setup_rgb_evenly_stripped(cls, path):
         """
         SCENARIO:  create a simple RGB stripped image, stripsize of 32
         """
@@ -50,7 +50,7 @@ class TestSuite(fixtures.TestCommon):
         cls.goodstuff_path = path
 
     @classmethod
-    def setup_moon(cls, path):
+    def setup_minisblack_spp1(cls, path):
         """
         SCENARIO:  create a simple monochromatic 2x2 tiled image
         """
@@ -131,7 +131,7 @@ class TestSuite(fixtures.TestCommon):
         cls.moon_partial_tiles_path = path
 
     @classmethod
-    def setup_moon3(cls, path):
+    def setup_minisblack_3x3(cls, path):
         """
         SCENARIO:  create a simple monochromatic 3x3 tiled image
         """
@@ -164,11 +164,11 @@ class TestSuite(fixtures.TestCommon):
 
         libtiff.close(fp)
 
-        cls.moon3_data = data
-        cls.moon3_tif = path
+        cls.minisblack_3x3_data = data
+        cls.minisblack_3x3_tif = path
 
     @classmethod
-    def setup_moon3_stripped(cls, path):
+    def setup_minisblack_3strip(cls, path):
         """
         SCENARIO:  create a simple monochromatic 3-strip image.  The strips
         evenly divide the image.
@@ -235,7 +235,7 @@ class TestSuite(fixtures.TestCommon):
         cls.moon_partial_last_strip = path
 
     @classmethod
-    def setup_astronaut_uint16(cls, path):
+    def setup_rgb_uint16(cls, path):
         """
         SCENARIO:  create a simple color 2x2 tiled 16bit image
         """
@@ -287,7 +287,7 @@ class TestSuite(fixtures.TestCommon):
         cls.astronaut_uint16_filename = path
 
     @classmethod
-    def setup_astronaut_ycbcr_jpeg(cls, path):
+    def setup_ycbcr_jpeg(cls, path):
         """
         SCENARIO:  create a simple color 2x2 tiled image
         """
@@ -340,7 +340,7 @@ class TestSuite(fixtures.TestCommon):
         cls.astronaut_ycbcr_jpeg_tif = path
 
     @classmethod
-    def setup_astronaut(cls, path):
+    def setup_rgb(cls, path):
         """
         SCENARIO:  create a simple color 2x2 tiled image
         """
@@ -395,17 +395,13 @@ class TestSuite(fixtures.TestCommon):
         cls.test_tiff_dir = tempfile.mkdtemp()
         cls.test_tiff_path = pathlib.Path(cls.test_tiff_dir)
 
-        # uint8 spp=3 image
-        cls.setup_goodstuff(cls.test_tiff_path / 'goodstuff.tif')
+        cls.setup_rgb_evenly_stripped(cls.test_tiff_path / 'goodstuff.tif')
 
-        # uint8 spp=1 image
-        cls.setup_moon(cls.test_tiff_path / 'moon.tif')
+        cls.setup_minisblack_spp1(cls.test_tiff_path / 'moon.tif')
 
-        # uint8 spp=1 image with 3x3 tiles
-        cls.setup_moon3(cls.test_tiff_path / 'moon3.tif')
+        cls.setup_minisblack_3x3(cls.test_tiff_path / 'minisblack_3x3.tif')
 
-        # uint8 spp=1 image with 3 strips
-        cls.setup_moon3_stripped(cls.test_tiff_path / 'moon3_stripped.tif')
+        cls.setup_minisblack_3strip(cls.test_tiff_path / 'moon3_stripped.tif')
 
         path = cls.test_tiff_path / 'moon3_partial_last_strip.tif'
         cls.setup_moon_partial_last_strip(path)
@@ -413,16 +409,13 @@ class TestSuite(fixtures.TestCommon):
         path = cls.test_tiff_path / 'moon_partial_tiles.tif'
         cls.setup_moon_partial_tiles(path)
 
-        # uint8 spp=3 image
-        cls.setup_astronaut(cls.test_tiff_path / 'astronaut.tif')
+        cls.setup_rgb(cls.test_tiff_path / 'astronaut.tif')
 
-        # uint8 spp=3 ycbcr/jpeg image
-        cls.setup_astronaut_ycbcr_jpeg(
+        cls.setup_ycbcr_jpeg(
             cls.test_tiff_path / 'astronaut_ycbcr_jpeg_tiled.tif'
         )
 
-        # uint16 spp=3 uint16 image
-        cls.setup_astronaut_uint16(cls.test_tiff_path / 'astronaut_uint16.tif')
+        cls.setup_rgb_uint16(cls.test_tiff_path / 'astronaut_uint16.tif')
 
     @classmethod
     def tearDownClass(cls):
@@ -601,7 +594,7 @@ class TestSuite(fixtures.TestCommon):
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
 
-        np.testing.assert_array_equal(actual, self.moon3_data)
+        np.testing.assert_array_equal(actual, self.minisblack_3x3_data)
 
         c = jp2.get_codestream()
         self.assertEqual(c.segment[1].xsiz, 480)
@@ -715,7 +708,7 @@ class TestSuite(fixtures.TestCommon):
 
                 self.assertEqual(len(cm.output), 4)
 
-    def test_moon__smaller_tilesize_specified(self):
+    def test_minisblack__smaller_tilesize_specified(self):
         """
         SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF is evenly
         tiled 2x2, but we want 4x4.
@@ -739,7 +732,7 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 128)
         self.assertEqual(c.segment[1].ytsiz, 128)
 
-    def test_moon3_stripped(self):
+    def test_minisblack_3strip_to_2x2(self):
         """
         SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF is evenly
         stripped by 3, but we want 2x2.
@@ -755,7 +748,7 @@ class TestSuite(fixtures.TestCommon):
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
 
-        np.testing.assert_array_equal(actual, self.moon3_data)
+        np.testing.assert_array_equal(actual, self.minisblack_3x3_data)
 
         c = jp2.get_codestream()
         self.assertEqual(c.segment[1].xsiz, 480)
@@ -763,7 +756,7 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 240)
         self.assertEqual(c.segment[1].ytsiz, 240)
 
-    def test_moon3__larger_tilesize_specified(self):
+    def test_minisblack_3x3__larger_tilesize_specified(self):
         """
         SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF is evenly
         tiled 3x3, but we want 2x2.
@@ -771,7 +764,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
         with Tiff2Jp2k(
-            self.moon3_tif, self.temp_jp2_filename,
+            self.minisblack_3x3_tif, self.temp_jp2_filename,
             tilesize=(240, 240)
         ) as j:
             j.run()
@@ -779,7 +772,7 @@ class TestSuite(fixtures.TestCommon):
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
 
-        np.testing.assert_array_equal(actual, self.moon3_data)
+        np.testing.assert_array_equal(actual, self.minisblack_3x3_data)
 
         c = jp2.get_codestream()
         self.assertEqual(c.segment[1].xsiz, 480)
@@ -787,7 +780,7 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 240)
         self.assertEqual(c.segment[1].ytsiz, 240)
 
-    def test_astronaut(self):
+    def test_rgb_tiled_tiff(self):
         """
         SCENARIO:  Convert RGB TIFF file to JP2.  The TIFF is evenly
         tiled 2x2.
@@ -810,7 +803,7 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 256)
         self.assertEqual(c.segment[1].ytsiz, 256)
 
-    def test_astronaut_ycbcr_jpeg_tilesize_75x75(self):
+    def test_ycbcr_jpeg_unevenly_tiled(self):
         """
         SCENARIO:  Convert YCBCR/JPEG TIFF file to JP2.  The TIFF is evenly
         tiled 2x2.  The JPEG 2000 file will be tiled 75x75.
@@ -834,7 +827,7 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 75)
         self.assertEqual(c.segment[1].ytsiz, 75)
 
-    def test_astronaut_ycbcr_jpeg(self):
+    def test_ycbcr_jpeg_tiff(self):
         """
         SCENARIO:  Convert YCBCR/JPEG TIFF file to JP2.  The TIFF is evenly
         tiled 2x2.
@@ -858,7 +851,7 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 256)
         self.assertEqual(c.segment[1].ytsiz, 256)
 
-    def test_astronaut_ycbcr_jpeg_single_tile(self):
+    def test_ycbcr_jpeg_single_tile(self):
         """
         SCENARIO:  Convert YCBCR/JPEG TIFF file to JP2.  The TIFF is evenly
         tiled 2x2, but no tilesize is specified.
@@ -881,30 +874,6 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 512)
         self.assertEqual(c.segment[1].ytsiz, 512)
 
-    def test_astronaut_imperfect_tiling(self):
-        """
-        SCENARIO:  Convert RGB TIFF file to JP2.  The TIFF is evenly
-        tiled 2x2 with an image size of 512x512.  An tilesize of 200x200 is
-        specified, though, so we will end up with a 3x3 grid.
-
-        EXPECTED RESULT:  The data matches.  The JP2 file has 9 tiles.
-        """
-        with Tiff2Jp2k(
-            self.astronaut_tif, self.temp_jp2_filename, tilesize=(200, 200)
-        ) as j:
-            j.run()
-
-        jp2 = Jp2k(self.temp_jp2_filename)
-        actual = jp2[:]
-
-        np.testing.assert_array_equal(actual, self.astronaut_data)
-
-        c = jp2.get_codestream()
-        self.assertEqual(c.segment[1].xsiz, 512)
-        self.assertEqual(c.segment[1].ysiz, 512)
-        self.assertEqual(c.segment[1].xtsiz, 200)
-        self.assertEqual(c.segment[1].ytsiz, 200)
-
     def test_tiff_file_not_there(self):
         """
         Scenario:  The input TIFF file is not present.
@@ -917,7 +886,7 @@ class TestSuite(fixtures.TestCommon):
                 self.test_dir_path / 'not_there.tif', self.temp_jp2_filename
             )
 
-    def test_astronaut16(self):
+    def test_rgb_uint16(self):
         """
         SCENARIO:  Convert RGB TIFF file to JP2.  The TIFF is evenly
         tiled 2x2 and uint16.
@@ -980,7 +949,7 @@ class TestSuite(fixtures.TestCommon):
 
                 self.assertEqual(len(cm.output), 104)
 
-    def test_goodstuff(self):
+    def test_rgb_stripped(self):
         """
         Scenario:  input TIFF is evenly divided into strips, but the tile size
         does not evenly divide either dimension.
@@ -1001,7 +970,7 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 64)
         self.assertEqual(c.segment[1].ytsiz, 64)
 
-    def test_goodstuff__bottom_of_tile_coincides_with_bottom_of_strip(self):
+    def test_rgb_stripped_bottom_of_tile_coincides_with_bottom_of_strip(self):
         """
         Scenario:  input TIFF is evenly divided into strips, but the tile size
         does not evenly divide either dimension.  The strip size is 32.  The
