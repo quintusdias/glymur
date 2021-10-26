@@ -87,9 +87,15 @@ def tiff2jp2():
     Entry point for console script tiff2jp2.
     """
 
+    epilog = (
+        "Normally you should at least provide the tilesize argument.  "
+        "tiff2jp2 will NOT automatically use the TIFF tile dimensions "
+        "(if tiled)."
+    )
     kwargs = {
         'description': 'Convert TIFF to JPEG 2000.',
-        'formatter_class': argparse.ArgumentDefaultsHelpFormatter
+        'formatter_class': argparse.ArgumentDefaultsHelpFormatter,
+        'epilog': epilog
     }
     parser = argparse.ArgumentParser(**kwargs)
 
