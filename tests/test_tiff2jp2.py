@@ -446,13 +446,40 @@ class TestSuite(fixtures.TestCommon):
         actual = j[:]
         self.assertEqual(actual.shape, (512, 512, 3))
 
-        c = j.get_codestream()
+        c = j.get_codestream(header_only=False)
+
         actual = c.segment[2].code_block_size
         expected = (64, 64)
         self.assertEqual(actual, expected)
 
         self.assertEqual(c.segment[2].layers, 1)
         self.assertEqual(c.segment[2].num_res, 5)
+
+        at_least_one_plt = any(
+            isinstance(seg, glymur.codestream.PLTsegment)
+            for seg in c.segment
+        )
+        self.assertFalse(at_least_one_plt)
+
+    def test_plt(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2 with PLT markers.
+
+        EXPECTED RESULT:  data matches, plt markers confirmed
+        """
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename, plt=True
+        ) as j:
+            j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+        c = j.get_codestream(header_only=False)
+
+        at_least_one_plt = any(
+            isinstance(seg, glymur.codestream.PLTsegment)
+            for seg in c.segment
+        )
+        self.assertTrue(at_least_one_plt)
 
     def test_resolutions(self):
         """
@@ -463,7 +490,8 @@ class TestSuite(fixtures.TestCommon):
         """
         expected = 4
         with Tiff2Jp2k(
-            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename, numres=expected
+            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename,
+            numres=expected
         ) as j:
             j.run()
 
@@ -482,7 +510,6 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  data matches, number of layers is 3
         """
-        expected = (32, 32)
         with Tiff2Jp2k(
             self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename,
             cratios=[200, 50, 10]
