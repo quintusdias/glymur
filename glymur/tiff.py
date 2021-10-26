@@ -84,7 +84,6 @@ class Tiff2Jp2k(object):
         if libtiff.isTiled(self.tiff_fp):
             tw = libtiff.getFieldDefaulted(self.tiff_fp, 'TileWidth')
             th = libtiff.getFieldDefaulted(self.tiff_fp, 'TileLength')
-            num_tiles = libtiff.numberOfTiles(self.tiff_fp)
         else:
             tw = imagewidth
             rps = libtiff.getFieldDefaulted(self.tiff_fp, 'RowsPerStrip')
@@ -137,14 +136,13 @@ class Tiff2Jp2k(object):
 
             rgba_tile = np.zeros((th, tw, 4), dtype=np.uint8)
 
-            import logging
-            logging.warning(f'image:  {imageheight} x {imagewidth}')
-            logging.warning(f'jptile:  {jth} x {jtw}')
-            logging.warning(f'ttile:  {th} x {tw}')
+            self.logger.debug(f'image:  {imageheight} x {imagewidth}')
+            self.logger.debug(f'jptile:  {jth} x {jtw}')
+            self.logger.debug(f'ttile:  {th} x {tw}')
             for idx, tilewriter in enumerate(jp2.get_tilewriters()):
 
                 # populate the jp2k tile with tiff tiles
-                logging.warning(f'IDX:  {idx}')
+                self.logger.info(f'Tile:  #{idx}')
 
                 jp2k_tile = np.zeros((jth, jtw, spp), dtype=dtype)
                 tiff_tile = np.zeros((th, tw, spp), dtype=dtype)
@@ -334,14 +332,6 @@ class Tiff2Jp2k(object):
                     tcols = slice(ulc % tw, (urc - 1) % tw + 1)
 
                     jp2k_tile[jrows, jcols, :] = tiff_strip[trows, tcols, :]
-
-                    logging.warning(f'strip size is {tiff_strip.shape}')
-                    logging.warning(f'upper left coord of intersection:  ({ulr}, {ulc})')
-                    logging.warning(f'lower right coord of intersection:  ({llr}, {urc})')
-                    logging.warning(f'j rows received are {jrows}')
-                    logging.warning(f'j cols received are {jcols}')
-                    logging.warning(f't rows transferred are {trows}')
-                    logging.warning(f't cols transferred are {tcols}')
 
                     r += rps
 

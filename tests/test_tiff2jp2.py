@@ -1,11 +1,9 @@
 # standard library imports
-import importlib.resources as ir
 import logging
 import pathlib
 import shutil
 import sys
 import tempfile
-import warnings
 
 # 3rd party library imports
 import numpy as np
@@ -575,7 +573,7 @@ class TestSuite(fixtures.TestCommon):
             with self.assertRaises(RuntimeError):
                 j.run()
 
-    def test_moon(self):
+    def test_evenly_tiled(self):
         """
         SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF is evenly
         tiled 2x2.
@@ -597,6 +595,21 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].ysiz, 512)
         self.assertEqual(c.segment[1].xtsiz, 256)
         self.assertEqual(c.segment[1].ytsiz, 256)
+
+    def test_tiled_logging(self):
+        """
+        SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF is evenly
+        tiled 2x2.  Logging is turned on.
+
+        EXPECTED RESULT:  there are four messages logged, one for each tile
+        """
+        with Tiff2Jp2k(
+            self.moon_tif, self.temp_jp2_filename, tilesize=(256, 256)
+        ) as j:
+            with self.assertLogs(logger='tiff2jp2', level=logging.INFO) as cm:
+                j.run()
+
+                self.assertEqual(len(cm.output), 4)
 
     def test_moon__smaller_tilesize_specified(self):
         """
