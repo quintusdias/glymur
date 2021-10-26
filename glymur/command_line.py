@@ -121,6 +121,14 @@ def tiff2jp2():
         '--cratio', action='append', type=int, help=help,
     )
 
+    help = (
+        'PSNR for successive layers.  You may specify more than once to get '
+        'multiple layers.'
+    )
+    parser.add_argument(
+        '--psnr', action='append', type=int, help=help,
+    )
+
     help = 'Codeblock size.'
     parser.add_argument(
         '--codeblocksize', nargs=2, type=int, help=help,
@@ -160,6 +168,6 @@ def tiff2jp2():
         tiffpath, jp2kpath, tilesize=args.tilesize, verbosity=logging_level,
         cbsize=args.codeblocksize, cratios=args.cratio, numres=args.numres,
         plt=args.plt, eph=args.eph, sop=args.sop, prog=args.prog,
-        irreversible=args.irreversible
+        irreversible=args.irreversible, psnr=args.psnr
     ) as j:
         j.run()

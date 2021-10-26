@@ -1,4 +1,4 @@
-".""
+"""
 Tests for general glymur functionality.
 """
 # Standard library imports ...

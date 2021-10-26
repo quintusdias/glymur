@@ -4,10 +4,18 @@ import pathlib
 import shutil
 import sys
 import tempfile
+import unittest
+import warnings
 
 # 3rd party library imports
 import numpy as np
-import skimage.data
+try:
+    import skimage.data
+    import skimage.io
+    import skimage.metrics
+    _HAVE_SCIKIT_IMAGE = True
+except ModuleNotFoundError:
+    _HAVE_SCIKIT_IMAGE = False
 
 # Local imports
 import glymur
@@ -429,7 +437,8 @@ class TestSuite(fixtures.TestCommon):
         There should be just one layer.  The number of resolutions should be
         the default (5).  There are not PLT segments.  There are no EPH
         markers.  There are no SOP markers.  The progression order is LRCP.
-        The irreversible transform will NOT be used.
+        The irreversible transform will NOT be used.  PSNR cannot be tested
+        if it is not applied.
         """
         with Tiff2Jp2k(
             self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename
@@ -473,6 +482,47 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(
             c.segment[2].xform, glymur.core.WAVELET_XFORM_5X3_REVERSIBLE
         )
+
+    @unittest.skipIf(not _HAVE_SCIKIT_IMAGE, "No scikit-image found")
+    def test_psnr(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2 with the irreversible transform.
+
+        EXPECTED RESULT:  data matches, the irreversible transform is confirmed
+        """
+        with Tiff2Jp2k(
+            self.moon_tif, self.temp_jp2_filename,
+            psnr=(30, 35, 40, 0)
+        ) as j:
+            j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        d = {}
+        for layer in range(4):
+            j.layer = layer
+            d[layer] = j[:]
+
+        with warnings.catch_warnings():
+            # MSE is zero for that first image, resulting in a divide-by-zero
+            # warning
+            warnings.simplefilter('ignore')
+            psnr = [
+                skimage.metrics.peak_signal_noise_ratio(
+                    skimage.data.moon(), d[j]
+                )
+                for j in range(4)
+            ]
+
+        # That first image should be lossless.
+        self.assertTrue(np.isinf(psnr[0]))
+
+        # None of the subsequent images should have inf PSNR.
+        self.assertTrue(not np.any(np.isinf(psnr[1:])))
+
+        # PSNR should increase for the remaining images.
+        self.assertTrue(np.all(np.diff(psnr[1:])) > 0)
+
 
     def test_irreversible(self):
         """
@@ -635,7 +685,7 @@ class TestSuite(fixtures.TestCommon):
         actual = c.segment[2].code_block_size
         self.assertEqual(actual, expected)
 
-    def test_smoke_verbosity(self):
+    def test_verbosity(self):
         """
         SCENARIO:  Convert TIFF file to JP2, use INFO log level.
 
