@@ -861,6 +861,21 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 256)
         self.assertEqual(c.segment[1].ytsiz, 256)
 
+    def test_stripped_logging(self):
+        """
+        Scenario:  input TIFF is organized by strips and logging is turned on.
+
+        Expected result:  there are 104 log messages, one for each tile
+        """
+        with Tiff2Jp2k(
+            self.goodstuff_path, self.temp_jp2_filename, tilesize=(64, 64),
+            verbosity=logging.INFO
+        ) as j:
+            with self.assertLogs(logger='tiff2jp2', level=logging.INFO) as cm:
+                j.run()
+
+                self.assertEqual(len(cm.output), 104)
+
     def test_goodstuff(self):
         """
         Scenario:  input TIFF is evenly divided into strips, but the tile size

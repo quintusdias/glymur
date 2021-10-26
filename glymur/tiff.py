@@ -249,11 +249,6 @@ class Tiff2Jp2k(object):
 
             num_strips = libtiff.numberOfStrips(self.tiff_fp)
 
-            import logging
-            logging.warning(f'Image size:  {imageheight} x {imagewidth}')
-            logging.warning(f'Jp2k tile size:  {jth} x {jtw}')
-            logging.warning(f'TIFF strip length:  {rps}')
-
             num_jp2k_tile_cols = int(np.ceil(imagewidth / jtw))
 
             partial_jp2_tile_rows = (imageheight / jth) != (imageheight // jth)
@@ -263,7 +258,7 @@ class Tiff2Jp2k(object):
             rgba_strip = np.zeros((rps, imagewidth, 4), dtype=np.uint8)
 
             for idx, tilewriter in enumerate(jp2.get_tilewriters()):
-                logging.warning(f'jp2k tile idx: {idx}')
+                self.logger.info(f'Tile: #{idx}')
 
                 jp2k_tile = np.zeros((jth, jtw, spp), dtype=dtype)
 
@@ -272,7 +267,6 @@ class Tiff2Jp2k(object):
 
                 # the coordinates of the upper left pixel of the jp2k tile
                 julr, julc = jp2k_tile_row * jth, jp2k_tile_col * jtw
-                logging.warning(f'Upper left j coord:  {julr}, {julc}')
 
                 # Populate the jp2k tile with tiff strips.
                 # Move by strips from the start of the jp2k tile to the bottom
@@ -304,9 +298,6 @@ class Tiff2Jp2k(object):
                         libtiff.readEncodedStrip(
                             self.tiff_fp, stripnum, tiff_strip
                         )
-
-                    logging.warning(f'row: {r}')
-                    logging.warning(f'strip: {stripnum}')
 
                     # the coordinates of the upper left pixel of the TIFF
                     # strip
@@ -342,7 +333,6 @@ class Tiff2Jp2k(object):
                     partial_jp2_tile_cols
                     and jp2k_tile_col == num_jp2k_tile_cols - 1
                 ):
-                    logging.warning('Hit a partial jp2k tile on right side')
                     # decrease the number of columns by however many it sticks
                     # over the image width
                     last_j2k_cols = slice(0, jtw - (ulc + jtw - imagewidth))
@@ -352,7 +342,6 @@ class Tiff2Jp2k(object):
                     partial_jp2_tile_rows
                     and stripnum == num_strips - 1
                 ):
-                    logging.warning('Hit a partial jp2k tile on the bottom')
                     # decrease the number of rows by however many it sticks
                     # over the image height
                     last_j2k_rows = slice(0, imageheight - julr)
