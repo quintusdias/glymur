@@ -123,7 +123,7 @@ class Jp2k(Jp2kBox):
         cratios : iterable, optional
             Compression ratios for successive layers.
         eph : bool, optional
-            If true, write SOP marker after each header packet.
+            If true, write EPH marker after each header packet.
         grid_offset : tuple, optional
             Offset (DY, DX) of the origin of the image in the reference grid.
         irreversible : bool, optional

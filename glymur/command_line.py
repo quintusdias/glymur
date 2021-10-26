@@ -130,6 +130,9 @@ def tiff2jp2():
     help = 'Number of decomposition levels.'
     parser.add_argument('--numres', type=int, help=help, default=6)
 
+    help = 'Generate EPH markers.'
+    parser.add_argument('--eph', type=bool, help=help, default=False)
+
     help = 'Generate PLT markers.'
     parser.add_argument('--plt', type=bool, help=help, default=False)
 
@@ -146,6 +149,6 @@ def tiff2jp2():
     with Tiff2Jp2k(
         tiffpath, jp2kpath, tilesize=args.tilesize, verbosity=logging_level,
         cbsize=args.codeblocksize, cratios=args.cratio, numres=args.numres,
-        plt=args.plt
+        plt=args.plt, eph=args.eph
     ) as j:
         j.run()

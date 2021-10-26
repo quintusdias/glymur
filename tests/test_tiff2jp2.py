@@ -427,7 +427,8 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  data matches, number of resolution is the default.
         There should be just one layer.  The number of resolutions should be
-        the default (5).
+        the default (5).  There are not PLT segments.  There are no EPH
+        markers.  There are no SOP markers.
         """
         with Tiff2Jp2k(
             self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename
@@ -448,11 +449,63 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[2].layers, 1)
         self.assertEqual(c.segment[2].num_res, 5)
 
+        at_least_one_eph = any(
+            isinstance(seg, glymur.codestream.EPHsegment)
+            for seg in c.segment
+        )
+        self.assertFalse(at_least_one_eph)
+
         at_least_one_plt = any(
             isinstance(seg, glymur.codestream.PLTsegment)
             for seg in c.segment
         )
         self.assertFalse(at_least_one_plt)
+
+        at_least_one_sop = any(
+            isinstance(seg, glymur.codestream.SOPsegment)
+            for seg in c.segment
+        )
+        self.assertFalse(at_least_one_sop)
+
+    def test_sop(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2 with SOP markers.
+
+        EXPECTED RESULT:  data matches, sop markers confirmed
+        """
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename, sop=True
+        ) as j:
+            j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+        c = j.get_codestream(header_only=False)
+
+        at_least_one_sop = any(
+            isinstance(seg, glymur.codestream.SOPsegment)
+            for seg in c.segment
+        )
+        self.assertTrue(at_least_one_sop)
+
+    def test_eph(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2 with EPH markers.
+
+        EXPECTED RESULT:  data matches, plt markers confirmed
+        """
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename, eph=True
+        ) as j:
+            j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+        c = j.get_codestream(header_only=False)
+
+        at_least_one_eph = any(
+            isinstance(seg, glymur.codestream.EPHsegment)
+            for seg in c.segment
+        )
+        self.assertTrue(at_least_one_eph)
 
     def test_plt(self):
         """
