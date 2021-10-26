@@ -107,6 +107,12 @@ def tiff2jp2():
         choices=['critical', 'error', 'warning', 'info', 'debug']
     )
 
+    help = 'Codeblock size.'
+    parser.add_argument(
+        '--codeblocksize', nargs=2, type=int, help=help,
+        metavar=('cblkh', 'cblkw')
+    )
+
     parser.add_argument('tifffile')
     parser.add_argument('jp2kfile')
 
@@ -118,6 +124,7 @@ def tiff2jp2():
     jp2kpath = pathlib.Path(args.jp2kfile)
 
     with Tiff2Jp2k(
-        tiffpath, jp2kpath, tilesize=args.tilesize, verbosity=logging_level
+        tiffpath, jp2kpath, tilesize=args.tilesize, verbosity=logging_level,
+        cbsize=args.codeblocksize
     ) as j:
         j.run()

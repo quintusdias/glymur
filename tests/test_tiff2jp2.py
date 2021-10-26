@@ -432,15 +432,42 @@ class TestSuite(fixtures.TestCommon):
         """
         SCENARIO:  Convert TIFF file to JP2
 
-        EXPECTED RESULT:  data matches
+        EXPECTED RESULT:  data matches, number of resolution is the default
         """
         with Tiff2Jp2k(
             self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename
         ) as j:
             j.run()
 
-        actual = Jp2k(self.temp_jp2_filename)[:]
+        j = Jp2k(self.temp_jp2_filename)
+
+        actual = j[:]
         self.assertEqual(actual.shape, (512, 512, 3))
+
+        actual = j.get_codestream().segment[2].code_block_size
+        expected = (64, 64)
+        self.assertEqual(actual, expected)
+
+    def test_codeblock_size(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2 with a specific code block size
+
+        EXPECTED RESULT:  data matches, number of resolution is the default
+        """
+        expected = (32, 32)
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename,
+            cbsize=expected
+        ) as j:
+            j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        actual = j[:]
+        self.assertEqual(actual.shape, (512, 512, 3))
+
+        actual = j.get_codestream().segment[2].code_block_size
+        self.assertEqual(actual, expected)
 
     def test_smoke_verbosity(self):
         """

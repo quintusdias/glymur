@@ -21,7 +21,7 @@ class Tiff2Jp2k(object):
 
     def __init__(
         self, tiff_filename, jp2_filename, tilesize=None,
-        verbosity=logging.CRITICAL
+        verbosity=logging.CRITICAL, **kwargs
     ):
 
         self.tiff_filename = tiff_filename
@@ -30,6 +30,8 @@ class Tiff2Jp2k(object):
 
         self.jp2_filename = jp2_filename
         self.tilesize = tilesize
+
+        self.kwargs = kwargs
 
         self.logger = logging.getLogger('tiff2jp2')
         self.logger.setLevel(verbosity)
@@ -104,6 +106,13 @@ class Tiff2Jp2k(object):
         else:
             use_rgba_interface = False
 
+        jp2 = Jp2k(
+            self.jp2_filename,
+            shape=(imageheight, imagewidth, spp),
+            tilesize=self.tilesize,
+            **self.kwargs
+        )
+
         if self.tilesize is None and libtiff.RGBAImageOK(self.tiff_fp):
 
             # if no jp2k tiling was specified and if the image is ok to read
@@ -119,15 +128,9 @@ class Tiff2Jp2k(object):
             if spp < 4:
                 image = image[:, :, :3]
 
-            Jp2k(self.jp2_filename, data=image)
+            jp2[:] = image
 
         elif isTiled and self.tilesize is not None:
-
-            jp2 = Jp2k(
-                self.jp2_filename,
-                shape=(imageheight, imagewidth, spp),
-                tilesize=self.tilesize,
-            )
 
             num_tiff_tile_cols = int(np.ceil(imagewidth / tw))
 
@@ -240,12 +243,6 @@ class Tiff2Jp2k(object):
                 tilewriter[:] = jp2k_tile
 
         elif not isTiled and self.tilesize is not None:
-
-            jp2 = Jp2k(
-                self.jp2_filename,
-                shape=(imageheight, imagewidth, spp),
-                tilesize=self.tilesize,
-            )
 
             num_strips = libtiff.numberOfStrips(self.tiff_fp)
 
