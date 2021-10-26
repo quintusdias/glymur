@@ -121,6 +121,9 @@ def tiff2jp2():
         metavar=('cblkh', 'cblkw')
     )
 
+    help = 'Number of decomposition levels.' 
+    parser.add_argument('--numres', type=int, help=help, default=6)
+
     parser.add_argument('tifffile')
     parser.add_argument('jp2kfile')
 
@@ -133,6 +136,6 @@ def tiff2jp2():
 
     with Tiff2Jp2k(
         tiffpath, jp2kpath, tilesize=args.tilesize, verbosity=logging_level,
-        cbsize=args.codeblocksize, cratios=args.cratio
+        cbsize=args.codeblocksize, cratios=args.cratio, numres=args.numres
     ) as j:
         j.run()

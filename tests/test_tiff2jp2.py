@@ -433,7 +433,8 @@ class TestSuite(fixtures.TestCommon):
         SCENARIO:  Convert TIFF file to JP2
 
         EXPECTED RESULT:  data matches, number of resolution is the default.
-        There should be just one layer.
+        There should be just one layer.  The number of resolutions should be
+        the default (5).
         """
         with Tiff2Jp2k(
             self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename
@@ -451,6 +452,29 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(actual, expected)
 
         self.assertEqual(c.segment[2].layers, 1)
+        self.assertEqual(c.segment[2].num_res, 5)
+
+    def test_resolutions(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2 with 4 resolution layers instead
+        of the default, which is 5.
+
+        EXPECTED RESULT:  data matches, number of resolution layers is 4.
+        """
+        expected = 4
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename, numres=expected
+        ) as j:
+            j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        actual = j[:]
+        self.assertEqual(actual.shape, (512, 512, 3))
+
+        c = j.get_codestream()
+        actual = c.segment[2].num_res
+        self.assertEqual(actual, expected - 1)
 
     def test_layers(self):
         """
