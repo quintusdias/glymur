@@ -194,11 +194,15 @@ A command line utility **tiff2jp2** is provided for this task.
 In most cases, you should provide your own choice of a JPEG 2000 tile
 size.  Not providing a tile size will cause glymur to try to covert the
 TIFF into a single-tile JPEG 2000 file.  If your TIFF is large, you may
-not have enough memory to write a single-tile file.
+not have enough memory to write such a single-tile file.::
+
+    $ wget http://photojournal.jpl.nasa.gov/tiff/PIA17145.tif
+    $ tiff2jp2 --tilesize 256 256 PIA17145.tif PIA17145.jp2
 
 If your TIFF is really big but has an unfortunate choice for the
-RowsPerStrip tag (like the ubiquitous choice of 3, which was reasonable
-only in prehistoric times) ... well that's going to be very inefficient.
+RowsPerStrip tag (like the seemingly ubiquitous value of 3, which was
+reasonable only in prehistoric times) ... well that's going to be very
+inefficient no matter how you tile the JPEG 2000 file.
 
 *********************
 ... display metadata?
