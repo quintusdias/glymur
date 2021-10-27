@@ -439,6 +439,8 @@ class TestSuite(fixtures.TestCommon):
         markers.  There are no SOP markers.  The progression order is LRCP.
         The irreversible transform will NOT be used.  PSNR cannot be tested
         if it is not applied.
+
+        There is a UUID box appended at the end containing the metadata.
         """
         with Tiff2Jp2k(
             self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename
@@ -482,6 +484,8 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(
             c.segment[2].xform, glymur.core.WAVELET_XFORM_5X3_REVERSIBLE
         )
+
+        self.assertEqual(j.box[-1].box_id, 'uuid')
 
     @unittest.skipIf(not _HAVE_SCIKIT_IMAGE, "No scikit-image found")
     def test_psnr(self):

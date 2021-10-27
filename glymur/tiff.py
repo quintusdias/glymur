@@ -1,10 +1,34 @@
-# 3rd party library imports
+# standard library imports
+import io
 import logging
+import struct
+
+# 3rd party library imports
 import numpy as np
+from uuid import UUID
 
 # local imports
 from glymur import Jp2k
 from .lib import tiff as libtiff
+from .jp2box import UUIDBox
+
+
+tag_dtype = {
+    1: {'format': 'B', 'nbytes': 1},
+    2: {'format': 'B', 'nbytes': 1},
+    3: {'format': 'H', 'nbytes': 2},
+    4: {'format': 'I', 'nbytes': 4},
+    5: {'format': 'II', 'nbytes': 8},
+    7: {'format': 'B', 'nbytes': 1},
+    9: {'format': 'i', 'nbytes': 4},
+    10: {'format': 'ii', 'nbytes': 8},
+    11: {'format': 'f', 'nbytes': 4},
+    12: {'format': 'd', 'nbytes': 8},
+    13: {'format': 'I', 'nbytes': 4},
+    16: {'format': 'Q', 'nbytes': 8},
+    17: {'format': 'q', 'nbytes': 8},
+    18: {'format': 'Q', 'nbytes': 8}
+}
 
 
 class Tiff2Jp2k(object):
@@ -47,6 +71,152 @@ class Tiff2Jp2k(object):
         libtiff.close(self.tiff_fp)
 
     def run(self):
+
+        self.copy_image()
+        self.copy_metadata()
+
+    def copy_metadata(self):
+        """
+        Copy over the TIFF IFD.  Place it in a UUID box.  Append to the JPEG
+        2000 file.
+        """
+        # This is a geotiff UUID.
+        uuid = UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03')
+
+        # create a bytesio object for the IFD
+        b = io.BytesIO()
+
+        with open(self.tiff_filename, 'rb') as tfp:
+
+            endian = self._process_header(b, tfp)
+            self._process_tags(b, tfp, endian)
+
+        # Append to the JPEG 2000 file.
+        length = b.tell()
+        uuid_box = UUIDBox(uuid, b.getvalue(), length)
+        with open(self.jp2_filename, mode='ab') as f:
+            uuid_box.write(f)
+
+    def _process_tags(self, b, tfp, endianness):
+
+        # how many tags?
+        buffer = tfp.read(2)
+        num_tags, = struct.unpack(endianness + 'H', buffer)
+
+        write_buffer = struct.pack('<H', num_tags)
+        b.write(write_buffer)
+
+        # Ok, so now we have the IFD main body, but following that we have
+        # the tag payloads that cannot fit into 4 bytes.
+
+        # the IFD main body in the TIFF.  As it might be big endian, we cannot
+        # just process it as one big chunk.
+        buffer = tfp.read(num_tags * 12)
+
+        start_of_tags_position = b.tell()
+        after_tags_position = start_of_tags_position + len(buffer)
+
+        import logging
+        for idx in range(num_tags):
+            logging.warning(f'idx:  {idx}')
+            logging.warning(f'b.tell(): {b.tell()}')
+
+            b.seek(start_of_tags_position + idx * 12)
+
+            tag_data = buffer[idx * 12:(idx + 1) * 12]
+            tag, dtype, nvalues = struct.unpack(
+                endianness + 'HHI', tag_data[:8]
+            )
+
+            payload_length = tag_dtype[dtype]['nbytes'] * nvalues
+
+            if payload_length > 4:
+                # the payload does not fit into the tag entry, so get the
+                # payload from the offset
+                offset, = struct.unpack(endianness + 'I', tag_data[8:])
+                current_position = tfp.tell()
+                tfp.seek(offset)
+                payload_buffer = tfp.read(payload_length)
+                tfp.seek(current_position)
+
+                payload_format = tag_dtype[dtype]['format'] * nvalues
+                payload = struct.unpack(endianness + payload_format, payload_buffer)
+
+                new_offset = after_tags_position
+                outbuffer = struct.pack(
+                    '<HHII', tag,  dtype, nvalues, new_offset
+                )
+                b.write(outbuffer)
+
+                # now write the payload at the outlying position and then come
+                # back to the same position in the file stream
+                cpos = b.tell()
+                b.seek(new_offset)
+                logging.warning(f'writing after data to {new_offset}')
+                outbuffer = struct.pack(
+                    endianness + tag_dtype[dtype]['format'] * nvalues,
+                    *payload)
+                b.write(outbuffer)
+                after_tags_position = b.tell()
+                b.seek(cpos)
+
+            else:
+                # the payload DOES fit into the tag entry, so write it back
+                # into the tag entry in the UUID
+                if tag_dtype[dtype]['nbytes'] * nvalues == 1:
+                    payload_buffer = tag_data[8]
+                elif tag_dtype[dtype]['nbytes'] * nvalues == 2:
+                    payload_buffer = tag_data[8:10]
+                else:
+                    payload_buffer = tag_data[8:]
+
+                payload_format = tag_dtype[dtype]['format'] * nvalues
+
+                payload = struct.unpack(
+                    endianness + payload_format, payload_buffer
+                )
+
+                outbuffer = struct.pack('<HHI', tag,  dtype, nvalues)
+                b.write(outbuffer)
+
+                outbuffer = struct.pack(
+                    endianness + tag_dtype[dtype]['format'] * nvalues,
+                    *payload
+                )
+                b.write(outbuffer)
+            
+    def _process_header(self, b, tfp):
+
+        buffer = tfp.read(8)
+        data = struct.unpack('BB', buffer[:2])
+
+        # big endian or little endian?
+        if data[0] == 73 and data[1] == 73:
+            # little endian
+            endian = '<'
+        elif data[0] == 77 and data[1] == 77:
+            # big endian
+            endian = '>'
+        else:
+            msg = (
+                f"The byte order indication in the TIFF header "
+                f"({read_buffer[0:2]}) is invalid.  It should be either "
+                f"{bytes([73, 73])} or {bytes([77, 77])}."
+            )
+            raise RuntimeError(msg)
+
+        # version number and offset to the first IFD
+        _, offset = struct.unpack(endian + 'HI', buffer[2:8])
+        tfp.seek(offset)
+
+        # write this header, no matter what is in the first 8 bytes of the
+        # TIFF
+        data = struct.pack('<BBHI', 73, 73, 42, 8)
+        b.write(data)
+
+        return endian
+
+    def copy_image(self):
 
         if libtiff.isTiled(self.tiff_fp):
             isTiled = True
