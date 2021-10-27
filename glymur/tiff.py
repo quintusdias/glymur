@@ -287,12 +287,15 @@ class Tiff2Jp2k(object):
             num_jp2k_tile_rows = int(np.ceil(imagewidth / jtw))
             num_jp2k_tile_cols = int(np.ceil(imagewidth / jtw))
 
-        # Using the RGBA interface is the only reasonable way to deal with
-        # them.
-        if photometric in [
-            libtiff.Photometric.YCBCR, libtiff.Photometric.PALETTE
-        ]:
+        if photometric == libtiff.Photometric.YCBCR:
+            # Using the RGBA interface is the only reasonable way to deal with
+            # this.
             use_rgba_interface = True
+        elif photometric == libtiff.Photometric.PALETTE:
+            # Using the RGBA interface is the only reasonable way to deal with
+            # this.  The single plane gets turned into RGB.
+            use_rgba_interface = True
+            spp = 3
         else:
             use_rgba_interface = False
 
