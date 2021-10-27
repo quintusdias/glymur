@@ -486,6 +486,8 @@ class TestSuite(fixtures.TestCommon):
         )
 
         self.assertEqual(j.box[-1].box_id, 'uuid')
+        self.assertEqual(j.box[-1].data['ImageWidth'], 512)
+        self.assertEqual(j.box[-1].data['ImageLength'], 512)
 
     @unittest.skipIf(not _HAVE_SCIKIT_IMAGE, "No scikit-image found")
     def test_psnr(self):

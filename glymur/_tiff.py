@@ -77,8 +77,9 @@ class Ifd(object):
         self.read_buffer = read_buffer
         self.processed_ifd = OrderedDict()
 
-        self.num_tags, = struct.unpack(endian + 'H',
-                                       read_buffer[offset:offset + 2])
+        self.num_tags, = struct.unpack(
+            endian + 'H', read_buffer[offset:offset + 2]
+        )
 
         fmt = self.endian + 'HHII' * self.num_tags
         ifd_buffer = read_buffer[offset + 2:offset + 2 + self.num_tags * 12]
@@ -89,14 +90,15 @@ class Ifd(object):
             # plus 2 bytes for the number of tags plus 12 bytes for each
             # tag entry plus 8 bytes to the offset/payload itself.
             toffp = read_buffer[offset + 10 + j * 12:offset + 10 + j * 12 + 4]
-            tag_data = self.parse_tag(data[j * 4 + 1],
-                                      data[j * 4 + 2],
-                                      toffp)
+            tag_data = self.parse_tag(
+                tag, data[j * 4 + 1], data[j * 4 + 2], toffp
+            )
             self.raw_ifd[tag] = tag_data
 
-    def parse_tag(self, dtype, count, offset_buf):
+    def parse_tag(self, tag, dtype, count, offset_buf):
         """Interpret an Exif image tag data payload.
         """
+
         try:
             fmt = self.datatype2fmt[dtype][0] * count
             payload_size = self.datatype2fmt[dtype][1] * count
@@ -141,7 +143,7 @@ class Ifd(object):
                 tag_name = tagnum2name[tag]
             except KeyError:
                 # Ok, we don't recognize this tag.  Just use the numeric id.
-                msg = 'Unrecognized UUID box TIFF tag ({tag}).'
+                msg = f'Unrecognized UUID box TIFF tag ({tag}).'
                 warnings.warn(msg, UserWarning)
                 tag_name = tag
             self.processed_ifd[tag_name] = value
@@ -181,6 +183,8 @@ class ExifImageIfd(Ifd):
         282: 'XResolution',
         283: 'YResolution',
         284: 'PlanarConfiguration',
+        286: 'XPosition',
+        287: 'YPosition',
         290: 'GrayResponseUnit',
         291: 'GrayResponseCurve',
         292: 'T4Options',

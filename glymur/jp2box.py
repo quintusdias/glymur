@@ -3427,7 +3427,12 @@ class UUIDBox(Jp2kBox):
             text = f'UUID Data:\n{s}'
             lst.append(text)
         elif self.uuid == _EXIF_UUID:
-            text = f'UUID Data:  {self.data}'
+            s = io.StringIO()
+            for tag in ['JPEGTables', 'StripByteCounts', 'StripOffsets']:
+                if tag in self.data:
+                    self.data[tag] = '... skipped ...'
+            pprint.pprint(self.data, stream=s, indent=4)
+            text = f'UUID Data:  {s.getvalue().rstrip()}'
             lst.append(text)
         elif self.uuid == _GEOTIFF_UUID:
             txt = f'UUID Data:  {self._print_geotiff()}'

@@ -80,8 +80,9 @@ class Tiff2Jp2k(object):
         Copy over the TIFF IFD.  Place it in a UUID box.  Append to the JPEG
         2000 file.
         """
-        # This is a geotiff UUID.
+        # Make it an exif UUID.
         uuid = UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03')
+        uuid = UUID(bytes=b'JpgTiffExif->JP2')
 
         # create a bytesio object for the IFD
         b = io.BytesIO()
@@ -91,9 +92,16 @@ class Tiff2Jp2k(object):
             endian = self._process_header(b, tfp)
             self._process_tags(b, tfp, endian)
 
-        # Append to the JPEG 2000 file.
-        length = b.tell()
-        uuid_box = UUIDBox(uuid, b.getvalue(), length)
+        # now create the entire payload.  this is the exif identifier plus the
+        # IFD.  construct them separately because the IFD offsets don't know
+        # anything about the exif identifier.
+        payload = b'EXIF\0\0' + b.getvalue()
+
+        # the length of the box is the length of the payload plus 8 bytes
+        # to store the length of the box and the box ID
+        box_length = len(payload) + 8 
+
+        uuid_box = UUIDBox(uuid, payload, box_length)
         with open(self.jp2_filename, mode='ab') as f:
             uuid_box.write(f)
 
@@ -114,16 +122,14 @@ class Tiff2Jp2k(object):
         buffer = tfp.read(num_tags * 12)
 
         start_of_tags_position = b.tell()
-        after_tags_position = start_of_tags_position + len(buffer)
+        after_ifd_position = start_of_tags_position + len(buffer)
 
-        import logging
         for idx in range(num_tags):
-            logging.warning(f'idx:  {idx}')
-            logging.warning(f'b.tell(): {b.tell()}')
 
             b.seek(start_of_tags_position + idx * 12)
 
             tag_data = buffer[idx * 12:(idx + 1) * 12]
+
             tag, dtype, nvalues = struct.unpack(
                 endianness + 'HHI', tag_data[:8]
             )
@@ -142,7 +148,7 @@ class Tiff2Jp2k(object):
                 payload_format = tag_dtype[dtype]['format'] * nvalues
                 payload = struct.unpack(endianness + payload_format, payload_buffer)
 
-                new_offset = after_tags_position
+                new_offset = after_ifd_position
                 outbuffer = struct.pack(
                     '<HHII', tag,  dtype, nvalues, new_offset
                 )
@@ -152,12 +158,12 @@ class Tiff2Jp2k(object):
                 # back to the same position in the file stream
                 cpos = b.tell()
                 b.seek(new_offset)
-                logging.warning(f'writing after data to {new_offset}')
-                outbuffer = struct.pack(
-                    endianness + tag_dtype[dtype]['format'] * nvalues,
-                    *payload)
+
+                out_format = '<' + tag_dtype[dtype]['format'] * nvalues
+                outbuffer = struct.pack(out_format, *payload)
                 b.write(outbuffer)
-                after_tags_position = b.tell()
+
+                after_ifd_position = b.tell()
                 b.seek(cpos)
 
             else:
@@ -179,10 +185,12 @@ class Tiff2Jp2k(object):
                 outbuffer = struct.pack('<HHI', tag,  dtype, nvalues)
                 b.write(outbuffer)
 
-                outbuffer = struct.pack(
-                    endianness + tag_dtype[dtype]['format'] * nvalues,
-                    *payload
-                )
+                # we may need to alter the output format
+                if payload_format in ['H', 'B']:
+                    # just write it as an integer
+                    payload_format = 'I'
+
+                outbuffer = struct.pack('<' + payload_format, *payload)
                 b.write(outbuffer)
             
     def _process_header(self, b, tfp):
