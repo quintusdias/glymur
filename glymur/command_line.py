@@ -154,6 +154,9 @@ def tiff2jp2():
     help = 'Generate SOP markers.'
     parser.add_argument('--sop', help=help, action='store_true')
 
+    help = 'Do not create UUID box for TIFF metadata.'
+    parser.add_argument('--nouuid', help=help, action='store_false')
+
     parser.add_argument('tifffile')
     parser.add_argument('jp2kfile')
 
@@ -168,6 +171,6 @@ def tiff2jp2():
         tiffpath, jp2kpath, tilesize=args.tilesize, verbosity=logging_level,
         cbsize=args.codeblocksize, cratios=args.cratio, numres=args.numres,
         plt=args.plt, eph=args.eph, sop=args.sop, prog=args.prog,
-        irreversible=args.irreversible, psnr=args.psnr
+        irreversible=args.irreversible, psnr=args.psnr, create_uuid=args.nouuid
     ) as j:
         j.run()

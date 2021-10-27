@@ -489,6 +489,29 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(j.box[-1].data['ImageWidth'], 512)
         self.assertEqual(j.box[-1].data['ImageLength'], 512)
 
+    def test_no_uuid(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2, but do not include the UUID box
+        for the TIFF IFD.
+
+        EXPECTED RESULT:  data matches, no UUID box
+        """
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename,
+            uuid=False
+        ) as j:
+            j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        actual = j[:]
+        self.assertEqual(actual.shape, (512, 512, 3))
+
+        at_least_one_uuid = any(
+            isinstance(box, glymur.jp2box.UUIDBox) for box in j.box
+        )
+        self.assertFalse(at_least_one_uuid)
+
     @unittest.skipIf(not _HAVE_SCIKIT_IMAGE, "No scikit-image found")
     def test_psnr(self):
         """

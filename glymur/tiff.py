@@ -41,11 +41,13 @@ class Tiff2Jp2k(object):
         Path to JPEG 2000 file to be written.
     tilesize : tuple
         The dimensions of a tile in the JP2K file.
+    create_uuid : bool
+        Create a UUIDBox for the TIFF IFD metadata.
     """
 
     def __init__(
         self, tiff_filename, jp2_filename, tilesize=None,
-        verbosity=logging.CRITICAL, **kwargs
+        verbosity=logging.CRITICAL, create_uuid=True, **kwargs
     ):
 
         self.tiff_filename = tiff_filename
@@ -54,6 +56,7 @@ class Tiff2Jp2k(object):
 
         self.jp2_filename = jp2_filename
         self.tilesize = tilesize
+        self.create_uuid = create_uuid
 
         self.kwargs = kwargs
 
@@ -73,7 +76,9 @@ class Tiff2Jp2k(object):
     def run(self):
 
         self.copy_image()
-        self.copy_metadata()
+
+        if self.create_uuid:
+            self.copy_metadata()
 
     def copy_metadata(self):
         """
