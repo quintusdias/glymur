@@ -1164,6 +1164,14 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 64)
         self.assertEqual(c.segment[1].ytsiz, 64)
 
+    def test_cmyk(self):
+        """
+        Scenario:  CMYK (or separated) is not a supported colorspace.
+
+        Expected result:  RuntimeError
+        """
+        self.fail()
+
     def test_rgb_stripped_bottom_of_tile_coincides_with_bottom_of_strip(self):
         """
         Scenario:  input TIFF is evenly divided into strips, but the tile size
