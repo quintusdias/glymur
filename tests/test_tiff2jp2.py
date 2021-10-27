@@ -517,7 +517,7 @@ class TestSuite(fixtures.TestCommon):
         """
         with Tiff2Jp2k(
             self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename,
-            uuid=False
+            create_uuid=False
         ) as j:
             j.run()
 
