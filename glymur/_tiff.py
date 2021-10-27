@@ -246,6 +246,7 @@ class ExifImageIfd(Ifd):
         33437: 'FNumber',
         33550: 'ModelPixelScale',
         33723: 'IPTCNAA',
+        33918: 'INGRPacketDataTag',
         33922: 'ModelTiePoint',
         34264: 'ModelTransformation',
         34377: 'ImageResources',

@@ -85,10 +85,6 @@ class Tiff2Jp2k(object):
         Copy over the TIFF IFD.  Place it in a UUID box.  Append to the JPEG
         2000 file.
         """
-        # Make it an exif UUID.
-        uuid = UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03')
-        uuid = UUID(bytes=b'JpgTiffExif->JP2')
-
         # create a bytesio object for the IFD
         b = io.BytesIO()
 
@@ -97,10 +93,14 @@ class Tiff2Jp2k(object):
             endian = self._process_header(b, tfp)
             self._process_tags(b, tfp, endian)
 
-        # now create the entire payload.  this is the exif identifier plus the
-        # IFD.  construct them separately because the IFD offsets don't know
-        # anything about the exif identifier.
-        payload = b'EXIF\0\0' + b.getvalue()
+        if self.found_geotiff_tags:
+            # geotiff UUID
+            uuid = UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03')
+            payload = b.getvalue()
+        else:
+            # Make it an exif UUID.
+            uuid = UUID(bytes=b'JpgTiffExif->JP2')
+            payload = b'EXIF\0\0' + b.getvalue()
 
         # the length of the box is the length of the payload plus 8 bytes
         # to store the length of the box and the box ID
@@ -111,6 +111,8 @@ class Tiff2Jp2k(object):
             uuid_box.write(f)
 
     def _process_tags(self, b, tfp, endianness):
+
+        self.found_geotiff_tags = False
 
         # how many tags?
         buffer = tfp.read(2)
@@ -138,6 +140,9 @@ class Tiff2Jp2k(object):
             tag, dtype, nvalues = struct.unpack(
                 endianness + 'HHI', tag_data[:8]
             )
+
+            if tag == 34735:
+                self.found_geotiff_tags = True
 
             payload_length = tag_dtype[dtype]['nbytes'] * nvalues
 
