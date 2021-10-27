@@ -1,10 +1,12 @@
 # standard library imports
+import importlib.resources as ir
 import logging
 import pathlib
 import shutil
 import sys
 import tempfile
 import unittest
+from uuid import UUID
 import warnings
 
 # 3rd party library imports
@@ -488,6 +490,23 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(j.box[-1].box_id, 'uuid')
         self.assertEqual(j.box[-1].data['ImageWidth'], 512)
         self.assertEqual(j.box[-1].data['ImageLength'], 512)
+
+    def test_geotiff(self):
+        """
+        SCENARIO:  Convert GEOTIFF file to JP2
+
+        EXPECTED RESULT:  there is a geotiff UUID.
+        """
+        with ir.path('glymur.data', 'albers27.tif') as path:
+            with Tiff2Jp2k(path, self.temp_jp2_filename) as j:
+                j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        self.assertEqual(j.box[-1].box_id, 'uuid')
+        self.assertEqual(
+            j.box[-1].uuid, UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03')
+        )
 
     def test_no_uuid(self):
         """
