@@ -497,9 +497,11 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  there is a geotiff UUID.
         """
-        with ir.path('glymur.data', 'albers27.tif') as path:
-            with Tiff2Jp2k(path, self.temp_jp2_filename) as j:
-                j.run()
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            with ir.path('glymur.data', 'albers27.tif') as path:
+                with Tiff2Jp2k(path, self.temp_jp2_filename) as j:
+                    j.run()
 
         j = Jp2k(self.temp_jp2_filename)
 
@@ -570,7 +572,6 @@ class TestSuite(fixtures.TestCommon):
 
         # PSNR should increase for the remaining images.
         self.assertTrue(np.all(np.diff(psnr[1:])) > 0)
-
 
     def test_irreversible(self):
         """
@@ -1170,7 +1171,36 @@ class TestSuite(fixtures.TestCommon):
 
         Expected result:  RuntimeError
         """
-        self.fail()
+        data = skimage.data.moon()
+        data = np.dstack((data, data))
+
+        h, w, spp = data.shape
+
+        # instead of 160, this will cause a partially empty last strip
+        rps = 512
+
+        fp = libtiff.open(self.temp_tiff_filename, mode='w')
+
+        libtiff.setField(fp, 'Photometric', libtiff.Photometric.SEPARATED)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
+        libtiff.setField(fp, 'ImageLength', data.shape[0])
+        libtiff.setField(fp, 'ImageWidth', data.shape[1])
+        libtiff.setField(fp, 'RowsPerStrip', rps)
+        libtiff.setField(fp, 'BitsPerSample', 8)
+        libtiff.setField(fp, 'SamplesPerPixel', spp)
+        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
+        libtiff.setField(fp, 'InkSet', libtiff.InkSet.MULTIINK)
+
+        libtiff.writeEncodedStrip(fp, 0, data.copy())
+
+        libtiff.close(fp)
+
+        with Tiff2Jp2k(self.temp_tiff_filename, self.temp_jp2_filename) as j:
+            with warnings.catch_warnings():
+                # weird warning about extra samples
+                warnings.simplefilter('ignore')
+                with self.assertRaises(RuntimeError):
+                    j.run()
 
     def test_rgb_stripped_bottom_of_tile_coincides_with_bottom_of_strip(self):
         """

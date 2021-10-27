@@ -104,7 +104,7 @@ class Tiff2Jp2k(object):
 
         # the length of the box is the length of the payload plus 8 bytes
         # to store the length of the box and the box ID
-        box_length = len(payload) + 8 
+        box_length = len(payload) + 8
 
         uuid_box = UUIDBox(uuid, payload, box_length)
         with open(self.jp2_filename, mode='ab') as f:
@@ -156,11 +156,13 @@ class Tiff2Jp2k(object):
                 tfp.seek(current_position)
 
                 payload_format = tag_dtype[dtype]['format'] * nvalues
-                payload = struct.unpack(endianness + payload_format, payload_buffer)
+                payload = struct.unpack(
+                    endianness + payload_format, payload_buffer
+                )
 
                 new_offset = after_ifd_position
                 outbuffer = struct.pack(
-                    '<HHII', tag,  dtype, nvalues, new_offset
+                    '<HHII', tag, dtype, nvalues, new_offset
                 )
                 b.write(outbuffer)
 
@@ -192,7 +194,7 @@ class Tiff2Jp2k(object):
                     endianness + payload_format, payload_buffer
                 )
 
-                outbuffer = struct.pack('<HHI', tag,  dtype, nvalues)
+                outbuffer = struct.pack('<HHI', tag, dtype, nvalues)
                 b.write(outbuffer)
 
                 # we may need to alter the output format
@@ -202,7 +204,7 @@ class Tiff2Jp2k(object):
 
                 outbuffer = struct.pack('<' + payload_format, *payload)
                 b.write(outbuffer)
-            
+
     def _process_header(self, b, tfp):
 
         buffer = tfp.read(8)
@@ -218,7 +220,7 @@ class Tiff2Jp2k(object):
         else:
             msg = (
                 f"The byte order indication in the TIFF header "
-                f"({read_buffer[0:2]}) is invalid.  It should be either "
+                f"({data}) is invalid.  It should be either "
                 f"{bytes([73, 73])} or {bytes([77, 77])}."
             )
             raise RuntimeError(msg)
@@ -301,7 +303,18 @@ class Tiff2Jp2k(object):
             **self.kwargs
         )
 
-        if self.tilesize is None and libtiff.RGBAImageOK(self.tiff_fp):
+        if not libtiff.RGBAImageOK(self.tiff_fp):
+            photometric_string = [
+                key for key in dir(libtiff.Photometric)
+                if getattr(libtiff.Photometric, key) == photometric
+            ][0]
+            msg = (
+                f"The TIFF Photometric tag is {photometric_string} and is "
+                "not supported."
+            )
+            raise RuntimeError(msg)
+
+        elif self.tilesize is None and libtiff.RGBAImageOK(self.tiff_fp):
 
             # if no jp2k tiling was specified and if the image is ok to read
             # via the RGBA interface, then just do that.

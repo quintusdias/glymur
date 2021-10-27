@@ -60,6 +60,14 @@ class Compression(IntEnum):
     LZMA = 34925  # LZMA2
 
 
+class InkSet(IntEnum):
+    """
+    The set of inks used in a separated (PhotometricInterpretation=5) image.
+    """
+    CMYK = 1
+    MULTIINK = 2
+
+
 class JPEGColorMode(IntEnum):
     """
     When writing images with photometric interpretation equal to YCbCr and
