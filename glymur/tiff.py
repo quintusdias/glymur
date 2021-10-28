@@ -33,6 +33,7 @@ tag_dtype = {
     18: {'format': 'Q', 'nbytes': 8}
 }
 
+# Mnemonics for the two TIFF format version numbers.
 _TIFF = 42
 _BIGTIFF = 43
 
