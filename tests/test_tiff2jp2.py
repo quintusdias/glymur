@@ -106,11 +106,11 @@ class TestSuite(fixtures.TestCommon):
 
         libtiff.close(fp)
 
-        cls.moon_data = actual_data
-        cls.moon_tif = path
+        cls.minisblack_spp1_data = actual_data
+        cls.minisblack_spp1_path = path
 
     @classmethod
-    def setup_moon_partial_tiles(cls, path):
+    def setup_minisblack_2x2_partial_tiles(cls, path):
         """
         SCENARIO:  create a simple monochromatic 2x2 tiled image with partial
         tiles.
@@ -137,8 +137,8 @@ class TestSuite(fixtures.TestCommon):
 
         libtiff.close(fp)
 
-        cls.moon_partial_tiles_data = data[:h, :w]
-        cls.moon_partial_tiles_path = path
+        cls.minisblack_2x2_partial_tiles_data = data[:h, :w]
+        cls.minisblack_2x2_partial_tiles_path = path
 
     @classmethod
     def setup_minisblack_3x3(cls, path):
@@ -206,10 +206,10 @@ class TestSuite(fixtures.TestCommon):
 
         libtiff.close(fp)
 
-        cls.moon3_stripped_tif = path
+        cls.minisblack_3_full_strips_path = path
 
     @classmethod
-    def setup_moon_partial_last_strip(cls, path):
+    def setup_minisblack_3strip_partial_last_strip(cls, path):
         """
         SCENARIO:  create a simple monochromatic 3-strip image
         """
@@ -242,7 +242,7 @@ class TestSuite(fixtures.TestCommon):
 
         libtiff.close(fp)
 
-        cls.moon_partial_last_strip = path
+        cls.minisblack_3strip_partial_last_strip = path
 
     @classmethod
     def setup_rgb_uint16(cls, path):
@@ -463,10 +463,10 @@ class TestSuite(fixtures.TestCommon):
         cls.setup_minisblack_3strip(cls.test_tiff_path / 'moon3_stripped.tif')
 
         path = cls.test_tiff_path / 'moon3_partial_last_strip.tif'
-        cls.setup_moon_partial_last_strip(path)
+        cls.setup_minisblack_3strip_partial_last_strip(path)
 
-        path = cls.test_tiff_path / 'moon_partial_tiles.tif'
-        cls.setup_moon_partial_tiles(path)
+        path = cls.test_tiff_path / 'minisblack_2x2_partial_tiles.tif'
+        cls.setup_minisblack_2x2_partial_tiles(path)
 
         cls.setup_rgb(cls.test_tiff_path / 'astronaut.tif')
         cls.setup_rgb_bigtiff(cls.test_tiff_path / 'rbg_bigtiff.tif')
@@ -592,7 +592,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  data matches, the irreversible transform is confirmed
         """
         with Tiff2Jp2k(
-            self.moon_tif, self.temp_jp2_filename,
+            self.minisblack_spp1_path, self.temp_jp2_filename,
             psnr=(30, 35, 40, 0)
         ) as j:
             j.run()
@@ -808,7 +808,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
         with Tiff2Jp2k(
-            self.moon_partial_last_strip, self.temp_jp2_filename,
+            self.minisblack_3strip_partial_last_strip, self.temp_jp2_filename,
             tilesize=(250, 250)
         ) as j:
             j.run()
@@ -816,7 +816,9 @@ class TestSuite(fixtures.TestCommon):
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
 
-        np.testing.assert_array_equal(actual, self.moon_partial_tiles_data)
+        np.testing.assert_array_equal(
+            actual, self.minisblack_2x2_partial_tiles_data
+        )
 
         c = jp2.get_codestream()
         self.assertEqual(c.segment[1].xsiz, 480)
@@ -832,7 +834,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
         with Tiff2Jp2k(
-            self.moon_partial_last_strip, self.temp_jp2_filename,
+            self.minisblack_3strip_partial_last_strip, self.temp_jp2_filename,
             tilesize=(240, 240)
         ) as j:
             j.run()
@@ -924,14 +926,16 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
         with Tiff2Jp2k(
-            self.moon_tif, self.temp_jp2_filename, tilesize=(256, 256)
+            self.minisblack_spp1_path,
+            self.temp_jp2_filename,
+            tilesize=(256, 256)
         ) as j:
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
 
-        np.testing.assert_array_equal(actual, self.moon_data)
+        np.testing.assert_array_equal(actual, self.minisblack_spp1_data)
 
         c = jp2.get_codestream()
         self.assertEqual(c.segment[1].xsiz, 512)
@@ -947,7 +951,9 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  there are four messages logged, one for each tile
         """
         with Tiff2Jp2k(
-            self.moon_tif, self.temp_jp2_filename, tilesize=(256, 256)
+            self.minisblack_spp1_path,
+            self.temp_jp2_filename,
+            tilesize=(256, 256)
         ) as j:
             with self.assertLogs(logger='tiff2jp2', level=logging.INFO) as cm:
                 j.run()
@@ -962,7 +968,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  The data matches.  The JP2 file has 16 tiles.
         """
         with Tiff2Jp2k(
-            self.moon_tif, self.temp_jp2_filename,
+            self.minisblack_spp1_path, self.temp_jp2_filename,
             tilesize=(128, 128)
         ) as j:
             j.run()
@@ -970,7 +976,7 @@ class TestSuite(fixtures.TestCommon):
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
 
-        np.testing.assert_array_equal(actual, self.moon_data)
+        np.testing.assert_array_equal(actual, self.minisblack_spp1_data)
 
         c = jp2.get_codestream()
         self.assertEqual(c.segment[1].xsiz, 512)
@@ -986,7 +992,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
         with Tiff2Jp2k(
-            self.moon3_stripped_tif, self.temp_jp2_filename,
+            self.minisblack_3_full_strips_path, self.temp_jp2_filename,
             tilesize=(240, 240)
         ) as j:
             j.run()
