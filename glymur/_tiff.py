@@ -304,6 +304,8 @@ class ExifImageIfd(Ifd):
         40093: 'XPAuthor',
         40094: 'XPKeywords',
         40095: 'XPSubject',
+        42112: 'GDALMetadata',
+        42113: 'GDALNoData',
         50341: 'PrintImageMatching',
         50706: 'DNGVersion',
         50707: 'DNGBackwardVersion',
