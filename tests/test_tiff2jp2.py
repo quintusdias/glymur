@@ -550,7 +550,7 @@ class TestSuite(fixtures.TestCommon):
         """
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            with ir.path('glymur.data', 'albers27.tif') as path:
+            with ir.path('tests.data', 'albers27.tif') as path:
                 with Tiff2Jp2k(path, self.temp_jp2_filename) as j:
                     j.run()
 
