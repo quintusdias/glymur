@@ -250,14 +250,14 @@ class Tiff2Jp2k(object):
         sf = libtiff.getFieldDefaulted(self.tiff_fp, 'SampleFormat')
         bps = libtiff.getFieldDefaulted(self.tiff_fp, 'BitsPerSample')
 
-        if sf != libtiff.SampleFormat.UINT:
+        if sf not in [libtiff.SampleFormat.UINT, libtiff.SampleFormat.VOID]:
             sf_string = [
                 key for key in dir(libtiff.SampleFormat)
                 if getattr(libtiff.SampleFormat, key) == sf
             ][0]
             msg = (
-                f"The TIFF SampleFormat is {sf_string}.  Only UINT is "
-                "supported."
+                f"The TIFF SampleFormat is {sf_string}.  Only UINT and VOID "
+                "are supported."
             )
             raise RuntimeError(msg)
 
@@ -435,14 +435,14 @@ class Tiff2Jp2k(object):
                     partial_jp2_tile_cols
                     and jp2k_tile_col == num_jp2k_tile_cols - 1
                 ):
-                    last_j2k_cols = slice(0, jtw - (ulc - imagewidth))
-                    jp2k_tile = jp2k_tile[:, jcols, :].copy()
+                    last_j2k_cols = slice(0, jtw - (ulc + jtw - imagewidth))
+                    jp2k_tile = jp2k_tile[:, last_j2k_cols, :].copy()
                 if (
                     partial_jp2_tile_rows
                     and jp2k_tile_row == num_jp2k_tile_rows - 1
                 ):
-                    last_j2k_rows = slice(0, jth - (llr - imageheight))
-                    jp2k_tile = jp2k_tile[jrows, :, :].copy()
+                    last_j2k_rows = slice(0, jth - (llr + jth - imageheight))
+                    jp2k_tile = jp2k_tile[last_j2k_rows, :, :].copy()
 
                 tilewriter[:] = jp2k_tile
 

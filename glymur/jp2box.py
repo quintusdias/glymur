@@ -3428,7 +3428,9 @@ class UUIDBox(Jp2kBox):
             lst.append(text)
         elif self.uuid == _EXIF_UUID:
             s = io.StringIO()
-            for tag in ['JPEGTables', 'StripByteCounts', 'StripOffsets']:
+            for tag in [
+                'JPEGTables', 'StripByteCounts', 'StripOffsets'
+            ]:
                 if tag in self.data:
                     self.data[tag] = '... skipped ...'
             pprint.pprint(self.data, stream=s, indent=4)
