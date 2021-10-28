@@ -221,6 +221,17 @@ class Jp2k(Jp2kBox):
             self.parse()
             self._initialize_shape()
 
+        if (
+            self.shape is not None
+            and self.tilesize is not None
+            and (self.tilesize[0] > self.shape[0] or self.tilesize[1] > self.shape[1])
+        ):
+            msg = (
+                f"The tile size {self.tilesize} cannot exceed the image "
+                f"size {self.shape[:2]}."
+            )
+            raise RuntimeError(msg)
+
     def _validate_kwargs(self):
         """
         Validate keyword parameters passed to the constructor.

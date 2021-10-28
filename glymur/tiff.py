@@ -220,7 +220,18 @@ class Tiff2Jp2k(object):
                 payload = struct.unpack(
                     endian + payload_format, payload_buffer
                 )
-                payload = payload[:nvalues]
+
+                # Extract the actual payload.  Two things going on here.  First
+                # of all, not all of the items may be used.  For example, if
+                # the payload length is 4 bytes but the format string was HHH,
+                # the that last 16 bit value is not wanted, so we should
+                # discard it.  Second thing is that the signed and unsigned
+                # rational datatypes effectively have twice the number of
+                # values so we need to account for that.
+                if dtype in [5, 10]:
+                    payload = payload[:2 * nvalues]
+                else:
+                    payload = payload[:nvalues]
 
                 # Does it fit into the UUID tag entry (4 bytes)?
                 if payload_length <= 4:

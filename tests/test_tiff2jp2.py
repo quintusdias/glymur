@@ -1032,6 +1032,31 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 240)
         self.assertEqual(c.segment[1].ytsiz, 240)
 
+    def test_bad_tile_size(self):
+        """
+        SCENARIO:  Specify a tilesize that exceeds the image size.  This will
+        cause a segfault unless caught.
+
+        EXPECTED RESULT:  RuntimeError
+        """
+        with self.assertRaises(RuntimeError):
+            with ir.path('tests.data', 'albers27-8.tif') as path:
+                with Tiff2Jp2k(
+                    path, self.temp_jp2_filename, tilesize=(256, 256),
+                ) as j:
+                    j.run()
+
+    def test_minisblack_spp1_bigtiff(self):
+        """
+        SCENARIO:  Convert minisblack BigTIFF file to JP2.  The TIFF has tag
+        XResolution.
+
+        EXPECTED RESULT:  no errors.
+        """
+        with ir.path('tests.data', 'albers27-8.tif') as path:
+            with Tiff2Jp2k(path, self.temp_jp2_filename) as j:
+                j.run()
+
     def test_rgb_tiled_bigtiff(self):
         """
         SCENARIO:  Convert RGB BigTIFF file to JP2.  The TIFF is evenly
