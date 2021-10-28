@@ -350,6 +350,8 @@ class Tiff2Jp2k(object):
 
                 # populate the jp2k tile with tiff tiles
                 self.logger.info(f'Tile:  #{idx}')
+                self.logger.debug(f'J tile row:  #{idx // num_jp2k_tile_cols}')
+                self.logger.debug(f'J tile col:  #{idx % num_jp2k_tile_cols}')
 
                 jp2k_tile = np.zeros((jth, jtw, spp), dtype=dtype)
                 tiff_tile = np.zeros((th, tw, spp), dtype=dtype)
@@ -367,6 +369,7 @@ class Tiff2Jp2k(object):
                     c = julc
 
                     tilenum = libtiff.computeTile(self.tiff_fp, c, r, 0, 0)
+                    self.logger.debug(f'TIFF tile # {tilenum}')
 
                     tiff_tile_row = int(np.ceil(tilenum // num_tiff_tile_cols))
                     tiff_tile_col = int(np.ceil(tilenum % num_tiff_tile_cols))
@@ -441,7 +444,7 @@ class Tiff2Jp2k(object):
                     partial_jp2_tile_rows
                     and jp2k_tile_row == num_jp2k_tile_rows - 1
                 ):
-                    last_j2k_rows = slice(0, jth - (llr + jth - imageheight))
+                    last_j2k_rows = slice(0, imageheight - julr)
                     jp2k_tile = jp2k_tile[last_j2k_rows, :, :].copy()
 
                 tilewriter[:] = jp2k_tile
