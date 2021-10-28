@@ -438,7 +438,7 @@ class Tiff2Jp2k(object):
                     partial_jp2_tile_cols
                     and jp2k_tile_col == num_jp2k_tile_cols - 1
                 ):
-                    last_j2k_cols = slice(0, jtw - (ulc + jtw - imagewidth))
+                    last_j2k_cols = slice(0, imagewidth - julc)
                     jp2k_tile = jp2k_tile[:, last_j2k_cols, :].copy()
                 if (
                     partial_jp2_tile_rows
@@ -539,7 +539,7 @@ class Tiff2Jp2k(object):
                 ):
                     # decrease the number of columns by however many it sticks
                     # over the image width
-                    last_j2k_cols = slice(0, jtw - (ulc + jtw - imagewidth))
+                    last_j2k_cols = slice(0, imagewidth - julc)
                     jp2k_tile = jp2k_tile[:, last_j2k_cols, :].copy()
 
                 if (
