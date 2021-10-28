@@ -224,7 +224,10 @@ class Jp2k(Jp2kBox):
         if (
             self.shape is not None
             and self.tilesize is not None
-            and (self.tilesize[0] > self.shape[0] or self.tilesize[1] > self.shape[1])
+            and (
+                self.tilesize[0] > self.shape[0]
+                or self.tilesize[1] > self.shape[1]
+            )
         ):
             msg = (
                 f"The tile size {self.tilesize} cannot exceed the image "

@@ -324,6 +324,7 @@ class Tiff2Jp2k(object):
         spp = libtiff.getFieldDefaulted(self.tiff_fp, 'SamplesPerPixel')
         sf = libtiff.getFieldDefaulted(self.tiff_fp, 'SampleFormat')
         bps = libtiff.getFieldDefaulted(self.tiff_fp, 'BitsPerSample')
+        planar = libtiff.getFieldDefaulted(self.tiff_fp, 'PlanarConfig')
 
         if sf not in [libtiff.SampleFormat.UINT, libtiff.SampleFormat.VOID]:
             sf_string = [
@@ -347,6 +348,16 @@ class Tiff2Jp2k(object):
             dtype = np.uint8
         if bps == 16 and sf == libtiff.SampleFormat.UINT:
             dtype = np.uint16
+
+        if (
+            planar == libtiff.PlanarConfig.SEPARATE
+            and self.tilesize is not None
+        ):
+            msg = (
+                "A separated planar configuration is not supported when a "
+                "tile size is specified."
+            )
+            raise RuntimeError(msg)
 
         if libtiff.isTiled(self.tiff_fp):
             tw = libtiff.getFieldDefaulted(self.tiff_fp, 'TileWidth')

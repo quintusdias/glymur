@@ -1032,6 +1032,22 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 240)
         self.assertEqual(c.segment[1].ytsiz, 240)
 
+    def test_separated_configuration(self):
+        """
+        SCENARIO:  The TIFF has a planar configuration of SEPARATE which is
+        not supported if a tilesize is specified.
+
+        EXPECTED RESULT:  RuntimeError
+        """
+        with self.assertRaises(RuntimeError):
+            with ir.path(
+                'tests.data', 'flower-separated-planar-08.tif'
+            ) as path:
+                with Tiff2Jp2k(
+                    path, self.temp_jp2_filename, tilesize=(64, 64)
+                ) as j:
+                    j.run()
+
     def test_bad_tile_size(self):
         """
         SCENARIO:  Specify a tilesize that exceeds the image size.  This will
