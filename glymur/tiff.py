@@ -2,6 +2,7 @@
 import io
 import logging
 import struct
+import warnings
 
 # 3rd party library imports
 import numpy as np
@@ -312,13 +313,17 @@ class Tiff2Jp2k(object):
         return endian
 
     def copy_image(self):
+        """
+        Transfer the image data from the TIFF to the JPEG 2000 file.  If the
+        TIFF has a stripped configuration, this may be somewhat inefficient.
+        """
 
         if libtiff.isTiled(self.tiff_fp):
             isTiled = True
         else:
             isTiled = False
 
-        photometric = libtiff.getFieldDefaulted(self.tiff_fp, 'Photometric')
+        photo = libtiff.getFieldDefaulted(self.tiff_fp, 'Photometric')
         imagewidth = libtiff.getFieldDefaulted(self.tiff_fp, 'ImageWidth')
         imageheight = libtiff.getFieldDefaulted(self.tiff_fp, 'ImageLength')
         spp = libtiff.getFieldDefaulted(self.tiff_fp, 'SamplesPerPixel')
@@ -327,13 +332,11 @@ class Tiff2Jp2k(object):
         planar = libtiff.getFieldDefaulted(self.tiff_fp, 'PlanarConfig')
 
         if sf not in [libtiff.SampleFormat.UINT, libtiff.SampleFormat.VOID]:
-            sf_string = [
-                key for key in dir(libtiff.SampleFormat)
-                if getattr(libtiff.SampleFormat, key) == sf
-            ][0]
+            sampleformat_str = self.tagvalue2str(libtiff.SampleFormat, sf)
+
             msg = (
-                f"The TIFF SampleFormat is {sf_string}.  Only UINT and VOID "
-                "are supported."
+                f"The TIFF SampleFormat is {sampleformat_str}.  Only UINT "
+                "and VOID are supported."
             )
             raise RuntimeError(msg)
 
@@ -373,11 +376,11 @@ class Tiff2Jp2k(object):
             num_jp2k_tile_rows = int(np.ceil(imagewidth / jtw))
             num_jp2k_tile_cols = int(np.ceil(imagewidth / jtw))
 
-        if photometric == libtiff.Photometric.YCBCR:
+        if photo == libtiff.Photometric.YCBCR:
             # Using the RGBA interface is the only reasonable way to deal with
             # this.
             use_rgba_interface = True
-        elif photometric == libtiff.Photometric.PALETTE:
+        elif photo == libtiff.Photometric.PALETTE:
             # Using the RGBA interface is the only reasonable way to deal with
             # this.  The single plane gets turned into RGB.
             use_rgba_interface = True
@@ -393,10 +396,7 @@ class Tiff2Jp2k(object):
         )
 
         if not libtiff.RGBAImageOK(self.tiff_fp):
-            photometric_string = [
-                key for key in dir(libtiff.Photometric)
-                if getattr(libtiff.Photometric, key) == photometric
-            ][0]
+            photometric_string = self.tagvalue2str(libtiff.Photometric, photo)
             msg = (
                 f"The TIFF Photometric tag is {photometric_string} and is "
                 "not supported."
@@ -412,6 +412,20 @@ class Tiff2Jp2k(object):
                 "image."
             )
             self.logger.info(msg)
+
+            if photo not in [
+                libtiff.Photometric.MINISWHITE,
+                libtiff.Photometric.MINISBLACK,
+                libtiff.Photometric.PALETTE,
+                libtiff.Photometric.YCBCR,
+                libtiff.Photometric.RGB
+            ]:
+                photostr = self.tagvalue2str(libtiff.Photometric, photo)
+                msg = (
+                    "Beware, the RGBA interface to attempt to read this TIFF "
+                    f"when it has a PhotometricInterpretation of {photostr}."
+                )
+                warnings.warn(msg)
 
             image = libtiff.readRGBAImageOriented(self.tiff_fp)
 
@@ -638,3 +652,15 @@ class Tiff2Jp2k(object):
                     jp2k_tile = jp2k_tile[last_j2k_rows, :, :].copy()
 
                 tilewriter[:] = jp2k_tile
+
+    def tagvalue2str(self, cls, tag_value):
+        """
+        Take a class that encompasses all of a tag's allowed values and find
+        the name of that value.
+        """
+
+        tag_value_string = [
+            key for key in dir(cls) if getattr(cls, key) == tag_value
+        ][0]
+
+        return tag_value_string
