@@ -39,16 +39,83 @@ _PROFILE_1 = 2
 _PROFILE_3 = 3
 _PROFILE_4 = 4
 
-_KNOWN_PROFILES = [_NO_PROFILE, _PROFILE_0, _PROFILE_1, _PROFILE_3, _PROFILE_4]
+# no profile, conform to 15444-1
+_PROFILE_NONE = 0x0000
+
+# Profile 0 as described in 15444-1,Table A.45
+_PROFILE_0 = 0x0001
+
+# Profile 1 as described in 15444-1,Table A.45
+_PROFILE_1 = 0x0002
+
+# At least 1 extension defined in 15444-2 (Part-2)
+_PROFILE_PART2 = 0x8000
+
+# 2K cinema profile defined in 15444-1 AMD1
+_PROFILE_CINEMA_2K = 0x0003
+
+# 4K cinema profile defined in 15444-1 AMD1
+_PROFILE_CINEMA_4K = 0x0004
+
+# Scalable 2K cinema profile defined in 15444-1 AMD2
+_PROFILE_CINEMA_S2K = 0x0005
+
+# Scalable 4K cinema profile defined in 15444-1 AMD2
+_PROFILE_CINEMA_S4K = 0x0006
+
+# Long term storage cinema profile defined in 15444-1 AMD2
+_PROFILE_CINEMA_LTS = 0x0007
+
+# Single Tile Broadcast profile defined in 15444-1 AMD3
+_PROFILE_BC_SINGLE = 0x0100
+
+# Multi Tile Broadcast profile defined in 15444-1 AMD3
+_PROFILE_BC_MULTI = 0x0200
+
+# Multi Tile Reversible Broadcast profile defined in 15444-1 AMD3
+_PROFILE_BC_MULTI_R = 0x0300
+
+# 2K Single Tile Lossy IMF profile defined in 15444-1 AMD 8
+_PROFILE_IMF_2K = 0x0400
+
+# 4K Single Tile Lossy IMF profile defined in 15444-1 AMD 8
+_PROFILE_IMF_4K = 0x0500
+
+# 8K Single Tile Lossy IMF profile defined in 15444-1 AMD 8
+_PROFILE_IMF_8K = 0x0600
+
+# 2K Single/Multi Tile Reversible IMF profile defined in 15444-1 AMD 8
+_PROFILE_IMF_2K_R = 0x0700
+
+# 4K Single/Multi Tile Reversible IMF profile defined in 15444-1 AMD 8
+_PROFILE_IMF_4K_R = 0x0800
+
+# 8K Single/Multi Tile Reversible IMF profile defined in 15444-1 AMD 8
+_PROFILE_IMF_8K_R = 0x0900
 
 # How to display the codestream profile.
 _CAPABILITIES_DISPLAY = {
-    _NO_PROFILE: 'no profile',
-    _PROFILE_0: '0',
-    _PROFILE_1: '1',
-    _PROFILE_3: 'Cinema 2K',
-    _PROFILE_4: 'Cinema 4K',
+    _PROFILE_NONE : 'no profile',
+    _PROFILE_0 : '0',
+    _PROFILE_1 : '1',
+    _PROFILE_PART2 : 'at least 1 extension defined in 15444-2 (Part-2)',
+    _PROFILE_CINEMA_2K : '2K cinema',
+    _PROFILE_CINEMA_4K : '4K cinema',
+    _PROFILE_CINEMA_S2K : 'scalable 2K cinema',
+    _PROFILE_CINEMA_S4K : 'scalable 4K cinema',
+    _PROFILE_CINEMA_LTS : 'long term storage cinema',
+    _PROFILE_BC_SINGLE : 'single tile broadcast',
+    _PROFILE_BC_MULTI : 'multi tile broadcast',
+    _PROFILE_BC_MULTI_R : 'multi tile reversible broadcast',
+    _PROFILE_IMF_2K : '2K single tile lossy IMF',
+    _PROFILE_IMF_4K : '4K single tile lossy IMF',
+    _PROFILE_IMF_8K : '8K single tile lossy IMF',
+    _PROFILE_IMF_2K_R : '2K single/multi tile reversible IMF',
+    _PROFILE_IMF_4K_R : '4K single/multi tile reversible IMF',
+    _PROFILE_IMF_8K_R : '8K single/multi tile reversible IMF',
 }
+
+_KNOWN_PROFILES = _CAPABILITIES_DISPLAY.keys()
 
 
 class Codestream(object):

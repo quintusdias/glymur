@@ -337,7 +337,7 @@ class TestPrinting(fixtures.TestCommon):
 
         expected = (
             "SIZ marker segment @ (2, 47)\n"
-            "    Profile:  Cinema 2K\n"
+            "    Profile:  2K cinema\n"
             "    Reference Grid Height, Width:  (1080 x 1920)\n"
             "    Vertical, Horizontal Reference Grid Offset:  (0 x 0)\n"
             "    Reference Tile Height, Width:  (1080 x 1920)\n"

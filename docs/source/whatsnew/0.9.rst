@@ -15,6 +15,7 @@ Changes in 0.9.5
 
     * Add support for generation of PLT markers.
     * Add support for converting TIFFs to JPEG 2000.
+    * Add recognition of additional IMF profiles.
 
 ****************
 Changes in 0.9.4
