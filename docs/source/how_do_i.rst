@@ -137,7 +137,7 @@ have image data ready to feed each tile writer, you cannot skip a tile.
 ... force the generation of PLT markers?
 ****************************************
 With glymur 0.9.5 or higher, you can instruct the encoder to generate PLT markers
-by using either the plt keyword or the plt property.
+by using the plt keyword. ::
 
     >>> import glymur, skimage.data
     >>> jp2 = glymur.Jp2k('astronaut.jp2', plt=True)
@@ -194,7 +194,7 @@ A command line utility **tiff2jp2** is provided for this task.
 In most cases, you should provide your own choice of a JPEG 2000 tile
 size.  Not providing a tile size will cause glymur to try to covert
 the TIFF into a single-tile JPEG 2000 file.  If your TIFF is large,
-you may not have enough memory to write such a single-tile file.::
+you may not have enough memory to write such a single-tile file. ::
 
     $ wget http://photojournal.jpl.nasa.gov/tiff/PIA17145.tif
     $ tiff2jp2 --tilesize 256 256 PIA17145.tif PIA17145.jp2
