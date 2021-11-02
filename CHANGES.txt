@@ -1,3 +1,7 @@
+November 03, 2021 - v0.9.5
+    Add support for generation of PLT markers.
+    Add support for converting TIFFs to JPEG 2000.
+
 September 01, 2021 - v0.9.4
     Add support for writing images tile-by-tile.
     Add support for opj_set_decoded_components.
