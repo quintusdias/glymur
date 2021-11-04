@@ -105,16 +105,20 @@ def read_config_file(libname):
     return path
 
 
-def glymur_config():
+def glymur_config(libname):
     """
     Try to ascertain locations of openjp2 library.
+
+    Parameters
+    ----------
+    libname : str
+        Currently either 'openjp2' or 'tiff'
 
     Returns
     -------
     tuple
         tuple of library handles
     """
-    libname = 'openjp2'
     path = _determine_full_path(libname)
 
     if path is None or path in ['None', 'none']:

@@ -1,3 +1,6 @@
+# standard library imports
+import unittest
+
 # 3rd party library imports
 import skimage.io
 import numpy as np
@@ -6,8 +9,10 @@ import numpy as np
 import glymur
 from glymur import Jp2k
 from . import fixtures
+from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
+@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 class TestSuite(fixtures.TestCommon):
     """
     Test suite for writing with tiles.

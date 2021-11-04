@@ -21,12 +21,21 @@ import glymur
 # Require at least a certain version of openjpeg for running most tests.
 if glymur.version.openjpeg_version < '2.2.0':  # pragma: no cover
     OPENJPEG_NOT_AVAILABLE = True
-    OPENJPEG_NOT_AVAILABLE_MSG = ('A version of OPENJPEG of at least v2.2.0 '
-                                  'must be installed.')
+    OPENJPEG_NOT_AVAILABLE_MSG = (
+        'A version of OPENJPEG of at least v2.2.0 must be installed.'
+    )
 else:
     OPENJPEG_NOT_AVAILABLE = False
     OPENJPEG_NOT_AVAILABLE_MSG = None
 
+if glymur.version.tiff_version < '4.0.0':
+    TIFF_NOT_AVAILABLE = True
+    TIFF_NOT_AVAILABLE_MSG = (
+        'A version of TIFF of at least v4.0.0 must be installed.'
+    )
+else:
+    TIFF_NOT_AVAILABLE = False
+    TIFF_NOT_AVAILABLE_MSG = None
 
 class TestCommon(unittest.TestCase):
     """

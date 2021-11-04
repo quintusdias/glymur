@@ -8,14 +8,15 @@ import warnings
 # 3rd party library imports
 import numpy as np
 
+# Local imports
+from ..config import glymur_config
 
 # The error messages queue
 EQ = queue.Queue()
 
 loader = ctypes.windll.LoadLibrary if os.name == 'nt' else ctypes.CDLL
-_LIBTIFF, _LIBC = (
-    loader(ctypes.util.find_library(x)) for x in ('tiff', 'c')
-)
+_LIBTIFF = glymur_config('tiff')
+_LIBC = glymur_config('c')
 
 
 class LibTIFFError(RuntimeError):
@@ -569,6 +570,30 @@ def getFieldDefaulted(fp, tag):
     _reset_error_warning_handlers(err_handler, warn_handler)
 
     return item.value
+
+
+def getVersion():
+    """
+    Corresponds to the TIFFGetVersion library routine.
+    """
+    try:
+        _LIBTIFF.TIFFGetVersion.restype = ctypes.c_char_p
+    except AttributeError:
+        # libtiff not installed
+        return '0.0.0'
+
+    v = _LIBTIFF.TIFFGetVersion()
+    v = v.decode('utf-8')
+
+    # v would be something like
+    #
+    # LIBTIFF, Version 4.3.0
+    # Copyright (c) 1988-1996 Sam Leffler
+    # Copyright (c) 1991-1996 Silicon Graphics, Inc.
+    #
+    # All we want is the '4.3.0'
+    version = v.splitlines()[0].split()[2]
+    return version
 
 
 def open(filename, mode='r'):

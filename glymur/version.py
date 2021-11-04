@@ -17,6 +17,7 @@ import numpy as np
 
 # Local imports ...
 from .lib import openjp2 as opj2
+from .lib import tiff
 
 # Do not change the format of this next line!  Doing so risks breaking
 # setup.py
@@ -25,6 +26,7 @@ _sv = LooseVersion(version)
 version_tuple = _sv.version
 
 openjpeg_version = opj2.version()
+tiff_version = tiff.getVersion()
 
 _sv = LooseVersion(openjpeg_version)
 openjpeg_version_tuple = _sv.version
