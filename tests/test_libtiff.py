@@ -1,3 +1,6 @@
+# standard library imports
+import unittest
+
 # 3rd party library imports
 import numpy as np
 import skimage.data
@@ -7,6 +10,7 @@ from . import fixtures
 from glymur.lib import tiff as libtiff
 
 
+@unittest.skipIf(fixtures.TIFF_NOT_AVAILABLE, fixtures.TIFF_NOT_AVAILABLE_MSG)
 class TestSuite(fixtures.TestCommon):
 
     def test_simple_tile(self):

@@ -13,7 +13,7 @@ import numpy as np
 # Local imports
 from ..config import glymur_config
 
-OPENJP2 = glymur_config()
+OPENJP2 = glymur_config('openjp2')
 
 
 class OpenJPEGLibraryError(IOError):

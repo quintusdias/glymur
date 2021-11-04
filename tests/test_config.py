@@ -90,27 +90,44 @@ class TestSuite(fixtures.TestCommon):
 
     @patch('glymur.config.find_library')
     @patch('glymur.config.platform.system')
-    def test_not_via_ctypes(self,
-                            mock_platform_system,
-                            mock_find_library):
+    def test_tiff_not_via_ctypes(
+        self, mock_platform_system, mock_find_library
+    ):
         """
         SCENARIO:  the platform is not anaconda and not MacPorts.  The ctypes
-        module does NOT find the library.
+        module does NOT find tiff.
+
+        EXPECTED RESULT:  the path of the tiff library is None
+        """
+        mock_platform_system.return_value = 'not darwin'
+        mock_find_library.return_value = None
+
+        actual = glymur.config.glymur_config('tiff')
+        self.assertIsNone(actual)
+
+    @patch('glymur.config.find_library')
+    @patch('glymur.config.platform.system')
+    def test_openjp2_not_via_ctypes(
+        self, mock_platform_system, mock_find_library
+    ):
+        """
+        SCENARIO:  the platform is not anaconda and not MacPorts.  The ctypes
+        module does NOT find openjp2.
 
         EXPECTED RESULT:  the path of the openjp2 library is None
         """
         mock_platform_system.return_value = 'not darwin'
         mock_find_library.return_value = None
 
-        actual = glymur.config.glymur_config()
+        actual = glymur.config.glymur_config('openjp2')
         self.assertIsNone(actual)
 
     @unittest.skipIf(platform.system() == 'Windows', 'nonsensical on windows')
     @patch('glymur.config.platform.system')
     @patch('pathlib.Path.home')
-    def test_config_dir_on_windows(self,
-                                   mock_pathlib_path_home,
-                                   mock_platform_system):
+    def test_config_dir_on_windows(
+        self, mock_pathlib_path_home, mock_platform_system
+    ):
         """
         SCENARIO:  the XDG_CONFIG_HOME environment variable is not present, the
         os.name *IS* 'nt'.  Don't bother running on windows because that's what

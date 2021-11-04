@@ -23,9 +23,11 @@ except ModuleNotFoundError:
 import glymur
 from glymur import Jp2k, Tiff2Jp2k, command_line
 from . import fixtures
+from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 from glymur.lib import tiff as libtiff
 
 
+@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 class TestSuite(fixtures.TestCommon):
 
     @classmethod

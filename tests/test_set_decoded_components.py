@@ -11,8 +11,10 @@ import numpy as np
 # local imports
 import glymur
 from glymur import Jp2k
+from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
+@unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 class TestSuite(unittest.TestCase):
 
     @classmethod
