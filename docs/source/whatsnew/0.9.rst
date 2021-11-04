@@ -3,6 +3,13 @@ Changes in glymur 0.9
 #####################
 
 ****************
+Changes in 0.9.6
+****************
+
+    * Fix tiff support on windows.
+    * Update doc support for python 3.10.
+
+****************
 Changes in 0.9.5
 ****************
 
