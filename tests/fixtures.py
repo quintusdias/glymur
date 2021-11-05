@@ -37,6 +37,7 @@ else:
     TIFF_NOT_AVAILABLE = False
     TIFF_NOT_AVAILABLE_MSG = None
 
+
 class TestCommon(unittest.TestCase):
     """
     Common setup for many if not all tests.

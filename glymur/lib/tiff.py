@@ -3,6 +3,7 @@ import ctypes
 from enum import IntEnum
 import os
 import queue
+import re
 import warnings
 
 # 3rd party library imports
@@ -582,8 +583,7 @@ def getVersion():
         # libtiff not installed
         return '0.0.0'
 
-    v = _LIBTIFF.TIFFGetVersion()
-    v = v.decode('utf-8')
+    v = _LIBTIFF.TIFFGetVersion().decode('utf-8')
 
     # v would be something like
     #
@@ -592,8 +592,8 @@ def getVersion():
     # Copyright (c) 1991-1996 Silicon Graphics, Inc.
     #
     # All we want is the '4.3.0'
-    version = v.splitlines()[0].split()[2]
-    return version
+    m = re.search(r'(?P<version>\d+\.\d+\.\d+)', v)
+    return m.group('version')
 
 
 def open(filename, mode='r'):
