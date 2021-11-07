@@ -203,7 +203,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  Should not error out.
         """
-        box_data = ir.read_binary('tests.data.0220000800', 'uuid.dat')
+        box_data = ir.read_binary('tests.data', '0220000800_uuid.dat')
         bf = io.BytesIO(box_data)
         bf.seek(8)
         box = UUIDBox.parse(bf, 0, 703)
