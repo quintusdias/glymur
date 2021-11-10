@@ -2,7 +2,6 @@
 import unittest
 
 # 3rd party library imports
-import skimage.io
 import numpy as np
 
 # local imports
@@ -12,6 +11,9 @@ from . import fixtures
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
+@unittest.skipIf(
+    not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
+)
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 class TestSuite(fixtures.TestCommon):
     """
@@ -23,7 +25,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  the written image validates
         """
-        j2k_data = skimage.data.astronaut()
+        j2k_data = fixtures.skimage.data.astronaut()
         data = [
             j2k_data[:256, :256, :],
             j2k_data[:256, 256:512, :],
@@ -49,7 +51,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  the written image matches the 2x2 grid
         """
-        j2k_data = skimage.data.astronaut()
+        j2k_data = fixtures.skimage.data.astronaut()
 
         shape = (
             j2k_data.shape[0] * 2, j2k_data.shape[1] * 2, j2k_data.shape[2]
@@ -71,7 +73,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  the written image matches the 3x2 grid
         """
-        jp2_data = skimage.data.moon()
+        jp2_data = fixtures.skimage.data.moon()
 
         shape = jp2_data.shape[0] * 3, jp2_data.shape[1] * 2
         tilesize = (jp2_data.shape[0], jp2_data.shape[1])
@@ -92,7 +94,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        jp2_data = skimage.data.moon()
+        jp2_data = fixtures.skimage.data.moon()
 
         shape = jp2_data.shape[0] * 2, jp2_data.shape[1] * 2
         tilesize = (jp2_data.shape[0], jp2_data.shape[1])
@@ -109,7 +111,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        jp2_data = skimage.data.moon()
+        jp2_data = fixtures.skimage.data.moon()
 
         shape = jp2_data.shape[0] * 2, jp2_data.shape[1] * 2
         tilesize = (jp2_data.shape[0], jp2_data.shape[1])
@@ -126,7 +128,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        jp2_data = skimage.data.moon()
+        jp2_data = fixtures.skimage.data.moon()
 
         shape = jp2_data.shape[0] * 2, jp2_data.shape[1] * 2
         tilesize = (jp2_data.shape[0], jp2_data.shape[1])
@@ -142,7 +144,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  There are three layers.
         """
-        jp2_data = skimage.data.moon()
+        jp2_data = fixtures.skimage.data.moon()
 
         shape = jp2_data.shape[0] * 2, jp2_data.shape[1] * 2
         tilesize = (jp2_data.shape[0], jp2_data.shape[1])
@@ -164,7 +166,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  Plt segment is detected.
         """
-        j2k_data = skimage.data.astronaut()
+        j2k_data = fixtures.skimage.data.astronaut()
 
         shape = (
             j2k_data.shape[0] * 2, j2k_data.shape[1] * 2, j2k_data.shape[2]
