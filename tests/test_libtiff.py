@@ -3,13 +3,15 @@ import unittest
 
 # 3rd party library imports
 import numpy as np
-import skimage.data
 
 # local imports
 from . import fixtures
 from glymur.lib import tiff as libtiff
 
 
+@unittest.skipIf(
+    not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
+)
 @unittest.skipIf(fixtures.TIFF_NOT_AVAILABLE, fixtures.TIFF_NOT_AVAILABLE_MSG)
 class TestSuite(fixtures.TestCommon):
 
@@ -17,7 +19,7 @@ class TestSuite(fixtures.TestCommon):
         """
         SCENARIO:  create a simple monochromatic 2x2 tiled image
         """
-        data = skimage.data.moon()
+        data = fixtures.skimage.data.moon()
         h, w = data.shape
         th, tw = h // 2, w // 2
 

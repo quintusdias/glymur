@@ -7,16 +7,14 @@ import warnings
 import unittest
 from unittest.mock import patch
 
-# 3rd party library imports
-import skimage.data
-
 # Local imports ...
 import glymur
 from . import fixtures
 
 
-@unittest.skipIf(fixtures.OPENJPEG_NOT_AVAILABLE,
-                 fixtures.OPENJPEG_NOT_AVAILABLE_MSG)
+@unittest.skipIf(
+    fixtures.OPENJPEG_NOT_AVAILABLE, fixtures.OPENJPEG_NOT_AVAILABLE_MSG
+)
 class TestSuite(fixtures.TestCommon):
     """Test suite for callbacks."""
 
@@ -70,6 +68,9 @@ class TestSuite(fixtures.TestCommon):
 
         self.assertIn('[INFO]', actual)
 
+    @unittest.skipIf(
+        not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
+    )
     def test_info_callbacks_on_writing_tiles(self):
         """
         SCENARIO:  the verbose attribute is set to True
@@ -77,7 +78,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  The info callback handler should be enabled.  There
         should be [INFO] output present in sys.stdout.
         """
-        jp2_data = skimage.data.moon()
+        jp2_data = fixtures.skimage.data.moon()
 
         shape = jp2_data.shape[0] * 3, jp2_data.shape[1] * 2
         tilesize = (jp2_data.shape[0], jp2_data.shape[1])

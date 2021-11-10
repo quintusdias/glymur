@@ -11,13 +11,6 @@ import warnings
 
 # 3rd party library imports
 import numpy as np
-try:
-    import skimage.data
-    import skimage.io
-    import skimage.metrics
-    _HAVE_SCIKIT_IMAGE = True
-except ModuleNotFoundError:
-    _HAVE_SCIKIT_IMAGE = False
 
 # Local imports
 import glymur
@@ -27,46 +20,18 @@ from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 from glymur.lib import tiff as libtiff
 
 
+@unittest.skipIf(
+    not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
+)
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 class TestSuite(fixtures.TestCommon):
-
-    @classmethod
-    def setup_rgb_evenly_stripped(cls, path):
-        """
-        SCENARIO:  create a simple RGB stripped image, stripsize of 32
-        """
-        j = Jp2k(glymur.data.goodstuff())
-        data = j[:]
-        h, w, spp = data.shape
-        rps = 32
-
-        fp = libtiff.open(path, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.RGB)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
-        libtiff.setField(fp, 'ImageLength', data.shape[0])
-        libtiff.setField(fp, 'ImageWidth', data.shape[1])
-        libtiff.setField(fp, 'RowsPerStrip', rps)
-        libtiff.setField(fp, 'BitsPerSample', 8)
-        libtiff.setField(fp, 'SamplesPerPixel', spp)
-        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
-
-        for stripnum in range(25):
-            row = rps * stripnum
-            stripdata = data[row:row + rps, :, :].copy()
-            libtiff.writeEncodedStrip(fp, stripnum, stripdata)
-
-        libtiff.close(fp)
-
-        cls.goodstuff_data = data
-        cls.goodstuff_path = path
 
     @classmethod
     def setup_minisblack_spp1(cls, path):
         """
         SCENARIO:  create a simple monochromatic 2x2 tiled image
         """
-        data = skimage.data.moon()
+        data = fixtures.skimage.data.moon()
         h, w = data.shape
         th, tw = h // 2, w // 2
 
@@ -117,7 +82,7 @@ class TestSuite(fixtures.TestCommon):
         SCENARIO:  create a simple monochromatic 2x2 tiled image with partial
         tiles.
         """
-        data = skimage.data.moon()
+        data = fixtures.skimage.data.moon()
         h, w = 480, 480
         th, tw = 256, 256
 
@@ -147,7 +112,7 @@ class TestSuite(fixtures.TestCommon):
         """
         SCENARIO:  create a simple monochromatic 3x3 tiled image
         """
-        data = skimage.data.moon()
+        data = fixtures.skimage.data.moon()
         data = data[:480, :480]
 
         h, w = data.shape
@@ -185,7 +150,7 @@ class TestSuite(fixtures.TestCommon):
         SCENARIO:  create a simple monochromatic 3-strip image.  The strips
         evenly divide the image.
         """
-        data = skimage.data.moon()
+        data = fixtures.skimage.data.moon()
         data = data[:480, :480]
 
         h, w = data.shape
@@ -215,7 +180,7 @@ class TestSuite(fixtures.TestCommon):
         """
         SCENARIO:  create a simple monochromatic 3-strip image
         """
-        data = skimage.data.moon()
+        data = fixtures.skimage.data.moon()
         data = data[:480, :480]
 
         h, w = data.shape
@@ -251,7 +216,7 @@ class TestSuite(fixtures.TestCommon):
         """
         SCENARIO:  create a simple color 2x2 tiled 16bit image
         """
-        data = skimage.data.astronaut().astype(np.uint16)
+        data = fixtures.skimage.data.astronaut().astype(np.uint16)
         h, w, z = data.shape
         th, tw = h // 2, w // 2
 
@@ -303,7 +268,7 @@ class TestSuite(fixtures.TestCommon):
         """
         SCENARIO:  create a simple color 2x2 tiled image
         """
-        data = skimage.data.astronaut()
+        data = fixtures.skimage.data.astronaut()
         h, w, z = data.shape
         th, tw = h // 2, w // 2
 
@@ -356,7 +321,7 @@ class TestSuite(fixtures.TestCommon):
         """
         SCENARIO:  create a simple color 2x2 tiled image, bigtiff
         """
-        data = skimage.data.astronaut()
+        data = fixtures.skimage.data.astronaut()
         h, w, z = data.shape
         th, tw = h // 2, w // 2
 
@@ -407,7 +372,7 @@ class TestSuite(fixtures.TestCommon):
         """
         SCENARIO:  create a simple color 2x2 tiled image
         """
-        data = skimage.data.astronaut()
+        data = fixtures.skimage.data.astronaut()
         h, w, z = data.shape
         th, tw = h // 2, w // 2
 
@@ -472,7 +437,6 @@ class TestSuite(fixtures.TestCommon):
 
         cls.setup_rgb(cls.test_tiff_path / 'astronaut.tif')
         cls.setup_rgb_bigtiff(cls.test_tiff_path / 'rbg_bigtiff.tif')
-        cls.setup_rgb_evenly_stripped(cls.test_tiff_path / 'goodstuff.tif')
 
         cls.setup_ycbcr_jpeg(
             cls.test_tiff_path / 'astronaut_ycbcr_jpeg_tiled.tif'
@@ -586,7 +550,6 @@ class TestSuite(fixtures.TestCommon):
         )
         self.assertFalse(at_least_one_uuid)
 
-    @unittest.skipIf(not _HAVE_SCIKIT_IMAGE, "No scikit-image found")
     def test_psnr(self):
         """
         SCENARIO:  Convert TIFF file to JP2 with the irreversible transform.
@@ -611,8 +574,8 @@ class TestSuite(fixtures.TestCommon):
             # warning
             warnings.simplefilter('ignore')
             psnr = [
-                skimage.metrics.peak_signal_noise_ratio(
-                    skimage.data.moon(), d[j]
+                fixtures.skimage.metrics.peak_signal_noise_ratio(
+                    fixtures.skimage.data.moon(), d[j]
                 )
                 for j in range(4)
             ]
@@ -858,7 +821,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        data = skimage.data.moon().astype(np.uint32)
+        data = fixtures.skimage.data.moon().astype(np.uint32)
 
         h, w = data.shape
         th, tw = h // 2, w // 2
@@ -892,7 +855,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        data = skimage.data.moon().astype(np.float32)
+        data = fixtures.skimage.data.moon().astype(np.float32)
 
         h, w = data.shape
         th, tw = h // 2, w // 2
@@ -1252,6 +1215,85 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 256)
         self.assertEqual(c.segment[1].ytsiz, 256)
 
+    def test_cmyk(self):
+        """
+        Scenario:  CMYK (or separated) is not a supported colorspace.
+
+        Expected result:  RuntimeError
+        """
+        data = fixtures.skimage.data.moon()
+        data = np.dstack((data, data))
+
+        h, w, spp = data.shape
+
+        # instead of 160, this will cause a partially empty last strip
+        rps = 512
+
+        fp = libtiff.open(self.temp_tiff_filename, mode='w')
+
+        libtiff.setField(fp, 'Photometric', libtiff.Photometric.SEPARATED)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
+        libtiff.setField(fp, 'ImageLength', data.shape[0])
+        libtiff.setField(fp, 'ImageWidth', data.shape[1])
+        libtiff.setField(fp, 'RowsPerStrip', rps)
+        libtiff.setField(fp, 'BitsPerSample', 8)
+        libtiff.setField(fp, 'SamplesPerPixel', spp)
+        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
+        libtiff.setField(fp, 'InkSet', libtiff.InkSet.MULTIINK)
+
+        libtiff.writeEncodedStrip(fp, 0, data.copy())
+
+        libtiff.close(fp)
+
+        with Tiff2Jp2k(self.temp_tiff_filename, self.temp_jp2_filename) as j:
+            with warnings.catch_warnings():
+                # weird warning about extra samples
+                warnings.simplefilter('ignore')
+                with self.assertRaises(RuntimeError):
+                    j.run()
+
+
+class TestSuiteNoScikitImage(fixtures.TestCommon):
+
+    @classmethod
+    def setUpClass(cls):
+
+        cls.test_tiff_dir = tempfile.mkdtemp()
+        cls.test_tiff_path = pathlib.Path(cls.test_tiff_dir)
+
+        cls.setup_rgb_evenly_stripped(cls.test_tiff_path / 'goodstuff.tif')
+
+    @classmethod
+    def setup_rgb_evenly_stripped(cls, path):
+        """
+        SCENARIO:  create a simple RGB stripped image, stripsize of 32
+        """
+        j = Jp2k(glymur.data.goodstuff())
+        data = j[:]
+        h, w, spp = data.shape
+        rps = 32
+
+        fp = libtiff.open(path, mode='w')
+
+        libtiff.setField(fp, 'Photometric', libtiff.Photometric.RGB)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
+        libtiff.setField(fp, 'ImageLength', data.shape[0])
+        libtiff.setField(fp, 'ImageWidth', data.shape[1])
+        libtiff.setField(fp, 'RowsPerStrip', rps)
+        libtiff.setField(fp, 'BitsPerSample', 8)
+        libtiff.setField(fp, 'SamplesPerPixel', spp)
+        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
+
+        for stripnum in range(25):
+            row = rps * stripnum
+            stripdata = data[row:row + rps, :, :].copy()
+            libtiff.writeEncodedStrip(fp, stripnum, stripdata)
+
+        libtiff.close(fp)
+
+        cls.goodstuff_data = data
+        cls.goodstuff_path = path
+
     def test_stripped_logging(self):
         """
         Scenario:  input TIFF is organized by strips and logging is turned on.
@@ -1287,43 +1329,6 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].ysiz, 800)
         self.assertEqual(c.segment[1].xtsiz, 64)
         self.assertEqual(c.segment[1].ytsiz, 64)
-
-    def test_cmyk(self):
-        """
-        Scenario:  CMYK (or separated) is not a supported colorspace.
-
-        Expected result:  RuntimeError
-        """
-        data = skimage.data.moon()
-        data = np.dstack((data, data))
-
-        h, w, spp = data.shape
-
-        # instead of 160, this will cause a partially empty last strip
-        rps = 512
-
-        fp = libtiff.open(self.temp_tiff_filename, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.SEPARATED)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
-        libtiff.setField(fp, 'ImageLength', data.shape[0])
-        libtiff.setField(fp, 'ImageWidth', data.shape[1])
-        libtiff.setField(fp, 'RowsPerStrip', rps)
-        libtiff.setField(fp, 'BitsPerSample', 8)
-        libtiff.setField(fp, 'SamplesPerPixel', spp)
-        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
-        libtiff.setField(fp, 'InkSet', libtiff.InkSet.MULTIINK)
-
-        libtiff.writeEncodedStrip(fp, 0, data.copy())
-
-        libtiff.close(fp)
-
-        with Tiff2Jp2k(self.temp_tiff_filename, self.temp_jp2_filename) as j:
-            with warnings.catch_warnings():
-                # weird warning about extra samples
-                warnings.simplefilter('ignore')
-                with self.assertRaises(RuntimeError):
-                    j.run()
 
     def test_rgb_stripped_bottom_of_tile_coincides_with_bottom_of_strip(self):
         """

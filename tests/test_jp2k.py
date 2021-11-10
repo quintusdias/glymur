@@ -20,12 +20,6 @@ import warnings
 # Third party library imports ...
 from lxml import etree as ET
 import numpy as np
-try:
-    import skimage.data
-    import skimage.metrics
-    _HAVE_SCIKIT_IMAGE = True
-except ModuleNotFoundError:
-    _HAVE_SCIKIT_IMAGE = False
 
 # Local imports
 import glymur
@@ -302,6 +296,9 @@ class TestJp2k(fixtures.TestCommon):
         with self.assertRaises(FileNotFoundError):
             j[:]
 
+    @unittest.skipIf(
+        not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
+    )
     def test_write_to_a_file_using_context_manager(self):
         """
         SCENARIO:  Write to a file using a context manager, read the data back
@@ -309,7 +306,7 @@ class TestJp2k(fixtures.TestCommon):
 
         EXPECTED RESULT: the data matches
         """
-        expected = skimage.data.astronaut()
+        expected = fixtures.skimage.data.astronaut()
 
         j1 = Jp2k(self.temp_jp2_filename)
         j1[:] = expected
@@ -1073,7 +1070,9 @@ class TestJp2k_write(fixtures.MetadataBase):
             with self.assertRaises(InvalidJp2kError):
                 Jp2k(tfile.name, data=np.zeros((0, 256), dtype=np.uint8))
 
-    @unittest.skipIf(not _HAVE_SCIKIT_IMAGE, "No scikit-image found")
+    @unittest.skipIf(
+        not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
+    )
     def test_psnr_zero_value_not_last(self):
         """
         SCENARIO:  The PSNR keyword argument has a zero value, but it is not
@@ -1082,12 +1081,15 @@ class TestJp2k_write(fixtures.MetadataBase):
         EXPECTED RESULT:  RuntimeError
         """
         kwargs = {
-            'data': skimage.data.camera(),
+            'data': fixtures.skimage.data.camera(),
             'psnr': [0, 35, 40, 30],
         }
         with self.assertRaises(RuntimeError):
             Jp2k(self.temp_jp2_filename, **kwargs)
 
+    @unittest.skipIf(
+        not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
+    )
     def test_plt_yes(self):
         """
         SCENARIO:  Use the plt keyword.
@@ -1095,7 +1097,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         EXPECTED RESULT:  Plt segment is detected.
         """
         kwargs = {
-            'data': skimage.data.camera(),
+            'data': fixtures.skimage.data.camera(),
             'plt': True
         }
         j = Jp2k(self.temp_jp2_filename, **kwargs)
@@ -1108,6 +1110,9 @@ class TestJp2k_write(fixtures.MetadataBase):
         )
         self.assertTrue(at_least_one_plt)
 
+    @unittest.skipIf(
+        not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
+    )
     def test_plt_no(self):
         """
         SCENARIO:  Use the plt keyword set to false.
@@ -1115,7 +1120,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         EXPECTED RESULT:  Plt segment is not detected.
         """
         kwargs = {
-            'data': skimage.data.camera(),
+            'data': fixtures.skimage.data.camera(),
             'plt': False
         }
         j = Jp2k(self.temp_jp2_filename, **kwargs)
@@ -1128,7 +1133,9 @@ class TestJp2k_write(fixtures.MetadataBase):
         )
         self.assertFalse(at_least_one_plt)
 
-    @unittest.skipIf(not _HAVE_SCIKIT_IMAGE, "No scikit-image found")
+    @unittest.skipIf(
+        not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
+    )
     def test_psnr_non_zero_non_monotonically_decreasing(self):
         """
         SCENARIO:  The PSNR keyword argument is non-monotonically increasing
@@ -1137,13 +1144,15 @@ class TestJp2k_write(fixtures.MetadataBase):
         EXPECTED RESULT:  RuntimeError
         """
         kwargs = {
-            'data': skimage.data.camera(),
+            'data': fixtures.skimage.data.camera(),
             'psnr': [30, 35, 40, 30],
         }
         with self.assertRaises(RuntimeError):
             Jp2k(self.temp_jp2_filename, **kwargs)
 
-    @unittest.skipIf(not _HAVE_SCIKIT_IMAGE, "No scikit-image found")
+    @unittest.skipIf(
+        not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
+    )
     def test_psnr(self):
         """
         SCENARIO:  Four peak signal-to-noise ratio values are supplied, the
@@ -1152,7 +1161,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         EXPECTED RESULT:  Four quality layers, the first should be lossless.
         """
         kwargs = {
-            'data': skimage.data.camera(),
+            'data': fixtures.skimage.data.camera(),
             'psnr': [30, 35, 40, 0],
         }
         with open(self.temp_jp2_filename, mode='wb') as tfile:
@@ -1168,8 +1177,8 @@ class TestJp2k_write(fixtures.MetadataBase):
             # warning
             warnings.simplefilter('ignore')
             psnr = [
-                skimage.metrics.peak_signal_noise_ratio(
-                    skimage.data.camera(), d[j]
+                fixtures.skimage.metrics.peak_signal_noise_ratio(
+                    fixtures.skimage.data.camera(), d[j]
                 )
                 for j in range(4)
             ]

@@ -9,7 +9,6 @@ from unittest.mock import patch
 
 # Third party library imports ...
 import numpy as np
-import skimage.data
 
 # Local imports ...
 import glymur
@@ -184,11 +183,14 @@ class TestOpenJP2(fixtures.TestCommon):
         xtx5_setup(filename, short_sig=True)
         self.assertTrue(True)
 
+    @unittest.skipIf(
+        not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
+    )
     def test_tile_write_moon(self):
         """
         Test writing tiles for a 2D image.
         """
-        img = skimage.data.moon()
+        img = fixtures.skimage.data.moon()
 
         num_comps = 1
         image_height, image_width = img.shape
@@ -266,12 +268,15 @@ class TestOpenJP2(fixtures.TestCommon):
 
             openjp2.end_compress(codec, strm)
 
+    @unittest.skipIf(
+        not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
+    )
     def test_write_tiles_3D(self):
         """
         Test writing tiles for an RGB image.
         """
 
-        img = skimage.data.astronaut()
+        img = fixtures.skimage.data.astronaut()
 
         image_height, image_width, num_comps = img.shape
 
