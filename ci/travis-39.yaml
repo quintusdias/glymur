@@ -1,6 +1,6 @@
 name: glymur
 channels:
-    - conda-forge
+    - default
 dependencies:
     - python=3.9.*
     - gdal
@@ -9,3 +9,4 @@ dependencies:
     - openjpeg
     - scikit-image
     - libtiff
+    - pytest-xdist

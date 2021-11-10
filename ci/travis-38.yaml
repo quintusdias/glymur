@@ -9,4 +9,5 @@ dependencies:
     - openjpeg
     - scikit-image
     - libtiff
+    - pytest-xdist
 
