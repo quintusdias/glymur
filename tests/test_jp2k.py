@@ -58,6 +58,74 @@ class TestJp2k(fixtures.TestCommon):
         super(TestJp2k, self).setUp()
         glymur.reset_option('all')
 
+    def test_dtype_jp2(self):
+        """
+        Scenario:  An RGB image is read from a JP2 file.
+
+        Expected response:  the dtype property is np.uint8
+        """
+        j = Jp2k(self.jp2file)
+        self.assertEqual(j.dtype, np.uint8)
+
+    def test_dtype_j2k_uint16(self):
+        """
+        Scenario:  A uint16 monochrome image is read from a J2K file.
+
+        Expected response:  the dtype property is np.uint16
+        """
+        with ir.path('tests.data', 'uint16.j2k') as path:
+            j = Jp2k(path)
+        self.assertEqual(j.dtype, np.uint16)
+
+    def test_dtype_prec4_signd1(self):
+        """
+        Scenario:  A 4-bit signed image is read from a J2k file.
+
+        Expected response:  the dtype property is np.int8
+        """
+        with ir.path('tests.data', 'p0_03.j2k') as path:
+            j = Jp2k(path)
+        self.assertEqual(j.dtype, np.int8)
+
+    def test_dtype_inconsistent_bitdetph(self):
+        """
+        Scenario:  The image has different bitdepths in different components.
+
+        Expected response:  TypeError when accessing the dtype property.
+        """
+        with ir.path('tests.data', 'issue982.j2k') as path:
+            j = Jp2k(path)
+        with self.assertRaises(TypeError):
+            j.dtype
+
+    def test_ndims_jp2(self):
+        """
+        Scenario:  An RGB image is read from a JP2 file.
+
+        Expected response:  the ndim attribute/property is 3
+        """
+        j = Jp2k(self.jp2file)
+        self.assertEqual(j.ndim, 3)
+
+    def test_ndims_j2k(self):
+        """
+        Scenario:  An RGB image is read from a raw codestream.
+
+        Expected response:  the ndim attribute/property is 3
+        """
+        j = Jp2k(self.j2kfile)
+        self.assertEqual(j.ndim, 3)
+
+    def test_ndims_monochrome_j2k(self):
+        """
+        Scenario:  An monochrome image is read from a raw codestream.
+
+        Expected response:  the ndim attribute/property is 2
+        """
+        with ir.path('tests.data', 'p0_02.j2k') as path:
+            j = Jp2k(path)
+        self.assertEqual(j.ndim, 2)
+
     def test_read_bands_unequal_subsampling(self):
         """
         SCENARIO:  The read_bands method is used on an image with unequal

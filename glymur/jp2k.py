@@ -191,6 +191,8 @@ class Jp2k(Jp2kBox):
         self._tilesize = tilesize
 
         self._shape = None
+        self._ndim = None
+        self._dtype = None
         self._ignore_pclr_cmap_cdef = False
         self._verbose = verbose
 
@@ -368,6 +370,45 @@ class Jp2k(Jp2kBox):
             raise ValueError(msg)
 
         self._layer = layer
+
+    @property
+    def dtype(self):
+        """
+        Datatype of the image elements.
+        """
+        if self._dtype is None:
+            c = self.get_codestream()
+            bps0 = c.segment[1].bitdepth[0]
+            sgnd0 = c.segment[1].signed[0]
+
+            if (
+                all(bitdepth == bps0 for bitdepth in c.segment[1].bitdepth)
+                and all(signed == sgnd0 for signed in c.segment[1].signed)
+            ):
+                if bps0 <= 8:
+                    self._dtype = np.int8 if sgnd0 else np.uint8
+                else:
+                    self._dtype = np.int16 if sgnd0 else np.uint16
+            else:
+                msg = (
+                    "The dtype property is only valid when all components "
+                    "have the same bitdepth and sign. "
+                    "\n\n"
+                    f"{c.segment[1]}"
+                )
+                raise TypeError(msg)
+
+        return self._dtype
+
+    @property
+    def ndim(self):
+        """
+        Number of image dimensions.
+        """
+        if self._ndim is None:
+            self._ndim = len(self.shape)
+
+        return self._ndim
 
     @property
     def codestream(self):
