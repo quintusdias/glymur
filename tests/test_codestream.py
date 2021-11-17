@@ -112,15 +112,17 @@ class TestCodestreamRepr(unittest.TestCase):
 
     def test_siz(self):
         """Test SIZ segment repr"""
-        kwargs = {'rsiz': 0,
-                  'xysiz': (2592, 1456),
-                  'xyosiz': (0, 0),
-                  'xytsiz': (2592, 1456),
-                  'xytosiz': (0, 0),
-                  'Csiz': 3,
-                  'bitdepth': (8, 8, 8),
-                  'signed': (False, False, False),
-                  'xyrsiz': ((1, 1, 1), (1, 1, 1))}
+        kwargs = {
+            'rsiz': 0,
+            'xysiz': (2592, 1456),
+            'xyosiz': (0, 0),
+            'xytsiz': (2592, 1456),
+            'xytosiz': (0, 0),
+            'Csiz': 3,
+            'bitdepth': (8, 8, 8),
+            'signed': (False, False, False),
+            'xyrsiz': ((1, 1, 1), (1, 1, 1))
+        }
         segment = glymur.codestream.SIZsegment(**kwargs)
         newseg = eval(repr(segment))
         self.assertEqual(newseg.marker_id, 'SIZ')

@@ -42,8 +42,11 @@ class TestColourSpecificationBox(fixtures.TestCommon):
         self.ftyp = FileTypeBox()
         self.jp2h = JP2HeaderBox()
         self.jp2c = ContiguousCodestreamBox()
-        self.ihdr = ImageHeaderBox(height=height, width=width,
-                                   num_components=num_components)
+        self.ihdr = ImageHeaderBox(
+            height=height,
+            width=width,
+            num_components=num_components
+        )
 
         self.icc_profile = ir.read_binary(data, 'sgray.icc')
 
@@ -190,20 +193,28 @@ class TestSuite(unittest.TestCase):
         self.assertEqual(box.icc_profile_header['Size'], 1328)
         self.assertEqual(box.icc_profile_header['Color Space'], 'RGB')
         self.assertEqual(box.icc_profile_header['Connection Space'], 'XYZ')
-        self.assertEqual(box.icc_profile_header['Datetime'],
-                         datetime(2009, 2, 25, 11, 26, 11))
+        self.assertEqual(
+            box.icc_profile_header['Datetime'],
+            datetime(2009, 2, 25, 11, 26, 11)
+        )
         self.assertEqual(box.icc_profile_header['File Signature'], 'acsp')
         self.assertEqual(box.icc_profile_header['Platform'], 'APPL')
-        self.assertEqual(box.icc_profile_header['Flags'],
-                         'not embedded, can be used independently')
+        self.assertEqual(
+            box.icc_profile_header['Flags'],
+            'not embedded, can be used independently'
+        )
         self.assertEqual(box.icc_profile_header['Device Manufacturer'], 'appl')
         self.assertEqual(box.icc_profile_header['Device Model'], '')
-        self.assertEqual(box.icc_profile_header['Device Attributes'],
-                         ('reflective, glossy, positive media polarity, '
-                          'color media'))
-        self.assertEqual(box.icc_profile_header['Rendering Intent'],
-                         'perceptual')
-        np.testing.assert_almost_equal(box.icc_profile_header['Illuminant'],
-                                       np.array([0.9642023, 1.0, 0.824905]),
-                                       decimal=6)
+        self.assertEqual(
+            box.icc_profile_header['Device Attributes'],
+            'reflective, glossy, positive media polarity, color media'
+        )
+        self.assertEqual(
+            box.icc_profile_header['Rendering Intent'], 'perceptual'
+        )
+        np.testing.assert_almost_equal(
+            box.icc_profile_header['Illuminant'],
+            np.array([0.9642023, 1.0, 0.824905]),
+            decimal=6
+        )
         self.assertEqual(box.icc_profile_header['Creator'], 'appl')

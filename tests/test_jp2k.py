@@ -43,8 +43,9 @@ def load_tests(loader, tests, ignore):  # pragma: no cover
         # Can't do it on windows, temporary file issue.
         return tests
     if glymur.lib.openjp2.OPENJP2 is not None:
-        tests.addTests(doctest.DocTestSuite('glymur.jp2k',
-                                            tearDown=docTearDown))
+        tests.addTests(
+            doctest.DocTestSuite('glymur.jp2k', tearDown=docTearDown)
+        )
     return tests
 
 
@@ -214,8 +215,9 @@ class TestJp2k(fixtures.TestCommon):
 
         channel_type = [COLOR, COLOR, COLOR]
         association = [BLUE, GREEN, RED]
-        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
-                                                  association=association)
+        cdef = glymur.jp2box.ChannelDefinitionBox(
+            channel_type=channel_type, association=association
+        )
         jp2h.box.append(cdef)
 
         boxes.append(jp2h)
@@ -316,8 +318,10 @@ class TestJp2k(fixtures.TestCommon):
         j2 = Jp2k(self.temp_j2k_filename, data=expdata, irreversible=True)
 
         codestream = j2.get_codestream()
-        self.assertEqual(codestream.segment[2].xform,
-                         glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE)
+        self.assertEqual(
+            codestream.segment[2].xform,
+            glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE
+        )
 
         actdata = j2[:]
         self.assertTrue(fixtures.mse(actdata[0], expdata[0]) < 0.38)
@@ -670,18 +674,20 @@ class TestJp2k(fixtures.TestCommon):
                 # Write the ULST box.
                 # Length is 26, 1 UUID, hard code that UUID as zeros.
                 ulst_len = 26
-                write_buffer = struct.pack('>I4sHIIII', ulst_len, b'ulst',
-                                           int(1), int(0), int(0), int(0),
-                                           int(0))
+                write_buffer = struct.pack(
+                    '>I4sHIIII',
+                    ulst_len, b'ulst', int(1), int(0), int(0), int(0), int(0)
+                )
                 tfile.write(write_buffer)
 
                 # Write the URL box.
                 # Length is 16, version is one byte, flag is 3 bytes, url
                 # is the rest.
                 url_box_len = 16
-                write_buffer = struct.pack('>I4sBBBB',
-                                           url_box_len, b'url ',
-                                           int(0), int(0), int(0), int(0))
+                write_buffer = struct.pack(
+                    '>I4sBBBB',
+                    url_box_len, b'url ', int(0), int(0), int(0), int(0)
+                )
                 tfile.write(write_buffer)
                 write_buffer = struct.pack('>ssss', b'a', b'b', b'c', b'd')
                 tfile.write(write_buffer)
@@ -905,9 +911,11 @@ class TestJp2k(fixtures.TestCommon):
                           'color media'))
         self.assertEqual(profile['Rendering Intent'], 'perceptual')
 
-        np.testing.assert_almost_equal(profile['Illuminant'],
-                                       (0.964203, 1.000000, 0.824905),
-                                       decimal=6)
+        np.testing.assert_almost_equal(
+            profile['Illuminant'],
+            (0.964203, 1.000000, 0.824905),
+            decimal=6
+        )
 
         self.assertEqual(profile['Creator'], 'JPEG')
 
@@ -1329,8 +1337,12 @@ class TestJp2k_write(fixtures.MetadataBase):
         size are present.  The precinct sizes validate.
         """
         with open(self.temp_j2k_filename, mode='wb') as tfile:
-            j = Jp2k(tfile.name, data=self.jp2_data, psnr=[30, 35, 40],
-                     cbsize=(16, 16), psizes=[(64, 64)])
+            j = Jp2k(
+                tfile.name,
+                data=self.jp2_data,
+                psnr=[30, 35, 40],
+                cbsize=(16, 16), psizes=[(64, 64)]
+            )
 
             codestream = j.get_codestream()
 
@@ -1343,14 +1355,16 @@ class TestJp2k_write(fixtures.MetadataBase):
         self.assertEqual(codestream.segment[2].num_res, 5)  # levels
         self.assertEqual(tuple(codestream.segment[2].code_block_size),
                          (16, 16))  # cblksz
-        self.verify_codeblock_style(codestream.segment[2].cstyle,
-                                    [False, False,
-                                     False, False, False, False])
+        self.verify_codeblock_style(
+            codestream.segment[2].cstyle,
+            [False, False, False, False, False, False]
+        )
         self.assertEqual(codestream.segment[2].xform,
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-        self.assertEqual(codestream.segment[2].precinct_size,
-                         ((2, 2), (4, 4), (8, 8), (16, 16), (32, 32),
-                          (64, 64)))
+        self.assertEqual(
+            codestream.segment[2].precinct_size,
+            ((2, 2), (4, 4), (8, 8), (16, 16), (32, 32), (64, 64))
+        )
 
     def test_NR_ENC_Bretagne2_ppm_4_encode(self):
         """
@@ -1360,12 +1374,14 @@ class TestJp2k_write(fixtures.MetadataBase):
 
         """
         with open(self.temp_j2k_filename, mode='wb') as tfile:
-            j = Jp2k(tfile.name,
-                     data=self.jp2_data,
-                     psizes=[(128, 128)] * 3,
-                     cratios=[100, 20, 2],
-                     tilesize=(480, 640),
-                     cbsize=(32, 32))
+            j = Jp2k(
+                tfile.name,
+                data=self.jp2_data,
+                psizes=[(128, 128)] * 3,
+                cratios=[100, 20, 2],
+                tilesize=(480, 640),
+                cbsize=(32, 32)
+            )
 
             # Should be three layers.
             codestream = j.get_codestream()
@@ -1382,16 +1398,25 @@ class TestJp2k_write(fixtures.MetadataBase):
             self.assertEqual(codestream.segment[2].layers, 3)  # layers = 3
             self.assertEqual(codestream.segment[2].mct, 1)  # mct
             self.assertEqual(codestream.segment[2].num_res, 5)  # levels
-            self.assertEqual(tuple(codestream.segment[2].code_block_size),
-                             (32, 32))  # cblksz
-            self.verify_codeblock_style(codestream.segment[2].cstyle,
-                                        [False, False,
-                                         False, False, False, False])
-            self.assertEqual(codestream.segment[2].xform,
-                             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-            self.assertEqual(codestream.segment[2].precinct_size,
-                             ((16, 16), (32, 32), (64, 64), (128, 128),
-                              (128, 128), (128, 128)))
+            self.assertEqual(
+                tuple(codestream.segment[2].code_block_size),
+                (32, 32)
+            )  # cblksz
+            self.verify_codeblock_style(
+                codestream.segment[2].cstyle,
+                [False, False, False, False, False, False]
+            )
+            self.assertEqual(
+                codestream.segment[2].xform,
+                glymur.core.WAVELET_XFORM_5X3_REVERSIBLE
+            )
+            self.assertEqual(
+                codestream.segment[2].precinct_size,
+                (
+                    (16, 16), (32, 32), (64, 64), (128, 128), (128, 128),
+                    (128, 128)
+                )
+            )
 
     def test_NR_ENC_Bretagne2_ppm_5_encode(self):
         """
@@ -1420,9 +1445,10 @@ class TestJp2k_write(fixtures.MetadataBase):
             self.assertEqual(codestream.segment[2].num_res, 5)  # levels
             self.assertEqual(tuple(codestream.segment[2].code_block_size),
                              (64, 64))  # cblksz
-            self.verify_codeblock_style(codestream.segment[2].cstyle,
-                                        [False, False,
-                                         False, False, False, False])
+            self.verify_codeblock_style(
+                codestream.segment[2].cstyle,
+                [False, False, False, False, False, False]
+            )
             self.assertEqual(codestream.segment[2].xform,
                              glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
             self.assertEqual(codestream.segment[2].precinct_size,
@@ -1642,10 +1668,16 @@ class TestJp2k_write(fixtures.MetadataBase):
 
             codestream = jp2.box[3].codestream
 
-            kwargs = {'rsiz': 0, 'xysiz': (2592, 1456), 'xyosiz': (0, 0),
-                      'xytsiz': (2592, 1456), 'xytosiz': (0, 0),
-                      'bitdepth': (8, 8, 8), 'signed': (False, False, False),
-                      'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+            kwargs = {
+                'rsiz': 0,
+                'xysiz': (2592, 1456),
+                'xyosiz': (0, 0),
+                'xytsiz': (2592, 1456),
+                'xytosiz': (0, 0),
+                'bitdepth': (8, 8, 8),
+                'signed': (False, False, False),
+                'xyrsiz': [(1, 1, 1), (1, 1, 1)]
+            }
             self.verifySizSegment(codestream.segment[1],
                                   glymur.codestream.SIZsegment(**kwargs))
 
@@ -1679,10 +1711,16 @@ class TestJp2k_write(fixtures.MetadataBase):
 
             codestream = j.get_codestream(header_only=False)
 
-            kwargs = {'rsiz': 0, 'xysiz': (1024, 1024), 'xyosiz': (0, 0),
-                      'xytsiz': (1024, 1024), 'xytosiz': (0, 0),
-                      'bitdepth': (16,), 'signed': (False,),
-                      'xyrsiz': [(1,), (1,)]}
+            kwargs = {
+                'rsiz': 0,
+                'xysiz': (1024, 1024),
+                'xyosiz': (0, 0),
+                'xytsiz': (1024, 1024),
+                'xytosiz': (0, 0),
+                'bitdepth': (16,),
+                'signed': (False,),
+                'xyrsiz': [(1,), (1,)]
+            }
             self.verifySizSegment(codestream.segment[1],
                                   glymur.codestream.SIZsegment(**kwargs))
 

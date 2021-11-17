@@ -30,27 +30,40 @@ class CinemaBase(fixtures.MetadataBase):
 
     def check_cinema4k_codestream(self, codestream, image_size):
 
-        kwargs = {'rsiz': 4, 'xysiz': image_size, 'xyosiz': (0, 0),
-                  'xytsiz': image_size, 'xytosiz': (0, 0),
-                  'bitdepth': (12, 12, 12), 'signed': (False, False, False),
-                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        kwargs = {
+            'rsiz': 4,
+            'xysiz': image_size,
+            'xyosiz': (0, 0),
+            'xytsiz': image_size,
+            'xytosiz': (0, 0),
+            'bitdepth': (12, 12, 12),
+            'signed': (False, False, False),
+            'xyrsiz': [(1, 1, 1), (1, 1, 1)]
+        }
         self.verifySizSegment(codestream.segment[1], SIZsegment(**kwargs))
 
         self.verify_cinema_cod(codestream.segment[2])
 
     def check_cinema2k_codestream(self, codestream, image_size):
 
-        kwargs = {'rsiz': 3, 'xysiz': image_size, 'xyosiz': (0, 0),
-                  'xytsiz': image_size, 'xytosiz': (0, 0),
-                  'bitdepth': (12, 12, 12), 'signed': (False, False, False),
-                  'xyrsiz': [(1, 1, 1), (1, 1, 1)]}
+        kwargs = {
+            'rsiz': 3,
+            'xysiz': image_size,
+            'xyosiz': (0, 0),
+            'xytsiz': image_size,
+            'xytosiz': (0, 0),
+            'bitdepth': (12, 12, 12),
+            'signed': (False, False, False),
+            'xyrsiz': [(1, 1, 1), (1, 1, 1)]
+        }
         self.verifySizSegment(codestream.segment[1], SIZsegment(**kwargs))
 
         self.verify_cinema_cod(codestream.segment[2])
 
 
-@unittest.skipIf(fixtures.OPENJPEG_NOT_AVAILABLE,
-                 fixtures.OPENJPEG_NOT_AVAILABLE_MSG)
+@unittest.skipIf(
+    fixtures.OPENJPEG_NOT_AVAILABLE, fixtures.OPENJPEG_NOT_AVAILABLE_MSG
+)
 class WriteCinema(CinemaBase):
 
     @classmethod

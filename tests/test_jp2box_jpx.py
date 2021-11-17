@@ -69,9 +69,11 @@ class TestJPXWrap(fixtures.TestCommon):
         dr_idx.append(1)
 
         # Make the url box for this codestream.
-        url1 = DataEntryURLBox(0,
-                               [0, 0, 0],
-                               f'file://{self.temp_jp2_filename}')
+        url1 = DataEntryURLBox(
+            0,
+            [0, 0, 0],
+            f'file://{self.temp_jp2_filename}'
+        )
         url1_name_len = len(url1.url) + 1
 
         # Wrap our own J2K file as a JP2 file.
@@ -87,10 +89,13 @@ class TestJPXWrap(fixtures.TestCommon):
         # Make the url box for this codestream.
         url2 = DataEntryURLBox(0, [0, 0, 0], 'file://{file2}')
 
-        boxes = [JPEG2000SignatureBox(),
-                 FileTypeBox(brand='jpx ',
-                             compatibility_list=['jpx ', 'jp2 ', 'jpxb']),
-                 jp2h]
+        boxes = [
+            JPEG2000SignatureBox(),
+            FileTypeBox(
+                brand='jpx ', compatibility_list=['jpx ', 'jp2 ', 'jpxb']
+            ),
+            jp2h
+        ]
         with open(self.temp_jpx_filename, mode='wb') as tjpx:
             for box in boxes:
                 box.write(tjpx)
@@ -106,8 +111,9 @@ class TestJPXWrap(fixtures.TestCommon):
 
             jpx_no_jp2c = Jp2k(tjpx.name)
             jpx_boxes = [box.box_id for box in jpx_no_jp2c.box]
-            self.assertEqual(jpx_boxes, ['jP  ', 'ftyp', 'jp2h',
-                                         'ftbl', 'dtbl'])
+            self.assertEqual(
+                jpx_boxes, ['jP  ', 'ftyp', 'jp2h', 'ftbl', 'dtbl']
+            )
             self.assertEqual(jpx_no_jp2c.box[4].DR[0].offset, 141)
 
             offset = 141 + 8 + 4 + url1_name_len
@@ -615,14 +621,23 @@ class TestJPX(fixtures.TestCommon):
         struct.pack_into('>H', rreq_buffer, 15, 11)
 
         standard_flags = [5, 42, 45, 2, 18, 19, 1, 8, 12, 31, 20]
-        standard_masks = [8388608, 4194304, 2097152, 1048576, 524288, 262144,
-                          131072, 65536, 32768, 16384, 8192]
+        standard_masks = [
+            8388608, 4194304, 2097152, 1048576, 524288, 262144, 131072, 65536,
+            32768, 16384, 8192
+        ]
         for j in range(len(standard_flags)):
-            mask = (standard_masks[j] >> 16,
-                    standard_masks[j] & 0x0000ffff >> 8,
-                    standard_masks[j] & 0x000000ff)
-            struct.pack_into('>HBBB', rreq_buffer, 17 + j * 5,
-                             standard_flags[j], *mask)
+            mask = (
+                standard_masks[j] >> 16,
+                standard_masks[j] & 0x0000ffff >> 8,
+                standard_masks[j] & 0x000000ff
+            )
+            struct.pack_into(
+                '>HBBB',
+                rreq_buffer,
+                17 + j * 5,
+                standard_flags[j],
+                *mask
+            )
 
         # num vendor features: 0
         struct.pack_into('>H', rreq_buffer, 72, 0)

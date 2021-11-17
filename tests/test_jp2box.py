@@ -65,8 +65,7 @@ class TestDataEntryURL(fixtures.TestCommon):
         file2 = self.test_dir_path / 'file2.jp2'
         jp2 = j2k.wrap(file2)
 
-        self.assertEqual(jp2.box[2].box[1].colorspace,
-                         glymur.core.GREYSCALE)
+        self.assertEqual(jp2.box[2].box[1].colorspace, glymur.core.GREYSCALE)
 
     def test_basic_url(self):
         """Just your most basic URL box."""
@@ -105,8 +104,9 @@ class TestDataEntryURL(fixtures.TestCommon):
             with open(tfile.name, 'rb') as fptr:
                 fptr.seek(jp22.box[-1].offset + 4 + 4 + 1 + 3)
 
-                nbytes = (jp22.box[-1].offset
-                          + jp22.box[-1].length - fptr.tell())
+                nbytes = (
+                    jp22.box[-1].offset + jp22.box[-1].length - fptr.tell()
+                )
                 read_buffer = fptr.read(nbytes)
                 read_url = read_buffer.decode('utf-8')
                 self.assertEqual(url + chr(0), read_url)
@@ -156,14 +156,18 @@ class TestChannelDefinition(fixtures.TestCommon):
         self.ftyp = FileTypeBox()
         self.jp2h = JP2HeaderBox()
         self.jp2c = ContiguousCodestreamBox()
-        self.ihdr = ImageHeaderBox(height=height, width=width,
-                                   num_components=num_components)
-        self.ihdr1 = ImageHeaderBox(height=height, width=width,
-                                    num_components=1)
-        self.ihdr2 = ImageHeaderBox(height=height, width=width,
-                                    num_components=2)
-        self.ihdr4 = ImageHeaderBox(height=height, width=width,
-                                    num_components=4)
+        self.ihdr = ImageHeaderBox(
+            height=height, width=width, num_components=num_components
+        )
+        self.ihdr1 = ImageHeaderBox(
+            height=height, width=width, num_components=1
+        )
+        self.ihdr2 = ImageHeaderBox(
+            height=height, width=width, num_components=2
+        )
+        self.ihdr4 = ImageHeaderBox(
+            height=height, width=width, num_components=4
+        )
         self.colr_rgb = ColourSpecificationBox(colorspace=SRGB)
         self.colr_gr = ColourSpecificationBox(colorspace=GREYSCALE)
 
@@ -177,9 +181,11 @@ class TestChannelDefinition(fixtures.TestCommon):
         j2k = Jp2k(self.j2kfile)
         channel_type = [COLOR, COLOR, COLOR]
         association = [RED, GREEN, BLUE]
-        cdef = glymur.jp2box.ChannelDefinitionBox(index=[0, 1, 2],
-                                                  channel_type=channel_type,
-                                                  association=association)
+        cdef = glymur.jp2box.ChannelDefinitionBox(
+            index=[0, 1, 2],
+            channel_type=channel_type,
+            association=association
+        )
         boxes = [self.ihdr, self.colr_rgb, cdef]
         self.jp2h.box = boxes
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
@@ -191,18 +197,21 @@ class TestChannelDefinition(fixtures.TestCommon):
             boxes = [box.box_id for box in jp2h.box]
             self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
             self.assertEqual(jp2h.box[2].index, (0, 1, 2))
-            self.assertEqual(jp2h.box[2].channel_type,
-                             (COLOR, COLOR, COLOR))
-            self.assertEqual(jp2h.box[2].association,
-                             (RED, GREEN, BLUE))
+            self.assertEqual(
+                jp2h.box[2].channel_type, (COLOR, COLOR, COLOR)
+            )
+            self.assertEqual(
+                jp2h.box[2].association, (RED, GREEN, BLUE)
+            )
 
     def test_rgb(self):
         """Just regular RGB, but don't supply the optional index."""
         j2k = Jp2k(self.j2kfile)
         channel_type = [COLOR, COLOR, COLOR]
         association = [RED, GREEN, BLUE]
-        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
-                                                  association=association)
+        cdef = glymur.jp2box.ChannelDefinitionBox(
+            channel_type=channel_type, association=association
+        )
         boxes = [self.ihdr, self.colr_rgb, cdef]
         self.jp2h.box = boxes
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
@@ -214,18 +223,21 @@ class TestChannelDefinition(fixtures.TestCommon):
             boxes = [box.box_id for box in jp2h.box]
             self.assertEqual(boxes, ['ihdr', 'colr', 'cdef'])
             self.assertEqual(jp2h.box[2].index, (0, 1, 2))
-            self.assertEqual(jp2h.box[2].channel_type,
-                             (COLOR, COLOR, COLOR))
-            self.assertEqual(jp2h.box[2].association,
-                             (RED, GREEN, BLUE))
+            self.assertEqual(
+                jp2h.box[2].channel_type, (COLOR, COLOR, COLOR)
+            )
+            self.assertEqual(
+                jp2h.box[2].association, (RED, GREEN, BLUE)
+            )
 
     def test_rgba(self):
         """Just regular RGBA."""
         j2k = Jp2k(self.four_planes)
         channel_type = (COLOR, COLOR, COLOR, OPACITY)
         association = (RED, GREEN, BLUE, WHOLE_IMAGE)
-        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
-                                                  association=association)
+        cdef = glymur.jp2box.ChannelDefinitionBox(
+            channel_type=channel_type, association=association
+        )
         boxes = [self.ihdr4, self.colr_rgb, cdef]
         self.jp2h.box = boxes
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
@@ -246,8 +258,9 @@ class TestChannelDefinition(fixtures.TestCommon):
         j2k = Jp2k(self.four_planes)
         channel_type = (COLOR, COLOR, OPACITY, OPACITY)
         association = (RED, GREEN, BLUE, WHOLE_IMAGE)
-        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
-                                                  association=association)
+        cdef = glymur.jp2box.ChannelDefinitionBox(
+            channel_type=channel_type, association=association
+        )
         boxes = [self.ihdr, self.colr_rgb, cdef]
         self.jp2h.box = boxes
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
@@ -260,8 +273,9 @@ class TestChannelDefinition(fixtures.TestCommon):
         j2k = Jp2k(self.one_plane)
         channel_type = (COLOR,)
         association = (GREY,)
-        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
-                                                  association=association)
+        cdef = glymur.jp2box.ChannelDefinitionBox(
+            channel_type=channel_type, association=association
+        )
         boxes = [self.ihdr1, self.colr_gr, cdef]
         self.jp2h.box = boxes
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
@@ -281,8 +295,9 @@ class TestChannelDefinition(fixtures.TestCommon):
         j2k = Jp2k(self.two_planes)
         channel_type = (COLOR, OPACITY)
         association = (GREY, WHOLE_IMAGE)
-        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
-                                                  association=association)
+        cdef = glymur.jp2box.ChannelDefinitionBox(
+            channel_type=channel_type, association=association
+        )
         boxes = [self.ihdr2, self.colr_gr, cdef]
         self.jp2h.box = boxes
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
@@ -305,8 +320,9 @@ class TestChannelDefinition(fixtures.TestCommon):
         association = (GREY, WHOLE_IMAGE)
 
         # This cdef box
-        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
-                                                  association=association)
+        cdef = glymur.jp2box.ChannelDefinitionBox(
+            channel_type=channel_type, association=association
+        )
         boxes = [self.ihdr, self.colr_gr, cdef]
         self.jp2h.box = boxes
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
@@ -320,8 +336,9 @@ class TestChannelDefinition(fixtures.TestCommon):
 
         channel_type = (COLOR, COLOR, COLOR)
         association = (RED, GREEN, BLUE)
-        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
-                                                  association=association)
+        cdef = glymur.jp2box.ChannelDefinitionBox(
+            channel_type=channel_type, association=association
+        )
 
         boxes = [self.ihdr, cdef, self.colr_rgb, cdef]
         self.jp2h.box = boxes
@@ -340,8 +357,9 @@ class TestChannelDefinition(fixtures.TestCommon):
 
         channel_type = (COLOR, COLOR, COLOR)
         association = (RED, GREEN, BLUE)
-        cdef = glymur.jp2box.ChannelDefinitionBox(channel_type=channel_type,
-                                                  association=association)
+        cdef = glymur.jp2box.ChannelDefinitionBox(
+            channel_type=channel_type, association=association
+        )
 
         boxes = [self.jp2b, self.ftyp, self.jp2h, cdef, self.jp2c]
 
@@ -408,8 +426,9 @@ class TestPaletteBox(fixtures.TestCommon):
         palette = np.array([[255, 0, 255], [0, 255, 0]], dtype=np.uint16)
         bps = (8, 16, 8)
         signed = (False, False, False)
-        pclr = glymur.jp2box.PaletteBox(palette, bits_per_component=bps,
-                                        signed=signed)
+        pclr = glymur.jp2box.PaletteBox(
+            palette, bits_per_component=bps, signed=signed
+        )
         with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(InvalidJp2kError):
                 pclr.write(tfile)
@@ -464,8 +483,10 @@ class TestAppend(fixtures.TestCommon):
             box_ids = [box.box_id for box in jp2.box]
             expected = ['jP  ', 'ftyp', 'jp2h', 'uuid', 'jp2c', 'xml ']
             self.assertEqual(box_ids, expected)
-            self.assertEqual(ET.tostring(jp2.box[-1].xml.getroot()),
-                             b'<data>0</data>')
+            self.assertEqual(
+                ET.tostring(jp2.box[-1].xml.getroot()),
+                b'<data>0</data>'
+            )
 
     def test_only_jp2_allowed_to_append(self):
         """Only JP2 files are allowed to be appended."""
@@ -514,8 +535,10 @@ class TestAppend(fixtures.TestCommon):
             box_ids = [box.box_id for box in jp2.box]
             expected = ['jP  ', 'ftyp', 'jp2h', 'uuid', 'jp2c', 'xml ']
             self.assertEqual(box_ids, expected)
-            self.assertEqual(ET.tostring(jp2.box[-1].xml.getroot()),
-                             b'<data>0</data>')
+            self.assertEqual(
+                ET.tostring(jp2.box[-1].xml.getroot()),
+                b'<data>0</data>'
+            )
 
     def test_append_allowable_boxes(self):
         """Only XML boxes are allowed to be appended."""
@@ -677,18 +700,22 @@ class TestWrap(fixtures.TestCommon):
     def test_default_layout_with_boxes(self):
         """basic test for rewrapping a jp2 file, boxes specified"""
         j2k = Jp2k(self.j2kfile)
-        boxes = [JPEG2000SignatureBox(),
-                 FileTypeBox(),
-                 JP2HeaderBox(),
-                 ContiguousCodestreamBox()]
+        boxes = [
+            JPEG2000SignatureBox(),
+            FileTypeBox(),
+            JP2HeaderBox(),
+            ContiguousCodestreamBox()
+        ]
         codestream = j2k.get_codestream()
         height = codestream.segment[1].ysiz
         width = codestream.segment[1].xsiz
         num_components = len(codestream.segment[1].xrsiz)
-        boxes[2].box = [ImageHeaderBox(height=height,
-                                       width=width,
-                                       num_components=num_components),
-                        ColourSpecificationBox(colorspace=glymur.core.SRGB)]
+        boxes[2].box = [
+            ImageHeaderBox(
+                height=height, width=width, num_components=num_components
+            ),
+            ColourSpecificationBox(colorspace=glymur.core.SRGB)
+        ]
         with open(self.temp_jp2_filename, mode='wb') as tfile:
             j2k.wrap(tfile.name, boxes=boxes)
             self.verify_wrapped_raw(tfile.name)
@@ -696,18 +723,22 @@ class TestWrap(fixtures.TestCommon):
     def test_ihdr_not_first_in_jp2h(self):
         """The specification says that ihdr must be the first box in jp2h."""
         j2k = Jp2k(self.j2kfile)
-        boxes = [JPEG2000SignatureBox(),
-                 FileTypeBox(),
-                 JP2HeaderBox(),
-                 ContiguousCodestreamBox()]
+        boxes = [
+            JPEG2000SignatureBox(),
+            FileTypeBox(),
+            JP2HeaderBox(),
+            ContiguousCodestreamBox()
+        ]
         codestream = j2k.get_codestream()
         height = codestream.segment[1].ysiz
         width = codestream.segment[1].xsiz
         num_components = len(codestream.segment[1].xrsiz)
-        boxes[2].box = [ColourSpecificationBox(colorspace=glymur.core.SRGB),
-                        ImageHeaderBox(height=height,
-                                       width=width,
-                                       num_components=num_components)]
+        boxes[2].box = [
+            ColourSpecificationBox(colorspace=glymur.core.SRGB),
+            ImageHeaderBox(
+                height=height, width=width, num_components=num_components
+            )
+        ]
         with open(self.temp_jp2_filename, mode='wb') as tfile:
             with self.assertRaises(RuntimeError):
                 j2k.wrap(tfile.name, boxes=boxes)
@@ -725,8 +756,9 @@ class TestWrap(fixtures.TestCommon):
         jp2h = JP2HeaderBox()
         jp2c = ContiguousCodestreamBox()
         colr = ColourSpecificationBox(colorspace=glymur.core.SRGB)
-        ihdr = ImageHeaderBox(height=height, width=width,
-                              num_components=num_components)
+        ihdr = ImageHeaderBox(
+            height=height, width=width, num_components=num_components
+        )
         jp2h.box = [ihdr, colr]
         boxes = [ftyp, jp2b, jp2h, jp2c]
         with open(self.temp_jp2_filename, mode='wb') as tfile:
@@ -737,9 +769,9 @@ class TestWrap(fixtures.TestCommon):
         """A palette box must reside in a JP2 header box."""
         palette = np.array([[255, 0, 255], [0, 255, 0]], dtype=np.int32)
         bps = (8, 8, 8)
-        pclr = glymur.jp2box.PaletteBox(palette=palette,
-                                        bits_per_component=bps,
-                                        signed=(True, False, True))
+        pclr = glymur.jp2box.PaletteBox(
+            palette=palette, bits_per_component=bps, signed=(True, False, True)
+        )
 
         j2k = Jp2k(self.j2kfile)
         codestream = j2k.get_codestream()
@@ -752,8 +784,9 @@ class TestWrap(fixtures.TestCommon):
         jp2h = JP2HeaderBox()
         jp2c = ContiguousCodestreamBox()
         colr = ColourSpecificationBox(colorspace=glymur.core.SRGB)
-        ihdr = ImageHeaderBox(height=height, width=width,
-                              num_components=num_components)
+        ihdr = ImageHeaderBox(
+            height=height, width=width, num_components=num_components
+        )
         jp2h.box = [ihdr, colr]
         boxes = [jp2b, ftyp, jp2h, jp2c, pclr]
         with open(self.temp_jp2_filename, mode='wb') as tfile:
@@ -773,8 +806,9 @@ class TestWrap(fixtures.TestCommon):
         jp2h = JP2HeaderBox()
         jp2c = ContiguousCodestreamBox()
         colr = ColourSpecificationBox(colorspace=glymur.core.SRGB)
-        ihdr = ImageHeaderBox(height=height, width=width,
-                              num_components=num_components)
+        ihdr = ImageHeaderBox(
+            height=height, width=width, num_components=num_components
+        )
         jp2h.box = [ihdr, colr]
         boxes = [jp2b, ftyp, jp2c, jp2h]
         with open(self.temp_jp2_filename, mode='wb') as tfile:
@@ -792,8 +826,9 @@ class TestWrap(fixtures.TestCommon):
         jp2k = JPEG2000SignatureBox()
         ftyp = FileTypeBox()
         jp2h = JP2HeaderBox()
-        ihdr = ImageHeaderBox(height=height, width=width,
-                              num_components=num_components)
+        ihdr = ImageHeaderBox(
+            height=height, width=width, num_components=num_components
+        )
         jp2h.box = [ihdr]
         boxes = [jp2k, ftyp, jp2h]
         with open(self.temp_jp2_filename, mode='wb') as tfile:
@@ -804,8 +839,12 @@ class TestWrap(fixtures.TestCommon):
         """A JPX file rewrapped with plain jpch is not allowed."""
         with open(self.temp_jp2_filename, mode='wb') as tfile1:
             jpx = Jp2k(self.jpxfile)
-            boxes = [jpx.box[0], jpx.box[1], jpx.box[2],
-                     glymur.jp2box.ContiguousCodestreamBox()]
+            boxes = [
+                jpx.box[0],
+                jpx.box[1],
+                jpx.box[2],
+                glymur.jp2box.ContiguousCodestreamBox()
+            ]
             with self.assertRaises(RuntimeError):
                 jpx.wrap(tfile1.name, boxes=boxes)
 
@@ -850,8 +889,10 @@ class TestWrap(fixtures.TestCommon):
         """Rewrap a jpx file."""
         with open(self.temp_jp2_filename, mode='wb') as tfile1:
             jpx = Jp2k(self.jpxfile)
-            idx = (list(range(5))
-                   + list(range(9, 12)) + list(range(6, 9))) + [12]
+            idx = (
+                list(range(5))
+                + list(range(9, 12)) + list(range(6, 9))) + [12
+            ]
             boxes = [jpx.box[j] for j in idx]
             jpx2 = jpx.wrap(tfile1.name, boxes=boxes)
             exp_ids = [box.box_id for box in boxes]
@@ -928,8 +969,9 @@ class TestJp2Boxes(fixtures.TestCommon):
 
     def test_default_ihdr(self):
         """Should be able to instantiate an image header box."""
-        ihdr = glymur.jp2box.ImageHeaderBox(height=512, width=256,
-                                            num_components=3)
+        ihdr = glymur.jp2box.ImageHeaderBox(
+            height=512, width=256, num_components=3
+        )
         self.assertEqual(ihdr.height, 512)
         self.assertEqual(ihdr.width, 256)
         self.assertEqual(ihdr.num_components, 3)
@@ -940,8 +982,10 @@ class TestJp2Boxes(fixtures.TestCommon):
     def test_default_jp2headerbox(self):
         """Should be able to set jp2h boxes."""
         box = JP2HeaderBox()
-        box.box = [ImageHeaderBox(height=512, width=256),
-                   ColourSpecificationBox(colorspace=glymur.core.GREYSCALE)]
+        box.box = [
+            ImageHeaderBox(height=512, width=256),
+            ColourSpecificationBox(colorspace=glymur.core.GREYSCALE)
+        ]
         self.assertTrue(True)
 
     def test_default_ccodestreambox(self):
@@ -955,8 +999,9 @@ class TestJp2Boxes(fixtures.TestCommon):
         main_header_offset is an attribute of the ContiguousCodesStream box
         """
         j = Jp2k(self.jpxfile)
-        self.assertEqual(j.box[5].main_header_offset,
-                         j.box[5].offset + 8)
+        self.assertEqual(
+            j.box[5].main_header_offset, j.box[5].offset + 8
+        )
 
 
 class TestRepr(MetadataBase):
@@ -1067,9 +1112,11 @@ class TestRepr(MetadataBase):
         """Verify __repr__ method on cdef box."""
         channel_type = [COLOR, COLOR, COLOR]
         association = [RED, GREEN, BLUE]
-        cdef = glymur.jp2box.ChannelDefinitionBox(index=[0, 1, 2],
-                                                  channel_type=channel_type,
-                                                  association=association)
+        cdef = glymur.jp2box.ChannelDefinitionBox(
+            index=[0, 1, 2],
+            channel_type=channel_type,
+            association=association
+        )
         newbox = eval(repr(cdef))
         self.assertEqual(newbox.index, (0, 1, 2))
         self.assertEqual(newbox.channel_type, (COLOR, COLOR, COLOR))
@@ -1122,9 +1169,11 @@ class TestRepr(MetadataBase):
 
     def test_componentmapping_box(self):
         """Verify __repr__ method on cmap box."""
-        cmap = glymur.jp2box.ComponentMappingBox(component_index=(0, 0, 0),
-                                                 mapping_type=(1, 1, 1),
-                                                 palette_index=(0, 1, 2))
+        cmap = glymur.jp2box.ComponentMappingBox(
+            component_index=(0, 0, 0),
+            mapping_type=(1, 1, 1),
+            palette_index=(0, 1, 2)
+        )
         newbox = eval(repr(cmap))
         self.assertEqual(newbox.box_id, 'cmap')
         self.assertEqual(newbox.component_index, (0, 0, 0))
@@ -1188,8 +1237,11 @@ class TestRepr(MetadataBase):
         """Verify Palette box repr."""
         palette = np.array([[255, 0, 1000], [0, 255, 0]], dtype=np.int32)
         bps = (8, 8, 16)
-        box = glymur.jp2box.PaletteBox(palette=palette, bits_per_component=bps,
-                                       signed=(True, False, True))
+        box = glymur.jp2box.PaletteBox(
+            palette=palette,
+            bits_per_component=bps,
+            signed=(True, False, True)
+        )
 
         # Test will fail unless addition imports from numpy are done.
         from numpy import array, int32  # noqa: F401
@@ -1213,11 +1265,14 @@ class TestRepr(MetadataBase):
 
     def test_readerrequirements_box(self):
         """Verify rreq repr method."""
-        box = glymur.jp2box.ReaderRequirementsBox(fuam=160, dcm=192,
-                                                  standard_flag=(5, 61, 43),
-                                                  standard_mask=(128, 96, 64),
-                                                  vendor_feature=[],
-                                                  vendor_mask=[])
+        box = glymur.jp2box.ReaderRequirementsBox(
+            fuam=160,
+            dcm=192,
+            standard_flag=(5, 61, 43),
+            standard_mask=(128, 96, 64),
+            vendor_feature=[],
+            vendor_mask=[]
+        )
         newbox = eval(repr(box))
         self.assertEqual(box.fuam, newbox.fuam)
         self.assertEqual(box.dcm, newbox.dcm)
@@ -1235,11 +1290,11 @@ class TestRepr(MetadataBase):
         # Since the raw_data parameter is a sequence of bytes which could be
         # quite long, don't bother trying to make it conform to eval(repr()).
         pattern = r"""
-                   glymur.jp2box.UUIDBox\(
-                       UUID\('00000000-0000-0000-0000-000000000000'\),\s
-                       raw_data=<byte\sarray\s10\selements>
-                   \)
-                   """
+            glymur.jp2box.UUIDBox\(
+                UUID\('00000000-0000-0000-0000-000000000000'\),\s
+                raw_data=<byte\sarray\s10\selements>
+            \)
+        """
         regex = re.compile(pattern, re.VERBOSE)
         self.assertRegex(repr(box), regex)
 
@@ -1252,11 +1307,11 @@ class TestRepr(MetadataBase):
         # Since the raw_data parameter is a sequence of bytes which could be
         # quite long, don't bother trying to make it conform to eval(repr()).
         pattern = r"""
-                   glymur.jp2box.UUIDBox\(
-                       UUID\('be7acfcb-97a9-42e8-9c71-999491e3afac'\),\s
-                       raw_data=<byte\sarray\s3122\selements>
-                   \)
-                   """
+            glymur.jp2box.UUIDBox\(
+                UUID\('be7acfcb-97a9-42e8-9c71-999491e3afac'\),\s
+                raw_data=<byte\sarray\s3122\selements>
+            \)
+        """
         regex = re.compile(pattern, re.VERBOSE)
         self.assertRegex(repr(box), regex)
 
@@ -1268,10 +1323,10 @@ class TestRepr(MetadataBase):
 
         # Difficult to eval(repr()) this, so just match the general pattern.
         pattern = r"""
-                   glymur.jp2box.ContiguousCodeStreamBox\(
-                       codestream=<glymur.codestream.Codestream\sobject\s
-                        at\s0x([a-fA-F0-9]*)>
-                   \)
-                   """
+            glymur.jp2box.ContiguousCodeStreamBox\(
+                codestream=<glymur.codestream.Codestream\sobject\s
+                at\s0x([a-fA-F0-9]*)>
+            \)
+        """
         regex = re.compile(pattern, re.VERBOSE)
         self.assertRegex(repr(box), regex)
