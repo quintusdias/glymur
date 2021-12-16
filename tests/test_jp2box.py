@@ -890,9 +890,8 @@ class TestWrap(fixtures.TestCommon):
         with open(self.temp_jp2_filename, mode='wb') as tfile1:
             jpx = Jp2k(self.jpxfile)
             idx = (
-                list(range(5))
-                + list(range(9, 12)) + list(range(6, 9))) + [12
-            ]
+                list(range(5)) + list(range(9, 12)) + list(range(6, 9))
+            ) + [12]
             boxes = [jpx.box[j] for j in idx]
             jpx2 = jpx.wrap(tfile1.name, boxes=boxes)
             exp_ids = [box.box_id for box in boxes]

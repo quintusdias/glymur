@@ -12,7 +12,7 @@ License:  MIT
 import sys
 
 # Third party library imports ...
-from distutils.version import LooseVersion
+from packaging.version import parse
 import numpy as np
 
 # Local imports ...
@@ -22,14 +22,13 @@ from .lib import tiff
 # Do not change the format of this next line!  Doing so risks breaking
 # setup.py
 version = "0.9.6"
-_sv = LooseVersion(version)
-version_tuple = _sv.version
+
+version_tuple = parse(version).release
 
 openjpeg_version = opj2.version()
-tiff_version = tiff.getVersion()
+openjpeg_version_tuple = parse(openjpeg_version).release
 
-_sv = LooseVersion(openjpeg_version)
-openjpeg_version_tuple = _sv.version
+tiff_version = tiff.getVersion()
 
 __doc__ = f"""\
 This is glymur **{version}**
