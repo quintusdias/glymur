@@ -1,3 +1,6 @@
+January 9, 2022 - v0.9.7.post1
+    Fix setup.cfg issue
+
 December 27, 2021 - v0.9.7
     Remove distutils in favor of setuptools
     Add recognition of IMF profiles
