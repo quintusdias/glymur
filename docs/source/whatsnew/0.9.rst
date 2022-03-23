@@ -3,6 +3,12 @@ Changes in glymur 0.9
 #####################
 
 ****************
+Changes in 0.9.9
+****************
+
+    Fix bug retrieving some TIFF tags on big endian systems.
+
+****************
 Changes in 0.9.8
 ****************
 
