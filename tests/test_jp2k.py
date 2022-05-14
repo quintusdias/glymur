@@ -1163,6 +1163,46 @@ class TestJp2k_write(fixtures.MetadataBase):
         with self.assertRaises(RuntimeError):
             Jp2k(self.temp_jp2_filename, **kwargs)
 
+    def test_tlm_yes(self):
+        """
+        SCENARIO:  Use the tlm keyword.
+
+        EXPECTED RESULT:  A TLM segment is detected.
+        """
+        kwargs = {
+            'data': self.jp2_data,
+            'tlm': True
+        }
+        j = Jp2k(self.temp_jp2_filename, **kwargs)
+
+        codestream = j.get_codestream(header_only=False)
+
+        at_least_one_tlm_segment = any(
+            isinstance(seg, glymur.codestream.TLMsegment)
+            for seg in codestream.segment
+        )
+        self.assertTrue(at_least_one_tlm_segment)
+
+    def test_tlm_no(self):
+        """
+        SCENARIO:  Use the tlm keyword set to False
+
+        EXPECTED RESULT:  A TLM segment not detected.
+        """
+        kwargs = {
+            'data': self.jp2_data,
+            'tlm': False
+        }
+        j = Jp2k(self.temp_jp2_filename, **kwargs)
+
+        codestream = j.get_codestream(header_only=False)
+
+        at_least_one_tlm_segment = any(
+            isinstance(seg, glymur.codestream.TLMsegment)
+            for seg in codestream.segment
+        )
+        self.assertFalse(at_least_one_tlm_segment)
+
     @unittest.skipIf(
         not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
     )

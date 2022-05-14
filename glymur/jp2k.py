@@ -99,7 +99,7 @@ class Jp2k(Jp2kBox):
         cbsize=None, cinema2k=None, cinema4k=None, colorspace=None,
         cratios=None, eph=None, grid_offset=None, irreversible=None, mct=None,
         modesw=None, numres=None, plt=False, prog=None, psizes=None, psnr=None,
-        sop=None, subsam=None,
+        sop=None, subsam=None, tlm=False
     ):
         """
         Parameters
@@ -156,6 +156,8 @@ class Jp2k(Jp2kBox):
             Subsampling factors (dy, dx).
         tilesize : tuple, optional
             Tile size in terms of (numrows, numcols), not (X, Y).
+        tlm : bool, optional
+            Generate TLM markers.
         verbose : bool, optional
             Print informational messages produced by the OpenJPEG library.
         """
@@ -189,6 +191,7 @@ class Jp2k(Jp2kBox):
         self._sop = sop
         self._subsam = subsam
         self._tilesize = tilesize
+        self._tlm = tlm
 
         self._shape = None
         self._ndim = None
@@ -898,6 +901,9 @@ class Jp2k(Jp2kBox):
 
             if self._plt:
                 opj2.encoder_set_extra_options(codec, plt=self._plt)
+
+            if self._tlm:
+                opj2.encoder_set_extra_options(codec, tlm=self._tlm)
 
             strm = opj2.stream_create_default_file_stream(self.filename, False)
 
