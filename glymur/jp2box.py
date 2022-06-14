@@ -3389,8 +3389,21 @@ class UUIDBox(Jp2kBox):
         elif self.uuid == _GEOTIFF_UUID:
             self.data = tiff_header(self.raw_data)
         elif self.uuid == _EXIF_UUID:
-            # Cut off 'EXIF\0\0' part.
-            self.data = tiff_header(self.raw_data[6:])
+            if self.raw_data[0:4].decode('utf-8').lower() == 'exif':
+                # Cut off 'EXIF\0\0' part.
+                payload = self.raw_data[6:]
+                self.data = tiff_header(payload)
+            elif self.raw_data[:2].decode('utf-8').lower() in ['ii', 'mm']:
+                # Missing the exif lead-in, take the data as-is.
+                payload = self.raw_data
+                self.data = tiff_header(payload)
+            else:
+                msg = (
+                    'A UUID that identified itself as an EXIF UUID could not '
+                    'be parsed.'
+                )
+                warnings.warn(msg)
+                self.data = None
         else:
             self.data = self.raw_data
 
@@ -3428,15 +3441,22 @@ class UUIDBox(Jp2kBox):
             lst.append(text)
         elif self.uuid == _EXIF_UUID:
             s = io.StringIO()
-            for tag in [
-                'JPEGTables', 'StripByteCounts', 'StripOffsets',
-                'TileOffsets', 'TileByteCounts'
-            ]:
-                if tag in self.data:
-                    self.data[tag] = '... skipped ...'
-            pprint.pprint(self.data, stream=s, indent=4)
-            text = f'UUID Data:  {s.getvalue().rstrip()}'
-            lst.append(text)
+
+            if self.data is None:
+                # If the UUID was malformed, just say so and go on.  This
+                # should not be a showstopper.
+                text = 'UUID Data:  Invalid Exif UUID'
+                lst.append(text)
+            else:
+                for tag in [
+                    'JPEGTables', 'StripByteCounts', 'StripOffsets',
+                    'TileOffsets', 'TileByteCounts'
+                ]:
+                    if tag in self.data:
+                        self.data[tag] = '... skipped ...'
+                pprint.pprint(self.data, stream=s, indent=4)
+                text = f'UUID Data:  {s.getvalue().rstrip()}'
+                lst.append(text)
         elif self.uuid == _GEOTIFF_UUID:
             txt = f'UUID Data:  {self._print_geotiff()}'
             lst.append(txt)

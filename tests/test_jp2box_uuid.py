@@ -197,6 +197,38 @@ class TestSuite(fixtures.TestCommon):
         b.seek(0)
         return b.read()
 
+    def test__read_exif_uuid_missing_exif00_lead_in(self):
+        """
+        SCENARIO:  Parse a JpgTiffExif->Jp2 UUID that is missing the 'EXIF\0\0'
+        lead-in.
+
+        EXPECTED RESULT:  Should not error out.  Verify the UUID type.
+        """
+        box_data = ir.read_binary('tests.data', 'issue549.dat')
+        bf = io.BytesIO(box_data)
+        box = UUIDBox.parse(bf, 0, 37700)
+
+        actual = box.uuid
+        expected = uuid.UUID(bytes=b'JpgTiffExif->JP2')
+        self.assertEqual(actual, expected)
+
+    def test__read_malformed_exif_uuid(self):
+        """
+        SCENARIO:  Parse a JpgTiffExif->Jp2 UUID that is not only missing the
+        'EXIF\0\0' lead-in, but even the TIFF header is malformed.
+
+        EXPECTED RESULT:  RuntimeError
+        """
+        box_data = ir.read_binary('tests.data', 'issue549.dat')
+        bf = io.BytesIO(box_data[:16] + box_data[20:])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            box = UUIDBox.parse(bf, 0, 37700)
+
+        actual = box.uuid
+        expected = uuid.UUID(bytes=b'JpgTiffExif->JP2')
+        self.assertEqual(actual, expected)
+
     def test__printing__geotiff_uuid__xml_sidecar(self):
         """
         SCENARIO:  Print a geotiff UUID with XML sidecar file
