@@ -202,15 +202,18 @@ class TestSuite(fixtures.TestCommon):
         SCENARIO:  Parse a JpgTiffExif->Jp2 UUID that is missing the 'EXIF\0\0'
         lead-in.
 
-        EXPECTED RESULT:  Should not error out.  Verify the UUID type.
+        EXPECTED RESULT:  Should not error out.  Verify the UUID type.  Verify
+        the existance of one of the "Exif.Photo" tags.
         """
         box_data = ir.read_binary('tests.data', 'issue549.dat')
         bf = io.BytesIO(box_data)
-        box = UUIDBox.parse(bf, 0, 37700)
+        box = UUIDBox.parse(bf, 0, len(box_data))
 
         actual = box.uuid
         expected = uuid.UUID(bytes=b'JpgTiffExif->JP2')
         self.assertEqual(actual, expected)
+
+        self.assertEqual(box.data['ExifTag']['ExifVersion'], (48, 50, 51, 50))
 
     def test__read_malformed_exif_uuid(self):
         """

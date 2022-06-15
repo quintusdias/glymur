@@ -3448,13 +3448,20 @@ class UUIDBox(Jp2kBox):
                 text = 'UUID Data:  Invalid Exif UUID'
                 lst.append(text)
             else:
+                data_copy = self.data.copy()
                 for tag in [
                     'JPEGTables', 'StripByteCounts', 'StripOffsets',
                     'TileOffsets', 'TileByteCounts'
                 ]:
                     if tag in self.data:
-                        self.data[tag] = '... skipped ...'
-                pprint.pprint(self.data, stream=s, indent=4)
+                        data_copy[tag] = '... skipped ...'
+
+                if 'ExifTag' in data_copy:
+                    for tag in ['MakerNote']:
+                        if tag in data_copy['ExifTag']:
+                            data_copy['ExifTag'][tag] = '... skipped ...'
+
+                pprint.pprint(data_copy, stream=s, indent=4)
                 text = f'UUID Data:  {s.getvalue().rstrip()}'
                 lst.append(text)
         elif self.uuid == _GEOTIFF_UUID:
