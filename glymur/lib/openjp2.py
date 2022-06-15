@@ -977,8 +977,11 @@ def encoder_set_extra_options(codec, plt=False, tlm=False):
 
     arr = (ctypes.c_char_p * 3)()
     arr[0] = 'PLT=YES'.encode('utf-8') if plt else 'PLT=NO'.encode('utf-8')
-    arr[1] = 'TLM=YES'.encode('utf-8') if tlm else 'TLM=NO'.encode('utf-8')
-    arr[2] = None
+    if version() >= '2.5.0':
+        arr[1] = 'TLM=YES'.encode('utf-8') if tlm else 'TLM=NO'.encode('utf-8')
+        arr[2] = None
+    else:
+        arr[1] = None
 
     OPENJP2.opj_encoder_set_extra_options(codec, arr)
 

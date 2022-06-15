@@ -1163,6 +1163,8 @@ class TestJp2k_write(fixtures.MetadataBase):
         with self.assertRaises(RuntimeError):
             Jp2k(self.temp_jp2_filename, **kwargs)
 
+    @unittest.skipIf(glymur.version.openjpeg_version < '2.5.0',
+                     "Requires as least v2.5.0")
     def test_tlm_yes(self):
         """
         SCENARIO:  Use the tlm keyword.
