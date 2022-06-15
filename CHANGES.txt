@@ -1,3 +1,8 @@
+June 15, 2022 - v0.10.0
+    Allow parsing of Exif UUIDs missing the EXIF\00\00 lead-in
+    Add read support for additional Exif tags
+    Add support for TLM segment generation
+
 March 23, 2022 - v0.9.9
     Fix bug retrieving some TIFF tags on big endian systems
 
@@ -13,67 +18,67 @@ December 27, 2021 - v0.9.7
     Add ndim, dtype properties
 
 November 04, 2021 - v0.9.6
-    Fix tiff support on windows.
-    Update doc support for python 3.10.
+    Fix tiff support on windows
+    Update doc support for python 3.10
 
 November 03, 2021 - v0.9.5
-    Add support for generation of PLT markers.
-    Add support for converting TIFFs to JPEG 2000.
+    Add support for generation of PLT markers
+    Add support for converting TIFFs to JPEG 2000
 
 September 01, 2021 - v0.9.4
-    Add support for writing images tile-by-tile.
-    Add support for opj_set_decoded_components.
-    Remove support for Python 3.6.
+    Add support for writing images tile-by-tile
+    Add support for opj_set_decoded_components
+    Remove support for Python 3.6
 
 December 31, 2020 - v0.9.3
     Qualify support on Python 3.9, OpenJPEG 2.4
     Add support for multithreaded writes
 
 June 30, 2020 - v0.9.2
-    Update setup.py to include tests.
-    Update gdal imports to stop DeprecationWarning.
+    Update setup.py to include tests
+    Update gdal imports to stop DeprecationWarning
 
 June 30, 2020 - v0.9.2
-    Update setup.py to include tests.
-    Update gdal imports to stop DeprecationWarning.
+    Update setup.py to include tests
+    Update gdal imports to stop DeprecationWarning
 
 January 15, 2020 - v0.9.1
     Remove GDAL from setup.py requirements
 
 January 14, 2020 - v0.9.0
-    Removed support for python2.7.
-    Fixed Cygwin support.
-    Fixed appveyor builds, Travis-CI framework reworked.
-    Some fragile tests removed.
+    Removed support for python2.7
+    Fixed Cygwin support
+    Fixed appveyor builds, Travis-CI framework reworked
+    Some fragile tests removed
     
 November 15, 2019 - v0.8.19
-    Qualify on Python 3.8.
+    Qualify on Python 3.8
     
 April 24, 2019 - v0.8.18
-    Fix geotiff UUID corner coordinate string representation.
-    Improve warning and error messages.
-    Correct improperly raised exception types.
-    Remove build/test for Python 3.4 (EOL).
-    Fix read-the-docs requirements.
+    Fix geotiff UUID corner coordinate string representation
+    Improve warning and error messages
+    Correct improperly raised exception types
+    Remove build/test for Python 3.4 (EOL)
+    Fix read-the-docs requirements
 
 February 19, 2019 - v0.8.17
-    Add support for ICC profile raw data.
-    Fix parsing of negative resolution box exponents.
+    Add support for ICC profile raw data
+    Fix parsing of negative resolution box exponents
 
 September 18, 2018 - v0.8.16
-    Qualify on Python 3.7.
-    Fix documentation typo.
+    Qualify on Python 3.7
+    Fix documentation typo
 
 April 07, 2018 - v0.8.15
-    Fix link to readthedocs.
-    Fix for invalid progression order display.
+    Fix link to readthedocs
+    Fix for invalid progression order display
 
 January 21, 2018 - v0.8.14
-    Fix layers bug.
+    Fix layers bug
 
 January 10, 2018 - v0.8.13
-    Clarify PSNR usage.
-    Add support for openjpeg threads.
+    Clarify PSNR usage
+    Add support for openjpeg threads
 
 October 14, 2017 - v0.8.12
     Qualify on OpenJPEG v2.3.0
@@ -81,19 +86,19 @@ October 14, 2017 - v0.8.12
 
 August 15, 2017 - v0.8.11
     Qualify on OpenJPEG v2.2.0
-    State LTS plans.
+    State LTS plans
 
 March 22, 2017 - v0.8.10
-    Add pathlib support.
-    Add appveyor to CI testing.
+    Add pathlib support
+    Add appveyor to CI testing
 
 January 26, 2017 - v0.8.9
-    Qualified on Python 3.6.
-    Change travis-ci testing to use Anaconda.
+    Qualified on Python 3.6
+    Change travis-ci testing to use Anaconda
 
 December 01, 2016 - v0.8.8
-    Refactor test suite.
-    Fix printing errors in case of bad colr box.
+    Refactor test suite
+    Fix printing errors in case of bad colr box
     Fix tests on CentOS when seeing OpenJPEG 1.3
 
 October 02, 2016 - v0.8.7
