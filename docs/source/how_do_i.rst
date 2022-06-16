@@ -10,7 +10,7 @@ Jp2k implements slicing via the :py:meth:`__getitem__` method and
 hooks it into the multiple resolution property of JPEG 2000 imagery.
 This allows you to retrieve multiresolution imagery via
 array-style slicing, i.e. strides.  For example, here's how
-to retrieve a full resolution and first lower-resolution image ::
+to retrieve a full resolution and first lower-resolution image. ::
 
     >>> import glymur
     >>> jp2file = glymur.data.nemo() # just a path to a JPEG2000 file
@@ -21,6 +21,21 @@ to retrieve a full resolution and first lower-resolution image ::
     >>> thumbnail = jp2[::2, ::2]
     >>> thumbnail.shape
     (728, 1296, 3)
+
+************************
+... read an image layer?
+************************
+JPEG2000 has layers which allow you to specify images with different
+levels of quality.  Different layers may be specified by utilizing 
+the layer property.  The default layer value is 0, which specifies the
+first layer. ::
+
+    >>> import glymur
+    >>> file = glymur.data.jpxfile() # just a path to a JPEG2000 file
+    >>> jp2 = glymur.Jp2k(file)
+    >>> d0 = j[:] # first layer
+    >>> j.layer = 3
+    >>> d3 = j[:] # third layer
 
 *********************************************************
 ... make use of OpenJPEG's thread support to read images?
