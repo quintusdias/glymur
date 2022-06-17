@@ -214,6 +214,7 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(actual, expected)
 
         self.assertEqual(box.data['ExifTag']['ExifVersion'], (48, 50, 51, 50))
+        self.assertEqual(box.data['YCbCrPositioning'], 'Centered')
 
     def test__read_malformed_exif_uuid(self):
         """
