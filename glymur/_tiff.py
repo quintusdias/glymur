@@ -444,11 +444,38 @@ class Ifd(object):
                 self.processed_ifd[tag_name] = ifd.processed_ifd
             else:
                 # just a regular tag, treat it as a simple value
-                if tag_name == 'YCbCrPositioning':
+                if tag_name == 'ColorSpace':
                     if value == 1:
-                        value = 'Centered'
+                        value = 'sRGB'
+                elif tag_name == 'ComponentsConfiguration':
+                    if value == (1, 2, 3, 0):
+                        value = 'YCbCr'
+                    elif value == (4, 5, 6, 0):
+                        value = 'RGB'
+                elif tag_name == 'ExifVersion':
+                    value = struct.pack('<bbbb', *value).decode('utf-8')
+                    value = int(value) / 100
+                elif tag_name == 'FlashPixVersion':
+                    value = struct.pack('<bbbb', *value).decode('utf-8')
+                elif tag_name == 'FocalPlaneResolutionUnit':
+                    if value == 1:
+                        value = 'none'
+                    if value == 2:
+                        value = 'inch'
+                    elif value == 3:
+                        value = 'centimeter'
+                elif tag_name == 'ResolutionUnit':
+                    if value == 0:
+                        value = 'none'
+                    if value == 1:
+                        value = 'inch'
                     elif value == 2:
-                        value = 'Cosited'
+                        value = 'centimeter'
+                elif tag_name == 'YCbCrPositioning':
+                    if value == 1:
+                        value = 'centered'
+                    elif value == 2:
+                        value = 'cosited'
                 self.processed_ifd[tag_name] = value
 
 

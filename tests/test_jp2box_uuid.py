@@ -213,8 +213,12 @@ class TestSuite(fixtures.TestCommon):
         expected = uuid.UUID(bytes=b'JpgTiffExif->JP2')
         self.assertEqual(actual, expected)
 
-        self.assertEqual(box.data['ExifTag']['ExifVersion'], (48, 50, 51, 50))
-        self.assertEqual(box.data['YCbCrPositioning'], 'Centered')
+        self.assertEqual(box.data['ExifTag']['ColorSpace'], 'sRGB')
+        self.assertEqual(box.data['ExifTag']['ComponentsConfiguration'], 'YCbCr') # noqa : E501
+        self.assertEqual(box.data['ExifTag']['ExifVersion'], 2.32)
+        self.assertEqual(box.data['ExifTag']['FlashPixVersion'], '0100')
+        self.assertEqual(box.data['ResolutionUnit'], 'centimeter')
+        self.assertEqual(box.data['YCbCrPositioning'], 'centered')
 
     def test__read_malformed_exif_uuid(self):
         """
@@ -348,7 +352,6 @@ class TestSuite(fixtures.TestCommon):
         expected = 'UTM Zone 16N NAD27"|Clarke, 1866 by Default| '
         self.assertEqual(box.data['GeoAsciiParams'], expected)
 
-    @unittest.skip('not sure why this was corrupt')
     def test_print_bad_geotiff(self):
         """
         SCENARIO:  A GeoTIFF UUID is corrupt.
@@ -359,18 +362,12 @@ class TestSuite(fixtures.TestCommon):
         with ir.path(data, 'issue398.dat') as path:
             with path.open('rb') as f:
                 f.seek(8)
-                with warnings.catch_warnings():
+                with warnings.catch_warnings(record=True) as w:
+                    warnings.simplefilter('always')
                     # Ignore the warnings about invalid TIFF tags, we already
                     # know that.
-                    warnings.simplefilter('ignore')
                     box = glymur.jp2box.UUIDBox.parse(f, 0, 380)
-
-        actual = str(box)
-        expected = ("UUID Box (uuid) @ (0, 380)\n"
-                    "    UUID:  "
-                    "b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03 (GeoTIFF)\n"
-                    "    UUID Data:  corrupt")
-        self.assertEqual(actual, expected)
+                    actual = str(box)
 
 
 class TestSuiteHiRISE(fixtures.TestCommon):
