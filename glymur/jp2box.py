@@ -12,6 +12,7 @@ References
 """
 
 # Standard library imports ...
+import fractions
 import io
 import os
 import pprint
@@ -2540,6 +2541,11 @@ class ResolutionBox(Jp2kBox):
         msg = self._str_superbox()
         return msg
 
+    def write(self, fptr):
+        """Write a Resolution super box to file.
+        """
+        self._write_superbox(fptr, b'res ')
+
     @classmethod
     def parse(cls, fptr, offset, length):
         """Parse Resolution box.
@@ -2644,6 +2650,34 @@ class CaptureResolutionBox(Jp2kBox):
 
         return cls(vres, hres, length=length, offset=offset)
 
+    def write(self, fptr):
+        """Write a CaptureResolution box to file.
+        """
+
+        # 4 bytes for length, 4 for the ID, always 10 bytes for the payload
+        length = 18
+
+        fptr.write(struct.pack('>I4s', length, b'resc'))
+
+        # determine the best representation for the vertical resolution
+        re1 = max(np.log10(self.vertical_resolution), 0)
+        re1 = int(np.round(re1))
+        f = self.vertical_resolution / 10 ** re1
+        vf = fractions.Fraction(f).limit_denominator(65535)
+        rn1 = vf.numerator
+        rd1 = vf.denominator
+
+        # determine the best representation for the horizontal resolution
+        re2 = max(np.log10(self.horizontal_resolution), 0)
+        re2 = int(np.round(re2))
+        f = self.horizontal_resolution / 10 ** re2
+        hf = fractions.Fraction(f).limit_denominator(65535)
+        rn2 = hf.numerator
+        rd2 = hf.denominator
+
+        buffer = struct.pack('>HHHHbb', rn1, rd1, rn2, rd2, re1, re2)
+        fptr.write(buffer)
+
 
 class DisplayResolutionBox(Jp2kBox):
     """Container for Display resolution box information.
@@ -2720,6 +2754,34 @@ class DisplayResolutionBox(Jp2kBox):
         hres = rn2 / rd2 * 10 ** re2
 
         return cls(vres, hres, length=length, offset=offset)
+
+    def write(self, fptr):
+        """Write a DisplayResolution box to file.
+        """
+
+        # 4 bytes for length, 4 for the ID, always 10 bytes for the payload
+        length = 18
+
+        fptr.write(struct.pack('>I4s', length, b'resd'))
+
+        # determine the best representation for the vertical resolution
+        re1 = max(np.log10(self.vertical_resolution), 0)
+        re1 = int(np.round(re1))
+        f = self.vertical_resolution / 10 ** re1
+        vf = fractions.Fraction(f).limit_denominator(65535)
+        rn1 = vf.numerator
+        rd1 = vf.denominator
+
+        # determine the best representation for the horizontal resolution
+        re2 = max(np.log10(self.horizontal_resolution), 0)
+        re2 = int(np.round(re2))
+        f = self.horizontal_resolution / 10 ** re2
+        hf = fractions.Fraction(f).limit_denominator(65535)
+        rn2 = hf.numerator
+        rd2 = hf.denominator
+
+        buffer = struct.pack('>HHHHbb', rn1, rd1, rn2, rd2, re1, re2)
+        fptr.write(buffer)
 
 
 class LabelBox(Jp2kBox):

@@ -418,6 +418,79 @@ class TestFileTypeBox(fixtures.TestCommon):
                 Jp2k(tfile.name)
 
 
+class TestResolutionBoxes(fixtures.TestCommon):
+    """
+    Test suite for resolution boxes
+    """
+    def test_repr(self):
+        """
+        Verify __repr__ method on resolution boxes.
+        """
+        resc = glymur.jp2box.CaptureResolutionBox(0.5, 2.5)
+        resd = glymur.jp2box.DisplayResolutionBox(2.5, 0.5)
+        res_super_box = glymur.jp2box.ResolutionBox(box=[resc, resd])
+
+        newbox = eval(repr(res_super_box))
+
+        self.assertEqual(newbox.box_id, 'res ')
+        self.assertEqual(newbox.box[0].box_id, 'resc')
+        self.assertEqual(newbox.box[0].vertical_resolution, 0.5)
+        self.assertEqual(newbox.box[0].horizontal_resolution, 2.5)
+        self.assertEqual(newbox.box[1].box_id, 'resd')
+        self.assertEqual(newbox.box[1].vertical_resolution, 2.5)
+        self.assertEqual(newbox.box[1].horizontal_resolution, 0.5)
+
+    def test_resolution_superbox(self):
+        """
+        SCENARIO:  write a resolution superbox
+
+        Expected Results:  do not error out, can parse the written box
+        """
+        vres = 0.5
+        hres = 2.5
+        resc = glymur.jp2box.CaptureResolutionBox(vres, hres)
+        resd = glymur.jp2box.DisplayResolutionBox(vres, hres)
+        rbox = glymur.jp2box.ResolutionBox(box=[resc, resd])
+
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
+            rbox.write(tfile)
+
+        with open(self.temp_jp2_filename, mode='rb') as tfile:
+            tfile.seek(8)
+            rbox_read = glymur.jp2box.ResolutionBox.parse(tfile, 0, 44)
+
+        self.assertEqual(rbox_read.box[0].vertical_resolution, vres)
+        self.assertEqual(rbox_read.box[0].horizontal_resolution, hres)
+        self.assertEqual(rbox_read.box[1].vertical_resolution, vres)
+        self.assertEqual(rbox_read.box[1].horizontal_resolution, hres)
+
+    def test_write_capture_resolution_box_high_res(self):
+        """
+        SCENARIO:  write a capture resolution box with no information other
+        than the floating point components.  The components have a very high
+        resolution.
+
+        Expected Results:  do not error out, can parse the written box
+        """
+        vres = 5555555555.44444
+        hres = 3333444444.44444
+        resc = glymur.jp2box.CaptureResolutionBox(vres, hres)
+
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
+            resc.write(tfile)
+
+        with open(self.temp_jp2_filename, mode='rb') as tfile:
+            tfile.seek(8)
+            resc_read = glymur.jp2box.CaptureResolutionBox.parse(tfile, 8, 18)
+
+        np.testing.assert_allclose(
+            vres, resc_read.vertical_resolution, rtol=1e-6
+        )
+        np.testing.assert_allclose(
+            hres, resc_read.horizontal_resolution, rtol=1e-6
+        )
+
+
 class TestPaletteBox(fixtures.TestCommon):
     """Test suite for pclr box instantiation."""
 
@@ -1178,22 +1251,6 @@ class TestRepr(MetadataBase):
         self.assertEqual(newbox.component_index, (0, 0, 0))
         self.assertEqual(newbox.mapping_type, (1, 1, 1))
         self.assertEqual(newbox.palette_index, (0, 1, 2))
-
-    def test_resolution_boxes(self):
-        """Verify __repr__ method on resolution boxes."""
-        resc = glymur.jp2box.CaptureResolutionBox(0.5, 2.5)
-        resd = glymur.jp2box.DisplayResolutionBox(2.5, 0.5)
-        res_super_box = glymur.jp2box.ResolutionBox(box=[resc, resd])
-
-        newbox = eval(repr(res_super_box))
-
-        self.assertEqual(newbox.box_id, 'res ')
-        self.assertEqual(newbox.box[0].box_id, 'resc')
-        self.assertEqual(newbox.box[0].vertical_resolution, 0.5)
-        self.assertEqual(newbox.box[0].horizontal_resolution, 2.5)
-        self.assertEqual(newbox.box[1].box_id, 'resd')
-        self.assertEqual(newbox.box[1].vertical_resolution, 2.5)
-        self.assertEqual(newbox.box[1].horizontal_resolution, 0.5)
 
     def test_label_box(self):
         """Verify __repr__ method on label box."""
