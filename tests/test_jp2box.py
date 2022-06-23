@@ -472,8 +472,34 @@ class TestResolutionBoxes(fixtures.TestCommon):
 
         Expected Results:  do not error out, can parse the written box
         """
-        vres = 5555555555.44444
+        vres = 1.8738870547679375e+29
         hres = 3333444444.44444
+        resc = glymur.jp2box.CaptureResolutionBox(vres, hres)
+
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
+            resc.write(tfile)
+
+        with open(self.temp_jp2_filename, mode='rb') as tfile:
+            tfile.seek(8)
+            resc_read = glymur.jp2box.CaptureResolutionBox.parse(tfile, 8, 18)
+
+        np.testing.assert_allclose(
+            vres, resc_read.vertical_resolution, rtol=1e-6
+        )
+        np.testing.assert_allclose(
+            hres, resc_read.horizontal_resolution, rtol=1e-6
+        )
+
+    def test_write_capture_resolution_box_low_res(self):
+        """
+        SCENARIO:  write a capture resolution box with no information other
+        than the floating point components.  The components have a very low
+        resolution.
+
+        Expected Results:  do not error out, can parse the written box
+        """
+        vres = 1.8738870547679375e-29
+        hres = 0.333344444444444
         resc = glymur.jp2box.CaptureResolutionBox(vres, hres)
 
         with open(self.temp_jp2_filename, mode='wb') as tfile:

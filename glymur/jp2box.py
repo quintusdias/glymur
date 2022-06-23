@@ -12,13 +12,15 @@ References
 """
 
 # Standard library imports ...
-import fractions
+from fractions import Fraction
 import io
+from numbers import Number
 import os
 import pprint
 import struct
 import sys
 import textwrap
+from typing import Tuple
 from uuid import UUID
 import warnings
 
@@ -2659,21 +2661,8 @@ class CaptureResolutionBox(Jp2kBox):
 
         fptr.write(struct.pack('>I4s', length, b'resc'))
 
-        # determine the best representation for the vertical resolution
-        re1 = max(np.log10(self.vertical_resolution), 0)
-        re1 = int(np.round(re1))
-        f = self.vertical_resolution / 10 ** re1
-        vf = fractions.Fraction(f).limit_denominator(65535)
-        rn1 = vf.numerator
-        rd1 = vf.denominator
-
-        # determine the best representation for the horizontal resolution
-        re2 = max(np.log10(self.horizontal_resolution), 0)
-        re2 = int(np.round(re2))
-        f = self.horizontal_resolution / 10 ** re2
-        hf = fractions.Fraction(f).limit_denominator(65535)
-        rn2 = hf.numerator
-        rd2 = hf.denominator
+        re1, rn1, rd1 = decompose_resolution(self.vertical_resolution)
+        re2, rn2, rd2 = decompose_resolution(self.horizontal_resolution)
 
         buffer = struct.pack('>HHHHbb', rn1, rd1, rn2, rd2, re1, re2)
         fptr.write(buffer)
@@ -2764,21 +2753,8 @@ class DisplayResolutionBox(Jp2kBox):
 
         fptr.write(struct.pack('>I4s', length, b'resd'))
 
-        # determine the best representation for the vertical resolution
-        re1 = max(np.log10(self.vertical_resolution), 0)
-        re1 = int(np.round(re1))
-        f = self.vertical_resolution / 10 ** re1
-        vf = fractions.Fraction(f).limit_denominator(65535)
-        rn1 = vf.numerator
-        rd1 = vf.denominator
-
-        # determine the best representation for the horizontal resolution
-        re2 = max(np.log10(self.horizontal_resolution), 0)
-        re2 = int(np.round(re2))
-        f = self.horizontal_resolution / 10 ** re2
-        hf = fractions.Fraction(f).limit_denominator(65535)
-        rn2 = hf.numerator
-        rd2 = hf.denominator
+        re1, rn1, rd1 = decompose_resolution(self.vertical_resolution)
+        re2, rn2, rd2 = decompose_resolution(self.horizontal_resolution)
 
         buffer = struct.pack('>HHHHbb', rn1, rd1, rn2, rd2, re1, re2)
         fptr.write(buffer)
@@ -3721,3 +3697,56 @@ _BOX_WITH_ID = {
     b'url ': DataEntryURLBox,
     b'uuid': UUIDBox,
     b'xml ': XMLBox}
+
+
+def decompose_resolution(value: Number) -> Tuple[int, int, int]:
+    """Method by John-P (John Pocock)
+    Find an integer fraction and exponent representation of a number.
+    The result is of the form:
+    (numerator / denominator) * 10 ** exponent
+    The numerator and denominator are both 16-bit unsigned integers.
+    The exponent is a signed integer (between -128 and 127).
+    Args:
+        value:
+            A number to be represented as a fraction.
+    Returns:
+        A tuple of the form (numerator, denominator, exponent).
+    """
+    frac = Fraction(value)
+    max_allowed_frac = Fraction(2**15 - 1)
+    min_allowed_frac = 1 / max_allowed_frac
+    exponent = 0
+
+    # Shift the fraction into a normal range
+    while frac < min_allowed_frac:
+        exponent -= 1
+        frac *= 10
+    while frac > max_allowed_frac:
+        exponent += 1
+        frac /= 10
+
+    # Limit the denominator to 16 bits
+    frac = frac.limit_denominator(2**16 - 1)
+
+    # Adjust the exponent to make numerator fit in 16-bits
+    for _ in range(127):
+        if frac.numerator < 2**16 - 1:
+            break
+        exponent += 1
+        frac /= 10
+        frac = frac.limit_denominator(2**16 - 1)
+
+    # Give up if invalid at this point
+    if any(
+        [
+            frac.numerator > 2**16 - 1,
+            frac.denominator > 2**16 - 1,
+            exponent > 127,
+            exponent < -128,
+        ]
+    ):
+        raise ValueError(
+            "Could not represent resolution as an integer fraction."
+        )
+
+    return exponent, frac.numerator, frac.denominator
