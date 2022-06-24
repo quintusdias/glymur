@@ -19,12 +19,6 @@ environment:
       CONDA_NPY: "21"
 
     - CONDA_ROOT: "C:\\Miniconda3_64"
-      PYTHON_VERSION: "3.8"
-      PYTHON_ARCH: "64"
-      CONDA_PY: "38"
-      CONDA_NPY: "21"
-
-    - CONDA_ROOT: "C:\\Miniconda3_64"
       PYTHON_VERSION: "3.9"
       PYTHON_ARCH: "64"
       CONDA_PY: "39"
