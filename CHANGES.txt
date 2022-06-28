@@ -1,3 +1,7 @@
+June 28, 2022 - v0.10.1
+    Add write capability for Resolution boxes
+    Add example documentation for reading layers
+
 June 15, 2022 - v0.10.0
     Allow parsing of Exif UUIDs missing the EXIF\00\00 lead-in
     Add read support for additional Exif tags
