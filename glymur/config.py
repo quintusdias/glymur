@@ -36,7 +36,7 @@ def glymurrc_fname():
 
 def _determine_full_path(libname):
     """
-    Try to determine the path to the openjp2 library.
+    Try to determine the path to the library.
 
     Parameters
     ----------
@@ -116,8 +116,7 @@ def glymur_config(libname):
 
     Returns
     -------
-    tuple
-        tuple of library handles
+    loaded shared library
     """
     path = _determine_full_path(libname)
 
