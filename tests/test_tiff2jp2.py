@@ -38,7 +38,7 @@ class TestSuite(fixtures.TestCommon):
         fp = libtiff.open(path, mode='w')
 
         libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
         libtiff.setField(fp, 'ImageLength', data.shape[0])
         libtiff.setField(fp, 'ImageWidth', data.shape[1])
         libtiff.setField(fp, 'TileLength', th)
@@ -89,7 +89,7 @@ class TestSuite(fixtures.TestCommon):
         fp = libtiff.open(path, mode='w')
 
         libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
         libtiff.setField(fp, 'ImageLength', h)
         libtiff.setField(fp, 'ImageWidth', w)
         libtiff.setField(fp, 'TileLength', th)
@@ -121,7 +121,7 @@ class TestSuite(fixtures.TestCommon):
         fp = libtiff.open(path, mode='w')
 
         libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
         libtiff.setField(fp, 'ImageLength', data.shape[0])
         libtiff.setField(fp, 'ImageWidth', data.shape[1])
         libtiff.setField(fp, 'TileLength', th)
@@ -159,7 +159,7 @@ class TestSuite(fixtures.TestCommon):
         fp = libtiff.open(path, mode='w')
 
         libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
         libtiff.setField(fp, 'ImageLength', data.shape[0])
         libtiff.setField(fp, 'ImageWidth', data.shape[1])
         libtiff.setField(fp, 'RowsPerStrip', rps)
@@ -191,7 +191,7 @@ class TestSuite(fixtures.TestCommon):
         fp = libtiff.open(path, mode='w')
 
         libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
         libtiff.setField(fp, 'ImageLength', data.shape[0])
         libtiff.setField(fp, 'ImageWidth', data.shape[1])
         libtiff.setField(fp, 'RowsPerStrip', rps)
@@ -223,7 +223,7 @@ class TestSuite(fixtures.TestCommon):
         fp = libtiff.open(path, mode='w')
 
         libtiff.setField(fp, 'Photometric', libtiff.Photometric.RGB)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
         libtiff.setField(fp, 'ImageLength', data.shape[0])
         libtiff.setField(fp, 'ImageWidth', data.shape[1])
         libtiff.setField(fp, 'TileLength', th)
@@ -328,7 +328,7 @@ class TestSuite(fixtures.TestCommon):
         fp = libtiff.open(path, mode='w8')
 
         libtiff.setField(fp, 'Photometric', libtiff.Photometric.RGB)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
         libtiff.setField(fp, 'ImageLength', data.shape[0])
         libtiff.setField(fp, 'ImageWidth', data.shape[1])
         libtiff.setField(fp, 'TileLength', th)
@@ -379,7 +379,7 @@ class TestSuite(fixtures.TestCommon):
         fp = libtiff.open(path, mode='w')
 
         libtiff.setField(fp, 'Photometric', libtiff.Photometric.RGB)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
         libtiff.setField(fp, 'ImageLength', data.shape[0])
         libtiff.setField(fp, 'ImageWidth', data.shape[1])
         libtiff.setField(fp, 'TileLength', th)
@@ -829,7 +829,7 @@ class TestSuite(fixtures.TestCommon):
         fp = libtiff.open(self.temp_tiff_filename, mode='w')
 
         libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
         libtiff.setField(fp, 'SampleFormat', libtiff.SampleFormat.UINT)
         libtiff.setField(fp, 'ImageLength', data.shape[0])
         libtiff.setField(fp, 'ImageWidth', data.shape[1])
@@ -863,7 +863,7 @@ class TestSuite(fixtures.TestCommon):
         fp = libtiff.open(self.temp_tiff_filename, mode='w')
 
         libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
         libtiff.setField(fp, 'SampleFormat', libtiff.SampleFormat.IEEEFP)
         libtiff.setField(fp, 'ImageLength', data.shape[0])
         libtiff.setField(fp, 'ImageWidth', data.shape[1])
@@ -1232,7 +1232,7 @@ class TestSuite(fixtures.TestCommon):
         fp = libtiff.open(self.temp_tiff_filename, mode='w')
 
         libtiff.setField(fp, 'Photometric', libtiff.Photometric.SEPARATED)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
         libtiff.setField(fp, 'ImageLength', data.shape[0])
         libtiff.setField(fp, 'ImageWidth', data.shape[1])
         libtiff.setField(fp, 'RowsPerStrip', rps)
@@ -1276,7 +1276,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         fp = libtiff.open(path, mode='w')
 
         libtiff.setField(fp, 'Photometric', libtiff.Photometric.RGB)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
         libtiff.setField(fp, 'ImageLength', data.shape[0])
         libtiff.setField(fp, 'ImageWidth', data.shape[1])
         libtiff.setField(fp, 'RowsPerStrip', rps)

@@ -26,7 +26,7 @@ class TestSuite(fixtures.TestCommon):
         fp = libtiff.open(self.temp_tiff_filename, mode='w')
 
         libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.DEFLATE)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
         libtiff.setField(fp, 'ImageLength', data.shape[0])
         libtiff.setField(fp, 'ImageWidth', data.shape[1])
         libtiff.setField(fp, 'TileLength', th)

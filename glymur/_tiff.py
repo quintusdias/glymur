@@ -292,7 +292,7 @@ class ExifImageIfd(Ifd):
         36881: 'OffsetTimeOriginal',
         36882: 'OffsetTimeDigitized',
         36867: 'DateTimeOriginal',
-        36867: 'DateTimeDigitized',
+        36868: 'DateTimeDigitized',
         37121: 'ComponentsConfiguration',
         37122: 'CompressedBitsPerPixel',
         37377: 'ShutterSpeedValue',
