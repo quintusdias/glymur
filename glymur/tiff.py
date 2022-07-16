@@ -108,7 +108,7 @@ class Tiff2Jp2k(object):
         data = struct.pack('<BBHI', 73, 73, 42, 8)
         b.write(data)
 
-        self._process_tags(b)
+        self._process_tags(b, self.tags)
 
         if self.found_geotiff_tags:
             # geotiff UUID
@@ -136,104 +136,128 @@ class Tiff2Jp2k(object):
 
         with open(self.tiff_filename, 'rb') as tfp:
 
-            self.get_endianness(tfp)
+            self.read_tiff_header(tfp)
 
-            self.found_geotiff_tags = False
+            self.tags = self.read_ifd(tfp)
 
-            tag_length = 20 if self.version == _BIGTIFF else 12
+            if 34665 in self.tags:
+                # we have an EXIF IFD
+                offset = self.tags[34665]['payload'][0]
+                tfp.seek(offset)
+                exif_ifd = self.read_ifd(tfp)
 
-            # how many tags?
-            if self.version == _BIGTIFF:
-                buffer = tfp.read(8)
-                num_tags, = struct.unpack(self.endian + 'Q', buffer)
+                self.tags[34665]['payload'] = exif_ifd
+
+    def read_ifd(self, tfp):
+        """
+        Process either the main IFD or an Exif IFD
+
+        Parameters
+        ----------
+        tfp : file-like
+            FILE pointer for TIFF
+
+        Returns
+        -------
+        dictionary of the TIFF IFD
+        """
+
+        self.found_geotiff_tags = False
+
+        tag_length = 20 if self.version == _BIGTIFF else 12
+
+        # how many tags?
+        if self.version == _BIGTIFF:
+            buffer = tfp.read(8)
+            num_tags, = struct.unpack(self.endian + 'Q', buffer)
+        else:
+            buffer = tfp.read(2)
+            num_tags, = struct.unpack(self.endian + 'H', buffer)
+
+        # Ok, so now we have the IFD main body, but following that we have
+        # the tag payloads that cannot fit into 4 bytes.
+
+        # the IFD main body in the TIFF.  As it might be big endian, we
+        # cannot just process it as one big chunk.
+        buffer = tfp.read(num_tags * tag_length)
+
+        if self.version == _BIGTIFF:
+            tag_format_str = self.endian + 'HHQQ'
+            tag_payload_offset = 12
+            max_tag_payload_length = 8
+        else:
+            tag_format_str = self.endian + 'HHII'
+            tag_payload_offset = 8
+            max_tag_payload_length = 4
+
+        tags = {}
+
+        for idx in range(num_tags):
+
+            self.logger.debug(f'tag #: {idx}')
+
+            tag_data = buffer[idx * tag_length:(idx + 1) * tag_length]
+
+            tag, dtype, nvalues, offset = struct.unpack(tag_format_str, tag_data)  # noqa : E501
+
+            if tag == 34735:
+                self.found_geotiff_tags = True
+
+            payload_length = tag_dtype[dtype]['nbytes'] * nvalues
+
+            if payload_length > max_tag_payload_length:
+                # the payload does not fit into the tag entry, so use the
+                # offset to seek to that position
+                current_position = tfp.tell()
+                tfp.seek(offset)
+                payload_buffer = tfp.read(payload_length)
+                tfp.seek(current_position)
+
+                # read the payload from the TIFF
+                payload_format = tag_dtype[dtype]['format'] * nvalues
+                payload = struct.unpack(
+                    self.endian + payload_format, payload_buffer
+                )
+
             else:
-                buffer = tfp.read(2)
-                num_tags, = struct.unpack(self.endian + 'H', buffer)
+                # the payload DOES fit into the TIFF tag entry
+                payload_buffer = tag_data[tag_payload_offset:]
 
-            # Ok, so now we have the IFD main body, but following that we have
-            # the tag payloads that cannot fit into 4 bytes.
+                # read ALL of the payload buffer
+                fmt = tag_dtype[dtype]['format']
+                num_items = (
+                    int(max_tag_payload_length / tag_dtype[dtype]['nbytes'])
+                )
+                payload_format = self.endian + fmt * num_items
+                payload = struct.unpack(payload_format, payload_buffer)
 
-            # the IFD main body in the TIFF.  As it might be big endian, we
-            # cannot just process it as one big chunk.
-            buffer = tfp.read(num_tags * tag_length)
-
-            if self.version == _BIGTIFF:
-                tag_format_str = self.endian + 'HHQQ'
-                tag_payload_offset = 12
-                max_tag_payload_length = 8
-            else:
-                tag_format_str = self.endian + 'HHII'
-                tag_payload_offset = 8
-                max_tag_payload_length = 4
-
-            self.tags = {}
-
-            for idx in range(num_tags):
-
-                self.logger.debug(f'tag #: {idx}')
-
-                tag_data = buffer[idx * tag_length:(idx + 1) * tag_length]
-
-                tag, dtype, nvalues, offset = struct.unpack(tag_format_str, tag_data)  # noqa : E501
-
-                if tag == 34735:
-                    self.found_geotiff_tags = True
-
-                payload_length = tag_dtype[dtype]['nbytes'] * nvalues
-
-                if payload_length > max_tag_payload_length:
-                    # the payload does not fit into the tag entry, so use the
-                    # offset to seek to that position
-                    current_position = tfp.tell()
-                    tfp.seek(offset)
-                    payload_buffer = tfp.read(payload_length)
-                    tfp.seek(current_position)
-
-                    # read the payload from the TIFF
-                    payload_format = tag_dtype[dtype]['format'] * nvalues
-                    payload = struct.unpack(
-                        self.endian + payload_format, payload_buffer
-                    )
-
+                # Extract the actual payload.  Two things going
+                # on here.  First of all, not all of the items may
+                # be used.  For example, if the payload length is
+                # 4 bytes but the format string was HHH, the that
+                # last 16 bit value is not wanted, so we should
+                # discard it.  Second thing is that the signed and
+                # unsigned rational datatypes effectively have twice
+                # the number of values so we need to account for that.
+                if dtype in [5, 10]:
+                    payload = payload[:2 * nvalues]
                 else:
-                    # the payload DOES fit into the TIFF tag entry
-                    payload_buffer = tag_data[tag_payload_offset:]
+                    payload = payload[:nvalues]
 
-                    # read ALL of the payload buffer
-                    payload_format = (
-                        tag_dtype[dtype]['format']
-                        * int(max_tag_payload_length / tag_dtype[dtype]['nbytes'])  # noqa : E501
-                    )
+            tags[tag] = {
+                'dtype': dtype,
+                'nvalues': nvalues,
+                'payload': payload
+            }
 
-                    payload = struct.unpack(
-                        self.endian + payload_format, payload_buffer
-                    )
+        return tags
 
-                    # Extract the actual payload.  Two things going
-                    # on here.  First of all, not all of the items may
-                    # be used.  For example, if the payload length is
-                    # 4 bytes but the format string was HHH, the that
-                    # last 16 bit value is not wanted, so we should
-                    # discard it.  Second thing is that the signed and
-                    # unsigned rational datatypes effectively have twice
-                    # the number of values so we need to account for that.
-                    if dtype in [5, 10]:
-                        payload = payload[:2 * nvalues]
-                    else:
-                        payload = payload[:nvalues]
-
-                self.tags[tag] = {
-                    'dtype': dtype,
-                    'nvalues': nvalues,
-                    'payload': payload
-                }
-
-    def _process_tags(self, b):
+    def _process_tags(self, b, tags):
 
         # keep this for writing to the UUID, which will always be 32-bit
         little_tiff_tag_length = 12
 
-        num_tags = len(self.tags)
+        num_tags = len(tags)
 
         write_buffer = struct.pack('<H', num_tags)
         b.write(write_buffer)
@@ -244,21 +268,23 @@ class Tiff2Jp2k(object):
         # the IFD main body in the TIFF.  As it might be big endian, we cannot
         # just process it as one big chunk.
 
-        tag_start_loc = b.tell()
-        after_ifd_position = tag_start_loc + num_tags * little_tiff_tag_length
+        ifd_start_loc = b.tell()
+        after_ifd_position = ifd_start_loc + num_tags * little_tiff_tag_length
 
         # We write a little-TIFF IFD
         max_tag_payload_length = 4
 
-        for idx, tag in enumerate(self.tags):
+        for idx, tag in enumerate(tags):
 
-            self.logger.debug(f'tag #: {tag}')
+            tag_offset = ifd_start_loc + idx * little_tiff_tag_length
+            self.logger.debug(f'tag #: {tag}, writing to {tag_offset}')
+            self.logger.debug(f'tag #: {tag}, after IFD {after_ifd_position}')
 
-            b.seek(tag_start_loc + idx * little_tiff_tag_length)
+            b.seek(tag_offset)
 
-            dtype = self.tags[tag]['dtype']
-            nvalues = self.tags[tag]['nvalues']
-            payload = self.tags[tag]['payload']
+            dtype = tags[tag]['dtype']
+            nvalues = tags[tag]['nvalues']
+            payload = tags[tag]['payload']
 
             payload_length = tag_dtype[dtype]['nbytes'] * nvalues
 
@@ -291,54 +317,38 @@ class Tiff2Jp2k(object):
             else:
                 # the payload DOES fit into the TIFF tag entry
 
-                # read ALL of the payload buffer
                 payload_format = (
                     tag_dtype[dtype]['format']
                     * int(max_tag_payload_length / tag_dtype[dtype]['nbytes'])
                 )
 
-                # Does it fit into the UUID tag entry (4 bytes)?
-                if payload_length <= 4:
+                # the payload DOES fit into the UUID tag entry
 
-                    # so write it back into the tag entry in the UUID
-                    outbuffer = struct.pack('<HHI', tag, dtype, nvalues)
+                # so write it back into the tag entry in the UUID
+                outbuffer = struct.pack('<HHI', tag, dtype, nvalues)
+                b.write(outbuffer)
+
+                payload_format = tag_dtype[dtype]['format'] * nvalues
+
+                # we may need to alter the output format
+                if payload_format in ['H', 'B', 'I']:
+                    # just write it as an integer
+                    payload_format = 'I'
+
+                if tag == 34665:
+                    # special case for an EXIF IFD
+                    outbuffer = struct.pack('<I', after_ifd_position)
                     b.write(outbuffer)
-
-                    payload_format = tag_dtype[dtype]['format'] * nvalues
-
-                    # we may need to alter the output format
-                    if payload_format in ['H', 'B', 'I']:
-                        # just write it as an integer
-                        payload_format = 'I'
-
+                    b.seek(after_ifd_position)
+                    self._process_tags(b, payload)
+                else:
+                    # write a normal tag
                     outbuffer = struct.pack('<' + payload_format, *payload)
                     b.write(outbuffer)
 
-                else:
-
-                    # UUID:  write the tag entry after the IFD
-                    new_offset = after_ifd_position
-                    outbuffer = struct.pack(
-                        '<HHII', tag, dtype, nvalues, new_offset
-                    )
-                    b.write(outbuffer)
-
-                    # now write the payload at the outlying position and then
-                    # come back to the same position in the file stream
-                    cpos = b.tell()
-                    b.seek(new_offset)
-
-                    out_format = '<' + tag_dtype[dtype]['format'] * nvalues
-                    outbuffer = struct.pack(out_format, *payload)
-                    b.write(outbuffer)
-
-                    # keep track of the next position to write out-of-IFD data
-                    after_ifd_position = b.tell()
-                    b.seek(cpos)
-
-    def get_endianness(self, tfp):
+    def read_tiff_header(self, tfp):
         """
-        Set the endian-ness of the TIFF
+        Get the endian-ness of the TIFF, seek to the main IFD
         """
 
         buffer = tfp.read(4)

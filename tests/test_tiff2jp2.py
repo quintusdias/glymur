@@ -3,6 +3,7 @@ import importlib.resources as ir
 import logging
 import pathlib
 import shutil
+import struct
 import sys
 import tempfile
 import unittest
@@ -25,6 +26,121 @@ from glymur.lib import tiff as libtiff
 )
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 class TestSuite(fixtures.TestCommon):
+
+    @classmethod
+    def setup_exif(cls, path):
+        """
+        Create a simple TIFF file that is constructed to contain an EXIF IFD.
+        """
+
+        with path.open(mode='wb') as f:
+
+            w = 256
+            h = 256
+            rps = 64
+            header_length = 8
+
+            # write the header (8 bytes).  The IFD will follow the image data
+            # (256x256 bytes), so the offset to the IFD will be 8 + h * w.
+            main_ifd_offset = header_length + h * w
+            buffer = struct.pack('<BBHI', 73, 73, 42, main_ifd_offset)
+            f.write(buffer)
+
+            # write the image data, 4 64x256 strips of all zeros
+            strip = bytes([0] * rps * w)
+            f.write(strip)
+            f.write(strip)
+            f.write(strip)
+            f.write(strip)
+
+            # write a minimal IFD.  with 10 tags
+            main_ifd_data_offset = main_ifd_offset + 2 + 10 * 12 + 4
+
+            buffer = struct.pack('<H', 10)
+            f.write(buffer)
+
+            # width and length and bitspersample
+            buffer = struct.pack('<HHII', 256, 4, 1, w)
+            f.write(buffer)
+            buffer = struct.pack('<HHII', 257, 4, 1, h)
+            f.write(buffer)
+            buffer = struct.pack('<HHII', 258, 4, 1, 8)
+            f.write(buffer)
+
+            # photometric
+            buffer = struct.pack('<HHII', 262, 4, 1, 1)
+            f.write(buffer)
+
+            # strip offsets
+            buffer = struct.pack('<HHII', 273, 4, 4, main_ifd_data_offset)
+            f.write(buffer)
+
+            # spp
+            buffer = struct.pack('<HHII', 277, 4, 1, 1)
+            f.write(buffer)
+
+            # rps
+            buffer = struct.pack('<HHII', 278, 4, 1, 64)
+            f.write(buffer)
+
+            # strip byte counts
+            buffer = struct.pack('<HHII', 279, 4, 4, main_ifd_data_offset + 16)
+            f.write(buffer)
+
+            # XMP
+            with ir.path('tests.data', 'issue555.xmp') as xmp_path:
+                with xmp_path.open() as f2:
+                    xmp = f2.read()
+                    xmp = xmp + '\0'
+            buffer = struct.pack(
+                '<HHII', 700, 1, len(xmp), main_ifd_data_offset + 32
+            )
+            f.write(buffer)
+
+            # exif tag
+            exif_ifd_offset = main_ifd_data_offset + 32 + len(xmp)
+            buffer = struct.pack('<HHII', 34665, 4, 1, exif_ifd_offset)
+            f.write(buffer)
+
+            # terminate the IFD
+            buffer = struct.pack('<I', 0)
+            f.write(buffer)
+
+            # write the strip offsets here
+            buffer = struct.pack(
+                '<IIII', 8, 8 + rps*w, 8 + 2*rps*w, 8 + 3*rps*w
+            )
+            f.write(buffer)
+
+            # write the strip byte counts
+            buffer = struct.pack('<IIII', rps*w, rps*w, rps*w, rps*w)
+            f.write(buffer)
+
+            # write the XMP data
+            f.write(xmp.encode('utf-8'))
+
+            # write a minimal Exif IFD
+            buffer = struct.pack('<H', 2)
+            f.write(buffer)
+
+            # exposure program
+            buffer = struct.pack('<HHIHH', 34850, 3, 1, 2, 0)
+            f.write(buffer)
+
+            # lens model
+            data_location = exif_ifd_offset + 2 + 2*12 + 4
+            buffer = struct.pack('<HHII', 42036, 2, 6, data_location)
+            f.write(buffer)
+
+            # terminate the IFD
+            buffer = struct.pack('<I', 0)
+            f.write(buffer)
+
+            data = 'Canon\0'.encode('utf-8')
+            buffer = struct.pack('<BBBBBB', *data)
+            f.write(buffer)
+
+        cls.exif_tiff = path
 
     @classmethod
     def setup_minisblack_spp1(cls, path):
@@ -423,6 +539,8 @@ class TestSuite(fixtures.TestCommon):
         cls.test_tiff_dir = tempfile.mkdtemp()
         cls.test_tiff_path = pathlib.Path(cls.test_tiff_dir)
 
+        cls.setup_exif(cls.test_tiff_path / 'exif.tif')
+
         cls.setup_minisblack_spp1(cls.test_tiff_path / 'moon.tif')
 
         cls.setup_minisblack_3x3(cls.test_tiff_path / 'minisblack_3x3.tif')
@@ -447,6 +565,23 @@ class TestSuite(fixtures.TestCommon):
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree(cls.test_tiff_dir)
+
+    def test_exif(self):
+        """
+        Scenario:  Convert TIFF with Exif IFD to JP2
+
+        Expected Result:  No errors.  The Exif LensModel tag is recoverable
+        from the UUIDbox.
+        """
+        with Tiff2Jp2k(
+            self.exif_tiff, self.temp_jp2_filename, verbosity=logging.DEBUG
+        ) as p:
+            p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        tags = j.box[-1].data
+        self.assertEqual(tags['ExifTag']['LensModel'], 'Canon')
 
     def test_smoke(self):
         """
