@@ -1,3 +1,9 @@
+July 16, 2022 - v0.10.2
+    Fix appveyor builds
+    Fix tiff2jp2 when ExifTag is present
+    Address warnings in TIFF interface
+    Update glymur.config documentation
+    
 June 28, 2022 - v0.10.1
     Add write capability for Resolution boxes
     Add example documentation for reading layers
