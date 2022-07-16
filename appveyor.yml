@@ -23,18 +23,21 @@ environment:
       PYTHON_ARCH: "64"
       CONDA_PY: "38"
       CONDA_NPY: "21"
+      USE_PATH_FOR_GDAL_PYTHON: "YES"
 
     - CONDA_ROOT: "C:\\Miniconda3_64"
       PYTHON_VERSION: "3.9"
       PYTHON_ARCH: "64"
       CONDA_PY: "39"
       CONDA_NPY: "21"
+      USE_PATH_FOR_GDAL_PYTHON: "YES"
 
     - CONDA_ROOT: "C:\\Miniconda3_64"
       PYTHON_VERSION: "3.10"
       PYTHON_ARCH: "64"
       CONDA_PY: "310"
       CONDA_NPY: "21"
+      USE_PATH_FOR_GDAL_PYTHON: "YES"
 
 # We always use a 64-bit machine, but can build x86 distributions
 # with the PYTHON_ARCH variable (which is used by CMD_IN_ENV).
