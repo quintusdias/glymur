@@ -99,6 +99,15 @@ def tiff2jp2():
     }
     parser = argparse.ArgumentParser(**kwargs)
 
+    parser.add_argument('tifffile')
+    parser.add_argument('jp2kfile')
+
+    help = (
+        'Exclude a tag from EXIF UUID (if creating such a UUID).  This option '
+        'may be used multiple times.'
+    )
+    parser.add_argument('--exclude-tag', help=help, action='append')
+
     help = 'Dimensions of JP2K tile.'
     parser.add_argument(
         '--tilesize', nargs=2, type=int, help=help, metavar=('h', 'w')
@@ -157,9 +166,6 @@ def tiff2jp2():
     help = 'Do not create UUID box for TIFF metadata.'
     parser.add_argument('--nouuid', help=help, action='store_false')
 
-    parser.add_argument('tifffile')
-    parser.add_argument('jp2kfile')
-
     args = parser.parse_args()
 
     logging_level = getattr(logging, args.verbosity.upper())
@@ -171,6 +177,7 @@ def tiff2jp2():
         tiffpath, jp2kpath, tilesize=args.tilesize, verbosity=logging_level,
         cbsize=args.codeblocksize, cratios=args.cratio, numres=args.numres,
         plt=args.plt, eph=args.eph, sop=args.sop, prog=args.prog,
-        irreversible=args.irreversible, psnr=args.psnr, create_uuid=args.nouuid
+        irreversible=args.irreversible, psnr=args.psnr,
+        create_uuid=args.nouuid, exclude_tags=args.exclude_tag
     ) as j:
         j.run()

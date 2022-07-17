@@ -570,6 +570,46 @@ class TestSuite(fixtures.TestCommon):
     def tearDownClass(cls):
         shutil.rmtree(cls.test_tiff_dir)
 
+    def test_exclude_tags(self):
+        """
+        Scenario:  Convert TIFF to JP2, but exclude the StripByteCounts and
+        StripOffsets tags.
+
+        Expected Result:  No warnings, no errors.  The Exif LensModel tag is
+        recoverable from the UUIDbox.
+        """
+        with Tiff2Jp2k(
+            self.exif_tiff, self.temp_jp2_filename,
+            exclude_tags=[273, 'stripbytecounts']
+        ) as p:
+            p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        tags = j.box[-1].data
+        self.assertNotIn('StripByteCounts', tags)
+        self.assertNotIn('StripOffsets', tags)
+
+    def test_exclude_tags_camelcase(self):
+        """
+        Scenario:  Convert TIFF to JP2, but exclude the StripByteCounts and
+        StripOffsets tags.  Supply the argments as camel-case.
+
+        Expected Result:  No warnings, no errors.  The Exif LensModel tag is
+        recoverable from the UUIDbox.
+        """
+        with Tiff2Jp2k(
+            self.exif_tiff, self.temp_jp2_filename,
+            exclude_tags=['StripOffsets', 'StripByteCounts']
+        ) as p:
+            p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        tags = j.box[-1].data
+        self.assertNotIn('StripByteCounts', tags)
+        self.assertNotIn('StripOffsets', tags)
+
     def test_exif(self):
         """
         Scenario:  Convert TIFF with Exif IFD to JP2
@@ -1353,6 +1393,48 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].ysiz, 512)
         self.assertEqual(c.segment[1].xtsiz, 256)
         self.assertEqual(c.segment[1].ytsiz, 256)
+
+    def test_commandline_tiff2jp2_exclude_tags_numeric(self):
+        """
+        Scenario:  patch sys such that we can run the command line tiff2jp2
+        script.  Exclude TileByteCounts and TileByteOffsets, but provide those
+        tags as numeric values.
+
+        Expected Results:  Same as test_astronaut.
+        """
+        sys.argv = [
+            '', str(self.astronaut_tif), str(self.temp_jp2_filename),
+            '--tilesize', '256', '256',
+            '--exclude-tag', '324', '--exclude-tag', '325'
+        ]
+        command_line.tiff2jp2()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        tags = jp2.box[-1].data
+
+        self.assertNotIn('TileByteCounts', tags)
+        self.assertNotIn('TileOffsets', tags)
+
+    def test_commandline_tiff2jp2_exclude_tags(self):
+        """
+        Scenario:  patch sys such that we can run the command line tiff2jp2
+        script.  Exclude TileByteCounts and TileByteOffsets
+
+        Expected Results:  Same as test_astronaut.
+        """
+        sys.argv = [
+            '', str(self.astronaut_tif), str(self.temp_jp2_filename),
+            '--tilesize', '256', '256',
+            '--exclude-tag', 'tilebytecounts',
+            '--exclude-tag', 'tileoffsets'
+        ]
+        command_line.tiff2jp2()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        tags = jp2.box[-1].data
+
+        self.assertNotIn('TileByteCounts', tags)
+        self.assertNotIn('TileOffsets', tags)
 
     def test_cmyk(self):
         """
