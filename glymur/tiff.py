@@ -12,6 +12,11 @@ from uuid import UUID
 from glymur import Jp2k
 from .lib import tiff as libtiff
 from .jp2box import UUIDBox
+from ._tiff import TAGNUM2NAME
+
+# Create a mapping of tag names to tag numbers.  Make the tag names to be
+# lower-case because we need to compare against user-supplied tag names.
+TAGNAME2NUM = {v.lower(): k for k, v in TAGNUM2NAME.items()}
 
 
 # Map the numeric TIFF datatypes to the format string used by the struct module
@@ -48,6 +53,8 @@ class Tiff2Jp2k(object):
         Path to TIFF file.
     jp2_filename : path or str
         Path to JPEG 2000 file to be written.
+    jp2_kwargs : dict
+        Keyword arguments to pass along to the Jp2k constructor.
     tilesize : tuple
         The dimensions of a tile in the JP2K file.
     create_uuid : bool
@@ -58,8 +65,26 @@ class Tiff2Jp2k(object):
 
     def __init__(
         self, tiff_filename, jp2_filename, tilesize=None,
-        verbosity=logging.CRITICAL, create_uuid=True, **kwargs
+        verbosity=logging.CRITICAL, create_uuid=True, exclude_tags=None,
+        **kwargs
     ):
+        """
+        Parameters
+        ----------
+        create_uuid : bool
+            If true, create an EXIF UUID out of the TIFF metadata (tags)
+        exclude_tags : list or None
+            If not None and if create_uuid is True, exclude any listed tags
+            from the EXIF UUID.
+        tiff_filename : path or str
+            Path to TIFF file.
+        jp2_filename : path or str
+            Path to JPEG 2000 file to be written.
+        tilesize : tuple
+            The dimensions of a tile in the JP2K file.
+        verbosity : int
+            Set the level of logging, i.e. WARNING, INFO, etc.
+        """
 
         self.tiff_filename = tiff_filename
         if not self.tiff_filename.exists():
@@ -69,9 +94,68 @@ class Tiff2Jp2k(object):
         self.tilesize = tilesize
         self.create_uuid = create_uuid
 
-        self.kwargs = kwargs
+        self.exclude_tags = self._process_exclude_tags(exclude_tags)
+
+        self.jp2_kwargs = kwargs
 
         self.setup_logging(verbosity)
+
+    def _process_exclude_tags(self, exclude_tags):
+        """
+        The list of tags to exclude may be mixed type (str or integer).  There
+        is also the possibility that they may be capitalized differently than
+        our internal list, so the goal here is to convert them all to integer
+        values.
+
+        Parameters
+        ----------
+        exclude_tags : list or None
+            List of tags that are meant to be excluded from the EXIF UUID.
+
+        Returns
+        -------
+        list of numeric tag values
+        """
+        if exclude_tags is None:
+            return exclude_tags
+
+        lst = []
+
+        # first, make the tags all str datatype
+        # compare the tags as lower case for consistency's sake
+        exclude_tags = [
+            tag.lower() if isinstance(tag, str) else str(tag)
+            for tag in exclude_tags
+        ]
+
+        # If any tags were specified as strings, we need to convert them
+        # into tag numbers.
+        for tag in exclude_tags:
+
+            # convert from str to numeric
+            #
+            # is it a string like '325'?  then convert to integer 325
+            try:
+                tag_num = int(tag)
+            except ValueError:
+                # tag wasn't '325', but rather 'tilebytecounts',
+                # hopefully?  Try to map from the name back to the tag
+                # number.
+                try:
+                    tag_num = TAGNAME2NUM[tag]
+                except KeyError:
+                    msg = f"{tag} is not a recognized TIFF tag"
+                    warnings.warn(msg)
+                else:
+                    lst.append(tag_num)
+            else:
+                # tag really was something like '325', so we keep the
+                # numeric value
+                lst.append(tag_num)
+
+        exclude_tags = lst
+
+        return exclude_tags
 
     def setup_logging(self, verbosity):
         self.logger = logging.getLogger('tiff2jp2')
@@ -254,8 +338,14 @@ class Tiff2Jp2k(object):
 
     def _process_tags(self, b, tags):
 
-        # keep this for writing to the UUID, which will always be 32-bit
+        # keep this for writing to the UUID, which will always be for 32-bit
+        # TIFFs
         little_tiff_tag_length = 12
+
+        if self.exclude_tags is not None:
+            for tag in self.exclude_tags:
+                if tag in tags:
+                    tags.pop(tag)
 
         num_tags = len(tags)
 
@@ -521,7 +611,7 @@ class Tiff2Jp2k(object):
             self.jp2_filename,
             shape=(imageheight, imagewidth, spp),
             tilesize=self.tilesize,
-            **self.kwargs
+            **self.jp2_kwargs
         )
 
         if not libtiff.RGBAImageOK(self.tiff_fp):
