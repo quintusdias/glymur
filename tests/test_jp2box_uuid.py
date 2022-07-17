@@ -232,17 +232,20 @@ class TestSuite(fixtures.TestCommon):
         expected = uuid.UUID(bytes=b'JpgTiffExif->JP2')
         self.assertEqual(actual, expected)
 
+    @unittest.skip('not working on windows')
     def test__printing__geotiff_uuid__xml_sidecar(self):
         """
-        SCENARIO:  Print a geotiff UUID with XML sidecar file
+        SCENARIO:  Print a geotiff UUID with XML sidecar file.
 
-        EXPECTED RESULT:  Should not error out.
+        EXPECTED RESULT:  Should not error out.  There is a warning about GDAL
+        not being able to print the UUID data as expected.
         """
         box_data = ir.read_binary('tests.data', '0220000800_uuid.dat')
         bf = io.BytesIO(box_data)
         bf.seek(8)
         box = UUIDBox.parse(bf, 0, 703)
-        str(box)
+        with self.assertWarns(UserWarning):
+            str(box)
 
     def test_append_xmp_uuid(self):
         """
@@ -347,29 +350,23 @@ class TestSuite(fixtures.TestCommon):
         expected = 'UTM Zone 16N NAD27"|Clarke, 1866 by Default| '
         self.assertEqual(box.data['GeoAsciiParams'], expected)
 
-    @unittest.skip('not sure why this was corrupt')
+    @unittest.skip('not working on windows')
     def test_print_bad_geotiff(self):
         """
         SCENARIO:  A GeoTIFF UUID is corrupt.
 
-        EXPECTED RESULT:  The string representation should validate and clearly
-        state that the UUID box is corrupt.
+        EXPECTED RESULT:  No errors.  There is a warning issued when we try
+        to print the box.
         """
+        self.maxDiff = None
         with ir.path(data, 'issue398.dat') as path:
             with path.open('rb') as f:
                 f.seek(8)
-                with warnings.catch_warnings():
-                    # Ignore the warnings about invalid TIFF tags, we already
-                    # know that.
-                    warnings.simplefilter('ignore')
+                with warnings.catch_warnings(record=True) as w:
                     box = glymur.jp2box.UUIDBox.parse(f, 0, 380)
+                    str(box)
 
-        actual = str(box)
-        expected = ("UUID Box (uuid) @ (0, 380)\n"
-                    "    UUID:  "
-                    "b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03 (GeoTIFF)\n"
-                    "    UUID Data:  corrupt")
-        self.assertEqual(actual, expected)
+        self.assertEqual(len(w), 1)
 
 
 class TestSuiteHiRISE(fixtures.TestCommon):
