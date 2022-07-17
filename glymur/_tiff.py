@@ -31,7 +31,7 @@ def tiff_header(read_buffer):
     _, offset = struct.unpack(endian + 'HI', read_buffer[2:8])
 
     # This is the 'Exif Image' portion.
-    exif = ExifImageIfd(endian, read_buffer, offset)
+    exif = Ifd(endian, read_buffer, offset)
     return exif.processed_ifd
 
 
@@ -49,9 +49,6 @@ class Ifd(object):
     ----------
     read_buffer : bytes
         Raw byte stream consisting of the UUID data.
-    datatype2fmt : dictionary
-        Class attribute, maps the TIFF enumerated datatype to the python
-        datatype and data width.
     endian : str
         Either '<' for big-endian, or '>' for little-endian.
     num_tags : int
@@ -61,23 +58,6 @@ class Ifd(object):
     processed_ifd : dictionary
         Maps tag name to "mildly-interpreted" tag value.
     """
-    datatype2fmt = {
-        1: ('B', 1),
-        2: ('B', 1),
-        3: ('H', 2),
-        4: ('I', 4),
-        5: ('II', 8),
-        7: ('B', 1),
-        9: ('i', 4),
-        10: ('ii', 8),
-        11: ('f', 4),
-        12: ('d', 8),
-        13: ('I', 4),
-        16: ('Q', 8),
-        17: ('q', 8),
-        18: ('Q', 8)
-    }
-
     def __init__(self, endian, read_buffer, offset):
         self.endian = endian
         self.read_buffer = read_buffer
@@ -101,13 +81,15 @@ class Ifd(object):
             )
             self.raw_ifd[tag] = tag_data
 
+        self.post_process()
+
     def parse_tag(self, tag, dtype, count, offset_buf):
         """Interpret an Exif image tag data payload.
         """
 
         try:
-            fmt = self.datatype2fmt[dtype][0] * count
-            payload_size = self.datatype2fmt[dtype][1] * count
+            fmt = DATATYPE2FMT[dtype][0] * count
+            payload_size = DATATYPE2FMT[dtype][1] * count
         except KeyError:
             msg = f'Invalid TIFF tag datatype ({dtype}).'
             raise BadTiffTagDatatype(msg)
@@ -155,23 +137,11 @@ class Ifd(object):
 
             if tag_name == 'ExifTag':
                 # There's an Exif IFD at the offset specified here.
-                ifd = ExifImageIfd(self.endian, self.read_buffer, value)
+                ifd = Ifd(self.endian, self.read_buffer, value)
                 self.processed_ifd[tag_name] = ifd.processed_ifd
             else:
                 # just a regular tag, treat it as a simple value
                 self.processed_ifd[tag_name] = value
-
-
-class ExifImageIfd(Ifd):
-    """
-    Attributes
-    ----------
-    ifd : dict
-        Maps tag names to tag values.
-    """
-    def __init__(self, endian, read_buffer, offset):
-        super().__init__(endian, read_buffer, offset)
-        self.post_process()
 
 
 # Maps TIFF image tag numbers to the tag names.
@@ -458,4 +428,23 @@ TAGNUM2NAME = {
     51009: 'OpcodeList2',
     51022: 'OpcodeList3',
     51041: 'NoiseProfile',
+}
+
+# maps the TIFF enumerated datatype to the corresponding structs datatype code,
+# along with and data width
+DATATYPE2FMT = {
+    1: ('B', 1),
+    2: ('B', 1),
+    3: ('H', 2),
+    4: ('I', 4),
+    5: ('II', 8),
+    7: ('B', 1),
+    9: ('i', 4),
+    10: ('ii', 8),
+    11: ('f', 4),
+    12: ('d', 8),
+    13: ('I', 4),
+    16: ('Q', 8),
+    17: ('q', 8),
+    18: ('Q', 8)
 }
