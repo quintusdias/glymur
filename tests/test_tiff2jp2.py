@@ -53,10 +53,10 @@ class TestSuite(fixtures.TestCommon):
             f.write(strip)
             f.write(strip)
 
-            # write a minimal IFD.  with 10 tags
-            main_ifd_data_offset = main_ifd_offset + 2 + 10 * 12 + 4
+            # write an IFD with 11 tags
+            main_ifd_data_offset = main_ifd_offset + 2 + 11 * 12 + 4
 
-            buffer = struct.pack('<H', 10)
+            buffer = struct.pack('<H', 11)
             f.write(buffer)
 
             # width and length and bitspersample
@@ -85,6 +85,10 @@ class TestSuite(fixtures.TestCommon):
 
             # strip byte counts
             buffer = struct.pack('<HHII', 279, 4, 4, main_ifd_data_offset + 16)
+            f.write(buffer)
+
+            # pagenumber
+            buffer = struct.pack('<HHIHH', 297, 3, 2, 1, 0)
             f.write(buffer)
 
             # XMP
@@ -570,13 +574,13 @@ class TestSuite(fixtures.TestCommon):
         """
         Scenario:  Convert TIFF with Exif IFD to JP2
 
-        Expected Result:  No errors.  The Exif LensModel tag is recoverable
-        from the UUIDbox.
+        Expected Result:  No warnings, no errors.  The Exif LensModel tag is
+        recoverable from the UUIDbox.
         """
-        with Tiff2Jp2k(
-            self.exif_tiff, self.temp_jp2_filename, verbosity=logging.DEBUG
-        ) as p:
-            p.run()
+        with Tiff2Jp2k(self.exif_tiff, self.temp_jp2_filename) as p:
+            with warnings.catch_warnings(record=True) as w:
+                p.run()
+                self.assertEqual(len(w), 0)
 
         j = Jp2k(self.temp_jp2_filename)
 
