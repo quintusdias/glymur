@@ -205,6 +205,7 @@ class ExifImageIfd(Ifd):
         292: 'T4Options',
         293: 'T6Options',
         296: 'ResolutionUnit',
+        297: 'PageNumber',
         301: 'TransferFunction',
         305: 'Software',
         306: 'DateTime',
