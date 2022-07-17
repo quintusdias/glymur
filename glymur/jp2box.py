@@ -3522,10 +3522,12 @@ class UUIDBox(Jp2kBox):
             # gdal not found?  The representation of the TIFF IFD will have to
             # do.
             return self.data
-        except RuntimeError:
+        except RuntimeError as e:
             # Unusual situation where gdal code fails
             # The representation of the TIFF IFD will have to do.
-            return self.data
+            warnings.warn(str(e))
+            text = f"{pprint.pformat(self.data)}"
+            return text
 
     def _print_geotiff_as_geotiff(self):
         """
