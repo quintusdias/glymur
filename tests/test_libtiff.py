@@ -1,4 +1,5 @@
 # standard library imports
+import importlib.resources as ir
 import unittest
 
 # 3rd party library imports
@@ -43,6 +44,9 @@ class TestSuite(fixtures.TestCommon):
 
         fp = libtiff.open(self.temp_tiff_filename)
 
+        numtiles = libtiff.numberOfTiles(fp)
+        self.assertEqual(numtiles, 4)
+
         tile = np.zeros((th, tw), dtype=np.uint8)
         actual_data = np.zeros((h, w), dtype=np.uint8)
 
@@ -61,3 +65,43 @@ class TestSuite(fixtures.TestCommon):
         libtiff.close(fp)
 
         np.testing.assert_array_equal(data, actual_data)
+
+
+class TestSuiteRGBA(fixtures.TestCommon):
+
+    def test_strip(self):
+        """
+        Scenario:  read a stripped-rgba-ready image
+
+        Expecte Result:  no segfault
+        """
+        with ir.path('tests.data', 'flower-separated-planar-08.tif') as path:
+
+            fp = libtiff.open(str(path), mode='r')
+
+            img1 = libtiff.readRGBAImageOriented(fp, width=73, height=43)
+
+            strip = np.zeros((112, 73, 4), dtype=np.uint8)
+            libtiff.readRGBAStrip(fp, 0, strip)
+            img2 = np.flipud(strip[:43, :, :])
+
+            np.testing.assert_array_equal(img1, img2)
+
+    def test_getfield(self):
+        """
+        Scenario:  read a stripped-rgba-ready image, use getFieldDefaulted to
+        retrieve image width and height (not recommended).
+
+        Expecte Result:  no segfault
+        """
+        with ir.path('tests.data', 'flower-separated-planar-08.tif') as path:
+
+            fp = libtiff.open(str(path), mode='r')
+
+            img1 = libtiff.readRGBAImageOriented(fp)
+
+            strip = np.zeros((112, 73, 4), dtype=np.uint8)
+            libtiff.readRGBAStrip(fp, 0, strip)
+            img2 = np.flipud(strip[:43, :, :])
+
+            np.testing.assert_array_equal(img1, img2)

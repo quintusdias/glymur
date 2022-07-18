@@ -448,16 +448,14 @@ class Tiff2Jp2k(object):
         if data[0] == 73 and data[1] == 73:
             # little endian
             self.endian = '<'
-        elif data[0] == 77 and data[1] == 77:
+        else:
+            # data[0] == 77 and data[1] == 77:
             # big endian
             self.endian = '>'
-        else:
-            msg = (
-                f"The byte order indication in the TIFF header "
-                f"({data}) is invalid.  It should be either "
-                f"{bytes([73, 73])} or {bytes([77, 77])}."
-            )
-            raise RuntimeError(msg)
+
+            # There is no other option.  If the data were any other way, well,
+            # that shouldn't happen.  If it did, libtiff would have already
+            # segfaulted
 
         # version number and offset to the first IFD
         version, = struct.unpack(self.endian + 'H', buffer[2:4])
@@ -470,45 +468,6 @@ class Tiff2Jp2k(object):
             buffer = tfp.read(4)
             offset, = struct.unpack(self.endian + 'I', buffer)
         tfp.seek(offset)
-
-    def _process_header(self, b, tfp):
-
-        buffer = tfp.read(4)
-        data = struct.unpack('BB', buffer[:2])
-
-        # big endian or little endian?
-        if data[0] == 73 and data[1] == 73:
-            # little endian
-            endian = '<'
-        elif data[0] == 77 and data[1] == 77:
-            # big endian
-            endian = '>'
-        else:
-            msg = (
-                f"The byte order indication in the TIFF header "
-                f"({data}) is invalid.  It should be either "
-                f"{bytes([73, 73])} or {bytes([77, 77])}."
-            )
-            raise RuntimeError(msg)
-
-        # version number and offset to the first IFD
-        version, = struct.unpack(endian + 'H', buffer[2:4])
-        self.version = _TIFF if version == 42 else _BIGTIFF
-
-        if self.version == _BIGTIFF:
-            buffer = tfp.read(12)
-            _, _, offset = struct.unpack(endian + 'HHQ', buffer)
-        else:
-            buffer = tfp.read(4)
-            offset, = struct.unpack(endian + 'I', buffer)
-        tfp.seek(offset)
-
-        # write this 32-bit header into the UUID, no matter if we had bigtiff
-        # or regular tiff or big endian
-        data = struct.pack('<BBHI', 73, 73, 42, 8)
-        b.write(data)
-
-        return endian
 
     def get_tag_value(self, tagnum):
         """

@@ -590,6 +590,29 @@ class TestSuite(fixtures.TestCommon):
         self.assertNotIn('StripByteCounts', tags)
         self.assertNotIn('StripOffsets', tags)
 
+        str(j.box[-1])
+
+    def test_exclude_tags_but_specify_a_bad_tag(self):
+        """
+        Scenario:  Convert TIFF to JP2, but exclude the StripByteCounts and
+        StripOffsets tags.  In addition, specify a tag that is not recognized.
+
+        Expected Result:  The results should be the same as the previous
+        test except that a warning is issued due to the bad tag.
+        """
+        with self.assertWarns(UserWarning):
+            with Tiff2Jp2k(
+                self.exif_tiff, self.temp_jp2_filename,
+                exclude_tags=[273, 'stripbytecounts', 'gdalstuff']
+            ) as p:
+                p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        tags = j.box[-1].data
+        self.assertNotIn('StripByteCounts', tags)
+        self.assertNotIn('StripOffsets', tags)
+
     def test_exclude_tags_camelcase(self):
         """
         Scenario:  Convert TIFF to JP2, but exclude the StripByteCounts and
@@ -626,6 +649,8 @@ class TestSuite(fixtures.TestCommon):
 
         tags = j.box[-1].data
         self.assertEqual(tags['ExifTag']['LensModel'], 'Canon')
+
+        str(j.box[-1])
 
     def test_smoke(self):
         """
@@ -1482,7 +1507,7 @@ class TestSuite(fixtures.TestCommon):
         """
         with self.assertRaises(RuntimeError):
             with ir.path('tests.data', 'simple_rdf.txt') as path:
-                with Tiff2Jp2k(path, self.temp_jp2_filename) as j:
+                with Tiff2Jp2k(path, self.temp_jp2_filename):
                     pass
 
 

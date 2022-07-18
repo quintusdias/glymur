@@ -1,5 +1,7 @@
 # standard library imports
+import os
 import unittest
+from unittest.mock import patch
 
 # 3rd party library imports
 import numpy as np
@@ -187,3 +189,28 @@ class TestSuite(fixtures.TestCommon):
             for seg in codestream.segment
         )
         self.assertTrue(at_least_one_plt)
+
+    @unittest.skipIf(os.cpu_count() < 4, "makes no sense if 4 cores not there")
+    def test_thread_support(self):
+        """
+        SCENARIO:  Set number of threads on openjpeg = 2.3.0, but openjpeg
+        has not been compiled with thread support.  Try to write.
+
+        EXPECTED RESULTS:  RuntimeError
+        """
+        j2k_data = fixtures.skimage.data.astronaut()
+
+        shape = (
+            j2k_data.shape[0] * 2, j2k_data.shape[1] * 2, j2k_data.shape[2]
+        )
+
+        tilesize = (j2k_data.shape[0], j2k_data.shape[1])
+
+        with patch('glymur.jp2k.version.openjpeg_version', new='2.3.0'):
+
+            glymur.set_option('lib.num_threads', 4)
+
+            j = Jp2k(self.temp_jp2_filename, shape=shape, tilesize=tilesize)
+            with self.assertWarns(UserWarning):
+                for tw in j.get_tilewriters():
+                    tw[:] = j2k_data

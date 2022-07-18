@@ -577,11 +577,7 @@ def getVersion():
     """
     Corresponds to the TIFFGetVersion library routine.
     """
-    try:
-        _LIBTIFF.TIFFGetVersion.restype = ctypes.c_char_p
-    except AttributeError:
-        # libtiff not installed
-        return '0.0.0'
+    _LIBTIFF.TIFFGetVersion.restype = ctypes.c_char_p
 
     v = _LIBTIFF.TIFFGetVersion().decode('utf-8')
 
@@ -694,11 +690,11 @@ TAGS = {
     },
     'ImageWidth': {
         'number': 256,
-        'type': ctypes.c_uint32,
+        'type': ctypes.c_uint16,
     },
     'ImageLength': {
         'number': 257,
-        'type': ctypes.c_uint32,
+        'type': ctypes.c_uint16,
     },
     'BitsPerSample': {
         'number': 258,

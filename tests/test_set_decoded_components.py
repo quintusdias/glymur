@@ -42,12 +42,15 @@ class TestSuite(unittest.TestCase):
         the original configuration of reading all bands.
 
         EXPECTED RESULT:  the data matches what we get from the regular way.
+        We can recover the decoded component.
         """
         j2k = Jp2k(self.j2kfile.name)
         expected = j2k[:, :, 0]
 
         j2k.decoded_components = 0
         actual = j2k[:]
+
+        self.assertEqual(j2k.decoded_components, [0])
 
         np.testing.assert_array_equal(actual, expected)
 
