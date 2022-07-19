@@ -1473,6 +1473,18 @@ class TestSuite(fixtures.TestCommon):
                 with self.assertRaises(RuntimeError):
                     j.run()
 
+    def test_not_a_tiff(self):
+        """
+        Scenario:  The input "TIFF" is not actually a TIFF.  This used to
+        segfault.
+
+        Expected Result:  no segfault
+        """
+        with self.assertRaises(RuntimeError):
+            with ir.path('tests.data', 'simple_rdf.txt') as path:
+                with Tiff2Jp2k(path, self.temp_jp2_filename) as j:
+                    pass
+
 
 class TestSuiteNoScikitImage(fixtures.TestCommon):
 
