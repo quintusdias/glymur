@@ -570,26 +570,6 @@ class TestSuite(fixtures.TestCommon):
     def tearDownClass(cls):
         shutil.rmtree(cls.test_tiff_dir)
 
-    def test_exclude_tags(self):
-        """
-        Scenario:  Convert TIFF to JP2, but exclude the StripByteCounts and
-        StripOffsets tags.
-
-        Expected Result:  No warnings, no errors.  The Exif LensModel tag is
-        recoverable from the UUIDbox.
-        """
-        with Tiff2Jp2k(
-            self.exif_tiff, self.temp_jp2_filename,
-            exclude_tags=[273, 'stripbytecounts']
-        ) as p:
-            p.run()
-
-        j = Jp2k(self.temp_jp2_filename)
-
-        tags = j.box[-1].data
-        self.assertNotIn('StripByteCounts', tags)
-        self.assertNotIn('StripOffsets', tags)
-
     def test_exclude_tags_camelcase(self):
         """
         Scenario:  Convert TIFF to JP2, but exclude the StripByteCounts and
@@ -689,9 +669,10 @@ class TestSuite(fixtures.TestCommon):
 
     def test_geotiff(self):
         """
-        SCENARIO:  Convert GEOTIFF file to JP2
+        SCENARIO:  Convert a one-component GEOTIFF file to JP2
 
-        EXPECTED RESULT:  there is a geotiff UUID.
+        EXPECTED RESULT:  there is a geotiff UUID.  The JP2 file has only one
+        component.
         """
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
@@ -705,6 +686,7 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(
             j.box[-1].uuid, UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03')
         )
+        self.assertEqual(j.box[2].box[0].num_components, 1)
 
     def test_no_uuid(self):
         """
@@ -1405,28 +1387,7 @@ class TestSuite(fixtures.TestCommon):
         sys.argv = [
             '', str(self.astronaut_tif), str(self.temp_jp2_filename),
             '--tilesize', '256', '256',
-            '--exclude-tag', '324', '--exclude-tag', '325'
-        ]
-        command_line.tiff2jp2()
-
-        jp2 = Jp2k(self.temp_jp2_filename)
-        tags = jp2.box[-1].data
-
-        self.assertNotIn('TileByteCounts', tags)
-        self.assertNotIn('TileOffsets', tags)
-
-    def test_commandline_tiff2jp2_exclude_tags(self):
-        """
-        Scenario:  patch sys such that we can run the command line tiff2jp2
-        script.  Exclude TileByteCounts and TileByteOffsets
-
-        Expected Results:  Same as test_astronaut.
-        """
-        sys.argv = [
-            '', str(self.astronaut_tif), str(self.temp_jp2_filename),
-            '--tilesize', '256', '256',
-            '--exclude-tag', 'tilebytecounts',
-            '--exclude-tag', 'tileoffsets'
+            '--exclude-tags', '324', '325'
         ]
         command_line.tiff2jp2()
 
@@ -1473,6 +1434,27 @@ class TestSuite(fixtures.TestCommon):
                 with self.assertRaises(RuntimeError):
                     j.run()
 
+    def test_commandline_tiff2jp2_exclude_tags(self):
+        """
+        Scenario:  patch sys such that we can run the command line tiff2jp2
+        script.  Exclude TileByteCounts and TileByteOffsets
+
+        Expected Results:  TileByteCounts and TileOffsets are not in the EXIF
+        UUID.
+        """
+        sys.argv = [
+            '', str(self.astronaut_tif), str(self.temp_jp2_filename),
+            '--tilesize', '256', '256',
+            '--exclude-tags', 'tilebytecounts', 'tileoffsets'
+        ]
+        command_line.tiff2jp2()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        tags = jp2.box[-1].data
+
+        self.assertNotIn('TileByteCounts', tags)
+        self.assertNotIn('TileOffsets', tags)
+
 
 class TestSuiteNoScikitImage(fixtures.TestCommon):
 
@@ -1483,6 +1465,127 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         cls.test_tiff_path = pathlib.Path(cls.test_tiff_dir)
 
         cls.setup_rgb_evenly_stripped(cls.test_tiff_path / 'goodstuff.tif')
+
+        cls.setup_exif(cls.test_tiff_path / 'exif.tif')
+
+    @classmethod
+    def setup_exif(cls, path):
+        """
+        Create a simple TIFF file that is constructed to contain an EXIF IFD.
+        """
+
+        with path.open(mode='wb') as f:
+
+            w = 256
+            h = 256
+            rps = 64
+            header_length = 8
+
+            # write the header (8 bytes).  The IFD will follow the image data
+            # (256x256 bytes), so the offset to the IFD will be 8 + h * w.
+            main_ifd_offset = header_length + h * w
+            buffer = struct.pack('<BBHI', 73, 73, 42, main_ifd_offset)
+            f.write(buffer)
+
+            # write the image data, 4 64x256 strips of all zeros
+            strip = bytes([0] * rps * w)
+            f.write(strip)
+            f.write(strip)
+            f.write(strip)
+            f.write(strip)
+
+            # write an IFD with 11 tags
+            main_ifd_data_offset = main_ifd_offset + 2 + 11 * 12 + 4
+
+            buffer = struct.pack('<H', 11)
+            f.write(buffer)
+
+            # width and length and bitspersample
+            buffer = struct.pack('<HHII', 256, 4, 1, w)
+            f.write(buffer)
+            buffer = struct.pack('<HHII', 257, 4, 1, h)
+            f.write(buffer)
+            buffer = struct.pack('<HHII', 258, 4, 1, 8)
+            f.write(buffer)
+
+            # photometric
+            buffer = struct.pack('<HHII', 262, 4, 1, 1)
+            f.write(buffer)
+
+            # strip offsets
+            buffer = struct.pack('<HHII', 273, 4, 4, main_ifd_data_offset)
+            f.write(buffer)
+
+            # spp
+            buffer = struct.pack('<HHII', 277, 4, 1, 1)
+            f.write(buffer)
+
+            # rps
+            buffer = struct.pack('<HHII', 278, 4, 1, 64)
+            f.write(buffer)
+
+            # strip byte counts
+            buffer = struct.pack('<HHII', 279, 4, 4, main_ifd_data_offset + 16)
+            f.write(buffer)
+
+            # pagenumber
+            buffer = struct.pack('<HHIHH', 297, 3, 2, 1, 0)
+            f.write(buffer)
+
+            # XMP
+            with ir.path('tests.data', 'issue555.xmp') as xmp_path:
+                with xmp_path.open() as f2:
+                    xmp = f2.read()
+                    xmp = xmp + '\0'
+            buffer = struct.pack(
+                '<HHII', 700, 1, len(xmp), main_ifd_data_offset + 32
+            )
+            f.write(buffer)
+
+            # exif tag
+            exif_ifd_offset = main_ifd_data_offset + 32 + len(xmp)
+            buffer = struct.pack('<HHII', 34665, 4, 1, exif_ifd_offset)
+            f.write(buffer)
+
+            # terminate the IFD
+            buffer = struct.pack('<I', 0)
+            f.write(buffer)
+
+            # write the strip offsets here
+            buffer = struct.pack(
+                '<IIII', 8, 8 + rps*w, 8 + 2*rps*w, 8 + 3*rps*w
+            )
+            f.write(buffer)
+
+            # write the strip byte counts
+            buffer = struct.pack('<IIII', rps*w, rps*w, rps*w, rps*w)
+            f.write(buffer)
+
+            # write the XMP data
+            f.write(xmp.encode('utf-8'))
+
+            # write a minimal Exif IFD
+            buffer = struct.pack('<H', 2)
+            f.write(buffer)
+
+            # exposure program
+            buffer = struct.pack('<HHIHH', 34850, 3, 1, 2, 0)
+            f.write(buffer)
+
+            # lens model
+            data_location = exif_ifd_offset + 2 + 2*12 + 4
+            buffer = struct.pack('<HHII', 42036, 2, 6, data_location)
+            f.write(buffer)
+
+            # terminate the IFD
+            buffer = struct.pack('<I', 0)
+            f.write(buffer)
+
+            data = 'Canon\0'.encode('utf-8')
+            buffer = struct.pack('<BBBBBB', *data)
+            f.write(buffer)
+
+        cls.exif_tiff = path
 
     @classmethod
     def setup_rgb_evenly_stripped(cls, path):
@@ -1519,7 +1622,12 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         """
         Scenario:  input TIFF is organized by strips and logging is turned on.
 
-        Expected result:  there are 104 log messages, one for each tile
+        Expected result:  there are 304 log messages. 104 of these
+        messages come from the tiles (a 13x8 grid of tiles).  The input
+        tiff has 25 strips.  The last row of JP2 tiles cover just a
+        single strips, so 12x8 tiles with 2 strips per tile equals 192.
+        That last row of JP2 tiles covers just a single strip, so this
+        is 8 additional strips.  So that equals 304.
         """
         with Tiff2Jp2k(
             self.goodstuff_path, self.temp_jp2_filename, tilesize=(64, 64),
@@ -1528,7 +1636,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
             with self.assertLogs(logger='tiff2jp2', level=logging.INFO) as cm:
                 j.run()
 
-                self.assertEqual(len(cm.output), 104)
+                self.assertEqual(len(cm.output), 304)
 
     def test_rgb_stripped(self):
         """
@@ -1576,3 +1684,189 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         self.assertEqual(c.segment[1].ysiz, 800)
         self.assertEqual(c.segment[1].xtsiz, 75)
         self.assertEqual(c.segment[1].ytsiz, 75)
+
+    def test_exclude_tags(self):
+        """
+        Scenario:  Convert TIFF to JP2, but exclude the StripByteCounts and
+        StripOffsets tags.
+
+        Expected Result:  No warnings, no errors.  The Exif LensModel tag is
+        recoverable from the UUIDbox.
+        """
+        with Tiff2Jp2k(
+            self.exif_tiff, self.temp_jp2_filename,
+            exclude_tags=[273, 'stripbytecounts']
+        ) as p:
+            p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        tags = j.box[-1].data
+        self.assertNotIn('StripByteCounts', tags)
+        self.assertNotIn('StripOffsets', tags)
+
+        str(j.box[-1])
+
+    def test_exclude_tags_but_specify_a_bad_tag(self):
+        """
+        Scenario:  Convert TIFF to JP2, but exclude the StripByteCounts and
+        StripOffsets tags.  In addition, specify a tag that is not recognized.
+
+        Expected Result:  The results should be the same as the previous
+        test except that a warning is issued due to the bad tag.
+        """
+        with self.assertWarns(UserWarning):
+            with Tiff2Jp2k(
+                self.exif_tiff, self.temp_jp2_filename,
+                exclude_tags=[273, 'stripbytecounts', 'gdalstuff']
+            ) as p:
+                p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        tags = j.box[-1].data
+        self.assertNotIn('StripByteCounts', tags)
+        self.assertNotIn('StripOffsets', tags)
+
+    def test_exclude_tags_camelcase(self):
+        """
+        Scenario:  Convert TIFF to JP2, but exclude the StripByteCounts and
+        StripOffsets tags.  Supply the argments as camel-case.
+
+        Expected Result:  No warnings, no errors.  The Exif LensModel tag is
+        recoverable from the UUIDbox.
+        """
+        with Tiff2Jp2k(
+            self.exif_tiff, self.temp_jp2_filename,
+            exclude_tags=['StripOffsets', 'StripByteCounts']
+        ) as p:
+            p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        tags = j.box[-1].data
+        self.assertNotIn('StripByteCounts', tags)
+        self.assertNotIn('StripOffsets', tags)
+
+    def test_exif(self):
+        """
+        Scenario:  Convert TIFF with Exif IFD to JP2
+
+        Expected Result:  No warnings, no errors.  The Exif LensModel tag is
+        recoverable from the UUIDbox.
+        """
+        with Tiff2Jp2k(self.exif_tiff, self.temp_jp2_filename) as p:
+            with warnings.catch_warnings(record=True) as w:
+                p.run()
+                self.assertEqual(len(w), 0)
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        tags = j.box[-1].data
+        self.assertEqual(tags['ExifTag']['LensModel'], 'Canon')
+
+        str(j.box[-1])
+
+    def test_xmp(self):
+        """
+        Scenario:  Convert TIFF with Exif IFD to JP2.  The main IFD has an
+        XML Packet tag (700).  Supply the 'xmp_uuid' keyword.
+
+        Expected Result:  The XMLPacket tag is removed from the main IFD.
+        An Exif UUID is appended to the end of the JP2 file, and then an XMP
+        UUID is appended.
+        """
+        with Tiff2Jp2k(
+            self.exif_tiff, self.temp_jp2_filename, create_xmp_uuid=True
+        ) as p:
+            p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        # first we find the Exif UUID, then the XMP UUID.  The Exif UUID
+        # data should not have the XMLPacket tag.
+        actual = j.box[-2].uuid
+        expected = UUID(bytes=b'JpgTiffExif->JP2')
+        self.assertEqual(actual, expected)
+        self.assertNotIn('XMLPacket', j.box[-2].data)
+
+        actual = j.box[-1].uuid
+        expected = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
+        self.assertEqual(actual, expected)
+        self.assertEqual(
+            j.box[-1].data.getroot().values(), ['Public XMP Toolkit Core 3.5']
+        )
+
+    def test_commandline_tiff2jp2_xmp_uuid(self):
+        """
+        Scenario:  patch sys such that we can run the command line tiff2jp2
+        script.  Use the --create-xmp-uuid option.
+
+        Expected Result:  The XMLPacket tag is removed from the main IFD.
+        An Exif UUID is appended to the end of the JP2 file, and then an XMP
+        UUID is appended.
+        """
+        sys.argv = [
+            '', str(self.exif_tiff), str(self.temp_jp2_filename),
+            '--tilesize', '64', '64',
+            '--create-xmp-uuid'
+        ]
+        command_line.tiff2jp2()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        # first we find the Exif UUID, then the XMP UUID.  The Exif UUID
+        # data should not have the XMLPacket tag.
+        actual = j.box[-2].uuid
+        expected = UUID(bytes=b'JpgTiffExif->JP2')
+        self.assertEqual(actual, expected)
+        self.assertNotIn('XMLPacket', j.box[-2].data)
+
+        actual = j.box[-1].uuid
+        expected = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
+        self.assertEqual(actual, expected)
+        self.assertEqual(
+            j.box[-1].data.getroot().values(), ['Public XMP Toolkit Core 3.5']
+        )
+
+    def test_one_component_no_tilesize(self):
+        """
+        Scenario:  The 
+        script.  The jp2 tilesize is the same as the image size.
+
+        Expected Result:  No errors.
+        """
+        with Tiff2Jp2k(
+            self.exif_tiff, self.temp_jp2_filename,
+        ) as p:
+            p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+        self.assertEqual(j.box[2].box[0].num_components, 1)
+
+    def test_one_component_tilesize(self):
+        """
+        Scenario:  The 
+        script.  The jp2 tilesize is the same as the image size.
+
+        Expected Result:  No errors.
+        """
+        with Tiff2Jp2k(
+            self.exif_tiff, self.temp_jp2_filename, tilesize=[256, 256]
+        ) as p:
+            p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+    def test_not_a_tiff(self):
+        """
+        Scenario:  The input "TIFF" is not actually a TIFF.  This used to
+        segfault.
+
+        Expected Result:  no segfault
+        """
+        with self.assertRaises(RuntimeError):
+            with ir.path('tests.data', 'simple_rdf.txt') as path:
+                with Tiff2Jp2k(path, self.temp_jp2_filename):
+                    pass
+
