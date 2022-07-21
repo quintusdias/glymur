@@ -102,11 +102,14 @@ def tiff2jp2():
     parser.add_argument('tifffile')
     parser.add_argument('jp2kfile')
 
+    help = 'Extract XMLPacket from TIFF IFD and store in UUID box.'
+    parser.add_argument('--create-xmp-uuid', help=help, action='store_true')
+
     help = (
         'Exclude a tag from EXIF UUID (if creating such a UUID).  This option '
         'may be used multiple times.'
     )
-    parser.add_argument('--exclude-tag', help=help, action='append')
+    parser.add_argument('--exclude-tags', help=help, nargs='*')
 
     help = 'Dimensions of JP2K tile.'
     parser.add_argument(
@@ -173,11 +176,22 @@ def tiff2jp2():
     tiffpath = pathlib.Path(args.tifffile)
     jp2kpath = pathlib.Path(args.jp2kfile)
 
-    with Tiff2Jp2k(
-        tiffpath, jp2kpath, tilesize=args.tilesize, verbosity=logging_level,
-        cbsize=args.codeblocksize, cratios=args.cratio, numres=args.numres,
-        plt=args.plt, eph=args.eph, sop=args.sop, prog=args.prog,
-        irreversible=args.irreversible, psnr=args.psnr,
-        create_uuid=args.nouuid, exclude_tags=args.exclude_tag
-    ) as j:
+    kwargs = {
+        'cbsize': args.codeblocksize,
+        'cratios': args.cratio,
+        'create_uuid': args.nouuid,
+        'create_xmp_uuid': args.create_xmp_uuid,
+        'eph': args.eph,
+        'irreversible': args.irreversible,
+        'numres': args.numres,
+        'plt': args.plt,
+        'prog': args.prog,
+        'psnr': args.psnr,
+        'sop': args.sop,
+        'tilesize': args.tilesize,
+        'verbosity': logging_level,
+        'exclude_tags': args.exclude_tags,
+    }
+
+    with Tiff2Jp2k(tiffpath, jp2kpath, **kwargs) as j:
         j.run()
