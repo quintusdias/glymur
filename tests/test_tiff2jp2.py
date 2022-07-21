@@ -511,9 +511,10 @@ class TestSuite(fixtures.TestCommon):
 
     def test_geotiff(self):
         """
-        SCENARIO:  Convert GEOTIFF file to JP2
+        SCENARIO:  Convert a one-component GEOTIFF file to JP2
 
-        EXPECTED RESULT:  there is a geotiff UUID.
+        EXPECTED RESULT:  there is a geotiff UUID.  The JP2 file has only one
+        component.
         """
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
@@ -527,6 +528,7 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(
             j.box[-1].uuid, UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03')
         )
+        self.assertEqual(j.box[2].box[0].num_components, 1)
 
     def test_no_uuid(self):
         """
@@ -1216,48 +1218,6 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 256)
         self.assertEqual(c.segment[1].ytsiz, 256)
 
-    def test_commandline_tiff2jp2_exclude_tags_numeric(self):
-        """
-        Scenario:  patch sys such that we can run the command line tiff2jp2
-        script.  Exclude TileByteCounts and TileByteOffsets, but provide those
-        tags as numeric values.
-
-        Expected Results:  Same as test_astronaut.
-        """
-        sys.argv = [
-            '', str(self.astronaut_tif), str(self.temp_jp2_filename),
-            '--tilesize', '256', '256',
-            '--exclude-tags', '324', '325'
-        ]
-        command_line.tiff2jp2()
-
-        jp2 = Jp2k(self.temp_jp2_filename)
-        tags = jp2.box[-1].data
-
-        self.assertNotIn('TileByteCounts', tags)
-        self.assertNotIn('TileOffsets', tags)
-
-    def test_commandline_tiff2jp2_exclude_tags(self):
-        """
-        Scenario:  patch sys such that we can run the command line tiff2jp2
-        script.  Exclude TileByteCounts and TileByteOffsets
-
-        Expected Results:  TileByteCounts and TileOffsets are not in the EXIF
-        UUID.
-        """
-        sys.argv = [
-            '', str(self.astronaut_tif), str(self.temp_jp2_filename),
-            '--tilesize', '256', '256',
-            '--exclude-tags', 'tilebytecounts', 'tileoffsets'
-        ]
-        command_line.tiff2jp2()
-
-        jp2 = Jp2k(self.temp_jp2_filename)
-        tags = jp2.box[-1].data
-
-        self.assertNotIn('TileByteCounts', tags)
-        self.assertNotIn('TileOffsets', tags)
-
     def test_cmyk(self):
         """
         Scenario:  CMYK (or separated) is not a supported colorspace.
@@ -1306,6 +1266,48 @@ class TestSuite(fixtures.TestCommon):
             with ir.path('tests.data', 'simple_rdf.txt') as path:
                 with Tiff2Jp2k(path, self.temp_jp2_filename):
                     pass
+
+    def test_commandline_tiff2jp2_exclude_tags(self):
+        """
+        Scenario:  patch sys such that we can run the command line tiff2jp2
+        script.  Exclude TileByteCounts and TileByteOffsets
+
+        Expected Results:  TileByteCounts and TileOffsets are not in the EXIF
+        UUID.
+        """
+        sys.argv = [
+            '', str(self.astronaut_tif), str(self.temp_jp2_filename),
+            '--tilesize', '256', '256',
+            '--exclude-tags', 'tilebytecounts', 'tileoffsets'
+        ]
+        command_line.tiff2jp2()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        tags = jp2.box[-1].data
+
+        self.assertNotIn('TileByteCounts', tags)
+        self.assertNotIn('TileOffsets', tags)
+
+    def test_commandline_tiff2jp2_exclude_tags_numeric(self):
+        """
+        Scenario:  patch sys such that we can run the command line tiff2jp2
+        script.  Exclude TileByteCounts and TileByteOffsets, but provide those
+        tags as numeric values.
+
+        Expected Results:  Same as test_astronaut.
+        """
+        sys.argv = [
+            '', str(self.astronaut_tif), str(self.temp_jp2_filename),
+            '--tilesize', '256', '256',
+            '--exclude-tags', '324', '325'
+        ]
+        command_line.tiff2jp2()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        tags = jp2.box[-1].data
+
+        self.assertNotIn('TileByteCounts', tags)
+        self.assertNotIn('TileOffsets', tags)
 
 
 class TestSuiteNoScikitImage(fixtures.TestCommon):
@@ -1616,3 +1618,94 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         self.assertEqual(tags['ExifTag']['LensModel'], 'Canon')
 
         str(j.box[-1])
+
+    def test_xmp(self):
+        """
+        Scenario:  Convert TIFF with Exif IFD to JP2.  The main IFD has an
+        XML Packet tag (700).  Supply the 'xmp_uuid' keyword.
+
+        Expected Result:  The XMLPacket tag is removed from the main IFD.
+        An Exif UUID is appended to the end of the JP2 file, and then an XMP
+        UUID is appended.
+        """
+        with Tiff2Jp2k(
+            self.exif_tiff, self.temp_jp2_filename, create_xmp_uuid=True
+        ) as p:
+            p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        # first we find the Exif UUID, then the XMP UUID.  The Exif UUID
+        # data should not have the XMLPacket tag.
+        actual = j.box[-2].uuid
+        expected = UUID(bytes=b'JpgTiffExif->JP2')
+        self.assertEqual(actual, expected)
+        self.assertNotIn('XMLPacket', j.box[-2].data)
+
+        actual = j.box[-1].uuid
+        expected = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
+        self.assertEqual(actual, expected)
+        self.assertEqual(
+            j.box[-1].data.getroot().values(), ['Public XMP Toolkit Core 3.5']
+        )
+
+    def test_commandline_tiff2jp2_xmp_uuid(self):
+        """
+        Scenario:  patch sys such that we can run the command line tiff2jp2
+        script.  Use the --create-xmp-uuid option.
+
+        Expected Result:  The XMLPacket tag is removed from the main IFD.
+        An Exif UUID is appended to the end of the JP2 file, and then an XMP
+        UUID is appended.
+        """
+        sys.argv = [
+            '', str(self.exif_tiff), str(self.temp_jp2_filename),
+            '--tilesize', '64', '64',
+            '--create-xmp-uuid'
+        ]
+        command_line.tiff2jp2()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        # first we find the Exif UUID, then the XMP UUID.  The Exif UUID
+        # data should not have the XMLPacket tag.
+        actual = j.box[-2].uuid
+        expected = UUID(bytes=b'JpgTiffExif->JP2')
+        self.assertEqual(actual, expected)
+        self.assertNotIn('XMLPacket', j.box[-2].data)
+
+        actual = j.box[-1].uuid
+        expected = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
+        self.assertEqual(actual, expected)
+        self.assertEqual(
+            j.box[-1].data.getroot().values(), ['Public XMP Toolkit Core 3.5']
+        )
+
+    def test_one_component_no_tilesize(self):
+        """
+        Scenario:  The 
+        script.  The jp2 tilesize is the same as the image size.
+
+        Expected Result:  No errors.
+        """
+        with Tiff2Jp2k(
+            self.exif_tiff, self.temp_jp2_filename,
+        ) as p:
+            p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+        self.assertEqual(j.box[2].box[0].num_components, 1)
+
+    def test_one_component_tilesize(self):
+        """
+        Scenario:  The 
+        script.  The jp2 tilesize is the same as the image size.
+
+        Expected Result:  No errors.
+        """
+        with Tiff2Jp2k(
+            self.exif_tiff, self.temp_jp2_filename, tilesize=[256, 256]
+        ) as p:
+            p.run()
+
+        j = Jp2k(self.temp_jp2_filename)

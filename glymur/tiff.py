@@ -66,7 +66,7 @@ class Tiff2Jp2k(object):
     def __init__(
         self, tiff_filename, jp2_filename, tilesize=None,
         verbosity=logging.CRITICAL, create_uuid=True, exclude_tags=None,
-        **kwargs
+        create_xmp_uuid=False, **kwargs
     ):
         """
         Parameters
@@ -84,6 +84,9 @@ class Tiff2Jp2k(object):
             The dimensions of a tile in the JP2K file.
         verbosity : int
             Set the level of logging, i.e. WARNING, INFO, etc.
+        create_xmp_uuid : bool
+            If true and if there is an XMLPacket (700) tag in the TIFF main
+            IFD, it will be removed from the IFD and placed in a UUID box.
         """
 
         self.tiff_filename = tiff_filename
@@ -93,6 +96,7 @@ class Tiff2Jp2k(object):
         self.jp2_filename = jp2_filename
         self.tilesize = tilesize
         self.create_uuid = create_uuid
+        self.create_xmp_uuid = create_xmp_uuid
 
         self.exclude_tags = self._process_exclude_tags(exclude_tags)
 
@@ -192,22 +196,40 @@ class Tiff2Jp2k(object):
         data = struct.pack('<BBHI', 73, 73, 42, 8)
         b.write(data)
 
-        self._process_tags(b, self.tags)
+        if 700 in self.tags and self.create_xmp_uuid:
+            # remove the XMLPacket data from the IFD dictionary
+            xmp_data = self.tags.pop(700)
+        else:
+            xmp_data = None
 
+        self._write_ifd(b, self.tags)
+
+        # create the Exif UUID
         if self.found_geotiff_tags:
             # geotiff UUID
-            uuid = UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03')
+            the_uuid = UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03')
             payload = b.getvalue()
         else:
             # Make it an exif UUID.
-            uuid = UUID(bytes=b'JpgTiffExif->JP2')
+            the_uuid = UUID(bytes=b'JpgTiffExif->JP2')
             payload = b'EXIF\0\0' + b.getvalue()
 
         # the length of the box is the length of the payload plus 8 bytes
         # to store the length of the box and the box ID
         box_length = len(payload) + 8
 
-        uuid_box = UUIDBox(uuid, payload, box_length)
+        uuid_box = UUIDBox(the_uuid, payload, box_length)
+        with open(self.jp2_filename, mode='ab') as f:
+            uuid_box.write(f)
+
+        if xmp_data is None:
+            return
+
+        # create the XMP UUID
+        the_uuid = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
+        payload = bytes(xmp_data['payload'])
+        box_length = len(payload) + 8
+        uuid_box = UUIDBox(the_uuid, payload, box_length)
         with open(self.jp2_filename, mode='ab') as f:
             uuid_box.write(f)
 
@@ -336,7 +358,7 @@ class Tiff2Jp2k(object):
 
         return tags
 
-    def _process_tags(self, b, tags):
+    def _write_ifd(self, b, tags):
 
         # keep this for writing to the UUID, which will always be for 32-bit
         # TIFFs
@@ -430,7 +452,7 @@ class Tiff2Jp2k(object):
                     outbuffer = struct.pack('<I', after_ifd_position)
                     b.write(outbuffer)
                     b.seek(after_ifd_position)
-                    self._process_tags(b, payload)
+                    self._write_ifd(b, payload)
                 else:
                     # write a normal tag
                     outbuffer = struct.pack('<' + payload_format, *payload)
@@ -763,6 +785,7 @@ class Tiff2Jp2k(object):
                 while (r // rps) * rps < min(julr + jth, imageheight):
 
                     stripnum = libtiff.computeStrip(self.tiff_fp, r, 0)
+                    self.logger.info(f'Strip: #{stripnum}')
 
                     if stripnum >= num_strips:
                         # we've moved past the end of the tiff
