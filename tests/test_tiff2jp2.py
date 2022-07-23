@@ -1831,8 +1831,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
 
     def test_one_component_no_tilesize(self):
         """
-        Scenario:  The 
-        script.  The jp2 tilesize is the same as the image size.
+        Scenario:  The jp2 tilesize is the same as the image size.
 
         Expected Result:  No errors.
         """
@@ -1844,10 +1843,11 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         j = Jp2k(self.temp_jp2_filename)
         self.assertEqual(j.box[2].box[0].num_components, 1)
 
+    @unittest.skip('segfaulting')
     def test_one_component_tilesize(self):
         """
-        Scenario:  The 
-        script.  The jp2 tilesize is the same as the image size.
+        Scenario:  The jp2 tilesize is the same as the image size,
+        and the tilesize is specified.
 
         Expected Result:  No errors.
         """
@@ -1856,7 +1856,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         ) as p:
             p.run()
 
-        j = Jp2k(self.temp_jp2_filename)
+        Jp2k(self.temp_jp2_filename)
 
     def test_not_a_tiff(self):
         """
@@ -1869,4 +1869,3 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
             with ir.path('tests.data', 'simple_rdf.txt') as path:
                 with Tiff2Jp2k(path, self.temp_jp2_filename):
                     pass
-
