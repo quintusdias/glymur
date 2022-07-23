@@ -615,6 +615,7 @@ def open(filename, mode='r'):
     file_argument = ctypes.c_char_p(filename.encode())
     mode_argument = ctypes.c_char_p(mode.encode())
     fp = _LIBTIFF.TIFFOpen(file_argument, mode_argument)
+    check_error(fp)
 
     _reset_error_warning_handlers(err_handler, warn_handler)
 

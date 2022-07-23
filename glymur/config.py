@@ -118,6 +118,9 @@ def glymur_config(libname):
     -------
     loaded shared library
     """
+    if platform.system().startswith('Windows') and libname == 'c':
+        return ctypes.cdll.msvcrt
+
     path = _determine_full_path(libname)
 
     if path is None or path in ['None', 'none']:
