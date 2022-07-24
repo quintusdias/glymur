@@ -9,6 +9,7 @@ import importlib.resources as ir
 from io import BytesIO
 import os
 import pathlib
+import shutil
 import struct
 import tempfile
 import time
@@ -359,8 +360,13 @@ class TestJp2k(fixtures.TestCommon):
             with self.assertRaises(InvalidJp2kError):
                 Jp2k(path)
 
-    def test_read_from_a_file_that_does_not_exist(self):
-        """Should error out if reading from a file that does not exist"""
+    def test_file_does_not_exist(self):
+        """
+        Scenario:  The Jp2k construtor is passed a file that does not exist
+        and the intent is reading.
+
+        Expected Result:  FileNotFoundError
+        """
         # Verify that we error out appropriately if not given an existing file
         # at all.
         filename = 'this file does not actually exist on the file system.'
@@ -1119,6 +1125,88 @@ class TestJp2k_write(fixtures.MetadataBase):
                     self.assertEqual(len(w), 0)
                 else:
                     self.assertEqual(len(w), 1)
+
+    def test_capture_resolution(self):
+        """
+        SCENARIO:  The capture_resolution keyword is specified.
+
+        EXPECTED RESULT:  The cres box is created.
+        """
+        vresc, hresc = 0.1, 0.2
+        vresd, hresd = 0.3, 0.4
+        j = glymur.Jp2k(
+            self.temp_jp2_filename, data=self.jp2_data,
+            capture_resolution=[vresc, hresc],
+            display_resolution=[vresd, hresd],
+        )
+
+        self.assertEqual(j.box[-1].box_id, 'res ')
+
+        self.assertEqual(j.box[-1].box[0].box_id, 'resc')
+        self.assertEqual(j.box[-1].box[0].vertical_resolution, vresc)
+        self.assertEqual(j.box[-1].box[0].horizontal_resolution, hresc)
+
+        self.assertEqual(j.box[-1].box[1].box_id, 'resd')
+        self.assertEqual(j.box[-1].box[1].vertical_resolution, vresd)
+        self.assertEqual(j.box[-1].box[1].horizontal_resolution, hresd)
+
+    def test_capture_resolution_when_j2k_specified(self):
+        """
+        Scenario:  Capture/Display resolution boxes are specified when the file
+        name indicates J2K.
+
+        Expected Result:  InvalidJp2kError
+        """
+
+        vresc, hresc = 0.1, 0.2
+        vresd, hresd = 0.3, 0.4
+        with self.assertRaises(InvalidJp2kError):
+            glymur.Jp2k(
+                self.temp_j2k_filename, data=self.jp2_data,
+                capture_resolution=[vresc, hresc],
+                display_resolution=[vresd, hresd],
+            )
+
+    def test_capture_resolution_when_not_writing(self):
+        """
+        Scenario:  Jp2k is invoked in a read-only situation but capture/display
+        resolution arguments are supplied.
+
+        Expected result:  RuntimeError
+        """
+        vresc, hresc = 0.1, 0.2
+        vresd, hresd = 0.3, 0.4
+
+        shutil.copyfile(self.jp2file, self.temp_jp2_filename)
+
+        with self.assertRaises(RuntimeError):
+            glymur.Jp2k(
+                self.temp_jp2_filename,
+                capture_resolution=[vresc, hresc],
+                display_resolution=[vresd, hresd],
+            )
+
+    def test_one_of_capture_display_resolution_but_not_both(self):
+        """
+        Scenario:  Writing a JP2 is intended, but not both of capture/display
+        resolution key word parameters are supplied.
+
+        Expected Result:  RuntimeError
+        """
+        vresc, hresc = 0.1, 0.2
+        vresd, hresd = 0.3, 0.4
+
+        with self.assertRaises(RuntimeError):
+            glymur.Jp2k(
+                self.temp_jp2_filename, data=self.jp2_data,
+                capture_resolution=[vresc, hresc],
+            )
+
+        with self.assertRaises(RuntimeError):
+            glymur.Jp2k(
+                self.temp_jp2_filename, data=self.jp2_data,
+                display_resolution=[vresd, hresd],
+            )
 
     def test_no_jp2c_box_in_outermost_jp2_list(self):
         """
