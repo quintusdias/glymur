@@ -96,10 +96,12 @@ class Jp2k(Jp2kBox):
 
     def __init__(
         self, filename, data=None, shape=None, tilesize=None, verbose=False,
-        cbsize=None, cinema2k=None, cinema4k=None, colorspace=None,
-        cratios=None, eph=None, grid_offset=None, irreversible=None, mct=None,
-        modesw=None, numres=None, plt=False, prog=None, psizes=None, psnr=None,
-        sop=None, subsam=None, tlm=False
+	    capture_resolution=None, cbsize=None, cinema2k=None,
+	    cinema4k=None, colorspace=None, cratios=None,
+	    display_resolution=None, eph=None, grid_offset=None,
+	    irreversible=None, mct=None, modesw=None, numres=None,
+	    plt=False, prog=None, psizes=None, psnr=None, sop=None,
+	    subsam=None, tlm=False,
     ):
         """
         Parameters
@@ -112,6 +114,9 @@ class Jp2k(Jp2kBox):
             Image data to be written to file.
         shape : tuple, optional
             Size of image data, only required when image_data is not provided.
+        capture_resolution : tuple, optional
+            Capture solution (VRES, HRES).  This appends a capture resolution
+            box onto the end of the JP2 file when it is created.
         cbsize : tuple, optional
             Code block size (NROWS, NCOLS)
         cinema2k : int, optional
@@ -122,6 +127,9 @@ class Jp2k(Jp2kBox):
             The image color space.
         cratios : iterable, optional
             Compression ratios for successive layers.
+        display_resolution : tuple, optional
+            Display solution (VRES, HRES).  This appends a display resolution
+            box onto the end of the JP2 file when it is created.
         eph : bool, optional
             If true, write EPH marker after each header packet.
         grid_offset : tuple, optional
@@ -173,11 +181,13 @@ class Jp2k(Jp2kBox):
         self._codestream = None
         self._decoded_components = None
 
+        self._capture_resolution = capture_resolution
         self._cbsize = cbsize
         self._cinema2k = cinema2k
         self._cinema4k = cinema4k
         self._colorspace = colorspace
         self._cratios = cratios
+        self._display_resolution = display_resolution
         self._eph = eph
         self._grid_offset = grid_offset
         self._irreversible = irreversible
@@ -239,6 +249,18 @@ class Jp2k(Jp2kBox):
                 f"size {self.shape[:2]}."
             )
             raise RuntimeError(msg)
+
+        if self._capture_resolution is not None:
+            resc = glymur.jp2box.CaptureResolutionBox(
+                self._capture_resolution[0], self._capture_resolution[1]
+            )
+            resd = glymur.jp2box.DisplayResolutionBox(
+                self._display_resolution[0], self._display_resolution[1]
+            )
+            rbox = glymur.jp2box.ResolutionBox([resc, resd])
+            with open(self.filename, mode='ab') as f:
+                rbox.write(f)
+            self.parse()
 
     def _validate_kwargs(self):
         """

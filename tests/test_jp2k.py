@@ -1120,6 +1120,36 @@ class TestJp2k_write(fixtures.MetadataBase):
                 else:
                     self.assertEqual(len(w), 1)
 
+    def test_capture_resolution(self):
+        """
+        SCENARIO:  The capture_resolution keyword is specified.
+
+        EXPECTED RESULT:  The cres box is created.
+        """
+        vresc, hresc = 0.1, 0.2
+        vresd, hresd = 0.3, 0.4
+        j = glymur.Jp2k(
+            self.temp_jp2_filename, data=self.jp2_data,
+            capture_resolution=[vresc, hresc],
+            display_resolution=[vresd, hresd],
+        )
+
+        self.assertEqual(j.box[-1].box_id, 'res ')
+
+        self.assertEqual(j.box[-1].box[0].box_id, 'resc')
+        self.assertEqual(j.box[-1].box[0].vertical_resolution, vresc)
+        self.assertEqual(j.box[-1].box[0].horizontal_resolution, hresc)
+
+        self.assertEqual(j.box[-1].box[1].box_id, 'resd')
+        self.assertEqual(j.box[-1].box[1].vertical_resolution, vresd)
+        self.assertEqual(j.box[-1].box[1].horizontal_resolution, hresd)
+
+    def test_capture_resolution_when_j2k_specified(self):
+        self.fail()
+
+    def test_capture_resolution_when_not_writing(self):
+        self.fail()
+
     def test_no_jp2c_box_in_outermost_jp2_list(self):
         """
         SCENARIO:  A JP2 file is encountered without a JP2C box in the outer-
