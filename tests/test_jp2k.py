@@ -9,6 +9,7 @@ import importlib.resources as ir
 from io import BytesIO
 import os
 import pathlib
+import shutil
 import struct
 import tempfile
 import time
@@ -1170,9 +1171,12 @@ class TestJp2k_write(fixtures.MetadataBase):
         """
         vresc, hresc = 0.1, 0.2
         vresd, hresd = 0.3, 0.4
+
+        shutil.copyfile(self.jp2file, self.temp_jp2_filename)
+
         with self.assertRaises(RuntimeError):
             glymur.Jp2k(
-                self.jp2file,
+                self.temp_jp2_filename,
                 capture_resolution=[vresc, hresc],
                 display_resolution=[vresd, hresd],
             )
@@ -1198,7 +1202,6 @@ class TestJp2k_write(fixtures.MetadataBase):
                 self.temp_jp2_filename, data=self.jp2_data,
                 display_resolution=[vresd, hresd],
             )
-
 
     def test_no_jp2c_box_in_outermost_jp2_list(self):
         """

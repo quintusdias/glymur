@@ -96,12 +96,12 @@ class Jp2k(Jp2kBox):
 
     def __init__(
         self, filename, data=None, shape=None, tilesize=None, verbose=False,
-	    capture_resolution=None, cbsize=None, cinema2k=None,
-	    cinema4k=None, colorspace=None, cratios=None,
-	    display_resolution=None, eph=None, grid_offset=None,
-	    irreversible=None, mct=None, modesw=None, numres=None,
-	    plt=False, prog=None, psizes=None, psnr=None, sop=None,
-	    subsam=None, tlm=False,
+        capture_resolution=None, cbsize=None, cinema2k=None,
+        cinema4k=None, colorspace=None, cratios=None,
+        display_resolution=None, eph=None, grid_offset=None,
+        irreversible=None, mct=None, modesw=None, numres=None,
+        plt=False, prog=None, psizes=None, psnr=None, sop=None,
+        subsam=None, tlm=False,
     ):
         """
         Parameters
@@ -232,18 +232,24 @@ class Jp2k(Jp2kBox):
             raise InvalidJp2kError(msg)
 
         if (
-            (
-                self._capture_resolution is not None
-                and self._display_resolution is None
-            ) or
-            (
-                self._capture_resolution is None
-                and self._display_resolution is not None
-            )
+            (self._capture_resolution is not None)
+            ^ (self._display_resolution is not None)
         ):
             msg = (
                 'The capture_resolution and display resolution keywords must'
-                'both be supplied or not at all.'
+                'both be supplied or neither supplied.'
+            )
+            raise RuntimeError(msg)
+
+        if data is None and shape is None and self.path.exists():
+            readonly = True
+        else:
+            readonly = False
+
+        if readonly and self._capture_resolution is not None:
+            msg = (
+                'Capture/Display resolution keyword parameters cannot be '
+                'supplied when the intent seems to be to read an image.'
             )
             raise RuntimeError(msg)
 
@@ -257,7 +263,7 @@ class Jp2k(Jp2kBox):
             # writing an image tile-by-tile.  A future course of action will
             # determine that.
             self._shape = shape
-        elif data is None and shape is None and self.path.exists():
+        elif readonly:
             # We must be just reading a JP2/J2K/JPX file.  Parse its
             # contents, then determine "shape".
             self.parse()
@@ -291,7 +297,7 @@ class Jp2k(Jp2kBox):
                     [resc, resd], length=44, offset=f.tell()
                 )
                 rbox.write(f)
-                
+
                 self.box.append(rbox)
 
     def _validate_kwargs(self):
