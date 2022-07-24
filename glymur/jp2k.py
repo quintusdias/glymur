@@ -220,6 +220,33 @@ class Jp2k(Jp2kBox):
             msg = 'Do not specify a colorspace when writing a raw codestream.'
             raise InvalidJp2kError(msg)
 
+        if (
+            self._codec_format == opj2.CODEC_J2K
+            and self._capture_resolution is not None
+            and self._display_resolution is not None
+        ):
+            msg = (
+                'Do not specify capture/display resolution when writing a raw '
+                'codestream.'
+            )
+            raise InvalidJp2kError(msg)
+
+        if (
+            (
+                self._capture_resolution is not None
+                and self._display_resolution is None
+            ) or
+            (
+                self._capture_resolution is None
+                and self._display_resolution is not None
+            )
+        ):
+            msg = (
+                'The capture_resolution and display resolution keywords must'
+                'both be supplied or not at all.'
+            )
+            raise RuntimeError(msg)
+
         if data is not None:
             # We are writing a JP2/J2K/JPX file where the image is
             # contained in memory.
@@ -251,16 +278,21 @@ class Jp2k(Jp2kBox):
             raise RuntimeError(msg)
 
         if self._capture_resolution is not None:
-            resc = glymur.jp2box.CaptureResolutionBox(
-                self._capture_resolution[0], self._capture_resolution[1]
-            )
-            resd = glymur.jp2box.DisplayResolutionBox(
-                self._display_resolution[0], self._display_resolution[1]
-            )
-            rbox = glymur.jp2box.ResolutionBox([resc, resd])
             with open(self.filename, mode='ab') as f:
+                resc = glymur.jp2box.CaptureResolutionBox(
+                    self._capture_resolution[0], self._capture_resolution[1],
+                    length=18, offset=f.tell() + 8
+                )
+                resd = glymur.jp2box.DisplayResolutionBox(
+                    self._display_resolution[0], self._display_resolution[1],
+                    length=18, offset=f.tell() + 26
+                )
+                rbox = glymur.jp2box.ResolutionBox(
+                    [resc, resd], length=44, offset=f.tell()
+                )
                 rbox.write(f)
-            self.parse()
+                
+                self.box.append(rbox)
 
     def _validate_kwargs(self):
         """

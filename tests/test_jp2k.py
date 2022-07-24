@@ -1145,10 +1145,60 @@ class TestJp2k_write(fixtures.MetadataBase):
         self.assertEqual(j.box[-1].box[1].horizontal_resolution, hresd)
 
     def test_capture_resolution_when_j2k_specified(self):
-        self.fail()
+        """
+        Scenario:  Capture/Display resolution boxes are specified when the file
+        name indicates J2K.
+
+        Expected Result:  InvalidJp2kError
+        """
+
+        vresc, hresc = 0.1, 0.2
+        vresd, hresd = 0.3, 0.4
+        with self.assertRaises(InvalidJp2kError):
+            glymur.Jp2k(
+                self.temp_j2k_filename, data=self.jp2_data,
+                capture_resolution=[vresc, hresc],
+                display_resolution=[vresd, hresd],
+            )
 
     def test_capture_resolution_when_not_writing(self):
-        self.fail()
+        """
+        Scenario:  Jp2k is invoked in a read-only situation but capture/display
+        resolution arguments are supplied.
+
+        Expected result:  RuntimeError
+        """
+        vresc, hresc = 0.1, 0.2
+        vresd, hresd = 0.3, 0.4
+        with self.assertRaises(RuntimeError):
+            glymur.Jp2k(
+                self.jp2file,
+                capture_resolution=[vresc, hresc],
+                display_resolution=[vresd, hresd],
+            )
+
+    def test_one_of_capture_display_resolution_but_not_both(self):
+        """
+        Scenario:  Writing a JP2 is intended, but not both of capture/display
+        resolution key word parameters are supplied.
+
+        Expected Result:  RuntimeError
+        """
+        vresc, hresc = 0.1, 0.2
+        vresd, hresd = 0.3, 0.4
+
+        with self.assertRaises(RuntimeError):
+            glymur.Jp2k(
+                self.temp_jp2_filename, data=self.jp2_data,
+                capture_resolution=[vresc, hresc],
+            )
+
+        with self.assertRaises(RuntimeError):
+            glymur.Jp2k(
+                self.temp_jp2_filename, data=self.jp2_data,
+                display_resolution=[vresd, hresd],
+            )
+
 
     def test_no_jp2c_box_in_outermost_jp2_list(self):
         """
