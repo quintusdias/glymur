@@ -96,10 +96,12 @@ class Jp2k(Jp2kBox):
 
     def __init__(
         self, filename, data=None, shape=None, tilesize=None, verbose=False,
-        cbsize=None, cinema2k=None, cinema4k=None, colorspace=None,
-        cratios=None, eph=None, grid_offset=None, irreversible=None, mct=None,
-        modesw=None, numres=None, plt=False, prog=None, psizes=None, psnr=None,
-        sop=None, subsam=None, tlm=False
+        capture_resolution=None, cbsize=None, cinema2k=None,
+        cinema4k=None, colorspace=None, cratios=None,
+        display_resolution=None, eph=None, grid_offset=None,
+        irreversible=None, mct=None, modesw=None, numres=None,
+        plt=False, prog=None, psizes=None, psnr=None, sop=None,
+        subsam=None, tlm=False,
     ):
         """
         Parameters
@@ -112,6 +114,9 @@ class Jp2k(Jp2kBox):
             Image data to be written to file.
         shape : tuple, optional
             Size of image data, only required when image_data is not provided.
+        capture_resolution : tuple, optional
+            Capture solution (VRES, HRES).  This appends a capture resolution
+            box onto the end of the JP2 file when it is created.
         cbsize : tuple, optional
             Code block size (NROWS, NCOLS)
         cinema2k : int, optional
@@ -122,6 +127,9 @@ class Jp2k(Jp2kBox):
             The image color space.
         cratios : iterable, optional
             Compression ratios for successive layers.
+        display_resolution : tuple, optional
+            Display solution (VRES, HRES).  This appends a display resolution
+            box onto the end of the JP2 file when it is created.
         eph : bool, optional
             If true, write EPH marker after each header packet.
         grid_offset : tuple, optional
@@ -168,16 +176,17 @@ class Jp2k(Jp2kBox):
         self.path = pathlib.Path(self.filename)
 
         self.box = []
-        self._codec_format = None
         self._layer = 0
         self._codestream = None
         self._decoded_components = None
 
+        self._capture_resolution = capture_resolution
         self._cbsize = cbsize
         self._cinema2k = cinema2k
         self._cinema4k = cinema4k
         self._colorspace = colorspace
         self._cratios = cratios
+        self._display_resolution = display_resolution
         self._eph = eph
         self._grid_offset = grid_offset
         self._irreversible = irreversible
@@ -193,52 +202,105 @@ class Jp2k(Jp2kBox):
         self._tilesize = tilesize
         self._tlm = tlm
 
-        self._shape = None
+        self._shape = shape
         self._ndim = None
         self._dtype = None
         self._ignore_pclr_cmap_cdef = False
         self._verbose = verbose
-
-        self._validate_kwargs()
 
         if self.filename[-4:].endswith(('.jp2', '.JP2')):
             self._codec_format = opj2.CODEC_JP2
         else:
             self._codec_format = opj2.CODEC_J2K
 
-        if self._codec_format == opj2.CODEC_J2K and colorspace is not None:
-            msg = 'Do not specify a colorspace when writing a raw codestream.'
-            raise InvalidJp2kError(msg)
+        if data is None and shape is None and self.path.exists():
+            self._readonly = True
+        else:
+            self._readonly = False
+
+        if data is None and tilesize is not None and shape is not None:
+            self._writing_by_tiles = True
+        else:
+            self._writing_by_tiles = False
+
+        if data is None and tilesize is None:
+            # case of
+            # j = Jp2k(filename)
+            # j[:] = data
+            self._expecting_to_write_by_setitem = True
+        else:
+            self._expecting_to_write_by_setitem = False
+
+        if data is not None:
+            self._have_data = True
+            self._shape = data.shape
+        else:
+            self._have_data = False
+
+        self._validate_kwargs()
+
+        if self._readonly:
+            # We must be just reading a JP2/J2K/JPX file.  Parse its
+            # contents, then determine the shape.  We are then done.
+            self.parse()
+            self._initialize_shape()
+            return
 
         if data is not None:
             # We are writing a JP2/J2K/JPX file where the image is
             # contained in memory.
-            self._shape = data.shape
             self._write(data)
-        elif data is None and shape is not None:
-            # We are writing an entire image via the slice protocol, or we are
-            # writing an image tile-by-tile.  A future course of action will
-            # determine that.
-            self._shape = shape
-        elif data is None and shape is None and self.path.exists():
-            # We must be just reading a JP2/J2K/JPX file.  Parse its
-            # contents, then determine "shape".
-            self.parse()
-            self._initialize_shape()
 
+        self.finalize()
+
+    def finalize(self, force_parse=False):
+        """
+        For now, the only task remaining is to possibly write out a
+        ResolutionBox if we were so instructed.  There could be other
+        possibilities in the future.
+
+        Parameters
+        ----------
+        force : bool
+            If true, then run finalize operations
+        """
+        # Cases where we do NOT want to parse.
         if (
-            self.shape is not None
-            and self.tilesize is not None
-            and (
-                self.tilesize[0] > self.shape[0]
-                or self.tilesize[1] > self.shape[1]
-            )
+            (self._writing_by_tiles or self._expecting_to_write_by_setitem)
+            and not force_parse
         ):
-            msg = (
-                f"The tile size {self.tilesize} cannot exceed the image "
-                f"size {self.shape[:2]}."
+            # We are writing by tiles but we are not finished doing that.
+            # or
+            # we are writing by __setitem__ but aren't finished doing that
+            # either
+            return
+
+        # So now we are basically done writing a JP2/Jp2k file ...
+        if self._capture_resolution is None:
+            # ... and we don't have any extra boxes, so go ahead and parse.
+            self.parse()
+            return
+
+        # So we DO have extra boxes.  Handle them, and THEN parse.
+        self._append_resolution_superbox()
+        self.parse()
+
+    def _append_resolution_superbox(self):
+        """
+        As a close-out task, append a resolution superbox to the end of the
+        file if we were so instructed.
+        """
+        with open(self.filename, mode='ab') as f:
+            resc = glymur.jp2box.CaptureResolutionBox(
+                self._capture_resolution[0], self._capture_resolution[1],
             )
-            raise RuntimeError(msg)
+            resd = glymur.jp2box.DisplayResolutionBox(
+                self._display_resolution[0], self._display_resolution[1],
+            )
+            rbox = glymur.jp2box.ResolutionBox([resc, resd])
+            rbox.write(f)
+
+            # self.box.append(rbox)
 
     def _validate_kwargs(self):
         """
@@ -287,6 +349,55 @@ class Jp2k(Jp2kBox):
                     "layer."
                 )
                 raise InvalidJp2kError(msg)
+
+        if (
+            self._codec_format == opj2.CODEC_J2K
+            and self._colorspace is not None
+        ):
+            msg = 'Do not specify a colorspace when writing a raw codestream.'
+            raise InvalidJp2kError(msg)
+
+        if (
+            self._codec_format == opj2.CODEC_J2K
+            and self._capture_resolution is not None
+            and self._display_resolution is not None
+        ):
+            msg = (
+                'Do not specify capture/display resolution when writing a raw '
+                'codestream.'
+            )
+            raise InvalidJp2kError(msg)
+
+        if (
+            (self._capture_resolution is not None)
+            ^ (self._display_resolution is not None)
+        ):
+            msg = (
+                'The capture_resolution and display resolution keywords must'
+                'both be supplied or neither supplied.'
+            )
+            raise RuntimeError(msg)
+
+        if self._readonly and self._capture_resolution is not None:
+            msg = (
+                'Capture/Display resolution keyword parameters cannot be '
+                'supplied when the intent seems to be to read an image.'
+            )
+            raise RuntimeError(msg)
+
+        if (
+            self._shape is not None
+            and self.tilesize is not None
+            and (
+                self.tilesize[0] > self.shape[0]
+                or self.tilesize[1] > self.shape[1]
+            )
+        ):
+            msg = (
+                f"The tile size {self.tilesize} cannot exceed the image "
+                f"size {self.shape[:2]}."
+            )
+            raise RuntimeError(msg)
 
     def _initialize_shape(self):
         """
@@ -923,9 +1034,6 @@ class Jp2k(Jp2kBox):
             opj2.start_compress(codec, image, strm)
             opj2.encode(codec, strm)
             opj2.end_compress(codec, strm)
-
-        # Refresh the metadata.
-        self.parse()
 
     def append(self, box):
         """Append a JP2 box to the file in-place.
@@ -2073,6 +2181,7 @@ class _TileWriter(object):
             return self
         else:
             # We've gone thru all the tiles by this point.
+            self.jp2k.finalize(force_parse=True)
             raise StopIteration
 
     def __setitem__(self, index, img_array):
@@ -2115,9 +2224,6 @@ class _TileWriter(object):
             opj2.stream_destroy(self.stream)
             opj2.image_destroy(self.image)
             opj2.destroy_codec(self.codec)
-
-            # ... and reparse the newly created file to get all the metadata
-            self.jp2k.parse()
 
     def setup_first_tile(self, img_array):
         """
