@@ -228,15 +228,17 @@ class Jp2k(Jp2kBox):
 
         self._validate_kwargs()
 
+        if self._readonly:
+            # We must be just reading a JP2/J2K/JPX file.  Parse its
+            # contents, then determine the shape.  We are then done.
+            self.parse()
+            self._initialize_shape()
+            return
+
         if data is not None:
             # We are writing a JP2/J2K/JPX file where the image is
             # contained in memory.
             self._write(data)
-        elif self._readonly:
-            # We must be just reading a JP2/J2K/JPX file.  Parse its
-            # contents, then determine "shape".
-            self.parse()
-            self._initialize_shape()
 
         self.finalize()
 
