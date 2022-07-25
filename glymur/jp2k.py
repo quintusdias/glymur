@@ -246,24 +246,32 @@ class Jp2k(Jp2kBox):
     def finalize(self):
         """
         For now, the only task remaining is to possibly write out a
-        ResolutionBox if we were so instructed.
+        ResolutionBox if we were so instructed.  There could be other
+        possibilities in the future.
         """
         if self._capture_resolution is not None:
-            with open(self.filename, mode='ab') as f:
-                resc = glymur.jp2box.CaptureResolutionBox(
-                    self._capture_resolution[0], self._capture_resolution[1],
-                    length=18, offset=f.tell() + 8
-                )
-                resd = glymur.jp2box.DisplayResolutionBox(
-                    self._display_resolution[0], self._display_resolution[1],
-                    length=18, offset=f.tell() + 26
-                )
-                rbox = glymur.jp2box.ResolutionBox(
-                    [resc, resd], length=44, offset=f.tell()
-                )
-                rbox.write(f)
+            self._append_resolution_superbox()
 
-                self.box.append(rbox)
+    def _append_resolution_superbox(self):
+        """
+        As a close-out task, append a resolution superbox to the end of the
+        file if we were so instructed.
+        """
+        with open(self.filename, mode='ab') as f:
+            resc = glymur.jp2box.CaptureResolutionBox(
+                self._capture_resolution[0], self._capture_resolution[1],
+                length=18, offset=f.tell() + 8
+            )
+            resd = glymur.jp2box.DisplayResolutionBox(
+                self._display_resolution[0], self._display_resolution[1],
+                length=18, offset=f.tell() + 26
+            )
+            rbox = glymur.jp2box.ResolutionBox(
+                [resc, resd], length=44, offset=f.tell()
+            )
+            rbox.write(f)
+
+            self.box.append(rbox)
 
     def _validate_kwargs(self):
         """
