@@ -245,6 +245,11 @@ class Jp2k(Jp2kBox):
             readonly = True
         else:
             readonly = False
+        
+        if data is None and tilesize is not None and shape is not None:
+            writing_by_tiles = True
+        else:
+            writing_by_tiles = False
 
         if readonly and self._capture_resolution is not None:
             msg = (
@@ -283,6 +288,16 @@ class Jp2k(Jp2kBox):
             )
             raise RuntimeError(msg)
 
+        if not writing_by_tiles:
+            # If we ARE writing by tiles, then we cannot finalize operations
+            # right now, we have to wait.
+            self.finalize()
+
+    def finalize(self):
+        """
+        For now, the only task remaining is to possibly write out a
+        ResolutionBox if we were so instructed.
+        """
         if self._capture_resolution is not None:
             with open(self.filename, mode='ab') as f:
                 resc = glymur.jp2box.CaptureResolutionBox(
@@ -2133,6 +2148,7 @@ class _TileWriter(object):
             return self
         else:
             # We've gone thru all the tiles by this point.
+            self.jp2k.finalize()
             raise StopIteration
 
     def __setitem__(self, index, img_array):

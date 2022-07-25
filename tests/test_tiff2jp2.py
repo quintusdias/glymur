@@ -1797,6 +1797,37 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
             j.box[-1].data.getroot().values(), ['Public XMP Toolkit Core 3.5']
         )
 
+    def test_commandline_capture_display_resolution(self):
+        """
+        Scenario:  patch sys such that we can run the command line tiff2jp2
+        script.  Supply the --capture-resolution and --display-resolution
+        arguments.
+
+        Expected Result:  The last box is a ResolutionBox.
+        """
+        vresc, hresc = 0.1, 0.2
+        vresd, hresd = 0.3, 0.4
+
+        sys.argv = [
+            '', str(self.exif_tiff), str(self.temp_jp2_filename),
+            '--tilesize', '64', '64',
+            '--capture-resolution', str(vresc), str(hresc),
+            '--display-resolution', str(vresd), str(hresd),
+        ]
+        command_line.tiff2jp2()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        self.assertEqual(j.box[-1].box_id, 'res ')
+
+        self.assertEqual(j.box[-1].box[0].box_id, 'resc')
+        self.assertEqual(j.box[-1].box[0].vertical_resolution, vresc)
+        self.assertEqual(j.box[-1].box[0].horizontal_resolution, hresc)
+
+        self.assertEqual(j.box[-1].box[1].box_id, 'resd')
+        self.assertEqual(j.box[-1].box[1].vertical_resolution, vresd)
+        self.assertEqual(j.box[-1].box[1].horizontal_resolution, hresd)
+
     def test_commandline_tiff2jp2_xmp_uuid(self):
         """
         Scenario:  patch sys such that we can run the command line tiff2jp2

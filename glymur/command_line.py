@@ -125,6 +125,18 @@ def tiff2jp2():
         choices=['critical', 'error', 'warning', 'info', 'debug']
     )
 
+    help = 'Capture resolution parameters'
+    parser.add_argument(
+        '--capture-resolution', nargs=2, type=float, help=help,
+        metavar=('VRESC', 'HRESC')
+    )
+
+    help = 'Display resolution parameters'
+    parser.add_argument(
+        '--display-resolution', nargs=2, type=float, help=help,
+        metavar=('VRESD', 'HRESD')
+    )
+
     help = (
         'Compression ratio for successive layers.  You may specify more '
         'than once to get multiple layers.'
@@ -179,9 +191,12 @@ def tiff2jp2():
     kwargs = {
         'cbsize': args.codeblocksize,
         'cratios': args.cratio,
+        'capture_resolution': args.capture_resolution,
         'create_uuid': args.nouuid,
         'create_xmp_uuid': args.create_xmp_uuid,
+        'display_resolution': args.display_resolution,
         'eph': args.eph,
+        'exclude_tags': args.exclude_tags,
         'irreversible': args.irreversible,
         'numres': args.numres,
         'plt': args.plt,
@@ -190,7 +205,6 @@ def tiff2jp2():
         'sop': args.sop,
         'tilesize': args.tilesize,
         'verbosity': logging_level,
-        'exclude_tags': args.exclude_tags,
     }
 
     with Tiff2Jp2k(tiffpath, jp2kpath, **kwargs) as j:
