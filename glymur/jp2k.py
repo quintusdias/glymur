@@ -274,15 +274,11 @@ class Jp2k(Jp2kBox):
         with open(self.filename, mode='ab') as f:
             resc = glymur.jp2box.CaptureResolutionBox(
                 self._capture_resolution[0], self._capture_resolution[1],
-                length=18, offset=f.tell() + 8
             )
             resd = glymur.jp2box.DisplayResolutionBox(
                 self._display_resolution[0], self._display_resolution[1],
-                length=18, offset=f.tell() + 26
             )
-            rbox = glymur.jp2box.ResolutionBox(
-                [resc, resd], length=44, offset=f.tell()
-            )
+            rbox = glymur.jp2box.ResolutionBox([resc, resd])
             rbox.write(f)
 
             self.box.append(rbox)
