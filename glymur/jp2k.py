@@ -238,19 +238,31 @@ class Jp2k(Jp2kBox):
             self.parse()
             self._initialize_shape()
 
-        if not self._writing_by_tiles:
-            # If we ARE writing by tiles, then we cannot finalize operations
-            # right now, we have to wait untile the tile writers have finished.
-            self.finalize()
+        self.finalize()
 
-    def finalize(self):
+    def finalize(self, force=False):
         """
         For now, the only task remaining is to possibly write out a
         ResolutionBox if we were so instructed.  There could be other
         possibilities in the future.
+
+        Parameters
+        ----------
+        force : bool
+            If true, then run finalize operations
         """
-        if self._capture_resolution is not None:
+        if self._capture_resolution is None:
+            # Nothing to do
+            return
+
+        if self._writing_by_tiles and force:
+            # If we ARE writing by tiles, the add the capture resolution box
+            # IFF we are done writing by tiles.
             self._append_resolution_superbox()
+            return
+
+        # We are NOT writing by tiles, so add the capture resolution box.
+        self._append_resolution_superbox()
 
     def _append_resolution_superbox(self):
         """
@@ -2155,7 +2167,7 @@ class _TileWriter(object):
             return self
         else:
             # We've gone thru all the tiles by this point.
-            self.jp2k.finalize()
+            self.jp2k.finalize(force=True)
             raise StopIteration
 
     def __setitem__(self, index, img_array):
