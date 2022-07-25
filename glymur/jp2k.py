@@ -203,94 +203,45 @@ class Jp2k(Jp2kBox):
         self._tilesize = tilesize
         self._tlm = tlm
 
-        self._shape = None
+        self._shape = shape
         self._ndim = None
         self._dtype = None
         self._ignore_pclr_cmap_cdef = False
         self._verbose = verbose
-
-        self._validate_kwargs()
 
         if self.filename[-4:].endswith(('.jp2', '.JP2')):
             self._codec_format = opj2.CODEC_JP2
         else:
             self._codec_format = opj2.CODEC_J2K
 
-        if self._codec_format == opj2.CODEC_J2K and colorspace is not None:
-            msg = 'Do not specify a colorspace when writing a raw codestream.'
-            raise InvalidJp2kError(msg)
-
-        if (
-            self._codec_format == opj2.CODEC_J2K
-            and self._capture_resolution is not None
-            and self._display_resolution is not None
-        ):
-            msg = (
-                'Do not specify capture/display resolution when writing a raw '
-                'codestream.'
-            )
-            raise InvalidJp2kError(msg)
-
-        if (
-            (self._capture_resolution is not None)
-            ^ (self._display_resolution is not None)
-        ):
-            msg = (
-                'The capture_resolution and display resolution keywords must'
-                'both be supplied or neither supplied.'
-            )
-            raise RuntimeError(msg)
-
         if data is None and shape is None and self.path.exists():
-            readonly = True
+            self._readonly = True
         else:
-            readonly = False
-        
-        if data is None and tilesize is not None and shape is not None:
-            writing_by_tiles = True
-        else:
-            writing_by_tiles = False
+            self._readonly = False
 
-        if readonly and self._capture_resolution is not None:
-            msg = (
-                'Capture/Display resolution keyword parameters cannot be '
-                'supplied when the intent seems to be to read an image.'
-            )
-            raise RuntimeError(msg)
+        if data is None and tilesize is not None and shape is not None:
+            self._writing_by_tiles = True
+        else:
+            self._writing_by_tiles = False
+
+        if data is not None:
+            self._shape = data.shape
+
+        self._validate_kwargs()
 
         if data is not None:
             # We are writing a JP2/J2K/JPX file where the image is
             # contained in memory.
-            self._shape = data.shape
             self._write(data)
-        elif data is None and shape is not None:
-            # We are writing an entire image via the slice protocol, or we are
-            # writing an image tile-by-tile.  A future course of action will
-            # determine that.
-            self._shape = shape
-        elif readonly:
+        elif self._readonly:
             # We must be just reading a JP2/J2K/JPX file.  Parse its
             # contents, then determine "shape".
             self.parse()
             self._initialize_shape()
 
-        if (
-            self.shape is not None
-            and self.tilesize is not None
-            and (
-                self.tilesize[0] > self.shape[0]
-                or self.tilesize[1] > self.shape[1]
-            )
-        ):
-            msg = (
-                f"The tile size {self.tilesize} cannot exceed the image "
-                f"size {self.shape[:2]}."
-            )
-            raise RuntimeError(msg)
-
-        if not writing_by_tiles:
+        if not self._writing_by_tiles:
             # If we ARE writing by tiles, then we cannot finalize operations
-            # right now, we have to wait.
+            # right now, we have to wait untile the tile writers have finished.
             self.finalize()
 
     def finalize(self):
@@ -362,6 +313,55 @@ class Jp2k(Jp2kBox):
                     "layer."
                 )
                 raise InvalidJp2kError(msg)
+
+        if (
+            self._codec_format == opj2.CODEC_J2K
+            and self._colorspace is not None
+        ):
+            msg = 'Do not specify a colorspace when writing a raw codestream.'
+            raise InvalidJp2kError(msg)
+
+        if (
+            self._codec_format == opj2.CODEC_J2K
+            and self._capture_resolution is not None
+            and self._display_resolution is not None
+        ):
+            msg = (
+                'Do not specify capture/display resolution when writing a raw '
+                'codestream.'
+            )
+            raise InvalidJp2kError(msg)
+
+        if (
+            (self._capture_resolution is not None)
+            ^ (self._display_resolution is not None)
+        ):
+            msg = (
+                'The capture_resolution and display resolution keywords must'
+                'both be supplied or neither supplied.'
+            )
+            raise RuntimeError(msg)
+
+        if self._readonly and self._capture_resolution is not None:
+            msg = (
+                'Capture/Display resolution keyword parameters cannot be '
+                'supplied when the intent seems to be to read an image.'
+            )
+            raise RuntimeError(msg)
+
+        if (
+            self._shape is not None
+            and self.tilesize is not None
+            and (
+                self.tilesize[0] > self.shape[0]
+                or self.tilesize[1] > self.shape[1]
+            )
+        ):
+            msg = (
+                f"The tile size {self.tilesize} cannot exceed the image "
+                f"size {self.shape[:2]}."
+            )
+            raise RuntimeError(msg)
 
     def _initialize_shape(self):
         """
