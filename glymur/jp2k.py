@@ -265,27 +265,25 @@ class Jp2k(Jp2kBox):
             If true, then run finalize operations
         """
         # Cases where we do NOT want to parse.
-        if self._writing_by_tiles and not force_parse:
+        if (
+            (self._writing_by_tiles or self._expecting_to_write_by_setitem)
+            and not force_parse
+        ):
             # We are writing by tiles but we are not finished doing that.
+            # or
+            # we are writing by __setitem__ but aren't finished doing that
+            # either
             return
 
-        # Cases where we do NOT want to parse.
-        if self._expecting_to_write_by_setitem and not self.path.exists():
-            # Case where we expect
-            # j = Jp2k(filename)
-            # j[:] = data
-            #
-            # but j[:] hasn't happened yet.
-            return
-
+        # So now we are basically done writing a JP2/Jp2k file ...
         if self._capture_resolution is None:
+            # ... and we don't have any extra boxes, so go ahead and parse.
             self.parse()
             return
 
+        # So we DO have extra boxes.  Handle them, and THEN parse.
         self._append_resolution_superbox()
-
         self.parse()
-        return
 
     def _append_resolution_superbox(self):
         """
