@@ -223,8 +223,19 @@ class Jp2k(Jp2kBox):
         else:
             self._writing_by_tiles = False
 
+        if data is None and tilesize is None:
+            # case of
+            # j = Jp2k(filename)
+            # j[:] = data
+            self._expecting_to_write_by_setitem = True
+        else:
+            self._expecting_to_write_by_setitem = False
+
         if data is not None:
+            self._have_data = True
             self._shape = data.shape
+        else:
+            self._have_data = False
 
         self._validate_kwargs()
 
@@ -242,7 +253,7 @@ class Jp2k(Jp2kBox):
 
         self.finalize()
 
-    def finalize(self, force=False):
+    def finalize(self, force_parse=False):
         """
         For now, the only task remaining is to possibly write out a
         ResolutionBox if we were so instructed.  There could be other
@@ -253,18 +264,28 @@ class Jp2k(Jp2kBox):
         force : bool
             If true, then run finalize operations
         """
+        # Cases where we do NOT want to parse.
+        if self._writing_by_tiles and not force_parse:
+            # We are writing by tiles but we are not finished doing that.
+            return
+
+        # Cases where we do NOT want to parse.
+        if self._expecting_to_write_by_setitem and not self.path.exists():
+            # Case where we expect
+            # j = Jp2k(filename)
+            # j[:] = data
+            #
+            # but j[:] hasn't happened yet.
+            return
+
         if self._capture_resolution is None:
-            # Nothing to do
+            self.parse()
             return
 
-        if self._writing_by_tiles and force:
-            # If we ARE writing by tiles, the add the capture resolution box
-            # IFF we are done writing by tiles.
-            self._append_resolution_superbox()
-            return
-
-        # We are NOT writing by tiles, so add the capture resolution box.
         self._append_resolution_superbox()
+
+        self.parse()
+        return
 
     def _append_resolution_superbox(self):
         """
@@ -281,7 +302,7 @@ class Jp2k(Jp2kBox):
             rbox = glymur.jp2box.ResolutionBox([resc, resd])
             rbox.write(f)
 
-            self.box.append(rbox)
+            # self.box.append(rbox)
 
     def _validate_kwargs(self):
         """
@@ -1015,9 +1036,6 @@ class Jp2k(Jp2kBox):
             opj2.start_compress(codec, image, strm)
             opj2.encode(codec, strm)
             opj2.end_compress(codec, strm)
-
-        # Refresh the metadata.
-        self.parse()
 
     def append(self, box):
         """Append a JP2 box to the file in-place.
@@ -2165,7 +2183,7 @@ class _TileWriter(object):
             return self
         else:
             # We've gone thru all the tiles by this point.
-            self.jp2k.finalize(force=True)
+            self.jp2k.finalize(force_parse=True)
             raise StopIteration
 
     def __setitem__(self, index, img_array):
@@ -2210,7 +2228,7 @@ class _TileWriter(object):
             opj2.destroy_codec(self.codec)
 
             # ... and reparse the newly created file to get all the metadata
-            self.jp2k.parse()
+            self.jp2k.finalize(force_parse=True)
 
     def setup_first_tile(self, img_array):
         """

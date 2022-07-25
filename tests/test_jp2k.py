@@ -360,8 +360,13 @@ class TestJp2k(fixtures.TestCommon):
             with self.assertRaises(InvalidJp2kError):
                 Jp2k(path)
 
-    def test_read_from_a_file_that_does_not_exist(self):
-        """Should error out if reading from a file that does not exist"""
+    def test_file_does_not_exist(self):
+        """
+        Scenario:  The Jp2k construtor is passed a file that does not exist
+        and the intent is reading.
+
+        Expected Result:  FileNotFoundError
+        """
         # Verify that we error out appropriately if not given an existing file
         # at all.
         filename = 'this file does not actually exist on the file system.'
