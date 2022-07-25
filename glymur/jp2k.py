@@ -176,7 +176,6 @@ class Jp2k(Jp2kBox):
         self.path = pathlib.Path(self.filename)
 
         self.box = []
-        self._codec_format = None
         self._layer = 0
         self._codestream = None
         self._decoded_components = None
