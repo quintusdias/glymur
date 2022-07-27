@@ -142,17 +142,19 @@ class Jp2kBox(object):
         box_id : bytes
             4-byte sequence that identifies the superbox.
         """
-        # Write the contained boxes, then come back and write the length.
-        orig_pos = fptr.tell()
-        fptr.write(struct.pack('>I4s', 0, box_id))
+        b = io.BytesIO()
+        b.write(struct.pack('>I4s', 0, box_id))
         for box in self.box:
-            box.write(fptr)
+            box.write(b)
 
-        end_pos = fptr.tell()
-        fptr.seek(orig_pos)
-        fptr.write(struct.pack('>I', end_pos - orig_pos))
-        fptr.seek(end_pos)
-        fptr.truncate(end_pos)
+        box_length = b.tell()
+
+        # come back and write the length.
+        b.seek(0)
+        buffer = struct.pack('>I', box_length)
+        b.write(buffer)
+
+        fptr.write(b.getvalue())
 
     def _parse_this_box(self, fptr, box_id, start, num_bytes):
         """Parse the current box.

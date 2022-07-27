@@ -2225,9 +2225,6 @@ class _TileWriter(object):
             opj2.image_destroy(self.image)
             opj2.destroy_codec(self.codec)
 
-            # ... and reparse the newly created file to get all the metadata
-            self.jp2k.finalize(force_parse=True)
-
     def setup_first_tile(self, img_array):
         """
         Only do these things for the first tile.
