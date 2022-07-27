@@ -152,6 +152,7 @@ class Jp2kBox(object):
         fptr.seek(orig_pos)
         fptr.write(struct.pack('>I', end_pos - orig_pos))
         fptr.seek(end_pos)
+        fptr.truncate(end_pos)
 
     def _parse_this_box(self, fptr, box_id, start, num_bytes):
         """Parse the current box.
@@ -232,7 +233,7 @@ class Jp2kBox(object):
 
             read_buffer = fptr.read(8)
             if len(read_buffer) < 8:
-                msg = "Extra bytes at end of file ignored."
+                msg = f"{len(read_buffer)} extra bytes at end of file ignored."
                 warnings.warn(msg, UserWarning)
                 return superbox
 

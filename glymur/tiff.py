@@ -11,7 +11,7 @@ from uuid import UUID
 # local imports
 from glymur import Jp2k
 from .lib import tiff as libtiff
-from .jp2box import UUIDBox
+from . import jp2box
 from ._tiff import TAGNUM2NAME
 
 # Create a mapping of tag names to tag numbers.  Make the tag names to be
@@ -64,9 +64,10 @@ class Tiff2Jp2k(object):
     """
 
     def __init__(
-        self, tiff_filename, jp2_filename, tilesize=None,
-        verbosity=logging.CRITICAL, create_uuid=True, exclude_tags=None,
-        create_xmp_uuid=False, **kwargs
+        self, tiff_filename, jp2_filename,
+        create_uuid=True, create_xmp_uuid=False, exclude_tags=None,
+        tilesize=None, verbosity=logging.CRITICAL,
+        **kwargs
     ):
         """
         Parameters
@@ -179,15 +180,16 @@ class Tiff2Jp2k(object):
 
         self.get_main_ifd()
         self.copy_image()
+        self.append_extra_jp2_boxes()
 
-        if self.create_uuid:
-            self.copy_metadata()
-
-    def copy_metadata(self):
+    def append_extra_jp2_boxes(self):
         """
         Copy over the TIFF IFD.  Place it in a UUID box.  Append to the JPEG
         2000 file.
         """
+        if not self.create_uuid:
+            return
+
         # create a bytesio object for the IFD
         b = io.BytesIO()
 
@@ -218,7 +220,7 @@ class Tiff2Jp2k(object):
         # to store the length of the box and the box ID
         box_length = len(payload) + 8
 
-        uuid_box = UUIDBox(the_uuid, payload, box_length)
+        uuid_box = jp2box.UUIDBox(the_uuid, payload, box_length)
         with open(self.jp2_filename, mode='ab') as f:
             uuid_box.write(f)
 
@@ -226,10 +228,10 @@ class Tiff2Jp2k(object):
             return
 
         # create the XMP UUID
-        the_uuid = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
+        the_uuid = jp2box.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
         payload = bytes(xmp_data['payload'])
         box_length = len(payload) + 8
-        uuid_box = UUIDBox(the_uuid, payload, box_length)
+        uuid_box = jp2box.UUIDBox(the_uuid, payload, box_length)
         with open(self.jp2_filename, mode='ab') as f:
             uuid_box.write(f)
 
