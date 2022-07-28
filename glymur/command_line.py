@@ -95,26 +95,97 @@ def tiff2jp2():
     kwargs = {
         'description': 'Convert TIFF to JPEG 2000.',
         'formatter_class': argparse.ArgumentDefaultsHelpFormatter,
-        'epilog': epilog
+        'epilog': epilog,
+        'add_help': False
     }
     parser = argparse.ArgumentParser(**kwargs)
 
-    parser.add_argument('tifffile')
-    parser.add_argument('jp2kfile')
+    group2 = parser.add_argument_group(
+        'JP2K', 'Pass-through arguments to Jp2k.'
+    )
 
-    help = 'Extract XMLPacket from TIFF IFD and store in UUID box.'
-    parser.add_argument('--create-xmp-uuid', help=help, action='store_true')
+    help = 'Capture resolution parameters'
+    group2.add_argument(
+        '--capture-resolution', nargs=2, type=float, help=help,
+        metavar=('VRESC', 'HRESC')
+    )
+
+    help = 'Display resolution parameters'
+    group2.add_argument(
+        '--display-resolution', nargs=2, type=float, help=help,
+        metavar=('VRESD', 'HRESD')
+    )
+
+    help = (
+        'Compression ratio for successive layers.  You may specify more '
+        'than once to get multiple layers.'
+    )
+    group2.add_argument('--cratio', action='append', type=int, help=help)
+
+    help = (
+        'PSNR for successive layers.  You may specify more than once to get '
+        'multiple layers.'
+    )
+    group2.add_argument('--psnr', action='append', type=int, help=help)
+
+    help = 'Codeblock size.'
+    group2.add_argument(
+        '--codeblocksize', nargs=2, type=int, help=help,
+        metavar=('cblkh', 'cblkw')
+    )
+
+    help = 'Number of decomposition levels.'
+    group2.add_argument('--numres', type=int, help=help, default=6)
+
+    help = 'Progression order.'
+    choices = ['lrcp', 'rlcp', 'rpcl', 'prcl', 'cprl']
+    group2.add_argument('--prog', choices=choices, help=help, default='lrcp')
+
+    help = 'Use irreversible 9x7 transform.'
+    group2.add_argument('--irreversible', help=help, action='store_true')
+
+    help = 'Generate EPH markers.'
+    group2.add_argument('--eph', help=help, action='store_true')
+
+    help = 'Generate PLT markers.'
+    group2.add_argument('--plt', help=help, action='store_true')
+
+    help = 'Generate SOP markers.'
+    group2.add_argument('--sop', help=help, action='store_true')
+
+    group1 = parser.add_argument_group(
+        'TIFF', 'Arguments specific to conversion of TIFF imagery.'
+    )
+
+    help = (
+        'Extract XMLPacket from TIFF IFD and store in XMP UUID box. '
+        'This will exclude the XMLPacket tag from the Exif UUID box.'
+    )
+    group1.add_argument('--create-xmp-uuid', help=help, action='store_true')
 
     help = (
         'Exclude a tag from EXIF UUID (if creating such a UUID).  This option '
         'may be used multiple times.'
     )
-    parser.add_argument('--exclude-tags', help=help, nargs='*')
+    group1.add_argument('--exclude-tags', help=help, nargs='*')
 
-    help = 'Dimensions of JP2K tile.'
-    parser.add_argument(
+    help = (
+        'Dimensions of JP2K tile.  If not provided, the JPEG2000 image will '
+        'be written as a single tile.'
+    )
+    group1.add_argument(
         '--tilesize', nargs=2, type=int, help=help, metavar=('h', 'w')
     )
+
+    help = 'Do not create Exif UUID box for TIFF metadata.'
+    group1.add_argument('--nouuid', help=help, action='store_false')
+
+    group1.add_argument('tifffile')
+    group1.add_argument('jp2kfile')
+
+    # These arguments are not specific to either group.
+    help = 'Show this help message and exit'
+    parser.add_argument('--help', '-h', action='help', help=help)
 
     help = (
         'Logging level, one of "critical", "error", "warning", "info", '
@@ -124,62 +195,6 @@ def tiff2jp2():
         '--verbosity', help=help, default='warning',
         choices=['critical', 'error', 'warning', 'info', 'debug']
     )
-
-    help = 'Capture resolution parameters'
-    parser.add_argument(
-        '--capture-resolution', nargs=2, type=float, help=help,
-        metavar=('VRESC', 'HRESC')
-    )
-
-    help = 'Display resolution parameters'
-    parser.add_argument(
-        '--display-resolution', nargs=2, type=float, help=help,
-        metavar=('VRESD', 'HRESD')
-    )
-
-    help = (
-        'Compression ratio for successive layers.  You may specify more '
-        'than once to get multiple layers.'
-    )
-    parser.add_argument(
-        '--cratio', action='append', type=int, help=help,
-    )
-
-    help = (
-        'PSNR for successive layers.  You may specify more than once to get '
-        'multiple layers.'
-    )
-    parser.add_argument(
-        '--psnr', action='append', type=int, help=help,
-    )
-
-    help = 'Codeblock size.'
-    parser.add_argument(
-        '--codeblocksize', nargs=2, type=int, help=help,
-        metavar=('cblkh', 'cblkw')
-    )
-
-    help = 'Number of decomposition levels.'
-    parser.add_argument('--numres', type=int, help=help, default=6)
-
-    help = 'Progression order.'
-    choices = ['lrcp', 'rlcp', 'rpcl', 'prcl', 'cprl']
-    parser.add_argument('--prog', choices=choices, help=help, default='lrcp')
-
-    help = 'Use irreversible 9x7 transform.'
-    parser.add_argument('--irreversible', help=help, action='store_true')
-
-    help = 'Generate EPH markers.'
-    parser.add_argument('--eph', help=help, action='store_true')
-
-    help = 'Generate PLT markers.'
-    parser.add_argument('--plt', help=help, action='store_true')
-
-    help = 'Generate SOP markers.'
-    parser.add_argument('--sop', help=help, action='store_true')
-
-    help = 'Do not create UUID box for TIFF metadata.'
-    parser.add_argument('--nouuid', help=help, action='store_false')
 
     args = parser.parse_args()
 
