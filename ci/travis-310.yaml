@@ -4,8 +4,9 @@ channels:
 dependencies:
     - python=3.10.*
     - gdal
+    - libtiff
     - lxml
     - numpy
     - openjpeg
-    - libtiff
     - pytest-xdist
+    - scikit-image
