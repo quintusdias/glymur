@@ -57,7 +57,7 @@ class Tiff2Jp2k(object):
         Keyword arguments to pass along to the Jp2k constructor.
     tilesize : tuple
         The dimensions of a tile in the JP2K file.
-    create_uuid : bool
+    create_exif_uuid : bool
         Create a UUIDBox for the TIFF IFD metadata.
     version : int
         Identifies the TIFF as 32-bit TIFF or 64-bit TIFF.
@@ -65,18 +65,18 @@ class Tiff2Jp2k(object):
 
     def __init__(
         self, tiff_filename, jp2_filename,
-        create_uuid=True, create_xmp_uuid=False, exclude_tags=None,
+        create_exif_uuid=True, create_xmp_uuid=False, exclude_tags=None,
         tilesize=None, verbosity=logging.CRITICAL,
         **kwargs
     ):
         """
         Parameters
         ----------
-        create_uuid : bool
+        create_exif_uuid : bool
             If true, create an EXIF UUID out of the TIFF metadata (tags)
         exclude_tags : list or None
-            If not None and if create_uuid is True, exclude any listed tags
-            from the EXIF UUID.
+            If not None and if create_exif_uuid is True, exclude any listed
+            tags from the EXIF UUID.
         tiff_filename : path or str
             Path to TIFF file.
         jp2_filename : path or str
@@ -96,7 +96,7 @@ class Tiff2Jp2k(object):
 
         self.jp2_filename = jp2_filename
         self.tilesize = tilesize
-        self.create_uuid = create_uuid
+        self.create_exif_uuid = create_exif_uuid
         self.create_xmp_uuid = create_xmp_uuid
 
         self.exclude_tags = self._process_exclude_tags(exclude_tags)
@@ -187,7 +187,7 @@ class Tiff2Jp2k(object):
         Copy over the TIFF IFD.  Place it in a UUID box.  Append to the JPEG
         2000 file.
         """
-        if not self.create_uuid:
+        if not self.create_exif_uuid:
             return
 
         # create a bytesio object for the IFD
@@ -941,7 +941,7 @@ class Tiff2Jp2k(object):
             while (r // rps) * rps < min(julr + jth, imageheight):
 
                 stripnum = libtiff.computeStrip(self.tiff_fp, r, 0)
-                self.logger.info(f'Strip: #{stripnum}')
+                self.logger.debug(f'Strip: #{stripnum}')
 
                 if stripnum >= num_strips:
                     # we've moved past the end of the tiff
