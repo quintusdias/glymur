@@ -89,8 +89,8 @@ def tiff2jp2():
 
     epilog = (
         "Normally you should at least provide the tilesize argument.  "
-        "tiff2jp2 will NOT automatically use the TIFF tile dimensions "
-        "(if tiled)."
+        "Even if the TIFF is tiled, tiff2jp2 will NOT automatically use the "
+        "TIFF tile dimensions."
     )
     kwargs = {
         'description': 'Convert TIFF to JPEG 2000.',
@@ -100,18 +100,18 @@ def tiff2jp2():
     }
     parser = argparse.ArgumentParser(**kwargs)
 
-    group2 = parser.add_argument_group(
+    group1 = parser.add_argument_group(
         'JP2K', 'Pass-through arguments to Jp2k.'
     )
 
     help = 'Capture resolution parameters'
-    group2.add_argument(
+    group1.add_argument(
         '--capture-resolution', nargs=2, type=float, help=help,
         metavar=('VRESC', 'HRESC')
     )
 
     help = 'Display resolution parameters'
-    group2.add_argument(
+    group1.add_argument(
         '--display-resolution', nargs=2, type=float, help=help,
         metavar=('VRESD', 'HRESD')
     )
@@ -120,68 +120,70 @@ def tiff2jp2():
         'Compression ratio for successive layers.  You may specify more '
         'than once to get multiple layers.'
     )
-    group2.add_argument('--cratio', action='append', type=int, help=help)
+    group1.add_argument('--cratio', action='append', type=int, help=help)
 
     help = (
         'PSNR for successive layers.  You may specify more than once to get '
         'multiple layers.'
     )
-    group2.add_argument('--psnr', action='append', type=int, help=help)
+    group1.add_argument('--psnr', action='append', type=int, help=help)
 
     help = 'Codeblock size.'
-    group2.add_argument(
+    group1.add_argument(
         '--codeblocksize', nargs=2, type=int, help=help,
         metavar=('cblkh', 'cblkw')
     )
 
     help = 'Number of decomposition levels.'
-    group2.add_argument('--numres', type=int, help=help, default=6)
+    group1.add_argument('--numres', type=int, help=help, default=6)
 
     help = 'Progression order.'
     choices = ['lrcp', 'rlcp', 'rpcl', 'prcl', 'cprl']
-    group2.add_argument('--prog', choices=choices, help=help, default='lrcp')
+    group1.add_argument('--prog', choices=choices, help=help, default='lrcp')
 
     help = 'Use irreversible 9x7 transform.'
-    group2.add_argument('--irreversible', help=help, action='store_true')
+    group1.add_argument('--irreversible', help=help, action='store_true')
 
     help = 'Generate EPH markers.'
-    group2.add_argument('--eph', help=help, action='store_true')
+    group1.add_argument('--eph', help=help, action='store_true')
 
     help = 'Generate PLT markers.'
-    group2.add_argument('--plt', help=help, action='store_true')
+    group1.add_argument('--plt', help=help, action='store_true')
 
     help = 'Generate SOP markers.'
-    group2.add_argument('--sop', help=help, action='store_true')
+    group1.add_argument('--sop', help=help, action='store_true')
 
-    group1 = parser.add_argument_group(
+    group2 = parser.add_argument_group(
         'TIFF', 'Arguments specific to conversion of TIFF imagery.'
     )
 
-    help = (
-        'Extract XMLPacket from TIFF IFD and store in XMP UUID box. '
-        'This will exclude the XMLPacket tag from the Exif UUID box.'
+    help = 'Create Exif UUID box from TIFF metadata.'
+    group2.add_argument(
+        '--create-exif-uuid', help=help, action='store_true', default=True
     )
-    group1.add_argument('--create-xmp-uuid', help=help, action='store_true')
 
     help = (
-        'Exclude a tag from EXIF UUID (if creating such a UUID).  This option '
-        'may be used multiple times.'
+        'Extract XMLPacket tag value from TIFF IFD and store in XMP UUID box. '
+        'This will exclude the XMLPacket tag from the Exif UUID box.'
     )
-    group1.add_argument('--exclude-tags', help=help, nargs='*')
+    group2.add_argument('--create-xmp-uuid', help=help, action='store_true')
+
+    help = (
+        'Exclude TIFF tag(s) from EXIF UUID (if creating such a UUID).  '
+        'This option may be specified as tag numbers or names.'
+    )
+    group2.add_argument('--exclude-tags', help=help, nargs='*')
 
     help = (
         'Dimensions of JP2K tile.  If not provided, the JPEG2000 image will '
         'be written as a single tile.'
     )
-    group1.add_argument(
-        '--tilesize', nargs=2, type=int, help=help, metavar=('h', 'w')
+    group2.add_argument(
+        '--tilesize', nargs=2, type=int, help=help, metavar=('NROWS', 'NCOLS')
     )
 
-    help = 'Do not create Exif UUID box for TIFF metadata.'
-    group1.add_argument('--nouuid', help=help, action='store_false')
-
-    group1.add_argument('tifffile')
-    group1.add_argument('jp2kfile')
+    group2.add_argument('tifffile', help='Input TIFF file.')
+    group2.add_argument('jp2kfile', help='Output JPEG 2000 file.')
 
     # These arguments are not specific to either group.
     help = 'Show this help message and exit'
@@ -207,7 +209,7 @@ def tiff2jp2():
         'cbsize': args.codeblocksize,
         'cratios': args.cratio,
         'capture_resolution': args.capture_resolution,
-        'create_uuid': args.nouuid,
+        'create_exif_uuid': args.create_exif_uuid,
         'create_xmp_uuid': args.create_xmp_uuid,
         'display_resolution': args.display_resolution,
         'eph': args.eph,

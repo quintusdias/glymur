@@ -697,7 +697,7 @@ class TestSuite(fixtures.TestCommon):
         """
         with Tiff2Jp2k(
             self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename,
-            create_uuid=False
+            create_exif_uuid=False
         ) as j:
             j.run()
 
@@ -1622,12 +1622,8 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         """
         Scenario:  input TIFF is organized by strips and logging is turned on.
 
-        Expected result:  there are 304 log messages. 104 of these
-        messages come from the tiles (a 13x8 grid of tiles).  The input
-        tiff has 25 strips.  The last row of JP2 tiles cover just a
-        single strips, so 12x8 tiles with 2 strips per tile equals 192.
-        That last row of JP2 tiles covers just a single strip, so this
-        is 8 additional strips.  So that equals 304.
+        Expected result:  there are 104 log messages. These messages come from
+        the tiles (a 13x8 grid of tiles).
         """
         with Tiff2Jp2k(
             self.goodstuff_path, self.temp_jp2_filename, tilesize=(64, 64),
@@ -1636,7 +1632,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
             with self.assertLogs(logger='tiff2jp2', level=logging.INFO) as cm:
                 j.run()
 
-                self.assertEqual(len(cm.output), 304)
+                self.assertEqual(len(cm.output), 104)
 
     def test_rgb_stripped(self):
         """
