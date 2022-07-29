@@ -1,0 +1,12 @@
+######################
+Changes in glymur 0.11
+######################
+
+*****************
+Changes in 0.11.0
+*****************
+
+    * Add options for supporting ResolutionBoxes
+    * Fix ctypes interface to C library on windows
+    * Add option to convert XMLPacket into UUID box
+    * Add option for excluding tags from Exif UUID box
