@@ -943,8 +943,10 @@ class Tiff2Jp2k(object):
             ms_ulr = julr - tulr
             ms_ulc = julc
 
-            ms_lrr = ms_ulr + min(ms_ulr + jth, imageheight)
-            ms_lrc = ms_ulc + min(ms_ulc + jtw, imagewidth)
+            # ms_lrr = ms_ulr + min(ms_ulr + jth, imageheight)
+            # ms_lrc = ms_ulc + min(ms_ulc + jtw, imagewidth)
+            ms_lrr = min(ms_ulr + jth, imageheight)
+            ms_lrc = min(ms_ulc + jtw, imagewidth)
 
             rows = slice(ms_ulr, ms_lrr)
             cols = slice(ms_ulc, ms_lrc)

@@ -961,7 +961,7 @@ class TestSuite(fixtures.TestCommon):
         """
         with Tiff2Jp2k(
             self.minisblack_3strip_partial_last_strip, self.temp_jp2_filename,
-            tilesize=(240, 240)
+            tilesize=(240, 240), verbose='DEBUG'
         ) as j:
             j.run()
 
