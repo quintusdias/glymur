@@ -904,23 +904,15 @@ class Tiff2Jp2k(object):
             Write to this JPEG2000 file
         """
 
-        partial_jp2_tile_rows = (imageheight / jth) != (imageheight // jth)
-        partial_jp2_tile_cols = (imagewidth / jtw) != (imagewidth // jtw)
-
         self.logger.debug(f'image:  {imageheight} x {imagewidth}')
         self.logger.debug(f'jptile:  {jth} x {jtw}')
         num_strips = libtiff.numberOfStrips(self.tiff_fp)
 
         num_jp2k_tile_cols = int(np.ceil(imagewidth / jtw))
 
-        tiff_strip = np.zeros((rps, imagewidth, spp), dtype=dtype)
-        rgba_strip = np.zeros((rps, imagewidth, 4), dtype=np.uint8)
-
         for idx, tilewriter in enumerate(jp2.get_tilewriters()):
 
             self.logger.info(f'Tile: #{idx}')
-
-            jp2k_tile = np.zeros((jth, jtw, spp), dtype=dtype)
 
             jp2k_tile_row = idx // num_jp2k_tile_cols
             jp2k_tile_col = idx % num_jp2k_tile_cols
@@ -938,14 +930,13 @@ class Tiff2Jp2k(object):
             # Get the multi-strip coordinates of the upper left jp2k corner
             stripnum = libtiff.computeStrip(self.tiff_fp, julr, 0)
             tulr = stripnum * rps
-            tulc = 0
 
             ms_ulr = julr - tulr
             ms_ulc = julc
 
             # ms_lrr = ms_ulr + min(ms_ulr + jth, imageheight)
             # ms_lrc = ms_ulc + min(ms_ulc + jtw, imagewidth)
-            ms_lrr = min(ms_ulr + jth, imageheight)
+            ms_lrr = min(ms_ulr + jth, imageheight - tulr)
             ms_lrc = min(ms_ulc + jtw, imagewidth)
 
             rows = slice(ms_ulr, ms_lrr)
@@ -1007,10 +998,14 @@ class Tiff2Jp2k(object):
 
         if use_rgba_interface:
             tiff_strip = np.zeros((rps, imagewidth, 4), dtype=np.uint8)
-            tiff_multi_strip = np.zeros((num_rows, image_width, 4), dtype=np.uint8)
+            tiff_multi_strip = np.zeros(
+                (num_rows, imagewidth, 4), dtype=np.uint8
+            )
         else:
             tiff_strip = np.zeros((rps, imagewidth, spp), dtype=dtype)
-            tiff_multi_strip = np.zeros((num_rows, imagewidth, spp), dtype=dtype)
+            tiff_multi_strip = np.zeros(
+                (num_rows, imagewidth, spp), dtype=dtype
+            )
 
         # fill the multi-strip
         for stripnum in range(top_strip_num, bottom_strip_num):
@@ -1023,7 +1018,7 @@ class Tiff2Jp2k(object):
 
                 # must flip the rows (!!) and get rid of the alpha
                 # plane
-                tiff_strip = np.flipud(rgba_strip[:, :, :spp])
+                tiff_strip = np.flipud(tiff_strip[:, :, :spp])
 
             else:
 
@@ -1032,8 +1027,9 @@ class Tiff2Jp2k(object):
                 )
 
             # push the strip into the multi-strip
-            rows = slice((stripnum - top_strip_num) * rps, (stripnum - top_strip_num + 1) * rps)
+            top_row = (stripnum - top_strip_num) * rps
+            bottom_row = (stripnum - top_strip_num + 1) * rps
+            rows = slice(top_row, bottom_row)
             tiff_multi_strip[rows, :, :] = tiff_strip
 
         return tiff_multi_strip
-
