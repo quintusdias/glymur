@@ -1030,8 +1030,7 @@ class Tiff2Jp2k(object):
                 )
 
             # push the strip into the multi-strip
-            breakpoint()
-            rows = slice(stripnum * rps, (stripnum + 1) * rps)
+            rows = slice((stripnum - top_strip_num) * rps, (stripnum - top_strip_num + 1) * rps)
             tiff_multi_strip[rows, :, :] = tiff_strip
 
         return tiff_multi_strip
