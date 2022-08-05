@@ -882,7 +882,7 @@ class Tiff2Jp2k(object):
     ):
         """
         The input TIFF image is striped and we are to create the output
-        JPEG2000 image as a single tile.
+        JPEG2000 image as a tiled JP2K.
 
         Parameters
         ----------
@@ -913,13 +913,11 @@ class Tiff2Jp2k(object):
 
         num_jp2k_tile_cols = int(np.ceil(imagewidth / jtw))
 
-        partial_jp2_tile_rows = (imageheight / jth) != (imageheight // jth)
-        partial_jp2_tile_cols = (imagewidth / jtw) != (imagewidth // jtw)
-
         tiff_strip = np.zeros((rps, imagewidth, spp), dtype=dtype)
         rgba_strip = np.zeros((rps, imagewidth, 4), dtype=np.uint8)
 
         for idx, tilewriter in enumerate(jp2.get_tilewriters()):
+
             self.logger.info(f'Tile: #{idx}')
 
             jp2k_tile = np.zeros((jth, jtw, spp), dtype=dtype)
@@ -930,84 +928,111 @@ class Tiff2Jp2k(object):
             # the coordinates of the upper left pixel of the jp2k tile
             julr, julc = jp2k_tile_row * jth, jp2k_tile_col * jtw
 
-            # Populate the jp2k tile with tiff strips.
-            # Move by strips from the start of the jp2k tile to the bottom
-            # of the jp2k tile.  That last strip may be partially empty,
-            # worry about that later.
-            #
-            # loop while the upper left corner of the current tiff file is
-            # less than the lower left corner of the jp2k tile
-            r = julr
-            while (r // rps) * rps < min(julr + jth, imageheight):
+            if jp2k_tile_col == 0:
 
-                stripnum = libtiff.computeStrip(self.tiff_fp, r, 0)
-                self.logger.debug(f'Strip: #{stripnum}')
+                tiff_multi_strip = self._construct_multi_strip(
+                    julr, num_strips, jth, imageheight, imagewidth, rps, spp,
+                    dtype, use_rgba_interface
+                )
 
-                if stripnum >= num_strips:
-                    # we've moved past the end of the tiff
-                    break
+            # Get the multi-strip coordinates of the upper left jp2k corner
+            stripnum = libtiff.computeStrip(self.tiff_fp, julr, 0)
+            tulr = stripnum * rps
+            tulc = 0
 
-                if use_rgba_interface:
+            ms_ulr = julr - tulr
+            ms_ulc = julc
 
-                    # must use the first row in the strip
-                    libtiff.readRGBAStrip(
-                        self.tiff_fp, stripnum * rps, rgba_strip
-                    )
-                    # must flip the rows (!!) and get rid of the alpha
-                    # plane
-                    tiff_strip = np.flipud(rgba_strip[:, :, :spp])
+            ms_lrr = ms_ulr + min(ms_ulr + jth, imageheight)
+            ms_lrc = ms_ulc + min(ms_ulc + jtw, imagewidth)
 
-                else:
-                    libtiff.readEncodedStrip(
-                        self.tiff_fp, stripnum, tiff_strip
-                    )
+            rows = slice(ms_ulr, ms_lrr)
+            cols = slice(ms_ulc, ms_lrc)
 
-                # the coordinates of the upper left pixel of the TIFF
-                # strip
-                tulr = stripnum * rps
-                tulc = 0
+            tilewriter[:] = tiff_multi_strip[rows, cols, :]
 
-                # determine how to fit this tiff strip into the jp2k
-                # tile
-                #
-                # these are the section coordinates in image space
-                ulr = max(julr, tulr)
-                llr = min(julr + jth, tulr + rps)
+    def _construct_multi_strip(
+        self, julr, num_strips, jth, imageheight, imagewidth, rps, spp, dtype,
+        use_rgba_interface
+    ):
+        """
+        TIFF strips are pretty inefficient.  If our I/O was stupidly focused
+        solely on each JP2K tile, we would read in each TIFF strip multiple
+        times.  If instead, we read in ALL the strips that will encompass that
+        current row of JP2K tiles, we will save ourselves from pushing around
+        a lot of electrons.
 
-                ulc = max(julc, tulc)
-                urc = min(julc + jtw, tulc + imagewidth)
+        Parameters
+        ----------
+        imagewidth, imageheight, spp : int
+            TIFF tag values corresponding to the photometric interpretation,
+            image width and height, and samples per pixel.
+        jth : int
+            The number of rows in a JP2K tile.
+        rps : int
+            The number of rows per strip in the TIFF.
+        julr : int
+            The top row of the current JP2K tile row.
+        dtype : np.dtype
+            Datatype of the image.
+        use_rgba_interface : bool
+            If true, use the RGBA interface to read the TIFF image data.
 
-                # convert to JP2K tile coordinates
-                jrows = slice(ulr % jth, (llr - 1) % jth + 1)
-                jcols = slice(ulc % jtw, (urc - 1) % jtw + 1)
+        Returns
+        -------
+        tiff_multi_strip : np.array
+            Holds all the TIFF strips that tightly encompass the current JP2K
+            tile row.
+        """
+        # We need to create a TIFF "multi-strip" that can hold all of
+        # the JP2K tiles in a JP2K tile row.
+        r = julr
+        top_strip_num = libtiff.computeStrip(self.tiff_fp, r, 0)
 
-                # convert to TIFF strip coordinates
-                trows = slice(ulr % rps, (llr - 1) % rps + 1)
-                tcols = slice(ulc % imagewidth, (urc - 1) % imagewidth + 1)
+        if top_strip_num >= num_strips:
+            # we've moved past the end of the tiff
+            breakpoint()
+            pass
 
-                jp2k_tile[jrows, jcols, :] = tiff_strip[trows, tcols, :]
+        # advance thru to the next tile row
+        while (r // rps) * rps < min(julr + jth, imageheight):
+            r += rps
+        bottom_strip_num = libtiff.computeStrip(self.tiff_fp, r, 0)
 
-                r += rps
+        # compute the number of rows contained between the top strip
+        # and the bottom strip
+        num_rows = (bottom_strip_num - top_strip_num) * rps
 
-            # last tile column?  If so, we may have a partial tile.
-            # j2k_cols is not sufficient here, must shorten it from 250
-            # to 230
-            if (
-                partial_jp2_tile_cols
-                and jp2k_tile_col == num_jp2k_tile_cols - 1
-            ):
-                # decrease the number of columns by however many it sticks
-                # over the image width
-                last_j2k_cols = slice(0, imagewidth - julc)
-                jp2k_tile = jp2k_tile[:, last_j2k_cols, :].copy()
+        if use_rgba_interface:
+            tiff_strip = np.zeros((rps, imagewidth, 4), dtype=np.uint8)
+            tiff_multi_strip = np.zeros((num_rows, image_width, 4), dtype=np.uint8)
+        else:
+            tiff_strip = np.zeros((rps, imagewidth, spp), dtype=dtype)
+            tiff_multi_strip = np.zeros((num_rows, imagewidth, spp), dtype=dtype)
 
-            if (
-                partial_jp2_tile_rows
-                and stripnum == num_strips - 1
-            ):
-                # decrease the number of rows by however many it sticks
-                # over the image height
-                last_j2k_rows = slice(0, imageheight - julr)
-                jp2k_tile = jp2k_tile[last_j2k_rows, :, :].copy()
+        # fill the multi-strip
+        for stripnum in range(top_strip_num, bottom_strip_num):
 
-            tilewriter[:] = jp2k_tile
+            if use_rgba_interface:
+
+                libtiff.readRGBAStrip(
+                    self.tiff_fp, stripnum * rps, tiff_strip
+                )
+
+                # must flip the rows (!!) and get rid of the alpha
+                # plane
+                tiff_strip = np.flipud(rgba_strip[:, :, :spp])
+
+            else:
+
+                libtiff.readEncodedStrip(
+                    self.tiff_fp, stripnum, tiff_strip
+                )
+
+            # push the strip into the multi-strip
+            breakpoint()
+            rows = slice(stripnum * rps, (stripnum + 1) * rps)
+            tiff_multi_strip[rows, :, :] = tiff_strip
+
+        return tiff_multi_strip
+
