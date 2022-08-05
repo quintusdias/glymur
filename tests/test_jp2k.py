@@ -1259,6 +1259,7 @@ class TestJp2k_write(fixtures.MetadataBase):
 
         EXPECTED RESULT:  A TLM segment is detected.
         """
+        breakpoint()
         kwargs = {
             'data': self.jp2_data,
             'tlm': True

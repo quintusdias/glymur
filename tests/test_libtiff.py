@@ -18,6 +18,9 @@ class TestSuite(fixtures.TestCommon):
     def test_simple_tile(self):
         """
         SCENARIO:  create a simple monochromatic 2x2 tiled image
+
+        Expected result:  The image matches.  The number of tiles checks out.
+        The tile width and height checks out.
         """
         data = fixtures.skimage.data.moon()
         h, w = data.shape
@@ -58,6 +61,15 @@ class TestSuite(fixtures.TestCommon):
         libtiff.readEncodedTile(fp, 3, tile)
         actual_data[th:h, tw:w] = tile
 
-        libtiff.close(fp)
-
         np.testing.assert_array_equal(data, actual_data)
+
+        n = libtiff.numberOfTiles(fp)
+        self.assertEqual(n, 4)
+
+        actual_th = libtiff.getFieldDefaulted(fp, 'TileLength')
+        self.assertEqual(actual_th, th)
+
+        actual_tw = libtiff.getFieldDefaulted(fp, 'TileWidth')
+        self.assertEqual(actual_tw, tw)
+
+        libtiff.close(fp)

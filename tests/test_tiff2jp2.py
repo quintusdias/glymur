@@ -384,6 +384,53 @@ class TestSuite(fixtures.TestCommon):
         cls.astronaut_uint16_filename = path
 
     @classmethod
+    def setup_ycbcr_striped_jpeg(cls, path):
+        """
+        SCENARIO:  create a simple color 2x1 stripped image
+        """
+        data = fixtures.skimage.data.astronaut()
+        h, w, z = data.shape
+        rps = h // 2
+
+        fp = libtiff.open(path, mode='w')
+
+        libtiff.setField(fp, 'Photometric', libtiff.Photometric.YCBCR)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.JPEG)
+
+        l, w = data.shape[:2]
+        libtiff.setField(fp, 'ImageLength', l)
+        libtiff.setField(fp, 'ImageWidth', w)
+        libtiff.setField(fp, 'RowsPerStrip', rps)
+
+        libtiff.setField(fp, 'BitsPerSample', 8)
+        libtiff.setField(fp, 'SamplesPerPixel', 3)
+        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
+        libtiff.setField(fp, 'JPEGColorMode', libtiff.PlanarConfig.CONTIG)
+        libtiff.setField(fp, 'JPEGQuality', 100)
+
+        libtiff.writeEncodedStrip(fp, 0, data[:rps, :, :])
+        libtiff.writeEncodedStrip(fp, 1, data[rps:rps * 2, :, :])
+
+        libtiff.close(fp)
+
+        # now read it back
+        fp = libtiff.open(path)
+
+        strip = np.zeros((rps, w, 4), dtype=np.uint8)
+        actual_data = np.zeros((h, w, 3), dtype=np.uint8)
+
+        libtiff.readRGBAStrip(fp, 0, strip)
+        actual_data[:rps, :, :] = strip[::-1, :, :3]
+
+        libtiff.readRGBAStrip(fp, rps, strip)
+        actual_data[rps:rps * 2, :, :] = strip[::-1, :, :3]
+
+        libtiff.close(fp)
+
+        cls.astronaut_ycbcr_striped_jpeg_data = actual_data
+        cls.astronaut_ycbcr_striped_jpeg_tif = path
+
+    @classmethod
     def setup_ycbcr_jpeg(cls, path):
         """
         SCENARIO:  create a simple color 2x2 tiled image
@@ -564,6 +611,10 @@ class TestSuite(fixtures.TestCommon):
             cls.test_tiff_path / 'astronaut_ycbcr_jpeg_tiled.tif'
         )
 
+        cls.setup_ycbcr_striped_jpeg(
+            cls.test_tiff_path / 'astronaut_ycbcr_striped_jpeg.tif'
+        )
+
         cls.setup_rgb_uint16(cls.test_tiff_path / 'astronaut_uint16.tif')
 
     @classmethod
@@ -622,6 +673,67 @@ class TestSuite(fixtures.TestCommon):
         """
         with Tiff2Jp2k(
             self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename
+        ) as j:
+            j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        actual = j[:]
+        self.assertEqual(actual.shape, (512, 512, 3))
+
+        c = j.get_codestream(header_only=False)
+
+        actual = c.segment[2].code_block_size
+        expected = (64, 64)
+        self.assertEqual(actual, expected)
+
+        self.assertEqual(c.segment[2].layers, 1)
+        self.assertEqual(c.segment[2].num_res, 5)
+
+        at_least_one_eph = any(
+            isinstance(seg, glymur.codestream.EPHsegment)
+            for seg in c.segment
+        )
+        self.assertFalse(at_least_one_eph)
+
+        at_least_one_plt = any(
+            isinstance(seg, glymur.codestream.PLTsegment)
+            for seg in c.segment
+        )
+        self.assertFalse(at_least_one_plt)
+
+        at_least_one_sop = any(
+            isinstance(seg, glymur.codestream.SOPsegment)
+            for seg in c.segment
+        )
+        self.assertFalse(at_least_one_sop)
+
+        self.assertEqual(c.segment[2].prog_order, glymur.core.LRCP)
+
+        self.assertEqual(
+            c.segment[2].xform, glymur.core.WAVELET_XFORM_5X3_REVERSIBLE
+        )
+
+        self.assertEqual(j.box[-1].box_id, 'uuid')
+        self.assertEqual(j.box[-1].data['ImageWidth'], 512)
+        self.assertEqual(j.box[-1].data['ImageLength'], 512)
+
+    def test_smoke_rgba(self):
+        """
+        SCENARIO:  Convert RGCA TIFF file to JP2
+
+        EXPECTED RESULT:  data matches, number of resolution is the default.
+        There should be just one layer.  The number of resolutions should be
+        the default (5).  There are not PLT segments.  There are no EPH
+        markers.  There are no SOP markers.  The progression order is LRCP.
+        The irreversible transform will NOT be used.  PSNR cannot be tested
+        if it is not applied.
+
+        There is a UUID box appended at the end containing the metadata.
+        """
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_striped_jpeg_tif, self.temp_jp2_filename,
+            tilesize=[256, 256]
         ) as j:
             j.run()
 
@@ -961,7 +1073,7 @@ class TestSuite(fixtures.TestCommon):
         """
         with Tiff2Jp2k(
             self.minisblack_3strip_partial_last_strip, self.temp_jp2_filename,
-            tilesize=(240, 240)
+            tilesize=(240, 240), verbose='DEBUG'
         ) as j:
             j.run()
 
