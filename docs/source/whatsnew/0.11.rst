@@ -3,6 +3,12 @@ Changes in glymur 0.11
 ######################
 
 *****************
+Changes in 0.11.1
+*****************
+    * Improve efficiency of striped TIFF to tiled JP2 conversion
+
+
+*****************
 Changes in 0.11.0
 *****************
 
