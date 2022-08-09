@@ -1186,27 +1186,51 @@ class TestJp2k_write(fixtures.MetadataBase):
                 display_resolution=[vresd, hresd],
             )
 
-    def test_one_of_capture_display_resolution_but_not_both(self):
+    def test_capture_resolution_supplied_but_not_display(self):
         """
-        Scenario:  Writing a JP2 is intended, but not both of capture/display
-        resolution key word parameters are supplied.
+        Scenario:  Writing a JP2 is intended, but only a capture resolution
+        box is specified, and not a display resolution box.
 
-        Expected Result:  RuntimeError
+        Expected Result:  No errors, the boxes are validated.
         """
         vresc, hresc = 0.1, 0.2
+
+        j = glymur.Jp2k(
+            self.temp_jp2_filename, data=self.jp2_data,
+            capture_resolution=[vresc, hresc],
+        )
+
+        self.assertEqual(j.box[-1].box_id, 'res ')
+
+        self.assertEqual(j.box[-1].box[0].box_id, 'resc')
+        self.assertEqual(j.box[-1].box[0].vertical_resolution, vresc)
+        self.assertEqual(j.box[-1].box[0].horizontal_resolution, hresc)
+
+        # there's just one child box
+        self.assertEqual(len(j.box[-1].box), 1)
+
+    def test_display_resolution_supplied_but_not_capture(self):
+        """
+        Scenario:  Writing a JP2 is intended, but only a capture resolution
+        box is specified, and not a display resolution box.
+
+        Expected Result:  No errors, the boxes are validated.
+        """
         vresd, hresd = 0.3, 0.4
 
-        with self.assertRaises(RuntimeError):
-            glymur.Jp2k(
-                self.temp_jp2_filename, data=self.jp2_data,
-                capture_resolution=[vresc, hresc],
-            )
+        j = glymur.Jp2k(
+            self.temp_jp2_filename, data=self.jp2_data,
+            display_resolution=[vresd, hresd],
+        )
 
-        with self.assertRaises(RuntimeError):
-            glymur.Jp2k(
-                self.temp_jp2_filename, data=self.jp2_data,
-                display_resolution=[vresd, hresd],
-            )
+        self.assertEqual(j.box[-1].box_id, 'res ')
+
+        self.assertEqual(j.box[-1].box[0].box_id, 'resd')
+        self.assertEqual(j.box[-1].box[0].vertical_resolution, vresd)
+        self.assertEqual(j.box[-1].box[0].horizontal_resolution, hresd)
+
+        # there's just one child box
+        self.assertEqual(len(j.box[-1].box), 1)
 
     def test_no_jp2c_box_in_outermost_jp2_list(self):
         """

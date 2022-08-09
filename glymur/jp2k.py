@@ -276,7 +276,10 @@ class Jp2k(Jp2kBox):
             return
 
         # So now we are basically done writing a JP2/Jp2k file ...
-        if self._capture_resolution is None:
+        if (
+            self._capture_resolution is None
+            and self._display_resolution is None
+        ):
             # ... and we don't have any extra boxes, so go ahead and parse.
             self.parse()
             return
@@ -291,13 +294,22 @@ class Jp2k(Jp2kBox):
         file if we were so instructed.
         """
         with open(self.filename, mode='ab') as f:
-            resc = glymur.jp2box.CaptureResolutionBox(
-                self._capture_resolution[0], self._capture_resolution[1],
-            )
-            resd = glymur.jp2box.DisplayResolutionBox(
-                self._display_resolution[0], self._display_resolution[1],
-            )
-            rbox = glymur.jp2box.ResolutionBox([resc, resd])
+
+            extra_boxes = []
+
+            if self._capture_resolution is not None:
+                resc = glymur.jp2box.CaptureResolutionBox(
+                    self._capture_resolution[0], self._capture_resolution[1],
+                )
+                extra_boxes.append(resc)
+
+            if self._display_resolution is not None:
+                resd = glymur.jp2box.DisplayResolutionBox(
+                    self._display_resolution[0], self._display_resolution[1],
+                )
+                extra_boxes.append(resd)
+
+            rbox = glymur.jp2box.ResolutionBox(extra_boxes)
             rbox.write(f)
 
             # self.box.append(rbox)
@@ -367,16 +379,6 @@ class Jp2k(Jp2kBox):
                 'codestream.'
             )
             raise InvalidJp2kError(msg)
-
-        if (
-            (self._capture_resolution is not None)
-            ^ (self._display_resolution is not None)
-        ):
-            msg = (
-                'The capture_resolution and display resolution keywords must'
-                'both be supplied or neither supplied.'
-            )
-            raise RuntimeError(msg)
 
         if self._readonly and self._capture_resolution is not None:
             msg = (
