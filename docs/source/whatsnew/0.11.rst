@@ -3,16 +3,21 @@ Changes in glymur 0.11
 ######################
 
 *****************
+Changes in 0.11.2
+*****************
+    * Relax requirement on ResolutionBox number of child boxes.
+
+*****************
 Changes in 0.11.1
 *****************
-    * Improve efficiency of striped TIFF to tiled JP2 conversion
+    * Improve efficiency of striped TIFF to tiled JP2 conversion.
 
 
 *****************
 Changes in 0.11.0
 *****************
 
-    * Add options for supporting ResolutionBoxes
-    * Fix ctypes interface to C library on windows
-    * Add option to convert XMLPacket into UUID box
-    * Add option for excluding tags from Exif UUID box
+    * Add options for supporting ResolutionBoxes.
+    * Fix ctypes interface to C library on windows.
+    * Add option to convert XMLPacket into UUID box.
+    * Add option for excluding tags from Exif UUID box.

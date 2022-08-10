@@ -1,11 +1,14 @@
+August 9, 2022 - v0.11.2
+    Relax ResolutionBox requirement on child boxes.
+
 August 6, 2022 - v0.11.1
-    Improve efficiency of striped TIFF to tiled JP2 conversion
+    Improve efficiency of striped TIFF to tiled JP2 conversion.
 
 July 29, 2022 - v0.11.0
-    Add options for supporting ResolutionBoxes
-    Fix ctypes interface to C library on windows
-    Add option to convert XMLPacket into UUID box
-    Add option for excluding tags from Exif UUID box
+    Add options for supporting ResolutionBoxes.
+    Fix ctypes interface to C library on windows.
+    Add option to convert XMLPacket into UUID box.
+    Add option for excluding tags from Exif UUID box.
 
 July 16, 2022 - v0.10.2
     Fix appveyor builds
