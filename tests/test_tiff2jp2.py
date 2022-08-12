@@ -1906,7 +1906,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
             j.box[-1].data.getroot().values(), ['Public XMP Toolkit Core 3.5']
         )
 
-    def test_commandline__capture_display_resolution__no_tilesize(self):
+    def test_commandline_capture_display_resolution(self):
         """
         Scenario:  patch sys such that we can run the command
         line tiff2jp2 script.  Supply the --capture-resolution and
@@ -2035,6 +2035,103 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
             p.run()
 
         Jp2k(self.temp_jp2_filename)
+
+    def test_icc_profile(self):
+        """
+        Scenario:  The input TIFF has the ICC profile tag.
+
+        Expected Result.  The ICC profile is verified in the
+        ColourSpecificationBox.  The ICC profile tag will not be present in
+        the JpgTiffExif->JP2 UUID box.  There is a logging message at the info
+        level stating that a color profile was consumed.
+        """
+        with ir.path('tests.data', 'basn6a08.tif') as path:
+
+            with path.open(mode='rb') as f:
+                buffer = f.read()
+                ifd = glymur._tiff.tiff_header(buffer)
+            icc_profile = bytes(ifd['ICCProfile'])
+
+            with Tiff2Jp2k(path, self.temp_jp2_filename) as p:
+
+                with self.assertLogs(
+                    logger='tiff2jp2', level=logging.INFO
+                ) as cm:
+                    p.run()
+
+                self.assertEqual(
+                    sum('ICC profile' in msg for msg in cm.output), 1
+                )
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        # The colour specification box has the profile
+        self.assertEqual(j.box[2].box[1].icc_profile, bytes(icc_profile))
+
+        # the exif UUID box does NOT have the profile
+        self.assertNotIn('ICCProfile', j.box[-1].data)
+
+    def test_icc_profile_commandline(self):
+        """
+        Scenario:  The input TIFF has the ICC profile tag.  Specify normal
+        command line options.
+
+        Expected Result.  The ICC profile is verified in the
+        ColourSpecificationBox.  The ICC profile tag will not be present in
+        the JpgTiffExif->JP2 UUID box.
+        """
+        with ir.path('tests.data', 'basn6a08.tif') as path:
+
+            with path.open(mode='rb') as f:
+                buffer = f.read()
+                ifd = glymur._tiff.tiff_header(buffer)
+            icc_profile = bytes(ifd['ICCProfile'])
+
+            sys.argv = [
+                '', str(path), str(self.temp_jp2_filename),
+            ]
+            command_line.tiff2jp2()
+
+            with Tiff2Jp2k(path, self.temp_jp2_filename) as p:
+                p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        # The colour specification box has the profile
+        self.assertEqual(j.box[2].box[1].icc_profile, bytes(icc_profile))
+
+        # the exif UUID box does NOT have the profile
+        self.assertNotIn('ICCProfile', j.box[-1].data)
+
+    def test_exclude_icc_profile_commandline(self):
+        """
+        Scenario:  The input TIFF has the ICC profile tag.  Do not import
+        it into the cdef box.
+
+        Expected Result.  The ICC profile is verified in the
+        ColourSpecificationBox.  The ICC profile tag will not be present in
+        the JpgTiffExif->JP2 UUID box.
+        """
+        with ir.path('tests.data', 'basn6a08.tif') as path:
+
+            sys.argv = [
+                '', str(path), str(self.temp_jp2_filename),
+                '--exclude-icc-profile'
+            ]
+            command_line.tiff2jp2()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        # The colour specification box does not have the profile
+        colr = j.box[2].box[1]
+        self.assertEqual(colr.method, glymur.core.ENUMERATED_COLORSPACE)
+        self.assertEqual(colr.precedence, 0)
+        self.assertEqual(colr.approximation, 0)
+        self.assertEqual(colr.colorspace, SRGB)
+        self.assertIsNone(colr.icc_profile)
+
+        # the exif UUID box DOES have the profile
+        self.assertIn('ICCProfile', j.box[-1].data)
 
     def test_not_a_tiff(self):
         """
