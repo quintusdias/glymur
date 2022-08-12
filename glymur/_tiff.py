@@ -244,7 +244,7 @@ TAGNUM2NAME = {
     34264: 'ModelTransformation',
     34377: 'ImageResources',
     34665: 'ExifTag',
-    34675: 'InterColorProfile',
+    34675: 'ICCProfile',
     34735: 'GeoKeyDirectory',
     34736: 'GeoDoubleParams',
     34737: 'GeoAsciiParams',

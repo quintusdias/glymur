@@ -11,7 +11,7 @@ from uuid import UUID
 
 # local imports
 from glymur import Jp2k
-from glymur.core import SRGB
+from glymur.core import SRGB, RESTRICTED_ICC_PROFILE
 from .lib import tiff as libtiff
 from . import jp2box
 from ._tiff import TAGNUM2NAME
@@ -72,7 +72,7 @@ class Tiff2Jp2k(object):
     def __init__(
         self, tiff_filename, jp2_filename,
         create_exif_uuid=True, create_xmp_uuid=False, exclude_tags=None,
-        tilesize=None, verbosity=logging.CRITICAL,
+        tilesize=None, verbosity=logging.CRITICAL, exclude_icc_profile=False,
         **kwargs
     ):
         """
@@ -80,20 +80,23 @@ class Tiff2Jp2k(object):
         ----------
         create_exif_uuid : bool
             If true, create an EXIF UUID out of the TIFF metadata (tags)
+        create_xmp_uuid : bool
+            If true and if there is an XMLPacket (700) tag in the TIFF main
+            IFD, it will be removed from the IFD and placed in a UUID box.
         exclude_tags : list or None
             If not None and if create_exif_uuid is True, exclude any listed
             tags from the EXIF UUID.
-        tiff_filename : path or str
-            Path to TIFF file.
         jp2_filename : path or str
             Path to JPEG 2000 file to be written.
+        exclude_icc_profile : bool
+            If false, extract the ICC profile tag value, save to the
+            ColourSpecificationBox.
+        tiff_filename : path or str
+            Path to TIFF file.
         tilesize : tuple
             The dimensions of a tile in the JP2K file.
         verbosity : int
             Set the level of logging, i.e. WARNING, INFO, etc.
-        create_xmp_uuid : bool
-            If true and if there is an XMLPacket (700) tag in the TIFF main
-            IFD, it will be removed from the IFD and placed in a UUID box.
         """
 
         self.tiff_filename = tiff_filename
@@ -104,6 +107,7 @@ class Tiff2Jp2k(object):
         self.tilesize = tilesize
         self.create_exif_uuid = create_exif_uuid
         self.create_xmp_uuid = create_xmp_uuid
+        self.exclude_icc_profile = exclude_icc_profile
 
         self.exclude_tags = self._process_exclude_tags(exclude_tags)
 
@@ -112,6 +116,9 @@ class Tiff2Jp2k(object):
 
         # Assume that there is no ColorMap tag until we know otherwise.
         self._colormap = None
+
+        # Assume that there is no ICC profile tag until we know otherwise.
+        self._icc_profile = None
 
         # Assume no XML_PACKET tag until we know otherwise.
         self.xmp_data = None
@@ -198,9 +205,18 @@ class Tiff2Jp2k(object):
 
     def rewrap_jp2(self):
         """
+        These re-wrap operations should be mutually exclusive.  An ICC profile
+        should not exist in a TIFF with a colormap.
+        """
+        self.rewrap_for_colormap()
+        self.rewrap_for_icc_profile()
+
+    def rewrap_for_colormap(self):
+        """
         If the photometric interpretation was PALETTE, then we need to insert
         a pclr box and a cmap (component mapping box).
         """
+
         photo = self.get_tag_value(262)
         if photo != libtiff.Photometric.PALETTE:
             return
@@ -233,6 +249,38 @@ class Tiff2Jp2k(object):
         shutil.move(temp_filename, self.jp2_filename)
         self.jp2.parse()
 
+    def rewrap_for_icc_profile(self):
+        """
+        Consume a TIFF ICC profile, if one is there.
+        """
+
+        if self._icc_profile is None or self.exclude_icc_profile:
+            return
+
+        self.logger.info(
+            'Consuming an ICC profile into JP2 color specification box.'
+        )
+
+        colr = jp2box.ColourSpecificationBox(
+            method=RESTRICTED_ICC_PROFILE,
+            precedence=0,
+            icc_profile=self._icc_profile
+        )
+
+        # construct the new set of JP2 boxes, insert the color specification
+        # box with the ICC profile
+        jp2 = Jp2k(self.jp2_filename)
+        boxes = jp2.box
+        boxes[2].box = [boxes[2].box[0], colr]
+
+        # re-wrap the codestream, involves a file copy
+        tmp_filename = str(self.jp2_filename) + '.tmp'
+
+        with open(tmp_filename, mode='wb') as tfile:
+            jp2.wrap(tfile.name, boxes=boxes)
+
+        shutil.move(tmp_filename, self.jp2_filename)
+
     def append_extra_jp2_boxes(self):
         """
         Copy over the TIFF IFD.  Place it in a UUID box.  Append to the JPEG
@@ -262,6 +310,12 @@ class Tiff2Jp2k(object):
             self.xmp_data = self.tags.pop(700)['payload']
         else:
             self.xmp_data = None
+
+        if 34675 in self.tags and not self.exclude_icc_profile:
+            # remove the ICCProfile data from the IFD dictionary
+            self._icc_profile = bytes(self.tags.pop(34675)['payload'])
+        else:
+            self._icc_profile = None
 
         self._write_ifd(b, self.tags)
 
@@ -592,8 +646,7 @@ class Tiff2Jp2k(object):
 
     def copy_image(self):
         """
-        Transfer the image data from the TIFF to the JPEG 2000 file.  If the
-        TIFF has a stripped configuration, this may be somewhat inefficient.
+        Transfer the image data from the TIFF to the JPEG 2000 file.
         """
 
         if libtiff.isTiled(self.tiff_fp):

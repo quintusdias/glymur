@@ -379,17 +379,16 @@ class ColourSpecificationBox(Jp2kBox):
             warnings.warn(msg, UserWarning)
 
     def _write_validate(self):
-        """In addition to constructor validation steps, run validation steps
-        for writing."""
-        if self.colorspace is None:
-            msg = ("Writing colr boxes without enumerated "
-                   "colorspaces is not supported at this time.")
-            self._dispatch_validation_error(msg, writing=True)
-
+        """
+        In addition to constructor validation steps, run validation steps
+        for writing.
+        """
         if self.icc_profile is None:
             if self.colorspace not in [SRGB, GREYSCALE, YCC]:
-                msg = ("Colorspace should correspond to one of SRGB, "
-                       "GREYSCALE, or YCC.")
+                msg = (
+                    "Colorspace should correspond to one of SRGB, GREYSCALE, "
+                    "or YCC."
+                )
                 self._dispatch_validation_error(msg, writing=True)
 
         self._validate(writing=True)
@@ -453,20 +452,35 @@ class ColourSpecificationBox(Jp2kBox):
         return text
 
     def write(self, fptr):
-        """Write an Colour Specification box to file.
         """
+        Write an Colour Specification box to file.
+        """
+
         self._write_validate()
         length = 15 if self.icc_profile is None else 11 + len(self.icc_profile)
         fptr.write(struct.pack('>I4s', length, b'colr'))
 
-        read_buffer = struct.pack(
-            '>BBBI',
-            self.method,
-            self.precedence,
-            self.approximation,
-            self.colorspace
-        )
-        fptr.write(read_buffer)
+        if self.icc_profile is None:
+
+            buffer = struct.pack(
+                '>BBBI',
+                self.method,
+                self.precedence,
+                self.approximation,
+                self.colorspace
+            )
+            fptr.write(buffer)
+
+        else:
+
+            buffer = struct.pack(
+                '>BBB',
+                self.method,
+                self.precedence,
+                self.approximation,
+            )
+            fptr.write(buffer)
+            fptr.write(self.icc_profile)
 
     @classmethod
     def parse(cls, fptr, offset, length):

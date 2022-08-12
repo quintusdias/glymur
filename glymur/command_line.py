@@ -169,6 +169,15 @@ def tiff2jp2():
     group2.add_argument('--create-xmp-uuid', help=help, action='store_true')
 
     help = (
+        'Do not take any ICC profile (tag 34675) from the TIFF IFD and insert '
+        'it into the ColourSpecificationBox.  Note: this will leave any such '
+        'ICCProfile tag in the Exif UUID box.'
+    )
+    group2.add_argument(
+        '--exclude-icc-profile', help=help, action='store_true'
+    )
+
+    help = (
         'Exclude TIFF tag(s) from EXIF UUID (if creating such a UUID).  '
         'This option may be specified as tag numbers or names.'
     )
@@ -208,6 +217,7 @@ def tiff2jp2():
     kwargs = {
         'cbsize': args.codeblocksize,
         'cratios': args.cratio,
+        'exclude_icc_profile': args.exclude_icc_profile,
         'capture_resolution': args.capture_resolution,
         'create_exif_uuid': args.create_exif_uuid,
         'create_xmp_uuid': args.create_xmp_uuid,
