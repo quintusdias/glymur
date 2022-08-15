@@ -248,8 +248,15 @@ class TestSuite(fixtures.TestCommon):
         bf = io.BytesIO(box_data)
         bf.seek(8)
         box = UUIDBox.parse(bf, 0, 703)
-        with self.assertWarns(UserWarning):
+        with warnings.catch_warnings(record=True) as w:
             str(box)
+
+        if fixtures._HAVE_GDAL:
+            self.assertEqual(len(w), 1)
+        else:
+            # If no gdal, there's no warning.  It's just an Exif UUID in
+            # that case.
+            self.assertEqual(len(w), 0)
 
     def test_append_xmp_uuid(self):
         """
@@ -365,7 +372,6 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  No errors.  There is a warning issued when we try
         to print the box.
         """
-        self.maxDiff = None
         with ir.path(data, 'issue398.dat') as path:
             with path.open('rb') as f:
                 f.seek(8)
@@ -373,7 +379,11 @@ class TestSuite(fixtures.TestCommon):
                     box = glymur.jp2box.UUIDBox.parse(f, 0, 380)
                     str(box)
 
-        self.assertEqual(len(w), 1)
+        if fixtures._HAVE_GDAL:
+            self.assertEqual(len(w), 1)
+        else:
+            # No warning issued if GDAL is not present.
+            self.assertEqual(len(w), 0)
 
 
 class TestSuiteHiRISE(fixtures.TestCommon):
