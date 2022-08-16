@@ -1926,18 +1926,19 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
 
         j = Jp2k(self.temp_jp2_filename)
 
-        # the resolution superbox is appended after the codestream, but before
-        # the exif uuid
-        self.assertEqual(j.box[-2].box_id, 'res ')
+        # the resolution superbox is appended in the jp2 header box.
+        # the exit uuid comes later
         self.assertEqual(j.box[-1].box_id, 'uuid')
 
-        self.assertEqual(j.box[-2].box[0].box_id, 'resc')
-        self.assertEqual(j.box[-2].box[0].vertical_resolution, vresc)
-        self.assertEqual(j.box[-2].box[0].horizontal_resolution, hresc)
+        self.assertEqual(j.box[2].box[2].box_id, 'res ')
 
-        self.assertEqual(j.box[-2].box[1].box_id, 'resd')
-        self.assertEqual(j.box[-2].box[1].vertical_resolution, vresd)
-        self.assertEqual(j.box[-2].box[1].horizontal_resolution, hresd)
+        self.assertEqual(j.box[2].box[2].box[0].box_id, 'resc')
+        self.assertEqual(j.box[2].box[2].box[0].vertical_resolution, vresc)
+        self.assertEqual(j.box[2].box[2].box[0].horizontal_resolution, hresc)
+
+        self.assertEqual(j.box[2].box[2].box[1].box_id, 'resd')
+        self.assertEqual(j.box[2].box[2].box[1].vertical_resolution, vresd)
+        self.assertEqual(j.box[2].box[2].box[1].horizontal_resolution, hresd)
 
     def test_commandline_tiff2jp2_xmp_uuid(self):
         """

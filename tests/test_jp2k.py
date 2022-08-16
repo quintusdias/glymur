@@ -1140,15 +1140,15 @@ class TestJp2k_write(fixtures.MetadataBase):
             display_resolution=[vresd, hresd],
         )
 
-        self.assertEqual(j.box[-1].box_id, 'res ')
+        self.assertEqual(j.box[2].box[2].box_id, 'res ')
 
-        self.assertEqual(j.box[-1].box[0].box_id, 'resc')
-        self.assertEqual(j.box[-1].box[0].vertical_resolution, vresc)
-        self.assertEqual(j.box[-1].box[0].horizontal_resolution, hresc)
+        self.assertEqual(j.box[2].box[2].box[0].box_id, 'resc')
+        self.assertEqual(j.box[2].box[2].box[0].vertical_resolution, vresc)
+        self.assertEqual(j.box[2].box[2].box[0].horizontal_resolution, hresc)
 
-        self.assertEqual(j.box[-1].box[1].box_id, 'resd')
-        self.assertEqual(j.box[-1].box[1].vertical_resolution, vresd)
-        self.assertEqual(j.box[-1].box[1].horizontal_resolution, hresd)
+        self.assertEqual(j.box[2].box[2].box[1].box_id, 'resd')
+        self.assertEqual(j.box[2].box[2].box[1].vertical_resolution, vresd)
+        self.assertEqual(j.box[2].box[2].box[1].horizontal_resolution, hresd)
 
     def test_capture_resolution_when_j2k_specified(self):
         """
@@ -1200,14 +1200,14 @@ class TestJp2k_write(fixtures.MetadataBase):
             capture_resolution=[vresc, hresc],
         )
 
-        self.assertEqual(j.box[-1].box_id, 'res ')
+        self.assertEqual(j.box[2].box[2].box_id, 'res ')
 
-        self.assertEqual(j.box[-1].box[0].box_id, 'resc')
-        self.assertEqual(j.box[-1].box[0].vertical_resolution, vresc)
-        self.assertEqual(j.box[-1].box[0].horizontal_resolution, hresc)
+        self.assertEqual(j.box[2].box[2].box[0].box_id, 'resc')
+        self.assertEqual(j.box[2].box[2].box[0].vertical_resolution, vresc)
+        self.assertEqual(j.box[2].box[2].box[0].horizontal_resolution, hresc)
 
         # there's just one child box
-        self.assertEqual(len(j.box[-1].box), 1)
+        self.assertEqual(len(j.box[2].box[2].box), 1)
 
     def test_display_resolution_supplied_but_not_capture(self):
         """
@@ -1223,14 +1223,14 @@ class TestJp2k_write(fixtures.MetadataBase):
             display_resolution=[vresd, hresd],
         )
 
-        self.assertEqual(j.box[-1].box_id, 'res ')
+        self.assertEqual(j.box[2].box[2].box_id, 'res ')
 
-        self.assertEqual(j.box[-1].box[0].box_id, 'resd')
-        self.assertEqual(j.box[-1].box[0].vertical_resolution, vresd)
-        self.assertEqual(j.box[-1].box[0].horizontal_resolution, hresd)
+        self.assertEqual(j.box[2].box[2].box[0].box_id, 'resd')
+        self.assertEqual(j.box[2].box[2].box[0].vertical_resolution, vresd)
+        self.assertEqual(j.box[2].box[2].box[0].horizontal_resolution, hresd)
 
         # there's just one child box
-        self.assertEqual(len(j.box[-1].box), 1)
+        self.assertEqual(len(j.box[2].box[2].box), 1)
 
     def test_no_jp2c_box_in_outermost_jp2_list(self):
         """

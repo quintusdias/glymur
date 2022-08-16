@@ -13,6 +13,7 @@ from itertools import filterfalse
 import ctypes
 import pathlib
 import re
+import shutil
 import struct
 from uuid import UUID
 import warnings
@@ -285,34 +286,37 @@ class Jp2k(Jp2kBox):
             return
 
         # So we DO have extra boxes.  Handle them, and THEN parse.
-        self._append_resolution_superbox()
         self.parse()
+        self._insert_resolution_superbox()
 
-    def _append_resolution_superbox(self):
+    def _insert_resolution_superbox(self):
         """
-        As a close-out task, append a resolution superbox to the end of the
-        file if we were so instructed.
+        As a close-out task, insert a resolution superbox into the jp2
+        header box if we were so instructed.  This requires a wrapping
+        operation.
         """
-        with open(self.filename, mode='ab') as f:
+        jp2h = [box for box in self.box if box.box_id == 'jp2h'][0]
 
-            extra_boxes = []
+        extra_boxes = []
+        if self._capture_resolution is not None:
+            resc = glymur.jp2box.CaptureResolutionBox(
+                self._capture_resolution[0], self._capture_resolution[1],
+            )
+            extra_boxes.append(resc)
 
-            if self._capture_resolution is not None:
-                resc = glymur.jp2box.CaptureResolutionBox(
-                    self._capture_resolution[0], self._capture_resolution[1],
-                )
-                extra_boxes.append(resc)
+        if self._display_resolution is not None:
+            resd = glymur.jp2box.DisplayResolutionBox(
+                self._display_resolution[0], self._display_resolution[1],
+            )
+            extra_boxes.append(resd)
 
-            if self._display_resolution is not None:
-                resd = glymur.jp2box.DisplayResolutionBox(
-                    self._display_resolution[0], self._display_resolution[1],
-                )
-                extra_boxes.append(resd)
+        rbox = glymur.jp2box.ResolutionBox(extra_boxes)
+        jp2h.box.append(rbox)
 
-            rbox = glymur.jp2box.ResolutionBox(extra_boxes)
-            rbox.write(f)
-
-            # self.box.append(rbox)
+        temp_filename = self.filename + '.tmp'
+        self.wrap(temp_filename, boxes=self.box)
+        shutil.move(temp_filename, self.filename)
+        self.parse()
 
     def _validate_kwargs(self):
         """

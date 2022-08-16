@@ -160,6 +160,36 @@ class TestSuite(fixtures.TestCommon):
         codestream = j.get_codestream()
         self.assertEqual(codestream.segment[2].layers, 3)  # layers = 3
 
+    def test_capture_resolution_and_tiled_writing(self):
+        """
+        SCENARIO:  Use the capture_resolution keyword.
+
+        EXPECTED RESULT:  The resolution superbox, along with a capture
+        box, is inserted into the jp2 header box.
+        """
+        j2k_data = fixtures.skimage.data.astronaut()
+
+        shape = (
+            j2k_data.shape[0] * 2, j2k_data.shape[1] * 2, j2k_data.shape[2]
+        )
+        tilesize = (j2k_data.shape[0], j2k_data.shape[1])
+
+        vresc, hresc = 0.1, 0.2
+
+        j = glymur.Jp2k(
+            self.temp_jp2_filename, shape=shape, tilesize=tilesize,
+            capture_resolution=[vresc, hresc],
+        )
+
+        for tw in j.get_tilewriters():
+            tw[:] = j2k_data
+
+        self.assertEqual(j.box[2].box[2].box_id, 'res ')
+
+        self.assertEqual(j.box[2].box[2].box[0].box_id, 'resc')
+        self.assertEqual(j.box[2].box[2].box[0].vertical_resolution, vresc)
+        self.assertEqual(j.box[2].box[2].box[0].horizontal_resolution, hresc)
+
     def test_plt_for_tiled_writing(self):
         """
         SCENARIO:  Use the plt keyword.
