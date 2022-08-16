@@ -1,3 +1,6 @@
+August 16, 2022 - v0.11.3
+    Fix placement of Resolutionbox
+
 August 9, 2022 - v0.11.2
     Relax ResolutionBox requirement on child boxes.
 
