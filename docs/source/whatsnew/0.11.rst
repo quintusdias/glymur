@@ -3,6 +3,11 @@ Changes in glymur 0.11
 ######################
 
 *****************
+Changes in 0.11.3
+*****************
+    * Fix placement of ResolutionBox
+
+*****************
 Changes in 0.11.2
 *****************
     * Relax requirement on ResolutionBox number of child boxes.
