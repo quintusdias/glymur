@@ -615,6 +615,7 @@ class Tiff2Jp2k(object):
             self._write_rgba_single_tile(
                 photo, imagewidth, imageheight, spp, jp2
             )
+            jp2.finalize(force_parse=True)
 
         elif isTiled and self.tilesize is not None:
 

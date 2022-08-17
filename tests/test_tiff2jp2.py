@@ -1905,11 +1905,45 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
             j.box[-1].data.getroot().values(), ['Public XMP Toolkit Core 3.5']
         )
 
-    def test_commandline_capture_display_resolution(self):
+    def test_commandline__capture_display_resolution__no_tilesize(self):
         """
-        Scenario:  patch sys such that we can run the command line tiff2jp2
-        script.  Supply the --capture-resolution and --display-resolution
-        arguments.
+        Scenario:  patch sys such that we can run the command
+        line tiff2jp2 script.  Supply the --capture-resolution and
+        --display-resolution arguments.
+
+        Expected Result:  The last box is a ResolutionBox.
+        """
+        vresc, hresc = 0.1, 0.2
+        vresd, hresd = 0.3, 0.4
+
+        sys.argv = [
+            '', str(self.exif_tiff), str(self.temp_jp2_filename),
+            '--capture-resolution', str(vresc), str(hresc),
+            '--display-resolution', str(vresd), str(hresd),
+        ]
+        command_line.tiff2jp2()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        # the resolution superbox is appended in the jp2 header box.
+        # the exit uuid comes later
+        self.assertEqual(j.box[-1].box_id, 'uuid')
+
+        self.assertEqual(j.box[2].box[2].box_id, 'res ')
+
+        self.assertEqual(j.box[2].box[2].box[0].box_id, 'resc')
+        self.assertEqual(j.box[2].box[2].box[0].vertical_resolution, vresc)
+        self.assertEqual(j.box[2].box[2].box[0].horizontal_resolution, hresc)
+
+        self.assertEqual(j.box[2].box[2].box[1].box_id, 'resd')
+        self.assertEqual(j.box[2].box[2].box[1].vertical_resolution, vresd)
+        self.assertEqual(j.box[2].box[2].box[1].horizontal_resolution, hresd)
+
+    def test_commandline__capture_display_resolution__tilesize(self):
+        """
+        Scenario:  patch sys such that we can run the command line
+        tiff2jp2 script.  Supply the --tilesize, --capture-resolution
+        and --display-resolution arguments.
 
         Expected Result:  The last box is a ResolutionBox.
         """
