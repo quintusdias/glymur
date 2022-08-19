@@ -16,6 +16,7 @@ import numpy as np
 # Local imports
 import glymur
 from glymur import Jp2k, Tiff2Jp2k, command_line
+from glymur.core import SRGB
 from . import fixtures
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 from glymur.lib import tiff as libtiff
@@ -2046,3 +2047,38 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
             with ir.path('tests.data', 'simple_rdf.txt') as path:
                 with Tiff2Jp2k(path, self.temp_jp2_filename):
                     pass
+
+    def test_colormap(self):
+        """
+        Scenario:  The input "TIFF" has a colormap tag.
+
+        Expected Result:  The output JP2 has a single layer and the jp2h box
+        has a pclr box.
+        """
+        with ir.path('tests.data', 'issue572.tif') as path:
+            with Tiff2Jp2k(
+                path, self.temp_jp2_filename, tilesize=(32, 32)
+            ) as p:
+                p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        # the image header box shows just a single layer
+        shape = (
+            j.box[2].box[0].height,
+            j.box[2].box[0].width,
+            j.box[2].box[0].num_components,
+        )
+        self.assertEqual(shape, (64, 64, 1))
+
+        # the colr box says sRGB, not greyscale
+        self.assertEqual(j.box[2].box[1].colorspace, SRGB)
+
+        # a pclr box exists
+        self.assertEqual(j.box[2].box[2].box_id, 'pclr')
+
+        # a component mapping box exists
+        self.assertEqual(j.box[2].box[3].box_id, 'cmap')
+        self.assertEqual(j.box[2].box[3].component_index, (0, 0, 0))
+        self.assertEqual(j.box[2].box[3].mapping_type, (1, 1, 1))
+        self.assertEqual(j.box[2].box[3].palette_index, (0, 1, 2))

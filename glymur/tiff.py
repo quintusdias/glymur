@@ -1,6 +1,7 @@
 # standard library imports
 import io
 import logging
+import shutil
 import struct
 import warnings
 
@@ -10,6 +11,7 @@ from uuid import UUID
 
 # local imports
 from glymur import Jp2k
+from glymur.core import SRGB
 from .lib import tiff as libtiff
 from . import jp2box
 from ._tiff import TAGNUM2NAME
@@ -51,6 +53,8 @@ class Tiff2Jp2k(object):
         If true, then this TIFF must be a GEOTIFF
     tiff_filename : path or str
         Path to TIFF file.
+    jp2 : JP2K object
+        Write to this JPEG2000 file
     jp2_filename : path or str
         Path to JPEG 2000 file to be written.
     jp2_kwargs : dict
@@ -101,7 +105,11 @@ class Tiff2Jp2k(object):
 
         self.exclude_tags = self._process_exclude_tags(exclude_tags)
 
+        self.jp2 = None
         self.jp2_kwargs = kwargs
+
+        # Assume that there is no ColorMap tag until we know otherwise.
+        self._colormap = None
 
         self.setup_logging(verbosity)
 
@@ -181,6 +189,44 @@ class Tiff2Jp2k(object):
         self.get_main_ifd()
         self.copy_image()
         self.append_extra_jp2_boxes()
+        self.rewrap_jp2()
+
+    def rewrap_jp2(self):
+        """
+        If the photometric interpretation was PALETTE, then we need to insert
+        a pclr box and a cmap (component mapping box).
+        """
+        photo = self.get_tag_value(262)
+        if photo != libtiff.Photometric.PALETTE:
+            return
+
+        jp2h = [box for box in self.jp2.box if box.box_id == 'jp2h'][0]
+
+        bps = (8, 8, 8)
+        pclr = jp2box.PaletteBox(
+            palette=self._colormap,
+            bits_per_component=bps,
+            signed=(False, False, False)
+        )
+        jp2h.box.append(pclr)
+
+        # append the component mapping box
+        cmap = jp2box.ComponentMappingBox(
+            component_index=(0, 0, 0),
+            mapping_type=(1, 1, 1),
+            palette_index=(0, 1, 2)
+        )
+        jp2h.box.append(cmap)
+
+        # fix the colr box.  the colorspace needs to be changed from greyscale
+        # to rgb
+        colr = [box for box in jp2h.box if box.box_id == 'colr'][0]
+        colr.colorspace = SRGB
+
+        temp_filename = str(self.jp2_filename) + '.tmp'
+        self.jp2.wrap(temp_filename, boxes=self.jp2.box)
+        shutil.move(temp_filename, self.jp2_filename)
+        self.jp2.parse()
 
     def append_extra_jp2_boxes(self):
         """
@@ -247,6 +293,13 @@ class Tiff2Jp2k(object):
             self.read_tiff_header(tfp)
 
             self.tags = self.read_ifd(tfp)
+
+            if 320 in self.tags:
+                # the TIFF must have PALETTE photometric interpretation
+                data = np.array(self.tags.pop(320)['payload'])
+                self._colormap = data.reshape(len(data) // 3, 3)
+                self._colormap = self._colormap / 65535
+                self._colormap = (self._colormap * 255).astype(np.uint8)
 
             if 34665 in self.tags:
                 # we have an EXIF IFD
@@ -585,15 +638,10 @@ class Tiff2Jp2k(object):
             # Using the RGBA interface is the only reasonable way to deal with
             # this.
             use_rgba_interface = True
-        elif photo == libtiff.Photometric.PALETTE:
-            # Using the RGBA interface is the only reasonable way to deal with
-            # this.  The single plane gets turned into RGB.
-            use_rgba_interface = True
-            spp = 3
         else:
             use_rgba_interface = False
 
-        jp2 = Jp2k(
+        self.jp2 = Jp2k(
             self.jp2_filename,
             shape=(imageheight, imagewidth, spp),
             tilesize=self.tilesize,
@@ -613,9 +661,9 @@ class Tiff2Jp2k(object):
             # this handles both cases of a striped TIFF and a tiled TIFF
 
             self._write_rgba_single_tile(
-                photo, imagewidth, imageheight, spp, jp2
+                    photo, imagewidth, imageheight, spp
             )
-            jp2.finalize(force_parse=True)
+            self.jp2.finalize(force_parse=True)
 
         elif isTiled and self.tilesize is not None:
 
@@ -624,8 +672,7 @@ class Tiff2Jp2k(object):
                 jtw, jth, tw, th,
                 num_jp2k_tile_cols, num_jp2k_tile_rows,
                 dtype,
-                use_rgba_interface,
-                jp2
+                use_rgba_interface
             )
 
         elif not isTiled and self.tilesize is not None:
@@ -635,8 +682,7 @@ class Tiff2Jp2k(object):
                 jtw, jth, rps,
                 num_jp2k_tile_cols, num_jp2k_tile_rows,
                 dtype,
-                use_rgba_interface,
-                jp2
+                use_rgba_interface
             )
 
     def tagvalue2str(self, cls, tag_value):
@@ -652,7 +698,7 @@ class Tiff2Jp2k(object):
         return tag_value_string
 
     def _write_rgba_single_tile(
-        self, photo, imagewidth, imageheight, spp, jp2
+        self, photo, imagewidth, imageheight, spp
     ):
         """
         If no jp2k tiling was specified and if the image is ok to read
@@ -665,8 +711,6 @@ class Tiff2Jp2k(object):
         photo, imagewidth, imageheight, spp : int
             TIFF tag values corresponding to the photometric interpretation,
             image width and height, and samples per pixel
-        jp2 : JP2K object
-            Write to this JPEG2000 file
         """
         msg = (
             "Reading using the RGBA interface, writing as a single tile "
@@ -695,11 +739,11 @@ class Tiff2Jp2k(object):
         if spp < 4:
             image = image[:, :, :3]
 
-        jp2[:] = image
+        self.jp2[:] = image
 
     def _write_tiled_tiff_to_tiled_jp2k(
         self, imagewidth, imageheight, spp, jtw, jth, tw, th,
-        num_jp2k_tile_cols, num_jp2k_tile_rows, dtype, use_rgba_interface, jp2
+        num_jp2k_tile_cols, num_jp2k_tile_rows, dtype, use_rgba_interface
     ):
         """
         The input TIFF image is tiled and we are to create the output JPEG2000
@@ -721,8 +765,6 @@ class Tiff2Jp2k(object):
             Datatype of the image.
         use_rgba_interface : bool
             If true, use the RGBA interface to read the TIFF image data.
-        jp2 : JP2K object
-            Write to this JPEG2000 file
         """
 
         num_tiff_tile_cols = int(np.ceil(imagewidth / tw))
@@ -735,10 +777,16 @@ class Tiff2Jp2k(object):
         self.logger.debug(f'image:  {imageheight} x {imagewidth}')
         self.logger.debug(f'jptile:  {jth} x {jtw}')
         self.logger.debug(f'ttile:  {th} x {tw}')
-        for idx, tilewriter in enumerate(jp2.get_tilewriters()):
+        for idx, tilewriter in enumerate(self.jp2.get_tilewriters()):
 
             # populate the jp2k tile with tiff tiles
-            self.logger.info(f'Tile:  #{idx}')
+            msg = (
+                f'Tile:  #{idx} '
+                f'row #{idx // num_jp2k_tile_cols} '
+                f'col #{idx % num_jp2k_tile_cols} '
+            )
+            self.logger.info(msg)
+
             self.logger.debug(f'J tile row:  #{idx // num_jp2k_tile_cols}')
             self.logger.debug(f'J tile col:  #{idx % num_jp2k_tile_cols}')
 
@@ -840,7 +888,7 @@ class Tiff2Jp2k(object):
 
     def _write_striped_tiff_to_tiled_jp2k(
         self, imagewidth, imageheight, spp, jtw, jth, rps,
-        num_jp2k_tile_cols, num_jp2k_tile_rows, dtype, use_rgba_interface, jp2
+        num_jp2k_tile_cols, num_jp2k_tile_rows, dtype, use_rgba_interface
     ):
         """
         The input TIFF image is striped and we are to create the output
@@ -862,8 +910,6 @@ class Tiff2Jp2k(object):
             Datatype of the image.
         use_rgba_interface : bool
             If true, use the RGBA interface to read the TIFF image data.
-        jp2 : JP2K object
-            Write to this JPEG2000 file
         """
 
         self.logger.debug(f'image:  {imageheight} x {imagewidth}')
@@ -872,12 +918,17 @@ class Tiff2Jp2k(object):
 
         num_jp2k_tile_cols = int(np.ceil(imagewidth / jtw))
 
-        for idx, tilewriter in enumerate(jp2.get_tilewriters()):
-
-            self.logger.info(f'Tile: #{idx}')
+        for idx, tilewriter in enumerate(self.jp2.get_tilewriters()):
 
             jp2k_tile_row = idx // num_jp2k_tile_cols
             jp2k_tile_col = idx % num_jp2k_tile_cols
+
+            msg = (
+                f'Tile:  #{idx} '
+                f'row #{jp2k_tile_row} '
+                f'col #{jp2k_tile_col}'
+            )
+            self.logger.info(msg)
 
             # the coordinates of the upper left pixel of the jp2k tile
             julr, julc = jp2k_tile_row * jth, jp2k_tile_col * jtw

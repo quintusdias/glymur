@@ -2126,6 +2126,11 @@ class PaletteBox(Jp2kBox):
         self._validate(writing=True)
         bytes_per_row = sum(self.bits_per_component) / 8
         bytes_per_palette = bytes_per_row * self.palette.shape[0]
+
+        # 8 bytes for the box length and identifier
+        # 3 bytes for NE and NPC
+        # n bytes for the number of columns in the palette
+        # m bytes for the palette itself
         box_length = 8 + 3 + self.palette.shape[1] + bytes_per_palette
 
         # Write the usual (L, T) header.
@@ -2133,8 +2138,9 @@ class PaletteBox(Jp2kBox):
         fptr.write(write_buffer)
 
         # NE, NPC
-        write_buffer = struct.pack('>HB', self.palette.shape[0],
-                                   self.palette.shape[1])
+        write_buffer = struct.pack(
+            '>HB', self.palette.shape[0], self.palette.shape[1]
+        )
         fptr.write(write_buffer)
 
         # Bits Per Sample.  Signed components aren't supported.
