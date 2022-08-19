@@ -3,9 +3,14 @@ Changes in glymur 0.11
 ######################
 
 *****************
+Changes in 0.11.4
+*****************
+    * Fix ResolutionBox with tiff2jp2.
+
+*****************
 Changes in 0.11.3
 *****************
-    * Fix placement of ResolutionBox
+    * Fix placement of ResolutionBox.
 
 *****************
 Changes in 0.11.2
