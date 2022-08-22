@@ -2082,3 +2082,10 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         self.assertEqual(j.box[2].box[3].component_index, (0, 0, 0))
         self.assertEqual(j.box[2].box[3].mapping_type, (1, 1, 1))
         self.assertEqual(j.box[2].box[3].palette_index, (0, 1, 2))
+
+        # The last box should be the exif uuid.  It should not have the
+        # colormap tag.
+        actual = j.box[-1].uuid
+        expected = UUID(bytes=b'JpgTiffExif->JP2')
+        self.assertEqual(actual, expected)
+        self.assertNotIn('ColorMap', j.box[-1].data)
