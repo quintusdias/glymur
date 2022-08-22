@@ -65,6 +65,8 @@ class Tiff2Jp2k(object):
         Create a UUIDBox for the TIFF IFD metadata.
     version : int
         Identifies the TIFF as 32-bit TIFF or 64-bit TIFF.
+    xmp_data : bytes
+        Encoded bytes from XML_PACKET tag (700), or None if not present.
     """
 
     def __init__(
@@ -110,6 +112,9 @@ class Tiff2Jp2k(object):
 
         # Assume that there is no ColorMap tag until we know otherwise.
         self._colormap = None
+
+        # Assume no XML_PACKET tag until we know otherwise.
+        self.xmp_data = None
 
         self.setup_logging(verbosity)
 
@@ -233,6 +238,14 @@ class Tiff2Jp2k(object):
         Copy over the TIFF IFD.  Place it in a UUID box.  Append to the JPEG
         2000 file.
         """
+        self.append_exif_uuid_box()
+        self.append_xmp_uuid_box()
+
+    def append_exif_uuid_box(self):
+        """
+        Append an EXIF UUID box onto the end of the JPEG 2000 file.  It will
+        contain metadata from the TIFF IFD.
+        """
         if not self.create_exif_uuid:
             return
 
@@ -246,9 +259,9 @@ class Tiff2Jp2k(object):
 
         if 700 in self.tags and self.create_xmp_uuid:
             # remove the XMLPacket data from the IFD dictionary
-            xmp_data = self.tags.pop(700)
+            self.xmp_data = self.tags.pop(700)['payload']
         else:
-            xmp_data = None
+            self.xmp_data = None
 
         self._write_ifd(b, self.tags)
 
@@ -270,12 +283,18 @@ class Tiff2Jp2k(object):
         with open(self.jp2_filename, mode='ab') as f:
             uuid_box.write(f)
 
-        if xmp_data is None:
+    def append_xmp_uuid_box(self):
+        """
+        Append an XMP UUID box onto the end of the JPEG 2000 file if there was
+        an XMP tag in the TIFF IFD.
+        """
+
+        if self.xmp_data is None:
             return
 
         # create the XMP UUID
         the_uuid = jp2box.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
-        payload = bytes(xmp_data['payload'])
+        payload = bytes(self.xmp_data)
         box_length = len(payload) + 8
         uuid_box = jp2box.UUIDBox(the_uuid, payload, box_length)
         with open(self.jp2_filename, mode='ab') as f:
