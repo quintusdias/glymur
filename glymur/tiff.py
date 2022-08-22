@@ -283,6 +283,8 @@ class Tiff2Jp2k(object):
         with open(self.jp2_filename, mode='ab') as f:
             uuid_box.write(f)
 
+        self.jp2.finalize(force_parse=True)
+
     def append_xmp_uuid_box(self):
         """
         Append an XMP UUID box onto the end of the JPEG 2000 file if there was
