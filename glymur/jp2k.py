@@ -1363,6 +1363,10 @@ class Jp2k(Jp2kBox):
         # Ok, reduce layer step is the same in both xy directions, so just take
         # one of them.
         step = rows_step
+        if step == -1:
+            # This is a shortcut for the last decomposition (or reduce layer
+            # step).
+            step = 2 ** self.codestream.segment[2].num_res
 
         # Check if the step size is a power of 2.
         if np.abs(np.log2(step) - np.round(np.log2(step))) > 1e-6:
