@@ -60,6 +60,17 @@ class TestJp2k(fixtures.TestCommon):
         super(TestJp2k, self).setUp()
         glymur.reset_option('all')
 
+    def test_last_decomposition(self):
+        """
+        Scenario:  The last decomposition image is requested using [::-1]
+        notation.
+
+        Expected response:  the image size is verified
+        """
+        j = Jp2k(self.j2kfile)
+        d = j[::-1, ::-1]
+        self.assertEqual(d.shape, (25, 15, 3))
+
     def test_dtype_jp2(self):
         """
         Scenario:  An RGB image is read from a JP2 file.

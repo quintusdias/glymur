@@ -13,7 +13,7 @@ array-style slicing, i.e. strides.  For example, here's how
 to retrieve a full resolution and first lower-resolution image. ::
 
     >>> import glymur
-    >>> jp2file = glymur.data.nemo() # just a path to a JPEG2000 file
+    >>> jp2file = glymur.data.nemo() # just a path to a JPEG 2000 file
     >>> jp2 = glymur.Jp2k(jp2file)
     >>> fullres = jp2[:]
     >>> fullres.shape
@@ -21,6 +21,30 @@ to retrieve a full resolution and first lower-resolution image. ::
     >>> thumbnail = jp2[::2, ::2]
     >>> thumbnail.shape
     (728, 1296, 3)
+
+****************************
+... read really large images
+****************************
+JPEG 2000 images can be much larger than what can fit into your computer's memory.  
+While you can use strides that align with the JPEG 2000 decomposition levels to
+retrieve lower resolution images, retrieving the lowest resolution image would seem
+to require that you know just how many decomposition levels are available.  While you
+can get that information from the COD segment in the codestream, glymur provides you
+with a shortcut.  Normally the stride must be a power of 2, but you can provide -1
+instead to get the smallest thumbnail.::
+
+    >>> import glymur
+    >>> j2kfile = glymur.data.goodstuff() # just a path to a JPEG 2000 file
+    >>> j2k = glymur.Jp2k(j2kfile)
+    >>> j2k.shape
+    (800, 480, 3)
+    >>> j2k.codestream.segment[2].num_res
+    5
+    >>> j2k[::32, ::32].shape
+    (25, 15, 3)
+    >>> thumbnail = j2k[::-1, ::-1]
+    >>> thumbnail.shape
+    (25, 15, 3)
 
 ************************
 ... read an image layer?
