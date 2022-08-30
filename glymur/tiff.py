@@ -71,7 +71,12 @@ class Tiff2Jp2k(object):
 
     def __init__(
         self, tiff_filename, jp2_filename,
-        create_exif_uuid=True, create_xmp_uuid=True, exclude_tags=None,
+        create_exif_uuid=True, create_xmp_uuid=True,
+        exclude_tags=(
+            'ICCProfile',
+            'StripByteCounts', 'StripOffsets', 'TileByteCounts', 'TileOffsets',
+            'XMLPacket'
+        ),
         tilesize=None, verbosity=logging.CRITICAL, exclude_icc_profile=False,
         **kwargs
     ):
