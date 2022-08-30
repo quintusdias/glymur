@@ -166,7 +166,9 @@ def tiff2jp2():
         'Extract XMLPacket tag value from TIFF IFD and store in XMP UUID box. '
         'This will exclude the XMLPacket tag from the Exif UUID box.'
     )
-    group2.add_argument('--create-xmp-uuid', help=help, action='store_true')
+    group2.add_argument(
+        '--create-xmp-uuid', help=help, action='store_true', default=True
+    )
 
     help = (
         'Do not take any ICC profile (tag 34675) from the TIFF IFD and insert '
