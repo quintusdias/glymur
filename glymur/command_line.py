@@ -9,7 +9,7 @@ import warnings
 
 # Local imports ...
 from . import Jp2k, set_option, lib
-from .tiff import Tiff2Jp2k
+from . import tiff
 
 
 def main():
@@ -172,16 +172,15 @@ def tiff2jp2():
 
     help = (
         'If specified, do not include any ICC profile (tag 34675) from the '
-        'TIFF IFD in the ColourSpecificationBox.  Note: if specified, the '
-        'ColorProfile tag remains in the Exif UUID box. '
+        'TIFF IFD in the ColourSpecificationBox.'
     )
     group2.add_argument(
         '--exclude-icc-profile', help=help, action='store_true'
     )
 
     help = (
-        'Exclude TIFF tag(s) from EXIF UUID (if creating such a UUID).  '
-        'This option may be specified as tag numbers or names.'
+        'Exclude TIFF tag(s) from EXIF UUID.  This option may be specified as '
+        'tag numbers or names.'
     )
     group2.add_argument('--exclude-tags', help=help, nargs='*')
 
@@ -236,5 +235,5 @@ def tiff2jp2():
         'verbosity': logging_level,
     }
 
-    with Tiff2Jp2k(tiffpath, jp2kpath, **kwargs) as j:
+    with tiff.Tiff2Jp2k(tiffpath, jp2kpath, **kwargs) as j:
         j.run()

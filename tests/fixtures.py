@@ -11,7 +11,7 @@ import unittest
 try:
     from osgeo import gdal
     _HAVE_GDAL = True
-except ModuleNotFoundError:
+except (ImportError, ModuleNotFoundError):
     _HAVE_GDAL = False
 try:
     import skimage.data  # noqa : F401

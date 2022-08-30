@@ -71,8 +71,9 @@ class Tiff2Jp2k(object):
 
     def __init__(
         self, tiff_filename, jp2_filename,
-        create_exif_uuid=True, create_xmp_uuid=True, exclude_tags=None,
-        tilesize=None, verbosity=logging.CRITICAL, exclude_icc_profile=False,
+        create_exif_uuid=True, create_xmp_uuid=True,
+        exclude_tags=None, tilesize=None,
+        verbosity=logging.CRITICAL, exclude_icc_profile=False,
         **kwargs
     ):
         """
@@ -112,6 +113,8 @@ class Tiff2Jp2k(object):
         self.create_xmp_uuid = create_xmp_uuid
         self.exclude_icc_profile = exclude_icc_profile
 
+        if exclude_tags is None:
+            exclude_tags = []
         self.exclude_tags = self._process_exclude_tags(exclude_tags)
 
         self.jp2 = None
@@ -308,18 +311,6 @@ class Tiff2Jp2k(object):
         data = struct.pack('<BBHI', 73, 73, 42, 8)
         b.write(data)
 
-        if 700 in self.tags and self.create_xmp_uuid:
-            # remove the XMLPacket data from the IFD dictionary
-            self.xmp_data = self.tags.pop(700)['payload']
-        else:
-            self.xmp_data = None
-
-        if 34675 in self.tags and not self.exclude_icc_profile:
-            # remove the ICCProfile data from the IFD dictionary
-            self._icc_profile = bytes(self.tags.pop(34675)['payload'])
-        else:
-            self._icc_profile = None
-
         self._write_ifd(b, self.tags)
 
         # create the Exif UUID
@@ -351,6 +342,9 @@ class Tiff2Jp2k(object):
         if self.xmp_data is None:
             return
 
+        if not self.create_xmp_uuid:
+            return
+
         # create the XMP UUID
         the_uuid = jp2box.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
         payload = bytes(self.xmp_data)
@@ -373,11 +367,28 @@ class Tiff2Jp2k(object):
             self.tags = self.read_ifd(tfp)
 
             if 320 in self.tags:
+
                 # the TIFF must have PALETTE photometric interpretation
-                data = np.array(self.tags.pop(320)['payload'])
+                data = np.array(self.tags[320]['payload'])
                 self._colormap = data.reshape(len(data) // 3, 3)
                 self._colormap = self._colormap / 65535
                 self._colormap = (self._colormap * 255).astype(np.uint8)
+
+                if 320 in self.exclude_tags:
+                    # remove the ColorMap tag from the IFD dictionary
+                    self.tags.pop(320)
+
+            if 700 in self.tags:
+
+                # XMLPacket
+                self.xmp_data = self.tags[700]['payload']
+
+                if 'XMLPacket' in self.exclude_tags:
+                    # remove the XMLPacket tag from the IFD dictionary
+                    self.tags.pop(700)
+
+            else:
+                self.xmp_data = None
 
             if 34665 in self.tags:
                 # we have an EXIF IFD
@@ -386,6 +397,17 @@ class Tiff2Jp2k(object):
                 exif_ifd = self.read_ifd(tfp)
 
                 self.tags[34665]['payload'] = exif_ifd
+
+            if 34675 in self.tags:
+                # ICC profile
+                self._icc_profile = bytes(self.tags[34675]['payload'])
+
+                if 34675 in self.exclude_tags:
+                    # remove the ICCProfile data from the IFD dictionary
+                    self.tags.pop(34675)
+
+            else:
+                self._icc_profile = None
 
     def read_ifd(self, tfp):
         """

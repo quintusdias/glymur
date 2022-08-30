@@ -4,7 +4,6 @@
 # Standard library imports
 import importlib.resources as ir
 import io
-import platform
 import shutil
 import struct
 import unittest
@@ -13,6 +12,7 @@ import warnings
 
 # Third party library imports ...
 import lxml.etree
+import numpy as np
 
 # Local imports
 import glymur
@@ -214,7 +214,10 @@ class TestSuite(fixtures.TestCommon):
         expected = uuid.UUID(bytes=b'JpgTiffExif->JP2')
         self.assertEqual(actual, expected)
 
-        self.assertEqual(box.data['ExifTag']['ExifVersion'], (48, 50, 51, 50))
+        np.testing.assert_array_equal(
+            box.data['ExifTag']['ExifVersion'],
+            np.array([48, 50, 51, 50], dtype=np.uint8)
+        )
 
     def test__read_malformed_exif_uuid(self):
         """
@@ -233,10 +236,6 @@ class TestSuite(fixtures.TestCommon):
         expected = uuid.UUID(bytes=b'JpgTiffExif->JP2')
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(
-            platform.system().startswith('Windows'),
-            "Skipping on windows, see issue 560"
-    )
     def test__printing__geotiff_uuid__xml_sidecar(self):
         """
         SCENARIO:  Print a geotiff UUID with XML sidecar file.
@@ -361,10 +360,6 @@ class TestSuite(fixtures.TestCommon):
         expected = 'UTM Zone 16N NAD27"|Clarke, 1866 by Default| '
         self.assertEqual(box.data['GeoAsciiParams'], expected)
 
-    @unittest.skipIf(
-            platform.system().startswith('Windows'),
-            "Skipping on windows, see issue 560"
-    )
     def test_print_bad_geotiff(self):
         """
         SCENARIO:  A GeoTIFF UUID is corrupt.
@@ -419,35 +414,46 @@ class TestSuiteHiRISE(fixtures.TestCommon):
 
     def test_tags(self):
         jp2 = Jp2k(self.hirise_jp2file_name)
-        self.assertEqual(jp2.box[4].data['GeoDoubleParams'],
-                         (0.0, 180.0, 0.0, 0.0, 3396190.0, 3396190.0))
-        self.assertEqual(jp2.box[4].data['GeoAsciiParams'],
-                         'Equirectangular MARS|GCS_MARS|')
-        self.assertEqual(jp2.box[4].data['GeoKeyDirectory'], (
-            1,        1,  0,    18,  # noqa
-            1024,     0,  1,     1,  # noqa
-            1025,     0,  1,     1,  # noqa
-            1026, 34737, 21,     0,  # noqa
-            2048,     0,  1, 32767,  # noqa
-            2049, 34737,  9,    21,  # noqa
-            2050,     0,  1, 32767,  # noqa
-            2054,     0,  1,  9102,  # noqa
-            2056,     0,  1, 32767,  # noqa
-            2057, 34736,  1,     4,  # noqa
-            2058, 34736,  1,     5,  # noqa
-            3072,     0,  1, 32767,  # noqa
-            3074,     0,  1, 32767,  # noqa
-            3075,     0,  1,    17,  # noqa
-            3076,     0,  1,  9001,  # noqa
-            3082, 34736,  1,     2,  # noqa
-            3083, 34736,  1,     3,  # noqa
-            3088, 34736,  1,     1,  # noqa
-            3089, 34736,  1,     0,  # noqa
-        ))
-        self.assertEqual(jp2.box[4].data['ModelPixelScale'], (0.25, 0.25, 0.0))
-        self.assertEqual(jp2.box[4].data['ModelTiePoint'], (
-            0.0, 0.0, 0.0, -2523306.125, -268608.875, 0.0
-        ))
+        np.testing.assert_array_equal(
+            jp2.box[4].data['GeoDoubleParams'],
+            np.array([0.0, 180.0, 0.0, 0.0, 3396190.0, 3396190.0])
+        )
+        self.assertEqual(
+            jp2.box[4].data['GeoAsciiParams'],
+            'Equirectangular MARS|GCS_MARS|'
+        )
+        np.testing.assert_array_equal(
+            jp2.box[4].data['GeoKeyDirectory'],
+            np.array([
+                1,        1,  0,    18,  # noqa
+                1024,     0,  1,     1,  # noqa
+                1025,     0,  1,     1,  # noqa
+                1026, 34737, 21,     0,  # noqa
+                2048,     0,  1, 32767,  # noqa
+                2049, 34737,  9,    21,  # noqa
+                2050,     0,  1, 32767,  # noqa
+                2054,     0,  1,  9102,  # noqa
+                2056,     0,  1, 32767,  # noqa
+                2057, 34736,  1,     4,  # noqa
+                2058, 34736,  1,     5,  # noqa
+                3072,     0,  1, 32767,  # noqa
+                3074,     0,  1, 32767,  # noqa
+                3075,     0,  1,    17,  # noqa
+                3076,     0,  1,  9001,  # noqa
+                3082, 34736,  1,     2,  # noqa
+                3083, 34736,  1,     3,  # noqa
+                3088, 34736,  1,     1,  # noqa
+                3089, 34736,  1,     0,  # noqa
+            ])
+        )
+        np.testing.assert_array_equal(
+            jp2.box[4].data['ModelPixelScale'],
+            np.array([0.25, 0.25, 0.0])
+        )
+        np.testing.assert_array_equal(
+            jp2.box[4].data['ModelTiePoint'],
+            np.array([0.0, 0.0, 0.0, -2523306.125, -268608.875, 0.0])
+        )
 
     @unittest.skipIf(not fixtures._HAVE_GDAL, 'Could not load GDAL')
     def test_printing_geotiff_uuid(self):

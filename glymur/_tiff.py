@@ -7,6 +7,9 @@ from collections import OrderedDict
 import struct
 import warnings
 
+# 3rd party library imports
+import numpy as np
+
 
 def tiff_header(read_buffer):
     """
@@ -31,8 +34,7 @@ def tiff_header(read_buffer):
     _, offset = struct.unpack(endian + 'HI', read_buffer[2:8])
 
     # This is the 'Exif Image' portion.
-    exif = Ifd(endian, read_buffer, offset)
-    return exif.processed_ifd
+    return Ifd(endian, read_buffer, offset).processed_ifd
 
 
 class BadTiffTagDatatype(RuntimeError):
@@ -76,15 +78,15 @@ class Ifd(object):
             # plus 2 bytes for the number of tags plus 12 bytes for each
             # tag entry plus 8 bytes to the offset/payload itself.
             toffp = read_buffer[offset + 10 + j * 12:offset + 10 + j * 12 + 4]
-            tag_data = self.parse_tag(
+            self.raw_ifd[tag] = self.parse_tag(
                 tag, data[j * 4 + 1], data[j * 4 + 2], toffp
             )
-            self.raw_ifd[tag] = tag_data
 
         self.post_process()
 
     def parse_tag(self, tag, dtype, count, offset_buf):
-        """Interpret an Exif image tag data payload.
+        """
+        Interpret an Exif image tag data payload.
         """
 
         try:
@@ -115,16 +117,19 @@ class Ifd(object):
                 for j in range(count):
                     value = float(payload[j * 2]) / float(payload[j * 2 + 1])
                     rational_payload.append(value)
-                payload = rational_payload
+                payload = np.array(rational_payload)
             if count == 1:
                 # If just a single value, then return a scalar instead of a
                 # tuple.
                 payload = payload[0]
+            else:
+                payload = np.array(payload, dtype=TIFFTYPE2NP[dtype])
 
         return payload
 
     def post_process(self):
-        """Map the tag name instead of tag number to the tag value.
+        """
+        Map the tag name instead of tag number to the tag value.
         """
         for tag, value in self.raw_ifd.items():
             try:
@@ -447,4 +452,23 @@ DATATYPE2FMT = {
     16: ('Q', 8),
     17: ('q', 8),
     18: ('Q', 8)
+}
+
+TIFFTYPE2NP = {
+    1: np.ubyte,
+    2: str,
+    3: np.ushort,
+    4: np.uint32,
+    5: np.double,
+    6: np.byte,
+    7: np.ubyte,
+    8: np.short,
+    9: np.int32,
+    10: np.double,
+    11: np.double,
+    12: np.double,
+    13: np.uint32,
+    16: np.uint64,
+    17: np.int64,
+    18: np.uint64,
 }
