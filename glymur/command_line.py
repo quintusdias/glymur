@@ -171,9 +171,9 @@ def tiff2jp2():
     )
 
     help = (
-        'Do not take any ICC profile (tag 34675) from the TIFF IFD and insert '
-        'it into the ColourSpecificationBox.  Note: this will leave any such '
-        'ICCProfile tag in the Exif UUID box.'
+        'If specified, do not include any ICC profile (tag 34675) from the '
+        'TIFF IFD in the ColourSpecificationBox.  Note: if specified, the '
+        'ColorProfile tag remains in the Exif UUID box. '
     )
     group2.add_argument(
         '--exclude-icc-profile', help=help, action='store_true'
