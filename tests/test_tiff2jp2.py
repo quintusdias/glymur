@@ -638,7 +638,8 @@ class TestSuite(fixtures.TestCommon):
 
         j = Jp2k(self.temp_jp2_filename)
 
-        tags = j.box[-1].data
+        # last box is XMP, 2nd to last is exif
+        tags = j.box[-2].data
         self.assertNotIn('StripByteCounts', tags)
         self.assertNotIn('StripOffsets', tags)
 
@@ -656,7 +657,8 @@ class TestSuite(fixtures.TestCommon):
 
         j = Jp2k(self.temp_jp2_filename)
 
-        tags = j.box[-1].data
+        # last box is XMP, 2nd to last is exif
+        tags = j.box[-2].data
         self.assertEqual(tags['ExifTag']['LensModel'], 'Canon')
 
     def test_smoke(self):
@@ -1810,7 +1812,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
 
         j = Jp2k(self.temp_jp2_filename)
 
-        tags = j.box[-1].data
+        tags = j.box[-2].data
         self.assertNotIn('StripByteCounts', tags)
         self.assertNotIn('StripOffsets', tags)
 
@@ -1833,7 +1835,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
 
         j = Jp2k(self.temp_jp2_filename)
 
-        tags = j.box[-1].data
+        tags = j.box[-2].data
         self.assertNotIn('StripByteCounts', tags)
         self.assertNotIn('StripOffsets', tags)
 
@@ -1853,7 +1855,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
 
         j = Jp2k(self.temp_jp2_filename)
 
-        tags = j.box[-1].data
+        tags = j.box[-2].data
         self.assertNotIn('StripByteCounts', tags)
         self.assertNotIn('StripOffsets', tags)
 
@@ -1871,7 +1873,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
 
         j = Jp2k(self.temp_jp2_filename)
 
-        tags = j.box[-1].data
+        tags = j.box[-2].data
         self.assertEqual(tags['ExifTag']['LensModel'], 'Canon')
 
         str(j.box[-1])
