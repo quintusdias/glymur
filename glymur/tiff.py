@@ -83,13 +83,16 @@ class Tiff2Jp2k(object):
         create_xmp_uuid : bool
             If true and if there is an XMLPacket (700) tag in the TIFF main
             IFD, it will be removed from the IFD and placed in a UUID box.
+        exclude_icc_profile : bool
+            If true, do not include any ICC profile tag (34765) in the
+            ColourSpecificationBox.
         exclude_tags : list or None
             If not None and if create_exif_uuid is True, exclude any listed
             tags from the EXIF UUID.
         jp2_filename : path or str
             Path to JPEG 2000 file to be written.
-        exclude_icc_profile : bool
-            If false, extract the ICC profile tag value, save to the
+        include_icc_profile : bool
+            If true, extract the ICC profile tag value, save to the
             ColourSpecificationBox.
         tiff_filename : path or str
             Path to TIFF file.
