@@ -2040,7 +2040,8 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
 
     def test_icc_profile(self):
         """
-        Scenario:  The input TIFF has the ICC profile tag.
+        Scenario:  The input TIFF has the ICC profile tag.  No keyword
+        arguments are provided.
 
         Expected Result.  The ICC profile is verified in the
         ColourSpecificationBox.  The ICC profile tag will not be present in
@@ -2075,8 +2076,8 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
 
     def test_icc_profile_commandline(self):
         """
-        Scenario:  The input TIFF has the ICC profile tag.  Specify normal
-        command line options.
+        Scenario:  The input TIFF has the ICC profile tag.  No optional
+        arguments are provided.
 
         Expected Result.  The ICC profile is verified in the
         ColourSpecificationBox.  The ICC profile tag will not be present in
@@ -2119,6 +2120,40 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
             sys.argv = [
                 '', str(path), str(self.temp_jp2_filename),
                 '--exclude-icc-profile'
+            ]
+            command_line.tiff2jp2()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        # The colour specification box does not have the profile
+        colr = j.box[2].box[1]
+        self.assertEqual(colr.method, glymur.core.ENUMERATED_COLORSPACE)
+        self.assertEqual(colr.precedence, 0)
+        self.assertEqual(colr.approximation, 0)
+        self.assertEqual(colr.colorspace, SRGB)
+        self.assertIsNone(colr.icc_profile)
+
+        # the exif UUID box DOES have the profile
+        self.assertIn('ICCProfile', j.box[-1].data)
+
+    def test_exclude_icc_profile_commandline__do_not_exclude_tags(self):
+        """
+        Scenario:  The input TIFF has the ICC profile tag.  Do not import
+        it into the cdef box.  Tags to be excluded from the UUID box do not
+        include 'ICCProfile'.
+
+        Expected Result.  The ICC profile is verified in the
+        ColourSpecificationBox.  The ICC profile tag will be present in the
+        JpgTiffExif->JP2 UUID box.
+        """
+        with ir.path('tests.data', 'basn6a08.tif') as path:
+
+            sys.argv = [
+                '', str(path), str(self.temp_jp2_filename),
+                '--exclude-icc-profile',
+                '--exclude-tags',
+                'StripByteCounts', 'StripOffsets', 'TileByteCounts',
+                'TileOffsets', 'XMLPacket'
             ]
             command_line.tiff2jp2()
 
