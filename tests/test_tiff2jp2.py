@@ -2136,14 +2136,14 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         # the exif UUID box DOES have the profile
         self.assertIn('ICCProfile', j.box[-1].data)
 
-    def test_exclude_icc_profile_commandline__do_not_exclude_tags(self):
+    def test_exclude_icc_profile_commandline__exclude_from_uuid(self):
         """
-        Scenario:  The input TIFF has the ICC profile tag.  Do not import
-        it into the cdef box.  Tags to be excluded from the UUID box do not
-        include 'ICCProfile'.
+        Scenario:  The input TIFF has the ICC profile tag.  Specify
+        commandline arguments to exclude it from the cdef box and exclude it
+        from the exif UUID.
 
         Expected Result.  The ICC profile is verified in the
-        ColourSpecificationBox.  The ICC profile tag will be present in the
+        ColourSpecificationBox.  The ICC profile tag will be not present in the
         JpgTiffExif->JP2 UUID box.
         """
         with ir.path('tests.data', 'basn6a08.tif') as path:
@@ -2151,9 +2151,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
             sys.argv = [
                 '', str(path), str(self.temp_jp2_filename),
                 '--exclude-icc-profile',
-                '--exclude-tags',
-                'StripByteCounts', 'StripOffsets', 'TileByteCounts',
-                'TileOffsets', 'XMLPacket'
+                '--exclude-tags', 'ICCProfile',
             ]
             command_line.tiff2jp2()
 
@@ -2167,8 +2165,8 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         self.assertEqual(colr.colorspace, SRGB)
         self.assertIsNone(colr.icc_profile)
 
-        # the exif UUID box DOES have the profile
-        self.assertIn('ICCProfile', j.box[-1].data)
+        # the exif UUID box does not have the profile
+        self.assertNotIn('ICCProfile', j.box[-1].data)
 
     def test_not_a_tiff(self):
         """
