@@ -1801,8 +1801,8 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         Scenario:  Convert TIFF to JP2, but exclude the StripByteCounts and
         StripOffsets tags.
 
-        Expected Result:  No warnings, no errors.  The Exif LensModel tag is
-        recoverable from the UUIDbox.
+        Expected Result:  The Exif UUID box prints without error.
+        The StripByteCounts and StripOffsets tags are not present.
         """
         with Tiff2Jp2k(
             self.exif_tiff, self.temp_jp2_filename,
@@ -1900,6 +1900,36 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         expected = UUID(bytes=b'JpgTiffExif->JP2')
         self.assertEqual(actual, expected)
         self.assertNotIn('XMLPacket', j.box[-2].data)
+
+        actual = j.box[-1].uuid
+        expected = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
+        self.assertEqual(actual, expected)
+        self.assertEqual(
+            j.box[-1].data.getroot().values(), ['Public XMP Toolkit Core 3.5']
+        )
+
+    def test_xmp__exclude_XMLPacket(self):
+        """
+        Scenario:  Convert TIFF with Exif IFD to JP2.  The main IFD has an
+        XML Packet tag (700).  Supply the 'create_xmp_uuid' keyword.  Supply
+        the exclude_tags keyword, but don't supply XMLPacket.
+
+        Expected Result:  The XMLPacket tag is not removed from the main IFD.
+        An Exif UUID is appended to the end of the JP2 file, and then an XMP
+        UUID is appended.
+        """
+        kwargs = {'create_xmp_uuid': True, 'exclude_tags': ['StripOffsets']}
+        with Tiff2Jp2k(self.exif_tiff, self.temp_jp2_filename, **kwargs) as p:
+            p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        # first we find the Exif UUID, then the XMP UUID.  The Exif UUID
+        # data should not have the XMLPacket tag.
+        actual = j.box[-2].uuid
+        expected = UUID(bytes=b'JpgTiffExif->JP2')
+        self.assertEqual(actual, expected)
+        self.assertIn('XMLPacket', j.box[-2].data)
 
         actual = j.box[-1].uuid
         expected = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
@@ -2111,9 +2141,9 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         Scenario:  The input TIFF has the ICC profile tag.  Do not import
         it into the cdef box.
 
-        Expected Result.  The ICC profile is verified in the
-        ColourSpecificationBox.  The ICC profile tag will not be present in
-        the JpgTiffExif->JP2 UUID box.
+        Expected Result.  The ColourSpecificationBox is normal (no ICC
+        profile).  The ICC profile tag will be present in the
+        JpgTiffExif->JP2 UUID box.
         """
         with ir.path('tests.data', 'basn6a08.tif') as path:
 
@@ -2133,8 +2163,8 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         self.assertEqual(colr.colorspace, SRGB)
         self.assertIsNone(colr.icc_profile)
 
-        # the exif UUID box DOES have the profile
-        self.assertIn('ICCProfile', j.box[-1].data)
+        # the exif UUID box does not have the profile
+        self.assertNotIn('ICCProfile', j.box[-1].data)
 
     def test_exclude_icc_profile_commandline__exclude_from_uuid(self):
         """
@@ -2187,10 +2217,15 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         Expected Result:  The output JP2 has a single layer and the jp2h box
         has a pclr box.
         """
+        for tag in ['ColorMap', 'StripOffsets']:
+            with self.subTest(tag=tag):
+                self._test_colormap(tag=tag)
+
+    def _test_colormap(self, tag):
+
+        kwargs = {'tilesize': (32, 32), 'exclude_tags': [tag]}
         with ir.path('tests.data', 'issue572.tif') as path:
-            with Tiff2Jp2k(
-                path, self.temp_jp2_filename, tilesize=(32, 32)
-            ) as p:
+            with Tiff2Jp2k(path, self.temp_jp2_filename, **kwargs) as p:
                 p.run()
 
         j = Jp2k(self.temp_jp2_filename)
@@ -2215,9 +2250,13 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         self.assertEqual(j.box[2].box[3].mapping_type, (1, 1, 1))
         self.assertEqual(j.box[2].box[3].palette_index, (0, 1, 2))
 
-        # The last box should be the exif uuid.  It should not have the
-        # colormap tag.
-        actual = j.box[-1].uuid
+        # The last box should be the exif uuid.  It may or may not have the
+        # colormap tag depending on what was specified.
+        exif_box = j.box[-1]
+        actual = exif_box.uuid
         expected = UUID(bytes=b'JpgTiffExif->JP2')
         self.assertEqual(actual, expected)
-        self.assertNotIn('ColorMap', j.box[-1].data)
+        if tag == 'ColorMap':
+            self.assertNotIn('ColorMap', exif_box.data)
+        else:
+            self.assertIn('ColorMap', exif_box.data)
