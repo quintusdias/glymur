@@ -975,31 +975,53 @@ class TestPrinting(fixtures.TestCommon):
             with open(self.jp2file, 'rb') as ifptr:
                 tfile.write(ifptr.read())
 
+            b = BytesIO()
+
+            # UUID stuff at byte 0
+            # Exif leader at byte 24
+            # TIFF header at byte 30
+            # IFD start at byte 38
+            # IFD tags at byte 40
+            # tile offsets at byte 88 (40 bytes)
+            #    IFD location 58
+            # Exif IFD start at byte 128
+            #    IFD byte location 98
+            # Exif IFD tag at byte 130 (12 bytes)
+
             # Write L, T, UUID identifier.
-            tfile.write(struct.pack('>I4s', 128, b'uuid'))
-            tfile.write(b'JpgTiffExif->JP2')
+            b.write(struct.pack('>I4s', 142, b'uuid'))
+            b.write(b'JpgTiffExif->JP2')
 
-            tfile.write(b'Exif\x00\x00')
+            b.write(b'Exif\x00\x00')
 
-            start = tfile.tell()
+            # write the tiff header
             xbuffer = struct.pack('<BBHI', 73, 73, 42, 8)
-            tfile.write(xbuffer)
+            b.write(xbuffer)
 
-            # We will write just three tags.
-            tfile.write(struct.pack('<H', 4))
+            # We will write just four tags.
+            b.write(struct.pack('<H', 4))
 
             # The "Make" tag is tag no. 271.
-            tfile.write(struct.pack('<HHII', 256, 4, 1, 256))
-            tfile.write(struct.pack('<HHII', 257, 4, 1, 512))
-            tfile.write(struct.pack('<HHI4s', 271, 2, 3, b'HTC\x00'))
+            b.write(struct.pack('<HHII', 256, 4, 1, 256))
+            b.write(struct.pack('<HHII', 257, 4, 1, 512))
 
-            offset = tfile.tell() - start + 12
-            tfile.write(struct.pack('<HHII', 324, 4, 10, offset))
+            b.write(struct.pack('<HHII', 324, 4, 10, 58))
+
+            b.write(struct.pack('<HHII', 34665, 4, 1, 98))
 
             # write the tile offsets (fake)
             tile_offsets = list(range(0, 100, 10))
-            tfile.write(struct.pack('<' + 'I' * 10, *tile_offsets))
+            b.write(struct.pack('<' + 'I' * 10, *tile_offsets))
 
+            # start writing the Exif IFD.
+
+            # We will write just one tag.
+            b.write(struct.pack('<H', 1))
+
+            b.write(struct.pack('<HHI4s', 271, 2, 3, b'HTC\x00'))
+            b.flush()
+
+            tfile.write(b.getvalue())
             tfile.flush()
 
             j = glymur.Jp2k(tfile.name)
@@ -1007,14 +1029,14 @@ class TestPrinting(fixtures.TestCommon):
             actual = str(j.box[5])
 
         expected = (
-            "UUID Box (uuid) @ (1135519, 128)\n"
+            "UUID Box (uuid) @ (1135519, 142)\n"
             "    UUID:  4a706754-6966-6645-7869-662d3e4a5032 (EXIF)\n"
             "    UUID Data:  OrderedDict([   ('ImageWidth', 256),\n"
             "                    ('ImageLength', 512),\n"
-            "                    ('Make', 'HTC'),\n"
             "                    (   'TileOffsets',\n"
             "                        "
-            "array([ 0, 10, 20, ..., 70, 80, 90], dtype=uint64))])"
+            "array([ 0, 10, 20, ..., 70, 80, 90], dtype=uint64)),\n"
+            "                    ('ExifTag', OrderedDict([('Make', 'HTC')]))])"
         )
         self.assertEqual(actual, expected)
 
