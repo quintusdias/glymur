@@ -1,3 +1,6 @@
+September 07, 2022 - v0.11.5
+    Fix reads where COD segment not at index[2]
+
 August 18, 2022 - v0.11.4
     Fix ResolutionBox with tiff2jp2 
 
