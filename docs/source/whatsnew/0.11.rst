@@ -3,6 +3,11 @@ Changes in glymur 0.11
 ######################
 
 *****************
+Changes in 0.11.5
+*****************
+    * Fix reads where COD segment not at index[2]
+
+*****************
 Changes in 0.11.4
 *****************
     * Fix ResolutionBox with tiff2jp2.
