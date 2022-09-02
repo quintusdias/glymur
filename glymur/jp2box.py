@@ -3509,7 +3509,8 @@ class UUIDBox(Jp2kBox):
                 text = 'UUID Data:  Invalid Exif UUID'
                 lst.append(text)
             else:
-                pprint.pprint(self.data, stream=s, indent=4)
+                with np.printoptions(threshold=4):
+                    pprint.pprint(self.data, stream=s, indent=4)
                 text = f'UUID Data:  {s.getvalue().rstrip()}'
                 lst.append(text)
         elif self.uuid == _GEOTIFF_UUID:

@@ -976,20 +976,30 @@ class TestPrinting(fixtures.TestCommon):
                 tfile.write(ifptr.read())
 
             # Write L, T, UUID identifier.
-            tfile.write(struct.pack('>I4s', 76, b'uuid'))
+            tfile.write(struct.pack('>I4s', 128, b'uuid'))
             tfile.write(b'JpgTiffExif->JP2')
 
             tfile.write(b'Exif\x00\x00')
+
+            start = tfile.tell()
             xbuffer = struct.pack('<BBHI', 73, 73, 42, 8)
             tfile.write(xbuffer)
 
             # We will write just three tags.
-            tfile.write(struct.pack('<H', 3))
+            tfile.write(struct.pack('<H', 4))
 
             # The "Make" tag is tag no. 271.
             tfile.write(struct.pack('<HHII', 256, 4, 1, 256))
             tfile.write(struct.pack('<HHII', 257, 4, 1, 512))
             tfile.write(struct.pack('<HHI4s', 271, 2, 3, b'HTC\x00'))
+
+            offset = tfile.tell() - start + 12
+            tfile.write(struct.pack('<HHII', 324, 4, 10, offset))
+
+            # write the tile offsets (fake)
+            tile_offsets = list(range(0, 100, 10))
+            tfile.write(struct.pack('<' + 'I' * 10, *tile_offsets))
+
             tfile.flush()
 
             j = glymur.Jp2k(tfile.name)
@@ -997,10 +1007,14 @@ class TestPrinting(fixtures.TestCommon):
             actual = str(j.box[5])
 
         expected = (
-            "UUID Box (uuid) @ (1135519, 76)\n"
+            "UUID Box (uuid) @ (1135519, 128)\n"
             "    UUID:  4a706754-6966-6645-7869-662d3e4a5032 (EXIF)\n"
-            "    UUID Data:  OrderedDict([('ImageWidth', 256), "
-            "('ImageLength', 512), ('Make', 'HTC')])"
+            "    UUID Data:  OrderedDict([   ('ImageWidth', 256),\n"
+            "                    ('ImageLength', 512),\n"
+            "                    ('Make', 'HTC'),\n"
+            "                    (   'TileOffsets',\n"
+            "                        "
+            "array([ 0, 10, 20, ..., 70, 80, 90], dtype=uint64))])"
         )
         self.assertEqual(actual, expected)
 
