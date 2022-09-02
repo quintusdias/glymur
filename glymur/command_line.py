@@ -184,10 +184,7 @@ def tiff2jp2():
         'Exclude TIFF tag(s) from EXIF UUID.  This option may be specified as '
         'tag numbers or names.'
     )
-    group2.add_argument(
-        '--exclude-tags', help=help, nargs='*',
-        default=tiff._default_excluded_tags
-    )
+    group2.add_argument('--exclude-tags', help=help, nargs='*')
 
     help = (
         'Dimensions of JP2K tile.  If not provided, the JPEG2000 image will '

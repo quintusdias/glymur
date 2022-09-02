@@ -1883,9 +1883,8 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         Scenario:  Convert TIFF with Exif IFD to JP2.  The main IFD has an
         XML Packet tag (700).  Supply the 'xmp_uuid' keyword.
 
-        Expected Result:  The XMLPacket tag is removed from the main IFD.
-        An Exif UUID is appended to the end of the JP2 file, and then an XMP
-        UUID is appended.
+        Expected Result:  An Exif UUID is appended to the end of the
+        JP2 file, and then an XMP UUID is appended.
         """
         for create_xmp in [True, False]:
             with self.subTest(create_xmp=create_xmp):
@@ -1905,7 +1904,6 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         actual = box.uuid
         expected = UUID(bytes=b'JpgTiffExif->JP2')
         self.assertEqual(actual, expected)
-        self.assertNotIn('XMLPacket', box.data)
 
         if not create_xmp:
             return
@@ -2023,9 +2021,8 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         Scenario:  patch sys such that we can run the command line tiff2jp2
         script.  Use the --create-xmp-uuid option.
 
-        Expected Result:  The XMLPacket tag is removed from the main IFD.
-        An Exif UUID is appended to the end of the JP2 file, and then an XMP
-        UUID is appended.
+        Expected Result:  An Exif UUID is appended to the end of the
+        JP2 file, and then an XMP UUID is appended.
         """
         sys.argv = [
             '', str(self.exif_tiff), str(self.temp_jp2_filename),
@@ -2041,7 +2038,6 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         actual = j.box[-2].uuid
         expected = UUID(bytes=b'JpgTiffExif->JP2')
         self.assertEqual(actual, expected)
-        self.assertNotIn('XMLPacket', j.box[-2].data)
 
         actual = j.box[-1].uuid
         expected = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
@@ -2085,8 +2081,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         arguments are provided.
 
         Expected Result.  The ICC profile is verified in the
-        ColourSpecificationBox.  The ICC profile tag will not be present in
-        the JpgTiffExif->JP2 UUID box.  There is a logging message at the info
+        ColourSpecificationBox.  There is a logging message at the info
         level stating that a color profile was consumed.
         """
         with ir.path('tests.data', 'basn6a08.tif') as path:
@@ -2112,17 +2107,13 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         # The colour specification box has the profile
         self.assertEqual(j.box[2].box[1].icc_profile, bytes(icc_profile))
 
-        # the exif UUID box does NOT have the profile
-        self.assertNotIn('ICCProfile', j.box[-1].data)
-
     def test_icc_profile_commandline(self):
         """
         Scenario:  The input TIFF has the ICC profile tag.  No optional
         arguments are provided.
 
         Expected Result.  The ICC profile is verified in the
-        ColourSpecificationBox.  The ICC profile tag will not be present in
-        the JpgTiffExif->JP2 UUID box.
+        ColourSpecificationBox.
         """
         with ir.path('tests.data', 'basn6a08.tif') as path:
 
@@ -2143,9 +2134,6 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
 
         # The colour specification box has the profile
         self.assertEqual(j.box[2].box[1].icc_profile, bytes(icc_profile))
-
-        # the exif UUID box does NOT have the profile
-        self.assertNotIn('ICCProfile', j.box[-1].data)
 
     def test_exclude_icc_profile_commandline(self):
         """
@@ -2173,9 +2161,6 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         self.assertEqual(colr.approximation, 0)
         self.assertEqual(colr.colorspace, SRGB)
         self.assertIsNone(colr.icc_profile)
-
-        # the exif UUID box does not have the profile
-        self.assertNotIn('ICCProfile', j.box[-1].data)
 
     def test_exclude_icc_profile_commandline__exclude_from_uuid(self):
         """

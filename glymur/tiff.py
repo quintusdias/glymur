@@ -40,23 +40,6 @@ tag_dtype = {
     18: {'format': 'Q', 'nbytes': 8}
 }
 
-# By default, we take the main IFD in a TIFF and turn it into an Exif UUID box
-# in the JPEG 2000 file.  However, we exclude these tags from the Exif UUID by
-# default for the given reasons.
-#
-# The ColorMap tag can be turned into a PCLR box.
-#
-# ICCprofile can be subsumed into the ColourDefinitionBox.
-#
-# The XMLPacket tag can be subsumed into a UUID box.
-#
-# The StripByteCounts, StripOffsets, TileByteCounts, TileOffsets tags lose
-# their significance once the file format is no longer TIFF.
-_default_excluded_tags = (
-    'ColorMap', 'ICCProfile', 'StripByteCounts', 'StripOffsets',
-    'TileByteCounts', 'TileOffsets', 'XMLPacket'
-)
-
 # Mnemonics for the two TIFF format version numbers.
 _TIFF = 42
 _BIGTIFF = 43
@@ -130,7 +113,7 @@ class Tiff2Jp2k(object):
         self.exclude_icc_profile = exclude_icc_profile
 
         if exclude_tags is None:
-            exclude_tags = _default_excluded_tags
+            exclude_tags = []
         self.exclude_tags = self._process_exclude_tags(exclude_tags)
 
         self.jp2 = None
