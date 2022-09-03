@@ -1887,25 +1887,36 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         An Exif UUID is appended to the end of the JP2 file, and then an XMP
         UUID is appended.
         """
+        for create_xmp in [True, False]:
+            with self.subTest(create_xmp=create_xmp):
+                self._test_xmp(create_xmp=create_xmp)
+
+    def _test_xmp(self, create_xmp):
         with Tiff2Jp2k(
-            self.exif_tiff, self.temp_jp2_filename, create_xmp_uuid=True
+            self.exif_tiff, self.temp_jp2_filename, create_xmp_uuid=create_xmp
         ) as p:
             p.run()
 
         j = Jp2k(self.temp_jp2_filename)
 
-        # first we find the Exif UUID, then the XMP UUID.  The Exif UUID
+        # first we find the Exif UUID, then maybe the XMP UUID.  The Exif UUID
         # data should not have the XMLPacket tag.
-        actual = j.box[-2].uuid
+        box = j.box[-2] if create_xmp else j.box[-1]
+        actual = box.uuid
         expected = UUID(bytes=b'JpgTiffExif->JP2')
         self.assertEqual(actual, expected)
-        self.assertNotIn('XMLPacket', j.box[-2].data)
+        self.assertNotIn('XMLPacket', box.data)
 
-        actual = j.box[-1].uuid
+        if not create_xmp:
+            return
+
+        # ok so the xmp UUID is the last box
+        xmp_box = j.box[-1]
+        actual = xmp_box.uuid
         expected = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
         self.assertEqual(actual, expected)
         self.assertEqual(
-            j.box[-1].data.getroot().values(), ['Public XMP Toolkit Core 3.5']
+            xmp_box.data.getroot().values(), ['Public XMP Toolkit Core 3.5']
         )
 
     def test_xmp__exclude_XMLPacket(self):
