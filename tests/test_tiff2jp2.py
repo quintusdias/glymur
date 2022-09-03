@@ -622,6 +622,28 @@ class TestSuite(fixtures.TestCommon):
     def tearDownClass(cls):
         shutil.rmtree(cls.test_tiff_dir)
 
+    def test_excluded_tags_is_none(self):
+        """
+        Scenario:  Convert TIFF to JP2, but provide None for the exclude_tags
+        argument.
+
+        Expected Result:  The UUIDbox has StripOffsets, StripByteCounts, and
+        ICCProfile.
+        """
+        with ir.path('tests.data', 'basn6a08.tif') as path:
+            with Tiff2Jp2k(
+                path, self.temp_jp2_filename, exclude_tags=None
+            ) as p:
+                p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        # last box is exif
+        tags = j.box[-1].data
+        self.assertIn('StripByteCounts', tags)
+        self.assertIn('StripOffsets', tags)
+        self.assertIn('ICCProfile', tags)
+
     def test_exclude_tags_camelcase(self):
         """
         Scenario:  Convert TIFF to JP2, but exclude the StripByteCounts and

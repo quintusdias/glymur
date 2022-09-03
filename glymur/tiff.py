@@ -71,8 +71,9 @@ class Tiff2Jp2k(object):
 
     def __init__(
         self, tiff_filename, jp2_filename,
-        create_exif_uuid=True, create_xmp_uuid=True, exclude_tags=None,
-        tilesize=None, verbosity=logging.CRITICAL, exclude_icc_profile=False,
+        create_exif_uuid=True, create_xmp_uuid=True,
+        exclude_tags=_default_excluded_tags, tilesize=None,
+        verbosity=logging.CRITICAL, exclude_icc_profile=False,
         **kwargs
     ):
         """
