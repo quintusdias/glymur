@@ -9,7 +9,7 @@ import warnings
 
 # Local imports ...
 from . import Jp2k, set_option, lib
-from .tiff import Tiff2Jp2k
+from . import tiff
 
 
 def main():
@@ -181,10 +181,13 @@ def tiff2jp2():
     )
 
     help = (
-        'Exclude TIFF tag(s) from EXIF UUID (if creating such a UUID).  '
-        'This option may be specified as tag numbers or names.'
+        'Exclude TIFF tag(s) from EXIF UUID.  This option may be specified as '
+        'tag numbers or names.'
     )
-    group2.add_argument('--exclude-tags', help=help, nargs='*')
+    group2.add_argument(
+        '--exclude-tags', help=help, nargs='*',
+        default=tiff._default_excluded_tags
+    )
 
     help = (
         'Dimensions of JP2K tile.  If not provided, the JPEG2000 image will '
@@ -237,5 +240,5 @@ def tiff2jp2():
         'verbosity': logging_level,
     }
 
-    with Tiff2Jp2k(tiffpath, jp2kpath, **kwargs) as j:
+    with tiff.Tiff2Jp2k(tiffpath, jp2kpath, **kwargs) as j:
         j.run()
