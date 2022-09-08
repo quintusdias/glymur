@@ -29,7 +29,7 @@ try:
     from osgeo import gdal
     from osgeo import osr
     _HAVE_GDAL = True
-except ModuleNotFoundError:
+except (ImportError, ModuleNotFoundError):
     _HAVE_GDAL = False
 else:
     gdal.UseExceptions()
