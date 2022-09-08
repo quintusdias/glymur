@@ -1565,7 +1565,11 @@ class Jp2k(Jp2kBox):
         # Must check the specified rlevel against the maximum.
         if rlevel != 0:
             # Must check the specified rlevel against the maximum.
-            max_rlevel = self.codestream.segment[2].num_res
+            cod_seg = [
+                segment for segment in self.codestream.segment
+                if segment.marker_id == 'COD'
+            ][0]
+            max_rlevel = cod_seg.num_res
             if rlevel == -1:
                 # -1 is shorthand for the largest rlevel
                 rlevel = max_rlevel
