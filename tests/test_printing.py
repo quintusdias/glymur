@@ -1035,7 +1035,7 @@ class TestPrinting(fixtures.TestCommon):
             "                    ('ImageLength', 512),\n"
             "                    (   'TileOffsets',\n"
             "                        "
-            "array([ 0, 10, 20, ..., 70, 80, 90], dtype=uint64)),\n"
+            "array([ 0, 10, 20, ..., 70, 80, 90], dtype=uint32)),\n"
             "                    ('ExifTag', OrderedDict([('Make', 'HTC')]))])"
         )
         self.assertEqual(actual, expected)

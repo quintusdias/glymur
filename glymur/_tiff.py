@@ -458,7 +458,7 @@ TIFFTYPE2NP = {
     1: np.ubyte,
     2: str,
     3: np.ushort,
-    4: np.uint,
+    4: np.uint32,
     5: np.double,
     6: np.byte,
     7: np.ubyte,

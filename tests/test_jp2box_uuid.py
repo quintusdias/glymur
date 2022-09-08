@@ -4,7 +4,6 @@
 # Standard library imports
 import importlib.resources as ir
 import io
-import platform
 import shutil
 import struct
 import unittest
