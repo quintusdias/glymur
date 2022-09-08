@@ -237,10 +237,6 @@ class TestSuite(fixtures.TestCommon):
         expected = uuid.UUID(bytes=b'JpgTiffExif->JP2')
         self.assertEqual(actual, expected)
 
-    @unittest.skipIf(
-            platform.system().startswith('Windows'),
-            "Skipping on windows, see issue 560"
-    )
     def test__printing__geotiff_uuid__xml_sidecar(self):
         """
         SCENARIO:  Print a geotiff UUID with XML sidecar file.
@@ -365,10 +361,6 @@ class TestSuite(fixtures.TestCommon):
         expected = 'UTM Zone 16N NAD27"|Clarke, 1866 by Default| '
         self.assertEqual(box.data['GeoAsciiParams'], expected)
 
-    @unittest.skipIf(
-            platform.system().startswith('Windows'),
-            "Skipping on windows, see issue 560"
-    )
     def test_print_bad_geotiff(self):
         """
         SCENARIO:  A GeoTIFF UUID is corrupt.
