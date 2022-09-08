@@ -79,6 +79,17 @@ class TestJp2k(fixtures.TestCommon):
             j = Jp2k(path)
         self.assertEqual(j.dtype, np.uint16)
 
+    def test_cod_segment_not_3rd(self):
+        """
+        Scenario:  Normally the COD segment is the 3rd segment.
+        Here it is 4th.  Read the image.
+
+        Expected response:  No errors.
+        """
+        j = Jp2k(self.j2kfile)
+        j.codestream.segment.insert(2, j.codestream.segment[1])
+        j[::2, ::2]
+
     def test_dtype_prec4_signd1(self):
         """
         Scenario:  A 4-bit signed image is read from a J2k file.
