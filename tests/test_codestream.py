@@ -40,7 +40,10 @@ class TestSuite(unittest.TestCase):
         segment = j2k.codestream._parse_tlm_segment(b)
 
         self.assertEqual(segment.ztlm, 0)
-        self.assertIsNone(segment.ttlm)
+
+        # ttlm is an array, but None is the singleton element
+        self.assertIsNone(segment.ttlm.item())
+
         self.assertEqual(segment.ptlm, (22871,))
 
     def test_ppt_segment(self):

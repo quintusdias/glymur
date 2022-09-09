@@ -1852,16 +1852,17 @@ class TLMsegment(Segment):
         self.length = length
         self.offset = offset
         self.ztlm = ztlm
-        self.ttlm = ttlm
-        self.ptlm = ptlm
+        self.ttlm = np.array(ttlm)
+        self.ptlm = np.array(ptlm)
 
     def __str__(self):
         msg = Segment.__str__(self)
-        msg += (
-            f'\n    Index:  {self.ztlm}'
-            f'\n    Tile number:  {self.ttlm}'
-            f'\n    Length:  {self.ptlm}'
-        )
+        with np.printoptions(threshold=4):
+            msg += (
+                f'\n    Index:  {self.ztlm}'
+                f'\n    Tile number:  {self.ttlm}'
+                f'\n    Length:  {self.ptlm}'
+            )
 
         return msg
 

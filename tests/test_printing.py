@@ -1198,16 +1198,20 @@ class TestPrinting(fixtures.TestCommon):
 
         Original file tested was input/conformance/p0_15.j2k
         """
-        segment = glymur.codestream.TLMsegment(0,
-                                               (0, 1, 2, 3),
-                                               (4267, 2117, 4080, 2081),
-                                               28, 268)
+        segment = glymur.codestream.TLMsegment(
+            0,
+            (0, 1, 2, 3, 4, 5, 6, 7),
+            (4267, 2117, 4080, 2081, 1000, 100, 150, 400),
+            28, 268
+        )
         actual = str(segment)
 
-        expected = ('TLM marker segment @ (268, 28)\n'
-                    '    Index:  0\n'
-                    '    Tile number:  (0, 1, 2, 3)\n'
-                    '    Length:  (4267, 2117, 4080, 2081)')
+        expected = (
+            'TLM marker segment @ (268, 28)\n'
+            '    Index:  0\n'
+            '    Tile number:  [0 1 2 ... 5 6 7]\n'
+            '    Length:  [4267 2117 4080 ...  100  150  400]'
+        )
 
         self.assertEqual(actual, expected)
 
