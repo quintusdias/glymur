@@ -607,11 +607,14 @@ class Tiff2Jp2k(object):
                     outbuffer = struct.pack('<I', after_ifd_position)
                     b.write(outbuffer)
                     b.seek(after_ifd_position)
-                    self._write_ifd(b, payload)
+                    after_ifd_position = self._write_ifd(b, payload)
+
                 else:
                     # write a normal tag
                     outbuffer = struct.pack('<' + payload_format, *payload)
                     b.write(outbuffer)
+
+        return after_ifd_position
 
     def read_tiff_header(self, tfp):
         """
