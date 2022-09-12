@@ -26,126 +26,7 @@ from glymur.lib import tiff as libtiff
     not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
 )
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-class TestSuite(fixtures.TestCommon):
-
-    @classmethod
-    def setup_exif(cls, path):
-        """
-        Create a simple TIFF file that is constructed to contain an EXIF IFD.
-        """
-
-        with path.open(mode='wb') as f:
-
-            w = 256
-            h = 256
-            rps = 64
-            header_length = 8
-
-            # write the header (8 bytes).  The IFD will follow the image data
-            # (256x256 bytes), so the offset to the IFD will be 8 + h * w.
-            main_ifd_offset = header_length + h * w
-            buffer = struct.pack('<BBHI', 73, 73, 42, main_ifd_offset)
-            f.write(buffer)
-
-            # write the image data, 4 64x256 strips of all zeros
-            strip = bytes([0] * rps * w)
-            f.write(strip)
-            f.write(strip)
-            f.write(strip)
-            f.write(strip)
-
-            # write an IFD with 11 tags
-            main_ifd_data_offset = main_ifd_offset + 2 + 11 * 12 + 4
-
-            buffer = struct.pack('<H', 11)
-            f.write(buffer)
-
-            # width and length and bitspersample
-            buffer = struct.pack('<HHII', 256, 4, 1, w)
-            f.write(buffer)
-            buffer = struct.pack('<HHII', 257, 4, 1, h)
-            f.write(buffer)
-            buffer = struct.pack('<HHII', 258, 4, 1, 8)
-            f.write(buffer)
-
-            # photometric
-            buffer = struct.pack('<HHII', 262, 4, 1, 1)
-            f.write(buffer)
-
-            # strip offsets
-            buffer = struct.pack('<HHII', 273, 4, 4, main_ifd_data_offset)
-            f.write(buffer)
-
-            # spp
-            buffer = struct.pack('<HHII', 277, 4, 1, 1)
-            f.write(buffer)
-
-            # rps
-            buffer = struct.pack('<HHII', 278, 4, 1, 64)
-            f.write(buffer)
-
-            # strip byte counts
-            buffer = struct.pack('<HHII', 279, 4, 4, main_ifd_data_offset + 16)
-            f.write(buffer)
-
-            # pagenumber
-            buffer = struct.pack('<HHIHH', 297, 3, 2, 1, 0)
-            f.write(buffer)
-
-            # XMP
-            with ir.path('tests.data', 'issue555.xmp') as xmp_path:
-                with xmp_path.open() as f2:
-                    xmp = f2.read()
-                    xmp = xmp + '\0'
-            buffer = struct.pack(
-                '<HHII', 700, 1, len(xmp), main_ifd_data_offset + 32
-            )
-            f.write(buffer)
-
-            # exif tag
-            exif_ifd_offset = main_ifd_data_offset + 32 + len(xmp)
-            buffer = struct.pack('<HHII', 34665, 4, 1, exif_ifd_offset)
-            f.write(buffer)
-
-            # terminate the IFD
-            buffer = struct.pack('<I', 0)
-            f.write(buffer)
-
-            # write the strip offsets here
-            buffer = struct.pack(
-                '<IIII', 8, 8 + rps*w, 8 + 2*rps*w, 8 + 3*rps*w
-            )
-            f.write(buffer)
-
-            # write the strip byte counts
-            buffer = struct.pack('<IIII', rps*w, rps*w, rps*w, rps*w)
-            f.write(buffer)
-
-            # write the XMP data
-            f.write(xmp.encode('utf-8'))
-
-            # write a minimal Exif IFD
-            buffer = struct.pack('<H', 2)
-            f.write(buffer)
-
-            # exposure program
-            buffer = struct.pack('<HHIHH', 34850, 3, 1, 2, 0)
-            f.write(buffer)
-
-            # lens model
-            data_location = exif_ifd_offset + 2 + 2*12 + 4
-            buffer = struct.pack('<HHII', 42036, 2, 6, data_location)
-            f.write(buffer)
-
-            # terminate the IFD
-            buffer = struct.pack('<I', 0)
-            f.write(buffer)
-
-            data = 'Canon\0'.encode('utf-8')
-            buffer = struct.pack('<BBBBBB', *data)
-            f.write(buffer)
-
-        cls.exif_tiff = path
+class TestSuiteScikitImage(fixtures.TestCommon):
 
     @classmethod
     def setup_minisblack_spp1(cls, path):
@@ -591,8 +472,6 @@ class TestSuite(fixtures.TestCommon):
         cls.test_tiff_dir = tempfile.mkdtemp()
         cls.test_tiff_path = pathlib.Path(cls.test_tiff_dir)
 
-        cls.setup_exif(cls.test_tiff_path / 'exif.tif')
-
         cls.setup_minisblack_spp1(cls.test_tiff_path / 'moon.tif')
 
         cls.setup_minisblack_3x3(cls.test_tiff_path / 'minisblack_3x3.tif')
@@ -621,67 +500,6 @@ class TestSuite(fixtures.TestCommon):
     @classmethod
     def tearDownClass(cls):
         shutil.rmtree(cls.test_tiff_dir)
-
-    def test_excluded_tags_is_none(self):
-        """
-        Scenario:  Convert TIFF to JP2, but provide None for the exclude_tags
-        argument.
-
-        Expected Result:  The UUIDbox has StripOffsets, StripByteCounts, and
-        ICCProfile.
-        """
-        with ir.path('tests.data', 'basn6a08.tif') as path:
-            with Tiff2Jp2k(
-                path, self.temp_jp2_filename, exclude_tags=None
-            ) as p:
-                p.run()
-
-        j = Jp2k(self.temp_jp2_filename)
-
-        # last box is exif
-        tags = j.box[-1].data
-        self.assertIn('StripByteCounts', tags)
-        self.assertIn('StripOffsets', tags)
-        self.assertIn('ICCProfile', tags)
-
-    def test_exclude_tags_camelcase(self):
-        """
-        Scenario:  Convert TIFF to JP2, but exclude the StripByteCounts and
-        StripOffsets tags.  Supply the argments as camel-case.
-
-        Expected Result:  No warnings, no errors.  The Exif LensModel tag is
-        recoverable from the UUIDbox.
-        """
-        with Tiff2Jp2k(
-            self.exif_tiff, self.temp_jp2_filename,
-            exclude_tags=['StripOffsets', 'StripByteCounts']
-        ) as p:
-            p.run()
-
-        j = Jp2k(self.temp_jp2_filename)
-
-        # last box is XMP, 2nd to last is exif
-        tags = j.box[-2].data
-        self.assertNotIn('StripByteCounts', tags)
-        self.assertNotIn('StripOffsets', tags)
-
-    def test_exif(self):
-        """
-        Scenario:  Convert TIFF with Exif IFD to JP2
-
-        Expected Result:  No warnings, no errors.  The Exif LensModel tag is
-        recoverable from the UUIDbox.
-        """
-        with Tiff2Jp2k(self.exif_tiff, self.temp_jp2_filename) as p:
-            with warnings.catch_warnings(record=True) as w:
-                p.run()
-                self.assertEqual(len(w), 0)
-
-        j = Jp2k(self.temp_jp2_filename)
-
-        # last box is XMP, 2nd to last is exif
-        tags = j.box[-2].data
-        self.assertEqual(tags['ExifTag']['LensModel'], 'Canon')
 
     def test_smoke(self):
         """
@@ -803,27 +621,6 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(j.box[-1].box_id, 'uuid')
         self.assertEqual(j.box[-1].data['ImageWidth'], 512)
         self.assertEqual(j.box[-1].data['ImageLength'], 512)
-
-    def test_geotiff(self):
-        """
-        SCENARIO:  Convert a one-component GEOTIFF file to JP2
-
-        EXPECTED RESULT:  there is a geotiff UUID.  The JP2 file has only one
-        component.
-        """
-        with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
-            with ir.path('tests.data', 'albers27.tif') as path:
-                with Tiff2Jp2k(path, self.temp_jp2_filename) as j:
-                    j.run()
-
-        j = Jp2k(self.temp_jp2_filename)
-
-        self.assertEqual(j.box[-1].box_id, 'uuid')
-        self.assertEqual(
-            j.box[-1].uuid, UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03')
-        )
-        self.assertEqual(j.box[2].box[0].num_components, 1)
 
     def test_no_uuid(self):
         """
@@ -1295,47 +1092,6 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 240)
         self.assertEqual(c.segment[1].ytsiz, 240)
 
-    def test_separated_configuration(self):
-        """
-        SCENARIO:  The TIFF has a planar configuration of SEPARATE which is
-        not supported if a tilesize is specified.
-
-        EXPECTED RESULT:  RuntimeError
-        """
-        with self.assertRaises(RuntimeError):
-            with ir.path(
-                'tests.data', 'flower-separated-planar-08.tif'
-            ) as path:
-                with Tiff2Jp2k(
-                    path, self.temp_jp2_filename, tilesize=(64, 64)
-                ) as j:
-                    j.run()
-
-    def test_bad_tile_size(self):
-        """
-        SCENARIO:  Specify a tilesize that exceeds the image size.  This will
-        cause a segfault unless caught.
-
-        EXPECTED RESULT:  RuntimeError
-        """
-        with self.assertRaises(RuntimeError):
-            with ir.path('tests.data', 'albers27-8.tif') as path:
-                with Tiff2Jp2k(
-                    path, self.temp_jp2_filename, tilesize=(256, 256),
-                ) as j:
-                    j.run()
-
-    def test_minisblack_spp1_bigtiff(self):
-        """
-        SCENARIO:  Convert minisblack BigTIFF file to JP2.  The TIFF has tag
-        XResolution.
-
-        EXPECTED RESULT:  no errors.
-        """
-        with ir.path('tests.data', 'albers27-8.tif') as path:
-            with Tiff2Jp2k(path, self.temp_jp2_filename) as j:
-                j.run()
-
     def test_rgb_tiled_bigtiff(self):
         """
         SCENARIO:  Convert RGB BigTIFF file to JP2.  The TIFF is evenly
@@ -1452,18 +1208,6 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].ysiz, 512)
         self.assertEqual(c.segment[1].xtsiz, 512)
         self.assertEqual(c.segment[1].ytsiz, 512)
-
-    def test_tiff_file_not_there(self):
-        """
-        Scenario:  The input TIFF file is not present.
-
-        Expected Result:  FileNotFoundError
-        """
-
-        with self.assertRaises(FileNotFoundError):
-            Tiff2Jp2k(
-                self.test_dir_path / 'not_there.tif', self.temp_jp2_filename
-            )
 
     def test_rgb_uint16(self):
         """
@@ -1594,16 +1338,6 @@ class TestSuite(fixtures.TestCommon):
 
 
 class TestSuiteNoScikitImage(fixtures.TestCommon):
-
-    @classmethod
-    def setUpClass(cls):
-
-        cls.test_tiff_dir = tempfile.mkdtemp()
-        cls.test_tiff_path = pathlib.Path(cls.test_tiff_dir)
-
-        cls.setup_rgb_evenly_stripped(cls.test_tiff_path / 'goodstuff.tif')
-
-        cls.setup_exif(cls.test_tiff_path / 'exif.tif')
 
     @classmethod
     def setup_exif(cls, path):
@@ -1744,6 +1478,16 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
             f.write(buffer)
 
         cls.exif_tiff = path
+
+    @classmethod
+    def setUpClass(cls):
+
+        cls.test_tiff_dir = tempfile.mkdtemp()
+        cls.test_tiff_path = pathlib.Path(cls.test_tiff_dir)
+
+        cls.setup_rgb_evenly_stripped(cls.test_tiff_path / 'goodstuff.tif')
+
+        cls.setup_exif(cls.test_tiff_path / 'exif.tif')
 
     @classmethod
     def setup_rgb_evenly_stripped(cls, path):
@@ -2301,3 +2045,99 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
             self.assertNotIn('ColorMap', exif_box.data)
         else:
             self.assertIn('ColorMap', exif_box.data)
+
+    def test_excluded_tags_is_none(self):
+        """
+        Scenario:  Convert TIFF to JP2, but provide None for the exclude_tags
+        argument.
+
+        Expected Result:  The UUIDbox has StripOffsets, StripByteCounts, and
+        ICCProfile.
+        """
+        with ir.path('tests.data', 'basn6a08.tif') as path:
+            with Tiff2Jp2k(
+                path, self.temp_jp2_filename, exclude_tags=None
+            ) as p:
+                p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        # last box is exif
+        tags = j.box[-1].data
+        self.assertIn('StripByteCounts', tags)
+        self.assertIn('StripOffsets', tags)
+        self.assertIn('ICCProfile', tags)
+
+    def test_geotiff(self):
+        """
+        SCENARIO:  Convert a one-component GEOTIFF file to JP2
+
+        EXPECTED RESULT:  there is a geotiff UUID.  The JP2 file has only one
+        component.
+        """
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            with ir.path('tests.data', 'albers27.tif') as path:
+                with Tiff2Jp2k(path, self.temp_jp2_filename) as j:
+                    j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        self.assertEqual(j.box[-1].box_id, 'uuid')
+        self.assertEqual(
+            j.box[-1].uuid, UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03')
+        )
+        self.assertEqual(j.box[2].box[0].num_components, 1)
+
+    def test_separated_configuration(self):
+        """
+        SCENARIO:  The TIFF has a planar configuration of SEPARATE which is
+        not supported if a tilesize is specified.
+
+        EXPECTED RESULT:  RuntimeError
+        """
+        with self.assertRaises(RuntimeError):
+            with ir.path(
+                'tests.data', 'flower-separated-planar-08.tif'
+            ) as path:
+                with Tiff2Jp2k(
+                    path, self.temp_jp2_filename, tilesize=(64, 64)
+                ) as j:
+                    j.run()
+
+    def test_bad_tile_size(self):
+        """
+        SCENARIO:  Specify a tilesize that exceeds the image size.  This will
+        cause a segfault unless caught.
+
+        EXPECTED RESULT:  RuntimeError
+        """
+        with self.assertRaises(RuntimeError):
+            with ir.path('tests.data', 'albers27-8.tif') as path:
+                with Tiff2Jp2k(
+                    path, self.temp_jp2_filename, tilesize=(256, 256),
+                ) as j:
+                    j.run()
+
+    def test_minisblack_spp1_bigtiff(self):
+        """
+        SCENARIO:  Convert minisblack BigTIFF file to JP2.  The TIFF has tag
+        XResolution.
+
+        EXPECTED RESULT:  no errors.
+        """
+        with ir.path('tests.data', 'albers27-8.tif') as path:
+            with Tiff2Jp2k(path, self.temp_jp2_filename) as j:
+                j.run()
+
+    def test_tiff_file_not_there(self):
+        """
+        Scenario:  The input TIFF file is not present.
+
+        Expected Result:  FileNotFoundError
+        """
+
+        with self.assertRaises(FileNotFoundError):
+            Tiff2Jp2k(
+                self.test_dir_path / 'not_there.tif', self.temp_jp2_filename
+            )

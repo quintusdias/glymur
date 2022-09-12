@@ -92,9 +92,6 @@ class Tiff2Jp2k(object):
             tags from the EXIF UUID.
         jp2_filename : path or str
             Path to JPEG 2000 file to be written.
-        include_icc_profile : bool
-            If true, extract the ICC profile tag value, save to the
-            ColourSpecificationBox.
         tiff_filename : path or str
             Path to TIFF file.
         tilesize : tuple
@@ -124,7 +121,7 @@ class Tiff2Jp2k(object):
         self._colormap = None
 
         # Assume that there is no ICC profile tag until we know otherwise.
-        self._icc_profile = None
+        self.icc_profile = None
 
         # Assume no XML_PACKET tag until we know otherwise.
         self.xmp_data = None
@@ -184,9 +181,7 @@ class Tiff2Jp2k(object):
                 # numeric value
                 lst.append(tag_num)
 
-        exclude_tags = lst
-
-        return exclude_tags
+        return lst
 
     def setup_logging(self, verbosity):
         self.logger = logging.getLogger('tiff2jp2')
@@ -196,6 +191,9 @@ class Tiff2Jp2k(object):
         self.logger.addHandler(ch)
 
     def __enter__(self):
+        """
+        The Tiff2Jp2k must be used with a context manager.
+        """
         self.tiff_fp = libtiff.open(self.tiff_filename)
         return self
 
@@ -260,7 +258,7 @@ class Tiff2Jp2k(object):
         Consume a TIFF ICC profile, if one is there.
         """
 
-        if self._icc_profile is None or self.exclude_icc_profile:
+        if self.icc_profile is None or self.exclude_icc_profile:
             return
 
         self.logger.info(
@@ -270,7 +268,7 @@ class Tiff2Jp2k(object):
         colr = jp2box.ColourSpecificationBox(
             method=RESTRICTED_ICC_PROFILE,
             precedence=0,
-            icc_profile=self._icc_profile
+            icc_profile=self.icc_profile
         )
 
         # construct the new set of JP2 boxes, insert the color specification
@@ -374,18 +372,10 @@ class Tiff2Jp2k(object):
                 self._colormap = self._colormap / 65535
                 self._colormap = (self._colormap * 255).astype(np.uint8)
 
-                if 320 in self.exclude_tags:
-                    # remove the ColorMap tag from the IFD dictionary
-                    self.tags.pop(320)
-
             if 700 in self.tags:
 
                 # XMLPacket
                 self.xmp_data = self.tags[700]['payload']
-
-                if 'XMLPacket' in self.exclude_tags:
-                    # remove the XMLPacket tag from the IFD dictionary
-                    self.tags.pop(700)
 
             else:
                 self.xmp_data = None
@@ -400,14 +390,10 @@ class Tiff2Jp2k(object):
 
             if 34675 in self.tags:
                 # ICC profile
-                self._icc_profile = bytes(self.tags[34675]['payload'])
-
-                if 34675 in self.exclude_tags:
-                    # remove the ICCProfile data from the IFD dictionary
-                    self.tags.pop(34675)
+                self.icc_profile = bytes(self.tags[34675]['payload'])
 
             else:
-                self._icc_profile = None
+                self.icc_profile = None
 
     def read_ifd(self, tfp):
         """
@@ -514,32 +500,30 @@ class Tiff2Jp2k(object):
         return tags
 
     def _write_ifd(self, b, tags):
+        """
+        Write the IFD out to the UUIDBox.  We will always write IFDs
+        for 32-bit TIFFs, i.e. 12 byte tags, meaning just 4 bytes within
+        the tag for the tag data
+        """
 
-        # keep this for writing to the UUID, which will always be for 32-bit
-        # TIFFs
         little_tiff_tag_length = 12
+        max_tag_payload_length = 4
 
+        # exclude any unwanted tags
         if self.exclude_tags is not None:
             for tag in self.exclude_tags:
                 if tag in tags:
                     tags.pop(tag)
 
         num_tags = len(tags)
-
         write_buffer = struct.pack('<H', num_tags)
         b.write(write_buffer)
 
         # Ok, so now we have the IFD main body, but following that we have
         # the tag payloads that cannot fit into 4 bytes.
 
-        # the IFD main body in the TIFF.  As it might be big endian, we cannot
-        # just process it as one big chunk.
-
         ifd_start_loc = b.tell()
         after_ifd_position = ifd_start_loc + num_tags * little_tiff_tag_length
-
-        # We write a little-TIFF IFD
-        max_tag_payload_length = 4
 
         for idx, tag in enumerate(tags):
 
@@ -563,25 +547,26 @@ class Tiff2Jp2k(object):
 
                 # write the tag entry to the UUID
                 new_offset = after_ifd_position
-                outbuffer = struct.pack(
+                buffer = struct.pack(
                     '<HHII', tag, dtype, nvalues, new_offset
                 )
-                b.write(outbuffer)
+                b.write(buffer)
 
                 # now write the payload at the outlying position and then come
                 # back to the same position in the file stream
                 cpos = b.tell()
                 b.seek(new_offset)
 
-                out_format = '<' + tag_dtype[dtype]['format'] * nvalues
-                outbuffer = struct.pack(out_format, *payload)
-                b.write(outbuffer)
+                format = '<' + tag_dtype[dtype]['format'] * nvalues
+                buffer = struct.pack(format, *payload)
+                b.write(buffer)
 
                 # keep track of the next position to write out-of-IFD data
                 after_ifd_position = b.tell()
                 b.seek(cpos)
 
             else:
+
                 # the payload DOES fit into the TIFF tag entry
 
                 payload_format = (
@@ -589,11 +574,9 @@ class Tiff2Jp2k(object):
                     * int(max_tag_payload_length / tag_dtype[dtype]['nbytes'])
                 )
 
-                # the payload DOES fit into the UUID tag entry
-
-                # so write it back into the tag entry in the UUID
-                outbuffer = struct.pack('<HHI', tag, dtype, nvalues)
-                b.write(outbuffer)
+                # write the tag metadata
+                buffer = struct.pack('<HHI', tag, dtype, nvalues)
+                b.write(buffer)
 
                 payload_format = tag_dtype[dtype]['format'] * nvalues
 
@@ -604,15 +587,15 @@ class Tiff2Jp2k(object):
 
                 if tag == 34665:
                     # special case for an EXIF IFD
-                    outbuffer = struct.pack('<I', after_ifd_position)
-                    b.write(outbuffer)
+                    buffer = struct.pack('<I', after_ifd_position)
+                    b.write(buffer)
                     b.seek(after_ifd_position)
                     after_ifd_position = self._write_ifd(b, payload)
 
                 else:
                     # write a normal tag
-                    outbuffer = struct.pack('<' + payload_format, *payload)
-                    b.write(outbuffer)
+                    buffer = struct.pack('<' + payload_format, *payload)
+                    b.write(buffer)
 
         return after_ifd_position
 
