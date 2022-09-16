@@ -2,6 +2,16 @@
 Changes in glymur 0.11
 ######################
 
+**********************
+Changes in 0.11.6post2
+**********************
+    * Do not install issue of tests, tests.data packages
+
+**********************
+Changes in 0.11.6post1
+**********************
+    * Fix release number problem
+
 *****************
 Changes in 0.11.6
 *****************
