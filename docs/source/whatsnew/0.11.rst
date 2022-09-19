@@ -2,6 +2,11 @@
 Changes in glymur 0.11
 ######################
 
+*****************
+Changes in 0.11.7
+*****************
+    * Error out early when writing 1x1 tile-by-tile
+
 **********************
 Changes in 0.11.6post2
 **********************
@@ -15,40 +20,40 @@ Changes in 0.11.6post1
 *****************
 Changes in 0.11.6
 *****************
-    * Fix reads where COD segment not at index[2].
-    * This fix not included in 0.11.5.
+    * Fix reads where COD segment not at index[2]
+    * This fix not included in 0.11.5
 
 *****************
 Changes in 0.11.5
 *****************
-    * Fix reads where COD segment not at index[2].
+    * Fix reads where COD segment not at index[2]
 
 *****************
 Changes in 0.11.4
 *****************
-    * Fix ResolutionBox with tiff2jp2.
+    * Fix ResolutionBox with tiff2jp2
 
 *****************
 Changes in 0.11.3
 *****************
-    * Fix placement of ResolutionBox.
+    * Fix placement of ResolutionBox
 
 *****************
 Changes in 0.11.2
 *****************
-    * Relax requirement on ResolutionBox number of child boxes.
+    * Relax requirement on ResolutionBox number of child boxes
 
 *****************
 Changes in 0.11.1
 *****************
-    * Improve efficiency of striped TIFF to tiled JP2 conversion.
+    * Improve efficiency of striped TIFF to tiled JP2 conversion
 
 
 *****************
 Changes in 0.11.0
 *****************
 
-    * Add options for supporting ResolutionBoxes.
-    * Fix ctypes interface to C library on windows.
-    * Add option to convert XMLPacket into UUID box.
-    * Add option for excluding tags from Exif UUID box.
+    * Add options for supporting ResolutionBoxes
+    * Fix ctypes interface to C library on windows
+    * Add option to convert XMLPacket into UUID box
+    * Add option for excluding tags from Exif UUID box
