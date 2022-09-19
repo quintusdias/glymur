@@ -217,3 +217,24 @@ class TestSuite(fixtures.TestCommon):
             for seg in codestream.segment
         )
         self.assertTrue(at_least_one_plt)
+
+    def test_1x1_tile(self):
+        """
+        SCENARIO:  Write an image that is tiled 1x1.
+
+        EXPECTED RESULT:  RuntimeError, as this triggers an unresolved
+        bug, issue586.
+        """
+        j2k_data = fixtures.skimage.data.astronaut()
+
+        shape = (
+            j2k_data.shape[0], j2k_data.shape[1], j2k_data.shape[2]
+        )
+        tilesize = (j2k_data.shape[0], j2k_data.shape[1])
+
+        j = Jp2k(
+            self.temp_j2k_filename, shape=shape, tilesize=tilesize,
+        )
+        with self.assertRaises(RuntimeError):
+            for tw in j.get_tilewriters():
+                tw[:] = j2k_data

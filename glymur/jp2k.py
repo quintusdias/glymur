@@ -586,6 +586,14 @@ class Jp2k(Jp2kBox):
         Return an object that facilitates writing tile by tile.
         """
 
+        if self.shape[:2] == self.tilesize:
+            msg = (
+                'Do not write an image tile-by-tile '
+                'if there is only one tile in the first place.  '
+                'See issue #586'
+            )
+            raise RuntimeError(msg)
+
         return _TileWriter(self)
 
     def parse(self):
