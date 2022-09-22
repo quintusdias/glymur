@@ -43,7 +43,7 @@ class TestSuite(unittest.TestCase):
 
         EXPECTED RESULT:  the data matches what we get from the regular way.
         """
-        j2k = Jp2k(self.j2kfile.name)
+        j2k = Jp2k(self.j2kfile)
         expected = j2k[:, :, 0]
 
         j2k.decoded_components = 0
@@ -62,7 +62,7 @@ class TestSuite(unittest.TestCase):
 
         EXPECTED RESULT:  Match the 2nd component read in the regular way.
         """
-        j2k = Jp2k(self.j2kfile.name)
+        j2k = Jp2k(self.j2kfile)
         expected = j2k[:, :, 1]
 
         j2k.decoded_components = 1
@@ -77,7 +77,7 @@ class TestSuite(unittest.TestCase):
         EXPECTED RESULT:  Match the results the regular way.
         """
 
-        j2k = Jp2k(self.j2kfile.name)
+        j2k = Jp2k(self.j2kfile)
 
         expected = j2k[:]
 
@@ -92,7 +92,7 @@ class TestSuite(unittest.TestCase):
 
         EXPECTED RESULT:  Match the results the regular way.
         """
-        j2k = Jp2k(self.j2kfile.name)
+        j2k = Jp2k(self.j2kfile)
 
         expected = j2k[20:40, 10:30, 0]
 
@@ -108,7 +108,7 @@ class TestSuite(unittest.TestCase):
         EXPECTED RESULT:  Match the results the regular way.
         """
 
-        j2k = Jp2k(self.j2kfile.name)
+        j2k = Jp2k(self.j2kfile)
         j2k.layer = 1
 
         expected = j2k[:, :, 0]
@@ -125,7 +125,7 @@ class TestSuite(unittest.TestCase):
         EXPECTED RESULT:  Match the results the regular way.
         """
 
-        j2k = Jp2k(self.j2kfile.name)
+        j2k = Jp2k(self.j2kfile)
 
         expected = j2k[::2, ::2, 0]
 
@@ -141,7 +141,7 @@ class TestSuite(unittest.TestCase):
         EXPECTED RESULT:  exception
         """
 
-        j2k = Jp2k(self.j2kfile.name)
+        j2k = Jp2k(self.j2kfile)
 
         with self.assertRaises(glymur.lib.openjp2.OpenJPEGLibraryError):
             j2k.decoded_components = -1
@@ -154,7 +154,7 @@ class TestSuite(unittest.TestCase):
         EXPECTED RESULT:  exception
         """
 
-        j2k = Jp2k(self.j2kfile.name)
+        j2k = Jp2k(self.j2kfile)
 
         with self.assertRaises(glymur.lib.openjp2.OpenJPEGLibraryError):
             j2k.decoded_components = [0, 0]
@@ -166,7 +166,7 @@ class TestSuite(unittest.TestCase):
 
         EXPECTED RESULT:  exception
         """
-        j2k = Jp2k(self.j2kfile.name)
+        j2k = Jp2k(self.j2kfile)
 
         with self.assertRaises(ValueError):
             j2k.decoded_components = 10

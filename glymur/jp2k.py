@@ -858,7 +858,10 @@ class Jp2k(Jp2kBox):
             raise RuntimeError(msg)
 
         if hasattr(self, '_cparams'):
-            msg = "You cannot write image data to a JPEG 2000 file that already exists."
+            msg = (
+                "You cannot write image data to a JPEG 2000 file "
+                "that already exists."
+            )
             raise RuntimeError(msg)
 
         self._determine_colorspace()
