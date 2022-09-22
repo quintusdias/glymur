@@ -1130,6 +1130,16 @@ class TestJp2k_write(fixtures.MetadataBase):
         os.unlink(cls.single_channel_j2k)
         os.unlink(cls.single_channel_jp2)
 
+    def test_write_to_fully_formed_jp2k(self):
+        """
+        Scenario:  Attempt to write to a fully formed file.
+
+        Expected Result:  RuntimeError
+        """
+        j = Jp2k(self.temp_jp2_filename, data=self.jp2_data)
+        with self.assertRaises(RuntimeError):
+            j[:] = np.ones((100, 100), dtype=np.uint8)
+
     @unittest.skipIf(os.cpu_count() < 2, "makes no sense if 2 cores not there")
     def test_threads(self):
         """
