@@ -851,8 +851,10 @@ class Jp2k(Jp2kBox):
         in memory.
         """
         if version.openjpeg_version < '2.3.0':
-            msg = ("You must have at least version 2.3.0 of OpenJPEG "
-                   "in order to write images.")
+            msg = (
+                "You must have at least version 2.3.0 of OpenJPEG in order to "
+                "write images."
+            )
             raise RuntimeError(msg)
 
         self._determine_colorspace()

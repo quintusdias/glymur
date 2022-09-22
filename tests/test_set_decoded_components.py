@@ -30,7 +30,7 @@ class TestSuite(unittest.TestCase):
         self.j2kfile = pathlib.Path(self.testdir) / 'tmp.j2k'
 
         data = Jp2k(glymur.data.goodstuff())[:]
-        Jp2k(self.j2kfile.name, data=data, mct=False, cratios=[200, 100, 50])
+        Jp2k(self.j2kfile, data=data, mct=False, cratios=[200, 100, 50])
 
     @classmethod
     def tearDownClass(self):

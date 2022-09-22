@@ -76,9 +76,8 @@ class WriteCinema(CinemaBase):
 
         EXPECTED RESULT:  ValueError
         """
-        with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with self.assertRaises(ValueError):
-                Jp2k(tfile.name, data=self.jp2_data, cinema2k=36)
+        with self.assertRaises(ValueError):
+            Jp2k(self.temp_j2k_filename, data=self.jp2_data, cinema2k=36)
 
     def test_NR_ENC_X_6_2K_24_FULL_CBR_CIRCLE_000_tif_17_encode(self):
         """
