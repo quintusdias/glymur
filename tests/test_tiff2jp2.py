@@ -1670,18 +1670,13 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
     def test_xmp(self):
         """
         Scenario:  Convert TIFF with Exif IFD to JP2.  The main IFD has an
-        XML Packet tag (700).  Supply the 'xmp_uuid' keyword.
+        XML Packet tag (700).  Supply the 'xmp_uuid' keyword as True.
 
         Expected Result:  An Exif UUID is appended to the end of the
         JP2 file, and then an XMP UUID is appended.
         """
-        for create_xmp in [True, False]:
-            with self.subTest(create_xmp=create_xmp):
-                self._test_xmp(create_xmp=create_xmp)
-
-    def _test_xmp(self, create_xmp):
         with Tiff2Jp2k(
-            self.exif_tiff, self.temp_jp2_filename, create_xmp_uuid=create_xmp
+            self.exif_tiff, self.temp_jp2_filename, create_xmp_uuid=True
         ) as p:
             p.run()
 
@@ -1689,13 +1684,10 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
 
         # first we find the Exif UUID, then maybe the XMP UUID.  The Exif UUID
         # data should not have the XMLPacket tag.
-        box = j.box[-2] if create_xmp else j.box[-1]
+        box = j.box[-2]
         actual = box.uuid
         expected = UUID(bytes=b'JpgTiffExif->JP2')
         self.assertEqual(actual, expected)
-
-        if not create_xmp:
-            return
 
         # ok so the xmp UUID is the last box
         xmp_box = j.box[-1]
@@ -1705,6 +1697,28 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         self.assertEqual(
             xmp_box.data.getroot().values(), ['Public XMP Toolkit Core 3.5']
         )
+
+    def test_xmp_false(self):
+        """
+        Scenario:  Convert TIFF with Exif IFD to JP2.  The main IFD has an
+        XML Packet tag (700).  Supply the 'xmp_uuid' keyword as False.
+
+        Expected Result:  An Exif UUID is appended to the end of the
+        JP2 file, but no XMP UUID is appended.
+        """
+        with Tiff2Jp2k(
+            self.exif_tiff, self.temp_jp2_filename, create_xmp_uuid=False
+        ) as p:
+            p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        # we find the Exif UUID at the end. The Exif UUID
+        # data should not have the XMLPacket tag.
+        box = j.box[-1]
+        actual = box.uuid
+        expected = UUID(bytes=b'JpgTiffExif->JP2')
+        self.assertEqual(actual, expected)
 
     def test_xmp__exclude_XMLPacket(self):
         """
@@ -1915,9 +1929,6 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
                 '', str(path), str(self.temp_jp2_filename),
             ]
             command_line.tiff2jp2()
-
-            with Tiff2Jp2k(path, self.temp_jp2_filename) as p:
-                p.run()
 
         j = Jp2k(self.temp_jp2_filename)
 

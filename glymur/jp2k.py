@@ -851,12 +851,17 @@ class Jp2k(Jp2kBox):
         in memory.
         """
         if version.openjpeg_version < '2.3.0':
-            msg = ("You must have at least version 2.3.0 of OpenJPEG "
-                   "in order to write images.")
+            msg = (
+                "You must have at least version 2.3.0 of OpenJPEG in order to "
+                "write images."
+            )
             raise RuntimeError(msg)
 
         if hasattr(self, '_cparams'):
-            msg = "You cannot write image data to a JPEG 2000 file that already exists."
+            msg = (
+                "You cannot write image data to a JPEG 2000 file "
+                "that already exists."
+            )
             raise RuntimeError(msg)
 
         self._determine_colorspace()
