@@ -2,6 +2,7 @@
 import importlib.resources as ir
 import logging
 import pathlib
+import platform
 import shutil
 import struct
 import sys
@@ -645,6 +646,9 @@ class TestSuiteScikitImage(fixtures.TestCommon):
         )
         self.assertFalse(at_least_one_uuid)
 
+    @unittest.skipIf(
+        platform.machine() == 's390x', 'See issue #546'
+    )
     def test_psnr(self):
         """
         SCENARIO:  Convert TIFF file to JP2 with the irreversible transform.
