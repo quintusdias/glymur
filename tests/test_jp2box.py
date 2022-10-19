@@ -1005,6 +1005,22 @@ class TestWrap(fixtures.TestCommon):
 class TestJp2Boxes(fixtures.TestCommon):
     """Tests for canonical JP2 boxes."""
 
+    def test_issue588(self):
+        """
+        Scenario:  Construct a raw codestream box without parsing it.
+        Retrieve the codestream attribute.
+
+        Expected results:  no errors
+        """
+        j = Jp2k(self.jp2file)
+
+        box = ContiguousCodestreamBox(
+            main_header_offset=j.box[-1].main_header_offset,
+            length=j.box[-1].length
+        )
+        box._filename = str(self.jp2file)
+        box.codestream
+
     def test_no_ihdr_box(self):
         """
         SCENARIO:  The JP2/IHDR box cannot be parsed.
