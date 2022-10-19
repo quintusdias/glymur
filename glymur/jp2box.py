@@ -1044,7 +1044,7 @@ class ContiguousCodestreamBox(Jp2kBox):
                 with open(self._filename, 'rb') as fptr:
                     fptr.seek(self.main_header_offset)
                     codestream = Codestream(
-                        fptr, self._length, header_only=header_only
+                        fptr, self.length, header_only=header_only
                     )
                     self._codestream = codestream
         return self._codestream
@@ -1100,7 +1100,6 @@ class ContiguousCodestreamBox(Jp2kBox):
             offset=offset
         )
         box._filename = fptr.name
-        box._length = length
         return box
 
 

@@ -2247,7 +2247,7 @@ class _TileWriter(object):
             opj2.stream_destroy(self.stream)
             opj2.image_destroy(self.image)
             opj2.destroy_codec(self.codec)
-            raise(e)
+            raise e
 
         if self.tile_index == self.number_of_tiles - 1:
             # properly dispose of these resources
