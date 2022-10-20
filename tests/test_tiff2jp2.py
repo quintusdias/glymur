@@ -1524,6 +1524,42 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         cls.goodstuff_data = data
         cls.goodstuff_path = path
 
+    def test_numeric_exclude_keyword_argument(self):
+        """
+        Scenario:  specify exclude_tags keyword argument as list of integer
+        keyword argument is set to True.
+
+        Expected result:  The tags are not included in the exif IFD.
+        """
+        with Tiff2Jp2k(
+            self.goodstuff_path, self.temp_jp2_filename,
+            exclude_tags=[273, 279]
+        ) as p:
+            p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        self.assertNotIn('StripOffsets', j.box[-1].data)
+        self.assertNotIn('StripByteCounts', j.box[-1].data)
+
+    def test_string_exclude_keyword_argument(self):
+        """
+        Scenario:  specify exclude_tags keyword argument as list of integer
+        keyword argument is set to True.
+
+        Expected result:  The tags are not included in the exif IFD.
+        """
+        with Tiff2Jp2k(
+            self.goodstuff_path, self.temp_jp2_filename,
+            exclude_tags=['StripOffsets', 'StripByteCounts']
+        ) as p:
+            p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        self.assertNotIn('StripOffsets', j.box[-1].data)
+        self.assertNotIn('StripByteCounts', j.box[-1].data)
+
     def test_tiff_has_no_icc_profile(self):
         """
         Scenario:  input TIFF has no ICC profile, yet the include_icc_profile
@@ -1695,7 +1731,8 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         XML Packet tag (700).  Supply the 'xmp_uuid' keyword as True.
 
         Expected Result:  An Exif UUID is appended to the end of the
-        JP2 file, and then an XMP UUID is appended.
+        JP2 file, and then an XMP UUID is appended.  The XMLPacket tag is still
+        present in the UUID IFD.
         """
         with Tiff2Jp2k(
             self.exif_tiff, self.temp_jp2_filename, create_xmp_uuid=True
@@ -1705,11 +1742,13 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         j = Jp2k(self.temp_jp2_filename)
 
         # first we find the Exif UUID, then maybe the XMP UUID.  The Exif UUID
-        # data should not have the XMLPacket tag.
+        # data should still have have the XMLPacket tag as only the exclude
+        # tags keyword argument can do that.
         box = j.box[-2]
         actual = box.uuid
         expected = UUID(bytes=b'JpgTiffExif->JP2')
         self.assertEqual(actual, expected)
+        self.assertIn('XMLPacket', box.data)
 
         # ok so the xmp UUID is the last box
         xmp_box = j.box[-1]
@@ -1726,7 +1765,8 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         XML Packet tag (700).  Supply the 'xmp_uuid' keyword as False.
 
         Expected Result:  An Exif UUID is appended to the end of the
-        JP2 file, but no XMP UUID is appended.
+        JP2 file, but no XMP UUID is appended.  The XMLPacket tag is still
+        present in the UUID data.
         """
         with Tiff2Jp2k(
             self.exif_tiff, self.temp_jp2_filename, create_xmp_uuid=False
@@ -1735,12 +1775,12 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
 
         j = Jp2k(self.temp_jp2_filename)
 
-        # we find the Exif UUID at the end. The Exif UUID
-        # data should not have the XMLPacket tag.
+        # we find the Exif UUID at the end.
         box = j.box[-1]
         actual = box.uuid
         expected = UUID(bytes=b'JpgTiffExif->JP2')
         self.assertEqual(actual, expected)
+        self.assertIn('XMLPacket', box.data)
 
     def test_xmp__exclude_XMLPacket(self):
         """
@@ -1858,8 +1898,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
 
         j = Jp2k(self.temp_jp2_filename)
 
-        # first we find the Exif UUID, then the XMP UUID.  The Exif UUID
-        # data should not have the XMLPacket tag.
+        # first we find the Exif UUID, then the XMP UUID.
         actual = j.box[-2].uuid
         expected = UUID(bytes=b'JpgTiffExif->JP2')
         self.assertEqual(actual, expected)
