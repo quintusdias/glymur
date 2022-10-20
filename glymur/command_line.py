@@ -171,11 +171,11 @@ def tiff2jp2():
     )
 
     help = (
-        'If specified, do not include any ICC profile (tag 34675) from the '
-        'TIFF IFD in the ColourSpecificationBox.'
+        'If specified, subsume any ICC profile (tag 34675) from the '
+        'TIFF IFD into the colour specification box.'
     )
     group2.add_argument(
-        '--exclude-icc-profile', help=help, action='store_true'
+        '--include-icc-profile', help=help, action='store_true'
     )
 
     help = (
@@ -218,7 +218,7 @@ def tiff2jp2():
     kwargs = {
         'cbsize': args.codeblocksize,
         'cratios': args.cratio,
-        'exclude_icc_profile': args.exclude_icc_profile,
+        'include_icc_profile': args.include_icc_profile,
         'capture_resolution': args.capture_resolution,
         'create_exif_uuid': args.create_exif_uuid,
         'create_xmp_uuid': args.create_xmp_uuid,

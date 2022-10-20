@@ -73,7 +73,7 @@ class Tiff2Jp2k(object):
         self, tiff_filename, jp2_filename,
         create_exif_uuid=True, create_xmp_uuid=True,
         exclude_tags=None, tilesize=None,
-        verbosity=logging.CRITICAL, exclude_icc_profile=False,
+        verbosity=logging.CRITICAL, include_icc_profile=False,
         **kwargs
     ):
         """
@@ -84,9 +84,9 @@ class Tiff2Jp2k(object):
         create_xmp_uuid : bool
             If true and if there is an XMLPacket (700) tag in the TIFF main
             IFD, it will be removed from the IFD and placed in a UUID box.
-        exclude_icc_profile : bool
-            If true, do not include any ICC profile tag (34765) in the
-            ColourSpecificationBox.
+        include_icc_profile : bool
+            If true, consume any ICC profile tag (34765) into the colour
+            specification box.
         exclude_tags : list or None
             If not None and if create_exif_uuid is True, exclude any listed
             tags from the EXIF UUID.
@@ -108,7 +108,7 @@ class Tiff2Jp2k(object):
         self.tilesize = tilesize
         self.create_exif_uuid = create_exif_uuid
         self.create_xmp_uuid = create_xmp_uuid
-        self.exclude_icc_profile = exclude_icc_profile
+        self.include_icc_profile = include_icc_profile
 
         if exclude_tags is None:
             exclude_tags = []
@@ -257,8 +257,10 @@ class Tiff2Jp2k(object):
         """
         Consume a TIFF ICC profile, if one is there.
         """
+        if self.icc_profile is None and self.include_icc_profile:
+            self.logger.warning("No ICC profile was found.")
 
-        if self.icc_profile is None or self.exclude_icc_profile:
+        if self.icc_profile is None or not self.include_icc_profile:
             return
 
         self.logger.info(

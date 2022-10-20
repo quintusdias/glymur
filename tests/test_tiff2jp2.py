@@ -1524,6 +1524,24 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         cls.goodstuff_data = data
         cls.goodstuff_path = path
 
+    def test_tiff_has_no_icc_profile(self):
+        """
+        Scenario:  input TIFF has no ICC profile, yet the include_icc_profile
+        keyword argument is set to True.
+
+        Expected result:  a warning is issued
+        """
+        with Tiff2Jp2k(
+            self.goodstuff_path, self.temp_jp2_filename, tilesize=(64, 64),
+            include_icc_profile=True, verbosity=logging.INFO
+        ) as j:
+            with self.assertLogs(
+                logger='tiff2jp2', level=logging.WARNING
+            ) as cm:
+                j.run()
+
+                self.assertEqual(len(cm.output), 1)
+
     def test_stripped_logging(self):
         """
         Scenario:  input TIFF is organized by strips and logging is turned on.
@@ -1884,8 +1902,8 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
 
     def test_icc_profile(self):
         """
-        Scenario:  The input TIFF has the ICC profile tag.  No keyword
-        arguments are provided.
+        Scenario:  The input TIFF has the ICC profile tag.  Provide the
+        include_icc_profile keyword as True.
 
         Expected Result.  The ICC profile is verified in the
         ColourSpecificationBox.  There is a logging message at the info
@@ -1898,7 +1916,9 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
                 ifd = glymur._tiff.tiff_header(buffer)
             icc_profile = bytes(ifd['ICCProfile'])
 
-            with Tiff2Jp2k(path, self.temp_jp2_filename) as p:
+            with Tiff2Jp2k(
+                path, self.temp_jp2_filename, include_icc_profile=True
+            ) as p:
 
                 with self.assertLogs(
                     logger='tiff2jp2', level=logging.INFO
@@ -1916,8 +1936,8 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
 
     def test_icc_profile_commandline(self):
         """
-        Scenario:  The input TIFF has the ICC profile tag.  No optional
-        arguments are provided.
+        Scenario:  The input TIFF has the ICC profile tag.  Provide the
+        --include-icc-profile argument.
 
         Expected Result.  The ICC profile is verified in the
         ColourSpecificationBox.
@@ -1931,6 +1951,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
 
             sys.argv = [
                 '', str(path), str(self.temp_jp2_filename),
+                '--include-icc-profile'
             ]
             command_line.tiff2jp2()
 
@@ -1941,8 +1962,8 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
 
     def test_exclude_icc_profile_commandline(self):
         """
-        Scenario:  The input TIFF has the ICC profile tag.  Do not import
-        it into the cdef box.
+        Scenario:  The input TIFF has the ICC profile tag.  Do not provide the
+        --include-icc-profile flag.
 
         Expected Result.  The ColourSpecificationBox is normal (no ICC
         profile).  The ICC profile tag will be present in the
@@ -1952,7 +1973,6 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
 
             sys.argv = [
                 '', str(path), str(self.temp_jp2_filename),
-                '--exclude-icc-profile'
             ]
             command_line.tiff2jp2()
 
@@ -1968,11 +1988,11 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
 
     def test_exclude_icc_profile_commandline__exclude_from_uuid(self):
         """
-        Scenario:  The input TIFF has the ICC profile tag.  Specify
-        commandline arguments to exclude it from the cdef box and exclude it
-        from the exif UUID.
+        Scenario:  The input TIFF has the ICC profile tag.  Do not specify
+        the --include-icc-profile flag.  Specify the 34675 (ICCProfile) tag
+        in the --exclude-tags flag.
 
-        Expected Result.  The ICC profile is verified in the
+        Expected Result.  The ICC profile is verified to not be present in the
         ColourSpecificationBox.  The ICC profile tag will be not present in the
         JpgTiffExif->JP2 UUID box.
         """
@@ -1980,7 +2000,6 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
 
             sys.argv = [
                 '', str(path), str(self.temp_jp2_filename),
-                '--exclude-icc-profile',
                 '--exclude-tags', 'ICCProfile',
             ]
             command_line.tiff2jp2()
