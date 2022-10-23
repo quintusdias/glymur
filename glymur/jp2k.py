@@ -1417,7 +1417,7 @@ class Jp2k(Jp2kBox):
         RuntimeError
             if the proper version of the OpenJPEG library is not available
         """
-        if re.match("0|1.[01234]", version.openjpeg_version):
+        if re.match("0|1|2.[012]", version.openjpeg_version):
             msg = (
                 f"You must have a version of OpenJPEG at least as high as "
                 f"2.3.0 before you can read JPEG2000 images with glymur.  "

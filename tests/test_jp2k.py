@@ -800,30 +800,6 @@ class TestJp2k(fixtures.TestCommon):
         data = jpx[:]
         self.assertEqual(data.shape, (1024, 1024, 3))
 
-    def test_read_without_openjpeg(self):
-        """
-        Don't have openjpeg or openjp2 library?  Must error out.
-        """
-        with patch('glymur.version.openjpeg_version_tuple', new=(0, 0, 0)):
-            with patch('glymur.version.openjpeg_version', new='0.0.0'):
-                with self.assertRaises(RuntimeError):
-                    with warnings.catch_warnings():
-                        # Suppress a deprecation warning for raw read method.
-                        warnings.simplefilter("ignore")
-                        glymur.Jp2k(self.jp2file).read()
-                with self.assertRaises(RuntimeError):
-                    glymur.Jp2k(self.jp2file)[:]
-
-    def test_read_bands_without_openjp2(self):
-        """
-        Don't have openjp2 library?  Must error out.
-        """
-        exp_error = RuntimeError
-        with patch('glymur.version.openjpeg_version_tuple', new=(1, 5, 0)):
-            with patch('glymur.version.openjpeg_version', new='1.5.0'):
-                with self.assertRaises(exp_error):
-                    glymur.Jp2k(self.jp2file).read_bands()
-
     def test_zero_length_reserved_segment(self):
         """
         SCENARIO:  There is a zero-length reserved marker segment just before
@@ -1050,6 +1026,48 @@ class TestJp2k(fixtures.TestCommon):
         with patch('glymur.jp2k.version.openjpeg_version', new='2.2.0'):
             with self.assertRaises(RuntimeError):
                 glymur.set_option('lib.num_threads', 4)
+
+
+class TestVersion(fixtures.TestCommon):
+    """
+    Tests for the version of openjpeg.  These can be run regardless of the
+    version of openjpeg installed, or even if openjpeg is not installed,
+    because we fully mock the openjpeg version.
+    """
+    def test_read_minimum_version(self):
+        """
+        Scenario:  we have openjpeg, but not the minimum supported version.
+
+        Expected Result:  RuntimeError
+        """
+        with patch('glymur.version.openjpeg_version_tuple', new=(2, 2, 9)):
+            with patch('glymur.version.openjpeg_version', new='2.2.9'):
+                with self.assertRaises(RuntimeError):
+                    glymur.Jp2k(self.jp2file)[:]
+
+    def test_read_without_openjpeg(self):
+        """
+        Don't have openjpeg or openjp2 library?  Must error out.
+        """
+        with patch('glymur.version.openjpeg_version_tuple', new=(0, 0, 0)):
+            with patch('glymur.version.openjpeg_version', new='0.0.0'):
+                with self.assertRaises(RuntimeError):
+                    with warnings.catch_warnings():
+                        # Suppress a deprecation warning for raw read method.
+                        warnings.simplefilter("ignore")
+                        glymur.Jp2k(self.jp2file).read()
+                with self.assertRaises(RuntimeError):
+                    glymur.Jp2k(self.jp2file)[:]
+
+    def test_read_bands_without_openjp2(self):
+        """
+        Don't have openjp2 library?  Must error out.
+        """
+        exp_error = RuntimeError
+        with patch('glymur.version.openjpeg_version_tuple', new=(1, 5, 0)):
+            with patch('glymur.version.openjpeg_version', new='1.5.0'):
+                with self.assertRaises(exp_error):
+                    glymur.Jp2k(self.jp2file).read_bands()
 
 
 class TestComponent(unittest.TestCase):
