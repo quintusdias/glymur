@@ -1,0 +1,12 @@
+name: glymur
+channels:
+    - defaults
+dependencies:
+    - python=3.10.*
+    - gdal
+    - lxml
+    - numpy
+    - pip
+    - pytest-xdist
+    - scikit-image
+    - libtiff

@@ -35,6 +35,13 @@ environment:
     - CONDA_ROOT: "C:\\Miniconda3_64"
       PYTHON_VERSION: "3.10"
       PYTHON_ARCH: "64"
+      CONDA_PY: "310-no-opj"
+      CONDA_NPY: "21"
+      USE_PATH_FOR_GDAL_PYTHON: "YES"
+
+    - CONDA_ROOT: "C:\\Miniconda3_64"
+      PYTHON_VERSION: "3.10"
+      PYTHON_ARCH: "64"
       CONDA_PY: "310"
       CONDA_NPY: "21"
       USE_PATH_FOR_GDAL_PYTHON: "YES"
