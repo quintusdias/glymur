@@ -1,0 +1,13 @@
+######################
+Changes in glymur 0.12
+######################
+
+*****************
+Changes in 0.12.0
+*****************
+    * Add support for ICC profiles, colormaps when converting from TIFF.
+    * Add shortcut for retrieving lowest resolution thumbnail.
+    * Remove setuptools from runtime requirement.
+    * Improve pretty-printing of Exif UUIDs, TLM segments.
+    * Change default value of --create-xmp-uuid to True.
+    * Minor bugfixes.

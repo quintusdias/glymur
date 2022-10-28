@@ -22,6 +22,20 @@ to retrieve a full resolution and first lower-resolution image. ::
     >>> thumbnail.shape
     (728, 1296, 3)
 
+Large JPEG 2000 images may have a large number of decomposition levels.  With
+version 0.12.0 of glymur, there exists a shortcut for retrieving
+the lowest resolution thumbnail without having to inspect the JPEG 2000
+codestream in order to specify the highest decomposition level. ::
+
+    >>> import glymur
+    >>> j2kfile = glymur.data.goodstuff() # just a path to a raw JPEG 2000 codestream
+    >>> j2k = glymur.Jp2k(jp2file)
+    >>> j2k.shape
+    (800, 480, 3)
+    >>> thumbnail = j2k[::-1, ::-1]
+    >>> thumbnail.shape # this is ridiculously small
+    (25, 15, 3)
+
 ****************************
 ... read really large images
 ****************************
