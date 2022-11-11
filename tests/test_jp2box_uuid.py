@@ -2,7 +2,6 @@
 """Test suite for printing.
 """
 # Standard library imports
-import importlib.resources as ir
 import io
 import shutil
 import struct
@@ -18,7 +17,7 @@ import numpy as np
 import glymur
 from glymur import Jp2k
 from glymur.jp2box import UUIDBox
-from . import fixtures, data
+from . import fixtures
 
 TIFF_ASCII = 2
 TIFF_SHORT = 3
@@ -206,7 +205,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  Should not error out.  Verify the UUID type.  Verify
         the existance of one of the "Exif.Photo" tags.
         """
-        box_data = ir.read_binary('tests.data', 'issue549.dat')
+        box_data = fixtures._read_bytes('issue549.dat')
         bf = io.BytesIO(box_data)
         box = UUIDBox.parse(bf, 0, len(box_data))
 
@@ -226,7 +225,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        box_data = ir.read_binary('tests.data', 'issue549.dat')
+        box_data = fixtures._read_bytes('issue549.dat')
         bf = io.BytesIO(box_data[:16] + box_data[20:])
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -243,7 +242,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  Should not error out.  There is a warning about GDAL
         not being able to print the UUID data as expected.
         """
-        box_data = ir.read_binary('tests.data', '0220000800_uuid.dat')
+        box_data = fixtures._read_bytes('0220000800_uuid.dat')
         bf = io.BytesIO(box_data)
         bf.seek(8)
         box = UUIDBox.parse(bf, 0, 703)
@@ -367,12 +366,12 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  No errors.  There is a warning issued when we try
         to print the box.
         """
-        with ir.path(data, 'issue398.dat') as path:
-            with path.open('rb') as f:
-                f.seek(8)
-                with warnings.catch_warnings(record=True) as w:
-                    box = glymur.jp2box.UUIDBox.parse(f, 0, 380)
-                    str(box)
+        path = fixtures._path_to('issue398.dat')
+        with path.open('rb') as f:
+            f.seek(8)
+            with warnings.catch_warnings(record=True) as w:
+                box = glymur.jp2box.UUIDBox.parse(f, 0, 380)
+                str(box)
 
         if fixtures._HAVE_GDAL:
             self.assertEqual(len(w), 1)
@@ -398,7 +397,7 @@ class TestSuiteHiRISE(fixtures.TestCommon):
 
         uuidinfo = glymur.jp2box.UUIDInfoBox([ulst, debox])
 
-        uuid_data = ir.read_binary(data, 'degenerate_geotiff.tif')
+        uuid_data = fixtures._read_bytes('degenerate_geotiff.tif')
         the_uuid = uuid.UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03')
         geotiff_uuid = glymur.jp2box.UUIDBox(the_uuid, uuid_data)
 

@@ -2,8 +2,10 @@
 Test fixtures common to more than one test point.
 """
 # Standard library imports
+import importlib.resources as ir
 import pathlib
 import shutil
+import sys
 import tempfile
 import unittest
 
@@ -176,3 +178,25 @@ TEXT_GBR_34 = load_test_data('text_gbr_34')
 TEXT_GBR_35 = load_test_data('text_gbr_35')
 TEXT_GBR_RREQ = load_test_data('text_GBR_rreq')
 P1_07 = load_test_data('p1_07')
+
+
+def _path_to(filename):
+    """
+    Hide importlib.resources differences between 3.11.0 and below.
+    """
+    if sys.version_info[1] >= 11:
+        return ir.files('tests.data').joinpath(filename)
+    else:
+        with ir.path('tests.data', filename) as path:
+            return path
+
+
+def _read_bytes(filename):
+    """
+    Hide importlib.resources differences between 3.11.0 and below.
+    """
+    if sys.version_info[1] >= 11:
+        return ir.files('tests.data').joinpath(filename).read_bytes()
+    else:
+        with ir.path('tests.data', filename) as path:
+            return path.read_bytes()

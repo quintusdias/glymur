@@ -3,7 +3,6 @@
 Test suite specifically targeting the JP2 XML box layout.
 """
 # Standard library imports
-import importlib.resources as ir
 from io import BytesIO
 import pathlib
 import struct
@@ -21,7 +20,7 @@ from glymur.jp2box import (
 )
 from glymur.jp2box import JPEG2000SignatureBox
 
-from . import fixtures, data
+from . import fixtures
 
 
 class TestXML(fixtures.TestCommon):
@@ -159,7 +158,7 @@ class TestXML(fixtures.TestCommon):
 
         EXPECTED RESULT:  The xml box is validated.
         """
-        xmldata = ir.read_binary(data, 'encoding_declaration.xml')
+        xmldata = fixtures._read_bytes('encoding_declaration.xml')
         with open(self.temp_jp2_filename, mode="wb") as ofile:
             with open(self.jp2file, mode='rb') as ifile:
                 ofile.write(ifile.read())
