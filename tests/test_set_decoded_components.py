@@ -1,5 +1,4 @@
 # standard library imports
-import importlib.resources as ir
 import pathlib
 import shutil
 import tempfile
@@ -11,6 +10,7 @@ import numpy as np
 # local imports
 import glymur
 from glymur import Jp2k
+from . import fixtures
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
@@ -180,19 +180,19 @@ class TestSuite(unittest.TestCase):
         setting decoded_components would require us to use the read_bands
         method.
         """
-        with ir.path('tests.data', 'p0_06.j2k') as path:
-            j2k = Jp2k(path)
+        path = fixtures._path_to('p0_06.j2k')
+        j2k = Jp2k(path)
 
-            expected = j2k.read_bands()[0]
+        expected = j2k.read_bands()[0]
 
-            j2k.decoded_components = 0
-            actual = j2k[:]
+        j2k.decoded_components = 0
+        actual = j2k[:]
 
-            np.testing.assert_array_equal(actual, expected)
+        np.testing.assert_array_equal(actual, expected)
 
         # verify that without using decoded components, we cannot read the
         # image using the slice protocol
-        with ir.path('tests.data', 'p0_06.j2k') as path:
-            j2k = Jp2k(path)
-            with self.assertRaises(RuntimeError):
-                j2k[:, :, 0]
+        path = fixtures._path_to('p0_06.j2k')
+        j2k = Jp2k(path)
+        with self.assertRaises(RuntimeError):
+            j2k[:, :, 0]
