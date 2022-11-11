@@ -4,7 +4,6 @@ Test suite specifically targeting JPX box layout.
 """
 # Standard library imports ...
 import ctypes
-import importlib.resources as ir
 from io import BytesIO
 import shutil
 import struct
@@ -21,7 +20,7 @@ from glymur.jp2box import (
     DataEntryURLBox, FileTypeBox, JPEG2000SignatureBox, DataReferenceBox,
     FragmentListBox, FragmentTableBox, ColourSpecificationBox, InvalidJp2kError
 )
-from . import fixtures, data
+from . import fixtures
 
 
 class TestJPXWrap(fixtures.TestCommon):
@@ -440,10 +439,10 @@ class TestJPX(fixtures.TestCommon):
 
         EXPECTED RESULT:  The box is parsed without error.
         """
-        with ir.path(data, 'text_GBR.jp2') as path:
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore')
-                j = Jp2k(path)
+        path = fixtures._path_to('text_GBR.jp2')
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            j = Jp2k(path)
 
         self.assertEqual(len(j.box[2].vendor_feature), 4)
 
@@ -454,10 +453,10 @@ class TestJPX(fixtures.TestCommon):
 
         EXPECTED RESULT:  NotImplementedError
         """
-        with ir.path(data, 'text_GBR.jp2') as path:
-            with warnings.catch_warnings():
-                warnings.simplefilter('ignore')
-                j = Jp2k(path)
+        path = fixtures._path_to('text_GBR.jp2')
+        with warnings.catch_warnings():
+            warnings.simplefilter('ignore')
+            j = Jp2k(path)
 
         box = j.box[2]
 

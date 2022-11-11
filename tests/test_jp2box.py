@@ -2,7 +2,6 @@
 """
 # Standard library imports ...
 import doctest
-import importlib.resources as ir
 from io import BytesIO
 import os
 import pathlib
@@ -28,7 +27,7 @@ from glymur.jp2box import (
 )
 from glymur.core import COLOR, OPACITY, SRGB, GREYSCALE
 from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE
-from . import fixtures, data
+from . import fixtures
 from .fixtures import MetadataBase
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
@@ -377,12 +376,12 @@ class TestFileTypeBox(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        with ir.path(data, 'issue396.jp2') as path:
-            with warnings.catch_warnings():
-                # Lots of things wrong with this file.
-                warnings.simplefilter('ignore')
-                with self.assertRaises(InvalidJp2kError):
-                    Jp2k(path)
+        path = fixtures._path_to('issue396.jp2')
+        with warnings.catch_warnings():
+            # Lots of things wrong with this file.
+            warnings.simplefilter('ignore')
+            with self.assertRaises(InvalidJp2kError):
+                Jp2k(path)
 
     def test_brand_unknown(self):
         """A ftyp box brand must be 'jp2 ' or 'jpx '."""

@@ -5,7 +5,6 @@ Test suite specifically targeting ICC profiles
 
 # Standard library imports ...
 from datetime import datetime
-import importlib.resources as ir
 import struct
 import tempfile
 import unittest
@@ -23,7 +22,7 @@ from glymur.jp2box import (
     ImageHeaderBox, JP2HeaderBox, JPEG2000SignatureBox, InvalidJp2kError
 )
 from glymur.core import SRGB
-from . import fixtures, data
+from . import fixtures
 
 
 class TestColourSpecificationBox(fixtures.TestCommon):
@@ -48,7 +47,7 @@ class TestColourSpecificationBox(fixtures.TestCommon):
             num_components=num_components
         )
 
-        self.icc_profile = ir.read_binary(data, 'sgray.icc')
+        self.icc_profile = fixtures._read_bytes('sgray.icc')
 
     def test_bad_method_printing(self):
         """
@@ -58,14 +57,14 @@ class TestColourSpecificationBox(fixtures.TestCommon):
         EXPECTED RESULT:  Warnings are issued.  Printing the string
         representation should not error out.
         """
-        with ir.path(data, 'issue405.dat') as path:
-            with path.open('rb') as f:
-                f.seek(8)
-                with warnings.catch_warnings():
-                    # Lots of things wrong with this file.
-                    warnings.simplefilter('ignore')
-                    box = ColourSpecificationBox.parse(f, length=80, offset=0)
-                    str(box)
+        path = fixtures._path_to('issue405.dat')
+        with path.open('rb') as f:
+            f.seek(8)
+            with warnings.catch_warnings():
+                # Lots of things wrong with this file.
+                warnings.simplefilter('ignore')
+                box = ColourSpecificationBox.parse(f, length=80, offset=0)
+                str(box)
 
     def test_colr_with_out_enum_cspace(self):
         """must supply an enumerated colorspace when writing"""
@@ -153,7 +152,7 @@ class TestSuite(unittest.TestCase):
     """Test suite for ICC Profile code."""
 
     def setUp(self):
-        self.buffer = ir.read_binary(data, 'sgray.icc')
+        self.buffer = fixtures._read_bytes('sgray.icc')
 
     def test_bad_rendering_intent(self):
         """
@@ -184,10 +183,10 @@ class TestSuite(unittest.TestCase):
 
         EXPECTED RESULT:  Verify the ICC profile metadata.
         """
-        with ir.path(data, 'text_GBR.jp2') as path:
-            with self.assertWarns(UserWarning):
-                # The brand is wrong, this is JPX, not JP2.
-                j = Jp2k(path)
+        path = fixtures._path_to('text_GBR.jp2')
+        with self.assertWarns(UserWarning):
+            # The brand is wrong, this is JPX, not JP2.
+            j = Jp2k(path)
         box = j.box[3].box[1]
 
         self.assertEqual(box.icc_profile_header['Size'], 1328)

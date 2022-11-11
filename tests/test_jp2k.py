@@ -5,7 +5,6 @@ Tests for general glymur functionality.
 import collections
 import datetime
 import doctest
-import importlib.resources as ir
 from io import BytesIO
 import os
 import pathlib
@@ -30,7 +29,7 @@ from glymur.core import COLOR, RED, GREEN, BLUE, RESTRICTED_ICC_PROFILE
 
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
-from . import fixtures, data
+from . import fixtures
 
 
 def docTearDown(doctest_obj):  # pragma: no cover
@@ -86,8 +85,8 @@ class TestJp2k(fixtures.TestCommon):
 
         Expected response:  the dtype property is np.uint16
         """
-        with ir.path('tests.data', 'uint16.j2k') as path:
-            j = Jp2k(path)
+        path = fixtures._path_to('uint16.j2k')
+        j = Jp2k(path)
         self.assertEqual(j.dtype, np.uint16)
 
     def test_cod_segment_not_3rd(self):
@@ -107,8 +106,8 @@ class TestJp2k(fixtures.TestCommon):
 
         Expected response:  the dtype property is np.int8
         """
-        with ir.path('tests.data', 'p0_03.j2k') as path:
-            j = Jp2k(path)
+        path = fixtures._path_to('p0_03.j2k')
+        j = Jp2k(path)
         self.assertEqual(j.dtype, np.int8)
 
     def test_dtype_inconsistent_bitdetph(self):
@@ -117,8 +116,8 @@ class TestJp2k(fixtures.TestCommon):
 
         Expected response:  TypeError when accessing the dtype property.
         """
-        with ir.path('tests.data', 'issue982.j2k') as path:
-            j = Jp2k(path)
+        path = fixtures._path_to('issue982.j2k')
+        j = Jp2k(path)
         with self.assertRaises(TypeError):
             j.dtype
 
@@ -146,8 +145,8 @@ class TestJp2k(fixtures.TestCommon):
 
         Expected response:  the ndim attribute/property is 2
         """
-        with ir.path('tests.data', 'p0_02.j2k') as path:
-            j = Jp2k(path)
+        path = fixtures._path_to('p0_02.j2k')
+        j = Jp2k(path)
         self.assertEqual(j.ndim, 2)
 
     def test_read_bands_unequal_subsampling(self):
@@ -157,8 +156,8 @@ class TestJp2k(fixtures.TestCommon):
 
         EXPECTED RESPONSE: The image is a list of arrays of unequal size.
         """
-        with ir.path(data, 'p0_06.j2k') as path:
-            d = Jp2k(path).read_bands()
+        path = fixtures._path_to('p0_06.j2k')
+        d = Jp2k(path).read_bands()
 
         actual = [band.shape for band in d]
         expected = [(129, 513), (129, 257), (65, 513), (65, 257)]
@@ -378,9 +377,9 @@ class TestJp2k(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        with ir.path(glymur, 'jp2k.py') as path:
-            with self.assertRaises(InvalidJp2kError):
-                Jp2k(path)
+        path = fixtures._path_to('nemo.txt')
+        with self.assertRaises(InvalidJp2kError):
+            Jp2k(path)
 
     def test_file_does_not_exist(self):
         """
@@ -930,8 +929,8 @@ class TestJp2k(fixtures.TestCommon):
 
         EXPECTED RESULT:  The 2nd image read in is not the same as the first.
         """
-        with ir.path(data, 'p0_03.j2k') as path:
-            j = Jp2k(path)
+        path = fixtures._path_to('p0_03.j2k')
+        j = Jp2k(path)
         d0 = j[:]
 
         j.layer = 1
@@ -946,8 +945,8 @@ class TestJp2k(fixtures.TestCommon):
         EXPECTED RESULT:  RuntimeError when an invalid layer number is supplied
         """
         # There are 8 layers, so only values [0-7] are valid.
-        with ir.path(data, 'p0_03.j2k') as path:
-            j = Jp2k(path)
+        path = fixtures._path_to('p0_03.j2k')
+        j = Jp2k(path)
 
         with self.assertRaises(ValueError):
             j.layer = -1
@@ -965,8 +964,8 @@ class TestJp2k(fixtures.TestCommon):
 
         EXPECTED RESULT:  The default verbosity setting is False.
         """
-        with ir.path(data, 'p0_03.j2k') as path:
-            j = Jp2k(path)
+        path = fixtures._path_to('p0_03.j2k')
+        j = Jp2k(path)
 
         self.assertFalse(j.verbose)
 
@@ -976,8 +975,8 @@ class TestJp2k(fixtures.TestCommon):
 
         EXPECTED RESULT:  The default layer property value is 0.
         """
-        with ir.path(data, 'p0_03.j2k') as path:
-            j = Jp2k(path)
+        path = fixtures._path_to('p0_03.j2k')
+        j = Jp2k(path)
 
         self.assertEqual(j.layer, 0)
 

@@ -3,7 +3,6 @@ Test suite for warnings issued by glymur.
 """
 # Standard library imports
 import codecs
-import importlib.resources as ir
 from io import BytesIO
 import struct
 import unittest
@@ -18,7 +17,7 @@ import glymur
 from glymur.core import COLOR, RED, GREEN, BLUE
 from glymur.jp2box import InvalidJp2kError
 
-from . import fixtures, data
+from . import fixtures
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
@@ -43,10 +42,10 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  A warning is issued.  In this case we also end up
         erroring out anyway since we don't get a valid FileType box.
         """
-        with ir.path(data, 'issue438.jp2') as path:
-            with self.assertWarns(UserWarning):
-                with self.assertRaises(InvalidJp2kError):
-                    Jp2k(path)
+        path = fixtures._path_to('issue438.jp2')
+        with self.assertWarns(UserWarning):
+            with self.assertRaises(InvalidJp2kError):
+                Jp2k(path)
 
     def test_siz_ihdr_mismatch(self):
         """
@@ -456,7 +455,7 @@ class TestSuite(fixtures.TestCommon):
 
     def test_colr_with_cspace_and_icc(self):
         """Colour specification boxes can't have both."""
-        buffer = ir.read_binary(data, 'sgray.icc')
+        buffer = fixtures._read_bytes('sgray.icc')
 
         with self.assertWarns(UserWarning):
             colorspace = glymur.core.SRGB
