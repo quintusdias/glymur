@@ -4,8 +4,8 @@ Test fixtures common to more than one test point.
 # Standard library imports
 import importlib.resources as ir
 import pathlib
-import platform
 import shutil
+import sys
 import tempfile
 import unittest
 
@@ -184,10 +184,10 @@ def _path_to(filename):
     """
     Hide importlib.resources differences between 3.11.0 and below.
     """
-    if platform.python_version() >= '3.11.0':
+    if sys.version_info[1] >= 11:
         return ir.files('tests.data').joinpath(filename)
     else:
-        with ir.path('glymur.data', filename) as path:
+        with ir.path('tests.data', filename) as path:
             return path
 
 
@@ -195,8 +195,8 @@ def _read_bytes(filename):
     """
     Hide importlib.resources differences between 3.11.0 and below.
     """
-    if platform.python_version() >= '3.11.0':
+    if sys.version_info[1] >= 11:
         return ir.files('tests.data').joinpath(filename).read_bytes()
     else:
-        with ir.path('glymur.data', filename) as path:
-            return path.read_binary()
+        with ir.path('tests.data', filename) as path:
+            return path.read_bytes()

@@ -7,7 +7,7 @@ These include:
 
 """
 import importlib.resources as ir
-import platform
+import sys
 
 
 def nemo():
@@ -47,7 +47,7 @@ def _str_path_to(filename):
     """
     Hide differences between 3.11.0 and below.
     """
-    if platform.python_version() >= '3.11.0':
+    if sys.version_info[1] >= 11:
         return str(ir.files('glymur.data').joinpath(filename))
     else:
         with ir.path('glymur.data', filename) as path:
