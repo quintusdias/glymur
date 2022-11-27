@@ -1052,9 +1052,9 @@ class TestJp2Boxes(fixtures.TestCommon):
 
     def test_no_jp2c_box(self):
         """
-        SCENARIO:  The JP2/JP2C box cannot be parsed.
+        SCENARIO:  The JP2 file has no JP2C box.
 
-        EXPECTED RESULT:  An RuntimeError is issued.
+        EXPECTED RESULT:  An InvalidJp2kError is issued.
         """
         # Write a new JP2 file that omits the JP2C box.
         j = Jp2k(self.jp2file)
@@ -1067,6 +1067,64 @@ class TestJp2Boxes(fixtures.TestCommon):
 
             with self.assertRaises(InvalidJp2kError):
                 Jp2k(tfile.name)
+
+    def test_two_jp2c_boxes(self):
+        """
+        SCENARIO:  There are two jp2c boxes.
+
+        EXPECTED RESULT:  Technically this is valid but it is still possible
+        to read the first image.  A warning is issued since the 2nd image
+        cannot be accessed.
+        """
+        # Write a new JP2 file that duplicates the JP2C box.
+        j = Jp2k(self.jp2file)
+        jp2c = [box for box in j.box if box.box_id == 'jp2c'][0]
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
+            with open(self.jp2file, 'rb') as ifile:
+                tfile.write(ifile.read())
+
+                # now tack the jp2c box on again
+                ifile.seek(jp2c.offset)
+                tfile.write(ifile.read())
+
+            tfile.flush()
+
+            with self.assertWarns(UserWarning):
+                j2 = Jp2k(tfile.name)
+
+        np.testing.assert_array_equal(j[:], j2[:])
+
+    def test_two_jp2h_boxes(self):
+        """
+        SCENARIO:  There are two jp2h boxes and two jp2c boxes.
+
+        EXPECTED RESULT:  Technically this is invalid due to the multiple jp2h
+        boxes.  It is still possible to read the first image.  Multiple
+        warnings are issued.
+        """
+        # Write a new JP2 file that duplicates the JP2C box.
+        j = Jp2k(self.jp2file)
+        jp2h = [box for box in j.box if box.box_id == 'jp2h'][0]
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
+            with open(self.jp2file, 'rb') as ifile:
+                tfile.write(ifile.read())
+
+                # now tack the jp2c box on again
+                ifile.seek(jp2h.offset)
+                tfile.write(ifile.read())
+
+            tfile.flush()
+
+            # Warns because of two codestream, warns because of two jp2h boxes.
+            with self.assertWarns(UserWarning) as cm:
+                j2 = Jp2k(tfile.name)
+                self.assertEqual(len(cm.warnings), 2)
+
+        with warnings.catch_warnings():
+            # Another warning when this file is read.  It is a library warning
+            # so ignore it.
+            warnings.simplefilter('ignore')
+            np.testing.assert_array_equal(j[:], j2[:])
 
     def test_default_jp2k(self):
         """Should be able to instantiate a JPEG2000SignatureBox"""
