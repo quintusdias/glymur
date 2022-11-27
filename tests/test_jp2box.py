@@ -1052,9 +1052,9 @@ class TestJp2Boxes(fixtures.TestCommon):
 
     def test_no_jp2c_box(self):
         """
-        SCENARIO:  The JP2/JP2C box cannot be parsed.
+        SCENARIO:  The JP2 file has no JP2C box.
 
-        EXPECTED RESULT:  An RuntimeError is issued.
+        EXPECTED RESULT:  An InvalidJp2kError is issued.
         """
         # Write a new JP2 file that omits the JP2C box.
         j = Jp2k(self.jp2file)
@@ -1067,6 +1067,32 @@ class TestJp2Boxes(fixtures.TestCommon):
 
             with self.assertRaises(InvalidJp2kError):
                 Jp2k(tfile.name)
+
+    def test_two_jp2c_boxes(self):
+        """
+        SCENARIO:  There are two jp2c boxes.
+
+        EXPECTED RESULT:  Technically this is invalid, but it is still possible
+        to read the first image.  A warning is issued.
+        """
+        # Write a new JP2 file that duplicates the JP2C box.
+        j = Jp2k(self.jp2file)
+        jp2c = [box for box in j.box if box.box_id == 'jp2c'][0]
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
+            numbytes = jp2c.offset
+            with open(self.jp2file, 'rb') as ifile:
+                tfile.write(ifile.read())
+
+                # now tack the jp2c box on again
+                ifile.seek(jp2c.offset)
+                tfile.write(ifile.read())
+
+            tfile.flush()
+
+            with self.assertWarns(UserWarning):
+                j2 = Jp2k(tfile.name)
+
+        np.testing.assert_array_equal(j[:], j2[:])
 
     def test_default_jp2k(self):
         """Should be able to instantiate a JPEG2000SignatureBox"""
