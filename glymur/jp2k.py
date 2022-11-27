@@ -680,14 +680,22 @@ class Jp2k(Jp2kBox):
                 )
                 warnings.warn(msg, UserWarning)
 
-        # We need to have one and only one JP2C box if we have a JP2 file.
+        # We need to have one and only one JP2H box if we have a JP2 file.
+        num_jp2h_boxes = len([box for box in self.box if box.box_id == 'jp2h'])
+        if num_jp2h_boxes > 1:
+            msg = (
+                f"This file has {num_jp2h_boxes} JP2H boxes in the outermost "
+                "layer of boxes.  There should only be one."
+            )
+            warnings.warn(msg)
+
+        # We should have one and only one JP2C box if we have a JP2 file.
         num_jp2c_boxes = len([box for box in self.box if box.box_id == 'jp2c'])
         if num_jp2c_boxes > 1 and self.box[1].brand == 'jp2 ':
             msg = (
-                "One (and only one) JP2C box should be found in the outermost "
-                "outermost level of JP2 boxes.  This file has "
-                f"{num_jp2c_boxes} and is therefore technically invalid.  It "
-                "may be possible to read the first image though."
+                f"This file claims to be JP2 but has {num_jp2c_boxes} JP2C "
+                "boxes in the outermost layer of boxes.  All JP2C boxes after "
+                "the first will be ignored."
             )
             warnings.warn(msg)
         elif num_jp2c_boxes == 0:
