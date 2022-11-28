@@ -3,6 +3,13 @@ Changes in glymur 0.12
 ######################
 
 *****************
+Changes in 0.12.1
+*****************
+    * Do not error out for JP2 files with multiple codestreams.
+    * Relax validation for invalid JP2 files with multiple jp2h boxes.
+    * Drop support for python 3.7.
+
+*****************
 Changes in 0.12.0
 *****************
     * Add support for ICC profiles, colormaps when converting from TIFF.
