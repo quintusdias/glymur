@@ -693,9 +693,9 @@ class Jp2k(Jp2kBox):
         num_jp2c_boxes = len([box for box in self.box if box.box_id == 'jp2c'])
         if num_jp2c_boxes > 1 and self.box[1].brand == 'jp2 ':
             msg = (
-                f"This file claims to be JP2 but has {num_jp2c_boxes} JP2C "
-                "boxes in the outermost layer of boxes.  All JP2C boxes after "
-                "the first will be ignored."
+                f"This file has {num_jp2c_boxes} JP2C boxes (images) in the "
+                "outermost layer of boxes.  All JP2C boxes after the first "
+                "will be ignored."
             )
             warnings.warn(msg)
         elif num_jp2c_boxes == 0:
