@@ -763,6 +763,9 @@ class TestSuiteScikitImage(fixtures.TestCommon):
         )
         self.assertTrue(at_least_one_eph)
 
+    @unittest.skipIf(
+        glymur.version.openjpeg_version < '2.4.0', "Requires as least v2.4.0"
+    )
     def test_plt(self):
         """
         SCENARIO:  Convert TIFF file to JP2 with PLT markers.

@@ -1369,6 +1369,9 @@ class TestJp2k_write(fixtures.MetadataBase):
         self.assertFalse(at_least_one_tlm_segment)
 
     @unittest.skipIf(
+        glymur.version.openjpeg_version < '2.4.0', "Requires as least v2.4.0"
+    )
+    @unittest.skipIf(
         not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
     )
     def test_plt_yes(self):

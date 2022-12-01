@@ -190,6 +190,9 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(j.box[2].box[2].box[0].vertical_resolution, vresc)
         self.assertEqual(j.box[2].box[2].box[0].horizontal_resolution, hresc)
 
+    @unittest.skipIf(
+        glymur.version.openjpeg_version < '2.4.0', "Requires as least v2.4.0"
+    )
     def test_plt_for_tiled_writing(self):
         """
         SCENARIO:  Use the plt keyword.
