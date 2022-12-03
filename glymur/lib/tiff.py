@@ -1,9 +1,11 @@
 # standard library imports
+from collections import OrderedDict
 import ctypes
 from enum import IntEnum
 import os
 import queue
 import re
+import struct
 import warnings
 
 # 3rd party library imports
@@ -701,49 +703,53 @@ def check_error(status):
 
 
 TAGS = {
+    'ProcessingSoftware': {
+        'number': 11,
+        'type': ctypes.c_char_p,
+    },
     'SubFileType': {
         'number': 254,
-        'type': ctypes.c_uint16,
+        'type': ctypes.c_int16,
     },
     'OSubFileType': {
         'number': 255,
-        'type': ctypes.c_uint16,
+        'type': ctypes.c_int16,
     },
     'ImageWidth': {
         'number': 256,
-        'type': ctypes.c_uint32,
+        'type': ctypes.c_int32,
     },
     'ImageLength': {
         'number': 257,
-        'type': ctypes.c_uint32,
+        'type': ctypes.c_int32,
     },
     'BitsPerSample': {
         'number': 258,
-        'type': ctypes.c_uint16,
+        'type': ctypes.c_int16,
     },
     'Compression': {
         'number': 259,
-        'type': ctypes.c_uint16,
+        'type': ctypes.c_int16,
     },
     'Photometric': {
         'number': 262,
-        'type': ctypes.c_uint16,
+        'type': ctypes.c_int16,
     },
     'Threshholding': {
         'number': 263,
-        'type': ctypes.c_uint16,
+        'type': ctypes.c_int16,
     },
     'CellWidth': {
         'number': 264,
-        'type': ctypes.c_uint16,
+        'type': ctypes.c_int16,
     },
     'CellLength': {
         'number': 265,
-        'type': ctypes.c_uint16,
+        'type': ctypes.c_int16,
     },
     'FillOrder': {
         'number': 266,
-        'type': ctypes.c_uint16,
+        'type': ctypes.c_int16,
     },
     'DocumentName': {
         'number': 269,
@@ -763,19 +769,19 @@ TAGS = {
     },
     'StripOffsets': {
         'number': 273,
-        'type': (ctypes.c_uint32, ctypes.c_uint64),
+        'type': (ctypes.c_int32, ctypes.c_int64),
     },
     'Orientation': {
         'number': 274,
-        'type': ctypes.c_uint16,
+        'type': ctypes.c_int16,
     },
     'SamplesPerPixel': {
         'number': 277,
-        'type': ctypes.c_uint16,
+        'type': ctypes.c_int16,
     },
     'RowsPerStrip': {
         'number': 278,
-        'type': ctypes.c_uint16,
+        'type': ctypes.c_int16,
     },
     'StripByteCounts': {
         'number': 279,
@@ -783,11 +789,11 @@ TAGS = {
     },
     'MinSampleValue': {
         'number': 280,
-        'type': ctypes.c_uint16,
+        'type': ctypes.c_int16,
     },
     'MaxSampleValue': {
         'number': 281,
-        'type': ctypes.c_uint16,
+        'type': ctypes.c_int16,
     },
     'XResolution': {
         'number': 282,
@@ -799,7 +805,7 @@ TAGS = {
     },
     'PlanarConfig': {
         'number': 284,
-        'type': ctypes.c_uint16,
+        'type': ctypes.c_int16,
     },
     'PageName': {
         'number': 285,
@@ -815,15 +821,15 @@ TAGS = {
     },
     'FreeOffsets': {
         'number': 288,
-        'type': ctypes.c_uint32,
+        'type': ctypes.c_int32,
     },
     'FreeByteCounts': {
         'number': 289,
-        'type': ctypes.c_uint32,
+        'type': ctypes.c_int32,
     },
     'GrayResponseUnit': {
         'number': 290,
-        'type': ctypes.c_uint16,
+        'type': ctypes.c_int16,
     },
     'GrayResponseCurve': {
         'number': 291,
@@ -839,11 +845,11 @@ TAGS = {
     },
     'ResolutionUnit': {
         'number': 296,
-        'type': ctypes.c_uint16,
+        'type': ctypes.c_int16,
     },
     'PageNumber': {
         'number': 297,
-        'type': (ctypes.c_uint16, ctypes.c_uint16),
+        'type': (ctypes.c_int16, ctypes.c_uint16),
     },
     'TransferFunction': {
         'number': 301,
@@ -867,7 +873,7 @@ TAGS = {
     },
     'Predictor': {
         'number': 317,
-        'type': ctypes.c_uint16,
+        'type': ctypes.c_int16,
     },
     'WhitePoint': {
         'number': 318,
@@ -879,19 +885,19 @@ TAGS = {
     },
     'ColorMap': {
         'number': 320,
-        'type': (ctypes.c_uint16, ctypes.c_uint16, ctypes.c_uint16),
+        'type': (ctypes.c_int16, ctypes.c_uint16),
     },
     'HalfToneHints': {
         'number': 321,
-        'type': ctypes.c_uint16,
+        'type': ctypes.c_int16,
     },
     'TileWidth': {
         'number': 322,
-        'type': ctypes.c_uint32,
+        'type': ctypes.c_int32,
     },
     'TileLength': {
         'number': 323,
-        'type': ctypes.c_uint32,
+        'type': ctypes.c_int32,
     },
     'TileOffsets': {
         'number': 324,
@@ -1070,13 +1076,21 @@ TAGS = {
         'number': 559,
         'type': None,
     },
-    'XMP': {
+    'XMLPacket': {
         'number': 700,
         'type': ctypes.c_uint8,
     },
     'ImageID': {
         'number': 32781,
         'type': None,
+    },
+    'Rating': {
+        'number': 18246,
+        'type': ctypes.c_uint16,
+    },
+    'RatingPercent': {
+        'number': 18249,
+        'type': ctypes.c_uint16,
     },
     'Datatype': {
         'number': 32996,
@@ -1092,6 +1106,18 @@ TAGS = {
     },
     'TileDepth': {
         'number': 32998,
+        'type': None,
+    },
+    'CFARepeatPatternDim': {
+        'number': 33421,
+        'type': None,
+    },
+    'CFAPattern': {
+        'number': 33422,
+        'type': None,
+    },
+    'BatteryLevel': {
+        'number': 33423,
         'type': None,
     },
     'Copyright': {
@@ -1170,7 +1196,7 @@ TAGS = {
         'number': 34377,
         'type': None,
     },
-    'ExifIFD': {
+    'ExifTag': {
         'number': 34665,
         'type': ctypes.c_int32,
     },
@@ -1190,13 +1216,17 @@ TAGS = {
         'number': 34736,
         'type': None,
     },
-    'GeoASCIIParams': {
+    'GeoAsciiParams': {
         'number': 34737,
         'type': None,
     },
     'ExposureProgram': {
         'number': 34850,
         'type': ctypes.c_uint16,
+    },
+    'SpectralSensitivity': {
+        'number': 34852,
+        'type': ctypes.c_char_p,
     },
     'GPSIFD': {
         'number': 34853,
@@ -1205,6 +1235,46 @@ TAGS = {
     'ISOSpeedRatings': {
         'number': 34855,
         'type': ctypes.c_uint16,
+    },
+    'OECF': {
+        'number': 34856,
+        'type': None,
+    },
+    'Interlace': {
+        'number': 34857,
+        'type': None,
+    },
+    'TimeZoneOffset': {
+        'number': 34858,
+        'type': None,
+    },
+    'SelfTimerMode': {
+        'number': 34859,
+        'type': None,
+    },
+    'SensitivityType': {
+        'number': 34864,
+        'type': None,
+    },
+    'StandardOutputSensitivity': {
+        'number': 34865,
+        'type': None,
+    },
+    'RecommendedExposureIndex': {
+        'number': 34866,
+        'type': None,
+    },
+    'ISOSpeed': {
+        'number': 34867,
+        'type': None,
+    },
+    'ISOSpeedLatitudeYYY': {
+        'number': 34868,
+        'type': None,
+    },
+    'ISOSpeedLatitudeZZZ': {
+        'number': 34869,
+        'type': None,
     },
     'HYLAFAXRecvParams': {
         'number': 34908,
@@ -1221,6 +1291,30 @@ TAGS = {
     'ExifVersion': {
         'number': 36864,
         'type': ctypes.c_uint8,
+    },
+    'DateTimeOriginal': {
+        'number': 36867,
+        'type': None,
+    },
+    'DateTimeDigitized': {
+        'number': 36868,
+        'type': None,
+    },
+    'OffsetTime': {
+        'number': 36880,
+        'type': None,
+    },
+    'OffsetTimeOriginal': {
+        'number': 36881,
+        'type': None,
+    },
+    'OffsetTimeDigitized': {
+        'number': 36882,
+        'type': None,
+    },
+    'ComponentsConfiguration': {
+        'number': 37121,
+        'type': None
     },
     'CompressedBitsPerPixel': {
         'number': 37122,
@@ -1266,8 +1360,96 @@ TAGS = {
         'number': 37386,
         'type': ctypes.c_double,
     },
+    'Noise': {
+        'number': 37389,
+        'type': None,
+    },
+    'ImageNumber': {
+        'number': 37393,
+        'type': None,
+    },
+    'SecurityClassification': {
+        'number': 37394,
+        'type': None,
+    },
+    'ImageHistory': {
+        'number': 37395,
+        'type': None,
+    },
+    'TIFFEPStandardID': {
+        'number': 37398,
+        'type': None,
+    },
+    'MakerNote': {
+        'number': 37500,
+        'type': ctypes.c_char_p,
+    },
+    'UserComment': {
+        'number': 37510,
+        'type': ctypes.c_char_p,
+    },
+    'SubSecTime': {
+        'number': 37520,
+        'type': ctypes.c_char_p,
+    },
+    'SubSecTimeOriginal': {
+        'number': 37521,
+        'type': ctypes.c_char_p,
+    },
+    'SubSecTimeDigitized': {
+        'number': 37522,
+        'type': ctypes.c_char_p,
+    },
     'ImageSourceData': {
         'number': 37724,
+        'type': None,
+    },
+    'Temperature': {
+        'number': 37888,
+        'type': None,
+    },
+    'Humidity': {
+        'number': 37889,
+        'type': None,
+    },
+    'Pressure': {
+        'number': 37890,
+        'type': None,
+    },
+    'WaterDepth': {
+        'number': 37891,
+        'type': None,
+    },
+    'Acceleration': {
+        'number': 37892,
+        'type': None,
+    },
+    'CameraElevationAngle': {
+        'number': 37893,
+        'type': None,
+    },
+    'XPTitle': {
+        'number': 40091,
+        'type': None,
+    },
+    'XPComment': {
+        'number': 40092,
+        'type': None,
+    },
+    'XPAuthor': {
+        'number': 40093,
+        'type': None,
+    },
+    'XPKeywords': {
+        'number': 40094,
+        'type': None,
+    },
+    'XPSubject': {
+        'number': 40095,
+        'type': None,
+    },
+    'FlashPixVersion': {
+        'number': 40960,
         'type': None,
     },
     'ColorSpace': {
@@ -1306,13 +1488,33 @@ TAGS = {
         'number': 41495,
         'type': ctypes.c_uint16,
     },
-    'FileSource': {
-        'number': 41728,
-        'type': ctypes.c_uint8,
-    },
     'SceneType': {
         'number': 41729,
         'type': ctypes.c_uint8,
+    },
+    'FlashEnergy': {
+        'number': 41483,
+        'type': None
+    },
+    'SpatialFrequencyResponse': {
+        'number': 41484,
+        'type': None
+    },
+    'SubjectLocation': {
+        'number': 41492,
+        'type': None
+    },
+    'FileSource': {
+        'number': 41728,
+        'type': None
+    },
+    'ExifCFAPattern': {
+        'number': 41730,
+        'type': None
+    },
+    'CustomRendered': {
+        'number': 41985,
+        'type': None
     },
     'ExposureMode': {
         'number': 41986,
@@ -1350,9 +1552,53 @@ TAGS = {
         'number': 41994,
         'type': ctypes.c_uint16,
     },
+    'DeviceSettingDescription': {
+        'number': 41995,
+        'type': ctypes.c_char_p,
+    },
     'SubjectDistanceRange': {
         'number': 41996,
         'type': ctypes.c_uint16,
+    },
+    'ImageUniqueID': {
+        'number': 42016,
+        'type': None
+    },
+    'CameraOwnerName': {
+        'number': 42032,
+        'type': None
+    },
+    'BodySerialNumber': {
+        'number': 42033,
+        'type': None
+    },
+    'LensSpecification': {
+        'number': 42034,
+        'type': None
+    },
+    'LensMake': {
+        'number': 42035,
+        'type': None
+    },
+    'LensModel': {
+        'number': 42036,
+        'type': None
+    },
+    'LensSerialNumber': {
+        'number': 42037,
+        'type': None
+    },
+    'CompositeImage': {
+        'number': 42080,
+        'type': None
+    },
+    'SourceImageNumberOfCompositeImage': {
+        'number': 42081,
+        'type': None
+    },
+    'SourceExposureTimeOfCompositeImage': {
+        'number': 42082,
+        'type': None
     },
     'GDAL_Metadata': {
         'number': 42112,
@@ -1360,6 +1606,10 @@ TAGS = {
     },
     'GDAL_NoData': {
         'number': 42113,
+        'type': None,
+    },
+    'Gamma': {
+        'number': 42240,
         'type': None,
     },
     'OCEScanJobDescription': {
@@ -1376,6 +1626,10 @@ TAGS = {
     },
     'OCEImageLogicCharacteristics': {
         'number': 50218,
+        'type': None,
+    },
+    'PrintImageMatching': {
+        'number': 50341,
         'type': None,
     },
     'DNGVersion': {
@@ -1510,6 +1764,10 @@ TAGS = {
         'number': 50738,
         'type': None,
     },
+    'ShadowScale': {
+        'number': 50739,
+        'type': None,
+    },
     'DNGPrivateData': {
         'number': 50740,
         'type': None,
@@ -1530,8 +1788,48 @@ TAGS = {
         'number': 50780,
         'type': None,
     },
+    'RawDataUniqueID': {
+        'number': 50781,
+        'type': None,
+    },
     'AliasLayerMetadata': {
         'number': 50784,
+        'type': None,
+    },
+    'OriginalRawFileName': {
+        'number': 50827,
+        'type': None,
+    },
+    'OriginalRawFileData': {
+        'number': 50828,
+        'type': None,
+    },
+    'ActiveArea': {
+        'number': 50829,
+        'type': None,
+    },
+    'MaskedAreas': {
+        'number': 50830,
+        'type': None,
+    },
+    'AsShotICCProfile': {
+        'number': 50831,
+        'type': None,
+    },
+    'AsShotPreProfileMatrix': {
+        'number': 50832,
+        'type': None,
+    },
+    'CurrentICCProfile': {
+        'number': 50833,
+        'type': None,
+    },
+    'CurrentPreProfileMatrix': {
+        'number': 50834,
+        'type': None,
+    },
+    'ColorimetricReference': {
+        'number': 50839,
         'type': None,
     },
     'TIFF_RSID': {
@@ -1540,6 +1838,122 @@ TAGS = {
     },
     'GEO_Metadata': {
         'number': 50909,
+        'type': None,
+    },
+    'CameraCalibrationSignature': {
+        'number': 50931,
+        'type': None,
+    },
+    'ProfileCalibrationSignature': {
+        'number': 50932,
+        'type': None,
+    },
+    'AsShotProfileName': {
+        'number': 50934,
+        'type': None,
+    },
+    'NoiseReductionApplied': {
+        'number': 50935,
+        'type': None,
+    },
+    'ProfileName': {
+        'number': 50936,
+        'type': None,
+    },
+    'ProfileHueSatMapDims': {
+        'number': 50937,
+        'type': None,
+    },
+    'ProfileHueSatMapData1': {
+        'number': 50938,
+        'type': None,
+    },
+    'ProfileHueSatMapData2': {
+        'number': 50939,
+        'type': None,
+    },
+    'ProfileToneCurve': {
+        'number': 50940,
+        'type': None,
+    },
+    'ProfileEmbedPolicy': {
+        'number': 50941,
+        'type': None,
+    },
+    'ProfileCopyright': {
+        'number': 50942,
+        'type': None,
+    },
+    'ForwardMatrix1': {
+        'number': 50964,
+        'type': None,
+    },
+    'ForwardMatrix2': {
+        'number': 50965,
+        'type': None,
+    },
+    'PreviewApplicationName': {
+        'number': 50966,
+        'type': None,
+    },
+    'PreviewApplicationVersion': {
+        'number': 50967,
+        'type': None,
+    },
+    'PreviewSettingsName': {
+        'number': 50968,
+        'type': None,
+    },
+    'PreviewSettingsDigest': {
+        'number': 50969,
+        'type': None,
+    },
+    'PreviewColorSpace': {
+        'number': 50970,
+        'type': None,
+    },
+    'PreviewDateTime': {
+        'number': 50971,
+        'type': None,
+    },
+    'RawImageDigest': {
+        'number': 50972,
+        'type': None,
+    },
+    'OriginalRawFileDigest': {
+        'number': 50973,
+        'type': None,
+    },
+    'SubTileBlockSize': {
+        'number': 50974,
+        'type': None,
+    },
+    'RowInterleaveFactor': {
+        'number': 50975,
+        'type': None,
+    },
+    'ProfileLookTableDims': {
+        'number': 50981,
+        'type': None,
+    },
+    'ProfileLookTableData': {
+        'number': 50982,
+        'type': None,
+    },
+    'OpcodeList1': {
+        'number': 51008,
+        'type': None,
+    },
+    'OpcodeList2': {
+        'number': 51009,
+        'type': None,
+    },
+    'OpcodeList3': {
+        'number': 51022,
+        'type': None,
+    },
+    'NoiseProfile': {
+        'number': 51041,
         'type': None,
     },
     'JPEGQuality': {
@@ -1553,4 +1967,165 @@ TAGS = {
 }
 
 # We need the reverse mapping as well.
-tagnum2name = {value['number']: key for key, value in TAGS.items()}
+TAGNUM2NAME = {value['number']: key for key, value in TAGS.items()}
+
+
+def tiff_header(read_buffer):
+    """
+    Interpret the uuid raw data as a tiff header.
+    """
+    # First 8 should be (73, 73, 42, 8) or (77, 77, 42, 8)
+    data = struct.unpack('BB', read_buffer[0:2])
+    if data[0] == 73 and data[1] == 73:
+        # little endian
+        endian = '<'
+    elif data[0] == 77 and data[1] == 77:
+        # big endian
+        endian = '>'
+    else:
+        msg = (
+            f"The byte order indication in the TIFF header "
+            f"({read_buffer[0:2]}) is invalid.  It should be either "
+            f"{bytes([73, 73])} or {bytes([77, 77])}."
+        )
+        raise RuntimeError(msg)
+
+    _, offset = struct.unpack(endian + 'HI', read_buffer[2:8])
+
+    # This is the 'Exif Image' portion.
+    return Ifd(endian, read_buffer, offset).processed_ifd
+
+
+class BadTiffTagDatatype(RuntimeError):
+    """
+    This exception exists soley to better communicate up the stack that the
+    problem exists.
+    """
+    pass
+
+
+class Ifd(object):
+    """
+    Attributes
+    ----------
+    read_buffer : bytes
+        Raw byte stream consisting of the UUID data.
+    endian : str
+        Either '<' for big-endian, or '>' for little-endian.
+    num_tags : int
+        Number of tags in the IFD.
+    raw_ifd : dictionary
+        Maps tag number to "mildly-interpreted" tag value.
+    processed_ifd : dictionary
+        Maps tag name to "mildly-interpreted" tag value.
+    """
+    def __init__(self, endian, read_buffer, offset):
+        self.endian = endian
+        self.read_buffer = read_buffer
+        self.processed_ifd = OrderedDict()
+
+        self.num_tags, = struct.unpack(
+            endian + 'H', read_buffer[offset:offset + 2]
+        )
+
+        fmt = self.endian + 'HHII' * self.num_tags
+        ifd_buffer = read_buffer[offset + 2:offset + 2 + self.num_tags * 12]
+        data = struct.unpack(fmt, ifd_buffer)
+        self.raw_ifd = OrderedDict()
+        for j, tag in enumerate(data[0::4]):
+            # The offset to the tag offset/payload is the offset to the IFD
+            # plus 2 bytes for the number of tags plus 12 bytes for each
+            # tag entry plus 8 bytes to the offset/payload itself.
+            toffp = read_buffer[offset + 10 + j * 12:offset + 10 + j * 12 + 4]
+            self.raw_ifd[tag] = self.parse_tag(
+                tag, data[j * 4 + 1], data[j * 4 + 2], toffp
+            )
+
+        self.post_process()
+
+    def parse_tag(self, tag, dtype, count, offset_buf):
+        """
+        Interpret an Exif image tag data payload.
+        """
+        try:
+            fmt = DATATYPE2FMT[dtype]['format'] * count
+            payload_size = DATATYPE2FMT[dtype]['nbytes'] * count
+        except KeyError:
+            msg = f'Invalid TIFF tag datatype ({dtype}).'
+            raise BadTiffTagDatatype(msg)
+
+        if payload_size <= 4:
+            # Interpret the payload from the 4 bytes in the tag entry.
+            target_buffer = offset_buf[:payload_size]
+        else:
+            # Interpret the payload at the offset specified by the 4 bytes in
+            # the tag entry.
+            offset, = struct.unpack(self.endian + 'I', offset_buf)
+            target_buffer = self.read_buffer[offset:offset + payload_size]
+
+        if dtype == 2:
+            # ASCII
+            payload = target_buffer.decode('utf-8').rstrip('\x00')
+
+        else:
+            payload = struct.unpack(self.endian + fmt, target_buffer)
+            if dtype == 5 or dtype == 10:
+                # Rational or Signed Rational.  Construct the list of values.
+                rational_payload = []
+                for j in range(count):
+                    value = float(payload[j * 2]) / float(payload[j * 2 + 1])
+                    rational_payload.append(value)
+                payload = np.array(rational_payload)
+            if count == 1:
+                # If just a single value, then return a scalar instead of a
+                # tuple.
+                payload = payload[0]
+            else:
+                payload = np.array(
+                    payload, dtype=DATATYPE2FMT[dtype]['nptype']
+                )
+
+        return payload
+
+    def post_process(self):
+        """
+        Map the tag name instead of tag number to the tag value.
+        """
+        for tag, value in self.raw_ifd.items():
+            try:
+                tag_name = TAGNUM2NAME[tag]
+            except KeyError:
+                # Ok, we don't recognize this tag.  Just use the numeric id.
+                msg = f'Unrecognized UUID box TIFF tag ({tag}).'
+                warnings.warn(msg, UserWarning)
+                tag_name = tag
+
+            if tag_name == 'ExifTag':
+                # There's an Exif IFD at the offset specified here.
+                ifd = Ifd(self.endian, self.read_buffer, value)
+                self.processed_ifd[tag_name] = ifd.processed_ifd
+            else:
+                # just a regular tag, treat it as a simple value
+                self.processed_ifd[tag_name] = value
+
+
+# maps the TIFF enumerated datatype to the corresponding structs datatype code,
+# the data width, and the corresponding numpy datatype
+DATATYPE2FMT = {
+        1: {'format': 'B', 'nbytes': 1, 'nptype': np.ubyte},
+        2: {'format': 'B', 'nbytes': 1, 'nptype': str},
+        3: {'format': 'H', 'nbytes': 2, 'nptype': np.uint16},
+        4: {'format': 'I', 'nbytes': 4, 'nptype': np.uint32},
+        5: {'format': 'II', 'nbytes': 8, 'nptype': np.double},
+        6: {'format': 'b', 'nbytes': 1, 'nptype': np.int8},
+        7: {'format': 'B', 'nbytes': 1, 'nptype': np.uint8},
+        8: {'format': 'h', 'nbytes': 2, 'nptype': np.int16},
+        9: {'format': 'i', 'nbytes': 4, 'nptype': np.int32},
+        10: {'format': 'ii', 'nbytes': 8, 'nptype': np.double},
+        11: {'format': 'f', 'nbytes': 4, 'nptype': np.double},
+        12: {'format': 'd', 'nbytes': 8, 'nptype': np.double},
+        13: {'format': 'I', 'nbytes': 4, 'nptype': np.uint32},
+        16: {'format': 'Q', 'nbytes': 8, 'nptype': np.uint64},
+        17: {'format': 'q', 'nbytes': 8, 'nptype': np.int64},
+        18: {'format': 'Q', 'nbytes': 8, 'nptype': np.uint64}
+}

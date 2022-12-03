@@ -47,6 +47,7 @@ class TestSuiteScikitImage(fixtures.TestCommon):
         libtiff.setField(fp, 'TileWidth', tw)
         libtiff.setField(fp, 'BitsPerSample', 8)
         libtiff.setField(fp, 'SamplesPerPixel', 1)
+        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
 
         libtiff.writeEncodedTile(fp, 0, data[:th, :tw].copy())
         libtiff.writeEncodedTile(fp, 1, data[:th, tw:w].copy())
@@ -287,7 +288,7 @@ class TestSuiteScikitImage(fixtures.TestCommon):
         libtiff.setField(fp, 'BitsPerSample', 8)
         libtiff.setField(fp, 'SamplesPerPixel', 3)
         libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
-        libtiff.setField(fp, 'JPEGColorMode', libtiff.PlanarConfig.CONTIG)
+        libtiff.setField(fp, 'JPEGColorMode', libtiff.JPEGColorMode.RGB)
         libtiff.setField(fp, 'JPEGQuality', 100)
 
         libtiff.writeEncodedStrip(fp, 0, data[:rps, :, :])
@@ -332,7 +333,7 @@ class TestSuiteScikitImage(fixtures.TestCommon):
         libtiff.setField(fp, 'BitsPerSample', 8)
         libtiff.setField(fp, 'SamplesPerPixel', 3)
         libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
-        libtiff.setField(fp, 'JPEGColorMode', libtiff.PlanarConfig.CONTIG)
+        libtiff.setField(fp, 'JPEGColorMode', libtiff.JPEGColorMode.RGB)
         libtiff.setField(fp, 'JPEGQuality', 100)
 
         libtiff.writeEncodedTile(fp, 0, data[:th, :tw, :].copy())
@@ -1954,7 +1955,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
 
         with path.open(mode='rb') as f:
             buffer = f.read()
-            ifd = glymur._tiff.tiff_header(buffer)
+            ifd = glymur.lib.tiff.tiff_header(buffer)
         icc_profile = bytes(ifd['ICCProfile'])
 
         with Tiff2Jp2k(
@@ -1987,7 +1988,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
 
         with path.open(mode='rb') as f:
             buffer = f.read()
-            ifd = glymur._tiff.tiff_header(buffer)
+            ifd = glymur.lib.tiff.tiff_header(buffer)
         icc_profile = bytes(ifd['ICCProfile'])
 
         sys.argv = [

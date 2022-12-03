@@ -45,7 +45,7 @@ from .core import (
     ENUMERATED_COLORSPACE, RESTRICTED_ICC_PROFILE,
     ANY_ICC_PROFILE, VENDOR_COLOR_METHOD
 )
-from ._tiff import tiff_header, BadTiffTagDatatype
+from .lib.tiff import tiff_header, BadTiffTagDatatype
 from . import get_option
 from ._iccprofile import _ICCProfile
 

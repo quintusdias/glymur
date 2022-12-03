@@ -13,32 +13,12 @@ from uuid import UUID
 from glymur import Jp2k
 from glymur.core import SRGB, RESTRICTED_ICC_PROFILE
 from .lib import tiff as libtiff
+from .lib.tiff import DATATYPE2FMT
 from . import jp2box
-from ._tiff import TAGNUM2NAME
 
-# Create a mapping of tag names to tag numbers.  Make the tag names to be
-# lower-case because we need to compare against user-supplied tag names.
-TAGNAME2NUM = {v.lower(): k for k, v in TAGNUM2NAME.items()}
+# we need a lower case mapping from the tag name to the tag number
+TAGNAME2NUM = {k.lower(): v['number'] for k, v in libtiff.TAGS.items()}
 
-
-# Map the numeric TIFF datatypes to the format string used by the struct module
-# and keep track of how wide they are.
-tag_dtype = {
-    1: {'format': 'B', 'nbytes': 1},
-    2: {'format': 'B', 'nbytes': 1},
-    3: {'format': 'H', 'nbytes': 2},
-    4: {'format': 'I', 'nbytes': 4},
-    5: {'format': 'II', 'nbytes': 8},
-    7: {'format': 'B', 'nbytes': 1},
-    9: {'format': 'i', 'nbytes': 4},
-    10: {'format': 'ii', 'nbytes': 8},
-    11: {'format': 'f', 'nbytes': 4},
-    12: {'format': 'd', 'nbytes': 8},
-    13: {'format': 'I', 'nbytes': 4},
-    16: {'format': 'Q', 'nbytes': 8},
-    17: {'format': 'q', 'nbytes': 8},
-    18: {'format': 'Q', 'nbytes': 8}
-}
 
 # Mnemonics for the two TIFF format version numbers.
 _TIFF = 42
@@ -452,7 +432,7 @@ class Tiff2Jp2k(object):
             if tag == 34735:
                 self.found_geotiff_tags = True
 
-            payload_length = tag_dtype[dtype]['nbytes'] * nvalues
+            payload_length = DATATYPE2FMT[dtype]['nbytes'] * nvalues
 
             if payload_length > max_tag_payload_length:
                 # the payload does not fit into the tag entry, so use the
@@ -463,7 +443,7 @@ class Tiff2Jp2k(object):
                 tfp.seek(current_position)
 
                 # read the payload from the TIFF
-                payload_format = tag_dtype[dtype]['format'] * nvalues
+                payload_format = DATATYPE2FMT[dtype]['format'] * nvalues
                 payload = struct.unpack(
                     self.endian + payload_format, payload_buffer
                 )
@@ -473,9 +453,9 @@ class Tiff2Jp2k(object):
                 payload_buffer = tag_data[tag_payload_offset:]
 
                 # read ALL of the payload buffer
-                fmt = tag_dtype[dtype]['format']
+                fmt = DATATYPE2FMT[dtype]['format']
                 num_items = (
-                    int(max_tag_payload_length / tag_dtype[dtype]['nbytes'])
+                    int(max_tag_payload_length / DATATYPE2FMT[dtype]['nbytes'])
                 )
                 payload_format = self.endian + fmt * num_items
                 payload = struct.unpack(payload_format, payload_buffer)
@@ -539,13 +519,13 @@ class Tiff2Jp2k(object):
             nvalues = tags[tag]['nvalues']
             payload = tags[tag]['payload']
 
-            payload_length = tag_dtype[dtype]['nbytes'] * nvalues
+            payload_length = DATATYPE2FMT[dtype]['nbytes'] * nvalues
 
             if payload_length > max_tag_payload_length:
                 # the payload does not fit into the tag entry
 
                 # read the payload from the TIFF
-                payload_format = tag_dtype[dtype]['format'] * nvalues
+                payload_format = DATATYPE2FMT[dtype]['format'] * nvalues
 
                 # write the tag entry to the UUID
                 new_offset = after_ifd_position
@@ -559,7 +539,7 @@ class Tiff2Jp2k(object):
                 cpos = b.tell()
                 b.seek(new_offset)
 
-                format = '<' + tag_dtype[dtype]['format'] * nvalues
+                format = '<' + DATATYPE2FMT[dtype]['format'] * nvalues
                 buffer = struct.pack(format, *payload)
                 b.write(buffer)
 
@@ -570,17 +550,11 @@ class Tiff2Jp2k(object):
             else:
 
                 # the payload DOES fit into the TIFF tag entry
-
-                payload_format = (
-                    tag_dtype[dtype]['format']
-                    * int(max_tag_payload_length / tag_dtype[dtype]['nbytes'])
-                )
-
                 # write the tag metadata
                 buffer = struct.pack('<HHI', tag, dtype, nvalues)
                 b.write(buffer)
 
-                payload_format = tag_dtype[dtype]['format'] * nvalues
+                payload_format = DATATYPE2FMT[dtype]['format'] * nvalues
 
                 # we may need to alter the output format
                 if payload_format in ['H', 'B', 'I']:
