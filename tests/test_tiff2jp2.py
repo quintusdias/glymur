@@ -1,4 +1,5 @@
 # standard library imports
+import importlib.resources as ir
 import logging
 import pathlib
 import platform
@@ -12,6 +13,7 @@ import warnings
 
 # 3rd party library imports
 import numpy as np
+import skimage
 
 # Local imports
 import glymur
@@ -29,63 +31,16 @@ from glymur.lib import tiff as libtiff
 class TestSuiteScikitImage(fixtures.TestCommon):
 
     @classmethod
-    def setup_minisblack_spp1(cls, path):
-        """
-        SCENARIO:  create a simple monochromatic 2x2 tiled image
-        """
-        data = fixtures.skimage.data.moon()
-        h, w = data.shape
-        th, tw = h // 2, w // 2
-
-        fp = libtiff.open(path, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
-        libtiff.setField(fp, 'ImageLength', data.shape[0])
-        libtiff.setField(fp, 'ImageWidth', data.shape[1])
-        libtiff.setField(fp, 'TileLength', th)
-        libtiff.setField(fp, 'TileWidth', tw)
-        libtiff.setField(fp, 'BitsPerSample', 8)
-        libtiff.setField(fp, 'SamplesPerPixel', 1)
-        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
-
-        libtiff.writeEncodedTile(fp, 0, data[:th, :tw].copy())
-        libtiff.writeEncodedTile(fp, 1, data[:th, tw:w].copy())
-        libtiff.writeEncodedTile(fp, 2, data[th:h, :tw].copy())
-        libtiff.writeEncodedTile(fp, 3, data[th:h, tw:w].copy())
-
-        libtiff.close(fp)
-
-        # now read it back
-        fp = libtiff.open(path)
-
-        tile = np.zeros((th, tw), dtype=np.uint8)
-        actual_data = np.zeros((h, w), dtype=np.uint8)
-
-        libtiff.readEncodedTile(fp, 0, tile)
-        actual_data[:th, :tw] = tile
-
-        libtiff.readEncodedTile(fp, 1, tile)
-        actual_data[:th, tw:w] = tile
-
-        libtiff.readEncodedTile(fp, 2, tile)
-        actual_data[th:h, :tw] = tile
-
-        libtiff.readEncodedTile(fp, 3, tile)
-        actual_data[th:h, tw:w] = tile
-
-        libtiff.close(fp)
-
-        cls.minisblack_spp1_data = actual_data
-        cls.minisblack_spp1_path = path
-
-    @classmethod
     def setup_minisblack_2x2_partial_tiles(cls, path):
         """
         SCENARIO:  create a simple monochromatic 2x2 tiled image with partial
         tiles.
         """
         data = fixtures.skimage.data.moon()
+        # data = skimage.transform.rescale(data, 0.25, preserve_range=True, anti_aliasing=True)
+        # data = data.astype(np.uint8)
+        # h, w = 120, 120
+        # th, tw = 64, 64
         h, w = 480, 480
         th, tw = 256, 256
 
@@ -473,7 +428,11 @@ class TestSuiteScikitImage(fixtures.TestCommon):
         cls.test_tiff_dir = tempfile.mkdtemp()
         cls.test_tiff_path = pathlib.Path(cls.test_tiff_dir)
 
-        cls.setup_minisblack_spp1(cls.test_tiff_path / 'moon.tif')
+        cls.moon_truth = skimage.transform.rescale(
+            skimage.data.moon(), 0.25,
+            preserve_range=True,
+            anti_aliasing=True
+        ).astype(np.uint8)
 
         cls.setup_minisblack_3x3(cls.test_tiff_path / 'minisblack_3x3.tif')
 
@@ -656,7 +615,8 @@ class TestSuiteScikitImage(fixtures.TestCommon):
         EXPECTED RESULT:  data matches, the irreversible transform is confirmed
         """
         with Tiff2Jp2k(
-            self.minisblack_spp1_path, self.temp_jp2_filename,
+            ir.files('tests.data.skimage').joinpath('moon.tif'),
+            self.temp_jp2_filename,
             psnr=(30, 35, 40, 0)
         ) as j:
             j.run()
@@ -673,9 +633,7 @@ class TestSuiteScikitImage(fixtures.TestCommon):
             # warning
             warnings.simplefilter('ignore')
             psnr = [
-                fixtures.skimage.metrics.peak_signal_noise_ratio(
-                    fixtures.skimage.data.moon(), d[j]
-                )
+                skimage.metrics.peak_signal_noise_ratio(self.moon_truth, d[j])
                 for j in range(4)
             ]
 
@@ -993,22 +951,22 @@ class TestSuiteScikitImage(fixtures.TestCommon):
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
         with Tiff2Jp2k(
-            self.minisblack_spp1_path,
+            ir.files('tests.data.skimage').joinpath('moon.tif'),
             self.temp_jp2_filename,
-            tilesize=(256, 256)
+            tilesize=(64, 64)
         ) as j:
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
 
-        np.testing.assert_array_equal(actual, self.minisblack_spp1_data)
+        np.testing.assert_array_equal(actual, self.moon_truth)
 
         c = jp2.get_codestream()
-        self.assertEqual(c.segment[1].xsiz, 512)
-        self.assertEqual(c.segment[1].ysiz, 512)
-        self.assertEqual(c.segment[1].xtsiz, 256)
-        self.assertEqual(c.segment[1].ytsiz, 256)
+        self.assertEqual(c.segment[1].xsiz, 128)
+        self.assertEqual(c.segment[1].ysiz, 128)
+        self.assertEqual(c.segment[1].xtsiz, 64)
+        self.assertEqual(c.segment[1].ytsiz, 64)
 
     def test_tiled_logging(self):
         """
@@ -1018,9 +976,9 @@ class TestSuiteScikitImage(fixtures.TestCommon):
         EXPECTED RESULT:  there are four messages logged, one for each tile
         """
         with Tiff2Jp2k(
-            self.minisblack_spp1_path,
+            ir.files('tests.data.skimage').joinpath('moon.tif'),
             self.temp_jp2_filename,
-            tilesize=(256, 256)
+            tilesize=(64, 64)
         ) as j:
             with self.assertLogs(logger='tiff2jp2', level=logging.INFO) as cm:
                 j.run()
@@ -1035,21 +993,22 @@ class TestSuiteScikitImage(fixtures.TestCommon):
         EXPECTED RESULT:  The data matches.  The JP2 file has 16 tiles.
         """
         with Tiff2Jp2k(
-            self.minisblack_spp1_path, self.temp_jp2_filename,
-            tilesize=(128, 128)
+            ir.files('tests.data.skimage').joinpath('moon.tif'),
+            self.temp_jp2_filename,
+            tilesize=(32, 32)
         ) as j:
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
 
-        np.testing.assert_array_equal(actual, self.minisblack_spp1_data)
+        np.testing.assert_array_equal(actual, self.moon_truth)
 
         c = jp2.get_codestream()
-        self.assertEqual(c.segment[1].xsiz, 512)
-        self.assertEqual(c.segment[1].ysiz, 512)
-        self.assertEqual(c.segment[1].xtsiz, 128)
-        self.assertEqual(c.segment[1].ytsiz, 128)
+        self.assertEqual(c.segment[1].xsiz, 128)
+        self.assertEqual(c.segment[1].ysiz, 128)
+        self.assertEqual(c.segment[1].xtsiz, 32)
+        self.assertEqual(c.segment[1].ytsiz, 32)
 
     def test_minisblack_3strip_to_2x2(self):
         """
