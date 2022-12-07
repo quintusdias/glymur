@@ -425,14 +425,12 @@ class TestSuiteScikitImage(fixtures.TestCommon):
 
     @classmethod
     def setUpClass(cls):
+        cls.moon_truth = skimage.io.imread(
+            ir.files('tests.data.skimage').joinpath('moon.tif')
+        )
+
         cls.test_tiff_dir = tempfile.mkdtemp()
         cls.test_tiff_path = pathlib.Path(cls.test_tiff_dir)
-
-        cls.moon_truth = skimage.transform.rescale(
-            skimage.data.moon(), 0.25,
-            preserve_range=True,
-            anti_aliasing=True
-        ).astype(np.uint8)
 
         cls.setup_minisblack_3x3(cls.test_tiff_path / 'minisblack_3x3.tif')
 
