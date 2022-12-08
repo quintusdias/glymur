@@ -24,11 +24,8 @@ from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 from glymur.lib import tiff as libtiff
 
 
-@unittest.skipIf(
-    not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
-)
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-class TestSuiteScikitImage(fixtures.TestCommon):
+class TestSuite(fixtures.TestCommon):
 
     @classmethod
     def setup_rgb_uint16(cls, path):
@@ -310,6 +307,10 @@ class TestSuiteScikitImage(fixtures.TestCommon):
 
         cls.test_tiff_dir = tempfile.mkdtemp()
         cls.test_tiff_path = pathlib.Path(cls.test_tiff_dir)
+
+        cls.setup_rgb_evenly_stripped(cls.test_tiff_path / 'goodstuff.tif')
+
+        cls.setup_exif(cls.test_tiff_path / 'exif.tif')
 
         cls.setup_rgb(cls.test_tiff_path / 'astronaut.tif')
         cls.setup_rgb_bigtiff(cls.test_tiff_path / 'rbg_bigtiff.tif')
@@ -1171,9 +1172,6 @@ class TestSuiteScikitImage(fixtures.TestCommon):
         self.assertNotIn('TileByteCounts', tags)
         self.assertNotIn('TileOffsets', tags)
 
-
-class TestSuiteNoScikitImage(fixtures.TestCommon):
-
     @classmethod
     def setup_exif(cls, path):
         """
@@ -1313,16 +1311,6 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
             f.write(buffer)
 
         cls.exif_tiff = path
-
-    @classmethod
-    def setUpClass(cls):
-
-        cls.test_tiff_dir = tempfile.mkdtemp()
-        cls.test_tiff_path = pathlib.Path(cls.test_tiff_dir)
-
-        cls.setup_rgb_evenly_stripped(cls.test_tiff_path / 'goodstuff.tif')
-
-        cls.setup_exif(cls.test_tiff_path / 'exif.tif')
 
     @classmethod
     def setup_rgb_evenly_stripped(cls, path):
