@@ -31,41 +31,6 @@ from glymur.lib import tiff as libtiff
 class TestSuiteScikitImage(fixtures.TestCommon):
 
     @classmethod
-    def setup_minisblack_2x2_partial_tiles(cls, path):
-        """
-        SCENARIO:  create a simple monochromatic 2x2 tiled image with partial
-        tiles.
-        """
-        data = fixtures.skimage.data.moon()
-        # data = skimage.transform.rescale(data, 0.25, preserve_range=True, anti_aliasing=True)
-        # data = data.astype(np.uint8)
-        # h, w = 120, 120
-        # th, tw = 64, 64
-        h, w = 480, 480
-        th, tw = 256, 256
-
-        fp = libtiff.open(path, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
-        libtiff.setField(fp, 'ImageLength', h)
-        libtiff.setField(fp, 'ImageWidth', w)
-        libtiff.setField(fp, 'TileLength', th)
-        libtiff.setField(fp, 'TileWidth', tw)
-        libtiff.setField(fp, 'BitsPerSample', 8)
-        libtiff.setField(fp, 'SamplesPerPixel', 1)
-
-        libtiff.writeEncodedTile(fp, 0, data[:th, :tw].copy())
-        libtiff.writeEncodedTile(fp, 1, data[:th, tw:w].copy())
-        libtiff.writeEncodedTile(fp, 2, data[th:h, :tw].copy())
-        libtiff.writeEncodedTile(fp, 3, data[th:h, tw:w].copy())
-
-        libtiff.close(fp)
-
-        cls.minisblack_2x2_partial_tiles_data = data[:h, :w]
-        cls.minisblack_2x2_partial_tiles_path = path
-
-    @classmethod
     def setup_minisblack_3x3(cls, path):
         """
         SCENARIO:  create a simple monochromatic 3x3 tiled image
@@ -132,42 +97,6 @@ class TestSuiteScikitImage(fixtures.TestCommon):
         libtiff.close(fp)
 
         cls.minisblack_3_full_strips_path = path
-
-    @classmethod
-    def setup_minisblack_3strip_partial_last_strip(cls, path):
-        """
-        SCENARIO:  create a simple monochromatic 3-strip image
-        """
-        data = fixtures.skimage.data.moon()
-        data = data[:480, :480]
-
-        h, w = data.shape
-
-        # instead of 160, this will cause a partially empty last strip
-        rps = 170
-
-        fp = libtiff.open(path, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
-        libtiff.setField(fp, 'ImageLength', data.shape[0])
-        libtiff.setField(fp, 'ImageWidth', data.shape[1])
-        libtiff.setField(fp, 'RowsPerStrip', rps)
-        libtiff.setField(fp, 'BitsPerSample', 8)
-        libtiff.setField(fp, 'SamplesPerPixel', 1)
-        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
-
-        libtiff.writeEncodedStrip(fp, 0, data[:rps, :].copy())
-        libtiff.writeEncodedStrip(fp, 1, data[rps:, :].copy())
-
-        data2 = np.vstack((
-            data[340:480, :], np.zeros((30, 480), dtype=np.uint8)
-        ))
-        libtiff.writeEncodedStrip(fp, 2, data2)
-
-        libtiff.close(fp)
-
-        cls.minisblack_3strip_partial_last_strip = path
 
     @classmethod
     def setup_rgb_uint16(cls, path):
@@ -429,8 +358,17 @@ class TestSuiteScikitImage(fixtures.TestCommon):
             ir.files('tests.data.skimage').joinpath('moon.tif')
         )
 
+        cls.moon_2x2_partial_tiles_truth = skimage.io.imread(
+            ir.files('tests.data.skimage').joinpath('moon_2x2.tif')
+        )
+
         cls.moon_3x3_truth = skimage.io.imread(
             ir.files('tests.data.skimage').joinpath('moon_3x3.tif')
+        )
+
+        cls.moon3_partial_strip_truth = skimage.io.imread(
+            ir.files('tests.data.skimage').joinpath('moon3_partial_last_strip.tif'),
+            plugin='pil'
         )
 
         cls.test_tiff_dir = tempfile.mkdtemp()
@@ -439,12 +377,6 @@ class TestSuiteScikitImage(fixtures.TestCommon):
         cls.setup_minisblack_3x3(cls.test_tiff_path / 'minisblack_3x3.tif')
 
         cls.setup_minisblack_3strip(cls.test_tiff_path / 'moon3_stripped.tif')
-
-        path = cls.test_tiff_path / 'moon3_partial_last_strip.tif'
-        cls.setup_minisblack_3strip_partial_last_strip(path)
-
-        path = cls.test_tiff_path / 'minisblack_2x2_partial_tiles.tif'
-        cls.setup_minisblack_2x2_partial_tiles(path)
 
         cls.setup_rgb(cls.test_tiff_path / 'astronaut.tif')
         cls.setup_rgb_bigtiff(cls.test_tiff_path / 'rbg_bigtiff.tif')
@@ -835,23 +767,22 @@ class TestSuiteScikitImage(fixtures.TestCommon):
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
         with Tiff2Jp2k(
-            self.minisblack_3strip_partial_last_strip, self.temp_jp2_filename,
-            tilesize=(250, 250)
+            ir.files('tests.data.skimage').joinpath('moon3_partial_last_strip.tif'),
+            self.temp_jp2_filename,
+            tilesize=(48, 48)
         ) as j:
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
 
-        np.testing.assert_array_equal(
-            actual, self.minisblack_2x2_partial_tiles_data
-        )
+        np.testing.assert_array_equal(actual, self.moon3_partial_strip_truth)
 
         c = jp2.get_codestream()
-        self.assertEqual(c.segment[1].xsiz, 480)
-        self.assertEqual(c.segment[1].ysiz, 480)
-        self.assertEqual(c.segment[1].xtsiz, 250)
-        self.assertEqual(c.segment[1].ytsiz, 250)
+        self.assertEqual(c.segment[1].xsiz, 90)
+        self.assertEqual(c.segment[1].ysiz, 90)
+        self.assertEqual(c.segment[1].xtsiz, 48)
+        self.assertEqual(c.segment[1].ytsiz, 48)
 
     def test_partial_last_strip(self):
         """
@@ -861,21 +792,22 @@ class TestSuiteScikitImage(fixtures.TestCommon):
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
         with Tiff2Jp2k(
-            self.minisblack_3strip_partial_last_strip, self.temp_jp2_filename,
-            tilesize=(240, 240), verbose='DEBUG'
+            ir.files('tests.data.skimage').joinpath('moon3_partial_last_strip.tif'),
+            self.temp_jp2_filename,
+            tilesize=(48, 48), verbose='DEBUG'
         ) as j:
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
 
-        np.testing.assert_array_equal(actual, self.minisblack_3x3_data)
+        np.testing.assert_array_equal(actual, self.moon3_partial_strip_truth)
 
         c = jp2.get_codestream()
-        self.assertEqual(c.segment[1].xsiz, 480)
-        self.assertEqual(c.segment[1].ysiz, 480)
-        self.assertEqual(c.segment[1].xtsiz, 240)
-        self.assertEqual(c.segment[1].ytsiz, 240)
+        self.assertEqual(c.segment[1].xsiz, 90)
+        self.assertEqual(c.segment[1].ysiz, 90)
+        self.assertEqual(c.segment[1].xtsiz, 48)
+        self.assertEqual(c.segment[1].ytsiz, 48)
 
     def test_32bit(self):
         """
