@@ -31,74 +31,6 @@ from glymur.lib import tiff as libtiff
 class TestSuiteScikitImage(fixtures.TestCommon):
 
     @classmethod
-    def setup_minisblack_3x3(cls, path):
-        """
-        SCENARIO:  create a simple monochromatic 3x3 tiled image
-        """
-        data = fixtures.skimage.data.moon()
-        data = data[:480, :480]
-
-        h, w = data.shape
-        th, tw = h // 3, w // 3
-
-        fp = libtiff.open(path, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
-        libtiff.setField(fp, 'ImageLength', data.shape[0])
-        libtiff.setField(fp, 'ImageWidth', data.shape[1])
-        libtiff.setField(fp, 'TileLength', th)
-        libtiff.setField(fp, 'TileWidth', tw)
-        libtiff.setField(fp, 'BitsPerSample', 8)
-        libtiff.setField(fp, 'SamplesPerPixel', 1)
-
-        libtiff.writeEncodedTile(fp, 0, data[:th, :tw].copy())
-        libtiff.writeEncodedTile(fp, 1, data[:th, tw:tw * 2].copy())
-        libtiff.writeEncodedTile(fp, 2, data[:th, tw * 2:w].copy())
-        libtiff.writeEncodedTile(fp, 3, data[th:th * 2, :tw].copy())
-        libtiff.writeEncodedTile(fp, 4, data[th:th * 2, tw:tw * 2].copy())
-        libtiff.writeEncodedTile(fp, 5, data[th:th * 2, tw * 2:w].copy())
-        libtiff.writeEncodedTile(fp, 6, data[2 * th:h, :tw].copy())
-        libtiff.writeEncodedTile(fp, 7, data[2 * th:h, tw:tw * 2].copy())
-        libtiff.writeEncodedTile(fp, 8, data[2 * th:h, tw * 2:w].copy())
-
-        libtiff.close(fp)
-
-        cls.minisblack_3x3_data = data
-        cls.minisblack_3x3_tif = path
-
-    @classmethod
-    def setup_minisblack_3strip(cls, path):
-        """
-        SCENARIO:  create a simple monochromatic 3-strip image.  The strips
-        evenly divide the image.
-        """
-        data = fixtures.skimage.data.moon()
-        data = data[:480, :480]
-
-        h, w = data.shape
-        rps = h // 3
-
-        fp = libtiff.open(path, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
-        libtiff.setField(fp, 'ImageLength', data.shape[0])
-        libtiff.setField(fp, 'ImageWidth', data.shape[1])
-        libtiff.setField(fp, 'RowsPerStrip', rps)
-        libtiff.setField(fp, 'BitsPerSample', 8)
-        libtiff.setField(fp, 'SamplesPerPixel', 1)
-        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
-
-        libtiff.writeEncodedStrip(fp, 0, data[:rps, :].copy())
-        libtiff.writeEncodedStrip(fp, 1, data[rps:rps * 2, :].copy())
-        libtiff.writeEncodedStrip(fp, 2, data[rps * 2:rps * 3, :].copy())
-
-        libtiff.close(fp)
-
-        cls.minisblack_3_full_strips_path = path
-
-    @classmethod
     def setup_rgb_uint16(cls, path):
         """
         SCENARIO:  create a simple color 2x2 tiled 16bit image
@@ -371,12 +303,13 @@ class TestSuiteScikitImage(fixtures.TestCommon):
             plugin='pil'
         )
 
+        cls.moon3_stripped_truth = skimage.io.imread(
+            ir.files('tests.data.skimage').joinpath('moon3_stripped.tif'),
+            plugin='pil'
+        )
+
         cls.test_tiff_dir = tempfile.mkdtemp()
         cls.test_tiff_path = pathlib.Path(cls.test_tiff_dir)
-
-        cls.setup_minisblack_3x3(cls.test_tiff_path / 'minisblack_3x3.tif')
-
-        cls.setup_minisblack_3strip(cls.test_tiff_path / 'moon3_stripped.tif')
 
         cls.setup_rgb(cls.test_tiff_path / 'astronaut.tif')
         cls.setup_rgb_bigtiff(cls.test_tiff_path / 'rbg_bigtiff.tif')
@@ -952,21 +885,22 @@ class TestSuiteScikitImage(fixtures.TestCommon):
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
         with Tiff2Jp2k(
-            self.minisblack_3_full_strips_path, self.temp_jp2_filename,
-            tilesize=(240, 240)
+            ir.files('tests.data.skimage').joinpath('moon3_stripped.tif'),
+            self.temp_jp2_filename,
+            tilesize=(48, 48)
         ) as j:
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
 
-        np.testing.assert_array_equal(actual, self.minisblack_3x3_data)
+        np.testing.assert_array_equal(actual, self.moon3_stripped_truth)
 
         c = jp2.get_codestream()
-        self.assertEqual(c.segment[1].xsiz, 480)
-        self.assertEqual(c.segment[1].ysiz, 480)
-        self.assertEqual(c.segment[1].xtsiz, 240)
-        self.assertEqual(c.segment[1].ytsiz, 240)
+        self.assertEqual(c.segment[1].xsiz, 96)
+        self.assertEqual(c.segment[1].ysiz, 96)
+        self.assertEqual(c.segment[1].xtsiz, 48)
+        self.assertEqual(c.segment[1].ytsiz, 48)
 
     def test_minisblack_3x3__larger_tilesize_specified(self):
         """
