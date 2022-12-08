@@ -429,6 +429,10 @@ class TestSuiteScikitImage(fixtures.TestCommon):
             ir.files('tests.data.skimage').joinpath('moon.tif')
         )
 
+        cls.moon_3x3_truth = skimage.io.imread(
+            ir.files('tests.data.skimage').joinpath('moon_3x3.tif')
+        )
+
         cls.test_tiff_dir = tempfile.mkdtemp()
         cls.test_tiff_path = pathlib.Path(cls.test_tiff_dir)
 
@@ -1040,21 +1044,22 @@ class TestSuiteScikitImage(fixtures.TestCommon):
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
         with Tiff2Jp2k(
-            self.minisblack_3x3_tif, self.temp_jp2_filename,
-            tilesize=(240, 240)
+            ir.files('tests.data.skimage').joinpath('moon_3x3.tif'),
+            self.temp_jp2_filename,
+            tilesize=(48, 48)
         ) as j:
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
 
-        np.testing.assert_array_equal(actual, self.minisblack_3x3_data)
+        np.testing.assert_array_equal(actual, self.moon_3x3_truth)
 
         c = jp2.get_codestream()
-        self.assertEqual(c.segment[1].xsiz, 480)
-        self.assertEqual(c.segment[1].ysiz, 480)
-        self.assertEqual(c.segment[1].xtsiz, 240)
-        self.assertEqual(c.segment[1].ytsiz, 240)
+        self.assertEqual(c.segment[1].xsiz, 96)
+        self.assertEqual(c.segment[1].ysiz, 96)
+        self.assertEqual(c.segment[1].xtsiz, 48)
+        self.assertEqual(c.segment[1].ytsiz, 48)
 
     def test_rgb_tiled_bigtiff(self):
         """
