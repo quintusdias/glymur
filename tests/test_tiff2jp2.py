@@ -28,58 +28,6 @@ from glymur.lib import tiff as libtiff
 class TestSuite(fixtures.TestCommon):
 
     @classmethod
-    def setup_rgb_uint16(cls, path):
-        """
-        SCENARIO:  create a simple color 2x2 tiled 16bit image
-        """
-        data = fixtures.skimage.data.astronaut().astype(np.uint16)
-        h, w, z = data.shape
-        th, tw = h // 2, w // 2
-
-        fp = libtiff.open(path, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.RGB)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
-        libtiff.setField(fp, 'ImageLength', data.shape[0])
-        libtiff.setField(fp, 'ImageWidth', data.shape[1])
-        libtiff.setField(fp, 'TileLength', th)
-        libtiff.setField(fp, 'TileWidth', tw)
-        libtiff.setField(fp, 'BitsPerSample', 16)
-        libtiff.setField(fp, 'SamplesPerPixel', 3)
-        libtiff.setField(fp, 'SampleFormat', libtiff.SampleFormat.UINT)
-        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
-
-        libtiff.writeEncodedTile(fp, 0, data[:th, :tw, :].copy())
-        libtiff.writeEncodedTile(fp, 1, data[:th, tw:w, :].copy())
-        libtiff.writeEncodedTile(fp, 2, data[th:h, :tw, :].copy())
-        libtiff.writeEncodedTile(fp, 3, data[th:h, tw:w, :].copy())
-
-        libtiff.close(fp)
-
-        # now read it back
-        fp = libtiff.open(path)
-
-        tile = np.zeros((th, tw, 3), dtype=np.uint16)
-        actual_data = np.zeros((h, w, 3), dtype=np.uint16)
-
-        libtiff.readEncodedTile(fp, 0, tile)
-        actual_data[:th, :tw, :] = tile
-
-        libtiff.readEncodedTile(fp, 1, tile)
-        actual_data[:th, tw:w, :] = tile
-
-        libtiff.readEncodedTile(fp, 2, tile)
-        actual_data[th:h, :tw, :] = tile
-
-        libtiff.readEncodedTile(fp, 3, tile)
-        actual_data[th:h, tw:w, :] = tile
-
-        libtiff.close(fp)
-
-        cls.astronaut_uint16_data = actual_data
-        cls.astronaut_uint16_filename = path
-
-    @classmethod
     def setup_ycbcr_striped_jpeg(cls, path):
         """
         SCENARIO:  create a simple color 2x1 stripped image
@@ -305,6 +253,10 @@ class TestSuite(fixtures.TestCommon):
             plugin='pil'
         )
 
+        cls.astronaut16_truth = skimage.io.imread(
+            ir.files('tests.data.skimage').joinpath('astronaut_uint16.tif'),
+        )
+
         cls.test_tiff_dir = tempfile.mkdtemp()
         cls.test_tiff_path = pathlib.Path(cls.test_tiff_dir)
 
@@ -322,8 +274,6 @@ class TestSuite(fixtures.TestCommon):
         cls.setup_ycbcr_striped_jpeg(
             cls.test_tiff_path / 'astronaut_ycbcr_striped_jpeg.tif'
         )
-
-        cls.setup_rgb_uint16(cls.test_tiff_path / 'astronaut_uint16.tif')
 
     @classmethod
     def tearDownClass(cls):
@@ -1053,21 +1003,22 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
         with Tiff2Jp2k(
-            self.astronaut_uint16_filename, self.temp_jp2_filename,
-            tilesize=(256, 256)
+            ir.files('tests.data.skimage').joinpath('astronaut_uint16.tif'),
+            self.temp_jp2_filename,
+            tilesize=(64, 64)
         ) as j:
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
 
-        np.testing.assert_array_equal(actual, self.astronaut_uint16_data)
+        np.testing.assert_array_equal(actual, self.astronaut16_truth)
 
         c = jp2.get_codestream()
-        self.assertEqual(c.segment[1].xsiz, 512)
-        self.assertEqual(c.segment[1].ysiz, 512)
-        self.assertEqual(c.segment[1].xtsiz, 256)
-        self.assertEqual(c.segment[1].ytsiz, 256)
+        self.assertEqual(c.segment[1].xsiz, 128)
+        self.assertEqual(c.segment[1].ysiz, 128)
+        self.assertEqual(c.segment[1].xtsiz, 64)
+        self.assertEqual(c.segment[1].ytsiz, 64)
 
     def test_commandline_tiff2jp2(self):
         """
