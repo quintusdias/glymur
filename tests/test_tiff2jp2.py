@@ -161,6 +161,9 @@ class TestSuite(fixtures.TestCommon):
             ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_striped_jpeg.tif'),
         )
 
+        cls.astronaut_ycbcr_jpeg_tiled = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_jpeg_tiled.tif')  # noqa : E501
+        cls.moon3_partial_last_strip = ir.files('tests.data.skimage').joinpath('moon3_partial_last_strip.tif')  # noqa : E501
+
         cls.test_tiff_dir = tempfile.mkdtemp()
         cls.test_tiff_path = pathlib.Path(cls.test_tiff_dir)
 
@@ -525,9 +528,9 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  data matches
         """
-        src = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_jpeg_tiled.tif')
         with Tiff2Jp2k(
-            src, self.temp_jp2_filename, verbosity=logging.INFO
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename,
+            verbosity=logging.INFO
         ) as j:
             with self.assertLogs(logger='tiff2jp2', level=logging.INFO) as cm:
                 j.run()
@@ -542,16 +545,17 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
         with Tiff2Jp2k(
-            ir.files('tests.data.skimage').joinpath('moon3_partial_last_strip.tif'),
-            self.temp_jp2_filename,
+            self.moon3_partial_last_strip, self.temp_jp2_filename,
             tilesize=(48, 48)
         ) as j:
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
-
-        np.testing.assert_array_equal(actual, self.moon3_partial_strip_truth)
+        expected = skimage.io.imread(
+            self.moon3_partial_last_strip, plugin='pil'
+        )
+        np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
         self.assertEqual(c.segment[1].xsiz, 90)
@@ -567,7 +571,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
         with Tiff2Jp2k(
-            ir.files('tests.data.skimage').joinpath('moon3_partial_last_strip.tif'),
+            self.moon3_partial_last_strip,
             self.temp_jp2_filename,
             tilesize=(48, 48), verbose='DEBUG'
         ) as j:
@@ -576,7 +580,10 @@ class TestSuite(fixtures.TestCommon):
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
 
-        np.testing.assert_array_equal(actual, self.moon3_partial_strip_truth)
+        expected = skimage.io.imread(
+            self.moon3_partial_last_strip, plugin='pil'
+        )
+        np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
         self.assertEqual(c.segment[1].xsiz, 90)
@@ -822,14 +829,16 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  The data matches.  No errors
         """
-        src = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_jpeg_tiled.tif')
-        with Tiff2Jp2k(src, self.temp_jp2_filename, tilesize=(75, 75)) as j:
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename,
+            tilesize=(75, 75)
+        ) as j:
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
 
-        expected = skimage.io.imread(src)
+        expected = skimage.io.imread(self.astronaut_ycbcr_jpeg_tiled)
         np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
@@ -845,13 +854,15 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
-        src = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_jpeg_tiled.tif')
-        with Tiff2Jp2k(src, self.temp_jp2_filename, tilesize=(256, 256)) as j:
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename,
+            tilesize=(256, 256)
+        ) as j:
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
-        expected = skimage.io.imread(src)
+        expected = skimage.io.imread(self.astronaut_ycbcr_jpeg_tiled)
         np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
@@ -867,13 +878,14 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  The data matches.
         """
-        src = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_jpeg_tiled.tif')
-        with Tiff2Jp2k(src, self.temp_jp2_filename) as j:
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename
+        ) as j:
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
-        expected = skimage.io.imread(src)
+        expected = skimage.io.imread(self.astronaut_ycbcr_jpeg_tiled)
         np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
