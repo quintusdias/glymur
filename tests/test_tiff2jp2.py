@@ -143,11 +143,6 @@ class TestSuite(fixtures.TestCommon):
             ir.files('tests.data.skimage').joinpath('moon_3x3.tif')
         )
 
-        cls.moon3_partial_strip_truth = skimage.io.imread(
-            ir.files('tests.data.skimage').joinpath('moon3_partial_last_strip.tif'),
-            plugin='pil'
-        )
-
         cls.moon3_stripped_truth = skimage.io.imread(
             ir.files('tests.data.skimage').joinpath('moon3_stripped.tif'),
             plugin='pil'
@@ -157,10 +152,7 @@ class TestSuite(fixtures.TestCommon):
             ir.files('tests.data.skimage').joinpath('astronaut_uint16.tif'),
         )
 
-        cls.astronaut_ycbcr_truth = skimage.io.imread(
-            ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_striped_jpeg.tif'),
-        )
-
+        cls.astronaut_ycbcr_striped_jpeg = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_striped_jpeg.tif')  # noqa : E501
         cls.astronaut_ycbcr_jpeg_tiled = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_jpeg_tiled.tif')  # noqa : E501
         cls.moon3_partial_last_strip = ir.files('tests.data.skimage').joinpath('moon3_partial_last_strip.tif')  # noqa : E501
 
@@ -191,8 +183,9 @@ class TestSuite(fixtures.TestCommon):
 
         There is a UUID box appended at the end containing the metadata.
         """
-        src = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_jpeg_tiled.tif')
-        with Tiff2Jp2k(src, self.temp_jp2_filename) as j:
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename
+        ) as j:
             j.run()
 
         j = Jp2k(self.temp_jp2_filename)
@@ -251,8 +244,7 @@ class TestSuite(fixtures.TestCommon):
         There is a UUID box appended at the end containing the metadata.
         """
         with Tiff2Jp2k(
-            ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_striped_jpeg.tif'),
-            self.temp_jp2_filename,
+            self.astronaut_ycbcr_striped_jpeg, self.temp_jp2_filename,
             tilesize=[256, 256]
         ) as j:
             j.run()
@@ -306,9 +298,9 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  data matches, no UUID box
         """
-        src = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_jpeg_tiled.tif')
         with Tiff2Jp2k(
-            src, self.temp_jp2_filename, create_exif_uuid=False
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename,
+            create_exif_uuid=False
         ) as j:
             j.run()
 
@@ -369,8 +361,10 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  data matches, the irreversible transform is confirmed
         """
-        src = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_jpeg_tiled.tif')
-        with Tiff2Jp2k(src, self.temp_jp2_filename, irreversible=True) as j:
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename,
+            irreversible=True
+        ) as j:
             j.run()
 
         j = Jp2k(self.temp_jp2_filename)
@@ -386,8 +380,9 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  data matches, sop markers confirmed
         """
-        src = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_jpeg_tiled.tif')
-        with Tiff2Jp2k(src, self.temp_jp2_filename, sop=True) as j:
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename, sop=True
+        ) as j:
             j.run()
 
         j = Jp2k(self.temp_jp2_filename)
@@ -405,8 +400,10 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  data matches, plt markers confirmed
         """
-        src = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_jpeg_tiled.tif')
-        with Tiff2Jp2k(src, self.temp_jp2_filename, prog='rlcp') as j:
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename,
+            prog='rlcp'
+        ) as j:
             j.run()
 
         j = Jp2k(self.temp_jp2_filename)
@@ -420,8 +417,9 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  data matches, plt markers confirmed
         """
-        src = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_jpeg_tiled.tif')
-        with Tiff2Jp2k(src, self.temp_jp2_filename, eph=True) as j:
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename, eph=True
+        ) as j:
             j.run()
 
         j = Jp2k(self.temp_jp2_filename)
@@ -442,8 +440,10 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  data matches, plt markers confirmed
         """
-        src = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_jpeg_tiled.tif')
-        with Tiff2Jp2k(src, self.temp_jp2_filename, plt=True) as j:
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename,
+            plt=True
+        ) as j:
             j.run()
 
         j = Jp2k(self.temp_jp2_filename)
@@ -464,9 +464,9 @@ class TestSuite(fixtures.TestCommon):
         """
         expected_numres = 4
 
-        src = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_jpeg_tiled.tif')
         with Tiff2Jp2k(
-            src, self.temp_jp2_filename, numres=expected_numres
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename,
+            numres=expected_numres
         ) as j:
             j.run()
 
@@ -485,9 +485,9 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  data matches, number of layers is 3
         """
-        src = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_jpeg_tiled.tif')
         with Tiff2Jp2k(
-            src, self.temp_jp2_filename, cratios=[200, 50, 10]
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename,
+            cratios=[200, 50, 10]
         ) as j:
             j.run()
 
@@ -505,11 +505,10 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  data matches, number of resolution is the default
         """
-        expected = (32, 32)
+        cbsize = (32, 32)
         with Tiff2Jp2k(
-            ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_jpeg_tiled.tif'),
-            self.temp_jp2_filename,
-            cbsize=expected
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename,
+            cbsize=cbsize
         ) as j:
             j.run()
 
@@ -520,7 +519,7 @@ class TestSuite(fixtures.TestCommon):
 
         c = j.get_codestream()
         actual = c.segment[2].code_block_size
-        self.assertEqual(actual, expected)
+        self.assertEqual(actual, cbsize)
 
     def test_verbosity(self):
         """
