@@ -28,53 +28,6 @@ from glymur.lib import tiff as libtiff
 class TestSuite(fixtures.TestCommon):
 
     @classmethod
-    def setup_ycbcr_striped_jpeg(cls, path):
-        """
-        SCENARIO:  create a simple color 2x1 stripped image
-        """
-        data = fixtures.skimage.data.astronaut()
-        h, w, z = data.shape
-        rps = h // 2
-
-        fp = libtiff.open(path, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.YCBCR)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.JPEG)
-
-        l, w = data.shape[:2]
-        libtiff.setField(fp, 'ImageLength', l)
-        libtiff.setField(fp, 'ImageWidth', w)
-        libtiff.setField(fp, 'RowsPerStrip', rps)
-
-        libtiff.setField(fp, 'BitsPerSample', 8)
-        libtiff.setField(fp, 'SamplesPerPixel', 3)
-        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
-        libtiff.setField(fp, 'JPEGColorMode', libtiff.JPEGColorMode.RGB)
-        libtiff.setField(fp, 'JPEGQuality', 100)
-
-        libtiff.writeEncodedStrip(fp, 0, data[:rps, :, :])
-        libtiff.writeEncodedStrip(fp, 1, data[rps:rps * 2, :, :])
-
-        libtiff.close(fp)
-
-        # now read it back
-        fp = libtiff.open(path)
-
-        strip = np.zeros((rps, w, 4), dtype=np.uint8)
-        actual_data = np.zeros((h, w, 3), dtype=np.uint8)
-
-        libtiff.readRGBAStrip(fp, 0, strip)
-        actual_data[:rps, :, :] = strip[::-1, :, :3]
-
-        libtiff.readRGBAStrip(fp, rps, strip)
-        actual_data[rps:rps * 2, :, :] = strip[::-1, :, :3]
-
-        libtiff.close(fp)
-
-        cls.astronaut_ycbcr_striped_jpeg_data = actual_data
-        cls.astronaut_ycbcr_striped_jpeg_tif = path
-
-    @classmethod
     def setup_ycbcr_jpeg(cls, path):
         """
         SCENARIO:  create a simple color 2x2 tiled image
@@ -257,6 +210,10 @@ class TestSuite(fixtures.TestCommon):
             ir.files('tests.data.skimage').joinpath('astronaut_uint16.tif'),
         )
 
+        cls.astronaut_ycbcr_truth = skimage.io.imread(
+            ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_striped_jpeg.tif'),
+        )
+
         cls.test_tiff_dir = tempfile.mkdtemp()
         cls.test_tiff_path = pathlib.Path(cls.test_tiff_dir)
 
@@ -269,10 +226,6 @@ class TestSuite(fixtures.TestCommon):
 
         cls.setup_ycbcr_jpeg(
             cls.test_tiff_path / 'astronaut_ycbcr_jpeg_tiled.tif'
-        )
-
-        cls.setup_ycbcr_striped_jpeg(
-            cls.test_tiff_path / 'astronaut_ycbcr_striped_jpeg.tif'
         )
 
     @classmethod
@@ -353,7 +306,8 @@ class TestSuite(fixtures.TestCommon):
         There is a UUID box appended at the end containing the metadata.
         """
         with Tiff2Jp2k(
-            self.astronaut_ycbcr_striped_jpeg_tif, self.temp_jp2_filename,
+            ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_striped_jpeg.tif'),
+            self.temp_jp2_filename,
             tilesize=[256, 256]
         ) as j:
             j.run()
