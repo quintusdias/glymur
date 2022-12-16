@@ -29,10 +29,6 @@ class TestSuite(fixtures.TestCommon):
 
     @classmethod
     def setUpClass(cls):
-        cls.moon_2x2_partial_tiles_truth = skimage.io.imread(
-            ir.files('tests.data.skimage').joinpath('moon_2x2.tif')
-        )
-
         cls.moon_3x3_truth = skimage.io.imread(
             ir.files('tests.data.skimage').joinpath('moon_3x3.tif')
         )
