@@ -1,4 +1,5 @@
-"""Shipping JPEG 2000 files.
+"""
+Shipping JPEG 2000 files.
 
 These include:
     nemo.jp2:  converted from the original JPEG photo of the aftermath of NEMO,
@@ -11,7 +12,8 @@ import sys
 
 
 def nemo():
-    """Shortcut for specifying path to nemo.jp2.
+    """
+    Shortcut for specifying path to nemo.jp2.
 
     Returns
     -------
@@ -22,7 +24,8 @@ def nemo():
 
 
 def goodstuff():
-    """Shortcut for specifying path to goodstuff.j2k.
+    """
+    Shortcut for specifying path to goodstuff.j2k.
 
     Returns
     -------
@@ -33,12 +36,13 @@ def goodstuff():
 
 
 def jpxfile():
-    """Shortcut for specifying path to heliov.jpx.
+    """
+    Shortcut for specifying path to heliov.jpx.
 
     Returns
     -------
     file : str
-        Platform-independent path to 12-v6.4.jpx
+        Platform-independent path to heliov.jpx
     """
     return _str_path_to('heliov.jpx')
 
