@@ -29,10 +29,6 @@ class TestSuite(fixtures.TestCommon):
 
     @classmethod
     def setUpClass(cls):
-        cls.moon_truth = skimage.io.imread(
-            ir.files('tests.data.skimage').joinpath('moon.tif')
-        )
-
         cls.moon_2x2_partial_tiles_truth = skimage.io.imread(
             ir.files('tests.data.skimage').joinpath('moon_2x2.tif')
         )
@@ -53,6 +49,7 @@ class TestSuite(fixtures.TestCommon):
         cls.astronaut8 = ir.files('tests.data.skimage').joinpath('astronaut8.tif')  # noqa : E501
         cls.astronaut_ycbcr_striped_jpeg = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_striped_jpeg.tif')  # noqa : E501
         cls.astronaut_ycbcr_jpeg_tiled = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_jpeg_tiled.tif')  # noqa : E501
+        cls.moon = ir.files('tests.data.skimage').joinpath('moon.tif')
         cls.moon3_partial_last_strip = ir.files('tests.data.skimage').joinpath('moon3_partial_last_strip.tif')  # noqa : E501
         cls.ycbcr_bg = ir.files('tests.data.skimage').joinpath('ycbcr_bg.tif')
 
@@ -235,12 +232,14 @@ class TestSuite(fixtures.TestCommon):
             j.layer = layer
             d[layer] = j[:]
 
+        truth = skimage.io.imread(self.moon)
+
         with warnings.catch_warnings():
             # MSE is zero for that first image, resulting in a divide-by-zero
             # warning
             warnings.simplefilter('ignore')
             psnr = [
-                skimage.metrics.peak_signal_noise_ratio(self.moon_truth, d[j])
+                skimage.metrics.peak_signal_noise_ratio(truth, d[j])
                 for j in range(4)
             ]
 
@@ -572,8 +571,8 @@ class TestSuite(fixtures.TestCommon):
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
-
-        np.testing.assert_array_equal(actual, self.moon_truth)
+        expected = skimage.io.imread(self.moon)
+        np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
         self.assertEqual(c.segment[1].xsiz, 128)
@@ -614,8 +613,8 @@ class TestSuite(fixtures.TestCommon):
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
-
-        np.testing.assert_array_equal(actual, self.moon_truth)
+        expected = skimage.io.imread(self.moon)
+        np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
         self.assertEqual(c.segment[1].xsiz, 128)
