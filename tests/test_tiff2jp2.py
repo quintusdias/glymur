@@ -50,6 +50,177 @@ class TestSuite(fixtures.TestCommon):
     def tearDownClass(cls):
         shutil.rmtree(cls.test_tiff_path)
 
+    @classmethod
+    def setup_exif(cls, path):
+        """
+        Create a simple TIFF file that is constructed to contain an EXIF IFD.
+        """
+
+        # main TIFF header @ 0
+        # image data @ 8
+        # main IFD @ 65544 = 256*256 + 8 (2 + 12*12 = 146 bytes)
+        # main IDF data @ 65690  = main_ifd + 2 + 12 * 12 + 4
+        #
+        # strip offsets @ 65694 (16 bytes)
+        # strip byte counts @ 65710 (16 bytes)
+        # xmp data @ 65726 (12532 bytes)
+        # camera ID data @ 78258 (8 bytes)
+        #
+        # exif IFD @ 78266 (2 + 2*12 + 4 = 30 bytes)
+        # exif IFD data @ 78296 (6 bytes)
+        with path.open(mode='wb') as f:
+
+            w = 256
+            h = 256
+            rps = 64
+            header_length = 8
+
+            # write the header (8 bytes).  The IFD will follow the image data
+            # (256x256 bytes), so the offset to the IFD will be 8 + h * w.
+            main_ifd_offset = header_length + h * w
+            buffer = struct.pack('<BBHI', 73, 73, 42, main_ifd_offset)
+            f.write(buffer)
+
+            # write the image data, 4 64x256 strips of all zeros
+            strip = bytes([0] * rps * w)
+            f.write(strip)
+            f.write(strip)
+            f.write(strip)
+            f.write(strip)
+
+            # write an IFD with 12 tags
+            main_ifd_data_offset = main_ifd_offset + 2 + 12 * 12 + 4
+
+            buffer = struct.pack('<H', 12)
+            f.write(buffer)
+
+            # width and length and bitspersample
+            buffer = struct.pack('<HHII', 256, 4, 1, w)
+            f.write(buffer)
+            buffer = struct.pack('<HHII', 257, 4, 1, h)
+            f.write(buffer)
+            buffer = struct.pack('<HHII', 258, 4, 1, 8)
+            f.write(buffer)
+
+            # photometric
+            buffer = struct.pack('<HHII', 262, 4, 1, 1)
+            f.write(buffer)
+
+            # strip offsets
+            buffer = struct.pack('<HHII', 273, 4, 4, main_ifd_data_offset)
+            f.write(buffer)
+
+            # spp
+            buffer = struct.pack('<HHII', 277, 4, 1, 1)
+            f.write(buffer)
+
+            # rps
+            buffer = struct.pack('<HHII', 278, 4, 1, 64)
+            f.write(buffer)
+
+            # strip byte counts
+            buffer = struct.pack('<HHII', 279, 4, 4, main_ifd_data_offset + 16)
+            f.write(buffer)
+
+            # pagenumber
+            buffer = struct.pack('<HHIHH', 297, 3, 2, 1, 0)
+            f.write(buffer)
+
+            # XMP
+            xmp_path = fixtures._path_to('issue555.xmp')
+            with xmp_path.open() as f2:
+                xmp = f2.read()
+                xmp = xmp + '\0'
+            buffer = struct.pack(
+                '<HHII', 700, 1, len(xmp), main_ifd_data_offset + 32
+            )
+            f.write(buffer)
+
+            # exif tag
+            # write it AFTER lensinfo, which is 8 chars
+            exif_ifd_offset = main_ifd_data_offset + 32 + len(xmp) + 8
+            buffer = struct.pack('<HHII', 34665, 4, 1, exif_ifd_offset)
+            f.write(buffer)
+
+            # lensmodel
+            offset = main_ifd_data_offset + 32 + len(xmp)
+            buffer = struct.pack('<HHII', 50708, 2, 8, offset)
+            f.write(buffer)
+
+            # terminate the IFD
+            buffer = struct.pack('<I', 0)
+            f.write(buffer)
+
+            # write the strip offsets here
+            buffer = struct.pack(
+                '<IIII', 8, 8 + rps*w, 8 + 2*rps*w, 8 + 3*rps*w
+            )
+            f.write(buffer)
+
+            # write the strip byte counts
+            buffer = struct.pack('<IIII', rps*w, rps*w, rps*w, rps*w)
+            f.write(buffer)
+
+            # write the XMP data
+            f.write(xmp.encode('utf-8'))
+
+            # write the camera ID
+            f.write("abcdefg\x00".encode('utf-8'))
+
+            # write a minimal Exif IFD
+            buffer = struct.pack('<H', 2)
+            f.write(buffer)
+
+            # exposure program
+            buffer = struct.pack('<HHIHH', 34850, 3, 1, 2, 0)
+            f.write(buffer)
+
+            # lens model
+            data_location = exif_ifd_offset + 2 + 2*12 + 4
+            buffer = struct.pack('<HHII', 42036, 2, 6, data_location)
+            f.write(buffer)
+
+            # terminate the IFD
+            buffer = struct.pack('<I', 0)
+            f.write(buffer)
+
+            data = 'Canon\0'.encode('utf-8')
+            buffer = struct.pack('<BBBBBB', *data)
+            f.write(buffer)
+
+        cls.exif = path
+
+    @classmethod
+    def setup_rgb_evenly_stripped(cls, path):
+        """
+        SCENARIO:  create a simple RGB stripped image, stripsize of 32
+        """
+        j = Jp2k(glymur.data.goodstuff())
+        data = j[:]
+        h, w, spp = data.shape
+        rps = 32
+
+        fp = libtiff.open(path, mode='w')
+
+        libtiff.setField(fp, 'Photometric', libtiff.Photometric.RGB)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
+        libtiff.setField(fp, 'ImageLength', data.shape[0])
+        libtiff.setField(fp, 'ImageWidth', data.shape[1])
+        libtiff.setField(fp, 'RowsPerStrip', rps)
+        libtiff.setField(fp, 'BitsPerSample', 8)
+        libtiff.setField(fp, 'SamplesPerPixel', spp)
+        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
+
+        for stripnum in range(25):
+            row = rps * stripnum
+            stripdata = data[row:row + rps, :, :].copy()
+            libtiff.writeEncodedStrip(fp, stripnum, stripdata)
+
+        libtiff.close(fp)
+
+        cls.goodstuff_data = data
+        cls.goodstuff_path = path
+
     def test_smoke(self):
         """
         SCENARIO:  Convert TIFF file to JP2
@@ -898,177 +1069,6 @@ class TestSuite(fixtures.TestCommon):
 
         self.assertNotIn('TileByteCounts', tags)
         self.assertNotIn('TileOffsets', tags)
-
-    @classmethod
-    def setup_exif(cls, path):
-        """
-        Create a simple TIFF file that is constructed to contain an EXIF IFD.
-        """
-
-        # main TIFF header @ 0
-        # image data @ 8
-        # main IFD @ 65544 = 256*256 + 8 (2 + 12*12 = 146 bytes)
-        # main IDF data @ 65690  = main_ifd + 2 + 12 * 12 + 4
-        #
-        # strip offsets @ 65694 (16 bytes)
-        # strip byte counts @ 65710 (16 bytes)
-        # xmp data @ 65726 (12532 bytes)
-        # camera ID data @ 78258 (8 bytes)
-        #
-        # exif IFD @ 78266 (2 + 2*12 + 4 = 30 bytes)
-        # exif IFD data @ 78296 (6 bytes)
-        with path.open(mode='wb') as f:
-
-            w = 256
-            h = 256
-            rps = 64
-            header_length = 8
-
-            # write the header (8 bytes).  The IFD will follow the image data
-            # (256x256 bytes), so the offset to the IFD will be 8 + h * w.
-            main_ifd_offset = header_length + h * w
-            buffer = struct.pack('<BBHI', 73, 73, 42, main_ifd_offset)
-            f.write(buffer)
-
-            # write the image data, 4 64x256 strips of all zeros
-            strip = bytes([0] * rps * w)
-            f.write(strip)
-            f.write(strip)
-            f.write(strip)
-            f.write(strip)
-
-            # write an IFD with 12 tags
-            main_ifd_data_offset = main_ifd_offset + 2 + 12 * 12 + 4
-
-            buffer = struct.pack('<H', 12)
-            f.write(buffer)
-
-            # width and length and bitspersample
-            buffer = struct.pack('<HHII', 256, 4, 1, w)
-            f.write(buffer)
-            buffer = struct.pack('<HHII', 257, 4, 1, h)
-            f.write(buffer)
-            buffer = struct.pack('<HHII', 258, 4, 1, 8)
-            f.write(buffer)
-
-            # photometric
-            buffer = struct.pack('<HHII', 262, 4, 1, 1)
-            f.write(buffer)
-
-            # strip offsets
-            buffer = struct.pack('<HHII', 273, 4, 4, main_ifd_data_offset)
-            f.write(buffer)
-
-            # spp
-            buffer = struct.pack('<HHII', 277, 4, 1, 1)
-            f.write(buffer)
-
-            # rps
-            buffer = struct.pack('<HHII', 278, 4, 1, 64)
-            f.write(buffer)
-
-            # strip byte counts
-            buffer = struct.pack('<HHII', 279, 4, 4, main_ifd_data_offset + 16)
-            f.write(buffer)
-
-            # pagenumber
-            buffer = struct.pack('<HHIHH', 297, 3, 2, 1, 0)
-            f.write(buffer)
-
-            # XMP
-            xmp_path = fixtures._path_to('issue555.xmp')
-            with xmp_path.open() as f2:
-                xmp = f2.read()
-                xmp = xmp + '\0'
-            buffer = struct.pack(
-                '<HHII', 700, 1, len(xmp), main_ifd_data_offset + 32
-            )
-            f.write(buffer)
-
-            # exif tag
-            # write it AFTER lensinfo, which is 8 chars
-            exif_ifd_offset = main_ifd_data_offset + 32 + len(xmp) + 8
-            buffer = struct.pack('<HHII', 34665, 4, 1, exif_ifd_offset)
-            f.write(buffer)
-
-            # lensmodel
-            offset = main_ifd_data_offset + 32 + len(xmp)
-            buffer = struct.pack('<HHII', 50708, 2, 8, offset)
-            f.write(buffer)
-
-            # terminate the IFD
-            buffer = struct.pack('<I', 0)
-            f.write(buffer)
-
-            # write the strip offsets here
-            buffer = struct.pack(
-                '<IIII', 8, 8 + rps*w, 8 + 2*rps*w, 8 + 3*rps*w
-            )
-            f.write(buffer)
-
-            # write the strip byte counts
-            buffer = struct.pack('<IIII', rps*w, rps*w, rps*w, rps*w)
-            f.write(buffer)
-
-            # write the XMP data
-            f.write(xmp.encode('utf-8'))
-
-            # write the camera ID
-            f.write("abcdefg\x00".encode('utf-8'))
-
-            # write a minimal Exif IFD
-            buffer = struct.pack('<H', 2)
-            f.write(buffer)
-
-            # exposure program
-            buffer = struct.pack('<HHIHH', 34850, 3, 1, 2, 0)
-            f.write(buffer)
-
-            # lens model
-            data_location = exif_ifd_offset + 2 + 2*12 + 4
-            buffer = struct.pack('<HHII', 42036, 2, 6, data_location)
-            f.write(buffer)
-
-            # terminate the IFD
-            buffer = struct.pack('<I', 0)
-            f.write(buffer)
-
-            data = 'Canon\0'.encode('utf-8')
-            buffer = struct.pack('<BBBBBB', *data)
-            f.write(buffer)
-
-        cls.exif = path
-
-    @classmethod
-    def setup_rgb_evenly_stripped(cls, path):
-        """
-        SCENARIO:  create a simple RGB stripped image, stripsize of 32
-        """
-        j = Jp2k(glymur.data.goodstuff())
-        data = j[:]
-        h, w, spp = data.shape
-        rps = 32
-
-        fp = libtiff.open(path, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.RGB)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
-        libtiff.setField(fp, 'ImageLength', data.shape[0])
-        libtiff.setField(fp, 'ImageWidth', data.shape[1])
-        libtiff.setField(fp, 'RowsPerStrip', rps)
-        libtiff.setField(fp, 'BitsPerSample', 8)
-        libtiff.setField(fp, 'SamplesPerPixel', spp)
-        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
-
-        for stripnum in range(25):
-            row = rps * stripnum
-            stripdata = data[row:row + rps, :, :].copy()
-            libtiff.writeEncodedStrip(fp, stripnum, stripdata)
-
-        libtiff.close(fp)
-
-        cls.goodstuff_data = data
-        cls.goodstuff_path = path
 
     def test_numeric_exclude_keyword_argument(self):
         """
