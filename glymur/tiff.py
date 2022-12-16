@@ -1078,6 +1078,7 @@ class Tiff2Jp2k(object):
 
         # fill the multi-strip
         for stripnum in range(top_strip_num, bottom_strip_num):
+            tiff_strip = np.zeros((rps, imagewidth, spp), dtype=dtype)
 
             if use_rgba_interface:
 
