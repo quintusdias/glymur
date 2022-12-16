@@ -29,11 +29,6 @@ class TestSuite(fixtures.TestCommon):
 
     @classmethod
     def setUpClass(cls):
-        cls.moon3_stripped_truth = skimage.io.imread(
-            ir.files('tests.data.skimage').joinpath('moon3_stripped.tif'),
-            plugin='pil'
-        )
-
         cls.astronaut16_truth = skimage.io.imread(
             ir.files('tests.data.skimage').joinpath('astronaut_uint16.tif'),
         )
@@ -43,6 +38,7 @@ class TestSuite(fixtures.TestCommon):
         cls.astronaut_ycbcr_jpeg_tiled = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_jpeg_tiled.tif')  # noqa : E501
         cls.moon = ir.files('tests.data.skimage').joinpath('moon.tif')
         cls.moon_3x3 = ir.files('tests.data.skimage').joinpath('moon_3x3.tif')
+        cls.moon_3stripped = ir.files('tests.data.skimage').joinpath('moon3_stripped.tif')
         cls.moon3_partial_last_strip = ir.files('tests.data.skimage').joinpath('moon3_partial_last_strip.tif')  # noqa : E501
         cls.ycbcr_bg = ir.files('tests.data.skimage').joinpath('ycbcr_bg.tif')
 
@@ -623,16 +619,14 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
         with Tiff2Jp2k(
-            ir.files('tests.data.skimage').joinpath('moon3_stripped.tif'),
-            self.temp_jp2_filename,
-            tilesize=(48, 48)
+            self.moon_3stripped, self.temp_jp2_filename, tilesize=(48, 48)
         ) as j:
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
-
-        np.testing.assert_array_equal(actual, self.moon3_stripped_truth)
+        expected = skimage.io.imread(self.moon_3stripped)
+        np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
         self.assertEqual(c.segment[1].xsiz, 96)
