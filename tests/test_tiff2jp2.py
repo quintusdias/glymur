@@ -1037,7 +1037,7 @@ class TestSuite(fixtures.TestCommon):
             buffer = struct.pack('<BBBBBB', *data)
             f.write(buffer)
 
-        cls.exif_tiff = path
+        cls.exif = path
 
     @classmethod
     def setup_rgb_evenly_stripped(cls, path):
@@ -1196,7 +1196,7 @@ class TestSuite(fixtures.TestCommon):
         The StripByteCounts and StripOffsets tags are not present.
         """
         with Tiff2Jp2k(
-            self.exif_tiff, self.temp_jp2_filename,
+            self.exif, self.temp_jp2_filename,
             exclude_tags=[273, 'stripbytecounts']
         ) as p:
             p.run()
@@ -1219,7 +1219,7 @@ class TestSuite(fixtures.TestCommon):
         """
         with self.assertWarns(UserWarning):
             with Tiff2Jp2k(
-                self.exif_tiff, self.temp_jp2_filename,
+                self.exif, self.temp_jp2_filename,
                 exclude_tags=[273, 'stripbytecounts', 'gdalstuff']
             ) as p:
                 p.run()
@@ -1239,7 +1239,7 @@ class TestSuite(fixtures.TestCommon):
         recoverable from the UUIDbox.
         """
         with Tiff2Jp2k(
-            self.exif_tiff, self.temp_jp2_filename,
+            self.exif, self.temp_jp2_filename,
             exclude_tags=['StripOffsets', 'StripByteCounts']
         ) as p:
             p.run()
@@ -1257,7 +1257,7 @@ class TestSuite(fixtures.TestCommon):
         Expected Result:  No warnings, no errors.  The Exif LensModel tag is
         recoverable from the UUIDbox.
         """
-        with Tiff2Jp2k(self.exif_tiff, self.temp_jp2_filename) as p:
+        with Tiff2Jp2k(self.exif, self.temp_jp2_filename) as p:
             with warnings.catch_warnings(record=True) as w:
                 p.run()
                 self.assertEqual(len(w), 0)
@@ -1281,7 +1281,7 @@ class TestSuite(fixtures.TestCommon):
         present in the UUID IFD.
         """
         with Tiff2Jp2k(
-            self.exif_tiff, self.temp_jp2_filename, create_xmp_uuid=True
+            self.exif, self.temp_jp2_filename, create_xmp_uuid=True
         ) as p:
             p.run()
 
@@ -1315,7 +1315,7 @@ class TestSuite(fixtures.TestCommon):
         present in the UUID data.
         """
         with Tiff2Jp2k(
-            self.exif_tiff, self.temp_jp2_filename, create_xmp_uuid=False
+            self.exif, self.temp_jp2_filename, create_xmp_uuid=False
         ) as p:
             p.run()
 
@@ -1339,7 +1339,7 @@ class TestSuite(fixtures.TestCommon):
         UUID is appended.
         """
         kwargs = {'create_xmp_uuid': True, 'exclude_tags': ['StripOffsets']}
-        with Tiff2Jp2k(self.exif_tiff, self.temp_jp2_filename, **kwargs) as p:
+        with Tiff2Jp2k(self.exif, self.temp_jp2_filename, **kwargs) as p:
             p.run()
 
         j = Jp2k(self.temp_jp2_filename)
@@ -1370,7 +1370,7 @@ class TestSuite(fixtures.TestCommon):
         vresd, hresd = 0.3, 0.4
 
         sys.argv = [
-            '', str(self.exif_tiff), str(self.temp_jp2_filename),
+            '', str(self.exif), str(self.temp_jp2_filename),
             '--capture-resolution', str(vresc), str(hresc),
             '--display-resolution', str(vresd), str(hresd),
         ]
@@ -1404,7 +1404,7 @@ class TestSuite(fixtures.TestCommon):
         vresd, hresd = 0.3, 0.4
 
         sys.argv = [
-            '', str(self.exif_tiff), str(self.temp_jp2_filename),
+            '', str(self.exif), str(self.temp_jp2_filename),
             '--tilesize', '64', '64',
             '--capture-resolution', str(vresc), str(hresc),
             '--display-resolution', str(vresd), str(hresd),
@@ -1436,7 +1436,7 @@ class TestSuite(fixtures.TestCommon):
         JP2 file, and then an XMP UUID is appended.
         """
         sys.argv = [
-            '', str(self.exif_tiff), str(self.temp_jp2_filename),
+            '', str(self.exif), str(self.temp_jp2_filename),
             '--tilesize', '64', '64',
             '--create-xmp-uuid'
         ]
@@ -1463,7 +1463,7 @@ class TestSuite(fixtures.TestCommon):
         Expected Result:  No errors.
         """
         with Tiff2Jp2k(
-            self.exif_tiff, self.temp_jp2_filename,
+            self.exif, self.temp_jp2_filename,
         ) as p:
             p.run()
 
@@ -1479,7 +1479,7 @@ class TestSuite(fixtures.TestCommon):
         Expected Result:  No errors.
         """
         with Tiff2Jp2k(
-            self.exif_tiff, self.temp_jp2_filename, tilesize=[256, 256]
+            self.exif, self.temp_jp2_filename, tilesize=[256, 256]
         ) as p:
             p.run()
 
