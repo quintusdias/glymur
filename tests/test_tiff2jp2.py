@@ -39,8 +39,8 @@ class TestSuite(fixtures.TestCommon):
         cls.moon3_partial_last_strip = ir.files('tests.data.skimage').joinpath('moon3_partial_last_strip.tif')  # noqa : E501
         cls.ycbcr_bg = ir.files('tests.data.skimage').joinpath('ycbcr_bg.tif')
 
-        cls.test_tiff_dir = tempfile.mkdtemp()
-        cls.test_tiff_path = pathlib.Path(cls.test_tiff_dir)
+        test_tiff_dir = tempfile.mkdtemp()
+        cls.test_tiff_path = pathlib.Path(test_tiff_dir)
 
         cls.setup_rgb_evenly_stripped(cls.test_tiff_path / 'goodstuff.tif')
 
@@ -48,7 +48,7 @@ class TestSuite(fixtures.TestCommon):
 
     @classmethod
     def tearDownClass(cls):
-        shutil.rmtree(cls.test_tiff_dir)
+        shutil.rmtree(cls.test_tiff_path)
 
     def test_smoke(self):
         """
