@@ -35,14 +35,13 @@ class TestSuite(fixtures.TestCommon):
         cls.astronaut_ycbcr_jpeg_tiled = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_jpeg_tiled.tif')  # noqa : E501
         cls.moon = ir.files('tests.data.skimage').joinpath('moon.tif')
         cls.moon_3x3 = ir.files('tests.data.skimage').joinpath('moon_3x3.tif')
-        cls.moon_3stripped = ir.files('tests.data.skimage').joinpath('moon3_stripped.tif')
+        cls.moon_3stripped = ir.files('tests.data.skimage').joinpath('moon3_stripped.tif')  # noqa : E501
         cls.moon3_partial_last_strip = ir.files('tests.data.skimage').joinpath('moon3_partial_last_strip.tif')  # noqa : E501
         cls.ycbcr_bg = ir.files('tests.data.skimage').joinpath('ycbcr_bg.tif')
+        cls.stripped = ir.files('tests.data.skimage').joinpath('stripped.tif')
 
         test_tiff_dir = tempfile.mkdtemp()
         cls.test_tiff_path = pathlib.Path(test_tiff_dir)
-
-        cls.setup_rgb_evenly_stripped(cls.test_tiff_path / 'goodstuff.tif')
 
         cls.setup_exif(cls.test_tiff_path / 'exif.tif')
 
@@ -190,37 +189,6 @@ class TestSuite(fixtures.TestCommon):
 
         cls.exif = path
 
-    @classmethod
-    def setup_rgb_evenly_stripped(cls, path):
-        """
-        SCENARIO:  create a simple RGB stripped image, stripsize of 32
-        """
-        j = Jp2k(glymur.data.goodstuff())
-        data = j[:]
-        h, w, spp = data.shape
-        rps = 32
-
-        fp = libtiff.open(path, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.RGB)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
-        libtiff.setField(fp, 'ImageLength', data.shape[0])
-        libtiff.setField(fp, 'ImageWidth', data.shape[1])
-        libtiff.setField(fp, 'RowsPerStrip', rps)
-        libtiff.setField(fp, 'BitsPerSample', 8)
-        libtiff.setField(fp, 'SamplesPerPixel', spp)
-        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
-
-        for stripnum in range(25):
-            row = rps * stripnum
-            stripdata = data[row:row + rps, :, :].copy()
-            libtiff.writeEncodedStrip(fp, stripnum, stripdata)
-
-        libtiff.close(fp)
-
-        cls.goodstuff_data = data
-        cls.goodstuff_path = path
-
     def test_smoke(self):
         """
         SCENARIO:  Convert TIFF file to JP2
@@ -281,7 +249,7 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(j.box[-1].data['ImageWidth'], 512)
         self.assertEqual(j.box[-1].data['ImageLength'], 512)
 
-    @unittest.skip('blah')
+    @unittest.skip('See issue #597')
     def test_smoke_rgba(self):
         """
         SCENARIO:  Convert RGBA TIFF file to JP2
@@ -809,8 +777,8 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
-        with Tiff2Jp2k(self.moon_3x3, self.temp_jp2_filename,
-            tilesize=(48, 48)
+        with Tiff2Jp2k(
+            self.moon_3x3, self.temp_jp2_filename, tilesize=(48, 48)
         ) as j:
             j.run()
 
@@ -1078,7 +1046,7 @@ class TestSuite(fixtures.TestCommon):
         Expected result:  The tags are not included in the exif IFD.
         """
         with Tiff2Jp2k(
-            self.goodstuff_path, self.temp_jp2_filename,
+            self.stripped, self.temp_jp2_filename,
             exclude_tags=[273, 279]
         ) as p:
             p.run()
@@ -1096,7 +1064,7 @@ class TestSuite(fixtures.TestCommon):
         Expected result:  The tags are not included in the exif IFD.
         """
         with Tiff2Jp2k(
-            self.goodstuff_path, self.temp_jp2_filename,
+            self.stripped, self.temp_jp2_filename,
             exclude_tags=['StripOffsets', 'StripByteCounts']
         ) as p:
             p.run()
@@ -1114,7 +1082,7 @@ class TestSuite(fixtures.TestCommon):
         Expected result:  a warning is issued
         """
         with Tiff2Jp2k(
-            self.goodstuff_path, self.temp_jp2_filename, tilesize=(64, 64),
+            self.stripped, self.temp_jp2_filename, tilesize=(64, 64),
             include_icc_profile=True, verbosity=logging.INFO
         ) as j:
             with self.assertLogs(
@@ -1132,7 +1100,7 @@ class TestSuite(fixtures.TestCommon):
         the tiles (a 13x8 grid of tiles).
         """
         with Tiff2Jp2k(
-            self.goodstuff_path, self.temp_jp2_filename, tilesize=(64, 64),
+            self.stripped, self.temp_jp2_filename, tilesize=(64, 64),
             verbosity=logging.INFO
         ) as j:
             with self.assertLogs(logger='tiff2jp2', level=logging.INFO) as cm:
@@ -1146,14 +1114,14 @@ class TestSuite(fixtures.TestCommon):
         does not evenly divide either dimension.
         """
         with Tiff2Jp2k(
-            self.goodstuff_path, self.temp_jp2_filename, tilesize=(64, 64)
+            self.stripped, self.temp_jp2_filename, tilesize=(64, 64)
         ) as j:
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
-
-        np.testing.assert_array_equal(actual, self.goodstuff_data)
+        expected = skimage.io.imread(self.stripped)
+        np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
         self.assertEqual(c.segment[1].xsiz, 480)
@@ -1172,14 +1140,14 @@ class TestSuite(fixtures.TestCommon):
         Expected Result:  no errors
         """
         with Tiff2Jp2k(
-            self.goodstuff_path, self.temp_jp2_filename, tilesize=(75, 75)
+            self.stripped, self.temp_jp2_filename, tilesize=(75, 75)
         ) as j:
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
-
-        np.testing.assert_array_equal(actual, self.goodstuff_data)
+        expected = skimage.io.imread(self.stripped)
+        np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
         self.assertEqual(c.segment[1].xsiz, 480)
