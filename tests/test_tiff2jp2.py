@@ -29,11 +29,8 @@ class TestSuite(fixtures.TestCommon):
 
     @classmethod
     def setUpClass(cls):
-        cls.astronaut16_truth = skimage.io.imread(
-            ir.files('tests.data.skimage').joinpath('astronaut_uint16.tif'),
-        )
-
         cls.astronaut8 = ir.files('tests.data.skimage').joinpath('astronaut8.tif')  # noqa : E501
+        cls.astronaut_u16 = ir.files('tests.data.skimage').joinpath('astronaut_uint16.tif')  # noqa : E501
         cls.astronaut_ycbcr_striped_jpeg = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_striped_jpeg.tif')  # noqa : E501
         cls.astronaut_ycbcr_jpeg_tiled = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_jpeg_tiled.tif')  # noqa : E501
         cls.moon = ir.files('tests.data.skimage').joinpath('moon.tif')
@@ -783,16 +780,14 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
         with Tiff2Jp2k(
-            ir.files('tests.data.skimage').joinpath('astronaut_uint16.tif'),
-            self.temp_jp2_filename,
-            tilesize=(64, 64)
+            self.astronaut_u16, self.temp_jp2_filename, tilesize=(64, 64)
         ) as j:
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
-
-        np.testing.assert_array_equal(actual, self.astronaut16_truth)
+        expected = skimage.io.imread(self.astronaut_u16)
+        np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
         self.assertEqual(c.segment[1].xsiz, 128)
