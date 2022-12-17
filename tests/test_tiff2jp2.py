@@ -22,20 +22,22 @@ from glymur.core import SRGB
 from . import fixtures
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
+def _file_helper(filename, module='tests.data.skimage'):
+    """
+    Mask importlib.resources differences between >=3.9 and below.
+    """
+    if sys.version_info[1] >= 9:
+        return ir.files(module).joinpath(filename)
+    else:
+        with ir.path(module, filename) as path:
+            return path
+
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 class TestSuite(fixtures.TestCommon):
 
     @classmethod
     def setUpClass(cls):
-
-        def _file_helper(filename):
-            module = 'tests.data.skimage'
-            if sys.version_info[1] >= 9:
-                return ir.files(module).joinpath(filename)
-            else:
-                with ir.path(module, filename) as path:
-                    return path
 
         cls.astronaut8 = _file_helper('astronaut8.tif')
         cls.astronaut_u16 = _file_helper('astronaut_uint16.tif')
@@ -351,9 +353,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  data matches, the irreversible transform is confirmed
         """
         with Tiff2Jp2k(
-            ir.files('tests.data.skimage').joinpath('moon.tif'),
-            self.temp_jp2_filename,
-            psnr=(30, 35, 40, 0)
+            self.moon, self.temp_jp2_filename, psnr=(30, 35, 40, 0)
         ) as j:
             j.run()
 
@@ -625,7 +625,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        infile = ir.files('tests.data.tiff').joinpath('uint32.tif')
+        infile = _file_helper('uint32.tif', module='tests.data.tiff')
         with Tiff2Jp2k(infile, self.temp_jp2_filename) as j:
             with self.assertRaises(RuntimeError):
                 j.run()
@@ -636,7 +636,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        infile = ir.files('tests.data.tiff').joinpath('ieeefp32.tif')
+        infile = _file_helper('ieeefp32.tif', module='tests.data.tiff')
         with Tiff2Jp2k(infile, self.temp_jp2_filename) as j:
             with self.assertRaises(RuntimeError):
                 j.run()
@@ -941,7 +941,7 @@ class TestSuite(fixtures.TestCommon):
 
         Expected result:  RuntimeError
         """
-        infile = ir.files('tests.data.tiff').joinpath('cmyk.tif')
+        infile = _file_helper('cmyk.tif', module='tests.data.tiff')
         with Tiff2Jp2k(infile, self.temp_jp2_filename) as j:
             with self.assertRaises(RuntimeError):
                 j.run()
