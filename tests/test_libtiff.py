@@ -1,4 +1,5 @@
 # standard library imports
+import platform
 import unittest
 
 # 3rd party library imports
@@ -9,6 +10,10 @@ from . import fixtures
 from glymur.lib import tiff as libtiff
 
 
+@unittest.skipIf(
+    platform.system() == 'Darwin' and platform.machine() == 'arm64',
+    'See issue #593'
+)
 @unittest.skipIf(
     not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
 )
@@ -36,6 +41,7 @@ class TestSuite(fixtures.TestCommon):
         libtiff.setField(fp, 'TileWidth', tw)
         libtiff.setField(fp, 'BitsPerSample', 8)
         libtiff.setField(fp, 'SamplesPerPixel', 1)
+        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
 
         libtiff.writeEncodedTile(fp, 0, data[:th, :tw].copy())
         libtiff.writeEncodedTile(fp, 1, data[:th, tw:w].copy())
