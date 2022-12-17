@@ -21,7 +21,6 @@ from glymur import Jp2k, Tiff2Jp2k, command_line
 from glymur.core import SRGB
 from . import fixtures
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
-from glymur.lib import tiff as libtiff
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
@@ -29,16 +28,25 @@ class TestSuite(fixtures.TestCommon):
 
     @classmethod
     def setUpClass(cls):
-        cls.astronaut8 = ir.files('tests.data.skimage').joinpath('astronaut8.tif')  # noqa : E501
-        cls.astronaut_u16 = ir.files('tests.data.skimage').joinpath('astronaut_uint16.tif')  # noqa : E501
-        cls.astronaut_ycbcr_striped_jpeg = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_striped_jpeg.tif')  # noqa : E501
-        cls.astronaut_ycbcr_jpeg_tiled = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_jpeg_tiled.tif')  # noqa : E501
-        cls.moon = ir.files('tests.data.skimage').joinpath('moon.tif')
-        cls.moon_3x3 = ir.files('tests.data.skimage').joinpath('moon_3x3.tif')
-        cls.moon_3stripped = ir.files('tests.data.skimage').joinpath('moon3_stripped.tif')  # noqa : E501
-        cls.moon3_partial_last_strip = ir.files('tests.data.skimage').joinpath('moon3_partial_last_strip.tif')  # noqa : E501
-        cls.ycbcr_bg = ir.files('tests.data.skimage').joinpath('ycbcr_bg.tif')
-        cls.stripped = ir.files('tests.data.skimage').joinpath('stripped.tif')
+
+        def _file_helper(filename):
+            module = 'tests.data.skimage'
+            if sys.version_info[1] >= 9:
+                return ir.files(module).joinpath(filename)
+            else:
+                with ir.path(module, filename) as path:
+                    return path
+
+        cls.astronaut8 = _file_helper('astronaut8.tif')
+        cls.astronaut_u16 = _file_helper('astronaut_uint16.tif')
+        cls.astronaut8_stripped = _file_helper('astronaut8_stripped.tif')
+        cls.astronaut_ycbcr_jpeg_tiled = _file_helper('astronaut_ycbcr_jpeg_tiled.tif')  # noqa : E501
+        cls.moon = _file_helper('moon.tif')
+        cls.moon_3x3 = _file_helper('moon_3x3.tif')
+        cls.moon_3stripped = _file_helper('moon3_stripped.tif')
+        cls.moon3_partial_last_strip = _file_helper('moon3_partial_last_strip.tif')  # noqa : E501
+        cls.ycbcr_bg = _file_helper('ycbcr_bg.tif')
+        cls.stripped = _file_helper('stripped.tif')
 
         test_tiff_dir = tempfile.mkdtemp()
         cls.test_tiff_path = pathlib.Path(test_tiff_dir)
@@ -249,7 +257,6 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(j.box[-1].data['ImageWidth'], 512)
         self.assertEqual(j.box[-1].data['ImageLength'], 512)
 
-    @unittest.skip('See issue #597')
     def test_smoke_rgba(self):
         """
         SCENARIO:  Convert RGBA TIFF file to JP2
@@ -264,15 +271,15 @@ class TestSuite(fixtures.TestCommon):
         There is a UUID box appended at the end containing the metadata.
         """
         with Tiff2Jp2k(
-            self.astronaut_ycbcr_striped_jpeg, self.temp_jp2_filename,
-            tilesize=[256, 256]
+            self.astronaut8_stripped, self.temp_jp2_filename,
+            tilesize=[32, 32]
         ) as j:
             j.run()
 
         j = Jp2k(self.temp_jp2_filename)
 
         actual = j[:]
-        self.assertEqual(actual.shape, (512, 512, 3))
+        self.assertEqual(actual.shape, (64, 64, 3))
 
         c = j.get_codestream(header_only=False)
 
@@ -308,8 +315,8 @@ class TestSuite(fixtures.TestCommon):
         )
 
         self.assertEqual(j.box[-1].box_id, 'uuid')
-        self.assertEqual(j.box[-1].data['ImageWidth'], 512)
-        self.assertEqual(j.box[-1].data['ImageLength'], 512)
+        self.assertEqual(j.box[-1].data['ImageWidth'], 64)
+        self.assertEqual(j.box[-1].data['ImageLength'], 64)
 
     def test_no_uuid(self):
         """
@@ -642,9 +649,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
         with Tiff2Jp2k(
-            ir.files('tests.data.skimage').joinpath('moon.tif'),
-            self.temp_jp2_filename,
-            tilesize=(64, 64)
+            self.moon, self.temp_jp2_filename, tilesize=(64, 64)
         ) as j:
             j.run()
 
@@ -667,9 +672,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  there are four messages logged, one for each tile
         """
         with Tiff2Jp2k(
-            ir.files('tests.data.skimage').joinpath('moon.tif'),
-            self.temp_jp2_filename,
-            tilesize=(64, 64)
+            self.moon, self.temp_jp2_filename, tilesize=(64, 64)
         ) as j:
             with self.assertLogs(logger='tiff2jp2', level=logging.INFO) as cm:
                 j.run()
@@ -684,9 +687,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  The data matches.  The JP2 file has 16 tiles.
         """
         with Tiff2Jp2k(
-            ir.files('tests.data.skimage').joinpath('moon.tif'),
-            self.temp_jp2_filename,
-            tilesize=(32, 32)
+            self.moon, self.temp_jp2_filename, tilesize=(32, 32)
         ) as j:
             j.run()
 
