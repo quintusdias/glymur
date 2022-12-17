@@ -940,36 +940,10 @@ class TestSuite(fixtures.TestCommon):
 
         Expected result:  RuntimeError
         """
-        data = skimage.data.moon()
-        data = np.dstack((data, data))
-
-        h, w, spp = data.shape
-
-        # instead of 160, this will cause a partially empty last strip
-        rps = 512
-
-        fp = libtiff.open(self.temp_tiff_filename, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.SEPARATED)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
-        libtiff.setField(fp, 'ImageLength', data.shape[0])
-        libtiff.setField(fp, 'ImageWidth', data.shape[1])
-        libtiff.setField(fp, 'RowsPerStrip', rps)
-        libtiff.setField(fp, 'BitsPerSample', 8)
-        libtiff.setField(fp, 'SamplesPerPixel', spp)
-        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
-        libtiff.setField(fp, 'InkSet', libtiff.InkSet.MULTIINK)
-
-        libtiff.writeEncodedStrip(fp, 0, data.copy())
-
-        libtiff.close(fp)
-
-        with Tiff2Jp2k(self.temp_tiff_filename, self.temp_jp2_filename) as j:
-            with warnings.catch_warnings():
-                # weird warning about extra samples
-                warnings.simplefilter('ignore')
-                with self.assertRaises(RuntimeError):
-                    j.run()
+        infile = ir.files('tests.data.tiff').joinpath('cmyk.tif')
+        with Tiff2Jp2k(infile, self.temp_jp2_filename) as j:
+            with self.assertRaises(RuntimeError):
+                j.run()
 
     def test_commandline_tiff2jp2_exclude_tags(self):
         """
