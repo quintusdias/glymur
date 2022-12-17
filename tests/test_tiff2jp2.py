@@ -629,31 +629,8 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        data = skimage.data.moon().astype(np.float32)
-
-        h, w = data.shape
-        th, tw = h // 2, w // 2
-
-        fp = libtiff.open(self.temp_tiff_filename, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
-        libtiff.setField(fp, 'SampleFormat', libtiff.SampleFormat.IEEEFP)
-        libtiff.setField(fp, 'ImageLength', data.shape[0])
-        libtiff.setField(fp, 'ImageWidth', data.shape[1])
-        libtiff.setField(fp, 'TileLength', th)
-        libtiff.setField(fp, 'TileWidth', tw)
-        libtiff.setField(fp, 'BitsPerSample', 32)
-        libtiff.setField(fp, 'SamplesPerPixel', 1)
-
-        libtiff.writeEncodedTile(fp, 0, data[:th, :tw].copy())
-        libtiff.writeEncodedTile(fp, 1, data[:th, tw:w].copy())
-        libtiff.writeEncodedTile(fp, 2, data[th:h, :tw].copy())
-        libtiff.writeEncodedTile(fp, 3, data[th:h, tw:w].copy())
-
-        libtiff.close(fp)
-
-        with Tiff2Jp2k(self.temp_tiff_filename, self.temp_jp2_filename) as j:
+        infile = ir.files('tests.data.tiff').joinpath('ieeefp32.tif')
+        with Tiff2Jp2k(infile, self.temp_jp2_filename) as j:
             with self.assertRaises(RuntimeError):
                 j.run()
 
