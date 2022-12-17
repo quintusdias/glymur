@@ -618,7 +618,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        data = fixtures.skimage.data.moon().astype(np.uint32)
+        data = skimage.data.moon().astype(np.uint32)
 
         h, w = data.shape
         th, tw = h // 2, w // 2
@@ -652,7 +652,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        data = fixtures.skimage.data.moon().astype(np.float32)
+        data = skimage.data.moon().astype(np.float32)
 
         h, w = data.shape
         th, tw = h // 2, w // 2
@@ -986,7 +986,7 @@ class TestSuite(fixtures.TestCommon):
 
         Expected result:  RuntimeError
         """
-        data = fixtures.skimage.data.moon()
+        data = skimage.data.moon()
         data = np.dstack((data, data))
 
         h, w, spp = data.shape
