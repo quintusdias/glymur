@@ -1,4 +1,5 @@
 # standard library imports
+import importlib.resources as ir
 import logging
 import pathlib
 import platform
@@ -12,6 +13,7 @@ import warnings
 
 # 3rd party library imports
 import numpy as np
+import skimage
 
 # Local imports
 import glymur
@@ -19,1332 +21,43 @@ from glymur import Jp2k, Tiff2Jp2k, command_line
 from glymur.core import SRGB
 from . import fixtures
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
-from glymur.lib import tiff as libtiff
+
+def _file_helper(filename, module='tests.data.skimage'):
+    """
+    Mask importlib.resources differences between >=3.9 and below.
+    """
+    if sys.version_info[1] >= 9:
+        return ir.files(module).joinpath(filename)
+    else:
+        with ir.path(module, filename) as path:
+            return path
 
 
-@unittest.skipIf(
-    not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
-)
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-class TestSuiteScikitImage(fixtures.TestCommon):
-
-    @classmethod
-    def setup_minisblack_spp1(cls, path):
-        """
-        SCENARIO:  create a simple monochromatic 2x2 tiled image
-        """
-        data = fixtures.skimage.data.moon()
-        h, w = data.shape
-        th, tw = h // 2, w // 2
-
-        fp = libtiff.open(path, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
-        libtiff.setField(fp, 'ImageLength', data.shape[0])
-        libtiff.setField(fp, 'ImageWidth', data.shape[1])
-        libtiff.setField(fp, 'TileLength', th)
-        libtiff.setField(fp, 'TileWidth', tw)
-        libtiff.setField(fp, 'BitsPerSample', 8)
-        libtiff.setField(fp, 'SamplesPerPixel', 1)
-        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
-
-        libtiff.writeEncodedTile(fp, 0, data[:th, :tw].copy())
-        libtiff.writeEncodedTile(fp, 1, data[:th, tw:w].copy())
-        libtiff.writeEncodedTile(fp, 2, data[th:h, :tw].copy())
-        libtiff.writeEncodedTile(fp, 3, data[th:h, tw:w].copy())
-
-        libtiff.close(fp)
-
-        # now read it back
-        fp = libtiff.open(path)
-
-        tile = np.zeros((th, tw), dtype=np.uint8)
-        actual_data = np.zeros((h, w), dtype=np.uint8)
-
-        libtiff.readEncodedTile(fp, 0, tile)
-        actual_data[:th, :tw] = tile
-
-        libtiff.readEncodedTile(fp, 1, tile)
-        actual_data[:th, tw:w] = tile
-
-        libtiff.readEncodedTile(fp, 2, tile)
-        actual_data[th:h, :tw] = tile
-
-        libtiff.readEncodedTile(fp, 3, tile)
-        actual_data[th:h, tw:w] = tile
-
-        libtiff.close(fp)
-
-        cls.minisblack_spp1_data = actual_data
-        cls.minisblack_spp1_path = path
-
-    @classmethod
-    def setup_minisblack_2x2_partial_tiles(cls, path):
-        """
-        SCENARIO:  create a simple monochromatic 2x2 tiled image with partial
-        tiles.
-        """
-        data = fixtures.skimage.data.moon()
-        h, w = 480, 480
-        th, tw = 256, 256
-
-        fp = libtiff.open(path, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
-        libtiff.setField(fp, 'ImageLength', h)
-        libtiff.setField(fp, 'ImageWidth', w)
-        libtiff.setField(fp, 'TileLength', th)
-        libtiff.setField(fp, 'TileWidth', tw)
-        libtiff.setField(fp, 'BitsPerSample', 8)
-        libtiff.setField(fp, 'SamplesPerPixel', 1)
-
-        libtiff.writeEncodedTile(fp, 0, data[:th, :tw].copy())
-        libtiff.writeEncodedTile(fp, 1, data[:th, tw:w].copy())
-        libtiff.writeEncodedTile(fp, 2, data[th:h, :tw].copy())
-        libtiff.writeEncodedTile(fp, 3, data[th:h, tw:w].copy())
-
-        libtiff.close(fp)
-
-        cls.minisblack_2x2_partial_tiles_data = data[:h, :w]
-        cls.minisblack_2x2_partial_tiles_path = path
-
-    @classmethod
-    def setup_minisblack_3x3(cls, path):
-        """
-        SCENARIO:  create a simple monochromatic 3x3 tiled image
-        """
-        data = fixtures.skimage.data.moon()
-        data = data[:480, :480]
-
-        h, w = data.shape
-        th, tw = h // 3, w // 3
-
-        fp = libtiff.open(path, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
-        libtiff.setField(fp, 'ImageLength', data.shape[0])
-        libtiff.setField(fp, 'ImageWidth', data.shape[1])
-        libtiff.setField(fp, 'TileLength', th)
-        libtiff.setField(fp, 'TileWidth', tw)
-        libtiff.setField(fp, 'BitsPerSample', 8)
-        libtiff.setField(fp, 'SamplesPerPixel', 1)
-
-        libtiff.writeEncodedTile(fp, 0, data[:th, :tw].copy())
-        libtiff.writeEncodedTile(fp, 1, data[:th, tw:tw * 2].copy())
-        libtiff.writeEncodedTile(fp, 2, data[:th, tw * 2:w].copy())
-        libtiff.writeEncodedTile(fp, 3, data[th:th * 2, :tw].copy())
-        libtiff.writeEncodedTile(fp, 4, data[th:th * 2, tw:tw * 2].copy())
-        libtiff.writeEncodedTile(fp, 5, data[th:th * 2, tw * 2:w].copy())
-        libtiff.writeEncodedTile(fp, 6, data[2 * th:h, :tw].copy())
-        libtiff.writeEncodedTile(fp, 7, data[2 * th:h, tw:tw * 2].copy())
-        libtiff.writeEncodedTile(fp, 8, data[2 * th:h, tw * 2:w].copy())
-
-        libtiff.close(fp)
-
-        cls.minisblack_3x3_data = data
-        cls.minisblack_3x3_tif = path
-
-    @classmethod
-    def setup_minisblack_3strip(cls, path):
-        """
-        SCENARIO:  create a simple monochromatic 3-strip image.  The strips
-        evenly divide the image.
-        """
-        data = fixtures.skimage.data.moon()
-        data = data[:480, :480]
-
-        h, w = data.shape
-        rps = h // 3
-
-        fp = libtiff.open(path, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
-        libtiff.setField(fp, 'ImageLength', data.shape[0])
-        libtiff.setField(fp, 'ImageWidth', data.shape[1])
-        libtiff.setField(fp, 'RowsPerStrip', rps)
-        libtiff.setField(fp, 'BitsPerSample', 8)
-        libtiff.setField(fp, 'SamplesPerPixel', 1)
-        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
-
-        libtiff.writeEncodedStrip(fp, 0, data[:rps, :].copy())
-        libtiff.writeEncodedStrip(fp, 1, data[rps:rps * 2, :].copy())
-        libtiff.writeEncodedStrip(fp, 2, data[rps * 2:rps * 3, :].copy())
-
-        libtiff.close(fp)
-
-        cls.minisblack_3_full_strips_path = path
-
-    @classmethod
-    def setup_minisblack_3strip_partial_last_strip(cls, path):
-        """
-        SCENARIO:  create a simple monochromatic 3-strip image
-        """
-        data = fixtures.skimage.data.moon()
-        data = data[:480, :480]
-
-        h, w = data.shape
-
-        # instead of 160, this will cause a partially empty last strip
-        rps = 170
-
-        fp = libtiff.open(path, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
-        libtiff.setField(fp, 'ImageLength', data.shape[0])
-        libtiff.setField(fp, 'ImageWidth', data.shape[1])
-        libtiff.setField(fp, 'RowsPerStrip', rps)
-        libtiff.setField(fp, 'BitsPerSample', 8)
-        libtiff.setField(fp, 'SamplesPerPixel', 1)
-        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
-
-        libtiff.writeEncodedStrip(fp, 0, data[:rps, :].copy())
-        libtiff.writeEncodedStrip(fp, 1, data[rps:, :].copy())
-
-        data2 = np.vstack((
-            data[340:480, :], np.zeros((30, 480), dtype=np.uint8)
-        ))
-        libtiff.writeEncodedStrip(fp, 2, data2)
-
-        libtiff.close(fp)
-
-        cls.minisblack_3strip_partial_last_strip = path
-
-    @classmethod
-    def setup_rgb_uint16(cls, path):
-        """
-        SCENARIO:  create a simple color 2x2 tiled 16bit image
-        """
-        data = fixtures.skimage.data.astronaut().astype(np.uint16)
-        h, w, z = data.shape
-        th, tw = h // 2, w // 2
-
-        fp = libtiff.open(path, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.RGB)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
-        libtiff.setField(fp, 'ImageLength', data.shape[0])
-        libtiff.setField(fp, 'ImageWidth', data.shape[1])
-        libtiff.setField(fp, 'TileLength', th)
-        libtiff.setField(fp, 'TileWidth', tw)
-        libtiff.setField(fp, 'BitsPerSample', 16)
-        libtiff.setField(fp, 'SamplesPerPixel', 3)
-        libtiff.setField(fp, 'SampleFormat', libtiff.SampleFormat.UINT)
-        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
-
-        libtiff.writeEncodedTile(fp, 0, data[:th, :tw, :].copy())
-        libtiff.writeEncodedTile(fp, 1, data[:th, tw:w, :].copy())
-        libtiff.writeEncodedTile(fp, 2, data[th:h, :tw, :].copy())
-        libtiff.writeEncodedTile(fp, 3, data[th:h, tw:w, :].copy())
-
-        libtiff.close(fp)
-
-        # now read it back
-        fp = libtiff.open(path)
-
-        tile = np.zeros((th, tw, 3), dtype=np.uint16)
-        actual_data = np.zeros((h, w, 3), dtype=np.uint16)
-
-        libtiff.readEncodedTile(fp, 0, tile)
-        actual_data[:th, :tw, :] = tile
-
-        libtiff.readEncodedTile(fp, 1, tile)
-        actual_data[:th, tw:w, :] = tile
-
-        libtiff.readEncodedTile(fp, 2, tile)
-        actual_data[th:h, :tw, :] = tile
-
-        libtiff.readEncodedTile(fp, 3, tile)
-        actual_data[th:h, tw:w, :] = tile
-
-        libtiff.close(fp)
-
-        cls.astronaut_uint16_data = actual_data
-        cls.astronaut_uint16_filename = path
-
-    @classmethod
-    def setup_ycbcr_striped_jpeg(cls, path):
-        """
-        SCENARIO:  create a simple color 2x1 stripped image
-        """
-        data = fixtures.skimage.data.astronaut()
-        h, w, z = data.shape
-        rps = h // 2
-
-        fp = libtiff.open(path, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.YCBCR)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.JPEG)
-
-        l, w = data.shape[:2]
-        libtiff.setField(fp, 'ImageLength', l)
-        libtiff.setField(fp, 'ImageWidth', w)
-        libtiff.setField(fp, 'RowsPerStrip', rps)
-
-        libtiff.setField(fp, 'BitsPerSample', 8)
-        libtiff.setField(fp, 'SamplesPerPixel', 3)
-        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
-        libtiff.setField(fp, 'JPEGColorMode', libtiff.JPEGColorMode.RGB)
-        libtiff.setField(fp, 'JPEGQuality', 100)
-
-        libtiff.writeEncodedStrip(fp, 0, data[:rps, :, :])
-        libtiff.writeEncodedStrip(fp, 1, data[rps:rps * 2, :, :])
-
-        libtiff.close(fp)
-
-        # now read it back
-        fp = libtiff.open(path)
-
-        strip = np.zeros((rps, w, 4), dtype=np.uint8)
-        actual_data = np.zeros((h, w, 3), dtype=np.uint8)
-
-        libtiff.readRGBAStrip(fp, 0, strip)
-        actual_data[:rps, :, :] = strip[::-1, :, :3]
-
-        libtiff.readRGBAStrip(fp, rps, strip)
-        actual_data[rps:rps * 2, :, :] = strip[::-1, :, :3]
-
-        libtiff.close(fp)
-
-        cls.astronaut_ycbcr_striped_jpeg_data = actual_data
-        cls.astronaut_ycbcr_striped_jpeg_tif = path
-
-    @classmethod
-    def setup_ycbcr_jpeg(cls, path):
-        """
-        SCENARIO:  create a simple color 2x2 tiled image
-        """
-        data = fixtures.skimage.data.astronaut()
-        h, w, z = data.shape
-        th, tw = h // 2, w // 2
-
-        fp = libtiff.open(path, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.YCBCR)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.JPEG)
-        libtiff.setField(fp, 'ImageLength', data.shape[0])
-        libtiff.setField(fp, 'ImageWidth', data.shape[1])
-        libtiff.setField(fp, 'TileLength', th)
-        libtiff.setField(fp, 'TileWidth', tw)
-        libtiff.setField(fp, 'BitsPerSample', 8)
-        libtiff.setField(fp, 'SamplesPerPixel', 3)
-        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
-        libtiff.setField(fp, 'JPEGColorMode', libtiff.JPEGColorMode.RGB)
-        libtiff.setField(fp, 'JPEGQuality', 100)
-
-        libtiff.writeEncodedTile(fp, 0, data[:th, :tw, :].copy())
-        libtiff.writeEncodedTile(fp, 1, data[:th, tw:w, :].copy())
-        libtiff.writeEncodedTile(fp, 2, data[th:h, :tw, :].copy())
-        libtiff.writeEncodedTile(fp, 3, data[th:h, tw:w, :].copy())
-
-        libtiff.close(fp)
-
-        # now read it back
-        fp = libtiff.open(path)
-
-        tile = np.zeros((th, tw, 4), dtype=np.uint8)
-        actual_data = np.zeros((h, w, 3), dtype=np.uint8)
-
-        libtiff.readRGBATile(fp, 0, 0, tile)
-        actual_data[:th, :tw, :] = tile[::-1, :, :3]
-
-        libtiff.readRGBATile(fp, 256, 0, tile)
-        actual_data[:th, tw:w, :] = tile[::-1, :, :3]
-
-        libtiff.readRGBATile(fp, 0, 256, tile)
-        actual_data[th:h, :tw, :] = tile[::-1, :, :3]
-
-        libtiff.readRGBATile(fp, 256, 256, tile)
-        actual_data[th:h, tw:w, :] = tile[::-1, :, :3]
-
-        libtiff.close(fp)
-
-        cls.astronaut_ycbcr_jpeg_data = actual_data
-        cls.astronaut_ycbcr_jpeg_tif = path
-
-    @classmethod
-    def setup_rgb_bigtiff(cls, path):
-        """
-        SCENARIO:  create a simple color 2x2 tiled image, bigtiff
-        """
-        data = fixtures.skimage.data.astronaut()
-        h, w, z = data.shape
-        th, tw = h // 2, w // 2
-
-        fp = libtiff.open(path, mode='w8')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.RGB)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
-        libtiff.setField(fp, 'ImageLength', data.shape[0])
-        libtiff.setField(fp, 'ImageWidth', data.shape[1])
-        libtiff.setField(fp, 'TileLength', th)
-        libtiff.setField(fp, 'TileWidth', tw)
-        libtiff.setField(fp, 'BitsPerSample', 8)
-        libtiff.setField(fp, 'SamplesPerPixel', 3)
-        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
-
-        libtiff.writeEncodedTile(fp, 0, data[:th, :tw, :].copy())
-        libtiff.writeEncodedTile(fp, 1, data[:th, tw:w, :].copy())
-        libtiff.writeEncodedTile(fp, 2, data[th:h, :tw, :].copy())
-        libtiff.writeEncodedTile(fp, 3, data[th:h, tw:w, :].copy())
-
-        libtiff.close(fp)
-
-        # now read it back
-        fp = libtiff.open(path)
-
-        tile = np.zeros((th, tw, 3), dtype=np.uint8)
-        actual_data = np.zeros((h, w, 3), dtype=np.uint8)
-
-        libtiff.readEncodedTile(fp, 0, tile)
-        actual_data[:th, :tw, :] = tile
-
-        libtiff.readEncodedTile(fp, 1, tile)
-        actual_data[:th, tw:w, :] = tile
-
-        libtiff.readEncodedTile(fp, 2, tile)
-        actual_data[th:h, :tw, :] = tile
-
-        libtiff.readEncodedTile(fp, 3, tile)
-        actual_data[th:h, tw:w, :] = tile
-
-        libtiff.close(fp)
-
-        cls.rgb_bigtiff_data = actual_data
-        cls.rgb_bigtiff = path
-
-    @classmethod
-    def setup_rgb(cls, path):
-        """
-        SCENARIO:  create a simple color 2x2 tiled image
-        """
-        data = fixtures.skimage.data.astronaut()
-        h, w, z = data.shape
-        th, tw = h // 2, w // 2
-
-        fp = libtiff.open(path, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.RGB)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
-        libtiff.setField(fp, 'ImageLength', data.shape[0])
-        libtiff.setField(fp, 'ImageWidth', data.shape[1])
-        libtiff.setField(fp, 'TileLength', th)
-        libtiff.setField(fp, 'TileWidth', tw)
-        libtiff.setField(fp, 'BitsPerSample', 8)
-        libtiff.setField(fp, 'SamplesPerPixel', 3)
-        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
-
-        libtiff.writeEncodedTile(fp, 0, data[:th, :tw, :].copy())
-        libtiff.writeEncodedTile(fp, 1, data[:th, tw:w, :].copy())
-        libtiff.writeEncodedTile(fp, 2, data[th:h, :tw, :].copy())
-        libtiff.writeEncodedTile(fp, 3, data[th:h, tw:w, :].copy())
-
-        libtiff.close(fp)
-
-        # now read it back
-        fp = libtiff.open(path)
-
-        tile = np.zeros((th, tw, 3), dtype=np.uint8)
-        actual_data = np.zeros((h, w, 3), dtype=np.uint8)
-
-        libtiff.readEncodedTile(fp, 0, tile)
-        actual_data[:th, :tw, :] = tile
-
-        libtiff.readEncodedTile(fp, 1, tile)
-        actual_data[:th, tw:w, :] = tile
-
-        libtiff.readEncodedTile(fp, 2, tile)
-        actual_data[th:h, :tw, :] = tile
-
-        libtiff.readEncodedTile(fp, 3, tile)
-        actual_data[th:h, tw:w, :] = tile
-
-        libtiff.close(fp)
-
-        cls.astronaut_data = actual_data
-        cls.astronaut_tif = path
+class TestSuite(fixtures.TestCommon):
 
     @classmethod
     def setUpClass(cls):
-        cls.test_tiff_dir = tempfile.mkdtemp()
-        cls.test_tiff_path = pathlib.Path(cls.test_tiff_dir)
 
-        cls.setup_minisblack_spp1(cls.test_tiff_path / 'moon.tif')
+        cls.astronaut8 = _file_helper('astronaut8.tif')
+        cls.astronaut_u16 = _file_helper('astronaut_uint16.tif')
+        cls.astronaut8_stripped = _file_helper('astronaut8_stripped.tif')
+        cls.astronaut_ycbcr_jpeg_tiled = _file_helper('astronaut_ycbcr_jpeg_tiled.tif')  # noqa : E501
+        cls.moon = _file_helper('moon.tif')
+        cls.moon_3x3 = _file_helper('moon_3x3.tif')
+        cls.moon_3stripped = _file_helper('moon3_stripped.tif')
+        cls.moon3_partial_last_strip = _file_helper('moon3_partial_last_strip.tif')  # noqa : E501
+        cls.ycbcr_bg = _file_helper('ycbcr_bg.tif')
+        cls.stripped = _file_helper('stripped.tif')
 
-        cls.setup_minisblack_3x3(cls.test_tiff_path / 'minisblack_3x3.tif')
+        test_tiff_dir = tempfile.mkdtemp()
+        cls.test_tiff_path = pathlib.Path(test_tiff_dir)
 
-        cls.setup_minisblack_3strip(cls.test_tiff_path / 'moon3_stripped.tif')
-
-        path = cls.test_tiff_path / 'moon3_partial_last_strip.tif'
-        cls.setup_minisblack_3strip_partial_last_strip(path)
-
-        path = cls.test_tiff_path / 'minisblack_2x2_partial_tiles.tif'
-        cls.setup_minisblack_2x2_partial_tiles(path)
-
-        cls.setup_rgb(cls.test_tiff_path / 'astronaut.tif')
-        cls.setup_rgb_bigtiff(cls.test_tiff_path / 'rbg_bigtiff.tif')
-
-        cls.setup_ycbcr_jpeg(
-            cls.test_tiff_path / 'astronaut_ycbcr_jpeg_tiled.tif'
-        )
-
-        cls.setup_ycbcr_striped_jpeg(
-            cls.test_tiff_path / 'astronaut_ycbcr_striped_jpeg.tif'
-        )
-
-        cls.setup_rgb_uint16(cls.test_tiff_path / 'astronaut_uint16.tif')
+        cls.setup_exif(cls.test_tiff_path / 'exif.tif')
 
     @classmethod
     def tearDownClass(cls):
-        shutil.rmtree(cls.test_tiff_dir)
-
-    def test_smoke(self):
-        """
-        SCENARIO:  Convert TIFF file to JP2
-
-        EXPECTED RESULT:  data matches, number of resolution is the default.
-        There should be just one layer.  The number of resolutions should be
-        the default (5).  There are not PLT segments.  There are no EPH
-        markers.  There are no SOP markers.  The progression order is LRCP.
-        The irreversible transform will NOT be used.  PSNR cannot be tested
-        if it is not applied.
-
-        There is a UUID box appended at the end containing the metadata.
-        """
-        with Tiff2Jp2k(
-            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename
-        ) as j:
-            j.run()
-
-        j = Jp2k(self.temp_jp2_filename)
-
-        actual = j[:]
-        self.assertEqual(actual.shape, (512, 512, 3))
-
-        c = j.get_codestream(header_only=False)
-
-        actual = c.segment[2].code_block_size
-        expected = (64, 64)
-        self.assertEqual(actual, expected)
-
-        self.assertEqual(c.segment[2].layers, 1)
-        self.assertEqual(c.segment[2].num_res, 5)
-
-        at_least_one_eph = any(
-            isinstance(seg, glymur.codestream.EPHsegment)
-            for seg in c.segment
-        )
-        self.assertFalse(at_least_one_eph)
-
-        at_least_one_plt = any(
-            isinstance(seg, glymur.codestream.PLTsegment)
-            for seg in c.segment
-        )
-        self.assertFalse(at_least_one_plt)
-
-        at_least_one_sop = any(
-            isinstance(seg, glymur.codestream.SOPsegment)
-            for seg in c.segment
-        )
-        self.assertFalse(at_least_one_sop)
-
-        self.assertEqual(c.segment[2].prog_order, glymur.core.LRCP)
-
-        self.assertEqual(
-            c.segment[2].xform, glymur.core.WAVELET_XFORM_5X3_REVERSIBLE
-        )
-
-        self.assertEqual(j.box[-1].box_id, 'uuid')
-        self.assertEqual(j.box[-1].data['ImageWidth'], 512)
-        self.assertEqual(j.box[-1].data['ImageLength'], 512)
-
-    def test_smoke_rgba(self):
-        """
-        SCENARIO:  Convert RGCA TIFF file to JP2
-
-        EXPECTED RESULT:  data matches, number of resolution is the default.
-        There should be just one layer.  The number of resolutions should be
-        the default (5).  There are not PLT segments.  There are no EPH
-        markers.  There are no SOP markers.  The progression order is LRCP.
-        The irreversible transform will NOT be used.  PSNR cannot be tested
-        if it is not applied.
-
-        There is a UUID box appended at the end containing the metadata.
-        """
-        with Tiff2Jp2k(
-            self.astronaut_ycbcr_striped_jpeg_tif, self.temp_jp2_filename,
-            tilesize=[256, 256]
-        ) as j:
-            j.run()
-
-        j = Jp2k(self.temp_jp2_filename)
-
-        actual = j[:]
-        self.assertEqual(actual.shape, (512, 512, 3))
-
-        c = j.get_codestream(header_only=False)
-
-        actual = c.segment[2].code_block_size
-        expected = (64, 64)
-        self.assertEqual(actual, expected)
-
-        self.assertEqual(c.segment[2].layers, 1)
-        self.assertEqual(c.segment[2].num_res, 5)
-
-        at_least_one_eph = any(
-            isinstance(seg, glymur.codestream.EPHsegment)
-            for seg in c.segment
-        )
-        self.assertFalse(at_least_one_eph)
-
-        at_least_one_plt = any(
-            isinstance(seg, glymur.codestream.PLTsegment)
-            for seg in c.segment
-        )
-        self.assertFalse(at_least_one_plt)
-
-        at_least_one_sop = any(
-            isinstance(seg, glymur.codestream.SOPsegment)
-            for seg in c.segment
-        )
-        self.assertFalse(at_least_one_sop)
-
-        self.assertEqual(c.segment[2].prog_order, glymur.core.LRCP)
-
-        self.assertEqual(
-            c.segment[2].xform, glymur.core.WAVELET_XFORM_5X3_REVERSIBLE
-        )
-
-        self.assertEqual(j.box[-1].box_id, 'uuid')
-        self.assertEqual(j.box[-1].data['ImageWidth'], 512)
-        self.assertEqual(j.box[-1].data['ImageLength'], 512)
-
-    def test_no_uuid(self):
-        """
-        SCENARIO:  Convert TIFF file to JP2, but do not include the UUID box
-        for the TIFF IFD.
-
-        EXPECTED RESULT:  data matches, no UUID box
-        """
-        with Tiff2Jp2k(
-            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename,
-            create_exif_uuid=False
-        ) as j:
-            j.run()
-
-        j = Jp2k(self.temp_jp2_filename)
-
-        actual = j[:]
-        self.assertEqual(actual.shape, (512, 512, 3))
-
-        at_least_one_uuid = any(
-            isinstance(box, glymur.jp2box.UUIDBox) for box in j.box
-        )
-        self.assertFalse(at_least_one_uuid)
-
-    @unittest.skipIf(
-        platform.machine() == 's390x', 'See issue #546'
-    )
-    def test_psnr(self):
-        """
-        SCENARIO:  Convert TIFF file to JP2 with the irreversible transform.
-
-        EXPECTED RESULT:  data matches, the irreversible transform is confirmed
-        """
-        with Tiff2Jp2k(
-            self.minisblack_spp1_path, self.temp_jp2_filename,
-            psnr=(30, 35, 40, 0)
-        ) as j:
-            j.run()
-
-        j = Jp2k(self.temp_jp2_filename)
-
-        d = {}
-        for layer in range(4):
-            j.layer = layer
-            d[layer] = j[:]
-
-        with warnings.catch_warnings():
-            # MSE is zero for that first image, resulting in a divide-by-zero
-            # warning
-            warnings.simplefilter('ignore')
-            psnr = [
-                fixtures.skimage.metrics.peak_signal_noise_ratio(
-                    fixtures.skimage.data.moon(), d[j]
-                )
-                for j in range(4)
-            ]
-
-        # That first image should be lossless.
-        self.assertTrue(np.isinf(psnr[0]))
-
-        # None of the subsequent images should have inf PSNR.
-        self.assertTrue(not np.any(np.isinf(psnr[1:])))
-
-        # PSNR should increase for the remaining images.
-        self.assertTrue(np.all(np.diff(psnr[1:])) > 0)
-
-    def test_irreversible(self):
-        """
-        SCENARIO:  Convert TIFF file to JP2 with the irreversible transform.
-
-        EXPECTED RESULT:  data matches, the irreversible transform is confirmed
-        """
-        with Tiff2Jp2k(
-            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename,
-            irreversible=True
-        ) as j:
-            j.run()
-
-        j = Jp2k(self.temp_jp2_filename)
-        c = j.get_codestream(header_only=False)
-
-        self.assertEqual(
-            c.segment[2].xform, glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE
-        )
-
-    def test_sop(self):
-        """
-        SCENARIO:  Convert TIFF file to JP2 with SOP markers.
-
-        EXPECTED RESULT:  data matches, sop markers confirmed
-        """
-        with Tiff2Jp2k(
-            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename, sop=True
-        ) as j:
-            j.run()
-
-        j = Jp2k(self.temp_jp2_filename)
-        c = j.get_codestream(header_only=False)
-
-        at_least_one_sop = any(
-            isinstance(seg, glymur.codestream.SOPsegment)
-            for seg in c.segment
-        )
-        self.assertTrue(at_least_one_sop)
-
-    def test_progression_order(self):
-        """
-        SCENARIO:  Convert TIFF file to JP2 with EPH markers.
-
-        EXPECTED RESULT:  data matches, plt markers confirmed
-        """
-        with Tiff2Jp2k(
-            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename,
-            prog='rlcp'
-        ) as j:
-            j.run()
-
-        j = Jp2k(self.temp_jp2_filename)
-        c = j.get_codestream(header_only=False)
-
-        self.assertEqual(c.segment[2].prog_order, glymur.core.RLCP)
-
-    def test_eph(self):
-        """
-        SCENARIO:  Convert TIFF file to JP2 with EPH markers.
-
-        EXPECTED RESULT:  data matches, plt markers confirmed
-        """
-        with Tiff2Jp2k(
-            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename, eph=True
-        ) as j:
-            j.run()
-
-        j = Jp2k(self.temp_jp2_filename)
-        c = j.get_codestream(header_only=False)
-
-        at_least_one_eph = any(
-            isinstance(seg, glymur.codestream.EPHsegment)
-            for seg in c.segment
-        )
-        self.assertTrue(at_least_one_eph)
-
-    @unittest.skipIf(
-        glymur.version.openjpeg_version < '2.4.0', "Requires as least v2.4.0"
-    )
-    def test_plt(self):
-        """
-        SCENARIO:  Convert TIFF file to JP2 with PLT markers.
-
-        EXPECTED RESULT:  data matches, plt markers confirmed
-        """
-        with Tiff2Jp2k(
-            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename, plt=True
-        ) as j:
-            j.run()
-
-        j = Jp2k(self.temp_jp2_filename)
-        c = j.get_codestream(header_only=False)
-
-        at_least_one_plt = any(
-            isinstance(seg, glymur.codestream.PLTsegment)
-            for seg in c.segment
-        )
-        self.assertTrue(at_least_one_plt)
-
-    def test_resolutions(self):
-        """
-        SCENARIO:  Convert TIFF file to JP2 with 4 resolution layers instead
-        of the default, which is 5.
-
-        EXPECTED RESULT:  data matches, number of resolution layers is 4.
-        """
-        expected = 4
-        with Tiff2Jp2k(
-            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename,
-            numres=expected
-        ) as j:
-            j.run()
-
-        j = Jp2k(self.temp_jp2_filename)
-
-        actual = j[:]
-        self.assertEqual(actual.shape, (512, 512, 3))
-
-        c = j.get_codestream()
-        actual = c.segment[2].num_res
-        self.assertEqual(actual, expected - 1)
-
-    def test_layers(self):
-        """
-        SCENARIO:  Convert TIFF file to JP2 with multiple compression layers
-
-        EXPECTED RESULT:  data matches, number of layers is 3
-        """
-        with Tiff2Jp2k(
-            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename,
-            cratios=[200, 50, 10]
-        ) as j:
-            j.run()
-
-        j = Jp2k(self.temp_jp2_filename)
-
-        actual = j[:]
-        self.assertEqual(actual.shape, (512, 512, 3))
-
-        c = j.get_codestream()
-        self.assertEqual(c.segment[2].layers, 3)
-
-    def test_codeblock_size(self):
-        """
-        SCENARIO:  Convert TIFF file to JP2 with a specific code block size
-
-        EXPECTED RESULT:  data matches, number of resolution is the default
-        """
-        expected = (32, 32)
-        with Tiff2Jp2k(
-            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename,
-            cbsize=expected
-        ) as j:
-            j.run()
-
-        j = Jp2k(self.temp_jp2_filename)
-
-        actual = j[:]
-        self.assertEqual(actual.shape, (512, 512, 3))
-
-        c = j.get_codestream()
-        actual = c.segment[2].code_block_size
-        self.assertEqual(actual, expected)
-
-    def test_verbosity(self):
-        """
-        SCENARIO:  Convert TIFF file to JP2, use INFO log level.
-
-        EXPECTED RESULT:  data matches
-        """
-        with Tiff2Jp2k(
-            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename,
-            verbosity=logging.INFO
-        ) as j:
-            with self.assertLogs(logger='tiff2jp2', level=logging.INFO) as cm:
-                j.run()
-
-                self.assertEqual(len(cm.output), 1)
-
-    def test_partial_strip_and_partial_tiles(self):
-        """
-        SCENARIO:  Convert monochromatic stripped TIFF file to JP2.  The TIFF
-        has a partial last strip.  The JP2K will have partial tiles.
-
-        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
-        """
-        with Tiff2Jp2k(
-            self.minisblack_3strip_partial_last_strip, self.temp_jp2_filename,
-            tilesize=(250, 250)
-        ) as j:
-            j.run()
-
-        jp2 = Jp2k(self.temp_jp2_filename)
-        actual = jp2[:]
-
-        np.testing.assert_array_equal(
-            actual, self.minisblack_2x2_partial_tiles_data
-        )
-
-        c = jp2.get_codestream()
-        self.assertEqual(c.segment[1].xsiz, 480)
-        self.assertEqual(c.segment[1].ysiz, 480)
-        self.assertEqual(c.segment[1].xtsiz, 250)
-        self.assertEqual(c.segment[1].ytsiz, 250)
-
-    def test_partial_last_strip(self):
-        """
-        SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF has a
-        partial last strip.
-
-        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
-        """
-        with Tiff2Jp2k(
-            self.minisblack_3strip_partial_last_strip, self.temp_jp2_filename,
-            tilesize=(240, 240), verbose='DEBUG'
-        ) as j:
-            j.run()
-
-        jp2 = Jp2k(self.temp_jp2_filename)
-        actual = jp2[:]
-
-        np.testing.assert_array_equal(actual, self.minisblack_3x3_data)
-
-        c = jp2.get_codestream()
-        self.assertEqual(c.segment[1].xsiz, 480)
-        self.assertEqual(c.segment[1].ysiz, 480)
-        self.assertEqual(c.segment[1].xtsiz, 240)
-        self.assertEqual(c.segment[1].ytsiz, 240)
-
-    def test_32bit(self):
-        """
-        SCENARIO:  The sample format is 32bit integer.
-
-        EXPECTED RESULT:  RuntimeError
-        """
-        data = fixtures.skimage.data.moon().astype(np.uint32)
-
-        h, w = data.shape
-        th, tw = h // 2, w // 2
-
-        fp = libtiff.open(self.temp_tiff_filename, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
-        libtiff.setField(fp, 'SampleFormat', libtiff.SampleFormat.UINT)
-        libtiff.setField(fp, 'ImageLength', data.shape[0])
-        libtiff.setField(fp, 'ImageWidth', data.shape[1])
-        libtiff.setField(fp, 'TileLength', th)
-        libtiff.setField(fp, 'TileWidth', tw)
-        libtiff.setField(fp, 'BitsPerSample', 32)
-        libtiff.setField(fp, 'SamplesPerPixel', 1)
-
-        libtiff.writeEncodedTile(fp, 0, data[:th, :tw].copy())
-        libtiff.writeEncodedTile(fp, 1, data[:th, tw:w].copy())
-        libtiff.writeEncodedTile(fp, 2, data[th:h, :tw].copy())
-        libtiff.writeEncodedTile(fp, 3, data[th:h, tw:w].copy())
-
-        libtiff.close(fp)
-
-        with Tiff2Jp2k(self.temp_tiff_filename, self.temp_jp2_filename) as j:
-            with self.assertRaises(RuntimeError):
-                j.run()
-
-    def test_floating_point(self):
-        """
-        SCENARIO:  The sample format is 32bit floating point.
-
-        EXPECTED RESULT:  RuntimeError
-        """
-        data = fixtures.skimage.data.moon().astype(np.float32)
-
-        h, w = data.shape
-        th, tw = h // 2, w // 2
-
-        fp = libtiff.open(self.temp_tiff_filename, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
-        libtiff.setField(fp, 'SampleFormat', libtiff.SampleFormat.IEEEFP)
-        libtiff.setField(fp, 'ImageLength', data.shape[0])
-        libtiff.setField(fp, 'ImageWidth', data.shape[1])
-        libtiff.setField(fp, 'TileLength', th)
-        libtiff.setField(fp, 'TileWidth', tw)
-        libtiff.setField(fp, 'BitsPerSample', 32)
-        libtiff.setField(fp, 'SamplesPerPixel', 1)
-
-        libtiff.writeEncodedTile(fp, 0, data[:th, :tw].copy())
-        libtiff.writeEncodedTile(fp, 1, data[:th, tw:w].copy())
-        libtiff.writeEncodedTile(fp, 2, data[th:h, :tw].copy())
-        libtiff.writeEncodedTile(fp, 3, data[th:h, tw:w].copy())
-
-        libtiff.close(fp)
-
-        with Tiff2Jp2k(self.temp_tiff_filename, self.temp_jp2_filename) as j:
-            with self.assertRaises(RuntimeError):
-                j.run()
-
-    def test_evenly_tiled(self):
-        """
-        SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF is evenly
-        tiled 2x2.
-
-        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
-        """
-        with Tiff2Jp2k(
-            self.minisblack_spp1_path,
-            self.temp_jp2_filename,
-            tilesize=(256, 256)
-        ) as j:
-            j.run()
-
-        jp2 = Jp2k(self.temp_jp2_filename)
-        actual = jp2[:]
-
-        np.testing.assert_array_equal(actual, self.minisblack_spp1_data)
-
-        c = jp2.get_codestream()
-        self.assertEqual(c.segment[1].xsiz, 512)
-        self.assertEqual(c.segment[1].ysiz, 512)
-        self.assertEqual(c.segment[1].xtsiz, 256)
-        self.assertEqual(c.segment[1].ytsiz, 256)
-
-    def test_tiled_logging(self):
-        """
-        SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF is evenly
-        tiled 2x2.  Logging is turned on.
-
-        EXPECTED RESULT:  there are four messages logged, one for each tile
-        """
-        with Tiff2Jp2k(
-            self.minisblack_spp1_path,
-            self.temp_jp2_filename,
-            tilesize=(256, 256)
-        ) as j:
-            with self.assertLogs(logger='tiff2jp2', level=logging.INFO) as cm:
-                j.run()
-
-                self.assertEqual(len(cm.output), 4)
-
-    def test_minisblack__smaller_tilesize_specified(self):
-        """
-        SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF is evenly
-        tiled 2x2, but we want 4x4.
-
-        EXPECTED RESULT:  The data matches.  The JP2 file has 16 tiles.
-        """
-        with Tiff2Jp2k(
-            self.minisblack_spp1_path, self.temp_jp2_filename,
-            tilesize=(128, 128)
-        ) as j:
-            j.run()
-
-        jp2 = Jp2k(self.temp_jp2_filename)
-        actual = jp2[:]
-
-        np.testing.assert_array_equal(actual, self.minisblack_spp1_data)
-
-        c = jp2.get_codestream()
-        self.assertEqual(c.segment[1].xsiz, 512)
-        self.assertEqual(c.segment[1].ysiz, 512)
-        self.assertEqual(c.segment[1].xtsiz, 128)
-        self.assertEqual(c.segment[1].ytsiz, 128)
-
-    def test_minisblack_3strip_to_2x2(self):
-        """
-        SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF is evenly
-        stripped by 3, but we want 2x2.
-
-        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
-        """
-        with Tiff2Jp2k(
-            self.minisblack_3_full_strips_path, self.temp_jp2_filename,
-            tilesize=(240, 240)
-        ) as j:
-            j.run()
-
-        jp2 = Jp2k(self.temp_jp2_filename)
-        actual = jp2[:]
-
-        np.testing.assert_array_equal(actual, self.minisblack_3x3_data)
-
-        c = jp2.get_codestream()
-        self.assertEqual(c.segment[1].xsiz, 480)
-        self.assertEqual(c.segment[1].ysiz, 480)
-        self.assertEqual(c.segment[1].xtsiz, 240)
-        self.assertEqual(c.segment[1].ytsiz, 240)
-
-    def test_minisblack_3x3__larger_tilesize_specified(self):
-        """
-        SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF is evenly
-        tiled 3x3, but we want 2x2.
-
-        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
-        """
-        with Tiff2Jp2k(
-            self.minisblack_3x3_tif, self.temp_jp2_filename,
-            tilesize=(240, 240)
-        ) as j:
-            j.run()
-
-        jp2 = Jp2k(self.temp_jp2_filename)
-        actual = jp2[:]
-
-        np.testing.assert_array_equal(actual, self.minisblack_3x3_data)
-
-        c = jp2.get_codestream()
-        self.assertEqual(c.segment[1].xsiz, 480)
-        self.assertEqual(c.segment[1].ysiz, 480)
-        self.assertEqual(c.segment[1].xtsiz, 240)
-        self.assertEqual(c.segment[1].ytsiz, 240)
-
-    def test_rgb_tiled_bigtiff(self):
-        """
-        SCENARIO:  Convert RGB BigTIFF file to JP2.  The TIFF is evenly
-        tiled 2x2.
-
-        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
-        """
-        with Tiff2Jp2k(
-            self.rgb_bigtiff, self.temp_jp2_filename, tilesize=(256, 256),
-        ) as j:
-            j.run()
-
-        jp2 = Jp2k(self.temp_jp2_filename)
-        actual = jp2[:]
-
-        np.testing.assert_array_equal(actual, self.astronaut_data)
-
-        c = jp2.get_codestream()
-        self.assertEqual(c.segment[1].xsiz, 512)
-        self.assertEqual(c.segment[1].ysiz, 512)
-        self.assertEqual(c.segment[1].xtsiz, 256)
-        self.assertEqual(c.segment[1].ytsiz, 256)
-
-    def test_rgb_tiled_tiff(self):
-        """
-        SCENARIO:  Convert RGB TIFF file to JP2.  The TIFF is evenly
-        tiled 2x2.
-
-        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
-        """
-        with Tiff2Jp2k(
-            self.astronaut_tif, self.temp_jp2_filename, tilesize=(256, 256)
-        ) as j:
-            j.run()
-
-        jp2 = Jp2k(self.temp_jp2_filename)
-        actual = jp2[:]
-
-        np.testing.assert_array_equal(actual, self.astronaut_data)
-
-        c = jp2.get_codestream()
-        self.assertEqual(c.segment[1].xsiz, 512)
-        self.assertEqual(c.segment[1].ysiz, 512)
-        self.assertEqual(c.segment[1].xtsiz, 256)
-        self.assertEqual(c.segment[1].ytsiz, 256)
-
-    def test_ycbcr_jpeg_unevenly_tiled(self):
-        """
-        SCENARIO:  Convert YCBCR/JPEG TIFF file to JP2.  The TIFF is evenly
-        tiled 2x2.  The JPEG 2000 file will be tiled 75x75.
-
-        EXPECTED RESULT:  The data matches.  No errors
-        """
-        with Tiff2Jp2k(
-            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename,
-            tilesize=(75, 75)
-        ) as j:
-            j.run()
-
-        jp2 = Jp2k(self.temp_jp2_filename)
-        actual = jp2[:]
-
-        np.testing.assert_array_equal(actual, self.astronaut_ycbcr_jpeg_data)
-
-        c = jp2.get_codestream()
-        self.assertEqual(c.segment[1].xsiz, 512)
-        self.assertEqual(c.segment[1].ysiz, 512)
-        self.assertEqual(c.segment[1].xtsiz, 75)
-        self.assertEqual(c.segment[1].ytsiz, 75)
-
-    def test_ycbcr_jpeg_tiff(self):
-        """
-        SCENARIO:  Convert YCBCR/JPEG TIFF file to JP2.  The TIFF is evenly
-        tiled 2x2.
-
-        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
-        """
-        with Tiff2Jp2k(
-            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename,
-            tilesize=(256, 256)
-        ) as j:
-            j.run()
-
-        jp2 = Jp2k(self.temp_jp2_filename)
-        actual = jp2[:]
-
-        np.testing.assert_array_equal(actual, self.astronaut_ycbcr_jpeg_data)
-
-        c = jp2.get_codestream()
-        self.assertEqual(c.segment[1].xsiz, 512)
-        self.assertEqual(c.segment[1].ysiz, 512)
-        self.assertEqual(c.segment[1].xtsiz, 256)
-        self.assertEqual(c.segment[1].ytsiz, 256)
-
-    def test_ycbcr_jpeg_single_tile(self):
-        """
-        SCENARIO:  Convert YCBCR/JPEG TIFF file to JP2.  The TIFF is evenly
-        tiled 2x2, but no tilesize is specified.
-
-        EXPECTED RESULT:  The data matches.
-        """
-        with Tiff2Jp2k(
-            self.astronaut_ycbcr_jpeg_tif, self.temp_jp2_filename,
-        ) as j:
-            j.run()
-
-        jp2 = Jp2k(self.temp_jp2_filename)
-        actual = jp2[:]
-
-        np.testing.assert_array_equal(actual, self.astronaut_ycbcr_jpeg_data)
-
-        c = jp2.get_codestream()
-        self.assertEqual(c.segment[1].xsiz, 512)
-        self.assertEqual(c.segment[1].ysiz, 512)
-        self.assertEqual(c.segment[1].xtsiz, 512)
-        self.assertEqual(c.segment[1].ytsiz, 512)
-
-    def test_rgb_uint16(self):
-        """
-        SCENARIO:  Convert RGB TIFF file to JP2.  The TIFF is evenly
-        tiled 2x2 and uint16.
-
-        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
-        """
-        with Tiff2Jp2k(
-            self.astronaut_uint16_filename, self.temp_jp2_filename,
-            tilesize=(256, 256)
-        ) as j:
-            j.run()
-
-        jp2 = Jp2k(self.temp_jp2_filename)
-        actual = jp2[:]
-
-        np.testing.assert_array_equal(actual, self.astronaut_uint16_data)
-
-        c = jp2.get_codestream()
-        self.assertEqual(c.segment[1].xsiz, 512)
-        self.assertEqual(c.segment[1].ysiz, 512)
-        self.assertEqual(c.segment[1].xtsiz, 256)
-        self.assertEqual(c.segment[1].ytsiz, 256)
-
-    def test_commandline_tiff2jp2(self):
-        """
-        Scenario:  patch sys such that we can run the command line tiff2jp2
-        script.
-
-        Expected Results:  Same as test_astronaut.
-        """
-        sys.argv = [
-            '', str(self.astronaut_tif), str(self.temp_jp2_filename),
-            '--tilesize', '256', '256'
-        ]
-        command_line.tiff2jp2()
-
-        jp2 = Jp2k(self.temp_jp2_filename)
-        actual = jp2[:]
-
-        np.testing.assert_array_equal(actual, self.astronaut_data)
-
-        c = jp2.get_codestream()
-        self.assertEqual(c.segment[1].xsiz, 512)
-        self.assertEqual(c.segment[1].ysiz, 512)
-        self.assertEqual(c.segment[1].xtsiz, 256)
-        self.assertEqual(c.segment[1].ytsiz, 256)
-
-    def test_commandline_tiff2jp2_exclude_tags_numeric(self):
-        """
-        Scenario:  patch sys such that we can run the command line tiff2jp2
-        script.  Exclude TileByteCounts and TileByteOffsets, but provide those
-        tags as numeric values.
-
-        Expected Results:  Same as test_astronaut.
-        """
-        sys.argv = [
-            '', str(self.astronaut_tif), str(self.temp_jp2_filename),
-            '--tilesize', '256', '256',
-            '--exclude-tags', '324', '325'
-        ]
-        command_line.tiff2jp2()
-
-        jp2 = Jp2k(self.temp_jp2_filename)
-        tags = jp2.box[-1].data
-
-        self.assertNotIn('TileByteCounts', tags)
-        self.assertNotIn('TileOffsets', tags)
-
-    def test_cmyk(self):
-        """
-        Scenario:  CMYK (or separated) is not a supported colorspace.
-
-        Expected result:  RuntimeError
-        """
-        data = fixtures.skimage.data.moon()
-        data = np.dstack((data, data))
-
-        h, w, spp = data.shape
-
-        # instead of 160, this will cause a partially empty last strip
-        rps = 512
-
-        fp = libtiff.open(self.temp_tiff_filename, mode='w')
-
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.SEPARATED)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
-        libtiff.setField(fp, 'ImageLength', data.shape[0])
-        libtiff.setField(fp, 'ImageWidth', data.shape[1])
-        libtiff.setField(fp, 'RowsPerStrip', rps)
-        libtiff.setField(fp, 'BitsPerSample', 8)
-        libtiff.setField(fp, 'SamplesPerPixel', spp)
-        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
-        libtiff.setField(fp, 'InkSet', libtiff.InkSet.MULTIINK)
-
-        libtiff.writeEncodedStrip(fp, 0, data.copy())
-
-        libtiff.close(fp)
-
-        with Tiff2Jp2k(self.temp_tiff_filename, self.temp_jp2_filename) as j:
-            with warnings.catch_warnings():
-                # weird warning about extra samples
-                warnings.simplefilter('ignore')
-                with self.assertRaises(RuntimeError):
-                    j.run()
-
-    def test_commandline_tiff2jp2_exclude_tags(self):
-        """
-        Scenario:  patch sys such that we can run the command line tiff2jp2
-        script.  Exclude TileByteCounts and TileByteOffsets
-
-        Expected Results:  TileByteCounts and TileOffsets are not in the EXIF
-        UUID.
-        """
-        sys.argv = [
-            '', str(self.astronaut_tif), str(self.temp_jp2_filename),
-            '--tilesize', '256', '256',
-            '--exclude-tags', 'tilebytecounts', 'tileoffsets'
-        ]
-        command_line.tiff2jp2()
-
-        jp2 = Jp2k(self.temp_jp2_filename)
-        tags = jp2.box[-1].data
-
-        self.assertNotIn('TileByteCounts', tags)
-        self.assertNotIn('TileOffsets', tags)
-
-
-class TestSuiteNoScikitImage(fixtures.TestCommon):
+        shutil.rmtree(cls.test_tiff_path)
 
     @classmethod
     def setup_exif(cls, path):
@@ -1484,48 +197,775 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
             buffer = struct.pack('<BBBBBB', *data)
             f.write(buffer)
 
-        cls.exif_tiff = path
+        cls.exif = path
 
-    @classmethod
-    def setUpClass(cls):
-
-        cls.test_tiff_dir = tempfile.mkdtemp()
-        cls.test_tiff_path = pathlib.Path(cls.test_tiff_dir)
-
-        cls.setup_rgb_evenly_stripped(cls.test_tiff_path / 'goodstuff.tif')
-
-        cls.setup_exif(cls.test_tiff_path / 'exif.tif')
-
-    @classmethod
-    def setup_rgb_evenly_stripped(cls, path):
+    def test_smoke(self):
         """
-        SCENARIO:  create a simple RGB stripped image, stripsize of 32
+        SCENARIO:  Convert TIFF file to JP2
+
+        EXPECTED RESULT:  data matches, number of resolution is the default.
+        There should be just one layer.  The number of resolutions should be
+        the default (5).  There are not PLT segments.  There are no EPH
+        markers.  There are no SOP markers.  The progression order is LRCP.
+        The irreversible transform will NOT be used.  PSNR cannot be tested
+        if it is not applied.
+
+        There is a UUID box appended at the end containing the metadata.
         """
-        j = Jp2k(glymur.data.goodstuff())
-        data = j[:]
-        h, w, spp = data.shape
-        rps = 32
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename
+        ) as j:
+            j.run()
 
-        fp = libtiff.open(path, mode='w')
+        j = Jp2k(self.temp_jp2_filename)
 
-        libtiff.setField(fp, 'Photometric', libtiff.Photometric.RGB)
-        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
-        libtiff.setField(fp, 'ImageLength', data.shape[0])
-        libtiff.setField(fp, 'ImageWidth', data.shape[1])
-        libtiff.setField(fp, 'RowsPerStrip', rps)
-        libtiff.setField(fp, 'BitsPerSample', 8)
-        libtiff.setField(fp, 'SamplesPerPixel', spp)
-        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
+        actual = j[:]
+        self.assertEqual(actual.shape, (512, 512, 3))
 
-        for stripnum in range(25):
-            row = rps * stripnum
-            stripdata = data[row:row + rps, :, :].copy()
-            libtiff.writeEncodedStrip(fp, stripnum, stripdata)
+        c = j.get_codestream(header_only=False)
 
-        libtiff.close(fp)
+        actual = c.segment[2].code_block_size
+        expected = (64, 64)
+        self.assertEqual(actual, expected)
 
-        cls.goodstuff_data = data
-        cls.goodstuff_path = path
+        self.assertEqual(c.segment[2].layers, 1)
+        self.assertEqual(c.segment[2].num_res, 5)
+
+        at_least_one_eph = any(
+            isinstance(seg, glymur.codestream.EPHsegment)
+            for seg in c.segment
+        )
+        self.assertFalse(at_least_one_eph)
+
+        at_least_one_plt = any(
+            isinstance(seg, glymur.codestream.PLTsegment)
+            for seg in c.segment
+        )
+        self.assertFalse(at_least_one_plt)
+
+        at_least_one_sop = any(
+            isinstance(seg, glymur.codestream.SOPsegment)
+            for seg in c.segment
+        )
+        self.assertFalse(at_least_one_sop)
+
+        self.assertEqual(c.segment[2].prog_order, glymur.core.LRCP)
+
+        self.assertEqual(
+            c.segment[2].xform, glymur.core.WAVELET_XFORM_5X3_REVERSIBLE
+        )
+
+        self.assertEqual(j.box[-1].box_id, 'uuid')
+        self.assertEqual(j.box[-1].data['ImageWidth'], 512)
+        self.assertEqual(j.box[-1].data['ImageLength'], 512)
+
+    def test_smoke_rgba(self):
+        """
+        SCENARIO:  Convert RGBA TIFF file to JP2
+
+        EXPECTED RESULT:  data matches, number of resolution is the default.
+        There should be just one layer.  The number of resolutions should be
+        the default (5).  There are not PLT segments.  There are no EPH
+        markers.  There are no SOP markers.  The progression order is LRCP.
+        The irreversible transform will NOT be used.  PSNR cannot be tested
+        if it is not applied.
+
+        There is a UUID box appended at the end containing the metadata.
+        """
+        with Tiff2Jp2k(
+            self.astronaut8_stripped, self.temp_jp2_filename,
+            tilesize=[32, 32]
+        ) as j:
+            j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        actual = j[:]
+        self.assertEqual(actual.shape, (64, 64, 3))
+
+        c = j.get_codestream(header_only=False)
+
+        actual = c.segment[2].code_block_size
+        expected = (64, 64)
+        self.assertEqual(actual, expected)
+
+        self.assertEqual(c.segment[2].layers, 1)
+        self.assertEqual(c.segment[2].num_res, 5)
+
+        at_least_one_eph = any(
+            isinstance(seg, glymur.codestream.EPHsegment)
+            for seg in c.segment
+        )
+        self.assertFalse(at_least_one_eph)
+
+        at_least_one_plt = any(
+            isinstance(seg, glymur.codestream.PLTsegment)
+            for seg in c.segment
+        )
+        self.assertFalse(at_least_one_plt)
+
+        at_least_one_sop = any(
+            isinstance(seg, glymur.codestream.SOPsegment)
+            for seg in c.segment
+        )
+        self.assertFalse(at_least_one_sop)
+
+        self.assertEqual(c.segment[2].prog_order, glymur.core.LRCP)
+
+        self.assertEqual(
+            c.segment[2].xform, glymur.core.WAVELET_XFORM_5X3_REVERSIBLE
+        )
+
+        self.assertEqual(j.box[-1].box_id, 'uuid')
+        self.assertEqual(j.box[-1].data['ImageWidth'], 64)
+        self.assertEqual(j.box[-1].data['ImageLength'], 64)
+
+    def test_no_uuid(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2, but do not include the UUID box
+        for the TIFF IFD.
+
+        EXPECTED RESULT:  data matches, no UUID box
+        """
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename,
+            create_exif_uuid=False
+        ) as j:
+            j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        actual = j[:]
+        self.assertEqual(actual.shape, (512, 512, 3))
+
+        at_least_one_uuid = any(
+            isinstance(box, glymur.jp2box.UUIDBox) for box in j.box
+        )
+        self.assertFalse(at_least_one_uuid)
+
+    @unittest.skipIf(
+        platform.machine() == 's390x', 'See issue #546'
+    )
+    def test_psnr(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2 with the irreversible transform.
+
+        EXPECTED RESULT:  data matches, the irreversible transform is confirmed
+        """
+        with Tiff2Jp2k(
+            self.moon, self.temp_jp2_filename, psnr=(30, 35, 40, 0)
+        ) as j:
+            j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        d = {}
+        for layer in range(4):
+            j.layer = layer
+            d[layer] = j[:]
+
+        truth = skimage.io.imread(self.moon)
+
+        with warnings.catch_warnings():
+            # MSE is zero for that first image, resulting in a divide-by-zero
+            # warning
+            warnings.simplefilter('ignore')
+            psnr = [
+                skimage.metrics.peak_signal_noise_ratio(truth, d[j])
+                for j in range(4)
+            ]
+
+        # That first image should be lossless.
+        self.assertTrue(np.isinf(psnr[0]))
+
+        # None of the subsequent images should have inf PSNR.
+        self.assertTrue(not np.any(np.isinf(psnr[1:])))
+
+        # PSNR should increase for the remaining images.
+        self.assertTrue(np.all(np.diff(psnr[1:])) > 0)
+
+    def test_irreversible(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2 with the irreversible transform.
+
+        EXPECTED RESULT:  data matches, the irreversible transform is confirmed
+        """
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename,
+            irreversible=True
+        ) as j:
+            j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+        c = j.get_codestream(header_only=False)
+
+        self.assertEqual(
+            c.segment[2].xform, glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE
+        )
+
+    def test_sop(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2 with SOP markers.
+
+        EXPECTED RESULT:  data matches, sop markers confirmed
+        """
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename, sop=True
+        ) as j:
+            j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+        c = j.get_codestream(header_only=False)
+
+        at_least_one_sop = any(
+            isinstance(seg, glymur.codestream.SOPsegment)
+            for seg in c.segment
+        )
+        self.assertTrue(at_least_one_sop)
+
+    def test_progression_order(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2 with EPH markers.
+
+        EXPECTED RESULT:  data matches, plt markers confirmed
+        """
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename,
+            prog='rlcp'
+        ) as j:
+            j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+        c = j.get_codestream(header_only=False)
+
+        self.assertEqual(c.segment[2].prog_order, glymur.core.RLCP)
+
+    def test_eph(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2 with EPH markers.
+
+        EXPECTED RESULT:  data matches, plt markers confirmed
+        """
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename, eph=True
+        ) as j:
+            j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+        c = j.get_codestream(header_only=False)
+
+        at_least_one_eph = any(
+            isinstance(seg, glymur.codestream.EPHsegment)
+            for seg in c.segment
+        )
+        self.assertTrue(at_least_one_eph)
+
+    @unittest.skipIf(
+        glymur.version.openjpeg_version < '2.4.0', "Requires as least v2.4.0"
+    )
+    def test_plt(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2 with PLT markers.
+
+        EXPECTED RESULT:  data matches, plt markers confirmed
+        """
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename,
+            plt=True
+        ) as j:
+            j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+        c = j.get_codestream(header_only=False)
+
+        at_least_one_plt = any(
+            isinstance(seg, glymur.codestream.PLTsegment)
+            for seg in c.segment
+        )
+        self.assertTrue(at_least_one_plt)
+
+    def test_resolutions(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2 with 4 resolution layers instead
+        of the default, which is 5.
+
+        EXPECTED RESULT:  data matches, number of resolution layers is 4.
+        """
+        expected_numres = 4
+
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename,
+            numres=expected_numres
+        ) as j:
+            j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        actual = j[:]
+        self.assertEqual(actual.shape, (512, 512, 3))
+
+        c = j.get_codestream()
+        actual = c.segment[2].num_res
+        self.assertEqual(actual, expected_numres - 1)
+
+    def test_layers(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2 with multiple compression layers
+
+        EXPECTED RESULT:  data matches, number of layers is 3
+        """
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename,
+            cratios=[200, 50, 10]
+        ) as j:
+            j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        actual = j[:]
+        self.assertEqual(actual.shape, (512, 512, 3))
+
+        c = j.get_codestream()
+        self.assertEqual(c.segment[2].layers, 3)
+
+    def test_codeblock_size(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2 with a specific code block size
+
+        EXPECTED RESULT:  data matches, number of resolution is the default
+        """
+        cbsize = (32, 32)
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename,
+            cbsize=cbsize
+        ) as j:
+            j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        actual = j[:]
+        self.assertEqual(actual.shape, (512, 512, 3))
+
+        c = j.get_codestream()
+        actual = c.segment[2].code_block_size
+        self.assertEqual(actual, cbsize)
+
+    def test_verbosity(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2, use INFO log level.
+
+        EXPECTED RESULT:  data matches
+        """
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename,
+            verbosity=logging.INFO
+        ) as j:
+            with self.assertLogs(logger='tiff2jp2', level=logging.INFO) as cm:
+                j.run()
+
+                self.assertEqual(len(cm.output), 1)
+
+    def test_partial_strip_and_partial_tiles(self):
+        """
+        SCENARIO:  Convert monochromatic stripped TIFF file to JP2.  The TIFF
+        has a partial last strip.  The JP2K will have partial tiles.
+
+        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
+        """
+        with Tiff2Jp2k(
+            self.moon3_partial_last_strip, self.temp_jp2_filename,
+            tilesize=(48, 48)
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+        expected = skimage.io.imread(
+            self.moon3_partial_last_strip, plugin='pil'
+        )
+        np.testing.assert_array_equal(actual, expected)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 90)
+        self.assertEqual(c.segment[1].ysiz, 90)
+        self.assertEqual(c.segment[1].xtsiz, 48)
+        self.assertEqual(c.segment[1].ytsiz, 48)
+
+    def test_partial_last_strip(self):
+        """
+        SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF has a
+        partial last strip.
+
+        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
+        """
+        with Tiff2Jp2k(
+            self.moon3_partial_last_strip,
+            self.temp_jp2_filename,
+            tilesize=(48, 48), verbose='DEBUG'
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+
+        expected = skimage.io.imread(
+            self.moon3_partial_last_strip, plugin='pil'
+        )
+        np.testing.assert_array_equal(actual, expected)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 90)
+        self.assertEqual(c.segment[1].ysiz, 90)
+        self.assertEqual(c.segment[1].xtsiz, 48)
+        self.assertEqual(c.segment[1].ytsiz, 48)
+
+    def test_32bit(self):
+        """
+        SCENARIO:  The sample format is 32bit integer.
+
+        EXPECTED RESULT:  RuntimeError
+        """
+        infile = _file_helper('uint32.tif', module='tests.data.tiff')
+        with Tiff2Jp2k(infile, self.temp_jp2_filename) as j:
+            with self.assertRaises(RuntimeError):
+                j.run()
+
+    def test_floating_point(self):
+        """
+        SCENARIO:  The sample format is 32bit floating point.
+
+        EXPECTED RESULT:  RuntimeError
+        """
+        infile = _file_helper('ieeefp32.tif', module='tests.data.tiff')
+        with Tiff2Jp2k(infile, self.temp_jp2_filename) as j:
+            with self.assertRaises(RuntimeError):
+                j.run()
+
+    def test_evenly_tiled(self):
+        """
+        SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF is evenly
+        tiled 2x2.
+
+        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
+        """
+        with Tiff2Jp2k(
+            self.moon, self.temp_jp2_filename, tilesize=(64, 64)
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+        expected = skimage.io.imread(self.moon)
+        np.testing.assert_array_equal(actual, expected)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 128)
+        self.assertEqual(c.segment[1].ysiz, 128)
+        self.assertEqual(c.segment[1].xtsiz, 64)
+        self.assertEqual(c.segment[1].ytsiz, 64)
+
+    def test_tiled_logging(self):
+        """
+        SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF is evenly
+        tiled 2x2.  Logging is turned on.
+
+        EXPECTED RESULT:  there are four messages logged, one for each tile
+        """
+        with Tiff2Jp2k(
+            self.moon, self.temp_jp2_filename, tilesize=(64, 64)
+        ) as j:
+            with self.assertLogs(logger='tiff2jp2', level=logging.INFO) as cm:
+                j.run()
+
+                self.assertEqual(len(cm.output), 4)
+
+    def test_minisblack__smaller_tilesize_specified(self):
+        """
+        SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF is evenly
+        tiled 2x2, but we want 4x4.
+
+        EXPECTED RESULT:  The data matches.  The JP2 file has 16 tiles.
+        """
+        with Tiff2Jp2k(
+            self.moon, self.temp_jp2_filename, tilesize=(32, 32)
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+        expected = skimage.io.imread(self.moon)
+        np.testing.assert_array_equal(actual, expected)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 128)
+        self.assertEqual(c.segment[1].ysiz, 128)
+        self.assertEqual(c.segment[1].xtsiz, 32)
+        self.assertEqual(c.segment[1].ytsiz, 32)
+
+    def test_minisblack_3strip_to_2x2(self):
+        """
+        SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF is evenly
+        stripped by 3, but we want 2x2.
+
+        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
+        """
+        with Tiff2Jp2k(
+            self.moon_3stripped, self.temp_jp2_filename, tilesize=(48, 48)
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+        expected = skimage.io.imread(self.moon_3stripped)
+        np.testing.assert_array_equal(actual, expected)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 96)
+        self.assertEqual(c.segment[1].ysiz, 96)
+        self.assertEqual(c.segment[1].xtsiz, 48)
+        self.assertEqual(c.segment[1].ytsiz, 48)
+
+    def test_minisblack_3x3__larger_tilesize_specified(self):
+        """
+        SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF is evenly
+        tiled 3x3, but we want 2x2.
+
+        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
+        """
+        with Tiff2Jp2k(
+            self.moon_3x3, self.temp_jp2_filename, tilesize=(48, 48)
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+        expected = skimage.io.imread(self.moon_3x3)
+        np.testing.assert_array_equal(actual, expected)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 96)
+        self.assertEqual(c.segment[1].ysiz, 96)
+        self.assertEqual(c.segment[1].xtsiz, 48)
+        self.assertEqual(c.segment[1].ytsiz, 48)
+
+    def test_rgb_tiled_bigtiff(self):
+        """
+        SCENARIO:  Convert RGB BigTIFF file to JP2.  The TIFF is evenly
+        tiled 2x2.
+
+        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
+        """
+        with Tiff2Jp2k(
+            self.ycbcr_bg, self.temp_jp2_filename, tilesize=(256, 256),
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+        expected = skimage.io.imread(self.ycbcr_bg)
+        np.testing.assert_array_equal(actual, expected)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 512)
+        self.assertEqual(c.segment[1].ysiz, 512)
+        self.assertEqual(c.segment[1].xtsiz, 256)
+        self.assertEqual(c.segment[1].ytsiz, 256)
+
+    def test_rgb_tiled_tiff(self):
+        """
+        SCENARIO:  Convert RGB TIFF file to JP2.  The TIFF is evenly
+        tiled 2x2.
+
+        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
+        """
+        with Tiff2Jp2k(
+            self.astronaut8, self.temp_jp2_filename, tilesize=(32, 32)
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+        expected = skimage.io.imread(self.astronaut8)
+        np.testing.assert_array_equal(actual, expected)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 64)
+        self.assertEqual(c.segment[1].ysiz, 64)
+        self.assertEqual(c.segment[1].xtsiz, 32)
+        self.assertEqual(c.segment[1].ytsiz, 32)
+
+    def test_ycbcr_jpeg_unevenly_tiled(self):
+        """
+        SCENARIO:  Convert YCBCR/JPEG TIFF file to JP2.  The TIFF is evenly
+        tiled 2x2.  The JPEG 2000 file will be tiled 75x75.
+
+        EXPECTED RESULT:  The data matches.  No errors
+        """
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename,
+            tilesize=(75, 75)
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+
+        expected = skimage.io.imread(self.astronaut_ycbcr_jpeg_tiled)
+        np.testing.assert_array_equal(actual, expected)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 512)
+        self.assertEqual(c.segment[1].ysiz, 512)
+        self.assertEqual(c.segment[1].xtsiz, 75)
+        self.assertEqual(c.segment[1].ytsiz, 75)
+
+    def test_ycbcr_jpeg_tiff(self):
+        """
+        SCENARIO:  Convert YCBCR/JPEG TIFF file to JP2.  The TIFF is evenly
+        tiled 2x2.
+
+        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
+        """
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename,
+            tilesize=(256, 256)
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+        expected = skimage.io.imread(self.astronaut_ycbcr_jpeg_tiled)
+        np.testing.assert_array_equal(actual, expected)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 512)
+        self.assertEqual(c.segment[1].ysiz, 512)
+        self.assertEqual(c.segment[1].xtsiz, 256)
+        self.assertEqual(c.segment[1].ytsiz, 256)
+
+    def test_ycbcr_jpeg_single_tile(self):
+        """
+        SCENARIO:  Convert YCBCR/JPEG TIFF file to JP2.  The TIFF is evenly
+        tiled 2x2, but no tilesize is specified.
+
+        EXPECTED RESULT:  The data matches.
+        """
+        with Tiff2Jp2k(
+            self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+        expected = skimage.io.imread(self.astronaut_ycbcr_jpeg_tiled)
+        np.testing.assert_array_equal(actual, expected)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 512)
+        self.assertEqual(c.segment[1].ysiz, 512)
+        self.assertEqual(c.segment[1].xtsiz, 512)
+        self.assertEqual(c.segment[1].ytsiz, 512)
+
+    def test_rgb_uint16(self):
+        """
+        SCENARIO:  Convert RGB TIFF file to JP2.  The TIFF is evenly
+        tiled 2x2 and uint16.
+
+        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
+        """
+        with Tiff2Jp2k(
+            self.astronaut_u16, self.temp_jp2_filename, tilesize=(32, 32)
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+        expected = skimage.io.imread(self.astronaut_u16)
+        np.testing.assert_array_equal(actual, expected)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 64)
+        self.assertEqual(c.segment[1].ysiz, 64)
+        self.assertEqual(c.segment[1].xtsiz, 32)
+        self.assertEqual(c.segment[1].ytsiz, 32)
+
+    def test_commandline_tiff2jp2(self):
+        """
+        Scenario:  patch sys such that we can run the command line tiff2jp2
+        script.
+
+        Expected Results:  Same as test_astronaut.
+        """
+        sys.argv = [
+            '', str(self.astronaut8), str(self.temp_jp2_filename),
+            '--tilesize', '32', '32'
+        ]
+        command_line.tiff2jp2()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+        expected = skimage.io.imread(self.astronaut8)
+
+        np.testing.assert_array_equal(actual, expected)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 64)
+        self.assertEqual(c.segment[1].ysiz, 64)
+        self.assertEqual(c.segment[1].xtsiz, 32)
+        self.assertEqual(c.segment[1].ytsiz, 32)
+
+    def test_commandline_tiff2jp2_exclude_tags_numeric(self):
+        """
+        Scenario:  patch sys such that we can run the command line tiff2jp2
+        script.  Exclude TileByteCounts and TileByteOffsets, but provide those
+        tags as numeric values.
+
+        Expected Results:  Same as test_astronaut.
+        """
+        sys.argv = [
+            '', str(self.astronaut8), str(self.temp_jp2_filename),
+            '--tilesize', '32', '32',
+            '--exclude-tags', '324', '325'
+        ]
+        command_line.tiff2jp2()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        tags = jp2.box[-1].data
+
+        self.assertNotIn('TileByteCounts', tags)
+        self.assertNotIn('TileOffsets', tags)
+
+    def test_cmyk(self):
+        """
+        Scenario:  CMYK (or separated) is not a supported colorspace.
+
+        Expected result:  RuntimeError
+        """
+        infile = _file_helper('cmyk.tif', module='tests.data.tiff')
+        with Tiff2Jp2k(infile, self.temp_jp2_filename) as j:
+            with self.assertRaises(RuntimeError):
+                j.run()
+
+    def test_commandline_tiff2jp2_exclude_tags(self):
+        """
+        Scenario:  patch sys such that we can run the command line tiff2jp2
+        script.  Exclude TileByteCounts and TileByteOffsets
+
+        Expected Results:  TileByteCounts and TileOffsets are not in the EXIF
+        UUID.
+        """
+        sys.argv = [
+            '', str(self.astronaut8), str(self.temp_jp2_filename),
+            '--tilesize', '32', '32',
+            '--exclude-tags', 'tilebytecounts', 'tileoffsets'
+        ]
+        command_line.tiff2jp2()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        tags = jp2.box[-1].data
+
+        self.assertNotIn('TileByteCounts', tags)
+        self.assertNotIn('TileOffsets', tags)
 
     def test_numeric_exclude_keyword_argument(self):
         """
@@ -1535,7 +975,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         Expected result:  The tags are not included in the exif IFD.
         """
         with Tiff2Jp2k(
-            self.goodstuff_path, self.temp_jp2_filename,
+            self.stripped, self.temp_jp2_filename,
             exclude_tags=[273, 279]
         ) as p:
             p.run()
@@ -1553,7 +993,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         Expected result:  The tags are not included in the exif IFD.
         """
         with Tiff2Jp2k(
-            self.goodstuff_path, self.temp_jp2_filename,
+            self.stripped, self.temp_jp2_filename,
             exclude_tags=['StripOffsets', 'StripByteCounts']
         ) as p:
             p.run()
@@ -1571,7 +1011,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         Expected result:  a warning is issued
         """
         with Tiff2Jp2k(
-            self.goodstuff_path, self.temp_jp2_filename, tilesize=(64, 64),
+            self.stripped, self.temp_jp2_filename, tilesize=(64, 64),
             include_icc_profile=True, verbosity=logging.INFO
         ) as j:
             with self.assertLogs(
@@ -1589,7 +1029,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         the tiles (a 13x8 grid of tiles).
         """
         with Tiff2Jp2k(
-            self.goodstuff_path, self.temp_jp2_filename, tilesize=(64, 64),
+            self.stripped, self.temp_jp2_filename, tilesize=(64, 64),
             verbosity=logging.INFO
         ) as j:
             with self.assertLogs(logger='tiff2jp2', level=logging.INFO) as cm:
@@ -1603,14 +1043,14 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         does not evenly divide either dimension.
         """
         with Tiff2Jp2k(
-            self.goodstuff_path, self.temp_jp2_filename, tilesize=(64, 64)
+            self.stripped, self.temp_jp2_filename, tilesize=(64, 64)
         ) as j:
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
-
-        np.testing.assert_array_equal(actual, self.goodstuff_data)
+        expected = skimage.io.imread(self.stripped)
+        np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
         self.assertEqual(c.segment[1].xsiz, 480)
@@ -1629,14 +1069,14 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         Expected Result:  no errors
         """
         with Tiff2Jp2k(
-            self.goodstuff_path, self.temp_jp2_filename, tilesize=(75, 75)
+            self.stripped, self.temp_jp2_filename, tilesize=(75, 75)
         ) as j:
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
-
-        np.testing.assert_array_equal(actual, self.goodstuff_data)
+        expected = skimage.io.imread(self.stripped)
+        np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
         self.assertEqual(c.segment[1].xsiz, 480)
@@ -1653,7 +1093,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         The StripByteCounts and StripOffsets tags are not present.
         """
         with Tiff2Jp2k(
-            self.exif_tiff, self.temp_jp2_filename,
+            self.exif, self.temp_jp2_filename,
             exclude_tags=[273, 'stripbytecounts']
         ) as p:
             p.run()
@@ -1676,7 +1116,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         """
         with self.assertWarns(UserWarning):
             with Tiff2Jp2k(
-                self.exif_tiff, self.temp_jp2_filename,
+                self.exif, self.temp_jp2_filename,
                 exclude_tags=[273, 'stripbytecounts', 'gdalstuff']
             ) as p:
                 p.run()
@@ -1696,7 +1136,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         recoverable from the UUIDbox.
         """
         with Tiff2Jp2k(
-            self.exif_tiff, self.temp_jp2_filename,
+            self.exif, self.temp_jp2_filename,
             exclude_tags=['StripOffsets', 'StripByteCounts']
         ) as p:
             p.run()
@@ -1714,7 +1154,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         Expected Result:  No warnings, no errors.  The Exif LensModel tag is
         recoverable from the UUIDbox.
         """
-        with Tiff2Jp2k(self.exif_tiff, self.temp_jp2_filename) as p:
+        with Tiff2Jp2k(self.exif, self.temp_jp2_filename) as p:
             with warnings.catch_warnings(record=True) as w:
                 p.run()
                 self.assertEqual(len(w), 0)
@@ -1738,7 +1178,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         present in the UUID IFD.
         """
         with Tiff2Jp2k(
-            self.exif_tiff, self.temp_jp2_filename, create_xmp_uuid=True
+            self.exif, self.temp_jp2_filename, create_xmp_uuid=True
         ) as p:
             p.run()
 
@@ -1772,7 +1212,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         present in the UUID data.
         """
         with Tiff2Jp2k(
-            self.exif_tiff, self.temp_jp2_filename, create_xmp_uuid=False
+            self.exif, self.temp_jp2_filename, create_xmp_uuid=False
         ) as p:
             p.run()
 
@@ -1796,7 +1236,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         UUID is appended.
         """
         kwargs = {'create_xmp_uuid': True, 'exclude_tags': ['StripOffsets']}
-        with Tiff2Jp2k(self.exif_tiff, self.temp_jp2_filename, **kwargs) as p:
+        with Tiff2Jp2k(self.exif, self.temp_jp2_filename, **kwargs) as p:
             p.run()
 
         j = Jp2k(self.temp_jp2_filename)
@@ -1827,7 +1267,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         vresd, hresd = 0.3, 0.4
 
         sys.argv = [
-            '', str(self.exif_tiff), str(self.temp_jp2_filename),
+            '', str(self.exif), str(self.temp_jp2_filename),
             '--capture-resolution', str(vresc), str(hresc),
             '--display-resolution', str(vresd), str(hresd),
         ]
@@ -1861,7 +1301,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         vresd, hresd = 0.3, 0.4
 
         sys.argv = [
-            '', str(self.exif_tiff), str(self.temp_jp2_filename),
+            '', str(self.exif), str(self.temp_jp2_filename),
             '--tilesize', '64', '64',
             '--capture-resolution', str(vresc), str(hresc),
             '--display-resolution', str(vresd), str(hresd),
@@ -1893,7 +1333,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         JP2 file, and then an XMP UUID is appended.
         """
         sys.argv = [
-            '', str(self.exif_tiff), str(self.temp_jp2_filename),
+            '', str(self.exif), str(self.temp_jp2_filename),
             '--tilesize', '64', '64',
             '--create-xmp-uuid'
         ]
@@ -1920,7 +1360,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         Expected Result:  No errors.
         """
         with Tiff2Jp2k(
-            self.exif_tiff, self.temp_jp2_filename,
+            self.exif, self.temp_jp2_filename,
         ) as p:
             p.run()
 
@@ -1936,7 +1376,7 @@ class TestSuiteNoScikitImage(fixtures.TestCommon):
         Expected Result:  No errors.
         """
         with Tiff2Jp2k(
-            self.exif_tiff, self.temp_jp2_filename, tilesize=[256, 256]
+            self.exif, self.temp_jp2_filename, tilesize=[256, 256]
         ) as p:
             p.run()
 
