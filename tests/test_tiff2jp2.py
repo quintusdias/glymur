@@ -874,7 +874,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
         """
         with Tiff2Jp2k(
-            self.astronaut_u16, self.temp_jp2_filename, tilesize=(64, 64)
+            self.astronaut_u16, self.temp_jp2_filename, tilesize=(32, 32)
         ) as j:
             j.run()
 
@@ -884,10 +884,10 @@ class TestSuite(fixtures.TestCommon):
         np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
-        self.assertEqual(c.segment[1].xsiz, 128)
-        self.assertEqual(c.segment[1].ysiz, 128)
-        self.assertEqual(c.segment[1].xtsiz, 64)
-        self.assertEqual(c.segment[1].ytsiz, 64)
+        self.assertEqual(c.segment[1].xsiz, 64)
+        self.assertEqual(c.segment[1].ysiz, 64)
+        self.assertEqual(c.segment[1].xtsiz, 32)
+        self.assertEqual(c.segment[1].ytsiz, 32)
 
     def test_commandline_tiff2jp2(self):
         """
