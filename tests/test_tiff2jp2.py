@@ -22,6 +22,7 @@ from glymur.core import SRGB
 from . import fixtures
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
+
 def _file_helper(filename, module='tests.data.skimage'):
     """
     Mask importlib.resources differences between >=3.9 and below.
@@ -762,7 +763,7 @@ class TestSuite(fixtures.TestCommon):
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
-        expected = skimage.io.imread(self.ycbcr_bg)
+        expected = skimage.io.imread(self.ycbcr_bg, plugin='pil')
         np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
@@ -809,8 +810,9 @@ class TestSuite(fixtures.TestCommon):
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
-
-        expected = skimage.io.imread(self.astronaut_ycbcr_jpeg_tiled)
+        expected = skimage.io.imread(
+            self.astronaut_ycbcr_jpeg_tiled, plugin='pil'
+        )
         np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
@@ -834,7 +836,9 @@ class TestSuite(fixtures.TestCommon):
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
-        expected = skimage.io.imread(self.astronaut_ycbcr_jpeg_tiled)
+        expected = skimage.io.imread(
+            self.astronaut_ycbcr_jpeg_tiled, plugin='pil'
+        )
         np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
@@ -857,7 +861,9 @@ class TestSuite(fixtures.TestCommon):
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
-        expected = skimage.io.imread(self.astronaut_ycbcr_jpeg_tiled)
+        expected = skimage.io.imread(
+            self.astronaut_ycbcr_jpeg_tiled, plugin='pil'
+        )
         np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
