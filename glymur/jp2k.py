@@ -38,6 +38,15 @@ class Jp2k(Jp2kBox):
 
     Attributes
     ----------
+    codestream
+    decoded_components
+    dtype
+    ignore_pclr_cmap_cdef
+    layer
+    ndim
+    shape
+    tilesize
+    verbose
     filename : str
         The path to the JPEG 2000 file.
     box : sequence
@@ -46,21 +55,6 @@ class Jp2k(Jp2kBox):
         raw codestream.
     shape : tuple
         Size of the image.
-
-    Properties
-    ----------
-    codestream : glymur.codestream.Codestream
-        JP2 or J2K codestream object.
-    decoded_components : sequence or None
-        If set, decode only these components.  The MCT will not be used.
-    ignore_pclr_cmap_cdef : bool
-        Whether or not to ignore the pclr, cmap, or cdef boxes during any
-        color transformation, defaults to False.
-    layer : int
-        Zero-based number of quality layer to decode.
-    verbose : bool
-        Whether or not to print informational messages produced by the
-        OpenJPEG library, defaults to false.
 
     Examples
     --------
@@ -442,6 +436,9 @@ class Jp2k(Jp2kBox):
 
     @property
     def ignore_pclr_cmap_cdef(self):
+        """Whether or not to ignore the pclr, cmap, or cdef boxes during any
+        color transformation, defaults to False.
+        """
         return self._ignore_pclr_cmap_cdef
 
     @ignore_pclr_cmap_cdef.setter
@@ -450,6 +447,9 @@ class Jp2k(Jp2kBox):
 
     @property
     def decoded_components(self):
+        """If set, decode only these components.  The MCT will not be used.
+        List or scalar or None (default).
+        """
         return self._decoded_components
 
     @decoded_components.setter
@@ -462,6 +462,7 @@ class Jp2k(Jp2kBox):
             return
 
         if np.isscalar(components):
+            # turn it into a list to be general
             components = [components]
 
         if any(x > len(self.codestream.segment[1].xrsiz) for x in components):
@@ -485,6 +486,9 @@ class Jp2k(Jp2kBox):
 
     @property
     def layer(self):
+        """Zero-based number of quality layer to decode.  Defaults to 0, the
+        highest quality layer.
+        """
         return self._layer
 
     @layer.setter
@@ -502,8 +506,7 @@ class Jp2k(Jp2kBox):
 
     @property
     def dtype(self):
-        """
-        Datatype of the image elements.
+        """Datatype of each image component.
         """
         if self._dtype is None:
             c = self.get_codestream()
@@ -531,8 +534,7 @@ class Jp2k(Jp2kBox):
 
     @property
     def ndim(self):
-        """
-        Number of image dimensions.
+        """Number of image dimensions.
         """
         if self._ndim is None:
             self._ndim = len(self.shape)
@@ -541,16 +543,22 @@ class Jp2k(Jp2kBox):
 
     @property
     def codestream(self):
+        """JP2 or J2K codestream object (header only).
+        """
         if self._codestream is None:
             self._codestream = self.get_codestream(header_only=True)
         return self._codestream
 
     @property
     def tilesize(self):
+        """Dimensions of JP2 tiling."""
         return self._tilesize
 
     @property
     def verbose(self):
+        """Whether or not to print informational messages produced by the
+        OpenJPEG library, defaults to false.
+        """
         return self._verbose
 
     @verbose.setter
@@ -568,6 +576,7 @@ class Jp2k(Jp2kBox):
 
     @property
     def shape(self):
+        """Dimensions of full resolution image."""
         return self._shape
 
     @shape.setter
