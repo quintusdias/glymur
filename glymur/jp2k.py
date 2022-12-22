@@ -456,8 +456,8 @@ class Jp2k(Jp2kBox):
     def decoded_components(self, components):
 
         if components is None:
-            # this is a special case where we are restoring the original
-            # behavior of reading all bands
+            # This is ok.  It is a special case where we are restoring the
+            # original behavior of reading all bands.
             self._decoded_components = components
             return
 
@@ -465,10 +465,19 @@ class Jp2k(Jp2kBox):
             components = [components]
 
         if any(x > len(self.codestream.segment[1].xrsiz) for x in components):
+
             msg = (
                 f"{components} has at least one invalid component, "
                 f"cannot be greater than "
                 f"{len(self.codestream.segment[1].xrsiz)}."
+            )
+            raise ValueError(msg)
+
+        elif any(x < 0 for x in components):
+
+            msg = (
+                f"{components} has at least one invalid component, "
+                f"components cannot be negative."
             )
             raise ValueError(msg)
 

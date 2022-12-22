@@ -3,6 +3,7 @@ import pathlib
 import shutil
 import tempfile
 import unittest
+import warnings
 
 # 3rd party library imports
 import numpy as np
@@ -138,14 +139,17 @@ class TestSuite(unittest.TestCase):
         """
         SCENARIO:  Provide a negative component.
 
-        EXPECTED RESULT:  exception
+        EXPECTED RESULT:  An ValueError is raised.  There should not be any
+        warnings.
         """
 
         j2k = Jp2k(self.j2kfile)
 
-        with self.assertRaises(glymur.lib.openjp2.OpenJPEGLibraryError):
-            j2k.decoded_components = -1
-            j2k[:]
+        with self.assertRaises(ValueError):
+            with warnings.catch_warnings():
+                warnings.simplefilter('error')
+                j2k.decoded_components = -1
+                j2k[:]
 
     def test_same_component_several_times(self):
         """
