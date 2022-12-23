@@ -27,6 +27,8 @@ _BIGTIFF = 43
 
 class Tiff2Jp2k(object):
     """
+    Transform a TIFF image into a JP2 image.
+
     Attributes
     ----------
     found_geotiff_tags : bool
@@ -57,6 +59,8 @@ class Tiff2Jp2k(object):
         **kwargs
     ):
         """
+        Construct the object.
+
         Parameters
         ----------
         create_exif_uuid : bool
@@ -109,11 +113,10 @@ class Tiff2Jp2k(object):
         self.setup_logging(verbosity)
 
     def _process_exclude_tags(self, exclude_tags):
-        """
-        The list of tags to exclude may be mixed type (str or integer).  There
-        is also the possibility that they may be capitalized differently than
-        our internal list, so the goal here is to convert them all to integer
-        values.
+        """The list of tags to exclude may be mixed type (str or integer).
+        There is also the possibility that they may be capitalized differently
+        than our internal list, so the goal here is to convert them all to
+        integer values.
 
         Parameters
         ----------
@@ -171,9 +174,7 @@ class Tiff2Jp2k(object):
         self.logger.addHandler(ch)
 
     def __enter__(self):
-        """
-        The Tiff2Jp2k must be used with a context manager.
-        """
+        """The Tiff2Jp2k must be used with a context manager."""
         self.tiff_fp = libtiff.open(self.tiff_filename)
         return self
 
@@ -188,17 +189,15 @@ class Tiff2Jp2k(object):
         self.rewrap_jp2()
 
     def rewrap_jp2(self):
-        """
-        These re-wrap operations should be mutually exclusive.  An ICC profile
-        should not exist in a TIFF with a colormap.
+        """These re-wrap operations should be mutually exclusive.  An ICC
+        profile should not exist in a TIFF with a colormap.
         """
         self.rewrap_for_colormap()
         self.rewrap_for_icc_profile()
 
     def rewrap_for_colormap(self):
-        """
-        If the photometric interpretation was PALETTE, then we need to insert
-        a pclr box and a cmap (component mapping box).
+        """If the photometric interpretation was PALETTE, then we need to
+        insert a pclr box and a cmap (component mapping box).
         """
 
         photo = self.get_tag_value(262)
@@ -234,9 +233,7 @@ class Tiff2Jp2k(object):
         self.jp2.parse()
 
     def rewrap_for_icc_profile(self):
-        """
-        Consume a TIFF ICC profile, if one is there.
-        """
+        """Consume a TIFF ICC profile, if one is there."""
         if self.icc_profile is None and self.include_icc_profile:
             self.logger.warning("No ICC profile was found.")
 
@@ -268,16 +265,14 @@ class Tiff2Jp2k(object):
         shutil.move(tmp_filename, self.jp2_filename)
 
     def append_extra_jp2_boxes(self):
-        """
-        Copy over the TIFF IFD.  Place it in a UUID box.  Append to the JPEG
+        """Copy over the TIFF IFD.  Place it in a UUID box.  Append to the JPEG
         2000 file.
         """
         self.append_exif_uuid_box()
         self.append_xmp_uuid_box()
 
     def append_exif_uuid_box(self):
-        """
-        Append an EXIF UUID box onto the end of the JPEG 2000 file.  It will
+        """Append an EXIF UUID box onto the end of the JPEG 2000 file.  It will
         contain metadata from the TIFF IFD.
         """
         if not self.create_exif_uuid:
@@ -314,9 +309,8 @@ class Tiff2Jp2k(object):
         self.jp2.finalize(force_parse=True)
 
     def append_xmp_uuid_box(self):
-        """
-        Append an XMP UUID box onto the end of the JPEG 2000 file if there was
-        an XMP tag in the TIFF IFD.
+        """Append an XMP UUID box onto the end of the JPEG 2000 file if there
+        was an XMP tag in the TIFF IFD.
         """
 
         if self.xmp_data is None:
@@ -334,8 +328,7 @@ class Tiff2Jp2k(object):
             uuid_box.write(f)
 
     def get_main_ifd(self):
-        """
-        Read all the tags in the main IFD.  We do it this way because of the
+        """Read all the tags in the main IFD.  We do it this way because of the
         difficulty in using TIFFGetFieldDefaulted when the datatype of a tag
         can differ.
         """
@@ -378,8 +371,7 @@ class Tiff2Jp2k(object):
                 self.icc_profile = None
 
     def read_ifd(self, tfp):
-        """
-        Process either the main IFD or an Exif IFD
+        """Process either the main IFD or an Exif IFD
 
         Parameters
         ----------
@@ -482,8 +474,7 @@ class Tiff2Jp2k(object):
         return tags
 
     def _write_ifd(self, b, tags):
-        """
-        Write the IFD out to the UUIDBox.  We will always write IFDs
+        """Write the IFD out to the UUIDBox.  We will always write IFDs
         for 32-bit TIFFs, i.e. 12 byte tags, meaning just 4 bytes within
         the tag for the tag data
         """
@@ -576,9 +567,7 @@ class Tiff2Jp2k(object):
         return after_ifd_position
 
     def read_tiff_header(self, tfp):
-        """
-        Get the endian-ness of the TIFF, seek to the main IFD
-        """
+        """Get the endian-ness of the TIFF, seek to the main IFD"""
 
         buffer = tfp.read(4)
         data = struct.unpack('BB', buffer[:2])
@@ -611,9 +600,8 @@ class Tiff2Jp2k(object):
         tfp.seek(offset)
 
     def get_tag_value(self, tagnum):
-        """
-        Return the value associated with the tag.  Some tags are not actually
-        written into the IFD, but are instead "defaulted".
+        """Return the value associated with the tag.  Some tags are not
+        actually written into the IFD, but are instead "defaulted".
 
         Returns
         -------
@@ -632,8 +620,7 @@ class Tiff2Jp2k(object):
         return self.tags[tagnum]['payload'][0]
 
     def copy_image(self):
-        """
-        Transfer the image data from the TIFF to the JPEG 2000 file.
+        """Transfer the image data from the TIFF to the JPEG 2000 file.
         """
 
         if libtiff.isTiled(self.tiff_fp):
@@ -747,8 +734,7 @@ class Tiff2Jp2k(object):
             )
 
     def tagvalue2str(self, cls, tag_value):
-        """
-        Take a class that encompasses all of a tag's allowed values and find
+        """Take a class that encompasses all of a tag's allowed values and find
         the name of that value.
         """
 
@@ -761,8 +747,7 @@ class Tiff2Jp2k(object):
     def _write_rgba_single_tile(
         self, photo, imagewidth, imageheight, spp
     ):
-        """
-        If no jp2k tiling was specified and if the image is ok to read
+        """If no jp2k tiling was specified and if the image is ok to read
         via the RGBA interface, then just do that.  The image will be
         written with the tilesize equal to the image size, so it will
         be written using a single write operation.
@@ -806,9 +791,8 @@ class Tiff2Jp2k(object):
         self, imagewidth, imageheight, spp, jtw, jth, tw, th,
         num_jp2k_tile_cols, num_jp2k_tile_rows, dtype, use_rgba_interface
     ):
-        """
-        The input TIFF image is tiled and we are to create the output JPEG2000
-        image with specific tile dimensions.
+        """The input TIFF image is tiled and we are to create the output
+        JPEG2000 image with specific tile dimensions.
 
         Parameters
         ----------
@@ -951,8 +935,7 @@ class Tiff2Jp2k(object):
         self, imagewidth, imageheight, spp, jtw, jth, rps,
         num_jp2k_tile_cols, num_jp2k_tile_rows, dtype, use_rgba_interface
     ):
-        """
-        The input TIFF image is striped and we are to create the output
+        """The input TIFF image is striped and we are to create the output
         JPEG2000 image as a tiled JP2K.
 
         Parameters
@@ -1022,8 +1005,7 @@ class Tiff2Jp2k(object):
         self, julr, num_strips, jth, imageheight, imagewidth, rps, spp, dtype,
         use_rgba_interface
     ):
-        """
-        TIFF strips are pretty inefficient.  If our I/O was stupidly focused
+        """TIFF strips are pretty inefficient.  If our I/O was stupidly focused
         solely on each JP2K tile, we would read in each TIFF strip multiple
         times.  If instead, we read in ALL the strips that will encompass that
         current row of JP2K tiles, we will save ourselves from pushing around

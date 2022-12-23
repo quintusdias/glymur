@@ -73,16 +73,14 @@ _XMP_UUID = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
 
 
 class InvalidJp2kWarning(RuntimeError):
-    """
-    Issue this warning in case the file is technically invalid but we can
+    """Issue this warning in case the file is technically invalid but we can
     still read the image.
     """
     pass
 
 
 class InvalidJp2kError(RuntimeError):
-    """
-    Raise this exception in case we cannot parse a valid JP2 file.
+    """Raise this exception in case we cannot parse a valid JP2 file.
     """
     pass
 
@@ -387,8 +385,7 @@ class ColourSpecificationBox(Jp2kBox):
             warnings.warn(msg, UserWarning)
 
     def _write_validate(self):
-        """
-        In addition to constructor validation steps, run validation steps
+        """In addition to constructor validation steps, run validation steps
         for writing.
         """
         if self.icc_profile is None:
@@ -460,8 +457,7 @@ class ColourSpecificationBox(Jp2kBox):
         return text
 
     def write(self, fptr):
-        """
-        Write an Colour Specification box to file.
+        """Write an Colour Specification box to file.
         """
 
         self._write_validate()
@@ -638,8 +634,7 @@ class ChannelDefinitionBox(Jp2kBox):
         return msg
 
     def write(self, fptr):
-        """Write a channel definition box to file.
-        """
+        """Write a channel definition box to file."""
         self._validate(writing=True)
         num_components = len(self.association)
         fptr.write(struct.pack('>I4s', 8 + 2 + num_components * 6, b'cdef'))
@@ -725,8 +720,7 @@ class CodestreamHeaderBox(Jp2kBox):
         return msg
 
     def write(self, fptr):
-        """Write a codestream header box to file.
-        """
+        """Write a codestream header box to file."""
         self._write_superbox(fptr, b'jpch')
 
     @classmethod
@@ -797,8 +791,7 @@ class ColourGroupBox(Jp2kBox):
             self._dispatch_validation_error(msg, writing=writing)
 
     def write(self, fptr):
-        """Write a colour group box to file.
-        """
+        """Write a colour group box to file."""
         self._validate(writing=True)
         self._write_superbox(fptr, b'cgrp')
 
@@ -863,8 +856,7 @@ class CompositingLayerHeaderBox(Jp2kBox):
         return msg
 
     def write(self, fptr):
-        """Write a compositing layer header box to file.
-        """
+        """Write a compositing layer header box to file."""
         self._write_superbox(fptr, b'jplh')
 
     @classmethod
@@ -961,8 +953,7 @@ class ComponentMappingBox(Jp2kBox):
         return text
 
     def write(self, fptr):
-        """Write a Component Mapping box to file.
-        """
+        """Write a Component Mapping box to file."""
         length = 8 + 4 * len(self.component_index)
         write_buffer = struct.pack('>I4s', length, b'cmap')
         fptr.write(write_buffer)
@@ -1157,8 +1148,7 @@ class DataReferenceBox(Jp2kBox):
         self._validate(writing=True)
 
     def write(self, fptr):
-        """Write a Data Reference box to file.
-        """
+        """Write a Data Reference box to file."""
         self._write_validate()
 
         # Very similar to the way a superbox is written.
@@ -1314,9 +1304,7 @@ class FileTypeBox(Jp2kBox):
         return text
 
     def _validate(self, writing=False):
-        """
-        Validate the box before writing to file.
-        """
+        """Validate the box before writing to file."""
         if self.brand not in ['jp2 ', 'jpx ']:
             msg = (
                 f"The file type brand was '{self.brand}'.  "
@@ -1339,8 +1327,7 @@ class FileTypeBox(Jp2kBox):
                     warnings.warn(msg, UserWarning)
 
     def write(self, fptr):
-        """Write a File Type box to file.
-        """
+        """Write a File Type box to file."""
         self._validate(writing=True)
         length = 16 + 4 * len(self.compatibility_list)
         fptr.write(struct.pack('>I4s', length, b'ftyp'))
@@ -1476,8 +1463,7 @@ class FragmentListBox(Jp2kBox):
         return text
 
     def write(self, fptr):
-        """Write a fragment list box to file.
-        """
+        """Write a fragment list box to file."""
         self._validate(writing=True)
         num_items = len(self.fragment_offset)
         length = 8 + 2 + num_items * 14
@@ -1592,8 +1578,7 @@ class FragmentTableBox(Jp2kBox):
             self._dispatch_validation_error(msg, writing=writing)
 
     def write(self, fptr):
-        """Write a fragment table box to file.
-        """
+        """Write a fragment table box to file."""
         self._validate(writing=True)
         self._write_superbox(fptr, b'ftbl')
 
@@ -1688,8 +1673,7 @@ class ImageHeaderBox(Jp2kBox):
         bits_per_component=8, compression=7, colorspace_unknown=False,
         ip_provided=False, length=0, offset=-1
     ):
-        """
-        Examples
+        """Examples
         --------
         >>> import glymur
         >>> box = glymur.jp2box.ImageHeaderBox(height=512, width=256)
@@ -1751,8 +1735,7 @@ class ImageHeaderBox(Jp2kBox):
         return text
 
     def write(self, fptr):
-        """Write an Image Header box to file.
-        """
+        """Write an Image Header box to file."""
         fptr.write(struct.pack('>I4s', 22, b'ihdr'))
 
         # signedness and bps are stored together in a single byte
@@ -1868,8 +1851,7 @@ class AssociationBox(Jp2kBox):
         return box
 
     def write(self, fptr):
-        """Write an association box to file.
-        """
+        """Write an association box to file."""
         self._write_superbox(fptr, b'asoc')
 
 
@@ -1976,8 +1958,7 @@ class JP2HeaderBox(Jp2kBox):
         return msg
 
     def write(self, fptr):
-        """Write a JP2 Header box to file.
-        """
+        """Write a JP2 Header box to file."""
         self._write_superbox(fptr, b'jp2h')
 
     @classmethod
@@ -2047,8 +2028,7 @@ class JPEG2000SignatureBox(Jp2kBox):
         return text
 
     def write(self, fptr):
-        """Write a JPEG 2000 Signature box to file.
-        """
+        """Write a JPEG 2000 Signature box to file."""
         fptr.write(struct.pack('>I4s', 12, b'jP  '))
         fptr.write(struct.pack('>BBBB', *self.signature))
 
@@ -2142,8 +2122,7 @@ class PaletteBox(Jp2kBox):
         return text
 
     def write(self, fptr):
-        """Write a Palette box to file.
-        """
+        """Write a Palette box to file."""
         self._validate(writing=True)
         bytes_per_row = sum(self.bits_per_component) / 8
         bytes_per_palette = bytes_per_row * self.palette.shape[0]
@@ -2574,8 +2553,7 @@ class ResolutionBox(Jp2kBox):
         return msg
 
     def write(self, fptr):
-        """Write a Resolution super box to file.
-        """
+        """Write a Resolution super box to file."""
         self._write_superbox(fptr, b'res ')
 
     @classmethod
@@ -2683,8 +2661,7 @@ class CaptureResolutionBox(Jp2kBox):
         return cls(vres, hres, length=length, offset=offset)
 
     def write(self, fptr):
-        """Write a CaptureResolution box to file.
-        """
+        """Write a CaptureResolution box to file."""
 
         # 4 bytes for length, 4 for the ID, always 10 bytes for the payload
         length = 18
@@ -2775,8 +2752,7 @@ class DisplayResolutionBox(Jp2kBox):
         return cls(vres, hres, length=length, offset=offset)
 
     def write(self, fptr):
-        """Write a DisplayResolution box to file.
-        """
+        """Write a DisplayResolution box to file."""
 
         # 4 bytes for length, 4 for the ID, always 10 bytes for the payload
         length = 18
@@ -2831,8 +2807,7 @@ class LabelBox(Jp2kBox):
         return msg
 
     def write(self, fptr):
-        """Write a Label box to file.
-        """
+        """Write a Label box to file."""
         length = 8 + len(self.label.encode())
         fptr.write(struct.pack('>I4s', length, b'lbl '))
         fptr.write(self.label.encode())
@@ -2942,8 +2917,7 @@ class NumberListBox(Jp2kBox):
         return cls(lst, length=length, offset=offset)
 
     def write(self, fptr):
-        """Write a NumberList box to file.
-        """
+        """Write a NumberList box to file."""
         fptr.write(struct.pack('>I4s',
                                len(self.associations) * 4 + 8, b'nlst'))
 
@@ -2972,8 +2946,7 @@ class XMLBox(Jp2kBox):
     longname = 'XML'
 
     def __init__(self, xml=None, filename=None, length=0, offset=-1):
-        """
-        Parameters
+        """Parameters
         ----------
         xml : ElementTree
             An ElementTree object already existing in python.
@@ -3017,9 +2990,7 @@ class XMLBox(Jp2kBox):
         return text
 
     def write(self, fptr):
-        """
-        Write an XML box to file.
-        """
+        """Write an XML box to file."""
         read_buffer = ET.tostring(self.xml.getroot(), encoding='utf-8')
         fptr.write(struct.pack('>I4s', len(read_buffer) + 8, b'xml '))
         fptr.write(read_buffer)
@@ -3140,8 +3111,7 @@ class UUIDListBox(Jp2kBox):
         return text
 
     def write(self, fptr):
-        """Write a UUID list box to file.
-        """
+        """Write a UUID list box to file."""
         num_uuids = len(self.ulst)
         length = 4 + 4 + 2 + num_uuids * 16
         write_buffer = struct.pack('>I4sH', length, b'ulst', num_uuids)
@@ -3215,8 +3185,7 @@ class UUIDInfoBox(Jp2kBox):
         return msg
 
     def write(self, fptr):
-        """Write a UUIDInfo box to file.
-        """
+        """Write a UUIDInfo box to file."""
         self._write_superbox(fptr, b'uinf')
 
     @classmethod
@@ -3279,8 +3248,7 @@ class DataEntryURLBox(Jp2kBox):
         self.offset = offset
 
     def write(self, fptr):
-        """Write a data entry url box to file.
-        """
+        """Write a data entry url box to file."""
         # Make sure it is written out as null-terminated.
         url = self.url
         if self.url[-1] != chr(0):
@@ -3414,8 +3382,7 @@ class UUIDBox(Jp2kBox):
     longname = 'UUID'
 
     def __init__(self, the_uuid, raw_data, length=0, offset=-1):
-        """
-        Parameters
+        """Parameters
         ----------
         the_uuid : uuid.UUID
             Identifies the type of UUID box.
@@ -3447,9 +3414,7 @@ class UUIDBox(Jp2kBox):
             warnings.warn(str(error))
 
     def _parse_raw_data(self):
-        """
-        Private function for parsing UUID payloads if possible.
-        """
+        """Private function for parsing UUID payloads if possible."""
         if self.uuid == _XMP_UUID:
             txt = self.raw_data.decode('utf-8')
             elt = ET.fromstring(txt)
@@ -3548,8 +3513,7 @@ class UUIDBox(Jp2kBox):
             return text
 
     def _print_geotiff_as_geotiff(self):
-        """
-        Print geotiff information.  Shamelessly ripped off from gdalinfo.py
+        """Print geotiff information.  Shamelessly ripped off from gdalinfo.py
 
         Returns
         -------
@@ -3655,8 +3619,7 @@ class UUIDBox(Jp2kBox):
         return line
 
     def write(self, fptr):
-        """Write a UUID box to file.
-        """
+        """Write a UUID box to file."""
         length = 4 + 4 + 16 + len(self.raw_data)
         write_buffer = struct.pack('>I4s', length, b'uuid')
         fptr.write(write_buffer)

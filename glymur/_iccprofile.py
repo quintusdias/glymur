@@ -8,9 +8,7 @@ import numpy as np
 
 
 class _ICCProfile(object):
-    """
-    Container for ICC profile information.
-    """
+    """Container for ICC profile information."""
     profile_class = {
         b'scnr': 'input device profile',
         b'mntr': 'display device profile',

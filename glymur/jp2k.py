@@ -98,7 +98,8 @@ class Jp2k(Jp2kBox):
         plt=False, prog=None, psizes=None, psnr=None, sop=None,
         subsam=None, tlm=False,
     ):
-        """
+        """Construct a Jp2k object.
+
         Parameters
         ----------
         filename : str
@@ -249,8 +250,7 @@ class Jp2k(Jp2kBox):
         self.finalize()
 
     def finalize(self, force_parse=False):
-        """
-        For now, the only task remaining is to possibly write out a
+        """For now, the only task remaining is to possibly write out a
         ResolutionBox if we were so instructed.  There could be other
         possibilities in the future.
 
@@ -284,8 +284,7 @@ class Jp2k(Jp2kBox):
         self._insert_resolution_superbox()
 
     def _insert_resolution_superbox(self):
-        """
-        As a close-out task, insert a resolution superbox into the jp2
+        """As a close-out task, insert a resolution superbox into the jp2
         header box if we were so instructed.  This requires a wrapping
         operation.
         """
@@ -313,9 +312,7 @@ class Jp2k(Jp2kBox):
         self.parse()
 
     def _validate_kwargs(self):
-        """
-        Validate keyword parameters passed to the constructor.
-        """
+        """Validate keyword parameters passed to the constructor."""
         non_cinema_args = (
             self._mct, self._cratios, self._psnr, self._irreversible,
             self._cbsize, self._eph, self._grid_offset, self._modesw,
@@ -400,8 +397,7 @@ class Jp2k(Jp2kBox):
             raise RuntimeError(msg)
 
     def _initialize_shape(self):
-        """
-        If there was no image data provided and if no shape was
+        """If there was no image data provided and if no shape was
         initially provisioned, then shape must be computed AFTER we
         have parsed the input file.
         """
@@ -506,8 +502,7 @@ class Jp2k(Jp2kBox):
 
     @property
     def dtype(self):
-        """Datatype of each image component.
-        """
+        """Datatype of each image component."""
         if self._dtype is None:
             c = self.get_codestream()
             bps0 = c.segment[1].bitdepth[0]
@@ -534,8 +529,7 @@ class Jp2k(Jp2kBox):
 
     @property
     def ndim(self):
-        """Number of image dimensions.
-        """
+        """Number of image dimensions."""
         if self._ndim is None:
             self._ndim = len(self.shape)
 
@@ -543,8 +537,7 @@ class Jp2k(Jp2kBox):
 
     @property
     def codestream(self):
-        """JP2 or J2K codestream object (header only).
-        """
+        """JP2 or J2K codestream object (header only)."""
         if self._codestream is None:
             self._codestream = self.get_codestream(header_only=True)
         return self._codestream
@@ -558,20 +551,16 @@ class Jp2k(Jp2kBox):
     def verbose(self):
         """Whether or not to print informational messages produced by the
         OpenJPEG library, defaults to false.
-        """
-        return self._verbose
-
-    @verbose.setter
-    def verbose(self, verbose):
-        """Verbosity property.
-
-        If True, print informational messages from the OPENJPEG library.
 
         Parameters
         ----------
         verbose : {True, False}
             Set to verbose or not.
         """
+        return self._verbose
+
+    @verbose.setter
+    def verbose(self, verbose):
         self._verbose = verbose
 
     @property
@@ -600,9 +589,7 @@ class Jp2k(Jp2kBox):
         return '\n'.join(metadata)
 
     def get_tilewriters(self):
-        """
-        Return an object that facilitates writing tile by tile.
-        """
+        """Return an object that facilitates writing tile by tile."""
 
         if self.shape[:2] == self.tilesize:
             msg = (
@@ -664,9 +651,8 @@ class Jp2k(Jp2kBox):
             self._validate()
 
     def _validate(self):
-        """
-        Validate the JPEG 2000 outermost superbox.  These checks must be done
-        at a file level.
+        """Validate the JPEG 2000 outermost superbox.  These checks must be
+        done at a file level.
         """
         # A JP2 file must contain certain boxes.  The 2nd box must be a file
         # type box.
@@ -775,8 +761,7 @@ class Jp2k(Jp2kBox):
             self._cparams.rsiz = core.OPJ_PROFILE_CINEMA_4K
 
     def _populate_cparams(self, img_array):
-        """
-        Directs processing of write method arguments.
+        """Directs processing of write method arguments.
 
         Parameters
         ----------
@@ -913,8 +898,7 @@ class Jp2k(Jp2kBox):
         self._write_openjp2(img_array)
 
     def _validate_codeblock_size(self, cparams):
-        """
-        Code block dimensions must satisfy certain restrictions.
+        """Code block dimensions must satisfy certain restrictions.
 
         They must both be a power of 2 and the total area defined by the width
         and height cannot be either too great or too small for the codec.
@@ -942,8 +926,7 @@ class Jp2k(Jp2kBox):
                 raise InvalidJp2kError(msg)
 
     def _validate_precinct_size(self, cparams):
-        """
-        Precinct dimensions must satisfy certain restrictions if specified.
+        """Precinct dimensions must satisfy certain restrictions if specified.
 
         They must both be a power of 2 and must both be at least twice the
         size of their codeblock size counterparts.
@@ -977,16 +960,14 @@ class Jp2k(Jp2kBox):
                     raise InvalidJp2kError(msg)
 
     def _validate_image_rank(self, img_array):
-        """
-        Images must be either 2D or 3D.
+        """Images must be either 2D or 3D.
         """
         if img_array.ndim == 1 or img_array.ndim > 3:
             msg = f"{img_array.ndim}D imagery is not allowed."
             raise InvalidJp2kError(msg)
 
     def _validate_image_datatype(self, img_array):
-        """
-        Only uint8 and uint16 images are currently supported.
+        """Only uint8 and uint16 images are currently supported.
         """
         if img_array.dtype != np.uint8 and img_array.dtype != np.uint16:
             msg = (
@@ -1011,8 +992,7 @@ class Jp2k(Jp2kBox):
         self._validate_image_datatype(img_array)
 
     def _determine_colorspace(self):
-        """Determine the colorspace from the supplied inputs.
-        """
+        """Determine the colorspace from the supplied inputs."""
         if self._colorspace is None:
             # Must infer the colorspace from the image dimensions.
             if len(self.shape) < 3:
@@ -1045,9 +1025,7 @@ class Jp2k(Jp2kBox):
             self._colorspace = COLORSPACE_MAP[self._colorspace.lower()]
 
     def _write_openjp2(self, img_array):
-        """
-        Write JPEG 2000 file using OpenJPEG 2.x interface.
-        """
+        """Write JPEG 2000 file using OpenJPEG 2.x interface."""
         with ExitStack() as stack:
             image = opj2.image_create(self._comptparms, self._colorspace)
             stack.callback(opj2.image_destroy, image)
@@ -1272,9 +1250,7 @@ class Jp2k(Jp2kBox):
         return boxes
 
     def __setitem__(self, index, data):
-        """
-        Slicing protocol.
-        """
+        """Slicing protocol."""
         # Need to set this in case it is not set in the constructor.
         if self._shape is None:
             self._shape = data.shape
@@ -1297,8 +1273,9 @@ class Jp2k(Jp2kBox):
             raise ValueError(msg)
 
     def _remove_ellipsis(self, index, numrows, numcols, numbands):
-        """
-        resolve the first ellipsis in the index so that it references the image
+        """resolve the first ellipsis in the index
+
+        The intent is that it references the image
 
         Parameters
         ----------
@@ -1338,9 +1315,7 @@ class Jp2k(Jp2kBox):
         return newindex
 
     def __getitem__(self, pargs):
-        """
-        Slicing protocol.
-        """
+        """Slicing protocol."""
         if not self.path.exists():
             msg = f"Cannot read from {self.filename}, it does not yet exist."
             raise FileNotFoundError(msg)
@@ -1464,8 +1439,7 @@ class Jp2k(Jp2kBox):
         return img
 
     def read(self, **kwargs):
-        """
-        Read a JPEG 2000 image.
+        """Read a JPEG 2000 image.
 
         Returns
         -------
@@ -1481,8 +1455,7 @@ class Jp2k(Jp2kBox):
         return img
 
     def _subsampling_sanity_check(self):
-        """Check for differing subsample factors.
-        """
+        """Check for differing subsample factors."""
         if self._decoded_components is None:
             dxs = np.array(self.codestream.segment[1].xrsiz)
             dys = np.array(self.codestream.segment[1].yrsiz)
@@ -1540,8 +1513,7 @@ class Jp2k(Jp2kBox):
         return image
 
     def _read_openjp2_common(self):
-        """
-        Read a JPEG 2000 image using libopenjp2.
+        """Read a JPEG 2000 image using libopenjp2.
 
         Returns
         -------
@@ -1712,8 +1684,7 @@ class Jp2k(Jp2kBox):
         return lst
 
     def _extract_image(self, raw_image):
-        """
-        Extract unequally-sized image bands.
+        """Extract unequally-sized image bands.
 
         Parameters
         ----------
@@ -1947,8 +1918,7 @@ class Jp2k(Jp2kBox):
         self._comptparms = comptparms
 
     def _validate_nonzero_image_size(self, nrows, ncols, component_index):
-        """The image cannot have area of zero.
-        """
+        """The image cannot have area of zero."""
         if nrows == 0 or ncols == 0:
             # Letting this situation continue would segfault openjpeg.
             msg = (
@@ -1987,9 +1957,7 @@ class Jp2k(Jp2kBox):
             self._validate_jp2_colr(boxes)
 
     def _validate_jp2_colr(self, boxes):
-        """
-        Validate JP2 requirements on colour specification boxes.
-        """
+        """Validate JP2 requirements on colour specification boxes."""
         lst = [box for box in boxes if box.box_id == 'jp2h']
         jp2h = lst[0]
         for colr in [box for box in jp2h.box if box.box_id == 'colr']:
@@ -2171,8 +2139,7 @@ class Jp2k(Jp2kBox):
             raise InvalidJp2kError('There can only be one dtbl box in a file.')
 
     def _validate_jpx_compatibility(self, boxes, compatibility_list):
-        """
-        If there is a JPX box then the compatibility list must also contain
+        """If there is a JPX box then the compatibility list must also contain
         'jpx '.
         """
         JPX_IDS = ['asoc', 'nlst']
@@ -2190,8 +2157,7 @@ class Jp2k(Jp2kBox):
                 self._validate_jpx_compatibility(box.box, compatibility_list)
 
     def _validate_label(self, boxes):
-        """
-        Label boxes can only be inside association, codestream headers, or
+        """Label boxes can only be inside association, codestream headers, or
         compositing layer header boxes.
         """
         for box in boxes:
@@ -2209,8 +2175,7 @@ class Jp2k(Jp2kBox):
 
 
 class _TileWriter(object):
-    """
-    Writes tiles to file, one by one.
+    """Writes tiles to file, one by one.
 
     Attributes
     ----------
@@ -2292,8 +2257,7 @@ class _TileWriter(object):
             opj2.destroy_codec(self.codec)
 
     def setup_first_tile(self, img_array):
-        """
-        Only do these things for the first tile.
+        """Only do these things for the first tile.
         """
         self.jp2k._determine_colorspace()
         self.jp2k._populate_cparams(img_array)
@@ -2346,8 +2310,7 @@ class _TileWriter(object):
 
 
 def _set_planar_pixel_order(img):
-    """
-    Reorder the image pixels so that plane-0 comes first, then plane-1, etc.
+    """Reorder the image pixels so that plane-0 comes first, then plane-1, etc.
     This is a requirement for using opj_write_tile.
     """
     if img.ndim == 3:

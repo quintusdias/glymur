@@ -1,6 +1,4 @@
-"""
-Entry point for console script jp2dump.
-"""
+"""Entry point for console script jp2dump."""
 # Standard library imports ...
 import argparse
 import logging
@@ -13,9 +11,7 @@ from . import tiff
 
 
 def main():
-    """
-    Entry point for console script jp2dump.
-    """
+    """Entry point for console script jp2dump."""
 
     kwargs = {'description': 'Print JPEG2000 metadata.',
               'formatter_class': argparse.ArgumentDefaultsHelpFormatter}
@@ -83,9 +79,7 @@ def main():
 
 
 def tiff2jp2():
-    """
-    Entry point for console script tiff2jp2.
-    """
+    """Entry point for console script tiff2jp2."""
 
     epilog = (
         "Normally you should at least provide the tilesize argument.  "

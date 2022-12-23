@@ -1,5 +1,4 @@
-"""Core definitions to be shared amongst the modules.
-"""
+"""Core definitions to be shared amongst the modules."""
 
 # Progression order
 LRCP = 0

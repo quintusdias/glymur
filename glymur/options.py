@@ -1,6 +1,4 @@
-"""
-Manage glymur configuration settings.
-"""
+"""Manage glymur configuration settings."""
 # Standard library imports
 import copy
 import warnings
@@ -108,8 +106,7 @@ def get_option(key):
 
 
 def reset_option(key):
-    """
-    Reset one or more options to their default value.
+    """Reset one or more options to their default value.
 
     Pass "all" as argument to reset all options.
 

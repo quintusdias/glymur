@@ -1,5 +1,4 @@
-"""
-This file is part of glymur, a Python interface for accessing JPEG 2000.
+"""This file is part of glymur, a Python interface for accessing JPEG 2000.
 
 http://glymur.readthedocs.org
 

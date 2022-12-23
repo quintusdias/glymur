@@ -1,5 +1,4 @@
-"""
-Wraps individual functions in openjp2 library.
+"""Wraps individual functions in openjp2 library.
 """
 
 # Standard library imports
@@ -17,8 +16,7 @@ OPENJP2 = glymur_config('openjp2')
 
 
 class OpenJPEGLibraryError(IOError):
-    """
-    Issue when the OpenJPEG library signals an error.
+    """Issue when the OpenJPEG library signals an error.
     """
     pass
 
@@ -76,7 +74,7 @@ CODEC_JP2 = 2
 
 
 class PocType(ctypes.Structure):
-    """Progression order changes.
+    """Progression order changes
 
     Corresponds to poc_t type in openjp2 headers.
     """
@@ -617,8 +615,7 @@ def create_compress(codec_format):
 
 
 def codec_set_threads(codec, num_threads):
-    """
-    Allocates worker threads for the compressor/decompressor.
+    """Allocates worker threads for the compressor/decompressor.
 
     This function Wraps the openjp2 library function opj_codec_set_threads.
 
@@ -846,7 +843,8 @@ def end_decompress(codec, stream):
 
 
 def get_num_cpus():
-    """
+    """Retrieve number  of CPUs.
+
     Parameters
     ----------
     None
@@ -860,8 +858,7 @@ def get_num_cpus():
 
 
 def has_thread_support():
-    """
-    Is the library configured with thread support?
+    """Is the library configured with thread support?
 
     Returns
     -------

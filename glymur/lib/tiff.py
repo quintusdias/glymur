@@ -23,15 +23,12 @@ _LIBC = glymur_config('c')
 
 
 class LibTIFFError(RuntimeError):
-    """
-    Raise this exception if we detect a generic error from libtiff.
-    """
+    """Raise this exception if we detect a generic error from libtiff."""
     pass
 
 
 class Compression(IntEnum):
-    """
-    Compression scheme used on the image data.
+    """Compression scheme used on the image data.
 
     See Also
     --------
@@ -65,16 +62,14 @@ class Compression(IntEnum):
 
 
 class InkSet(IntEnum):
-    """
-    The set of inks used in a separated (PhotometricInterpretation=5) image.
+    """The set of inks used in a separated (PhotometricInterpretation=5) image.
     """
     CMYK = 1
     MULTIINK = 2
 
 
 class JPEGColorMode(IntEnum):
-    """
-    When writing images with photometric interpretation equal to YCbCr and
+    """When writing images with photometric interpretation equal to YCbCr and
     compression equal to JPEG, the pseudo tag JPEGColorMode should usually be
     set to RGB, unless the image values truly are in YCbCr.
 
@@ -87,8 +82,7 @@ class JPEGColorMode(IntEnum):
 
 
 class PlanarConfig(IntEnum):
-    """
-    How the components of each pixel are stored.
+    """How the components of each pixel are stored.
 
     Writing images with a PlanarConfig value of PlanarConfig.SEPARATE is not
     currently supported.
@@ -98,9 +92,7 @@ class PlanarConfig(IntEnum):
 
 
 class Orientation(IntEnum):
-    """
-    The orientation of the image with respect to the rows and columns.
-    """
+    """The orientation of the image with respect to the rows and columns."""
     TOPLEFT = 1  # row 0 top, col 0 lhs */
     TOPRIGHT = 2  # row 0 top, col 0 rhs */
     BOTRIGHT = 3  # row 0 bottom, col 0 rhs */
@@ -112,8 +104,7 @@ class Orientation(IntEnum):
 
 
 class Photometric(IntEnum):
-    """
-    The color space of the image data.
+    """The color space of the image data.
 
     Examples
     --------
@@ -180,9 +171,7 @@ class Photometric(IntEnum):
 
 
 class SampleFormat(IntEnum):
-    """
-    Specifies how to interpret each data sample in a pixel.
-    """
+    """Specifies how to interpret each data sample in a pixel."""
     UINT = 1
     INT = 2
     IEEEFP = 3
@@ -239,9 +228,7 @@ _WARNING_HANDLER = _WFUNCTYPE(_handle_warning)
 
 
 def _set_error_warning_handlers():
-    """
-    Setup default python error and warning handlers.
-    """
+    """Setup default python error and warning handlers."""
     old_warning_handler = setWarningHandler()
     old_error_handler = setErrorHandler()
 
@@ -249,17 +236,13 @@ def _set_error_warning_handlers():
 
 
 def _reset_error_warning_handlers(old_error_handler, old_warning_handler):
-    """
-    Restore previous error and warning handlers.
-    """
+    """Restore previous error and warning handlers."""
     setWarningHandler(old_warning_handler)
     setErrorHandler(old_error_handler)
 
 
 def close(fp):
-    """
-    Corresponds to TIFFClose
-    """
+    """Corresponds to TIFFClose"""
     err_handler, warn_handler = _set_error_warning_handlers()
 
     ARGTYPES = [ctypes.c_void_p]
@@ -271,9 +254,7 @@ def close(fp):
 
 
 def computeStrip(fp, row, sample):
-    """
-    Corresponds to TIFFComputeStrip
-    """
+    """Corresponds to TIFFComputeStrip"""
     err_handler, warn_handler = _set_error_warning_handlers()
 
     ARGTYPES = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_uint16]
@@ -287,9 +268,7 @@ def computeStrip(fp, row, sample):
 
 
 def computeTile(fp, x, y, z, sample):
-    """
-    Corresponds to TIFFComputeTile
-    """
+    """Corresponds to TIFFComputeTile"""
     err_handler, warn_handler = _set_error_warning_handlers()
 
     ARGTYPES = [ctypes.c_void_p, ctypes.c_uint32, ctypes.c_uint32,
@@ -304,9 +283,7 @@ def computeTile(fp, x, y, z, sample):
 
 
 def isTiled(fp):
-    """
-    Corresponds to TIFFIsTiled
-    """
+    """Corresponds to TIFFIsTiled"""
     err_handler, warn_handler = _set_error_warning_handlers()
 
     ARGTYPES = [ctypes.c_void_p]
@@ -322,9 +299,7 @@ def isTiled(fp):
 
 
 def numberOfStrips(fp):
-    """
-    Corresponds to TIFFNumberOfStrips.
-    """
+    """Corresponds to TIFFNumberOfStrips."""
     err_handler, warn_handler = _set_error_warning_handlers()
 
     ARGTYPES = [ctypes.c_void_p]
@@ -339,9 +314,7 @@ def numberOfStrips(fp):
 
 
 def numberOfTiles(fp):
-    """
-    Corresponds to TIFFNumberOfTiles.
-    """
+    """Corresponds to TIFFNumberOfTiles."""
     err_handler, warn_handler = _set_error_warning_handlers()
 
     ARGTYPES = [ctypes.c_void_p]
@@ -356,9 +329,7 @@ def numberOfTiles(fp):
 
 
 def readEncodedStrip(fp, stripnum, strip, size=-1):
-    """
-    Corresponds to TIFFReadEncodedStrip
-    """
+    """Corresponds to TIFFReadEncodedStrip"""
     err_handler, warn_handler = _set_error_warning_handlers()
 
     if size == -1:
@@ -379,9 +350,7 @@ def readEncodedStrip(fp, stripnum, strip, size=-1):
 
 
 def readEncodedTile(fp, tilenum, tile, size=-1):
-    """
-    Corresponds to TIFFComputeTile
-    """
+    """Corresponds to TIFFComputeTile"""
     err_handler, warn_handler = _set_error_warning_handlers()
 
     if size == -1:
@@ -402,9 +371,7 @@ def readEncodedTile(fp, tilenum, tile, size=-1):
 
 
 def readRGBAStrip(fp, row, strip):
-    """
-    Corresponds to TIFFReadRGBAStrip
-    """
+    """Corresponds to TIFFReadRGBAStrip"""
     err_handler, warn_handler = _set_error_warning_handlers()
 
     ARGTYPES = [
@@ -422,9 +389,7 @@ def readRGBAStrip(fp, row, strip):
 
 
 def readRGBATile(fp, x, y, tile):
-    """
-    Corresponds to TIFFReadRGBATile
-    """
+    """Corresponds to TIFFReadRGBATile"""
     err_handler, warn_handler = _set_error_warning_handlers()
 
     ARGTYPES = [
@@ -443,8 +408,7 @@ def readRGBATile(fp, x, y, tile):
 
 def readRGBAImageOriented(fp, width=None, height=None,
                           orientation=Orientation.TOPLEFT):
-    """
-    Read an image as if it were RGBA.
+    """Read an image as if it were RGBA.
 
     This function corresponds to the TIFFReadRGBAImageOriented function in the
     libtiff library.
@@ -488,9 +452,7 @@ def readRGBAImageOriented(fp, width=None, height=None,
 
 
 def writeEncodedStrip(fp, stripnum, stripdata, size=-1):
-    """
-    Corresponds to TIFFWriteEncodedStrip.
-    """
+    """Corresponds to TIFFWriteEncodedStrip."""
     err_handler, warn_handler = _set_error_warning_handlers()
 
     ARGTYPES = [
@@ -509,9 +471,7 @@ def writeEncodedStrip(fp, stripnum, stripdata, size=-1):
 
 
 def writeEncodedTile(fp, tilenum, tiledata, size=-1):
-    """
-    Corresponds to TIFFWriteEncodedTile.
-    """
+    """Corresponds to TIFFWriteEncodedTile."""
     err_handler, warn_handler = _set_error_warning_handlers()
 
     ARGTYPES = [
@@ -530,9 +490,7 @@ def writeEncodedTile(fp, tilenum, tiledata, size=-1):
 
 
 def RGBAImageOK(fp):
-    """
-    Corresponds to TIFFRGBAImageOK.
-    """
+    """Corresponds to TIFFRGBAImageOK."""
     err_handler, warn_handler = _set_error_warning_handlers()
 
     emsg = ctypes.create_string_buffer(1024)
@@ -550,9 +508,7 @@ def RGBAImageOK(fp):
 
 
 def getFieldDefaulted(fp, tag):
-    """
-    Corresponds to the TIFFGetFieldDefaulted library routine.
-    """
+    """Corresponds to the TIFFGetFieldDefaulted library routine."""
     err_handler, warn_handler = _set_error_warning_handlers()
 
     ARGTYPES = [ctypes.c_void_p, ctypes.c_int32]
@@ -576,9 +532,7 @@ def getFieldDefaulted(fp, tag):
 
 
 def getVersion():
-    """
-    Corresponds to the TIFFGetVersion library routine.
-    """
+    """Corresponds to the TIFFGetVersion library routine."""
     try:
         _LIBTIFF.TIFFGetVersion.restype = ctypes.c_char_p
     except AttributeError:
@@ -599,8 +553,7 @@ def getVersion():
 
 
 def printDirectory(tiff_fp, ofp, mode=0):
-    """
-    Corresponds to TIFFPrintDirectory
+    """Corresponds to TIFFPrintDirectory
 
     Parameters
     ----------
@@ -618,8 +571,7 @@ def printDirectory(tiff_fp, ofp, mode=0):
 
 
 def open(filename, mode='r'):
-    """
-    Corresponds to TIFFOpen
+    """Corresponds to TIFFOpen
 
     Parameters
     ----------
@@ -655,9 +607,7 @@ def setErrorHandler(func=_ERROR_HANDLER):
 
 
 def setField(fp, tag, value):
-    """
-    Corresponds to TIFFSetField
-    """
+    """Corresponds to TIFFSetField"""
     err_handler, warn_handler = _set_error_warning_handlers()
 
     ARGTYPES = [ctypes.c_void_p, ctypes.c_int32]
@@ -687,8 +637,7 @@ def setWarningHandler(func=_WARNING_HANDLER):
 
 
 def check_error(status):
-    """
-    Set a generic function as the restype attribute of all TIFF
+    """Set a generic function as the restype attribute of all TIFF
     functions that return a int value.  This way we do not have to check
     for error status in each wrapping function and an exception will always be
     appropriately raised.
@@ -1971,9 +1920,7 @@ TAGNUM2NAME = {value['number']: key for key, value in TAGS.items()}
 
 
 def tiff_header(read_buffer):
-    """
-    Interpret the uuid raw data as a tiff header.
-    """
+    """Interpret the uuid raw data as a tiff header."""
     # First 8 should be (73, 73, 42, 8) or (77, 77, 42, 8)
     data = struct.unpack('BB', read_buffer[0:2])
     if data[0] == 73 and data[1] == 73:
@@ -1997,15 +1944,15 @@ def tiff_header(read_buffer):
 
 
 class BadTiffTagDatatype(RuntimeError):
-    """
-    This exception exists soley to better communicate up the stack that the
+    """This exception exists soley to better communicate up the stack that the
     problem exists.
     """
     pass
 
 
 class _Ifd(object):
-    """
+    """Corresponds to TIFF IFD data structure on file.
+
     Attributes
     ----------
     read_buffer : bytes
@@ -2044,9 +1991,7 @@ class _Ifd(object):
         self.post_process()
 
     def parse_tag(self, tag, dtype, count, offset_buf):
-        """
-        Interpret an Exif image tag data payload.
-        """
+        """Interpret an Exif image tag data payload."""
         try:
             fmt = DATATYPE2FMT[dtype]['format'] * count
             payload_size = DATATYPE2FMT[dtype]['nbytes'] * count
@@ -2088,9 +2033,7 @@ class _Ifd(object):
         return payload
 
     def post_process(self):
-        """
-        Map the tag name instead of tag number to the tag value.
-        """
+        """Map the tag name instead of tag number to the tag value."""
         for tag, value in self.raw_ifd.items():
             try:
                 tag_name = TAGNUM2NAME[tag]
