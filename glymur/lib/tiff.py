@@ -1993,7 +1993,7 @@ def tiff_header(read_buffer):
     _, offset = struct.unpack(endian + 'HI', read_buffer[2:8])
 
     # This is the 'Exif Image' portion.
-    return Ifd(endian, read_buffer, offset).processed_ifd
+    return _Ifd(endian, read_buffer, offset).processed_ifd
 
 
 class BadTiffTagDatatype(RuntimeError):
@@ -2004,7 +2004,7 @@ class BadTiffTagDatatype(RuntimeError):
     pass
 
 
-class Ifd(object):
+class _Ifd(object):
     """
     Attributes
     ----------
@@ -2102,7 +2102,7 @@ class Ifd(object):
 
             if tag_name == 'ExifTag':
                 # There's an Exif IFD at the offset specified here.
-                ifd = Ifd(self.endian, self.read_buffer, value)
+                ifd = _Ifd(self.endian, self.read_buffer, value)
                 self.processed_ifd[tag_name] = ifd.processed_ifd
             else:
                 # just a regular tag, treat it as a simple value
