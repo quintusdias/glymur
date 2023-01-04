@@ -1269,11 +1269,7 @@ class TestJp2k_write(fixtures.MetadataBase):
 
         EXPECTED RESULT:  A TLM segment is detected.
         """
-        kwargs = {
-            'data': self.jp2_data,
-            'tlm': True
-        }
-        j = Jp2k(self.temp_jp2_filename, **kwargs)
+        j = Jp2k(self.temp_jp2_filename, data=self.jp2_data, tlm=True)
 
         codestream = j.get_codestream(header_only=False)
 
@@ -1289,11 +1285,24 @@ class TestJp2k_write(fixtures.MetadataBase):
 
         EXPECTED RESULT:  A TLM segment not detected.
         """
-        kwargs = {
-            'data': self.jp2_data,
-            'tlm': False
-        }
-        j = Jp2k(self.temp_jp2_filename, **kwargs)
+        j = Jp2k(self.temp_jp2_filename, data=self.jp2_data, tlm=False)
+
+        codestream = j.get_codestream(header_only=False)
+
+        at_least_one_tlm_segment = any(
+            isinstance(seg, glymur.codestream.TLMsegment)
+            for seg in codestream.segment
+        )
+        self.assertFalse(at_least_one_tlm_segment)
+
+    def test_tlm_none(self):
+        """
+        SCENARIO:  Use the tlm keyword set to None.  This was the default
+        position in 0.12.1.
+
+        EXPECTED RESULT:  A TLM segment not detected.
+        """
+        j = Jp2k(self.temp_jp2_filename, data=self.jp2_data, tlm=None)
 
         codestream = j.get_codestream(header_only=False)
 
@@ -1315,19 +1324,12 @@ class TestJp2k_write(fixtures.MetadataBase):
 
         EXPECTED RESULT:  Plt segment is detected.
         """
-        kwargs = {
-            'data': fixtures.skimage.data.camera(),
-            'plt': True
-        }
-        j = Jp2k(self.temp_jp2_filename, **kwargs)
+        j = Jp2k(self.temp_jp2_filename, data=self.j2k_data, plt=True)
 
         codestream = j.get_codestream(header_only=False)
 
-        at_least_one_plt = any(
-            isinstance(seg, glymur.codestream.PLTsegment)
-            for seg in codestream.segment
-        )
-        self.assertTrue(at_least_one_plt)
+        lst = [seg for seg in codestream.segment if seg.marker_id == 'PLT']
+        self.assertEqual(len(lst), 1)
 
     @unittest.skipIf(
         not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
@@ -1338,12 +1340,25 @@ class TestJp2k_write(fixtures.MetadataBase):
 
         EXPECTED RESULT:  Plt segment is not detected.
         """
-        kwargs = {
-            'data': fixtures.skimage.data.camera(),
-            'plt': False
-        }
-        j = Jp2k(self.temp_jp2_filename, **kwargs)
+        j = Jp2k(self.temp_jp2_filename, data=self.j2k_data, plt=False)
+        codestream = j.get_codestream(header_only=False)
 
+        at_least_one_plt = any(
+            isinstance(seg, glymur.codestream.PLTsegment)
+            for seg in codestream.segment
+        )
+        self.assertFalse(at_least_one_plt)
+
+    @unittest.skipIf(
+        not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
+    )
+    def test_plt_none(self):
+        """
+        SCENARIO:  Use the plt keyword set to None.
+
+        EXPECTED RESULT:  Plt segment is not detected.
+        """
+        j = Jp2k(self.temp_jp2_filename, data=self.j2k_data, plt=None)
         codestream = j.get_codestream(header_only=False)
 
         at_least_one_plt = any(
@@ -1590,11 +1605,54 @@ class TestJp2k_write(fixtures.MetadataBase):
         self.assertEqual(codestream.segment[2].precinct_size,
                          ((32768, 32768)))
 
+    def test_sop_explicitly_true(self):
+        """
+        Scenario:   Specify sop=True
+
+        Expected Result:  There are 17 SOP packets in the codestream.
+        """
+        j = Jp2k(self.temp_j2k_filename, data=self.jp2_data, sop=True)
+
+        codestream = j.get_codestream(header_only=False)
+
+        lst = [seg for seg in codestream.segment if seg.marker_id == 'SOP']
+        self.assertEqual(len(lst), 18)
+
+    def test_sop_explicitly_false(self):
+        """
+        Scenario:   Specify sop=False
+
+        Expected Result:  There are no SOP packets in the codestream.
+        """
+        j = Jp2k(self.temp_j2k_filename, data=self.jp2_data, sop=False)
+
+        codestream = j.get_codestream(header_only=False)
+
+        b = any(seg for seg in codestream.segment if seg.marker_id == 'SOP')
+        self.assertFalse(b)
+
+    def test_sop_explicitly_none(self):
+        """
+        Scenario:   Specify sop=None
+
+        Expected Result:  There are no SOP packets in the codestream.  This is
+        the old behavior.
+        """
+        j = Jp2k(self.temp_j2k_filename, data=self.jp2_data, sop=None)
+
+        codestream = j.get_codestream(header_only=False)
+
+        b = any(seg for seg in codestream.segment if seg.marker_id == 'SOP')
+        self.assertFalse(b)
+
     def test_NR_ENC_Bretagne2_ppm_6_encode(self):
         """
-        Original file tested was
+        Scenario:   Specify subsampling and writing SOP markers before each
+        packet.
 
-            input/nonregression/Bretagne2.ppm
+        Expected Result:  Subsampling is verified.  Usage of SOP is verified.
+        The original file tested in the openjpeg test suite was
+        input/nonregression/Bretagne2.ppm
         """
         j = Jp2k(
             self.temp_j2k_filename,
@@ -2133,8 +2191,28 @@ class TestJp2k_write(fixtures.MetadataBase):
         actdata = ofile[:]
         np.testing.assert_array_equal(actdata, expdata)
 
+    def test_write_srgb_specifying_mct_as_none(self):
+        """
+        Scenario:  Write RGB data, explicitly settimg mct to None, which is old
+        behavior.
+
+        Expected Result:  The codestream should record mct as being set.
+        """
+        j2k = Jp2k(self.j2kfile)
+        expdata = j2k[:]
+        ofile = Jp2k(self.temp_jp2_filename, data=expdata, mct=None)
+        actdata = ofile[:]
+        np.testing.assert_array_equal(actdata, expdata)
+
+        codestream = ofile.get_codestream()
+        self.assertEqual(codestream.segment[2].mct, 1)
+
     def test_write_srgb_without_mct(self):
-        """should be able to write RGB without specifying mct"""
+        """
+        Scenario:  Write RGB data, set mct to False.
+
+        Expected Result:  The codestream records mct as not being set.
+        """
         j2k = Jp2k(self.j2kfile)
         expdata = j2k[:]
         ofile = Jp2k(self.temp_jp2_filename, data=expdata, mct=False)
@@ -2146,7 +2224,10 @@ class TestJp2k_write(fixtures.MetadataBase):
 
     def test_write_grayscale_with_mct(self):
         """
-        MCT usage makes no sense for grayscale images.
+        Scenario:  Explicitly specify mct for a grayscale image.  The MCT does
+        not make sense there.
+
+        Expected Result:  RuntimeError
         """
         j2k = Jp2k(self.j2kfile)
         expdata = j2k[:]

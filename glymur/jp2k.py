@@ -134,7 +134,8 @@ class Jp2k(Jp2kBox):
             If true, use the irreversible DWT 9-7 transform.
         mct : bool, optional
             Usage of the multi component transform to write an image.  If not
-            specified, defaults to True if the color space is RGB.
+            specified, defaults to True if the color space is RGB, false if the
+            color space is grayscale.
         modesw : int, optional
             mode switch
                 1 = BYPASS(LAZY)
