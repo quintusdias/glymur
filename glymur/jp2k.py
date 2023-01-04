@@ -841,16 +841,27 @@ class Jp2k(Jp2kBox):
             cparams.tile_size_on = opj2.TRUE
 
         if self._mct is None:
+
             # If the multi component transform was not specified, we infer
             # that it should be used if the color space is RGB.
             cparams.tcp_mct = 1 if self._colorspace == opj2.CLRSPC_SRGB else 0
+
+        elif self._mct and self._colorspace == opj2.CLRSPC_GRAY:
+
+            # the MCT was requested, but the colorspace is gray
+            # i.e. 1 component.  NOT ON MY WATCH!
+
+            msg = (
+                "You cannot specify usage of the multi component transform "
+                "if the colorspace is gray."
+            )
+            raise InvalidJp2kError(msg)
+
         else:
-            if self._colorspace == opj2.CLRSPC_GRAY:
-                msg = (
-                    "Cannot specify usage of the multi component transform "
-                    "if the colorspace is gray."
-                )
-                raise InvalidJp2kError(msg)
+
+            # The MCT was explicitly not specified
+            # or it was specified AND the colorspace is going to be RGB.
+            # In either case, we can use the MCT as requested.
             cparams.tcp_mct = 1 if self._mct else 0
 
         # Set defaults to lossless to begin.

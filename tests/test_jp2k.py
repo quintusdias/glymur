@@ -2154,6 +2154,41 @@ class TestJp2k_write(fixtures.MetadataBase):
             with self.assertRaises(RuntimeError):
                 Jp2k(tfile.name, data=expdata[:, :, 0], mct=True)
 
+    def test_write_grayscale_with_mct_set_to_none(self):
+        """
+        Scenario:  Explicitly specify mct as None for a grayscale image.
+
+        Expected Result:  The MCT is not used.
+        """
+        j2k = Jp2k(self.j2kfile)
+        expdata = j2k[:][:, :, 2]
+
+        j = Jp2k(self.temp_jp2_filename, data=expdata, mct=None)
+
+        actdata = j[:]
+        np.testing.assert_array_equal(actdata, expdata)
+
+        codestream = j.get_codestream()
+        self.assertEqual(codestream.segment[2].mct, 0)  # no mct
+
+    def test_write_grayscale_with_mct_set_to_false(self):
+        """
+        Scenario:  Explicitly specify mct as False for a grayscale image.
+
+        Expected Result:  The MCT is not used.  That's the default for
+        grayscale anyway.
+        """
+        j2k = Jp2k(self.j2kfile)
+        expdata = j2k[:][:, :, 2]
+
+        j = Jp2k(self.temp_jp2_filename, data=expdata, mct=False)
+
+        actdata = j[:]
+        np.testing.assert_array_equal(actdata, expdata)
+
+        codestream = j.get_codestream()
+        self.assertEqual(codestream.segment[2].mct, 0)  # no mct
+
     def test_write_cprl(self):
         """Must be able to write a CPRL progression order file"""
         # Issue 17
