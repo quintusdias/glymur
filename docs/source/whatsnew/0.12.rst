@@ -3,6 +3,14 @@ Changes in glymur 0.12
 ######################
 
 *****************
+Changes in 0.12.2
+*****************
+    * Fix error condition when MCT specified as false for grayscale image.
+    * Make properties conform to numpydoc.
+    * Fix YCbCr/JPEG TIFF conversion test failure on Fedora.
+    * Stop using libtiff to create test files on the fly.
+
+*****************
 Changes in 0.12.1
 *****************
     * Do not error out for JP2 files with multiple codestreams.
