@@ -113,6 +113,18 @@ class WriteCinema(CinemaBase):
         codestream = j.get_codestream()
         self.assertNotEqual(codestream.segment[1].rsiz, glymur.core.CINEMA2K)
 
+    def test_cinema4k_none_keyword(self):
+        """
+        SCENARIO:  create JP2 file with cinema4k argument provided as None,
+        which was the old default in 0.12.2 and earlier.
+
+        EXPECTED RESULT:  the JP2 file will not have the cinema4k profile
+        """
+        j = Jp2k(self.temp_j2k_filename, data=self.jp2_data, cinema4k=None)
+
+        codestream = j.get_codestream()
+        self.assertNotEqual(codestream.segment[1].rsiz, glymur.core.CINEMA4K)
+
     def test_NR_ENC_X_6_2K_24_FULL_CBR_CIRCLE_000_tif_20_encode(self):
         """
         SCENARIO:  create JP2 file with cinema2k profile at 48 fps
