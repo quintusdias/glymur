@@ -347,6 +347,24 @@ class TestJp2k(fixtures.TestCommon):
         actdata = j2[:]
         self.assertTrue(fixtures.mse(actdata[0], expdata[0]) < 0.38)
 
+    def test_irreversible_none_keyword(self):
+        """
+        SCENARIO:  Write a J2K file with the irreversible option set to None,
+        which was the 0.12.2 default value.
+
+        EXPECTED RESULT:  the 9-7 wavelet transform is NOT detected in the
+        codestream.
+        """
+        j = Jp2k(self.jp2file)
+        expdata = j[:]
+        j2 = Jp2k(self.temp_j2k_filename, data=expdata, irreversible=None)
+
+        codestream = j2.get_codestream()
+        self.assertNotEqual(
+            codestream.segment[2].xform,
+            glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE
+        )
+
     def test_rlevel_max_backwards_compatibility(self):
         """
         Verify that rlevel=-1 gets us the lowest resolution image
