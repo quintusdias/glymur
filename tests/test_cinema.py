@@ -101,6 +101,19 @@ class WriteCinema(CinemaBase):
         codestream = j.get_codestream()
         self.check_cinema2k_codestream(codestream, (2048, 1080))
 
+    def test_cinema2k_none_keyword(self):
+        """
+        SCENARIO:  create JP2 file with cinema2k argument provided as None,
+        which was the old default in 0.12.2 and earlier.
+
+        EXPECTED RESULT:  the JP2 file will not have the cinema2k profile
+        """
+        j = Jp2k(self.temp_j2k_filename, data=self.jp2_data, cinema2k=None)
+
+        codestream = j.get_codestream()
+        with self.assertRaises(AssertionError):
+            self.check_cinema2k_codestream(codestream, (2048, 1080))
+
     def test_NR_ENC_X_6_2K_24_FULL_CBR_CIRCLE_000_tif_20_encode(self):
         """
         SCENARIO:  create JP2 file with cinema2k profile at 48 fps
