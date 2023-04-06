@@ -7,6 +7,7 @@ Copyright 2013 John Evans
 License:  MIT
 """
 # Standard library imports...
+from __future__ import annotations
 from collections import Counter
 from contextlib import ExitStack
 from itertools import filterfalse
@@ -15,6 +16,7 @@ import pathlib
 import re
 import shutil
 import struct
+from typing import List, Tuple
 from uuid import UUID
 import warnings
 
@@ -90,45 +92,65 @@ class Jp2k(Jp2kBox):
     """
 
     def __init__(
-        self, filename, data=None, shape=None, tilesize=None, verbose=False,
-        capture_resolution=None, cbsize=None, cinema2k=None,
-        cinema4k=None, colorspace=None, cratios=None,
-        display_resolution=None, eph=None, grid_offset=None,
-        irreversible=None, mct=None, modesw=None, numres=None,
-        plt=False, prog=None, psizes=None, psnr=None, sop=None,
-        subsam=None, tlm=False,
+        self,
+        filename: str | pathlib.Path,
+        data: np.ndarray | None = None,
+        capture_resolution: Tuple[int, int] | None = None,
+        cbsize: Tuple[int, int] | None = None,
+        cinema2k: int = 0,
+        cinema4k: bool = False,
+        colorspace: str | None = None,
+        cratios: Tuple[int, ...] | None = None,
+        display_resolution: Tuple[int, int] | None = None,
+        eph: bool = False,
+        grid_offset: Tuple[int, int] | None = None,
+        irreversible: bool = False,
+        mct: bool | None = None,
+        modesw: int = 0,
+        numres: int = 6,
+        plt: bool = False,
+        prog: str | None = None,
+        psizes: List[Tuple[int, int]] | None = None,
+        psnr: Tuple[int, ...] | None = None,
+        shape: Tuple[int, int, ...] | None = None,
+        sop: bool = False,
+        subsam: Tuple[int, int] | None = None,
+        tilesize: Tuple[int, int] | None =None,
+        tlm: bool = False,
+        verbose: bool = False,
     ):
         """Construct a Jp2k object.
 
+        If you are reading a JP2/J2K file, you only need to supply the filename
+        argument.
+
         Parameters
         ----------
-        filename : str
+        filename : str or path
             The path to JPEG 2000 file.
-        path : pathlib.Path
-            The path to JPEG 2000 file.
-        image_data : ndarray, optional
+        data : np.ndarray, optional
             Image data to be written to file.
-        shape : tuple, optional
+        shape : Tuple[int, int, ...], optional
             Size of image data, only required when image_data is not provided.
-        capture_resolution : tuple, optional
+        capture_resolution : Tuple[int, int], optional
             Capture solution (VRES, HRES).  This appends a capture resolution
             box onto the end of the JP2 file when it is created.
-        cbsize : tuple, optional
+        cbsize : Tuple[int, int], optional
             Code block size (NROWS, NCOLS)
         cinema2k : int, optional
             Frames per second, either 24 or 48.
         cinema4k : bool, optional
             Set to True to specify Cinema4K mode, defaults to false.
-        colorspace : {'rgb', 'gray'}
-            The image color space.
-        cratios : iterable, optional
+        colorspace : {'rgb', 'gray'}, optional
+            The image color space.  If not supplied, it will be inferred.
+        cratios : Tuple[int, ...], optional
             Compression ratios for successive layers.
-        display_resolution : tuple, optional
+        display_resolution : Tuple[int, int], optional
             Display solution (VRES, HRES).  This appends a display resolution
             box onto the end of the JP2 file when it is created.
         eph : bool, optional
             If true, write EPH marker after each header packet.
-        grid_offset : tuple, optional
+        grid_offset : Tuple[int, int], optional
             Offset (DY, DX) of the origin of the image in the reference grid.
         irreversible : bool, optional
             If true, use the irreversible DWT 9-7 transform.
@@ -145,21 +167,25 @@ class Jp2k(Jp2kBox):
                 16 = ERTERM(SEGTERM)
                 32 = SEGMARK(SEGSYM)
         numres : int, optional
-            Number of resolutions.
+            Number of resolutions, defaults to 6.  This number will be equal to
+            the number of thumbnails plus the original image.
         plt : bool, optional
             Generate PLT markers.
-        prog : {"LRCP" "RLCP", "RPCL", "PCRL", "CPRL"}
-            Progression order.
-        psnr : iterable, optional
-            Different PSNR for successive layers.
-        psizes : list, optional
-            List of precinct sizes, each precinct size tuple is defined in
-            (height x width).
+        prog : {'LRCP', 'RLCP', 'RPCL', 'PCRL', 'CPRL'}, optional
+            Progression order.  If not specified, the chosen progression order
+            will be 'CPRL' if either cinema2k or cinema4k is specified,
+            otherwise defaulting to 'LRCP'.
+        psizes : List[Tuple[int, int]], optional
+            Precinct sizes, each precinct size tuple is defined as
+            (height, width).
+        psnr : Tuple[int, ...] or None
+            Different PSNR for successive layers.  If the last layer is desired
+            to be lossless, specify 0 for the last value.
         sop : bool, optional
             If true, write SOP marker before each packet.
-        subsam : tuple, optional
+        subsam : Tuple[int, int], optional
             Subsampling factors (dy, dx).
-        tilesize : tuple, optional
+        tilesize : Tuple[int, int], optional
             Tile size in terms of (numrows, numcols), not (X, Y).
         tlm : bool, optional
             Generate TLM markers.
@@ -317,13 +343,11 @@ class Jp2k(Jp2kBox):
         non_cinema_args = (
             self._mct, self._cratios, self._psnr, self._irreversible,
             self._cbsize, self._eph, self._grid_offset, self._modesw,
-            self._numres, self._prog, self._psizes, self._sop, self._subsam
+            self._prog, self._psizes, self._sop, self._subsam
         )
         if (
-            (
-                self._cinema2k is not None or self._cinema4k is not None
-            )
-            and (not all([arg is None for arg in non_cinema_args]))
+            (self._cinema2k or self._cinema4k)
+            and not all([arg is None or not arg for arg in non_cinema_args])
         ):
             msg = (
                 "Cannot specify cinema2k/cinema4k along with any other "
@@ -782,11 +806,12 @@ class Jp2k(Jp2kBox):
 
         cparams.irreversible = 1 if self._irreversible else 0
 
-        if self._cinema2k is not None:
+        if self._cinema2k:
+            # cinema2k is an integer, so this test is "truthy"
             self._cparams = cparams
             self._set_cinema_params('cinema2k', self._cinema2k)
 
-        if self._cinema4k is not None:
+        if self._cinema4k:
             self._cparams = cparams
             self._set_cinema_params('cinema4k', self._cinema4k)
 
@@ -808,13 +833,13 @@ class Jp2k(Jp2kBox):
             cparams.image_offset_y0 = self._grid_offset[0]
 
         if self._modesw is not None:
+            # The None check is for backwards compatibility.
             for shift in range(6):
                 power_of_two = 1 << shift
                 if self._modesw & power_of_two:
                     cparams.mode |= power_of_two
 
-        if self._numres is not None:
-            cparams.numresolution = self._numres
+        cparams.numresolution = self._numres
 
         if self._prog is not None:
             cparams.prog_order = core.PROGRESSION_ORDER[self._prog.upper()]

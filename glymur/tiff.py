@@ -1,8 +1,11 @@
 # standard library imports
+from __future__ import annotations
 import io
 import logging
+import pathlib
 import shutil
 import struct
+from typing import List, Tuple
 import warnings
 
 # 3rd party library imports
@@ -33,11 +36,11 @@ class Tiff2Jp2k(object):
     ----------
     found_geotiff_tags : bool
         If true, then this TIFF must be a GEOTIFF
-    tiff_filename : path or str
+    tiff_filename : path
         Path to TIFF file.
     jp2 : JP2K object
         Write to this JPEG2000 file
-    jp2_filename : path or str
+    jp2_filename : path
         Path to JPEG 2000 file to be written.
     jp2_kwargs : dict
         Keyword arguments to pass along to the Jp2k constructor.
@@ -52,10 +55,15 @@ class Tiff2Jp2k(object):
     """
 
     def __init__(
-        self, tiff_filename, jp2_filename,
-        create_exif_uuid=True, create_xmp_uuid=True,
-        exclude_tags=None, tilesize=None,
-        verbosity=logging.CRITICAL, include_icc_profile=False,
+        self,
+        tiff_filename: pathlib.Path,
+        jp2_filename: pathlib.Path,
+        create_exif_uuid: bool = True,
+        create_xmp_uuid: bool = True,
+        exclude_tags: List[int | str] | None = None,
+        tilesize: Tuple[int, int] | None =None,
+        include_icc_profile: bool = False,
+        verbosity: int = logging.CRITICAL,
         **kwargs
     ):
         """

@@ -1232,6 +1232,27 @@ class TestJp2k_write(fixtures.MetadataBase):
             with self.assertRaises(RuntimeError):
                 j.wrap(tfile.name, boxes=boxes)
 
+    def test_numres(self):
+        """
+        Scenario:  Specify numres parameter as 6.
+
+        Expected Result:  The numres parameter will be one less.  That's ok
+        because the resolutions are stored [0 .. numres-1].  That last image
+        will be 1/32nd of the width/height as the original image.
+        """
+        expected_numres = 6
+        j = glymur.Jp2k(
+            self.temp_jp2_filename, data=self.jp2_data, numres=expected_numres
+        )
+
+        c = j.get_codestream()
+        actual = c.segment[2].num_res
+        self.assertEqual(actual, expected_numres - 1)
+
+        # retrieve that last thumbnail
+        d = j[::32, ::32]
+        self.assertEqual(d.shape, (46, 81, 3))
+
     def test_null_data(self):
         """
         SCENARIO:  An image with a dimension with length 0 is provided.
@@ -1464,7 +1485,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         """
         data = self.jp2_data
         # Should be written with 3 layers.
-        j = Jp2k(self.temp_j2k_filename, data=data, cratios=[200, 100, 50])
+        j = Jp2k(self.temp_j2k_filename, data=data, cratios=(200, 100, 50))
         c = j.get_codestream()
 
         # COD: Coding style default
@@ -1530,7 +1551,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             self.temp_j2k_filename,
             data=self.jp2_data,
             psizes=[(128, 128)] * 3,
-            cratios=[100, 20, 2],
+            cratios=(100, 20, 2),
             tilesize=(480, 640),
             cbsize=(32, 32)
         )
@@ -1688,6 +1709,55 @@ class TestJp2k_write(fixtures.MetadataBase):
                  if x.marker_id == 'SOP']
         self.assertEqual(nsops, list(range(18)))
 
+    def test_eph(self):
+        """
+        Scenario:  eph is True
+
+        Expected Result:  EPH markers expected in the codestream
+        """
+        j = Jp2k(self.temp_j2k_filename, data=self.jp2_data, eph=True)
+
+        codestream = j.get_codestream(header_only=False)
+
+        self.assertTrue(codestream.segment[2].scod & 4)  # eph
+
+        # 18 EPH segments.
+        ephs = [x for x in codestream.segment if x.marker_id == 'EPH']
+        self.assertEqual(len(ephs), 18)
+
+    def test_no_eph(self):
+        """
+        Scenario:  eph is False
+
+        Expected Result:  No EPH markers expected in the codestream
+        """
+        j = Jp2k(self.temp_j2k_filename, data=self.jp2_data, eph=False)
+
+        codestream = j.get_codestream(header_only=False)
+
+        self.assertFalse(codestream.segment[2].scod & 4)  # eph
+
+        # No EPH segments.
+        ephs = [x for x in codestream.segment if x.marker_id == 'EPH']
+        self.assertEqual(len(ephs), 0)
+
+    def test_eph_is_none(self):
+        """
+        Scenario:  eph is None.  This is a test for backwards compatibility,
+        as eph is documented as a bool-only parameter as of version > 0.2.12.
+
+        Expected Result:  No EPH markers expected in the codestream
+        """
+        j = Jp2k(self.temp_j2k_filename, data=self.jp2_data, eph=None)
+
+        codestream = j.get_codestream(header_only=False)
+
+        self.assertFalse(codestream.segment[2].scod & 4)  # eph
+
+        # No EPH segments.
+        ephs = [x for x in codestream.segment if x.marker_id == 'EPH']
+        self.assertEqual(len(ephs), 0)
+
     def test_NR_ENC_Bretagne2_ppm_7_encode(self):
         """
         Original file tested was
@@ -1696,8 +1766,7 @@ class TestJp2k_write(fixtures.MetadataBase):
 
         """
         j = Jp2k(
-            self.temp_j2k_filename,
-            data=self.jp2_data, modesw=38, eph=True
+            self.temp_j2k_filename, data=self.jp2_data, modesw=38, eph=True
         )
 
         codestream = j.get_codestream(header_only=False)
@@ -1724,6 +1793,41 @@ class TestJp2k_write(fixtures.MetadataBase):
         ephs = [x for x in codestream.segment if x.marker_id == 'EPH']
         self.assertEqual(len(ephs), 18)
 
+    def test_modeswitch_specified(self):
+        """
+        Scenario:  specify a modeswitch of 38 (RESTART + RESET + SEGMARK)
+
+        Expected Result:  
+        """
+        j = Jp2k(self.temp_j2k_filename, data=self.jp2_data, modesw=38)
+
+        codestream = j.get_codestream(header_only=False)
+
+        self.assertEqual(codestream.segment[2].code_block_size, (64, 64))
+        self.assertEqual(codestream.segment[2].cstyle, 38)
+
+    def test_modeswitch_default(self):
+        """
+        Scenario:  specify a modeswitch of 0 (default)
+
+        Expected Result:  0
+        """
+        j = Jp2k(self.temp_j2k_filename, data=self.jp2_data, modesw=0)
+
+        codestream = j.get_codestream(header_only=False)
+        self.assertEqual(codestream.segment[2].cstyle, 0)
+
+    def test_modeswitch_none(self):
+        """
+        Scenario:  none was the old default for modeswitch
+
+        Expected Result:  0
+        """
+        j = Jp2k(self.temp_j2k_filename, data=self.jp2_data, modesw=None)
+
+        codestream = j.get_codestream(header_only=False)
+        self.assertEqual(codestream.segment[2].cstyle, 0)
+
     def test_NR_ENC_Bretagne2_ppm_8_encode(self):
         """
         Original file tested was
@@ -1731,7 +1835,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             input/nonregression/Bretagne2.ppm
         """
         j = Jp2k(self.temp_j2k_filename,
-                 data=self.jp2_data, grid_offset=[300, 150], cratios=[800])
+                 data=self.jp2_data, grid_offset=[300, 150], cratios=(800,))
 
         codestream = j.get_codestream(header_only=False)
 
@@ -1764,7 +1868,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             input/nonregression/Cevennes1.bmp
 
         """
-        j = Jp2k(self.temp_j2k_filename, data=self.jp2_data, cratios=[800])
+        j = Jp2k(self.temp_j2k_filename, data=self.jp2_data, cratios=(800,))
 
         codestream = j.get_codestream(header_only=False)
 
@@ -1793,7 +1897,7 @@ class TestJp2k_write(fixtures.MetadataBase):
             input/nonregression/Cevennes2.ppm
 
         """
-        j = Jp2k(self.temp_j2k_filename, data=self.jp2_data, cratios=[50])
+        j = Jp2k(self.temp_j2k_filename, data=self.jp2_data, cratios=(50,))
 
         codestream = j.get_codestream(header_only=False)
 
@@ -1963,7 +2067,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         with open(self.temp_j2k_filename, mode='wb') as tfile:
             with self.assertRaises(RuntimeError):
                 Jp2k(tfile.name, data=data,
-                     cinema2k=48, cratios=[200, 100, 50])
+                     cinema2k=48, cratios=(200, 100, 50))
 
     def test_cinema4K_with_others(self):
         """
@@ -1975,7 +2079,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         with open(self.temp_j2k_filename, mode='wb') as tfile:
             with self.assertRaises(RuntimeError):
                 Jp2k(tfile.name, data=data,
-                     cinema4k=True, cratios=[200, 100, 50])
+                     cinema4k=True, cratios=(200, 100, 50))
 
     def test_cblk_size_precinct_size(self):
         """
@@ -2027,7 +2131,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         with open(self.temp_j2k_filename, mode='wb') as tfile:
             with self.assertRaises(RuntimeError):
                 Jp2k(tfile.name, data=self.j2k_data, psnr=[30, 35, 40],
-                     cratios=[2, 3, 4])
+                     cratios=(2, 3, 4))
 
     def test_irreversible(self):
         """
@@ -2150,6 +2254,20 @@ class TestJp2k_write(fixtures.MetadataBase):
         j = Jp2k(self.temp_jp2_filename,
                  data=np.zeros((128, 128, 3), dtype=np.uint8),
                  colorspace='rgb')
+        self.assertEqual(j.box[2].box[1].colorspace, glymur.core.SRGB)
+
+    def test_colorspace_is_explicitly_none_but_3D_image(self):
+        """
+        Scenario:  specify None for the colorspace, but give a 3D image data
+        as input
+
+        Expected result:  the colorspace is SRGB
+        """
+        j = Jp2k(
+            self.temp_jp2_filename,
+            data=np.zeros((128, 128, 3), dtype=np.uint8),
+            colorspace=None
+        )
         self.assertEqual(j.box[2].box[1].colorspace, glymur.core.SRGB)
 
     def test_specify_gray(self):

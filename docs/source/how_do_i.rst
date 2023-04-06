@@ -10,30 +10,37 @@ Jp2k implements slicing via the :py:meth:`__getitem__` method and
 hooks it into the multiple resolution property of JPEG 2000 imagery.
 This allows you to retrieve multiresolution imagery via
 array-style slicing, i.e. strides.  For example, here's how
-to retrieve a full resolution and first lower-resolution image. ::
+to retrieve a full resolution, first lower-resolution image, and
+second lower-resolution image.  It's always powers of two. ::
 
     >>> import glymur
-    >>> jp2file = glymur.data.nemo() # just a path to a JPEG 2000 file
-    >>> jp2 = glymur.Jp2k(jp2file)
-    >>> fullres = jp2[:]
+    >>> j2kfile = glymur.data.goodstuff() # just a path to a raw JPEG 2000 codestream
+    >>> j2k = glymur.Jp2k(j2kfile)
+    >>> fullres = j2k[:]
     >>> fullres.shape
-    (1456, 2592, 3)
-    >>> thumbnail = jp2[::2, ::2]
+    (800, 480, 3)
+    >>> thumbnail = j2k[::2, ::2]
     >>> thumbnail.shape
-    (728, 1296, 3)
+    (400, 240, 3)
+    >>> thumbnail2 = j2k[::4, ::4]
+    >>> thumbnail.shape
+    (200, 120, 3)
 
 Large JPEG 2000 images may have a large number of decomposition levels.  With
 version 0.12.0 of glymur, there exists a shortcut for retrieving
 the lowest resolution thumbnail without having to inspect the JPEG 2000
-codestream in order to specify the highest decomposition level. ::
+codestream. ::
 
     >>> import glymur
-    >>> j2kfile = glymur.data.goodstuff() # just a path to a raw JPEG 2000 codestream
+    >>> j2kfile = glymur.data.goodstuff()
     >>> j2k = glymur.Jp2k(jp2file)
     >>> j2k.shape
     (800, 480, 3)
-    >>> thumbnail = j2k[::-1, ::-1]
-    >>> thumbnail.shape # this is ridiculously small
+    >>> thumbnail = j2k[::-1, ::-1] # get the last thumbnail
+    >>> thumbnail.shape
+    (25, 15, 3)
+    >>> thumbnail = j2k[::32, ::32] # last thumbnail was the 5th, 2 ** 5 = 32
+    >>> thumbnail.shape
     (25, 15, 3)
 
 ****************************
