@@ -96,7 +96,8 @@ class Jp2k(Jp2kBox):
         display_resolution=None, eph=None, grid_offset=None,
         irreversible=None, mct=None, modesw=None, numres=None,
         plt: bool = False,
-        prog=None, psizes=None, psnr=None, sop=None,
+        prog=None, psizes=None, psnr=None,
+        sop: bool = False,
         subsam=None,
         tlm: bool = False,
     ):
@@ -325,7 +326,7 @@ class Jp2k(Jp2kBox):
             (
                 self._cinema2k is not None or self._cinema4k is not None
             )
-            and (not all([arg is None for arg in non_cinema_args]))
+            and not all([arg is None or not arg for arg in non_cinema_args])
         ):
             msg = (
                 "Cannot specify cinema2k/cinema4k along with any other "
