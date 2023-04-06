@@ -1738,15 +1738,18 @@ class Jp2k(Jp2kBox):
             addr = ctypes.addressof(component.data.contents)
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore")
-                nelts = nrows[k] * ncols[k]
-                band = np.ctypeslib.as_array(
-                    (ctypes.c_int32 * nelts).from_address(addr))
+
+                band_i32 = np.ctypeslib.as_array(
+                    (ctypes.c_int32 * nrows[k] * ncols[k]).from_address(addr)
+                )
+                band = np.reshape(
+                    band_i32.astype(dtypes[k]), (nrows[k], ncols[k])
+                )
+
                 if is_cube:
-                    image[:, :, k] = np.reshape(band.astype(dtypes[k]),
-                                                (nrows[k], ncols[k]))
+                    image[:, :, k] = band
                 else:
-                    image.append(np.reshape(band.astype(dtypes[k]),
-                                 (nrows[k], ncols[k])))
+                    image.append(band)
 
         if is_cube and image.shape[2] == 1:
             # The third dimension has just a single layer.  Make the image
