@@ -111,8 +111,7 @@ class WriteCinema(CinemaBase):
         j = Jp2k(self.temp_j2k_filename, data=self.jp2_data, cinema2k=None)
 
         codestream = j.get_codestream()
-        with self.assertRaises(AssertionError):
-            self.check_cinema2k_codestream(codestream, (2048, 1080))
+        self.assertNotEqual(codestream.segment[1].rsiz, glymur.core.CINEMA2K)
 
     def test_NR_ENC_X_6_2K_24_FULL_CBR_CIRCLE_000_tif_20_encode(self):
         """
