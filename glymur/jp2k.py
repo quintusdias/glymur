@@ -91,8 +91,10 @@ class Jp2k(Jp2kBox):
 
     def __init__(
         self, filename, data=None, shape=None, tilesize=None, verbose=False,
-        capture_resolution=None, cbsize=None, cinema2k=None,
-        cinema4k=None, colorspace=None, cratios=None,
+        capture_resolution=None, cbsize=None,
+        cinema2k: int = 0,
+        cinema4k: bool = False,
+        colorspace=None, cratios=None,
         display_resolution=None, eph=None, grid_offset=None,
         irreversible: bool = False,
         mct=None, modesw=None, numres=None,
@@ -324,9 +326,7 @@ class Jp2k(Jp2kBox):
             self._numres, self._prog, self._psizes, self._sop, self._subsam
         )
         if (
-            (
-                self._cinema2k is not None or self._cinema4k is not None
-            )
+            (self._cinema2k or self._cinema4k)
             and not all([arg is None or not arg for arg in non_cinema_args])
         ):
             msg = (
@@ -786,11 +786,12 @@ class Jp2k(Jp2kBox):
 
         cparams.irreversible = 1 if self._irreversible else 0
 
-        if self._cinema2k is not None:
+        if self._cinema2k:
+            # cinema2k is an integer, so this test is "truthy"
             self._cparams = cparams
             self._set_cinema_params('cinema2k', self._cinema2k)
 
-        if self._cinema4k is not None:
+        if self._cinema4k:
             self._cparams = cparams
             self._set_cinema_params('cinema4k', self._cinema4k)
 
