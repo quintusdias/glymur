@@ -95,8 +95,10 @@ class Jp2k(Jp2kBox):
         cinema4k=None, colorspace=None, cratios=None,
         display_resolution=None, eph=None, grid_offset=None,
         irreversible=None, mct=None, modesw=None, numres=None,
-        plt=False, prog=None, psizes=None, psnr=None, sop=None,
-        subsam=None, tlm=False,
+        plt: bool = False,
+        prog=None, psizes=None, psnr=None, sop=None,
+        subsam=None,
+        tlm: bool = False,
     ):
         """Construct a Jp2k object.
 
