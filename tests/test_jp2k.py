@@ -1623,6 +1623,52 @@ class TestJp2k_write(fixtures.MetadataBase):
         self.assertEqual(codestream.segment[2].precinct_size,
                          ((32768, 32768)))
 
+    def test_eph_explicitly_none(self):
+        """
+        Scenario:   Specify eph=None.  This is for backwards compatibility, as
+        the default value changed from None to False in v0.12.3.
+
+        Expected Result:  There are NO EPH packets in the codestream.
+        """
+        j = Jp2k(self.temp_j2k_filename, data=self.jp2_data, eph=None)
+
+        codestream = j.get_codestream(header_only=False)
+
+        self.assertFalse(codestream.segment[2].scod & 4)  # no eph
+
+        lst = [seg for seg in codestream.segment if seg.marker_id == 'EPH']
+        self.assertEqual(len(lst), 0)
+
+    def test_eph_explicitly_false(self):
+        """
+        Scenario:   Specify eph=False
+
+        Expected Result:  There are NO EPH packets in the codestream.
+        """
+        j = Jp2k(self.temp_j2k_filename, data=self.jp2_data, eph=False)
+
+        codestream = j.get_codestream(header_only=False)
+
+        self.assertFalse(codestream.segment[2].scod & 4)  # no eph
+
+        lst = [seg for seg in codestream.segment if seg.marker_id == 'EPH']
+        self.assertEqual(len(lst), 0)
+
+    def test_eph_explicitly_true(self):
+        """
+        Scenario:   Specify eph=True
+
+        Expected Result:  EPH packets are detected in the codestream.
+        """
+        j = Jp2k(self.temp_j2k_filename, data=self.jp2_data, eph=True)
+
+        codestream = j.get_codestream(header_only=False)
+
+        self.assertTrue(codestream.segment[2].scod & 4)  # no eph
+
+        lst = [seg for seg in codestream.segment if seg.marker_id == 'EPH']
+        self.assertEqual(len(lst), 18)
+
     def test_sop_explicitly_true(self):
         """
         Scenario:   Specify sop=True
