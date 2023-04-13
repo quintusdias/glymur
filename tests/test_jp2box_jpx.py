@@ -27,7 +27,7 @@ class TestJPXWrap(fixtures.TestCommon):
     """Test suite for wrapping JPX files."""
 
     def setUp(self):
-        super(TestJPXWrap, self).setUp()
+        super().setUp()
 
         raw_xml = b"""<?xml version="1.0"?>
         <data>

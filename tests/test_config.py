@@ -48,7 +48,7 @@ class TestSuitePathToLibrary(fixtures.TestCommon):
     """
 
     def setUp(self):
-        super(TestSuitePathToLibrary, self).setUp()
+        super().setUp()
 
     def tearDown(self):
         """
@@ -56,7 +56,7 @@ class TestSuitePathToLibrary(fixtures.TestCommon):
         library normally.  Otherwise a bad library configuration might
         contaminate the next test.
         """
-        super(TestSuitePathToLibrary, self).tearDown()
+        super().tearDown()
 
         importlib.reload(glymur)
         importlib.reload(glymur.lib.openjp2)
@@ -186,7 +186,7 @@ class TestSuiteConfigFile(fixtures.TestCommon):
     """Test suite for configuration file operation."""
 
     def setUp(self):
-        super(TestSuiteConfigFile, self).setUp()
+        super().setUp()
 
         # Setup a config root for glymur.
         self.config_root = self.test_dir_path / 'config'
@@ -203,7 +203,7 @@ class TestSuiteConfigFile(fixtures.TestCommon):
         library normally.  Otherwise a bad library configuration might
         contaminate the next test.
         """
-        super(TestSuiteConfigFile, self).tearDown()
+        super().tearDown()
 
         importlib.reload(glymur)
         importlib.reload(glymur.lib.openjp2)

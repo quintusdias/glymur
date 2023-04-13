@@ -29,7 +29,7 @@ class TestColourSpecificationBox(fixtures.TestCommon):
     """Test suite for colr box instantiation."""
 
     def setUp(self):
-        super(TestColourSpecificationBox, self).setUp()
+        super().setUp()
 
         j2k = Jp2k(self.j2kfile)
         codestream = j2k.get_codestream()

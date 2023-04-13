@@ -143,7 +143,7 @@ class TestChannelDefinition(fixtures.TestCommon):
         shutil.rmtree(cls.planes_dir)
 
     def setUp(self):
-        super(TestChannelDefinition, self).setUp()
+        super().setUp()
 
         j2k = Jp2k(self.j2kfile)
         codestream = j2k.get_codestream()

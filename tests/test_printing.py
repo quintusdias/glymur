@@ -31,13 +31,13 @@ class TestPrinting(fixtures.TestCommon):
     Tests for verifying how printing works.
     """
     def setUp(self):
-        super(TestPrinting, self).setUp()
+        super().setUp()
 
         # Reset printoptions for every test.
         glymur.reset_option('all')
 
     def tearDown(self):
-        super(TestPrinting, self).tearDown()
+        super().tearDown()
         glymur.reset_option('all')
 
     def test_empty_file(self):

@@ -27,7 +27,7 @@ class TestXML(fixtures.TestCommon):
     """Test suite for XML boxes."""
 
     def setUp(self):
-        super(TestXML, self).setUp()
+        super().setUp()
 
         raw_xml = b"""<?xml version="1.0"?>
         <data>

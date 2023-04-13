@@ -384,7 +384,7 @@ class TestSuiteHiRISE(fixtures.TestCommon):
     """Tests for HiRISE RDRs."""
 
     def setUp(self):
-        super(TestSuiteHiRISE, self).setUp()
+        super().setUp()
 
         # Hand-create the boxes needed for HiRISE.
         the_uuid = uuid.UUID('2b0d7e97-aa2e-317d-9a33-e53161a2f7d0')

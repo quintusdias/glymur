@@ -24,13 +24,13 @@ from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 class TestSuite(fixtures.TestCommon):
 
     def setUp(self):
-        super(TestSuite, self).setUp()
+        super().setUp()
 
         # Reset printoptions for every test.
         glymur.reset_option('all')
 
     def tearDown(self):
-        super(TestSuite, self).tearDown()
+        super().tearDown()
 
         warnings.resetwarnings()
         glymur.reset_option('all')
