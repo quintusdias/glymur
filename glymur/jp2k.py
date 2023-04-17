@@ -1084,16 +1084,17 @@ class Jp2k(Jp2kBox):
             opj2.end_compress(codec, strm)
 
     def append(self, box):
-        """Append a JP2 box to the file in-place.
+        """Append a metadata box to the JP2 file.  This will not result in a
+        file-copy operation.  Only XML or UUID (XMP) boxes can be appended at
+        this time.
 
         Parameters
         ----------
         box : Jp2Box
-            Instance of a JP2 box.  Only UUID and XML boxes can currently be
-            appended.
+            Instance of a JP2 box.
         """
         if self._codec_format == opj2.CODEC_J2K:
-            msg = "Only JP2 files can currently have boxes appended to them."
+            msg = "You cannot append to a J2K file (raw codestream)."
             raise RuntimeError(msg)
 
         box_is_xml = box.box_id == 'xml '
