@@ -13,13 +13,6 @@ environment:
   matrix:
 
     - CONDA_ROOT: "C:\\Miniconda3_64"
-      PYTHON_VERSION: "3.8"
-      PYTHON_ARCH: "64"
-      CONDA_PY: "38"
-      CONDA_NPY: "21"
-      USE_PATH_FOR_GDAL_PYTHON: "YES"
-
-    - CONDA_ROOT: "C:\\Miniconda3_64"
       PYTHON_VERSION: "3.9"
       PYTHON_ARCH: "64"
       CONDA_PY: "39"
@@ -29,14 +22,14 @@ environment:
     - CONDA_ROOT: "C:\\Miniconda3_64"
       PYTHON_VERSION: "3.10"
       PYTHON_ARCH: "64"
-      CONDA_PY: "310-no-opj"
+      CONDA_PY: "310"
       CONDA_NPY: "21"
       USE_PATH_FOR_GDAL_PYTHON: "YES"
 
     - CONDA_ROOT: "C:\\Miniconda3_64"
-      PYTHON_VERSION: "3.10"
+      PYTHON_VERSION: "3.11"
       PYTHON_ARCH: "64"
-      CONDA_PY: "310"
+      CONDA_PY: "311-no-opj"
       CONDA_NPY: "21"
       USE_PATH_FOR_GDAL_PYTHON: "YES"
 
@@ -82,7 +75,7 @@ install:
   - cmd: conda info -a
 
   # create our env
-  - SET REQ=ci\travis-%CONDA_PY%.yaml
+  - SET REQ=ci\cforge-travis-%CONDA_PY%.yaml
   - cmd: echo "installing requirements from %REQ%"
   - cmd: conda env create --file=%REQ%
   - cmd: conda list -n glymur

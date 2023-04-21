@@ -1,12 +1,12 @@
 name: glymur
 channels:
-    - defaults
+    - conda-forge
 dependencies:
     - python=3.10.*
     - gdal
+    - libtiff
     - lxml
     - numpy
-    - pip
+    - openjpeg
     - pytest-xdist
     - scikit-image
-    - libtiff
