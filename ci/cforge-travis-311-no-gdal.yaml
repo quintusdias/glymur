@@ -1,0 +1,11 @@
+name: glymur
+channels:
+    - conda-forge
+dependencies:
+    - python=3.11.*
+    - libtiff
+    - lxml
+    - numpy
+    - openjpeg
+    - pytest-xdist
+    - scikit-image
