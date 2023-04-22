@@ -361,19 +361,15 @@ class Jp2k(Jp2kBox):
                 raise InvalidJp2kError(msg)
 
             if 0 in self._psnr and self._psnr[-1] != 0:
-                msg = ("If a zero value is supplied in the PSNR keyword "
-                       "argument, it must be in the final position.")
+                msg = (
+                    "If a zero value is supplied in the PSNR keyword "
+                    "argument, it must be in the final position."
+                )
                 raise InvalidJp2kError(msg)
 
             if (
-                (
-                    0 in self._psnr
-                    and np.any(np.diff(self._psnr[:-1]) < 0)
-                )
-                or (
-                    0 not in self._psnr
-                    and np.any(np.diff(self._psnr) < 0)
-                )
+                0 in self._psnr and np.any(np.diff(self._psnr[:-1]) < 0)
+                or 0 not in self._psnr and np.any(np.diff(self._psnr) < 0)
             ):
                 msg = (
                     "PSNR values must be increasing, with one exception - "
@@ -382,10 +378,7 @@ class Jp2k(Jp2kBox):
                 )
                 raise InvalidJp2kError(msg)
 
-        if (
-            self._codec_format == opj2.CODEC_J2K
-            and self._colorspace is not None
-        ):
+        if self._codec_format == opj2.CODEC_J2K and self._colorspace is not None:  # noqa : E501
             msg = 'Do not specify a colorspace when writing a raw codestream.'
             raise InvalidJp2kError(msg)
 
@@ -700,8 +693,9 @@ class Jp2k(Jp2kBox):
         # A jp2-branded file cannot contain an "any ICC profile
         colrs = [box for box in jp2h.box if box.box_id == 'colr']
         for colr in colrs:
-            if colr.method not in (core.ENUMERATED_COLORSPACE,
-                                   core.RESTRICTED_ICC_PROFILE):
+            if colr.method not in (
+                core.ENUMERATED_COLORSPACE, core.RESTRICTED_ICC_PROFILE
+            ):
                 msg = (
                     "Color Specification box method must specify either an "
                     "enumerated colorspace or a restricted ICC profile if the "
@@ -876,7 +870,6 @@ class Jp2k(Jp2kBox):
 
             # the MCT was requested, but the colorspace is gray
             # i.e. 1 component.  NOT ON MY WATCH!
-
             msg = (
                 "You cannot specify usage of the multi component transform "
                 "if the colorspace is gray."
@@ -885,7 +878,7 @@ class Jp2k(Jp2kBox):
 
         else:
 
-            # The MCT was explicitly not specified
+            # The MCT was either not specified
             # or it was specified AND the colorspace is going to be RGB.
             # In either case, we can use the MCT as requested.
             cparams.tcp_mct = 1 if self._mct else 0
@@ -1452,30 +1445,6 @@ class Jp2k(Jp2kBox):
         # Ok, 3 arguments in pargs.
         return data[:, :, bands]
 
-    def _read(self, **kwargs):
-        """Read a JPEG 2000 image.
-
-        Returns
-        -------
-        ndarray
-            The image data.
-
-        Raises
-        ------
-        RuntimeError
-            if the proper version of the OpenJPEG library is not available
-        """
-        if re.match("0|1|2.[012]", version.openjpeg_version):
-            msg = (
-                f"You must have a version of OpenJPEG at least as high as "
-                f"2.3.0 before you can read JPEG2000 images with glymur.  "
-                f"Your version is {version.openjpeg_version}"
-            )
-            raise RuntimeError(msg)
-
-        img = self._read_openjp2(**kwargs)
-        return img
-
     def read(self, **kwargs):
         """Read a JPEG 2000 image.
 
@@ -1516,8 +1485,7 @@ class Jp2k(Jp2kBox):
             )
             raise RuntimeError(msg)
 
-    def _read_openjp2(self, rlevel=0, layer=None, area=None, tile=None,
-                      verbose=False):
+    def _read(self, rlevel=0, layer=None, area=None, tile=None, verbose=False):
         """Read a JPEG 2000 image using libopenjp2.
 
         Parameters
@@ -1545,12 +1513,20 @@ class Jp2k(Jp2kBox):
         RuntimeError
             If the image has differing subsample factors.
         """
+        if re.match("0|1|2.[012]", version.openjpeg_version):
+            msg = (
+                f"You must have a version of OpenJPEG at least as high as "
+                f"2.3.0 before you can read JPEG2000 images with glymur.  "
+                f"Your version is {version.openjpeg_version}"
+            )
+            raise RuntimeError(msg)
+
         self._subsampling_sanity_check()
         self._populate_dparams(rlevel, tile=tile, area=area)
-        image = self._read_openjp2_common()
+        image = self._read_openjp2()
         return image
 
-    def _read_openjp2_common(self):
+    def _read_openjp2(self):
         """Read a JPEG 2000 image using libopenjp2.
 
         Returns
@@ -1718,7 +1694,7 @@ class Jp2k(Jp2kBox):
         self.ignore_pclr_cmap_cdef = ignore_pclr_cmap_cdef
         self.layer = layer
         self._populate_dparams(rlevel, tile=tile, area=area)
-        lst = self._read_openjp2_common()
+        lst = self._read_openjp2()
         return lst
 
     def _extract_image(self, raw_image):
