@@ -1797,7 +1797,7 @@ class TestJp2k_write(fixtures.MetadataBase):
         """
         Scenario:  specify a modeswitch of 38 (RESTART + RESET + SEGMARK)
 
-        Expected Result:  
+        Expected Result: cstyle of 38 is verified.
         """
         j = Jp2k(self.temp_j2k_filename, data=self.jp2_data, modesw=38)
 

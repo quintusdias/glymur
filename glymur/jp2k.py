@@ -115,7 +115,7 @@ class Jp2k(Jp2kBox):
         shape: Tuple[int, int, ...] | None = None,
         sop: bool = False,
         subsam: Tuple[int, int] | None = None,
-        tilesize: Tuple[int, int] | None =None,
+        tilesize: Tuple[int, int] | None = None,
         tlm: bool = False,
         verbose: bool = False,
     ):

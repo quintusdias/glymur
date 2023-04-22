@@ -3,6 +3,13 @@ Changes in glymur 0.12
 ######################
 
 *****************
+Changes in 0.12.3
+*****************
+    * Add support for type hints.  Some keyword options have their default
+      arguments set to False instead of None.
+    * Drop support for Python 3.8.
+
+*****************
 Changes in 0.12.2
 *****************
     * Fix error condition when MCT specified as false for grayscale image.

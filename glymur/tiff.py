@@ -61,7 +61,7 @@ class Tiff2Jp2k(object):
         create_exif_uuid: bool = True,
         create_xmp_uuid: bool = True,
         exclude_tags: List[int | str] | None = None,
-        tilesize: Tuple[int, int] | None =None,
+        tilesize: Tuple[int, int] | None = None,
         include_icc_profile: bool = False,
         verbosity: int = logging.CRITICAL,
         **kwargs

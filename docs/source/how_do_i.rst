@@ -26,33 +26,18 @@ second lower-resolution image.  It's always powers of two. ::
     >>> thumbnail.shape
     (200, 120, 3)
 
-Large JPEG 2000 images may have a large number of decomposition levels.  With
-version 0.12.0 of glymur, there exists a shortcut for retrieving
-the lowest resolution thumbnail without having to inspect the JPEG 2000
-codestream. ::
-
-    >>> import glymur
-    >>> j2kfile = glymur.data.goodstuff()
-    >>> j2k = glymur.Jp2k(jp2file)
-    >>> j2k.shape
-    (800, 480, 3)
-    >>> thumbnail = j2k[::-1, ::-1] # get the last thumbnail
-    >>> thumbnail.shape
-    (25, 15, 3)
-    >>> thumbnail = j2k[::32, ::32] # last thumbnail was the 5th, 2 ** 5 = 32
-    >>> thumbnail.shape
-    (25, 15, 3)
-
 ****************************
 ... read really large images
 ****************************
-JPEG 2000 images can be much larger than what can fit into your computer's memory.  
-While you can use strides that align with the JPEG 2000 decomposition levels to
-retrieve lower resolution images, retrieving the lowest resolution image would seem
-to require that you know just how many decomposition levels are available.  While you
-can get that information from the COD segment in the codestream, glymur provides you
-with a shortcut.  Normally the stride must be a power of 2, but you can provide -1
-instead to get the smallest thumbnail.::
+JPEG 2000 images can be much larger than what can fit into your
+computer's memory.  While you can use strides that align with the
+JPEG 2000 decomposition levels to retrieve lower resolution images,
+retrieving the lowest resolution image would seem to require that
+you know just how many decomposition levels are available.  While
+you can get that information from the COD segment in the codestream,
+glymur provides you with a shortcut.  Normally the stride must be
+a power of 2, but you can provide -1 instead to get the smallest
+thumbnail.::
 
     >>> import glymur
     >>> j2kfile = glymur.data.goodstuff() # just a path to a JPEG 2000 file
@@ -63,7 +48,7 @@ instead to get the smallest thumbnail.::
     5
     >>> j2k[::32, ::32].shape
     (25, 15, 3)
-    >>> thumbnail = j2k[::-1, ::-1]
+    >>> thumbnail = j2k[::-1, ::-1] # last thumbnail was the 5th, 2 ** 5 = 32
     >>> thumbnail.shape
     (25, 15, 3)
 
@@ -77,17 +62,19 @@ first layer. ::
 
     >>> import glymur
     >>> file = glymur.data.jpxfile() # just a path to a JPEG2000 file
-    >>> jp2 = glymur.Jp2k(file)
-    >>> d0 = j[:] # first layer
-    >>> j.layer = 3
-    >>> d3 = j[:] # third layer
+    >>> jpx = glymur.Jp2k(file)
+    >>> d0 = jpx[:] # first layer
+    >>> jpx.layer = 3
+    >>> d3 = jpx[:] # third layer
 
 *********************************************************
 ... make use of OpenJPEG's thread support to read images?
 *********************************************************
 If you have glymur 0.8.13 or higher
 and OpenJPEG 2.2.0 or higher,
-you can make use of OpenJPEG's thread support to speed-up read operations.  ::
+you can make use of OpenJPEG's thread support to speed-up read operations.
+If you have really big images and a large number of cores at your disposal,
+you really should look into this. ::
 
     >>> import glymur
     >>> import time

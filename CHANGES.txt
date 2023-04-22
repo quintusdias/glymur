@@ -1,3 +1,7 @@
+April 22, 2023 - v0.12.3
+    Add support for type hints.
+    Remove support for Python 3.8.
+
 January 05, 2023 - v0.12.2
     Fix error condition when MCT specified as false for grayscale image.
     Make properties conform to numpydoc.
