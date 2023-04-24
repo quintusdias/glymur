@@ -180,14 +180,14 @@ TEXT_GBR_RREQ = load_test_data('text_GBR_rreq')
 P1_07 = load_test_data('p1_07')
 
 
-def _path_to(filename):
+def _path_to(filename, module='tests.data'):
     """
     Hide importlib.resources differences between 3.11.0 and below.
     """
     if sys.version_info[1] >= 9:
-        return ir.files('tests.data').joinpath(filename)
+        return ir.files(module).joinpath(filename)
     else:
-        with ir.path('tests.data', filename) as path:
+        with ir.path(module, filename) as path:
             return path
 
 

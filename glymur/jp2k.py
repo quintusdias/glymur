@@ -1106,8 +1106,8 @@ class Jp2k(Jp2kBox):
 
     def append(self, box):
         """Append a metadata box to the JP2 file.  This will not result in a
-        file-copy operation.  Only XML or UUID (XMP) boxes can be appended at
-        this time.
+        file-copy operation.  Only XML UUID (XMP), or ASOC boxes can be
+        appended at this time.
 
         Parameters
         ----------
@@ -1118,14 +1118,19 @@ class Jp2k(Jp2kBox):
             msg = "You cannot append to a J2K file (raw codestream)."
             raise RuntimeError(msg)
 
+        box_is_asoc = box.box_id == 'asoc'
         box_is_xml = box.box_id == 'xml '
         box_is_xmp = (
             box.box_id == 'uuid'
-            and box.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
+            and (
+                box.uuid == UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
+                or box.uuid == UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03')
+            )
         )
-        if not (box_is_xml or box_is_xmp):
+        if not (box_is_asoc or box_is_xml or box_is_xmp):
             msg = (
-                "Only XML boxes and XMP UUID boxes can currently be appended."
+                "Only ASOC, XML, or UUID (XMP or GeoTIFF) boxes can currently "
+                "be appended."
             )
             raise RuntimeError(msg)
 

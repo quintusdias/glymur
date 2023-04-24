@@ -5,7 +5,6 @@
 import io
 import shutil
 import struct
-import unittest
 import uuid
 import warnings
 
@@ -235,27 +234,6 @@ class TestSuite(fixtures.TestCommon):
         expected = uuid.UUID(bytes=b'JpgTiffExif->JP2')
         self.assertEqual(actual, expected)
 
-    def test__printing__geotiff_uuid__xml_sidecar(self):
-        """
-        SCENARIO:  Print a geotiff UUID with XML sidecar file.
-
-        EXPECTED RESULT:  Should not error out.  There is a warning about GDAL
-        not being able to print the UUID data as expected.
-        """
-        box_data = fixtures._read_bytes('0220000800_uuid.dat')
-        bf = io.BytesIO(box_data)
-        bf.seek(8)
-        box = UUIDBox.parse(bf, 0, 703)
-        with warnings.catch_warnings(record=True) as w:
-            str(box)
-
-        if fixtures._HAVE_GDAL:
-            self.assertEqual(len(w), 1)
-        else:
-            # If no gdal, there's no warning.  It's just an Exif UUID in
-            # that case.
-            self.assertEqual(len(w), 0)
-
     def test_append_xmp_uuid(self):
         """
         SCENARIO:  Append an XMP UUID box to an existing JP2 file.
@@ -358,113 +336,3 @@ class TestSuite(fixtures.TestCommon):
 
         expected = 'UTM Zone 16N NAD27"|Clarke, 1866 by Default| '
         self.assertEqual(box.data['GeoAsciiParams'], expected)
-
-    def test_print_bad_geotiff(self):
-        """
-        SCENARIO:  A GeoTIFF UUID is corrupt.
-
-        EXPECTED RESULT:  No errors.  There is a warning issued when we try
-        to print the box.
-        """
-        path = fixtures._path_to('issue398.dat')
-        with path.open('rb') as f:
-            f.seek(8)
-            with warnings.catch_warnings(record=True) as w:
-                box = glymur.jp2box.UUIDBox.parse(f, 0, 380)
-                str(box)
-
-        if fixtures._HAVE_GDAL:
-            self.assertEqual(len(w), 1)
-        else:
-            # No warning issued if GDAL is not present.
-            self.assertEqual(len(w), 0)
-
-
-class TestSuiteHiRISE(fixtures.TestCommon):
-    """Tests for HiRISE RDRs."""
-
-    def setUp(self):
-        super().setUp()
-
-        # Hand-create the boxes needed for HiRISE.
-        the_uuid = uuid.UUID('2b0d7e97-aa2e-317d-9a33-e53161a2f7d0')
-        ulst = glymur.jp2box.UUIDListBox([the_uuid])
-
-        version = 0
-        flag = [0, 0, 0]
-        url = 'ESP_032436_1755_COLOR.LBL'
-        debox = glymur.jp2box.DataEntryURLBox(version, flag, url)
-
-        uuidinfo = glymur.jp2box.UUIDInfoBox([ulst, debox])
-
-        uuid_data = fixtures._read_bytes('degenerate_geotiff.tif')
-        the_uuid = uuid.UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03')
-        geotiff_uuid = glymur.jp2box.UUIDBox(the_uuid, uuid_data)
-
-        # Fabricate a new JP2 file out of the signature, file type, header,
-        # and codestream out of nemo.jp2, but add in the UUIDInfo and UUID
-        # box from HiRISE.
-        jp2 = Jp2k(self.jp2file)
-        boxes = [jp2.box[0], jp2.box[1], jp2.box[2], uuidinfo, geotiff_uuid,
-                 jp2.box[-1]]
-
-        self.hirise_jp2file_name = self.test_dir_path / 'hirise.jp2'
-        jp2.wrap(self.hirise_jp2file_name, boxes=boxes)
-
-    def test_tags(self):
-        jp2 = Jp2k(self.hirise_jp2file_name)
-        np.testing.assert_array_equal(
-            jp2.box[4].data['GeoDoubleParams'],
-            np.array([0.0, 180.0, 0.0, 0.0, 3396190.0, 3396190.0])
-        )
-        self.assertEqual(
-            jp2.box[4].data['GeoAsciiParams'],
-            'Equirectangular MARS|GCS_MARS|'
-        )
-        np.testing.assert_array_equal(
-            jp2.box[4].data['GeoKeyDirectory'],
-            np.array([
-                1,        1,  0,    18,  # noqa
-                1024,     0,  1,     1,  # noqa
-                1025,     0,  1,     1,  # noqa
-                1026, 34737, 21,     0,  # noqa
-                2048,     0,  1, 32767,  # noqa
-                2049, 34737,  9,    21,  # noqa
-                2050,     0,  1, 32767,  # noqa
-                2054,     0,  1,  9102,  # noqa
-                2056,     0,  1, 32767,  # noqa
-                2057, 34736,  1,     4,  # noqa
-                2058, 34736,  1,     5,  # noqa
-                3072,     0,  1, 32767,  # noqa
-                3074,     0,  1, 32767,  # noqa
-                3075,     0,  1,    17,  # noqa
-                3076,     0,  1,  9001,  # noqa
-                3082, 34736,  1,     2,  # noqa
-                3083, 34736,  1,     3,  # noqa
-                3088, 34736,  1,     1,  # noqa
-                3089, 34736,  1,     0,  # noqa
-            ])
-        )
-        np.testing.assert_array_equal(
-            jp2.box[4].data['ModelPixelScale'],
-            np.array([0.25, 0.25, 0.0])
-        )
-        np.testing.assert_array_equal(
-            jp2.box[4].data['ModelTiePoint'],
-            np.array([0.0, 0.0, 0.0, -2523306.125, -268608.875, 0.0])
-        )
-
-    @unittest.skipIf(not fixtures._HAVE_GDAL, 'Could not load GDAL')
-    def test_printing_geotiff_uuid(self):
-        """
-        SCENARIO:  Print a geotiff UUID.
-
-        EXPECTED RESULT:  Should match a known geotiff UUID.  The string
-        representation validates.
-        """
-        jp2 = Jp2k(self.hirise_jp2file_name)
-        self.maxDiff = None
-        actual = str(jp2.box[4])
-
-        expected = fixtures.GEOTIFF_UUID
-        self.assertEqual(actual, expected)

@@ -27,7 +27,6 @@ import warnings
 # Third party library imports ...
 try:
     from osgeo import gdal
-    from osgeo import osr
     _HAVE_GDAL = True
 except (ImportError, ModuleNotFoundError):
     _HAVE_GDAL = False
@@ -228,6 +227,7 @@ class Jp2kBox(object):
         list
             List of top-level boxes in the JPEG 2000 file.
         """
+        self._fptr = fptr
 
         superbox = []
 
@@ -1822,6 +1822,23 @@ class AssociationBox(Jp2kBox):
 
     def __str__(self):
         msg = self._str_superbox()
+
+        # Is it a GML JP2 box?  If so, add the gdal info.
+        if (
+            len(self.box) == 2
+            and self.box[0].box_id == 'lbl '
+            and self.box[0].label == 'gml.data'
+            and self.box[1].box_id == 'asoc'
+            and len(self.box[1].box) == 2
+            and self.box[1].box[0].box_id == 'lbl '
+            and self.box[1].box[0].label == 'gml.root-instance'
+            and self.box[1].box[1].box_id == 'xml '
+        ):
+            options = gdal.InfoOptions(showColorTable=False)
+            txt = gdal.Info(self._fptr.name, options=options)
+            txt = textwrap.indent(txt, ' ' * 4)
+            msg = f"{msg}\n{txt}"
+
         return msg
 
     @classmethod
@@ -3486,7 +3503,15 @@ class UUIDBox(Jp2kBox):
                 text = f'UUID Data:  {s.getvalue().rstrip()}'
                 lst.append(text)
         elif self.uuid == _GEOTIFF_UUID:
-            txt = f'UUID Data:  {self._print_geotiff()}'
+
+            if self.data is None:
+                return 'UUID Data:  corrupt'
+
+            options = gdal.InfoOptions(showColorTable=False)
+            txt = gdal.Info(self._ftpr.name, options=options)
+            txt = textwrap.indent(txt, ' ' * 4).rstrip()
+
+            txt = f'UUID Data:\n{txt}'
             lst.append(txt)
         else:
             text = f'UUID Data:  {len(self.raw_data)} bytes'
@@ -3497,126 +3522,6 @@ class UUIDBox(Jp2kBox):
 
         text = '\n'.join([title, body])
         return text
-
-    def _print_geotiff(self):
-        try:
-            return self._print_geotiff_as_geotiff()
-        except NameError:
-            # gdal not found?  The representation of the TIFF IFD will have to
-            # do.
-            return self.data
-        except RuntimeError as e:
-            # Unusual situation where gdal code fails
-            # The representation of the TIFF IFD will have to do.
-            warnings.warn(str(e))
-            text = f"{pprint.pformat(self.data)}"
-            return text
-
-    def _print_geotiff_as_geotiff(self):
-        """Print geotiff information.  Shamelessly ripped off from gdalinfo.py
-
-        Returns
-        -------
-        str
-            String representation of the degenerate geotiff.
-        """
-        if self.data is None:
-            return "corrupt"
-        in_mem_name = '/vsimem/geo.tif'
-        gdal.FileFromMemBuffer(in_mem_name, self.raw_data)
-        gtif = gdal.Open(in_mem_name)
-
-        # Report projection
-        proj_ref = gtif.GetProjectionRef()
-        sref = osr.SpatialReference()
-        sref.ImportFromWkt(proj_ref)
-        psz_pretty_wkt = sref.ExportToPrettyWkt(False)
-
-        # report geotransform
-        geo_xform = gtif.GetGeoTransform(can_return_null=True)
-        geotransform_str = (
-            f'Origin = ({geo_xform[0]:.15f},{geo_xform[3]:.15f})\n'
-            f'Pixel Size = ({geo_xform[1]:.15f},{geo_xform[5]:.15f})'
-        )
-
-        # setup projected to lat/long transform if appropriate
-        if proj_ref is not None and len(proj_ref) > 0:
-            hProj = osr.SpatialReference(proj_ref)
-            if hProj is not None:
-                hLatLong = hProj.CloneGeogCS()
-
-            if hLatLong is not None:
-                hTransform = osr.CoordinateTransformation(hProj, hLatLong)
-            else:
-                raise RuntimeError('Unable to proceed.')
-
-        # report corners
-        uleft = self.GDALInfoReportCorner(gtif, hTransform, "Upper Left", 0, 0)
-        lleft = self.GDALInfoReportCorner(
-            gtif, hTransform, "Lower Left", 0, gtif.RasterYSize
-        )
-        uright = self.GDALInfoReportCorner(
-            gtif, hTransform, "Upper Right", gtif.RasterXSize, 0
-        )
-        lright = self.GDALInfoReportCorner(
-            gtif,
-            hTransform,
-            "Lower Right",
-            gtif.RasterXSize, gtif.RasterYSize
-        )
-        center = self.GDALInfoReportCorner(
-            gtif,
-            hTransform,
-            "Center",
-            gtif.RasterXSize / 2.0, gtif.RasterYSize / 2.0
-        )
-
-        gdal.Unlink(in_mem_name)
-
-        fmt = (
-            "Coordinate System =\n"
-            "{coordinate_system}\n"
-            "{geotransform}\n"
-            "Corner Coordinates:\n"
-            "{upper_left}\n"
-            "{lower_left}\n"
-            "{upper_right}\n"
-            "{lower_right}\n"
-            "{center}"
-        )
-        coordinate_system = textwrap.indent(psz_pretty_wkt, ' ' * 4)
-        msg = fmt.format(
-            coordinate_system=coordinate_system,
-            geotransform=geotransform_str,
-            upper_left=uleft, upper_right=uright,
-            lower_left=lleft, lower_right=lright,
-            center=center
-        )
-        return msg
-
-    def GDALInfoReportCorner(self, hDataset, hTransform, corner_name, x, y):
-        line = f'{corner_name:<11s} '
-
-        # transform the point into georeferenced coordinates
-        geo_transform = hDataset.GetGeoTransform(can_return_null=True)
-        dfGeoX = (geo_transform[0] + geo_transform[1] * x
-                  + geo_transform[2] * y)
-        dfGeoY = geo_transform[3] + geo_transform[4] * x
-        dfGeoY += geo_transform[5] * y
-
-        # report the georeferenced coordinates
-        line += f'({dfGeoX:12.3f},{dfGeoY:12.3f}) '
-
-        # transform to latlong and report
-        if hTransform is not None:
-            point = hTransform.TransformPoint(dfGeoX, dfGeoY, 0)
-            if point is not None:
-                line += '({},{})'.format(
-                    gdal.DecToDMS(point[0], 'Long', 2),
-                    gdal.DecToDMS(point[1], 'Lat', 2)
-                )
-
-        return line
 
     def write(self, fptr):
         """Write a UUID box to file."""
@@ -3646,7 +3551,11 @@ class UUIDBox(Jp2kBox):
         num_bytes = offset + length - fptr.tell()
         read_buffer = fptr.read(num_bytes)
         the_uuid = UUID(bytes=read_buffer[0:16])
-        return cls(the_uuid, read_buffer[16:], length=length, offset=offset)
+
+        o = cls(the_uuid, read_buffer[16:], length=length, offset=offset)
+        o._ftpr = fptr
+
+        return o
 
 
 # Map each box ID to the corresponding class.
