@@ -1253,6 +1253,22 @@ class TestJp2k_write(fixtures.MetadataBase):
         d = j[::32, ::32]
         self.assertEqual(d.shape, (46, 81, 3))
 
+    def test_numres_is_none(self):
+        """
+        Scenario:  Specify numres parameter as None
+
+        Expected Result:  The number of decomposition levels should be five.
+        It's zero-based, so the returned value is 6.
+        """
+        expected_numres = 6
+        j = glymur.Jp2k(
+            self.temp_jp2_filename, data=self.jp2_data, numres=None
+        )
+
+        c = j.get_codestream()
+        actual = c.segment[2].num_res
+        self.assertEqual(actual, expected_numres - 1)
+
     def test_null_data(self):
         """
         SCENARIO:  An image with a dimension with length 0 is provided.

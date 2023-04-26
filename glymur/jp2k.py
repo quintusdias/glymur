@@ -215,7 +215,10 @@ class Jp2k(Jp2kBox):
         self._irreversible = irreversible
         self._mct = mct
         self._modesw = modesw
-        self._numres = numres
+
+        # The default used to be 6 if numres came in as None.
+        self._numres = numres if numres is not None else 6
+
         self._plt = plt
         self._prog = prog
         self._psizes = psizes
