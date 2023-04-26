@@ -1,3 +1,6 @@
+April 26, 2023 - v0.12.4
+    Fix regression on default value of numres.
+
 April 22, 2023 - v0.12.3
     Add support for type hints.
     Remove support for Python 3.8.
