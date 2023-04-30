@@ -124,8 +124,8 @@ bands.
 *****************
 ... write images?
 *****************
-It's pretty simple, just supply the image data as a keyword argument to the
-Jp2k constructor::
+The easiest way is just to assign the entire image, similar to what might
+be done with NumPy. ::
     
     >>> import glymur, skimage.data
     >>> jp2 = glymur.Jp2k('astronaut.jp2')
