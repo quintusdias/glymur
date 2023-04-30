@@ -34,20 +34,32 @@ class Tiff2Jp2k(object):
 
     Attributes
     ----------
+    create_exif_uuid : bool
+        Create a UUIDBox for the TIFF IFD metadata.
+    dtype : np.dtype
+        Datatype of the image.
     found_geotiff_tags : bool
         If true, then this TIFF must be a GEOTIFF
-    tiff_filename : path
-        Path to TIFF file.
+    imageheight, imagewidth : int
+        Dimensions of the image.
     jp2 : JP2K object
         Write to this JPEG2000 file
     jp2_filename : path
         Path to JPEG 2000 file to be written.
     jp2_kwargs : dict
         Keyword arguments to pass along to the Jp2k constructor.
+    rps : int
+        The number of rows per strip in the TIFF.
+    spp : int
+        Samples Per Pixel TIFF tag value
+    tiff_filename : path
+        Path to TIFF file.
     tilesize : tuple
         The dimensions of a tile in the JP2K file.
-    create_exif_uuid : bool
-        Create a UUIDBox for the TIFF IFD metadata.
+    tw, th : int
+        The tile dimensions for the TIFF image.
+    use_rgba_interface : bool
+        If true, use libtiff's RGBA interface to read strips/tiles.
     version : int
         Identifies the TIFF as 32-bit TIFF or 64-bit TIFF.
     xmp_data : bytes
@@ -119,6 +131,9 @@ class Tiff2Jp2k(object):
         self.xmp_data = None
 
         self.setup_logging(verbosity)
+
+        # assume false until we know otherwise
+        self.use_rgba_interface = False
 
     def _process_exclude_tags(self, exclude_tags):
         """The list of tags to exclude may be mixed type (str or integer).
@@ -637,9 +652,9 @@ class Tiff2Jp2k(object):
             isTiled = False
 
         photo = self.get_tag_value(262)
-        imagewidth = self.get_tag_value(256)
-        imageheight = self.get_tag_value(257)
-        spp = self.get_tag_value(277)
+        self.imagewidth = self.get_tag_value(256)
+        self.imageheight = self.get_tag_value(257)
+        self.spp = self.get_tag_value(277)
         sf = self.get_tag_value(339)
         bps = self.get_tag_value(258)
         planar = self.get_tag_value(284)
@@ -653,17 +668,17 @@ class Tiff2Jp2k(object):
             )
             raise RuntimeError(msg)
 
-        if bps not in [8, 16]:
+        if bps == 8 and sf == libtiff.SampleFormat.UINT:
+            self.dtype = np.uint8
+        elif bps == 16 and sf == libtiff.SampleFormat.UINT:
+            self.dtype = np.uint16
+        else:
             msg = (
-                f"The TIFF BitsPerSample is {bps}.  Only 8 and 16 bits per "
-                "sample are supported."
+                f"Only unsigned sample formats and bits per sample values of "
+                f"8 or 16 are supported.  The values in the TIFF are {bps} "
+                f"{sf}."
             )
             raise RuntimeError(msg)
-
-        if bps == 8 and sf == libtiff.SampleFormat.UINT:
-            dtype = np.uint8
-        if bps == 16 and sf == libtiff.SampleFormat.UINT:
-            dtype = np.uint16
 
         if (
             planar == libtiff.PlanarConfig.SEPARATE
@@ -676,30 +691,20 @@ class Tiff2Jp2k(object):
             raise RuntimeError(msg)
 
         if libtiff.isTiled(self.tiff_fp):
-            tw = self.get_tag_value(322)
-            th = self.get_tag_value(323)
+            self.tw = self.get_tag_value(322)
+            self.th = self.get_tag_value(323)
         else:
-            tw = imagewidth
-            rps = self.get_tag_value(278)
-
-        if self.tilesize is not None:
-            # The JP2K tile size was specified.  Compute the number of JP2K
-            # tile rows and columns.
-            jth, jtw = self.tilesize
-
-            num_jp2k_tile_rows = int(np.ceil(imagewidth / jtw))
-            num_jp2k_tile_cols = int(np.ceil(imagewidth / jtw))
+            self.tw = self.imagewidth
+            self.rps = self.get_tag_value(278)
 
         if photo == libtiff.Photometric.YCBCR:
             # Using the RGBA interface is the only reasonable way to deal with
             # this.
-            use_rgba_interface = True
-        else:
-            use_rgba_interface = False
+            self.use_rgba_interface = True
 
         self.jp2 = Jp2k(
             self.jp2_filename,
-            shape=(imageheight, imagewidth, spp),
+            shape=(self.imageheight, self.imagewidth, self.spp),
             tilesize=self.tilesize,
             **self.jp2_kwargs
         )
@@ -711,35 +716,14 @@ class Tiff2Jp2k(object):
                 "not supported by this program."
             )
             raise RuntimeError(msg)
-
         elif self.tilesize is None:
-
             # this handles both cases of a striped TIFF and a tiled TIFF
-
-            self._write_rgba_single_tile(
-                    photo, imagewidth, imageheight, spp
-            )
+            self._write_rgba_single_tile(photo)
             self.jp2.finalize(force_parse=True)
-
         elif isTiled and self.tilesize is not None:
-
-            self._write_tiled_tiff_to_tiled_jp2k(
-                imagewidth, imageheight, spp,
-                jtw, jth, tw, th,
-                num_jp2k_tile_cols, num_jp2k_tile_rows,
-                dtype,
-                use_rgba_interface
-            )
-
+            self._write_tiled_tiff_to_tiled_jp2k()
         elif not isTiled and self.tilesize is not None:
-
-            self._write_striped_tiff_to_tiled_jp2k(
-                imagewidth, imageheight, spp,
-                jtw, jth, rps,
-                num_jp2k_tile_cols, num_jp2k_tile_rows,
-                dtype,
-                use_rgba_interface
-            )
+            self._write_striped_tiff_to_tiled_jp2k()
 
     def tagvalue2str(self, cls, tag_value):
         """Take a class that encompasses all of a tag's allowed values and find
@@ -752,9 +736,7 @@ class Tiff2Jp2k(object):
 
         return tag_value_string
 
-    def _write_rgba_single_tile(
-        self, photo, imagewidth, imageheight, spp
-    ):
+    def _write_rgba_single_tile(self, photo):
         """If no jp2k tiling was specified and if the image is ok to read
         via the RGBA interface, then just do that.  The image will be
         written with the tilesize equal to the image size, so it will
@@ -762,9 +744,8 @@ class Tiff2Jp2k(object):
 
         Parameters
         ----------
-        photo, imagewidth, imageheight, spp : int
-            TIFF tag values corresponding to the photometric interpretation,
-            image width and height, and samples per pixel
+        photo : int
+            TIFF tag values corresponding to the photometric interpretation
         """
         msg = (
             "Reading using the RGBA interface, writing as a single tile "
@@ -787,253 +768,219 @@ class Tiff2Jp2k(object):
             warnings.warn(msg)
 
         image = libtiff.readRGBAImageOriented(
-            self.tiff_fp, imagewidth, imageheight
+            self.tiff_fp, self.imagewidth, self.imageheight
         )
 
-        if spp < 4:
+        if self.spp < 4:
             image = image[:, :, :3]
 
         self.jp2[:] = image
 
-    def _write_tiled_tiff_to_tiled_jp2k(
-        self, imagewidth, imageheight, spp, jtw, jth, tw, th,
-        num_jp2k_tile_cols, num_jp2k_tile_rows, dtype, use_rgba_interface
-    ):
+    def _write_tiled_tiff_to_tiled_jp2k(self):
         """The input TIFF image is tiled and we are to create the output
         JPEG2000 image with specific tile dimensions.
-
-        Parameters
-        ----------
-        imagewidth, imageheight, spp : int
-            TIFF tag values corresponding to the photometric interpretation,
-            image width and height, and samples per pixel.
-        jtw, jth : int
-            The tile dimensions for the JPEG2000 image.
-        tw, th : int
-            The tile dimensions for the TIFF image.
-        num_jp2k_tile_cols, num_jp2k_tile_rows
-            The number of tiles down the rows and across the columns for the
-            JPEG2000 image
-        dtype : np.dtype
-            Datatype of the image.
-        use_rgba_interface : bool
-            If true, use the RGBA interface to read the TIFF image data.
         """
-
-        num_tiff_tile_cols = int(np.ceil(imagewidth / tw))
-
-        partial_jp2_tile_rows = (imageheight / jth) != (imageheight // jth)
-        partial_jp2_tile_cols = (imagewidth / jtw) != (imagewidth // jtw)
-
-        rgba_tile = np.zeros((th, tw, 4), dtype=np.uint8)
-
-        self.logger.debug(f'image:  {imageheight} x {imagewidth}')
-        self.logger.debug(f'jptile:  {jth} x {jtw}')
-        self.logger.debug(f'ttile:  {th} x {tw}')
         for idx, tilewriter in enumerate(self.jp2.get_tilewriters()):
-
-            # populate the jp2k tile with tiff tiles
-            msg = (
-                f'Tile:  #{idx} '
-                f'row #{idx // num_jp2k_tile_cols} '
-                f'col #{idx % num_jp2k_tile_cols} '
-            )
-            self.logger.info(msg)
-
-            self.logger.debug(f'J tile row:  #{idx // num_jp2k_tile_cols}')
-            self.logger.debug(f'J tile col:  #{idx % num_jp2k_tile_cols}')
-
-            jp2k_tile = np.zeros((jth, jtw, spp), dtype=dtype)
-            tiff_tile = np.zeros((th, tw, spp), dtype=dtype)
-
-            jp2k_tile_row = int(np.ceil(idx // num_jp2k_tile_cols))
-            jp2k_tile_col = int(np.ceil(idx % num_jp2k_tile_cols))
-
-            # the coordinates of the upper left pixel of the jp2k tile
-            julr, julc = jp2k_tile_row * jth, jp2k_tile_col * jtw
-
-            # loop while the upper left corner of the current tiff file is
-            # less than the lower left corner of the jp2k tile
-            r = julr
-            while (r // th) * th < min(julr + jth, imageheight):
-                c = julc
-
-                tilenum = libtiff.computeTile(self.tiff_fp, c, r, 0, 0)
-                self.logger.debug(f'TIFF tile # {tilenum}')
-
-                tiff_tile_row = int(np.ceil(tilenum // num_tiff_tile_cols))
-                tiff_tile_col = int(np.ceil(tilenum % num_tiff_tile_cols))
-
-                # the coordinates of the upper left pixel of the TIFF tile
-                tulr = tiff_tile_row * th
-                tulc = tiff_tile_col * tw
-
-                # loop while the left corner of the current tiff tile is
-                # less than the right hand corner of the jp2k tile
-                while ((c // tw) * tw) < min(julc + jtw, imagewidth):
-
-                    if use_rgba_interface:
-                        libtiff.readRGBATile(
-                            self.tiff_fp, tulc, tulr, rgba_tile
-                        )
-
-                        # flip the tile upside down!!
-                        tiff_tile = np.flipud(rgba_tile[:, :, :3])
-                    else:
-                        libtiff.readEncodedTile(
-                            self.tiff_fp, tilenum, tiff_tile
-                        )
-
-                    # determine how to fit this tiff tile into the jp2k
-                    # tile
-                    #
-                    # these are the section coordinates in image space
-                    ulr = max(julr, tulr)
-                    llr = min(julr + jth, tulr + th)
-
-                    ulc = max(julc, tulc)
-                    urc = min(julc + jtw, tulc + tw)
-
-                    # convert to JP2K tile coordinates
-                    jrows = slice(ulr % jth, (llr - 1) % jth + 1)
-                    jcols = slice(ulc % jtw, (urc - 1) % jtw + 1)
-
-                    # convert to TIFF tile coordinates
-                    trows = slice(ulr % th, (llr - 1) % th + 1)
-                    tcols = slice(ulc % tw, (urc - 1) % tw + 1)
-
-                    jp2k_tile[jrows, jcols, :] = tiff_tile[trows, tcols, :]
-
-                    # move exactly one tiff tile over
-                    c += tw
-
-                    tilenum = libtiff.computeTile(self.tiff_fp, c, r, 0, 0)
-
-                    tiff_tile_row = int(
-                        np.ceil(tilenum // num_tiff_tile_cols)
-                    )
-                    tiff_tile_col = int(
-                        np.ceil(tilenum % num_tiff_tile_cols)
-                    )
-
-                    # the coordinates of the upper left pixel of the TIFF
-                    # tile
-                    tulr = tiff_tile_row * th
-                    tulc = tiff_tile_col * tw
-
-                r += th
-
-            # last tile column?  If so, we may have a partial tile.
-            if (
-                partial_jp2_tile_cols
-                and jp2k_tile_col == num_jp2k_tile_cols - 1
-            ):
-                last_j2k_cols = slice(0, imagewidth - julc)
-                jp2k_tile = jp2k_tile[:, last_j2k_cols, :].copy()
-            if (
-                partial_jp2_tile_rows
-                and jp2k_tile_row == num_jp2k_tile_rows - 1
-            ):
-                last_j2k_rows = slice(0, imageheight - julr)
-                jp2k_tile = jp2k_tile[last_j2k_rows, :, :].copy()
-
+            jp2k_tile = self._construct_jp2k_tile_from_tiled_tiff(idx)
             tilewriter[:] = jp2k_tile
 
-    def _write_striped_tiff_to_tiled_jp2k(
-        self, imagewidth, imageheight, spp, jtw, jth, rps,
-        num_jp2k_tile_cols, num_jp2k_tile_rows, dtype, use_rgba_interface
-    ):
+    def _construct_jp2k_tile_from_tiled_tiff(self, idx):
+
+        jth, jtw = self.tilesize
+
+        num_jp2k_tile_rows = int(np.ceil(self.imagewidth / jtw))
+        num_jp2k_tile_cols = int(np.ceil(self.imagewidth / jtw))
+
+        num_tiff_tile_cols = int(np.ceil(self.imagewidth / self.tw))
+
+        partial_jp2_tile_rows = (self.imageheight / jth) != (self.imageheight // jth)  # noqa : E501
+        partial_jp2_tile_cols = (self.imagewidth / jtw) != (self.imagewidth // jtw)  # noqa : E501
+
+        rgba_tile = np.zeros((self.th, self.tw, 4), dtype=np.uint8)
+
+        self.logger.debug(f'image:  {self.imageheight} x {self.imagewidth}')
+        self.logger.debug(f'jptile:  {jth} x {jtw}')
+        self.logger.debug(f'ttile:  {self.th} x {self.tw}')
+
+        # populate the jp2k tile with tiff tiles
+        msg = (
+            f'Tile:  #{idx} '
+            f'row #{idx // num_jp2k_tile_cols} '
+            f'col #{idx % num_jp2k_tile_cols} '
+        )
+        self.logger.info(msg)
+
+        self.logger.debug(f'J tile row:  #{idx // num_jp2k_tile_cols}')
+        self.logger.debug(f'J tile col:  #{idx % num_jp2k_tile_cols}')
+
+        jp2k_tile = np.zeros((jth, jtw, self.spp), dtype=self.dtype)
+        tiff_tile = np.zeros(
+            (self.th, self.tw, self.spp), dtype=self.dtype
+        )
+
+        jp2k_tile_row = int(np.ceil(idx // num_jp2k_tile_cols))
+        jp2k_tile_col = int(np.ceil(idx % num_jp2k_tile_cols))
+
+        # the coordinates of the upper left pixel of the jp2k tile
+        july, julx = jp2k_tile_row * jth, jp2k_tile_col * jtw
+
+        # loop while the upper left corner of the current tiff file is
+        # less than the lower left corner of the jp2k tile
+        y = july
+
+        tiff_tile_uy = (y // self.th) * self.th
+        jp2k_tile_ly = min(july + jth, self.imageheight)
+
+        while tiff_tile_uy < jp2k_tile_ly:
+
+            x = julx
+
+            tilenum = libtiff.computeTile(self.tiff_fp, x, y, 0, 0)
+            self.logger.debug(f'TIFF tile # {tilenum}')
+
+            tiff_tile_row = int(np.ceil(tilenum // num_tiff_tile_cols))
+            tiff_tile_col = int(np.ceil(tilenum % num_tiff_tile_cols))
+
+            # the coordinates of the upper left pixel of the TIFF tile
+            tile_uly = tiff_tile_row * self.th
+            tile_ulx = tiff_tile_col * self.tw
+
+            current_jp2k_tile_rx = min(julx + jtw, self.imagewidth)
+
+            # process tiff tiles left-to-right
+            while tile_ulx < current_jp2k_tile_rx:
+
+                if self.use_rgba_interface:
+                    libtiff.readRGBATile(
+                        self.tiff_fp, tile_ulx, tile_uly, rgba_tile
+                    )
+
+                    # Must flip the tile upside down, see the man page for
+                    # TIFFReadRGBATile
+                    tiff_tile = np.flipud(rgba_tile[:, :, :3])
+                else:
+                    libtiff.readEncodedTile(
+                        self.tiff_fp, tilenum, tiff_tile
+                    )
+
+                # determine how to fit this tiff tile into the jp2k
+                # tile
+                #
+                # these are the section coordinates in image space
+                uly = max(july, tile_uly)
+                lly = min(july + jth, tile_uly + self.th)
+
+                ulx = max(julx, tile_ulx)
+                urx = min(julx + jtw, tile_ulx + self.tw)
+
+                # convert to JP2K tile coordinates
+                jrows = slice(uly % jth, (lly - 1) % jth + 1)
+                jcols = slice(ulx % jtw, (urx - 1) % jtw + 1)
+
+                # convert to TIFF tile coordinates
+                trows = slice(uly % self.th, (lly - 1) % self.th + 1)
+                tcols = slice(ulx % self.tw, (urx - 1) % self.tw + 1)
+
+                jp2k_tile[jrows, jcols, :] = tiff_tile[trows, tcols, :]
+
+                # Get ready for the next TIFF tile to the right.
+
+                x += self.tw
+
+                # Update the tiff tile column.  The tiff tile row stays the
+                # same.
+                tilenum = libtiff.computeTile(self.tiff_fp, x, y, 0, 0)
+                tiff_tile_col += 1
+                tile_ulx = tiff_tile_col * self.tw
+
+                # the coordinates of the upper left pixel of the TIFF
+                # tile
+                current_jp2k_tile_rx = min(julx + jtw, self.imagewidth)
+
+            y += self.th
+
+            tiff_tile_uy = (y // self.th) * self.th
+            jp2k_tile_ly = min(july + jth, self.imageheight)
+
+        # last tile column?  If so, we may have a partial tile.
+        if (
+            partial_jp2_tile_cols
+            and jp2k_tile_col == num_jp2k_tile_cols - 1
+        ):
+            last_j2k_cols = slice(0, self.imagewidth - julx)
+            jp2k_tile = jp2k_tile[:, last_j2k_cols, :].copy()
+
+        if (
+            partial_jp2_tile_rows
+            and jp2k_tile_row == num_jp2k_tile_rows - 1
+        ):
+            last_j2k_rows = slice(0, self.imageheight - july)
+            jp2k_tile = jp2k_tile[last_j2k_rows, :, :].copy()
+
+        return jp2k_tile
+
+    def _write_striped_tiff_to_tiled_jp2k(self):
         """The input TIFF image is striped and we are to create the output
         JPEG2000 image as a tiled JP2K.
-
-        Parameters
-        ----------
-        imagewidth, imageheight, spp : int
-            TIFF tag values corresponding to the photometric interpretation,
-            image width and height, and samples per pixel.
-        jtw, jth : int
-            The tile dimensions for the JPEG2000 image.
-        rps : int
-            The number of rows per strip in the TIFF.
-        num_jp2k_tile_cols, num_jp2k_tile_rows
-            The number of tiles down the rows and across the columns for the
-            JPEG2000 image
-        dtype : np.dtype
-            Datatype of the image.
-        use_rgba_interface : bool
-            If true, use the RGBA interface to read the TIFF image data.
         """
 
-        self.logger.debug(f'image:  {imageheight} x {imagewidth}')
+        jth, jtw = self.tilesize
+
+        self.logger.debug(f'image:  {self.imageheight} x {self.imagewidth}')
         self.logger.debug(f'jptile:  {jth} x {jtw}')
         num_strips = libtiff.numberOfStrips(self.tiff_fp)
 
-        num_jp2k_tile_cols = int(np.ceil(imagewidth / jtw))
+        num_jp2k_tile_cols = int(np.ceil(self.imagewidth / jtw))
 
         for idx, tilewriter in enumerate(self.jp2.get_tilewriters()):
 
             jp2k_tile_row = idx // num_jp2k_tile_cols
             jp2k_tile_col = idx % num_jp2k_tile_cols
 
-            msg = (
-                f'Tile:  #{idx} '
-                f'row #{jp2k_tile_row} '
-                f'col #{jp2k_tile_col}'
-            )
+            msg = f'Tile:  #{idx} row #{jp2k_tile_row} col #{jp2k_tile_col}'
             self.logger.info(msg)
 
             # the coordinates of the upper left pixel of the jp2k tile
-            julr, julc = jp2k_tile_row * jth, jp2k_tile_col * jtw
+            july, julx = jp2k_tile_row * jth, jp2k_tile_col * jtw
 
+            # If we are starting a new row of jp2k tiles, we want to allocate
+            # space for all the TIFF strips that encompass this jp2k row, and
+            # then go ahead and read them in.  For all other cases, just assign
+            # jp2k tiles from this same TIFF multi-strip.
             if jp2k_tile_col == 0:
-
                 tiff_multi_strip = self._construct_multi_strip(
-                    julr, num_strips, jth, imageheight, imagewidth, rps, spp,
-                    dtype, use_rgba_interface
+                    july, num_strips, jth,
                 )
 
-            # Get the multi-strip coordinates of the upper left jp2k corner
-            stripnum = libtiff.computeStrip(self.tiff_fp, julr, 0)
-            tulr = stripnum * rps
+            # construct the TIFF row and column slices from the multi-strip,
+            # assign to the jp2k tile.
+            stripnum = libtiff.computeStrip(self.tiff_fp, july, 0)
+            tile_uly = stripnum * self.rps
 
-            ms_ulr = julr - tulr
-            ms_ulc = julc
+            ms_uly = july - tile_uly
+            ms_ulx = julx
 
-            # ms_lrr = ms_ulr + min(ms_ulr + jth, imageheight)
-            # ms_lrc = ms_ulc + min(ms_ulc + jtw, imagewidth)
-            ms_lrr = min(ms_ulr + jth, imageheight - tulr)
-            ms_lrc = min(ms_ulc + jtw, imagewidth)
+            ms_lry = min(ms_uly + jth, self.imageheight - tile_uly)
+            ms_lrx = min(ms_ulx + jtw, self.imagewidth)
 
-            rows = slice(ms_ulr, ms_lrr)
-            cols = slice(ms_ulc, ms_lrc)
+            rows = slice(ms_uly, ms_lry)
+            cols = slice(ms_ulx, ms_lrx)
 
             tilewriter[:] = tiff_multi_strip[rows, cols, :]
 
-    def _construct_multi_strip(
-        self, julr, num_strips, jth, imageheight, imagewidth, rps, spp, dtype,
-        use_rgba_interface
-    ):
+    def _construct_multi_strip(self, july, num_strips, jth):
         """TIFF strips are pretty inefficient.  If our I/O was stupidly focused
         solely on each JP2K tile, we would read in each TIFF strip multiple
-        times.  If instead, we read in ALL the strips that will encompass that
-        current row of JP2K tiles, we will save ourselves from pushing around
-        a lot of electrons.
+        times, once for each JP2K tile in the JP2K tile row.  If instead, we
+        read in ALL the strips that will encompass that current row of JP2K
+        tiles, we will save ourselves a lot of disk I/O.
 
         Parameters
         ----------
-        imagewidth, imageheight, spp : int
-            TIFF tag values corresponding to the photometric interpretation,
-            image width and height, and samples per pixel.
         jth : int
             The number of rows in a JP2K tile.
-        rps : int
-            The number of rows per strip in the TIFF.
-        julr : int
+        july : int
             The top row of the current JP2K tile row.
-        dtype : np.dtype
-            Datatype of the image.
-        use_rgba_interface : bool
-            If true, use the RGBA interface to read the TIFF image data.
 
         Returns
         -------
@@ -1043,42 +990,43 @@ class Tiff2Jp2k(object):
         """
         # We need to create a TIFF "multi-strip" that can hold all of
         # the JP2K tiles in a JP2K tile row.
-        r = julr
-        top_strip_num = libtiff.computeStrip(self.tiff_fp, r, 0)
+        y = july
+        top_strip_num = libtiff.computeStrip(self.tiff_fp, y, 0)
 
         # advance thru to the next tile row
-        while (r // rps) * rps < min(julr + jth, imageheight):
-            r += rps
-        bottom_strip_num = libtiff.computeStrip(self.tiff_fp, r, 0)
+        while (y // self.rps) * self.rps < min(july + jth, self.imageheight):
+            y += self.rps
+        bottom_strip_num = libtiff.computeStrip(self.tiff_fp, y, 0)
 
         # compute the number of rows contained between the top strip
         # and the bottom strip
-        num_rows = (bottom_strip_num - top_strip_num) * rps
+        num_rows = (bottom_strip_num - top_strip_num) * self.rps
 
-        if use_rgba_interface:
-            tiff_strip = np.zeros((rps, imagewidth, 4), dtype=np.uint8)
-            tiff_multi_strip = np.zeros(
-                (num_rows, imagewidth, spp), dtype=np.uint8
-            )
+        if self.use_rgba_interface:
+            # always single byte samples of R, G, B, and A
+            dtype = np.uint8
+            spp = 4
         else:
-            tiff_strip = np.zeros((rps, imagewidth, spp), dtype=dtype)
-            tiff_multi_strip = np.zeros(
-                (num_rows, imagewidth, spp), dtype=dtype
-            )
+            dtype = self.dtype
+            spp = self.spp
+
+        tiff_strip = np.zeros((self.rps, self.imagewidth, spp), dtype=dtype)
+        tiff_multi_strip = np.zeros(
+            (num_rows, self.imagewidth, spp), dtype=dtype
+        )
 
         # fill the multi-strip
         for stripnum in range(top_strip_num, bottom_strip_num):
-            tiff_strip = np.zeros((rps, imagewidth, spp), dtype=dtype)
 
-            if use_rgba_interface:
+            if self.use_rgba_interface:
 
                 libtiff.readRGBAStrip(
-                    self.tiff_fp, stripnum * rps, tiff_strip
+                    self.tiff_fp, stripnum * self.rps, tiff_strip
                 )
 
                 # must flip the rows (!!) and get rid of the alpha
                 # plane
-                tiff_strip = np.flipud(tiff_strip[:, :, :spp])
+                tiff_strip = np.flipud(tiff_strip[:, :, :self.spp])
 
             else:
 
@@ -1087,8 +1035,8 @@ class Tiff2Jp2k(object):
                 )
 
             # push the strip into the multi-strip
-            top_row = (stripnum - top_strip_num) * rps
-            bottom_row = (stripnum - top_strip_num + 1) * rps
+            top_row = (stripnum - top_strip_num) * self.rps
+            bottom_row = (stripnum - top_strip_num + 1) * self.rps
             rows = slice(top_row, bottom_row)
             tiff_multi_strip[rows, :, :] = tiff_strip
 
