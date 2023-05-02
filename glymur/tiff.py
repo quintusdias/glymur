@@ -780,144 +780,162 @@ class Tiff2Jp2k(object):
         """The input TIFF image is tiled and we are to create the output
         JPEG2000 image with specific tile dimensions.
         """
-        for idx, tilewriter in enumerate(self.jp2.get_tilewriters()):
-            jp2k_tile = self._construct_jp2k_tile_from_tiled_tiff(idx)
+        for jp2k_tilenum, tilewriter in enumerate(self.jp2.get_tilewriters()):
+            tiff_tiles = self._get_covering_tiles(jp2k_tilenum)
+            jp2k_tile = self._cover_tile(jp2k_tilenum, tiff_tiles)
+            self.logger.info(f'Writing tile {jp2k_tilenum}')
             tilewriter[:] = jp2k_tile
 
-    def _construct_jp2k_tile_from_tiled_tiff(self, idx):
+    def _cover_tile(self, jp2k_tile_num, tiff_tile_nums):
+        """
+        Fill in the jp2k tile with image data from the TIFF tiles.
 
+        Parameters
+        ----------
+        jp2k_tilenum : int
+            number of the JPEG2000 tile
+        tiff_tile_nums : set
+            all TIFF tile identifiers that cover the jpeg2000 tile
+        """
         jth, jtw = self.tilesize
+
+        # Does the JP2K have partial tiles on the far right and bottom of the
+        # image.
+        partial_jp2_tile_rows = (self.imageheight / jth) != (self.imageheight // jth)  # noqa : E501
+        partial_jp2_tile_cols = (self.imagewidth / jtw) != (self.imagewidth // jtw)  # noqa : E501
 
         num_jp2k_tile_rows = int(np.ceil(self.imagewidth / jtw))
         num_jp2k_tile_cols = int(np.ceil(self.imagewidth / jtw))
 
+        jp2k_tile_row = int(np.ceil(jp2k_tile_num // num_jp2k_tile_cols))
+        jp2k_tile_col = int(np.ceil(jp2k_tile_num % num_jp2k_tile_cols))
+
         num_tiff_tile_cols = int(np.ceil(self.imagewidth / self.tw))
 
-        partial_jp2_tile_rows = (self.imageheight / jth) != (self.imageheight // jth)  # noqa : E501
-        partial_jp2_tile_cols = (self.imagewidth / jtw) != (self.imagewidth // jtw)  # noqa : E501
-
-        rgba_tile = np.zeros((self.th, self.tw, 4), dtype=np.uint8)
-
-        self.logger.debug(f'image:  {self.imageheight} x {self.imagewidth}')
-        self.logger.debug(f'jptile:  {jth} x {jtw}')
-        self.logger.debug(f'ttile:  {self.th} x {self.tw}')
-
-        # populate the jp2k tile with tiff tiles
-        msg = (
-            f'Tile:  #{idx} '
-            f'row #{idx // num_jp2k_tile_cols} '
-            f'col #{idx % num_jp2k_tile_cols} '
-        )
-        self.logger.info(msg)
-
-        self.logger.debug(f'J tile row:  #{idx // num_jp2k_tile_cols}')
-        self.logger.debug(f'J tile col:  #{idx % num_jp2k_tile_cols}')
-
         jp2k_tile = np.zeros((jth, jtw, self.spp), dtype=self.dtype)
+        rgba_tile = np.zeros((self.th, self.tw, 4), dtype=np.uint8)
         tiff_tile = np.zeros(
             (self.th, self.tw, self.spp), dtype=self.dtype
         )
 
-        jp2k_tile_row = int(np.ceil(idx // num_jp2k_tile_cols))
-        jp2k_tile_col = int(np.ceil(idx % num_jp2k_tile_cols))
+        # coordinates of jp2k upper left corner
+        jp2k_ulx = jtw * jp2k_tile_col
+        jp2k_uly = jth * jp2k_tile_row
 
-        # the coordinates of the upper left pixel of the jp2k tile
-        july, julx = jp2k_tile_row * jth, jp2k_tile_col * jtw
+        for ttile_num in tiff_tile_nums:
 
-        # loop while the upper left corner of the current tiff file is
-        # less than the lower left corner of the jp2k tile
-        y = july
-
-        tiff_tile_uy = (y // self.th) * self.th
-        jp2k_tile_ly = min(july + jth, self.imageheight)
-
-        while tiff_tile_uy < jp2k_tile_ly:
-
-            x = julx
-
-            tilenum = libtiff.computeTile(self.tiff_fp, x, y, 0, 0)
-            self.logger.debug(f'TIFF tile # {tilenum}')
-
-            tiff_tile_row = int(np.ceil(tilenum // num_tiff_tile_cols))
-            tiff_tile_col = int(np.ceil(tilenum % num_tiff_tile_cols))
-
-            # the coordinates of the upper left pixel of the TIFF tile
+            # compute the coordinates of the upper left pixel of the TIFF tile
+            tiff_tile_row = int(np.ceil(ttile_num // num_tiff_tile_cols))
+            tiff_tile_col = int(np.ceil(ttile_num % num_tiff_tile_cols))
             tile_uly = tiff_tile_row * self.th
             tile_ulx = tiff_tile_col * self.tw
 
-            current_jp2k_tile_rx = min(julx + jtw, self.imagewidth)
+            if self.use_rgba_interface:
 
-            # process tiff tiles left-to-right
-            while tile_ulx < current_jp2k_tile_rx:
+                tiff_tile_row = int(np.ceil(ttile_num // num_tiff_tile_cols))
+                tiff_tile_col = int(np.ceil(ttile_num % num_tiff_tile_cols))
+                x = tiff_tile_col * self.tw
+                y = tiff_tile_row * self.th
 
-                if self.use_rgba_interface:
-                    libtiff.readRGBATile(
-                        self.tiff_fp, tile_ulx, tile_uly, rgba_tile
-                    )
+                libtiff.readRGBATile(self.tiff_fp, x, y, rgba_tile)
 
-                    # Must flip the tile upside down, see the man page for
-                    # TIFFReadRGBATile
-                    tiff_tile = np.flipud(rgba_tile[:, :, :3])
-                else:
-                    libtiff.readEncodedTile(
-                        self.tiff_fp, tilenum, tiff_tile
-                    )
+                # Must flip the tile upside down, see the man page for
+                # TIFFReadRGBATile
+                tiff_tile = np.flipud(rgba_tile[:, :, :3])
+            else:
+                libtiff.readEncodedTile(self.tiff_fp, ttile_num, tiff_tile)
 
-                # determine how to fit this tiff tile into the jp2k
-                # tile
-                #
-                # these are the section coordinates in image space
-                uly = max(july, tile_uly)
-                lly = min(july + jth, tile_uly + self.th)
+            # determine how to fit this tiff tile into the jp2k
+            # tile
+            #
+            # these are the section coordinates in image space
+            uly = max(jp2k_uly, tile_uly)
+            lly = min(jp2k_uly + jth, tile_uly + self.th)
 
-                ulx = max(julx, tile_ulx)
-                urx = min(julx + jtw, tile_ulx + self.tw)
+            ulx = max(jp2k_ulx, tile_ulx)
+            urx = min(jp2k_ulx + jtw, tile_ulx + self.tw)
 
-                # convert to JP2K tile coordinates
-                jrows = slice(uly % jth, (lly - 1) % jth + 1)
-                jcols = slice(ulx % jtw, (urx - 1) % jtw + 1)
+            # convert to JP2K tile coordinates
+            jrows = slice(uly % jth, (lly - 1) % jth + 1)
+            jcols = slice(ulx % jtw, (urx - 1) % jtw + 1)
 
-                # convert to TIFF tile coordinates
-                trows = slice(uly % self.th, (lly - 1) % self.th + 1)
-                tcols = slice(ulx % self.tw, (urx - 1) % self.tw + 1)
+            # convert to TIFF tile coordinates
+            trows = slice(uly % self.th, (lly - 1) % self.th + 1)
+            tcols = slice(ulx % self.tw, (urx - 1) % self.tw + 1)
 
-                jp2k_tile[jrows, jcols, :] = tiff_tile[trows, tcols, :]
+            jp2k_tile[jrows, jcols, :] = tiff_tile[trows, tcols, :]
 
-                # Get ready for the next TIFF tile to the right.
-
-                x += self.tw
-
-                # Update the tiff tile column.  The tiff tile row stays the
-                # same.
-                tilenum = libtiff.computeTile(self.tiff_fp, x, y, 0, 0)
-                tiff_tile_col += 1
-                tile_ulx = tiff_tile_col * self.tw
-
-                # the coordinates of the upper left pixel of the TIFF
-                # tile
-                current_jp2k_tile_rx = min(julx + jtw, self.imagewidth)
-
-            y += self.th
-
-            tiff_tile_uy = (y // self.th) * self.th
-            jp2k_tile_ly = min(july + jth, self.imageheight)
-
-        # last tile column?  If so, we may have a partial tile.
+        # last tile column?  last tile row?  If so, we may have a partial tile.
         if (
             partial_jp2_tile_cols
             and jp2k_tile_col == num_jp2k_tile_cols - 1
         ):
-            last_j2k_cols = slice(0, self.imagewidth - julx)
+            last_j2k_cols = slice(0, self.imagewidth - jp2k_ulx)
             jp2k_tile = jp2k_tile[:, last_j2k_cols, :].copy()
 
         if (
             partial_jp2_tile_rows
             and jp2k_tile_row == num_jp2k_tile_rows - 1
         ):
-            last_j2k_rows = slice(0, self.imageheight - july)
+            last_j2k_rows = slice(0, self.imageheight - jp2k_uly)
             jp2k_tile = jp2k_tile[last_j2k_rows, :, :].copy()
 
         return jp2k_tile
+
+    def _get_covering_tiles(self, jp2k_tile_num):
+        """
+        Construct the set of TIFF tiles that completely cover the jpeg2000
+        tile.
+        """
+        jth, jtw = self.tilesize
+
+        num_jp2k_tile_cols = int(np.ceil(self.imagewidth / jtw))
+
+        jp2k_tile_row = int(np.ceil(jp2k_tile_num // num_jp2k_tile_cols))
+        jp2k_tile_col = int(np.ceil(jp2k_tile_num % num_jp2k_tile_cols))
+
+        num_tiff_tile_cols = int(np.ceil(self.imagewidth / self.tw))
+
+        # Upper left corner of the jp2k tile
+        ulx = jtw * jp2k_tile_col
+        uly = jth * jp2k_tile_row
+        ul_tiff_tilenum = libtiff.computeTile(self.tiff_fp, ulx, uly, 0, 0)
+        left_tiff_tile_col = int(np.ceil(ulx // self.tw))
+
+        # Upper right corner of the jp2k tile
+        urx = min(ulx + jtw - 1, self.imagewidth - 1)
+        right_tiff_tile_col = int(np.ceil(urx // self.tw))
+
+        # lower left corner
+        llx = ulx
+        lly = min(uly + jth - 1, self.imageheight - 1)
+        ll_tiff_tilenum = libtiff.computeTile(self.tiff_fp, llx, lly, 0, 0)
+        lower_tiff_tile_row = int(np.ceil(ll_tiff_tilenum // num_tiff_tile_cols))  # noqa : E501
+
+        # lower right corner
+        lrx = min(llx + jtw - 1, self.imagewidth - 1)
+        lry = lly
+        lr_tiff_tilenum = libtiff.computeTile(self.tiff_fp, lrx, lry, 0, 0)
+
+        # collect the tiles
+        tiles = set()
+
+        for tile_num in range(ul_tiff_tilenum, lr_tiff_tilenum + 1):
+
+            tiff_tile_col = int(np.ceil(tile_num % num_tiff_tile_cols))
+
+            # The tile rows should always be good.  But we need to exclude
+            # any tiles based on the tile column.
+            if (
+                tiff_tile_col < left_tiff_tile_col
+                or tiff_tile_col > right_tiff_tile_col
+            ):
+                continue
+
+            # otherwise, this is a tile that intersects the jp2k tile
+            tiles.add(tile_num)
+
+        return tiles
 
     def _write_striped_tiff_to_tiled_jp2k(self):
         """The input TIFF image is striped and we are to create the output
