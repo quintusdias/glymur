@@ -5,6 +5,7 @@ import logging
 import pathlib
 import shutil
 import struct
+import sys
 from typing import List, Tuple
 import warnings
 
@@ -771,6 +772,11 @@ class Tiff2Jp2k(object):
             self.tiff_fp, self.imagewidth, self.imageheight
         )
 
+        # must reorder image planes on big-endian
+        if sys.byteorder == 'big':
+            image = np.flip(image, axis=2)
+
+        # potentially get rid of the alpha plane
         if self.spp < 4:
             image = image[:, :, :3]
 
@@ -813,10 +819,6 @@ class Tiff2Jp2k(object):
         num_tiff_tile_cols = int(np.ceil(self.imagewidth / self.tw))
 
         jp2k_tile = np.zeros((jth, jtw, self.spp), dtype=self.dtype)
-        rgba_tile = np.zeros((self.th, self.tw, 4), dtype=np.uint8)
-        tiff_tile = np.zeros(
-            (self.th, self.tw, self.spp), dtype=self.dtype
-        )
 
         # coordinates of jp2k upper left corner
         jp2k_ulx = jtw * jp2k_tile_col
@@ -832,6 +834,8 @@ class Tiff2Jp2k(object):
 
             if self.use_rgba_interface:
 
+                rgba_tile = np.zeros((self.th, self.tw, 4), dtype=np.uint8)
+
                 tiff_tile_row = int(np.ceil(ttile_num // num_tiff_tile_cols))
                 tiff_tile_col = int(np.ceil(ttile_num % num_tiff_tile_cols))
                 x = tiff_tile_col * self.tw
@@ -839,10 +843,24 @@ class Tiff2Jp2k(object):
 
                 libtiff.readRGBATile(self.tiff_fp, x, y, rgba_tile)
 
-                # Must flip the tile upside down, see the man page for
-                # TIFFReadRGBATile
-                tiff_tile = np.flipud(rgba_tile[:, :, :3])
+                # The RGBA interface requires some reordering.
+                if sys.byteorder == 'little':
+                    # image is upside down
+                    dims = [0]
+                else:
+                    # image is upside down, but in addition,
+                    # if big-endian, must also flip the image planes
+                    dims = [0, 2]
+                rgba_tile = np.flip(rgba_tile, axis=dims)
+
+                # We may need to remove the alpha plane.
+                tiff_tile = rgba_tile[:, :, :3]
+
             else:
+
+                tiff_tile = np.zeros(
+                    (self.th, self.tw, self.spp), dtype=self.dtype
+                )
                 libtiff.readEncodedTile(self.tiff_fp, ttile_num, tiff_tile)
 
             # determine how to fit this tiff tile into the jp2k
@@ -1034,13 +1052,15 @@ class Tiff2Jp2k(object):
         tiff_multi_strip = np.zeros(
             (num_rows, self.imagewidth, spp), dtype=dtype
         )
-        tiff_rgba_strip = np.zeros((self.rps, self.imagewidth, 4), dtype=dtype)
-        tiff_strip = np.zeros((self.rps, self.imagewidth, spp), dtype=dtype)
 
         # Fill the multi-strip
         for stripnum in range(top_strip_num, bottom_strip_num):
 
             if self.use_rgba_interface:
+
+                tiff_rgba_strip = np.zeros(
+                    (self.rps, self.imagewidth, 4), dtype=dtype
+                )
 
                 libtiff.readRGBAStrip(
                     self.tiff_fp, stripnum * self.rps, tiff_rgba_strip
@@ -1064,11 +1084,22 @@ class Tiff2Jp2k(object):
                     orows = slice(self.rps - bottom_row, self.rps)
                     tiff_rgba_strip[orows, :, :] = tiff_rgba_strip[irows, :, :]
 
-                # must flip the rows (!!) and get rid of the alpha
-                # plane
-                tiff_strip = np.flipud(tiff_rgba_strip[:, :, :self.spp])
+                # The rgba interface requires at least flipping the image
+                # upside down, and also reordering the planes on big endian
+                if sys.byteorder == 'little':
+                    dims = [0]
+                else:
+                    dims = [0, 2]
+                tiff_rgba_strip = np.flip(tiff_rgba_strip, axis=dims)
+
+                # potentially get rid of alpha plane
+                tiff_strip = tiff_rgba_strip[:, :, :self.spp]
 
             else:
+
+                tiff_strip = np.zeros(
+                   (self.rps, self.imagewidth, spp), dtype=dtype
+                )
 
                 libtiff.readEncodedStrip(
                     self.tiff_fp, stripnum, tiff_strip
