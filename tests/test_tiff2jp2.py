@@ -49,6 +49,7 @@ class TestSuite(fixtures.TestCommon):
         cls.moon_3stripped = _file_helper('moon3_stripped.tif')
         cls.moon3_partial_last_strip = _file_helper('moon3_partial_last_strip.tif')  # noqa : E501
         cls.ycbcr_bg = _file_helper('ycbcr_bg.tif')
+        cls.ycbcr_stripped = _file_helper('ycbcr_stripped.tif')
         cls.stripped = _file_helper('stripped.tif')
 
         test_tiff_dir = tempfile.mkdtemp()
@@ -748,6 +749,28 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].ysiz, 96)
         self.assertEqual(c.segment[1].xtsiz, 48)
         self.assertEqual(c.segment[1].ytsiz, 48)
+
+    def test_ycbcr_rgb_stripped(self):
+        """
+        SCENARIO:  Convert stripped YCBCR file to JP2.  The TIFF has 2 strips.
+
+        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
+        """
+        with Tiff2Jp2k(
+            self.ycbcr_stripped, self.temp_jp2_filename, tilesize=(256, 256),
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+        expected = skimage.io.imread(self.ycbcr_stripped, plugin='pil')
+        np.testing.assert_array_equal(actual, expected)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 512)
+        self.assertEqual(c.segment[1].ysiz, 512)
+        self.assertEqual(c.segment[1].xtsiz, 256)
+        self.assertEqual(c.segment[1].ytsiz, 256)
 
     def test_rgb_tiled_bigtiff(self):
         """

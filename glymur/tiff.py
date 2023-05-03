@@ -1006,12 +1006,14 @@ class Tiff2Jp2k(object):
             Holds all the TIFF strips that tightly encompass the current JP2K
             tile row.
         """
+        num_strips = libtiff.numberOfStrips(self.tiff_fp)
+
         # We need to create a TIFF "multi-strip" that can hold all of
         # the JP2K tiles in a JP2K tile row.
         y = july
         top_strip_num = libtiff.computeStrip(self.tiff_fp, y, 0)
 
-        # advance thru to the next tile row
+        # Find the strip number that is ONE MORE than the bottom strip.
         while (y // self.rps) * self.rps < min(july + jth, self.imageheight):
             y += self.rps
         bottom_strip_num = libtiff.computeStrip(self.tiff_fp, y, 0)
@@ -1023,28 +1025,48 @@ class Tiff2Jp2k(object):
         if self.use_rgba_interface:
             # always single byte samples of R, G, B, and A
             dtype = np.uint8
-            spp = 4
         else:
             dtype = self.dtype
-            spp = self.spp
+        spp = self.spp
 
-        tiff_strip = np.zeros((self.rps, self.imagewidth, spp), dtype=dtype)
+        # This may result in a multi-strip that has more rows than the jp2k
+        # tile
         tiff_multi_strip = np.zeros(
             (num_rows, self.imagewidth, spp), dtype=dtype
         )
+        tiff_rgba_strip = np.zeros((self.rps, self.imagewidth, 4), dtype=dtype)
+        tiff_strip = np.zeros((self.rps, self.imagewidth, spp), dtype=dtype)
 
-        # fill the multi-strip
+        # Fill the multi-strip
         for stripnum in range(top_strip_num, bottom_strip_num):
 
             if self.use_rgba_interface:
 
                 libtiff.readRGBAStrip(
-                    self.tiff_fp, stripnum * self.rps, tiff_strip
+                    self.tiff_fp, stripnum * self.rps, tiff_rgba_strip
                 )
+
+                # If a partial last strip...
+                if (
+                    stripnum == num_strips - 1
+                    and self.imageheight // self.rps != num_strips
+                ):
+                    # According to the man page:
+                    #
+                    # When reading a partial last strip in the file the last
+                    # line of the image  will  begin at the beginning of the
+                    # buffer.
+                    #
+                    # move the top strips down to the bottom, otherwise the
+                    # following flipping logic doesn't work.
+                    bottom_row = self.imageheight % self.rps
+                    irows = slice(0, bottom_row)
+                    orows = slice(self.rps - bottom_row, self.rps)
+                    tiff_rgba_strip[orows, :, :] = tiff_rgba_strip[irows, :, :]
 
                 # must flip the rows (!!) and get rid of the alpha
                 # plane
-                tiff_strip = np.flipud(tiff_strip[:, :, :self.spp])
+                tiff_strip = np.flipud(tiff_rgba_strip[:, :, :self.spp])
 
             else:
 
@@ -1056,6 +1078,7 @@ class Tiff2Jp2k(object):
             top_row = (stripnum - top_strip_num) * self.rps
             bottom_row = (stripnum - top_strip_num + 1) * self.rps
             rows = slice(top_row, bottom_row)
+
             tiff_multi_strip[rows, :, :] = tiff_strip
 
         return tiff_multi_strip
