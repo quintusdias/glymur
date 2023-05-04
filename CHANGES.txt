@@ -1,3 +1,7 @@
+May 03, 2023 - v0.12.5
+    Fix plane ordering on RGBA TIFFs on big-endian
+    Fix TIFF reads on partian final strips
+
 April 26, 2023 - v0.12.4
     Fix regression on default value of numres.
 
