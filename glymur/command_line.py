@@ -186,6 +186,11 @@ def tiff2jp2():
         '--tilesize', nargs=2, type=int, help=help, metavar=('NROWS', 'NCOLS')
     )
 
+    help = 'Use this many threads/cores.'
+    group1.add_argument(
+        '--num-threads', type=int, default=1, help=help,
+    )
+
     group2.add_argument('tifffile', help='Input TIFF file.')
     group2.add_argument('jp2kfile', help='Output JPEG 2000 file.')
 
@@ -221,6 +226,7 @@ def tiff2jp2():
         'exclude_tags': args.exclude_tags,
         'irreversible': args.irreversible,
         'numres': args.numres,
+        'num_threads': args.num_threads,
         'plt': args.plt,
         'prog': args.prog,
         'psnr': args.psnr,

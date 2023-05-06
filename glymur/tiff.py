@@ -7,14 +7,14 @@ import shutil
 import struct
 import sys
 from typing import List, Tuple
+from uuid import UUID
 import warnings
 
 # 3rd party library imports
 import numpy as np
-from uuid import UUID
 
 # local imports
-from glymur import Jp2k
+from glymur import Jp2k, set_option
 from glymur.core import SRGB, RESTRICTED_ICC_PROFILE
 from .lib import tiff as libtiff
 from .lib.tiff import DATATYPE2FMT
@@ -74,6 +74,7 @@ class Tiff2Jp2k(object):
         create_exif_uuid: bool = True,
         create_xmp_uuid: bool = True,
         exclude_tags: List[int | str] | None = None,
+        num_threads: int = 1,
         tilesize: Tuple[int, int] | None = None,
         include_icc_profile: bool = False,
         verbosity: int = logging.CRITICAL,
@@ -135,6 +136,9 @@ class Tiff2Jp2k(object):
 
         # assume false until we know otherwise
         self.use_rgba_interface = False
+
+        if num_threads > 1:
+            set_option('lib.num_threads', num_threads)
 
     def _process_exclude_tags(self, exclude_tags):
         """The list of tags to exclude may be mixed type (str or integer).

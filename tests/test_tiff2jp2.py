@@ -1526,6 +1526,23 @@ class TestSuite(fixtures.TestCommon):
         # the exif UUID box does not have the profile
         self.assertNotIn('ICCProfile', j.box[-1].data)
 
+    def test_num_threads(self):
+        """
+        Scenario:  The --num-threads option is given on the command line.
+
+        Expected Result.  No errors.
+        """
+        path = fixtures._path_to('basn6a08.tif')
+
+        sys.argv = [
+            '', str(path), str(self.temp_jp2_filename), '--num-threads', '2',
+        ]
+        command_line.tiff2jp2()
+
+        Jp2k(self.temp_jp2_filename)
+
+        self.assertTrue(True)
+
     def test_not_a_tiff(self):
         """
         Scenario:  The input "TIFF" is not actually a TIFF.  This used to
