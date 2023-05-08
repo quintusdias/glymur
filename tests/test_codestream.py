@@ -4,6 +4,7 @@ Test suite for codestream oddities
 """
 
 # Standard library imports ...
+import importlib.resources as ir
 from io import BytesIO
 import struct
 import unittest
@@ -19,11 +20,11 @@ class TestSuite(unittest.TestCase):
     """Test suite for ICC Profile code."""
 
     def setUp(self):
-        self.p0_03 = fixtures._path_to('p0_03.j2k')
-        self.p0_06 = fixtures._path_to('p0_06.j2k')
-        self.p1_06 = fixtures._path_to('p1_06.j2k')
-        self.issue142 = fixtures._path_to('issue142.j2k')
-        self.edf_c2_1178956 = fixtures._path_to('edf_c2_1178956.jp2')
+        self.p0_03 = ir.files('tests.data').joinpath('p0_03.j2k')
+        self.p0_06 = ir.files('tests.data').joinpath('p0_06.j2k')
+        self.p1_06 = ir.files('tests.data').joinpath('p1_06.j2k')
+        self.issue142 = ir.files('tests.data').joinpath('issue142.j2k')
+        self.edf_c2_1178956 = ir.files('tests.data').joinpath('edf_c2_1178956.jp2')  # noqa : E501
 
     def test_tlm_segment(self):
         """
@@ -31,7 +32,7 @@ class TestSuite(unittest.TestCase):
 
         In this case there's only a single tile.
         """
-        path = fixtures._path_to('p0_06.j2k')
+        path = ir.files('tests.data').joinpath('p0_06.j2k')
         j2k = Jp2k(path)
 
         buffer = b'\xffU\x00\x08\x00@\x00\x00YW'
@@ -49,7 +50,7 @@ class TestSuite(unittest.TestCase):
         """
         Verify parsing of the PPT segment
         """
-        path = fixtures._path_to('p1_06.j2k')
+        path = ir.files('tests.data').joinpath('p1_06.j2k')
         j2k = Jp2k(path)
         c = j2k.get_codestream(header_only=False)
         self.assertEqual(c.segment[6].zppt, 0)
@@ -58,7 +59,7 @@ class TestSuite(unittest.TestCase):
         """
         Verify parsing of the PLT segment
         """
-        path = fixtures._path_to('issue142.j2k')
+        path = ir.files('tests.data').joinpath('issue142.j2k')
         c = Jp2k(path).get_codestream(header_only=False)
         self.assertEqual(c.segment[7].zplt, 0)
         self.assertEqual(len(c.segment[7].iplt), 59)
@@ -67,11 +68,10 @@ class TestSuite(unittest.TestCase):
         """
         Verify parsing of the PPM segment
         """
-        path = fixtures._path_to('edf_c2_1178956.jp2')
         with warnings.catch_warnings():
             # Lots of things wrong with this file.
             warnings.simplefilter('ignore')
-            jp2 = Jp2k(path)
+            jp2 = Jp2k(self.edf_c2_1178956)
         c = jp2.get_codestream()
         self.assertEqual(c.segment[2].zppm, 0)
         self.assertEqual(len(c.segment[2].data), 9)
@@ -80,7 +80,7 @@ class TestSuite(unittest.TestCase):
         """
         Verify parsing of the CRG segment
         """
-        path = fixtures._path_to('p0_03.j2k')
+        path = ir.files('tests.data').joinpath('p0_03.j2k')
         j2k = Jp2k(path)
         c = j2k.get_codestream()
         self.assertEqual(c.segment[6].xcrg, (65424,))
@@ -90,7 +90,7 @@ class TestSuite(unittest.TestCase):
         """
         Verify parsing of the RGN segment
         """
-        path = fixtures._path_to('p0_06.j2k')
+        path = ir.files('tests.data').joinpath('p0_06.j2k')
         j2k = Jp2k(path)
         c = j2k.get_codestream()
         self.assertEqual(c.segment[-1].crgn, 0)

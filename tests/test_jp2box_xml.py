@@ -3,6 +3,7 @@
 Test suite specifically targeting the JP2 XML box layout.
 """
 # Standard library imports
+import importlib.resources as ir
 from io import BytesIO
 import pathlib
 import struct
@@ -158,7 +159,7 @@ class TestXML(fixtures.TestCommon):
 
         EXPECTED RESULT:  The xml box is validated.
         """
-        xmldata = fixtures._read_bytes('encoding_declaration.xml')
+        xmldata = ir.files('tests.data').joinpath('encoding_declaration.xml').read_bytes()  # noqa : E501
         with open(self.temp_jp2_filename, mode="wb") as ofile:
             with open(self.jp2file, mode='rb') as ifile:
                 ofile.write(ifile.read())

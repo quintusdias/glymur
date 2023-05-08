@@ -4,6 +4,7 @@ Test suite specifically targeting JPX box layout.
 """
 # Standard library imports ...
 import ctypes
+import importlib.resources as ir
 from io import BytesIO
 import shutil
 import struct
@@ -439,7 +440,7 @@ class TestJPX(fixtures.TestCommon):
 
         EXPECTED RESULT:  The box is parsed without error.
         """
-        path = fixtures._path_to('text_GBR.jp2')
+        path = ir.files('tests.data').joinpath('text_GBR.jp2')
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             j = Jp2k(path)
@@ -453,7 +454,7 @@ class TestJPX(fixtures.TestCommon):
 
         EXPECTED RESULT:  NotImplementedError
         """
-        path = fixtures._path_to('text_GBR.jp2')
+        path = ir.files('tests.data').joinpath('text_GBR.jp2')
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             j = Jp2k(path)

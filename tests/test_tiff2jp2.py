@@ -138,10 +138,9 @@ class TestSuite(fixtures.TestCommon):
             f.write(buffer)
 
             # XMP
-            xmp_path = fixtures._path_to('issue555.xmp')
-            with xmp_path.open() as f2:
-                xmp = f2.read()
-                xmp = xmp + '\0'
+            xmp_path = ir.files('tests.data').joinpath('issue555.xmp')
+            txt = xmp_path.read_text()
+            xmp = txt + '\0'
             buffer = struct.pack(
                 '<HHII', 700, 1, len(xmp), main_ifd_data_offset + 32
             )
@@ -1420,11 +1419,9 @@ class TestSuite(fixtures.TestCommon):
         ColourSpecificationBox.  There is a logging message at the info
         level stating that a color profile was consumed.
         """
-        path = fixtures._path_to('basn6a08.tif')
-
-        with path.open(mode='rb') as f:
-            buffer = f.read()
-            ifd = glymur.lib.tiff.tiff_header(buffer)
+        path = ir.files('tests.data').joinpath('basn6a08.tif')
+        buffer = path.read_bytes()
+        ifd = glymur.lib.tiff.tiff_header(buffer)
         icc_profile = bytes(ifd['ICCProfile'])
 
         with Tiff2Jp2k(
@@ -1453,11 +1450,9 @@ class TestSuite(fixtures.TestCommon):
         Expected Result.  The ICC profile is verified in the
         ColourSpecificationBox.
         """
-        path = fixtures._path_to('basn6a08.tif')
-
-        with path.open(mode='rb') as f:
-            buffer = f.read()
-            ifd = glymur.lib.tiff.tiff_header(buffer)
+        path = ir.files('tests.data').joinpath('basn6a08.tif')
+        buffer = path.read_bytes()
+        ifd = glymur.lib.tiff.tiff_header(buffer)
         icc_profile = bytes(ifd['ICCProfile'])
 
         sys.argv = [
@@ -1480,7 +1475,7 @@ class TestSuite(fixtures.TestCommon):
         profile).  The ICC profile tag will be present in the
         JpgTiffExif->JP2 UUID box.
         """
-        path = fixtures._path_to('basn6a08.tif')
+        path = ir.files('tests.data').joinpath('basn6a08.tif')
 
         sys.argv = ['', str(path), str(self.temp_jp2_filename)]
         command_line.tiff2jp2()
@@ -1505,7 +1500,7 @@ class TestSuite(fixtures.TestCommon):
         ColourSpecificationBox.  The ICC profile tag will be not present in the
         JpgTiffExif->JP2 UUID box.
         """
-        path = fixtures._path_to('basn6a08.tif')
+        path = ir.files('tests.data').joinpath('basn6a08.tif')
 
         sys.argv = [
             '', str(path), str(self.temp_jp2_filename),
@@ -1532,7 +1527,7 @@ class TestSuite(fixtures.TestCommon):
 
         Expected Result.  No errors.
         """
-        path = fixtures._path_to('basn6a08.tif')
+        path = ir.files('tests.data').joinpath('basn6a08.tif')
 
         sys.argv = [
             '', str(path), str(self.temp_jp2_filename), '--num-threads', '2',
@@ -1551,7 +1546,7 @@ class TestSuite(fixtures.TestCommon):
         Expected Result:  no segfault
         """
         with self.assertRaises(RuntimeError):
-            path = fixtures._path_to('simple_rdf.txt')
+            path = ir.files('tests.data').joinpath('simple_rdf.txt')
             with Tiff2Jp2k(path, self.temp_jp2_filename):
                 pass
 
@@ -1569,7 +1564,7 @@ class TestSuite(fixtures.TestCommon):
     def _test_colormap(self, tag):
 
         kwargs = {'tilesize': (32, 32), 'exclude_tags': [tag]}
-        path = fixtures._path_to('issue572.tif')
+        path = ir.files('tests.data').joinpath('issue572.tif')
         with Tiff2Jp2k(path, self.temp_jp2_filename, **kwargs) as p:
             p.run()
 
@@ -1614,7 +1609,7 @@ class TestSuite(fixtures.TestCommon):
         Expected Result:  The UUIDbox has StripOffsets, StripByteCounts, and
         ICCProfile.
         """
-        path = fixtures._path_to('basn6a08.tif')
+        path = ir.files('tests.data').joinpath('basn6a08.tif')
         with Tiff2Jp2k(path, self.temp_jp2_filename, exclude_tags=None) as p:
             p.run()
 
@@ -1635,7 +1630,7 @@ class TestSuite(fixtures.TestCommon):
         """
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
-            path = fixtures._path_to('albers27.tif')
+            path = ir.files('tests.data').joinpath('albers27.tif')
             with Tiff2Jp2k(path, self.temp_jp2_filename) as j:
                 j.run()
 
@@ -1655,7 +1650,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  RuntimeError
         """
         with self.assertRaises(RuntimeError):
-            path = fixtures._path_to('flower-separated-planar-08.tif')
+            path = ir.files('tests.data').joinpath('flower-separated-planar-08.tif')  # noqa : E501
             with Tiff2Jp2k(
                 path, self.temp_jp2_filename, tilesize=(64, 64)
             ) as j:
@@ -1669,7 +1664,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  RuntimeError
         """
         with self.assertRaises(RuntimeError):
-            path = fixtures._path_to('albers27-8.tif')
+            path = ir.files('tests.data').joinpath('albers27-8.tif')
             with Tiff2Jp2k(
                 path, self.temp_jp2_filename, tilesize=(256, 256),
             ) as j:
@@ -1682,7 +1677,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  no errors.
         """
-        path = fixtures._path_to('albers27-8.tif')
+        path = ir.files('tests.data').joinpath('albers27-8.tif')
         with Tiff2Jp2k(path, self.temp_jp2_filename) as j:
             j.run()
 

@@ -2,6 +2,7 @@
 Tests for JPEG 2000 with embedded geographic metadata.
 """
 # standard library imports
+import importlib.resources as ir
 import io
 import shutil
 from unittest import skipIf
@@ -40,7 +41,7 @@ class TestSuite(fixtures.TestCommon):
 
         uuidinfo = glymur.jp2box.UUIDInfoBox([ulst, debox])
 
-        uuid_data = fixtures._read_bytes('degenerate_geotiff.tif')
+        uuid_data = ir.files('tests.data').joinpath('degenerate_geotiff.tif').read_bytes()  # noqa : E501
         the_uuid = uuid.UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03')
         geotiff_uuid = glymur.jp2box.UUIDBox(the_uuid, uuid_data)
 
@@ -62,7 +63,7 @@ class TestSuite(fixtures.TestCommon):
         """
 
         # Load the xml
-        path = fixtures._path_to(module='tests.data.geo', filename='gml.xml')
+        path = ir.files('tests.data.geo').joinpath('gml.xml')
         xml = ET.parse(str(path))
 
         # Create a file with the asoc box (child boxes are a label box and an
@@ -96,7 +97,7 @@ class TestSuite(fixtures.TestCommon):
         about GDAL not being able to print the UUID data as expected, but that
         is no longer the case.
         """
-        box_data = fixtures._read_bytes('0220000800_uuid.dat')
+        box_data = ir.files('tests.data').joinpath('0220000800_uuid.dat').read_bytes()  # noqa : E501
         bf = io.BytesIO(box_data)
         bf.seek(8)
         box = UUIDBox.parse(bf, 0, 703)
@@ -181,7 +182,7 @@ class TestSuite(fixtures.TestCommon):
         emitted directly from the TIFF library via GDAL, so they are no longer
         catchable.  No warnings.
         """
-        path = fixtures._path_to('issue398.dat')
+        path = ir.files('tests.data').joinpath('issue398.dat')
         with path.open('rb') as f:
             f.seek(8)
             box = glymur.jp2box.UUIDBox.parse(f, 0, 380)

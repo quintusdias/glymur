@@ -2,6 +2,7 @@
 """
 # Standard library imports ...
 import doctest
+import importlib.resources as ir
 from io import BytesIO
 import os
 import pathlib
@@ -28,7 +29,6 @@ from glymur.jp2box import (
 from glymur.core import COLOR, OPACITY, SRGB, GREYSCALE
 from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE
 from . import fixtures
-from .fixtures import MetadataBase
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
@@ -376,7 +376,7 @@ class TestFileTypeBox(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        path = fixtures._path_to('issue396.jp2')
+        path = ir.files('tests.data').joinpath('issue396.jp2')
         with warnings.catch_warnings():
             # Lots of things wrong with this file.
             warnings.simplefilter('ignore')
@@ -1175,8 +1175,21 @@ class TestJp2Boxes(fixtures.TestCommon):
         )
 
 
-class TestRepr(MetadataBase):
+class TestRepr(fixtures.TestCommon):
     """Tests for __repr__ methods."""
+
+    def _verify_filetype_box(self, actual, expected):
+        """
+        All JP2 files should have a brand reading 'jp2 ' and just a single
+        entry in the compatibility list, also 'jp2 '.  JPX files can have more
+        compatibility items.
+        """
+        self.assertEqual(actual.brand, expected.brand)
+        self.assertEqual(actual.minor_version, expected.minor_version)
+        self.assertEqual(actual.minor_version, 0)
+        for cl in expected.compatibility_list:
+            self.assertIn(cl, actual.compatibility_list)
+
     def test_default_jp2k(self):
         """Should be able to eval a JPEG2000SignatureBox"""
         jp2k = glymur.jp2box.JPEG2000SignatureBox()
@@ -1265,7 +1278,7 @@ class TestRepr(MetadataBase):
 
         # Test the representation instantiation.
         newbox = eval(repr(ftyp))
-        self.verify_filetype_box(newbox, FileTypeBox())
+        self._verify_filetype_box(newbox, FileTypeBox())
 
     def test_colourspecification_box(self):
         """Verify __repr__ method on colr box."""

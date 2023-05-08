@@ -3,6 +3,7 @@ Test suite for warnings issued by glymur.
 """
 # Standard library imports
 import codecs
+import importlib.resources as ir
 from io import BytesIO
 import struct
 import unittest
@@ -42,7 +43,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  A warning is issued.  In this case we also end up
         erroring out anyway since we don't get a valid FileType box.
         """
-        path = fixtures._path_to('issue438.jp2')
+        path = ir.files('tests.data').joinpath('issue438.jp2')
         with self.assertWarns(UserWarning):
             with self.assertRaises(InvalidJp2kError):
                 Jp2k(path)
@@ -455,7 +456,7 @@ class TestSuite(fixtures.TestCommon):
 
     def test_colr_with_cspace_and_icc(self):
         """Colour specification boxes can't have both."""
-        buffer = fixtures._read_bytes('sgray.icc')
+        buffer = ir.files('tests.data').joinpath('sgray.icc').read_bytes()
 
         with self.assertWarns(UserWarning):
             colorspace = glymur.core.SRGB

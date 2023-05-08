@@ -5,6 +5,7 @@ Test suite specifically targeting ICC profiles
 
 # Standard library imports ...
 from datetime import datetime
+import importlib.resources as ir
 import struct
 import tempfile
 import unittest
@@ -47,7 +48,7 @@ class TestColourSpecificationBox(fixtures.TestCommon):
             num_components=num_components
         )
 
-        self.icc_profile = fixtures._read_bytes('sgray.icc')
+        self.icc_profile = ir.files('tests.data').joinpath('sgray.icc').read_bytes()  # noqa : E501
 
     def test_bad_method_printing(self):
         """
@@ -57,7 +58,7 @@ class TestColourSpecificationBox(fixtures.TestCommon):
         EXPECTED RESULT:  Warnings are issued.  Printing the string
         representation should not error out.
         """
-        path = fixtures._path_to('issue405.dat')
+        path = ir.files('tests.data').joinpath('issue405.dat')
         with path.open('rb') as f:
             f.seek(8)
             with warnings.catch_warnings():
@@ -152,7 +153,7 @@ class TestSuite(unittest.TestCase):
     """Test suite for ICC Profile code."""
 
     def setUp(self):
-        self.buffer = fixtures._read_bytes('sgray.icc')
+        self.buffer = ir.files('tests.data').joinpath('sgray.icc').read_bytes()
 
     def test_bad_rendering_intent(self):
         """
@@ -183,7 +184,7 @@ class TestSuite(unittest.TestCase):
 
         EXPECTED RESULT:  Verify the ICC profile metadata.
         """
-        path = fixtures._path_to('text_GBR.jp2')
+        path = ir.files('tests.data').joinpath('text_GBR.jp2')
         with self.assertWarns(UserWarning):
             # The brand is wrong, this is JPX, not JP2.
             j = Jp2k(path)

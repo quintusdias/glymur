@@ -2,6 +2,7 @@
 """Test suite for printing.
 """
 # Standard library imports
+import importlib.resources as ir
 import io
 import shutil
 import struct
@@ -204,7 +205,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  Should not error out.  Verify the UUID type.  Verify
         the existance of one of the "Exif.Photo" tags.
         """
-        box_data = fixtures._read_bytes('issue549.dat')
+        box_data = ir.files('tests.data').joinpath('issue549.dat').read_bytes()
         bf = io.BytesIO(box_data)
         box = UUIDBox.parse(bf, 0, len(box_data))
 
@@ -224,7 +225,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        box_data = fixtures._read_bytes('issue549.dat')
+        box_data = ir.files('tests.data').joinpath('issue549.dat').read_bytes()
         bf = io.BytesIO(box_data[:16] + box_data[20:])
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -241,7 +242,12 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  The new last box in the JP2 file is UUID.
         """
         the_uuid = uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
-        raw_data = fixtures.SIMPLE_RDF.encode('utf-8')
+        raw_data = (
+            ir.files('tests.data')
+              .joinpath('simple_rdf.txt')
+              .read_text()
+              .encode('utf-8')
+        )
 
         shutil.copyfile(self.jp2file, self.temp_jp2_filename)
 

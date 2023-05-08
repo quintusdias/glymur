@@ -3,6 +3,7 @@
 Test suite for printing.
 """
 # Standard library imports ...
+import importlib.resources as ir
 from io import BytesIO, StringIO
 import struct
 import sys
@@ -56,7 +57,7 @@ class TestPrinting(fixtures.TestCommon):
         """
         Invalid channel type should not prevent printing.
         """
-        path = fixtures._path_to('issue392.jp2')
+        path = ir.files('tests.data').joinpath('issue392.jp2')
         with warnings.catch_warnings():
             warnings.simplefilter('ignore')
             str(Jp2k(path))
@@ -147,37 +148,57 @@ class TestPrinting(fixtures.TestCommon):
         EXPECTED RESULT:  The string representation of the XML box matches
         expectations.
         """
-        elt = ET.fromstring(fixtures.FILE1_XML)
+        s = ir.files('tests.data').joinpath('file1_xml.txt').read_text()
+        elt = ET.fromstring(s)
         xml = ET.ElementTree(elt)
         box = glymur.jp2box.XMLBox(xml=xml, length=439, offset=36)
         actual = str(box)
-        expected = fixtures.FILE1_XML_BOX
+        expected = (
+            ir.files('tests.data')
+              .joinpath('file1_xml_box.txt')
+              .read_text()
+              .rstrip()
+        )
         self.assertEqual(actual, expected)
 
     def test_xml_short_option(self):
         """
         verify printing of XML box when print.xml option set to false
         """
-        elt = ET.fromstring(fixtures.FILE1_XML)
+        s = ir.files('tests.data').joinpath('file1_xml.txt').read_text()
+        elt = ET.fromstring(s)
         xml = ET.ElementTree(elt)
         box = glymur.jp2box.XMLBox(xml=xml, length=439, offset=36)
         glymur.set_option('print.short', True)
 
         actual = str(box)
-        expected = fixtures.FILE1_XML_BOX.splitlines()[0]
+        expected = (
+            ir.files('tests.data')
+              .joinpath('file1_xml_box.txt')
+              .read_text()
+              .rstrip()
+              .splitlines()[0]
+        )
         self.assertEqual(actual, expected)
 
     def test_xml_no_xml_option(self):
         """
         verify printing of XML box when print.xml option set to false
         """
-        elt = ET.fromstring(fixtures.FILE1_XML)
+        s = ir.files('tests.data').joinpath('file1_xml.txt').read_text()
+        elt = ET.fromstring(s)
         xml = ET.ElementTree(elt)
         box = glymur.jp2box.XMLBox(xml=xml, length=439, offset=36)
 
         glymur.set_option('print.xml', False)
         actual = str(box)
-        expected = fixtures.FILE1_XML_BOX.splitlines()[0]
+        expected = (
+            ir.files('tests.data')
+              .joinpath('file1_xml_box.txt')
+              .read_text()
+              .rstrip()
+              .splitlines()[0]
+        )
         self.assertEqual(actual, expected)
 
     def test_xml_no_xml(self):
@@ -218,7 +239,12 @@ class TestPrinting(fixtures.TestCommon):
             segment = glymur.codestream.CODsegment(*pargs, length=12,
                                                    offset=174)
         actual = str(segment)
-        expected = fixtures.ISSUE186_PROGRESSION_ORDER
+        expected = (
+            ir.files('tests.data')
+              .joinpath('issue186_progression_order.txt')
+              .read_text()
+              .rstrip()
+        )
         self.assertEqual(actual, expected)
 
     def test_bad_wavelet_transform(self):
@@ -681,7 +707,12 @@ class TestPrinting(fixtures.TestCommon):
         j = glymur.Jp2k(self.jp2file)
         actual = str(j.box[3])
 
-        expected = fixtures.NEMO_XMP_BOX
+        expected = (
+            ir.files('tests.data')
+              .joinpath('nemo_xmp_box.txt')
+              .read_text()
+              .rstrip()
+        )
         self.assertEqual(actual, expected)
 
     def test_codestream(self):
@@ -1295,7 +1326,7 @@ class TestPrinting(fixtures.TestCommon):
 
         EXPECTED RESULT:  validate the string representation
         """
-        path = fixtures._path_to('text_GBR.jp2')
+        path = ir.files('tests.data').joinpath('text_GBR.jp2')
         with self.assertWarns(UserWarning):
             # The brand is wrong, this is JPX, not JP2.
             j = Jp2k(path)
@@ -1337,11 +1368,18 @@ class TestPrinting(fixtures.TestCommon):
                                                   vendor_feature, vendor_mask,
                                                   length=109, offset=40)
         actual = str(box)
-        self.assertEqual(actual, fixtures.TEXT_GBR_RREQ)
+        expected = (
+            ir.files('tests.data')
+              .joinpath('text_GBR_rreq.txt')
+              .read_text()
+              .rstrip()
+        )
+        self.assertEqual(actual, expected)
 
         glymur.set_option('print.short', True)
         actual = str(box)
-        self.assertEqual(actual, fixtures.TEXT_GBR_RREQ.splitlines()[0])
+        expected = expected.splitlines()[0]
+        self.assertEqual(actual, expected)
 
     def test_bom(self):
         """
@@ -1379,7 +1417,12 @@ class TestPrinting(fixtures.TestCommon):
         codestream = j.get_codestream()
 
         actual = str(codestream.segment[2])
-        expected = fixtures.MULTIPLE_PRECINCT_SIZE
+        expected = (
+            ir.files('tests.data')
+              .joinpath('multiple_precinct_size.txt')
+              .read_text()
+              .rstrip()
+        )
         self.assertEqual(actual, expected)
 
     def test_old_short_option(self):
@@ -1396,7 +1439,12 @@ class TestPrinting(fixtures.TestCommon):
         # Get rid of leading "File" line, as that is volatile.
         actual = '\n'.join(actual.splitlines()[1:])
 
-        expected = fixtures.NEMO_DUMP_SHORT
+        expected = (
+            ir.files('tests.data')
+              .joinpath('nemo_dump_short.txt')
+              .read_text()
+              .rstrip()
+        )
         self.assertEqual(actual, expected)
 
         with warnings.catch_warnings():
@@ -1419,7 +1467,13 @@ class TestPrinting(fixtures.TestCommon):
         actual = '\n'.join(actual.splitlines()[1:])
 
         # shave off the XML and non-main-header segments
-        expected = fixtures.NEMO_DUMP_NO_XML
+        expected = (
+            ir.files('tests.data')
+              .joinpath('nemo_dump_no_xml.txt')
+              .read_text()
+              .rstrip()
+        )
+        self.assertEqual(actual, expected)
         self.assertEqual(actual, expected)
 
         with warnings.catch_warnings():
@@ -1440,7 +1494,13 @@ class TestPrinting(fixtures.TestCommon):
         actual = '\n'.join(actual.splitlines()[1:])
 
         # shave off the XML and non-main-header segments
-        expected = fixtures.NEMO_DUMP_NO_XML
+        expected = (
+            ir.files('tests.data')
+              .joinpath('nemo_dump_no_xml.txt')
+              .read_text()
+              .rstrip()
+        )
+        self.assertEqual(actual, expected)
         self.assertEqual(actual, expected)
 
         opt = glymur.get_option('print.xml')
@@ -1460,7 +1520,12 @@ class TestPrinting(fixtures.TestCommon):
         # Get rid of the file line, that's kind of volatile.
         actual = '\n'.join(actual.splitlines()[1:])
 
-        expected = fixtures.NEMO_DUMP_NO_CODESTREAM
+        expected = (
+            ir.files('tests.data')
+              .joinpath('nemo_dump_no_codestream.txt')
+              .read_text()
+              .rstrip()
+        )
         self.assertEqual(actual, expected)
 
         with warnings.catch_warnings():
@@ -1478,7 +1543,12 @@ class TestPrinting(fixtures.TestCommon):
         # Get rid of the file line
         actual = '\n'.join(str(jp2).splitlines()[1:])
 
-        expected = fixtures.NEMO_DUMP_NO_CODESTREAM
+        expected = (
+            ir.files('tests.data')
+              .joinpath('nemo_dump_no_codestream.txt')
+              .read_text()
+              .rstrip()
+        )
         self.assertEqual(actual, expected)
 
         opt = glymur.get_option('print.codestream')
@@ -1494,7 +1564,13 @@ class TestPrinting(fixtures.TestCommon):
         # Get rid of the file line
         actual = '\n'.join(str(jp2).splitlines()[1:])
 
-        expected = fixtures.NEMO
+        expected = (
+            ir.files('tests.data')
+              .joinpath('nemo.txt')
+              .read_text()
+              .rstrip()
+        )
+        self.assertEqual(actual, expected)
         self.assertEqual(actual, expected)
 
         opt = glymur.get_option('print.codestream')
@@ -1506,29 +1582,34 @@ class TestPrinting(fixtures.TestCommon):
 
         EXPECTED RESULT:  validate the string representation
         """
-        path = fixtures._path_to('p0_02.j2k')
+        path = ir.files('tests.data').joinpath('p0_02.j2k')
         j = Jp2k(path)
         actual = str(j.codestream.segment[6])
         expected = '0xff30 marker segment @ (132, 0)'
         self.assertEqual(actual, expected)
 
     def test_scalar_implicit_quantization_file(self):
-        path = fixtures._path_to('p0_03.j2k')
+        path = ir.files('tests.data').joinpath('p0_03.j2k')
         j = Jp2k(path)
         actual = str(j.codestream.segment[3])
         self.assertIn('scalar implicit', actual)
 
     def test_scalar_explicit_quantization_file(self):
-        path = fixtures._path_to('p0_06.j2k')
+        path = ir.files('tests.data').joinpath('p0_06.j2k')
         j = Jp2k(path)
         actual = str(j.codestream.segment[3])
         self.assertIn('scalar explicit', actual)
 
     def test_non_default_precinct_size(self):
-        path = fixtures._path_to('p1_07.j2k')
+        path = ir.files('tests.data').joinpath('p1_07.j2k')
         j = Jp2k(path)
         actual = str(j.codestream.segment[3])
-        expected = fixtures.P1_07
+        expected = (
+            ir.files('tests.data')
+              .joinpath('p1_07.txt')
+              .read_text()
+              .rstrip()
+        )
         self.assertEqual(actual, expected)
 
 
@@ -1560,8 +1641,13 @@ class TestJp2dump(unittest.TestCase):
         actual = self.run_jp2dump(['', self.jp2file])
 
         # shave off the  non-main-header segments
-        lines = fixtures.NEMO.split('\n')
-        expected = lines[0:140]
+        expected = (
+            ir.files('tests.data')
+              .joinpath('nemo.txt')
+              .read_text()
+              .rstrip()
+              .split('\n')[:140]
+        )
         expected = '\n'.join(expected)
         self.assertEqual(actual, expected)
 
@@ -1570,8 +1656,13 @@ class TestJp2dump(unittest.TestCase):
         actual = self.run_jp2dump(['', '-c', '0', self.jp2file])
 
         # shave off the codestream details
-        lines = fixtures.NEMO.split('\n')
-        expected = lines[0:105]
+        expected = (
+            ir.files('tests.data')
+              .joinpath('nemo.txt')
+              .read_text()
+              .rstrip()
+              .split('\n')[:105]
+        )
         expected = '\n'.join(expected)
         self.assertEqual(actual, expected)
 
@@ -1580,15 +1671,25 @@ class TestJp2dump(unittest.TestCase):
         actual = self.run_jp2dump(['', '-c', '1', self.jp2file])
 
         # shave off the  non-main-header segments
-        lines = fixtures.NEMO.split('\n')
-        expected = lines[0:140]
+        expected = (
+            ir.files('tests.data')
+              .joinpath('nemo.txt')
+              .read_text()
+              .rstrip()
+              .split('\n')[:140]
+        )
         expected = '\n'.join(expected)
         self.assertEqual(actual, expected)
 
     def test_jp2_codestream_2(self):
         """Verify dumping with -c 2, print entire jp2 jacket, codestream."""
         actual = self.run_jp2dump(['', '-c', '2', self.jp2file])
-        expected = fixtures.NEMO
+        expected = (
+            ir.files('tests.data')
+              .joinpath('nemo.txt')
+              .read_text()
+              .rstrip()
+        )
         self.assertEqual(actual, expected)
 
     def test_j2k_codestream_0(self):
@@ -1610,7 +1711,12 @@ class TestJp2dump(unittest.TestCase):
             command_line.main()
             actual = stdout.getvalue().strip()
 
-        expected = fixtures.GOODSTUFF_CODESTREAM_HEADER
+        expected = (
+            ir.files('tests.data')
+              .joinpath('goodstuff_codestream_header.txt')
+              .read_text()
+              .rstrip()
+        )
         self.assertEqual(expected, actual)
 
     def test_j2k_codestream_2(self):
@@ -1620,7 +1726,12 @@ class TestJp2dump(unittest.TestCase):
             command_line.main()
             actual = fake_out.getvalue().strip()
 
-        expected = fixtures.GOODSTUFF_WITH_FULL_HEADER
+        expected = (
+            ir.files('tests.data')
+              .joinpath('goodstuff_with_full_header.txt')
+              .read_text()
+              .rstrip()
+        )
         self.assertIn(expected, actual)
 
     def test_codestream_invalid(self):
@@ -1633,15 +1744,26 @@ class TestJp2dump(unittest.TestCase):
         """Verify dumping with -s, short option."""
         actual = self.run_jp2dump(['', '-s', self.jp2file])
 
-        self.assertEqual(actual, fixtures.NEMO_DUMP_SHORT)
+        expected = (
+            ir.files('tests.data')
+              .joinpath('nemo_dump_short.txt')
+              .read_text()
+              .rstrip()
+        )
+        self.assertEqual(actual, expected)
 
     def test_suppress_xml(self):
         """Verify dumping with -x, suppress XML."""
         actual = self.run_jp2dump(['', '-x', self.jp2file])
 
         # shave off the XML and non-main-header segments
-        lines = fixtures.NEMO.split('\n')
-        expected = lines[0:18]
+        lines = ir.files('tests.data') \
+                  .joinpath('nemo.txt') \
+                  .read_text() \
+                  .rstrip() \
+                  .splitlines()
+
+        expected = lines[:18]
         expected.extend(lines[104:140])
         expected = '\n'.join(expected)
         self.assertEqual(actual, expected)
@@ -1653,7 +1775,7 @@ class TestJp2dump(unittest.TestCase):
         EXPECTED RESULT:  The warning is suppressed until the very end of the
         output.
         """
-        path = fixtures._path_to('edf_c2_1178956.jp2')
+        path = ir.files('tests.data').joinpath('edf_c2_1178956.jp2')
         actual = self.run_jp2dump(['', '-x', str(path)])
         lines = actual.splitlines()
 

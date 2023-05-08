@@ -16,7 +16,7 @@ from glymur.codestream import SIZsegment
 from . import fixtures
 
 
-class CinemaBase(fixtures.MetadataBase):
+class CinemaBase(fixtures.TestCommon):
 
     def verify_cinema_cod(self, cod_segment):
 
@@ -27,6 +27,16 @@ class CinemaBase(fixtures.MetadataBase):
         self.assertEqual(cod_segment.mct, 1)
         self.assertEqual(cod_segment.num_res, 5)  # levels
         self.assertEqual(tuple(cod_segment.code_block_size), (32, 32))
+
+    def _verify_siz_segment(self, actual, expected):
+        """
+        Verify the fields of the SIZ segment.
+        """
+        for field in [
+            'rsiz', 'xsiz', 'ysiz', 'xosiz', 'yosiz', 'xtsiz', 'ytsiz',
+            'xtosiz', 'ytosiz', 'bitdepth', 'xrsiz', 'yrsiz'
+        ]:
+            self.assertEqual(getattr(actual, field), getattr(expected, field))
 
     def check_cinema4k_codestream(self, codestream, image_size):
 
@@ -40,7 +50,7 @@ class CinemaBase(fixtures.MetadataBase):
             'signed': (False, False, False),
             'xyrsiz': [(1, 1, 1), (1, 1, 1)]
         }
-        self.verifySizSegment(codestream.segment[1], SIZsegment(**kwargs))
+        self._verify_siz_segment(codestream.segment[1], SIZsegment(**kwargs))
 
         self.verify_cinema_cod(codestream.segment[2])
 
@@ -56,7 +66,7 @@ class CinemaBase(fixtures.MetadataBase):
             'signed': (False, False, False),
             'xyrsiz': [(1, 1, 1), (1, 1, 1)]
         }
-        self.verifySizSegment(codestream.segment[1], SIZsegment(**kwargs))
+        self._verify_siz_segment(codestream.segment[1], SIZsegment(**kwargs))
 
         self.verify_cinema_cod(codestream.segment[2])
 

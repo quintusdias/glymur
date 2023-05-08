@@ -3,6 +3,7 @@ Tests for libopenjp2 wrapping functions.
 """
 # Standard library imports ...
 from contextlib import ExitStack
+import importlib.resources as ir
 from io import StringIO
 import unittest
 from unittest.mock import patch
@@ -599,7 +600,12 @@ class TestPrintingOpenjp2(unittest.TestCase):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(dparams)
             actual = fake_out.getvalue().strip()
-        expected = fixtures.DECOMPRESSION_PARAMETERS_TYPE
+        expected = (
+            ir.files('tests.data')
+              .joinpath('decompression_parameters_type.txt')
+              .read_text()
+              .rstrip()
+        )
         self.assertEqual(actual, expected)
 
     def test_progression_order_changes(self):
@@ -608,7 +614,12 @@ class TestPrintingOpenjp2(unittest.TestCase):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(ptype)
             actual = fake_out.getvalue().strip()
-        expected = fixtures.DEFAULT_PROGRESSION_ORDER_CHANGES_TYPE
+        expected = (
+            ir.files('tests.data')
+              .joinpath('default_progression_order_changes_type.txt')
+              .read_text()
+              .rstrip()
+        )
         self.assertEqual(actual, expected)
 
     def test_default_compression_parameters(self):
@@ -617,5 +628,10 @@ class TestPrintingOpenjp2(unittest.TestCase):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(cparams)
             actual = fake_out.getvalue().strip()
-        expected = fixtures.DEFAULT_COMPRESSION_PARAMETERS_TYPE
+        expected = (
+            ir.files('tests.data')
+              .joinpath('default_compression_parameters_type.txt')
+              .read_text()
+              .rstrip()
+        )
         self.assertEqual(actual, expected)
