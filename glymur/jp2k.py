@@ -36,19 +36,100 @@ from .lib import openjp2 as opj2
 
 
 class Jp2k(Jp2kBox):
-    """JPEG 2000 file.
+    """Access JPEG 2000 files.
+
+    Parameters
+    ----------
+    filename : str or path
+        The path to JPEG 2000 file.  If you are only reading JPEG 2000 files,
+        this is the only argument you need to supply.
+    data : np.ndarray, optional
+        Image data to be written to file.
+    shape : Tuple[int, int, ...], optional
+        Size of image data, only required when image_data is not provided.
+    capture_resolution : Tuple[int, int], optional
+        Capture solution (VRES, HRES).  This appends a capture resolution
+        box onto the end of the JP2 file when it is created.
+    cbsize : Tuple[int, int], optional
+        Code block size (NROWS, NCOLS)
+    cinema2k : int, optional
+        Frames per second, either 24 or 48.
+    cinema4k : bool, optional
+        Set to True to specify Cinema4K mode, defaults to false.
+    colorspace : {'rgb', 'gray'}, optional
+        The image color space.  If not supplied, it will be inferred.
+    cratios : Tuple[int, ...], optional
+        Compression ratios for successive layers.
+    display_resolution : Tuple[int, int], optional
+        Display solution (VRES, HRES).  This appends a display resolution
+        box onto the end of the JP2 file when it is created.
+    eph : bool, optional
+        If true, write EPH marker after each header packet.
+    grid_offset : Tuple[int, int], optional
+        Offset (DY, DX) of the origin of the image in the reference grid.
+    irreversible : bool, optional
+        If true, use the irreversible DWT 9-7 transform.
+    mct : bool, optional
+        Usage of the multi component transform to write an image.  If not
+        specified, defaults to True if the color space is RGB, false if the
+        color space is grayscale.
+    modesw : int, optional
+        mode switch
+            1 = BYPASS(LAZY)
+            2 = RESET
+            4 = RESTART(TERMALL)
+            8 = VSC
+            16 = ERTERM(SEGTERM)
+            32 = SEGMARK(SEGSYM)
+    numres : int, optional
+        Number of resolutions, defaults to 6.  This number will be equal to
+        the number of thumbnails plus the original image.
+    plt : bool, optional
+        Generate PLT markers.
+    prog : {'LRCP', 'RLCP', 'RPCL', 'PCRL', 'CPRL'}, optional
+        Progression order.  If not specified, the chosen progression order
+        will be 'CPRL' if either cinema2k or cinema4k is specified,
+        otherwise defaulting to 'LRCP'.
+    psizes : List[Tuple[int, int]], optional
+        Precinct sizes, each precinct size tuple is defined as
+        (height, width).
+    psnr : Tuple[int, ...] or None
+        Different PSNR for successive layers.  If the last layer is desired
+        to be lossless, specify 0 for the last value.
+    sop : bool, optional
+        If true, write SOP marker before each packet.
+    subsam : Tuple[int, int], optional
+        Subsampling factors (dy, dx).
+    tilesize : Tuple[int, int], optional
+        Tile size in terms of (numrows, numcols), not (X, Y).
+    tlm : bool, optional
+        Generate TLM markers.
+    verbose : bool, optional
+        Print informational messages produced by the OpenJPEG library.
 
     Attributes
     ----------
-    codestream
-    decoded_components
-    dtype
-    ignore_pclr_cmap_cdef
-    layer
-    ndim
-    shape
-    tilesize
-    verbose
+    codestream : glymur.codestream.Codestream
+        Contains header information for the codestream.
+    decoded_components : bool
+        If set, decode only these components.  The MCT will not be used.
+    dtype : numpy dtype object
+        Describes the format of the elements in the image data.
+    ignore_pclr_cmap_cdef : bool
+        Specifies whether or not to ignore the pclr, cmap, or cdef
+        boxes during any color transformation, defaults to False.
+    layer : int
+        Zero-based number of quality layer to decode.  Defaults to 0, the
+        highest quality layer.
+    ndim : ndim
+        The image data array's number of dimensions.
+    shape : tuple of ints
+        Shape of the image data array.
+    tilesize : 2-tuple of ints
+        Height and width of the tiles that make up the image.
+    verbose : bool
+        Specifies whether or not to print informational messages
+        produced by the OpenJPEG library.
     filename : str
         The path to the JPEG 2000 file.
     box : sequence
@@ -119,79 +200,6 @@ class Jp2k(Jp2kBox):
         tlm: bool = False,
         verbose: bool = False,
     ):
-        """Construct a Jp2k object.
-
-        If you are reading a JP2/J2K file, you only need to supply the filename
-        argument.
-
-        Parameters
-        ----------
-        filename : str or path
-            The path to JPEG 2000 file.
-        data : np.ndarray, optional
-            Image data to be written to file.
-        shape : Tuple[int, int, ...], optional
-            Size of image data, only required when image_data is not provided.
-        capture_resolution : Tuple[int, int], optional
-            Capture solution (VRES, HRES).  This appends a capture resolution
-            box onto the end of the JP2 file when it is created.
-        cbsize : Tuple[int, int], optional
-            Code block size (NROWS, NCOLS)
-        cinema2k : int, optional
-            Frames per second, either 24 or 48.
-        cinema4k : bool, optional
-            Set to True to specify Cinema4K mode, defaults to false.
-        colorspace : {'rgb', 'gray'}, optional
-            The image color space.  If not supplied, it will be inferred.
-        cratios : Tuple[int, ...], optional
-            Compression ratios for successive layers.
-        display_resolution : Tuple[int, int], optional
-            Display solution (VRES, HRES).  This appends a display resolution
-            box onto the end of the JP2 file when it is created.
-        eph : bool, optional
-            If true, write EPH marker after each header packet.
-        grid_offset : Tuple[int, int], optional
-            Offset (DY, DX) of the origin of the image in the reference grid.
-        irreversible : bool, optional
-            If true, use the irreversible DWT 9-7 transform.
-        mct : bool, optional
-            Usage of the multi component transform to write an image.  If not
-            specified, defaults to True if the color space is RGB, false if the
-            color space is grayscale.
-        modesw : int, optional
-            mode switch
-                1 = BYPASS(LAZY)
-                2 = RESET
-                4 = RESTART(TERMALL)
-                8 = VSC
-                16 = ERTERM(SEGTERM)
-                32 = SEGMARK(SEGSYM)
-        numres : int, optional
-            Number of resolutions, defaults to 6.  This number will be equal to
-            the number of thumbnails plus the original image.
-        plt : bool, optional
-            Generate PLT markers.
-        prog : {'LRCP', 'RLCP', 'RPCL', 'PCRL', 'CPRL'}, optional
-            Progression order.  If not specified, the chosen progression order
-            will be 'CPRL' if either cinema2k or cinema4k is specified,
-            otherwise defaulting to 'LRCP'.
-        psizes : List[Tuple[int, int]], optional
-            Precinct sizes, each precinct size tuple is defined as
-            (height, width).
-        psnr : Tuple[int, ...] or None
-            Different PSNR for successive layers.  If the last layer is desired
-            to be lossless, specify 0 for the last value.
-        sop : bool, optional
-            If true, write SOP marker before each packet.
-        subsam : Tuple[int, int], optional
-            Subsampling factors (dy, dx).
-        tilesize : Tuple[int, int], optional
-            Tile size in terms of (numrows, numcols), not (X, Y).
-        tlm : bool, optional
-            Generate TLM markers.
-        verbose : bool, optional
-            Print informational messages produced by the OpenJPEG library.
-        """
         super().__init__()
 
         # In case of pathlib.Paths...
