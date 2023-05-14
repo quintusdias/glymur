@@ -110,17 +110,11 @@ def tiff2jp2():
         metavar=('VRESD', 'HRESD')
     )
 
-    help = (
-        'Compression ratio for successive layers.  You may specify more '
-        'than once to get multiple layers.'
-    )
-    group1.add_argument('--cratio', action='append', type=int, help=help)
+    help = 'Compression ratios for successive layers.'
+    group1.add_argument('--cratio', nargs='+', type=int, help=help)
 
-    help = (
-        'PSNR for successive layers.  You may specify more than once to get '
-        'multiple layers.'
-    )
-    group1.add_argument('--psnr', action='append', type=int, help=help)
+    help = 'PSNR for successive layers.'
+    group1.add_argument('--psnr', nargs='+', type=int, help=help)
 
     help = 'Codeblock size.'
     group1.add_argument(

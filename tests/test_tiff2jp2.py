@@ -349,14 +349,56 @@ class TestSuite(fixtures.TestCommon):
     )
     def test_psnr(self):
         """
-        SCENARIO:  Convert TIFF file to JP2 with the irreversible transform.
+        SCENARIO:  Convert TIFF file to JP2 with the psnr keyword argument
 
-        EXPECTED RESULT:  data matches, the irreversible transform is confirmed
+        EXPECTED RESULT:  data matches
         """
         with Tiff2Jp2k(
             self.moon, self.temp_jp2_filename, psnr=(30, 35, 40, 0)
         ) as j:
             j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        d = {}
+        for layer in range(4):
+            j.layer = layer
+            d[layer] = j[:]
+
+        truth = skimage.io.imread(self.moon)
+
+        with warnings.catch_warnings():
+            # MSE is zero for that first image, resulting in a divide-by-zero
+            # warning
+            warnings.simplefilter('ignore')
+            psnr = [
+                skimage.metrics.peak_signal_noise_ratio(truth, d[j])
+                for j in range(4)
+            ]
+
+        # That first image should be lossless.
+        self.assertTrue(np.isinf(psnr[0]))
+
+        # None of the subsequent images should have inf PSNR.
+        self.assertTrue(not np.any(np.isinf(psnr[1:])))
+
+        # PSNR should increase for the remaining images.
+        self.assertTrue(np.all(np.diff(psnr[1:])) > 0)
+
+    @unittest.skipIf(
+        platform.machine() == 's390x', 'See issue #546'
+    )
+    def test_psnr_commandline(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2, specify psnr via the command line
+
+        EXPECTED RESULT:  data matches
+        """
+        sys.argv = [
+            '', str(self.moon), str(self.temp_jp2_filename),
+            '--psnr', '30', '35', '40', '0'
+        ]
+        command_line.tiff2jp2()
 
         j = Jp2k(self.temp_jp2_filename)
 
@@ -520,6 +562,28 @@ class TestSuite(fixtures.TestCommon):
             cratios=[200, 50, 10]
         ) as j:
             j.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        actual = j[:]
+        self.assertEqual(actual.shape, (512, 512, 3))
+
+        c = j.get_codestream()
+        self.assertEqual(c.segment[2].layers, 3)
+
+    def test_layers_commandline(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2 with multiple compression layers
+        using the command line.
+
+        EXPECTED RESULT:  data matches, number of layers is 3
+        """
+        sys.argv = [
+            '',
+            str(self.astronaut_ycbcr_jpeg_tiled), str(self.temp_jp2_filename),
+            '--cratio', '200', '50', '10'
+        ]
+        command_line.tiff2jp2()
 
         j = Jp2k(self.temp_jp2_filename)
 
