@@ -344,9 +344,6 @@ class TestSuite(fixtures.TestCommon):
         )
         self.assertFalse(at_least_one_uuid)
 
-    @unittest.skipIf(
-        platform.machine() == 's390x', 'See issue #546'
-    )
     def test_psnr(self):
         """
         SCENARIO:  Convert TIFF file to JP2 with the psnr keyword argument
@@ -385,9 +382,6 @@ class TestSuite(fixtures.TestCommon):
         # PSNR should increase for the remaining images.
         self.assertTrue(np.all(np.diff(psnr[1:])) > 0)
 
-    @unittest.skipIf(
-        platform.machine() == 's390x', 'See issue #546'
-    )
     def test_psnr_commandline(self):
         """
         SCENARIO:  Convert TIFF file to JP2, specify psnr via the command line
