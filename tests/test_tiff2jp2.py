@@ -2,12 +2,12 @@
 import importlib.resources as ir
 import logging
 import pathlib
-import platform
 import shutil
 import struct
 import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 from uuid import UUID
 import warnings
 
@@ -42,6 +42,7 @@ class TestSuite(fixtures.TestCommon):
 
         cls.astronaut8 = _file_helper('astronaut8.tif')
         cls.astronaut_u16 = _file_helper('astronaut_uint16.tif')
+        cls.astronaut_s_u16 = _file_helper('astronaut_s_uint16.tif')
         cls.astronaut8_stripped = _file_helper('astronaut8_stripped.tif')
         cls.astronaut_ycbcr_jpeg_tiled = _file_helper('astronaut_ycbcr_jpeg_tiled.tif')  # noqa : E501
         cls.moon = _file_helper('moon.tif')
@@ -260,9 +261,9 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(j.box[-1].data['ImageWidth'], 512)
         self.assertEqual(j.box[-1].data['ImageLength'], 512)
 
-    def test_smoke_rgba(self):
+    def test_smoke_jp2_tiling(self):
         """
-        SCENARIO:  Convert RGBA TIFF file to JP2
+        SCENARIO:  Convert RGB TIFF file to a tiled JP2.
 
         EXPECTED RESULT:  data matches, number of resolution is the default.
         There should be just one layer.  The number of resolutions should be
@@ -344,9 +345,6 @@ class TestSuite(fixtures.TestCommon):
         )
         self.assertFalse(at_least_one_uuid)
 
-    @unittest.skipIf(
-        platform.machine() == 's390x', 'See issue #546'
-    )
     def test_psnr(self):
         """
         SCENARIO:  Convert TIFF file to JP2 with the psnr keyword argument
@@ -385,9 +383,6 @@ class TestSuite(fixtures.TestCommon):
         # PSNR should increase for the remaining images.
         self.assertTrue(np.all(np.diff(psnr[1:])) > 0)
 
-    @unittest.skipIf(
-        platform.machine() == 's390x', 'See issue #546'
-    )
     def test_psnr_commandline(self):
         """
         SCENARIO:  Convert TIFF file to JP2, specify psnr via the command line
@@ -958,12 +953,13 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 512)
         self.assertEqual(c.segment[1].ytsiz, 512)
 
-    def test_rgb_uint16(self):
+    def test_rgb_uint16_tiled(self):
         """
         SCENARIO:  Convert RGB TIFF file to JP2.  The TIFF is evenly
         tiled 2x2 and uint16.
 
-        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
+        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.  The
+        datatype is uint16.
         """
         with Tiff2Jp2k(
             self.astronaut_u16, self.temp_jp2_filename, tilesize=(32, 32)
@@ -971,6 +967,9 @@ class TestSuite(fixtures.TestCommon):
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)
+
+        self.assertEqual(jp2.box[2].box[0].bits_per_component, 16)
+
         actual = jp2[:]
         expected = skimage.io.imread(self.astronaut_u16)
         np.testing.assert_array_equal(actual, expected)
@@ -980,6 +979,42 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].ysiz, 64)
         self.assertEqual(c.segment[1].xtsiz, 32)
         self.assertEqual(c.segment[1].ytsiz, 32)
+
+    def test_rgb_uint16_not_tiled(self):
+        """
+        SCENARIO:  Convert RGB TIFF file to JP2 with one bit jp2k tile.  The
+        datatype is uint16.
+
+        EXPECTED RESULT:  The data matches.  The datatype is uint16.
+        """
+        with Tiff2Jp2k(self.astronaut_u16, self.temp_jp2_filename) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+
+        self.assertEqual(jp2.box[2].box[0].bits_per_component, 16)
+
+        actual = jp2[:]
+        expected = skimage.io.imread(self.astronaut_u16)
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_rgb_stripped_uint16_not_tiled(self):
+        """
+        SCENARIO:  Convert stripped uint16 RGB TIFF file to JP2 with one bit
+        jp2k tile.
+
+        EXPECTED RESULT:  The data matches.  The datatype is uint16.
+        """
+        with Tiff2Jp2k(self.astronaut_s_u16, self.temp_jp2_filename) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+
+        self.assertEqual(jp2.box[2].box[0].bits_per_component, 16)
+
+        actual = jp2[:]
+        expected = skimage.io.imread(self.astronaut_s_u16)
+        np.testing.assert_array_equal(actual, expected)
 
     def test_commandline_tiff2jp2(self):
         """
@@ -1756,3 +1791,109 @@ class TestSuite(fixtures.TestCommon):
             Tiff2Jp2k(
                 self.test_dir_path / 'not_there.tif', self.temp_jp2_filename
             )
+
+    @unittest.skipIf(sys.byteorder == 'big', 'Test simulates big-endian')
+    def test_rgba_interface_big_endian(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2, simulate big endian platform.
+        This test is for code coverage purposes only, since the CI system is
+        currently only little-endian.
+
+        EXPECTED RESULT:  Since a YCbCr image read in thru the RGBA
+        interface on little endian produces RGBA, then throw away the A.
+        Running on little endian but simulating big endian still produces
+        RGBA, but we flip the order and throw away the 4th plane,
+        producing ABG.
+        """
+        with patch('glymur.tiff.sys.byteorder', new='big'):
+            with Tiff2Jp2k(
+                self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename
+            ) as p:
+                p.run()
+
+            j = Jp2k(self.temp_jp2_filename)
+            actual = j[:]
+
+        # Read in the image (as expected on little-endian), flip it
+        # around, prepend an alpha layer, then get rid of the last layer
+        # to simulate what would have happened on big-endian.
+        expected = skimage.io.imread(self.astronaut_ycbcr_jpeg_tiled)
+        h, w, _ = expected.shape
+        expected = np.flip(expected, axis=2)
+        A = np.ones((h, w, 1), dtype=np.uint8) * 255
+        expected = np.concatenate((A, expected), axis=2)
+        expected = expected[:, :, :3]
+
+        np.testing.assert_array_equal(actual, expected)
+
+    @unittest.skipIf(sys.byteorder == 'big', 'Test simulates big-endian')
+    def test_rgba_interface_big_endian_tiled(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2, simulate big endian platform.
+        This test is for code coverage purposes only, since the CI system is
+        currently only little-endian.  Use tiling to avoid reading in the
+        entire image at once.
+
+        EXPECTED RESULT:  Since a YCbCr image read in thru the RGBA
+        interface on little endian produces RGBA, then throw away the A.
+        Running on little endian but simulating big endian still produces
+        RGBA, but we flip the order and throw away the 4th plane,
+        producing ABG.
+        """
+        with patch('glymur.tiff.sys.byteorder', new='big'):
+            with Tiff2Jp2k(
+                self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename,
+                tilesize=(32, 32)
+            ) as p:
+                p.run()
+
+            j = Jp2k(self.temp_jp2_filename)
+            actual = j[:]
+
+        # Read in the image (as expected on little-endian), flip it
+        # around, prepend an alpha layer, then get rid of the last layer
+        # to simulate what would have happened on big-endian.
+        expected = skimage.io.imread(self.astronaut_ycbcr_jpeg_tiled)
+        h, w, _ = expected.shape
+        expected = np.flip(expected, axis=2)
+        A = np.ones((h, w, 1), dtype=np.uint8) * 255
+        expected = np.concatenate((A, expected), axis=2)
+        expected = expected[:, :, :3]
+
+        np.testing.assert_array_equal(actual, expected)
+
+    @unittest.skipIf(sys.byteorder == 'big', 'Test simulates big-endian')
+    def test_rgba_interface_big_endian_stripped(self):
+        """
+        SCENARIO:  Convert TIFF file to JP2, simulate big endian platform.
+        This test is for code coverage purposes only, since the CI system is
+        currently only little-endian.  Use tiling to avoid reading in the
+        entire image at once.
+
+        EXPECTED RESULT:  Since a YCbCr image read in thru the RGBA
+        interface on little endian produces RGBA, then throw away the A.
+        Running on little endian but simulating big endian still produces
+        RGBA, but we flip the order and throw away the 4th plane,
+        producing ABG.
+        """
+        with patch('glymur.tiff.sys.byteorder', new='big'):
+            with Tiff2Jp2k(
+                self.ycbcr_stripped, self.temp_jp2_filename,
+                tilesize=(32, 32)
+            ) as p:
+                p.run()
+
+            j = Jp2k(self.temp_jp2_filename)
+            actual = j[:]
+
+        # Read in the image (as expected on little-endian), flip it
+        # around, prepend an alpha layer, then get rid of the last layer
+        # to simulate what would have happened on big-endian.
+        expected = skimage.io.imread(self.ycbcr_stripped)
+        h, w, _ = expected.shape
+        expected = np.flip(expected, axis=2)
+        A = np.ones((h, w, 1), dtype=np.uint8) * 255
+        expected = np.concatenate((A, expected), axis=2)
+        expected = expected[:, :, :3]
+
+        np.testing.assert_array_equal(actual, expected)

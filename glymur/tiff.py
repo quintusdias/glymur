@@ -49,6 +49,8 @@ class Tiff2Jp2k(object):
         Path to JPEG 2000 file to be written.
     jp2_kwargs : dict
         Keyword arguments to pass along to the Jp2k constructor.
+    photo : int
+        The photometric interpretation of the image.
     rps : int
         The number of rows per strip in the TIFF.
     spp : int
@@ -59,8 +61,6 @@ class Tiff2Jp2k(object):
         The dimensions of a tile in the JP2K file.
     tw, th : int
         The tile dimensions for the TIFF image.
-    use_rgba_interface : bool
-        If true, use libtiff's RGBA interface to read strips/tiles.
     version : int
         Identifies the TIFF as 32-bit TIFF or 64-bit TIFF.
     xmp_data : bytes
@@ -134,9 +134,6 @@ class Tiff2Jp2k(object):
 
         self.setup_logging(verbosity)
 
-        # assume false until we know otherwise
-        self.use_rgba_interface = False
-
         if num_threads > 1:
             set_option('lib.num_threads', num_threads)
 
@@ -148,16 +145,13 @@ class Tiff2Jp2k(object):
 
         Parameters
         ----------
-        exclude_tags : list or None
+        exclude_tags : list
             List of tags that are meant to be excluded from the EXIF UUID.
 
         Returns
         -------
         list of numeric tag values
         """
-        if exclude_tags is None:
-            return exclude_tags
-
         lst = []
 
         # first, make the tags all str datatype
@@ -607,13 +601,14 @@ class Tiff2Jp2k(object):
         elif data[0] == 77 and data[1] == 77:
             # big endian
             self.endian = '>'
-        else:
-            msg = (
-                f"The byte order indication in the TIFF header "
-                f"({data}) is invalid.  It should be either "
-                f"{bytes([73, 73])} or {bytes([77, 77])}."
-            )
-            raise RuntimeError(msg)
+        # no other option is possible, libtiff.open would have errored out
+        # else:
+        #     msg = (
+        #         f"The byte order indication in the TIFF header "
+        #         f"({data}) is invalid.  It should be either "
+        #         f"{bytes([73, 73])} or {bytes([77, 77])}."
+        #     )
+        #     raise RuntimeError(msg)
 
         # version number and offset to the first IFD
         version, = struct.unpack(self.endian + 'H', buffer[2:4])
@@ -656,7 +651,7 @@ class Tiff2Jp2k(object):
         else:
             isTiled = False
 
-        photo = self.get_tag_value(262)
+        self.photo = self.get_tag_value(262)
         self.imagewidth = self.get_tag_value(256)
         self.imageheight = self.get_tag_value(257)
         self.spp = self.get_tag_value(277)
@@ -702,11 +697,6 @@ class Tiff2Jp2k(object):
             self.tw = self.imagewidth
             self.rps = self.get_tag_value(278)
 
-        if photo == libtiff.Photometric.YCBCR:
-            # Using the RGBA interface is the only reasonable way to deal with
-            # this.
-            self.use_rgba_interface = True
-
         self.jp2 = Jp2k(
             self.jp2_filename,
             shape=(self.imageheight, self.imagewidth, self.spp),
@@ -715,16 +705,22 @@ class Tiff2Jp2k(object):
         )
 
         if not libtiff.RGBAImageOK(self.tiff_fp):
-            photometric_string = self.tagvalue2str(libtiff.Photometric, photo)
+            photometric_string = self.tagvalue2str(
+                libtiff.Photometric, self.photo
+            )
             msg = (
                 f"The TIFF Photometric tag is {photometric_string}.  It is "
                 "not supported by this program."
             )
             raise RuntimeError(msg)
-        elif self.tilesize is None:
-            # this handles both cases of a striped TIFF and a tiled TIFF
-            self._write_rgba_single_tile(photo)
+        elif self.tilesize is None and self.photo == libtiff.Photometric.YCBCR:
+            # this handles both YCbCr cases of a striped TIFF and a tiled TIFF
+            self._write_rgba_single_tile()
             self.jp2.finalize(force_parse=True)
+        elif self.tilesize is None and isTiled:
+            self._write_tiled_tiff_to_single_tile_jp2k()
+        elif self.tilesize is None and not isTiled:
+            self._write_stripped_tiff_to_single_tile_jp2k()
         elif isTiled and self.tilesize is not None:
             self._write_tiled_tiff_to_tiled_jp2k()
         elif not isTiled and self.tilesize is not None:
@@ -741,16 +737,11 @@ class Tiff2Jp2k(object):
 
         return tag_value_string
 
-    def _write_rgba_single_tile(self, photo):
+    def _write_rgba_single_tile(self):
         """If no jp2k tiling was specified and if the image is ok to read
         via the RGBA interface, then just do that.  The image will be
         written with the tilesize equal to the image size, so it will
         be written using a single write operation.
-
-        Parameters
-        ----------
-        photo : int
-            TIFF tag values corresponding to the photometric interpretation
         """
         msg = (
             "Reading using the RGBA interface, writing as a single tile "
@@ -758,16 +749,16 @@ class Tiff2Jp2k(object):
         )
         self.logger.info(msg)
 
-        if photo not in [
+        if self.photo not in [
             libtiff.Photometric.MINISWHITE,
             libtiff.Photometric.MINISBLACK,
             libtiff.Photometric.PALETTE,
             libtiff.Photometric.YCBCR,
             libtiff.Photometric.RGB
         ]:
-            photostr = self.tagvalue2str(libtiff.Photometric, photo)
+            photostr = self.tagvalue2str(libtiff.Photometric, self.photo)
             msg = (
-                "Beware, the RGBA interface to attempt to read this TIFF "
+                "Beware, the RGBA interface is attempting to read this TIFF "
                 f"when it has a PhotometricInterpretation of {photostr}."
             )
             warnings.warn(msg)
@@ -783,6 +774,72 @@ class Tiff2Jp2k(object):
         # potentially get rid of the alpha plane
         if self.spp < 4:
             image = image[:, :, :3]
+
+        self.jp2[:] = image
+
+    def _write_stripped_tiff_to_single_tile_jp2k(self):
+        """The input TIFF image is stripped and we are to create the output
+        JPEG2000 image as a single tile.
+        """
+        num_tiff_strip_rows = int(np.ceil(self.imageheight / self.rps))
+
+        # This might be a bit bigger than the actual image because of a
+        # possibly partial last strip.
+        stripped_shape = (
+            num_tiff_strip_rows * self.rps, self.imagewidth, self.spp
+        )
+        image = np.zeros(stripped_shape, dtype=self.dtype)
+
+        tiff_strip = np.zeros(
+            (self.rps, self.imagewidth, self.spp), dtype=self.dtype
+        )
+
+        # manually collect all the tiff strips, stuff into the image
+        for stripnum in range(num_tiff_strip_rows):
+            rows = slice(stripnum * self.rps, (stripnum + 1) * self.rps)
+            libtiff.readEncodedStrip(self.tiff_fp, stripnum, tiff_strip)
+            image[rows, :, :] = tiff_strip
+
+        if self.imageheight != stripped_shape[0]:
+            # cut the image down due to a partial last strip
+            image = image[:self.imageheight, :, :]
+
+        self.jp2[:] = image
+
+    def _write_tiled_tiff_to_single_tile_jp2k(self):
+        """The input TIFF image is tiled and we are to create the output
+        JPEG2000 image as a single tile.
+        """
+        num_tiff_tile_cols = int(np.ceil(self.imagewidth / self.tw))
+        num_tiff_tile_rows = int(np.ceil(self.imageheight / self.th))
+
+        # tiled shape might differ from the final image shape if we have
+        # partial tiles on the bottom and on the right
+        final_shape = self.imageheight, self.imagewidth, self.spp
+        tiled_shape = (
+            num_tiff_tile_rows * self.th,
+            num_tiff_tile_cols * self.tw,
+            self.spp
+        )
+
+        image = np.zeros(tiled_shape, dtype=self.dtype)
+        tiff_tile = np.zeros((self.th, self.tw, self.spp), dtype=self.dtype)
+
+        # manually collect all the tiff tiles, stuff into the image
+        for tr in range(num_tiff_tile_rows):
+
+            rows = slice(tr * self.th, (tr + 1) * self.th)
+
+            for tc in range(num_tiff_tile_cols):
+                ttile_num = num_tiff_tile_cols * tr + tc
+                libtiff.readEncodedTile(self.tiff_fp, ttile_num, tiff_tile)
+
+                cols = slice(tc * self.tw, (tc + 1) * self.tw)
+
+                image[rows, cols, :] = tiff_tile
+
+        if final_shape != tiled_shape:
+            image = image[:final_shape[0], :final_shape[1], :]
 
         self.jp2[:] = image
 
@@ -836,7 +893,7 @@ class Tiff2Jp2k(object):
             tile_uly = tiff_tile_row * self.th
             tile_ulx = tiff_tile_col * self.tw
 
-            if self.use_rgba_interface:
+            if self.photo == libtiff.Photometric.YCBCR:
 
                 rgba_tile = np.zeros((self.th, self.tw, 4), dtype=np.uint8)
 
@@ -1044,7 +1101,7 @@ class Tiff2Jp2k(object):
         # and the bottom strip
         num_rows = (bottom_strip_num - top_strip_num) * self.rps
 
-        if self.use_rgba_interface:
+        if self.photo == libtiff.Photometric.YCBCR:
             # always single byte samples of R, G, B, and A
             dtype = np.uint8
         else:
@@ -1060,7 +1117,7 @@ class Tiff2Jp2k(object):
         # Fill the multi-strip
         for stripnum in range(top_strip_num, bottom_strip_num):
 
-            if self.use_rgba_interface:
+            if self.photo == libtiff.Photometric.YCBCR:
 
                 tiff_rgba_strip = np.zeros(
                     (self.rps, self.imagewidth, 4), dtype=dtype
