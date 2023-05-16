@@ -2,7 +2,6 @@
 import importlib.resources as ir
 import logging
 import pathlib
-import platform
 import shutil
 import struct
 import sys
@@ -952,12 +951,13 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 512)
         self.assertEqual(c.segment[1].ytsiz, 512)
 
-    def test_rgb_uint16(self):
+    def test_rgb_uint16_tiled(self):
         """
         SCENARIO:  Convert RGB TIFF file to JP2.  The TIFF is evenly
         tiled 2x2 and uint16.
 
-        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
+        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.  The
+        datatype is uint16.
         """
         with Tiff2Jp2k(
             self.astronaut_u16, self.temp_jp2_filename, tilesize=(32, 32)
@@ -965,6 +965,9 @@ class TestSuite(fixtures.TestCommon):
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)
+
+        self.assertEqual(jp2.box[2].box[0].bits_per_component, 16)
+
         actual = jp2[:]
         expected = skimage.io.imread(self.astronaut_u16)
         np.testing.assert_array_equal(actual, expected)
@@ -974,6 +977,23 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].ysiz, 64)
         self.assertEqual(c.segment[1].xtsiz, 32)
         self.assertEqual(c.segment[1].ytsiz, 32)
+
+    def test_rgb_uint16_not_tiled(self):
+        """
+        SCENARIO:  Convert RGB TIFF file to JP2.  The datatype is uint16.
+
+        EXPECTED RESULT:  The data matches.  The datatype is uint16.
+        """
+        with Tiff2Jp2k(self.astronaut_u16, self.temp_jp2_filename) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+
+        self.assertEqual(jp2.box[2].box[0].bits_per_component, 16)
+
+        actual = jp2[:]
+        expected = skimage.io.imread(self.astronaut_u16)
+        np.testing.assert_array_equal(actual, expected)
 
     def test_commandline_tiff2jp2(self):
         """

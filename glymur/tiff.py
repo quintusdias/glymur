@@ -721,10 +721,14 @@ class Tiff2Jp2k(object):
                 "not supported by this program."
             )
             raise RuntimeError(msg)
-        elif self.tilesize is None:
-            # this handles both cases of a striped TIFF and a tiled TIFF
+        elif self.tilesize is None and self.dtype == np.uint8:
+            # this handles both cases of a striped TIFF and a tiled TIFF, but
+            # only in the case of a uint8 image.
             self._write_rgba_single_tile(photo)
             self.jp2.finalize(force_parse=True)
+        elif self.tilesize is None and isTiled and self.dtype == np.uint16:
+            # we cannot use the rgba interface for this case.
+            self._write_tiled_tiff_to_single_tile_u16_jp2k()
         elif isTiled and self.tilesize is not None:
             self._write_tiled_tiff_to_tiled_jp2k()
         elif not isTiled and self.tilesize is not None:
@@ -783,6 +787,43 @@ class Tiff2Jp2k(object):
         # potentially get rid of the alpha plane
         if self.spp < 4:
             image = image[:, :, :3]
+
+        self.jp2[:] = image
+
+    def _write_tiled_tiff_to_single_tile_u16_jp2k(self):
+        """The input TIFF image is tiled and we are to create the output
+        JPEG2000 image as a single uint16 tile.
+        """
+        num_tiff_tile_cols = int(np.ceil(self.imagewidth / self.tw))
+        num_tiff_tile_rows = int(np.ceil(self.imageheight / self.th))
+
+        # tiled shape might differ from the final image shape if we have
+        # partial tiles on the bottom and on the right
+        final_shape = self.imageheight, self.imagewidth, self.spp
+        tiled_shape = (
+            num_tiff_tile_rows * self.th,
+            num_tiff_tile_cols * self.tw,
+            self.spp
+        )
+
+        image = np.zeros(tiled_shape, dtype=self.dtype)
+        tiff_tile = np.zeros((self.th, self.tw, self.spp), dtype=self.dtype)
+
+        # manually collect all the tiff tiles, stuff into the image
+        for tr in range(num_tiff_tile_rows):
+
+            rows = slice(tr * self.th, (tr + 1) * self.th)
+
+            for tc in range(num_tiff_tile_cols):
+                ttile_num = num_tiff_tile_cols * tr + tc
+                libtiff.readEncodedTile(self.tiff_fp, ttile_num, tiff_tile)
+
+                cols = slice(tc * self.tw, (tc + 1) * self.tw)
+
+                image[rows, cols, :] = tiff_tile
+
+        if final_shape != tiled_shape:
+            image = image[:final_shape[0], :final_shape[1], :]
 
         self.jp2[:] = image
 
