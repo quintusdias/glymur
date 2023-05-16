@@ -41,6 +41,7 @@ class TestSuite(fixtures.TestCommon):
 
         cls.astronaut8 = _file_helper('astronaut8.tif')
         cls.astronaut_u16 = _file_helper('astronaut_uint16.tif')
+        cls.astronaut_s_u16 = _file_helper('astronaut_s_uint16.tif')
         cls.astronaut8_stripped = _file_helper('astronaut8_stripped.tif')
         cls.astronaut_ycbcr_jpeg_tiled = _file_helper('astronaut_ycbcr_jpeg_tiled.tif')  # noqa : E501
         cls.moon = _file_helper('moon.tif')
@@ -980,7 +981,8 @@ class TestSuite(fixtures.TestCommon):
 
     def test_rgb_uint16_not_tiled(self):
         """
-        SCENARIO:  Convert RGB TIFF file to JP2.  The datatype is uint16.
+        SCENARIO:  Convert RGB TIFF file to JP2 with one bit jp2k tile.  The
+        datatype is uint16.
 
         EXPECTED RESULT:  The data matches.  The datatype is uint16.
         """
@@ -993,6 +995,24 @@ class TestSuite(fixtures.TestCommon):
 
         actual = jp2[:]
         expected = skimage.io.imread(self.astronaut_u16)
+        np.testing.assert_array_equal(actual, expected)
+
+    def test_rgb_stripped_uint16_not_tiled(self):
+        """
+        SCENARIO:  Convert stripped uint16 RGB TIFF file to JP2 with one bit
+        jp2k tile.
+
+        EXPECTED RESULT:  The data matches.  The datatype is uint16.
+        """
+        with Tiff2Jp2k(self.astronaut_s_u16, self.temp_jp2_filename) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+
+        self.assertEqual(jp2.box[2].box[0].bits_per_component, 16)
+
+        actual = jp2[:]
+        expected = skimage.io.imread(self.astronaut_s_u16)
         np.testing.assert_array_equal(actual, expected)
 
     def test_commandline_tiff2jp2(self):

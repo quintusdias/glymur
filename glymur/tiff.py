@@ -729,6 +729,9 @@ class Tiff2Jp2k(object):
         elif self.tilesize is None and isTiled and self.dtype == np.uint16:
             # we cannot use the rgba interface for this case.
             self._write_tiled_tiff_to_single_tile_u16_jp2k()
+        elif self.tilesize is None and not isTiled and self.dtype == np.uint16:
+            # we cannot use the rgba interface for this case.
+            self._write_stripped_tiff_to_single_tile_u16_jp2k()
         elif isTiled and self.tilesize is not None:
             self._write_tiled_tiff_to_tiled_jp2k()
         elif not isTiled and self.tilesize is not None:
@@ -787,6 +790,35 @@ class Tiff2Jp2k(object):
         # potentially get rid of the alpha plane
         if self.spp < 4:
             image = image[:, :, :3]
+
+        self.jp2[:] = image
+
+    def _write_stripped_tiff_to_single_tile_u16_jp2k(self):
+        """The input TIFF image is stripped and we are to create the output
+        JPEG2000 image as a single uint16 tile.
+        """
+        num_tiff_strip_rows = int(np.ceil(self.imageheight / self.rps))
+
+        # tiled shape might differ from the final image shape if we have
+        # partial tiles on the bottom and on the right
+        final_shape = self.imageheight, self.imagewidth, self.spp
+        stripped_shape = (
+            num_tiff_strip_rows * self.rps, self.imagewidth, self.spp
+        )
+
+        image = np.zeros(stripped_shape, dtype=self.dtype)
+        tiff_strip = np.zeros(
+            (self.rps, self.imagewidth, self.spp), dtype=self.dtype
+        )
+
+        # manually collect all the tiff strips, stuff into the image
+        for stripnum in range(num_tiff_strip_rows):
+            rows = slice(stripnum * self.rps, (stripnum + 1) * self.rps)
+            libtiff.readEncodedStrip(self.tiff_fp, stripnum, tiff_strip)
+            image[rows, :, :] = tiff_strip
+
+        if final_shape != stripped_shape:
+            image = image[:final_shape[0], :, :]
 
         self.jp2[:] = image
 
