@@ -145,16 +145,13 @@ class Tiff2Jp2k(object):
 
         Parameters
         ----------
-        exclude_tags : list or None
+        exclude_tags : list
             List of tags that are meant to be excluded from the EXIF UUID.
 
         Returns
         -------
         list of numeric tag values
         """
-        if exclude_tags is None:
-            return exclude_tags
-
         lst = []
 
         # first, make the tags all str datatype
@@ -604,13 +601,14 @@ class Tiff2Jp2k(object):
         elif data[0] == 77 and data[1] == 77:
             # big endian
             self.endian = '>'
-        else:
-            msg = (
-                f"The byte order indication in the TIFF header "
-                f"({data}) is invalid.  It should be either "
-                f"{bytes([73, 73])} or {bytes([77, 77])}."
-            )
-            raise RuntimeError(msg)
+        # no other option is possible, libtiff.open would have errored out
+        # else:
+        #     msg = (
+        #         f"The byte order indication in the TIFF header "
+        #         f"({data}) is invalid.  It should be either "
+        #         f"{bytes([73, 73])} or {bytes([77, 77])}."
+        #     )
+        #     raise RuntimeError(msg)
 
         # version number and offset to the first IFD
         version, = struct.unpack(self.endian + 'H', buffer[2:4])
@@ -760,7 +758,7 @@ class Tiff2Jp2k(object):
         ]:
             photostr = self.tagvalue2str(libtiff.Photometric, self.photo)
             msg = (
-                "Beware, the RGBA interface to attempt to read this TIFF "
+                "Beware, the RGBA interface is attempting to read this TIFF "
                 f"when it has a PhotometricInterpretation of {photostr}."
             )
             warnings.warn(msg)
@@ -785,14 +783,13 @@ class Tiff2Jp2k(object):
         """
         num_tiff_strip_rows = int(np.ceil(self.imageheight / self.rps))
 
-        # tiled shape might differ from the final image shape if we have
-        # partial tiles on the bottom and on the right
-        final_shape = self.imageheight, self.imagewidth, self.spp
+        # This might be a bit bigger than the actual image because of a
+        # possibly partial last strip.
         stripped_shape = (
             num_tiff_strip_rows * self.rps, self.imagewidth, self.spp
         )
-
         image = np.zeros(stripped_shape, dtype=self.dtype)
+
         tiff_strip = np.zeros(
             (self.rps, self.imagewidth, self.spp), dtype=self.dtype
         )
@@ -803,8 +800,9 @@ class Tiff2Jp2k(object):
             libtiff.readEncodedStrip(self.tiff_fp, stripnum, tiff_strip)
             image[rows, :, :] = tiff_strip
 
-        if final_shape != stripped_shape:
-            image = image[:final_shape[0], :, :]
+        if self.imageheight != stripped_shape[0]:
+            # cut the image down due to a partial last strip
+            image = image[:self.imageheight, :, :]
 
         self.jp2[:] = image
 
