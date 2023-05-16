@@ -49,6 +49,8 @@ class Tiff2Jp2k(object):
         Path to JPEG 2000 file to be written.
     jp2_kwargs : dict
         Keyword arguments to pass along to the Jp2k constructor.
+    photo : int
+        The photometric interpretation of the image.
     rps : int
         The number of rows per strip in the TIFF.
     spp : int
@@ -59,8 +61,6 @@ class Tiff2Jp2k(object):
         The dimensions of a tile in the JP2K file.
     tw, th : int
         The tile dimensions for the TIFF image.
-    use_rgba_interface : bool
-        If true, use libtiff's RGBA interface to read strips/tiles.
     version : int
         Identifies the TIFF as 32-bit TIFF or 64-bit TIFF.
     xmp_data : bytes
@@ -133,9 +133,6 @@ class Tiff2Jp2k(object):
         self.xmp_data = None
 
         self.setup_logging(verbosity)
-
-        # assume false until we know otherwise
-        self.use_rgba_interface = False
 
         if num_threads > 1:
             set_option('lib.num_threads', num_threads)
@@ -656,7 +653,7 @@ class Tiff2Jp2k(object):
         else:
             isTiled = False
 
-        photo = self.get_tag_value(262)
+        self.photo = self.get_tag_value(262)
         self.imagewidth = self.get_tag_value(256)
         self.imageheight = self.get_tag_value(257)
         self.spp = self.get_tag_value(277)
@@ -702,11 +699,6 @@ class Tiff2Jp2k(object):
             self.tw = self.imagewidth
             self.rps = self.get_tag_value(278)
 
-        if photo == libtiff.Photometric.YCBCR:
-            # Using the RGBA interface is the only reasonable way to deal with
-            # this.
-            self.use_rgba_interface = True
-
         self.jp2 = Jp2k(
             self.jp2_filename,
             shape=(self.imageheight, self.imagewidth, self.spp),
@@ -715,15 +707,17 @@ class Tiff2Jp2k(object):
         )
 
         if not libtiff.RGBAImageOK(self.tiff_fp):
-            photometric_string = self.tagvalue2str(libtiff.Photometric, photo)
+            photometric_string = self.tagvalue2str(
+                libtiff.Photometric, self.photo
+            )
             msg = (
                 f"The TIFF Photometric tag is {photometric_string}.  It is "
                 "not supported by this program."
             )
             raise RuntimeError(msg)
-        elif self.tilesize is None and photo == libtiff.Photometric.YCBCR:
+        elif self.tilesize is None and self.photo == libtiff.Photometric.YCBCR:
             # this handles both YCbCr cases of a striped TIFF and a tiled TIFF
-            self._write_rgba_single_tile(photo)
+            self._write_rgba_single_tile()
             self.jp2.finalize(force_parse=True)
         elif self.tilesize is None and isTiled:
             self._write_tiled_tiff_to_single_tile_jp2k()
@@ -745,16 +739,11 @@ class Tiff2Jp2k(object):
 
         return tag_value_string
 
-    def _write_rgba_single_tile(self, photo):
+    def _write_rgba_single_tile(self):
         """If no jp2k tiling was specified and if the image is ok to read
         via the RGBA interface, then just do that.  The image will be
         written with the tilesize equal to the image size, so it will
         be written using a single write operation.
-
-        Parameters
-        ----------
-        photo : int
-            TIFF tag values corresponding to the photometric interpretation
         """
         msg = (
             "Reading using the RGBA interface, writing as a single tile "
@@ -762,14 +751,14 @@ class Tiff2Jp2k(object):
         )
         self.logger.info(msg)
 
-        if photo not in [
+        if self.photo not in [
             libtiff.Photometric.MINISWHITE,
             libtiff.Photometric.MINISBLACK,
             libtiff.Photometric.PALETTE,
             libtiff.Photometric.YCBCR,
             libtiff.Photometric.RGB
         ]:
-            photostr = self.tagvalue2str(libtiff.Photometric, photo)
+            photostr = self.tagvalue2str(libtiff.Photometric, self.photo)
             msg = (
                 "Beware, the RGBA interface to attempt to read this TIFF "
                 f"when it has a PhotometricInterpretation of {photostr}."
@@ -906,7 +895,7 @@ class Tiff2Jp2k(object):
             tile_uly = tiff_tile_row * self.th
             tile_ulx = tiff_tile_col * self.tw
 
-            if self.use_rgba_interface:
+            if self.photo == libtiff.Photometric.YCBCR:
 
                 rgba_tile = np.zeros((self.th, self.tw, 4), dtype=np.uint8)
 
@@ -1114,7 +1103,7 @@ class Tiff2Jp2k(object):
         # and the bottom strip
         num_rows = (bottom_strip_num - top_strip_num) * self.rps
 
-        if self.use_rgba_interface:
+        if self.photo == libtiff.Photometric.YCBCR:
             # always single byte samples of R, G, B, and A
             dtype = np.uint8
         else:
@@ -1130,7 +1119,7 @@ class Tiff2Jp2k(object):
         # Fill the multi-strip
         for stripnum in range(top_strip_num, bottom_strip_num):
 
-            if self.use_rgba_interface:
+            if self.photo == libtiff.Photometric.YCBCR:
 
                 tiff_rgba_strip = np.zeros(
                     (self.rps, self.imagewidth, 4), dtype=dtype
