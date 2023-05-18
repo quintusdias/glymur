@@ -1817,7 +1817,9 @@ class TestSuite(fixtures.TestCommon):
         # Read in the image (as expected on little-endian), flip it
         # around, prepend an alpha layer, then get rid of the last layer
         # to simulate what would have happened on big-endian.
-        expected = skimage.io.imread(self.astronaut_ycbcr_jpeg_tiled)
+        expected = skimage.io.imread(
+            self.astronaut_ycbcr_jpeg_tiled, plugin='pil'
+        )
         h, w, _ = expected.shape
         expected = np.flip(expected, axis=2)
         A = np.ones((h, w, 1), dtype=np.uint8) * 255
@@ -1853,7 +1855,9 @@ class TestSuite(fixtures.TestCommon):
         # Read in the image (as expected on little-endian), flip it
         # around, prepend an alpha layer, then get rid of the last layer
         # to simulate what would have happened on big-endian.
-        expected = skimage.io.imread(self.astronaut_ycbcr_jpeg_tiled)
+        expected = skimage.io.imread(
+            self.astronaut_ycbcr_jpeg_tiled, plugin='pil'
+        )
         h, w, _ = expected.shape
         expected = np.flip(expected, axis=2)
         A = np.ones((h, w, 1), dtype=np.uint8) * 255
@@ -1889,7 +1893,7 @@ class TestSuite(fixtures.TestCommon):
         # Read in the image (as expected on little-endian), flip it
         # around, prepend an alpha layer, then get rid of the last layer
         # to simulate what would have happened on big-endian.
-        expected = skimage.io.imread(self.ycbcr_stripped)
+        expected = skimage.io.imread(self.ycbcr_stripped, plugin='pil')
         h, w, _ = expected.shape
         expected = np.flip(expected, axis=2)
         A = np.ones((h, w, 1), dtype=np.uint8) * 255
