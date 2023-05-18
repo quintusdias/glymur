@@ -3,6 +3,18 @@ Changes in glymur 0.12
 ######################
 
 *****************
+Changes in 0.12.6
+*****************
+    * Fix conversion of uint16 TIFFs to single jp2 tile.
+    * Fix command line arguments --psnr and --cratio.
+    * Minor documentation updates.
+    * Add --num-threads option to tiff2jp2.  This was an oversight.
+    * Refactor GeoJP2 code to get support for GML-JP2.
+    * Fix broken uint16 test.
+    * Fix stripped tiff oddity with partial last strip.
+    * Refactor RGBA interface.
+
+*****************
 Changes in 0.12.5
 *****************
     * Fix plane ordering on RGBA TIFFs on big-endian.
