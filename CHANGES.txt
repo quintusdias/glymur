@@ -1,3 +1,6 @@
+May 18, 2023 - v0.12.6post1
+    Fix release version
+
 May 17, 2023 - v0.12.6
     Fix conversion of uint16 TIFFs to single jp2 tile.
     Fix command line arguments --psnr and --cratio.
