@@ -227,7 +227,7 @@ class Jp2kBox(object):
         list
             List of top-level boxes in the JPEG 2000 file.
         """
-        self._fptr = fptr
+        self._filename = fptr.name
 
         superbox = []
 
@@ -1835,7 +1835,7 @@ class AssociationBox(Jp2kBox):
             and self.box[1].box[1].box_id == 'xml '
         ):
             options = gdal.InfoOptions(showColorTable=False)
-            txt = gdal.Info(self._fptr.name, options=options)
+            txt = gdal.Info(self._filename, options=options)
             txt = textwrap.indent(txt, ' ' * 4)
             msg = f"{msg}\n{txt}"
 

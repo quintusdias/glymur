@@ -6,6 +6,7 @@ import importlib.resources as ir
 from io import BytesIO
 import os
 import pathlib
+import pickle
 import re
 import shutil
 import struct
@@ -438,6 +439,28 @@ class TestResolutionBoxes(fixtures.TestCommon):
         self.assertEqual(newbox.box[1].box_id, 'resd')
         self.assertEqual(newbox.box[1].vertical_resolution, 2.5)
         self.assertEqual(newbox.box[1].horizontal_resolution, 0.5)
+
+    def test_pickling(self):
+        """
+        SCENARIO:  pickle a ResolutionBox
+
+        Expected Results:  should not error out
+        """
+        vres = 0.5
+        hres = 2.5
+        resc = glymur.jp2box.CaptureResolutionBox(vres, hres)
+        resd = glymur.jp2box.DisplayResolutionBox(vres, hres)
+        rbox = glymur.jp2box.ResolutionBox(box=[resc, resd])
+
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
+            rbox.write(tfile)
+
+        with open(self.temp_jp2_filename, mode='rb') as tfile:
+            tfile.seek(8)
+            rbox_read = glymur.jp2box.ResolutionBox.parse(tfile, 0, 44)
+
+            with tempfile.NamedTemporaryFile(mode='wb') as t2:
+                pickle.dump(rbox_read, t2)
 
     def test_resolution_superbox(self):
         """
