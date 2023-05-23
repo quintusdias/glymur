@@ -3,6 +3,12 @@ Changes in glymur 0.12
 ######################
 
 *****************
+Changes in 0.12.7
+*****************
+    * Fix failing test on fedora.
+    * Change private attribute to prevent downstream test failure with tiatoolbox.
+
+*****************
 Changes in 0.12.6
 *****************
     * Fix conversion of uint16 TIFFs to single jp2 tile.
