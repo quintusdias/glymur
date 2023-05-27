@@ -132,24 +132,40 @@ class TestSuite(fixtures.TestCommon):
                 display_resolution=[vresd, hresd],
             )
 
-    def test_capture_resolution_when_not_writing(self):
+    def test_capture_resolution_when_writing_via_slicing(self):
         """
-        Scenario:  Jp2k is invoked in a read-only situation but capture/display
-        resolution arguments are supplied.
+        Scenario:  Jp2k is invoked in a write-by-slice situation and
+        capture/display resolution arguments are supplied.
 
-        Expected result:  RuntimeError
+        Expected result:  The resolution boxes are verified.
         """
         vresc, hresc = 0.1, 0.2
         vresd, hresd = 0.3, 0.4
 
         shutil.copyfile(self.jp2file, self.temp_jp2_filename)
 
-        with self.assertRaises(RuntimeError):
-            glymur.Jp2k(
-                self.temp_jp2_filename,
-                capture_resolution=[vresc, hresc],
-                display_resolution=[vresd, hresd],
-            )
+        j = glymur.Jp2k(
+            self.temp_jp2_filename,
+            capture_resolution=[vresc, hresc],
+            display_resolution=[vresd, hresd],
+        )
+
+        expected = self.jp2_data
+        j[:] = expected
+
+        actual = j[:]
+
+        np.testing.assert_array_equal(actual, expected)
+
+        self.assertEqual(j.box[2].box[2].box_id, 'res ')
+
+        self.assertEqual(j.box[2].box[2].box[0].box_id, 'resc')
+        self.assertEqual(j.box[2].box[2].box[0].vertical_resolution, vresc)
+        self.assertEqual(j.box[2].box[2].box[0].horizontal_resolution, hresc)
+
+        self.assertEqual(j.box[2].box[2].box[1].box_id, 'resd')
+        self.assertEqual(j.box[2].box[2].box[1].vertical_resolution, vresd)
+        self.assertEqual(j.box[2].box[2].box[1].horizontal_resolution, hresd)
 
     def test_capture_resolution_supplied_but_not_display(self):
         """
@@ -1071,10 +1087,9 @@ class TestSuite(fixtures.TestCommon):
         input/nonregression/X_5_2K_24_235_CBR_STEM24_000.tif
         """
         data = np.zeros((857, 2048, 3), dtype=np.uint8)
-        with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with self.assertRaises(RuntimeError):
-                Jp2k(tfile.name, data=data,
-                     cinema2k=48, cratios=(200, 100, 50))
+        with self.assertRaises(RuntimeError):
+            Jp2k(self.temp_j2k_filename, data=data,
+                 cinema2k=48, cratios=(200, 100, 50))
 
     def test_cinema4K_with_others(self):
         """
@@ -1083,35 +1098,33 @@ class TestSuite(fixtures.TestCommon):
         Original test file was input/nonregression/ElephantDream_4K.tif
         """
         data = np.zeros((4096, 2160, 3), dtype=np.uint8)
-        with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with self.assertRaises(RuntimeError):
-                Jp2k(tfile.name, data=data,
-                     cinema4k=True, cratios=(200, 100, 50))
+        with self.assertRaises(RuntimeError):
+            Jp2k(self.temp_j2k_filename, data=data,
+                 cinema4k=True, cratios=(200, 100, 50))
 
     def test_cblk_size_precinct_size(self):
         """
         code block sizes should never exceed half that of precinct size.
         """
-        with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with self.assertRaises(RuntimeError):
-                Jp2k(tfile.name, data=self.j2k_data,
-                     cbsize=(64, 64), psizes=[(64, 64)])
+        with self.assertRaises(RuntimeError):
+            Jp2k(self.temp_j2k_filename, data=self.j2k_data,
+                 cbsize=(64, 64), psizes=[(64, 64)])
 
     def test_cblk_size_not_power_of_two(self):
         """
         code block sizes should be powers of two.
         """
-        with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with self.assertRaises(RuntimeError):
-                Jp2k(tfile.name, data=self.j2k_data, cbsize=(13, 12))
+        with self.assertRaises(RuntimeError):
+            Jp2k(self.temp_j2k_filename, data=self.j2k_data, cbsize=(13, 12))
 
     def test_precinct_size_not_p2(self):
         """
         precinct sizes should be powers of two.
         """
-        with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with self.assertRaises(RuntimeError):
-                Jp2k(tfile.name, data=self.j2k_data, psizes=[(173, 173)])
+        with self.assertRaises(RuntimeError):
+            Jp2k(
+                self.temp_j2k_filename, data=self.j2k_data, psizes=[(173, 173)]
+            )
 
     def test_code_block_dimensions(self):
         """
@@ -1120,25 +1133,25 @@ class TestSuite(fixtures.TestCommon):
         # opj_compress doesn't allow the dimensions of a codeblock
         # to be too small or too big, so neither will we.
         data = self.j2k_data
-        with open(self.temp_j2k_filename, mode='wb') as tfile:
-            # opj_compress doesn't allow code block area to exceed 4096.
-            with self.assertRaises(RuntimeError):
-                Jp2k(tfile.name, data=data, cbsize=(256, 256))
 
-            # opj_compress doesn't allow either dimension to be less than 4.
-            with self.assertRaises(RuntimeError):
-                Jp2k(tfile.name, data=data, cbsize=(2048, 2))
-            with self.assertRaises(RuntimeError):
-                Jp2k(tfile.name, data=data, cbsize=(2, 2048))
+        # opj_compress doesn't allow code block area to exceed 4096.
+        with self.assertRaises(RuntimeError):
+            Jp2k(self.temp_j2k_filename, data=data, cbsize=(256, 256))
+
+        # opj_compress doesn't allow either dimension to be less than 4.
+        with self.assertRaises(RuntimeError):
+            Jp2k(self.temp_j2k_filename, data=data, cbsize=(2048, 2))
+
+        with self.assertRaises(RuntimeError):
+            Jp2k(self.temp_j2k_filename, data=data, cbsize=(2, 2048))
 
     def test_psnr_with_cratios(self):
         """
         Using psnr with cratios options is not allowed.
         """
-        with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with self.assertRaises(RuntimeError):
-                Jp2k(tfile.name, data=self.j2k_data, psnr=[30, 35, 40],
-                     cratios=(2, 3, 4))
+        with self.assertRaises(RuntimeError):
+            Jp2k(self.temp_j2k_filename, data=self.j2k_data, psnr=[30, 35, 40],
+                 cratios=(2, 3, 4))
 
     def test_irreversible(self):
         """
@@ -1203,16 +1216,14 @@ class TestSuite(fixtures.TestCommon):
     def test_unsupported_int32(self):
         """Should raise a runtime error if trying to write int32"""
         data = np.zeros((128, 128), dtype=np.int32)
-        with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with self.assertRaises(RuntimeError):
-                Jp2k(tfile.name, data=data)
+        with self.assertRaises(RuntimeError):
+            Jp2k(self.temp_j2k_filename, data=data)
 
     def test_unsupported_uint32(self):
         """Should raise a runtime error if trying to write uint32"""
         data = np.zeros((128, 128), dtype=np.uint32)
-        with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with self.assertRaises(RuntimeError):
-                Jp2k(tfile.name, data=data)
+        with self.assertRaises(RuntimeError):
+            Jp2k(self.temp_j2k_filename, data=data)
 
     def test_write_with_version_too_early(self):
         """Should raise a runtime error if trying to write with version 1.3"""
@@ -1223,9 +1234,8 @@ class TestSuite(fixtures.TestCommon):
         ]
         for version in versions:
             with patch('glymur.version.openjpeg_version', new=version):
-                with open(self.temp_j2k_filename, mode='wb') as tfile:
-                    with self.assertRaises(RuntimeError):
-                        Jp2k(tfile.name, data=data)
+                with self.assertRaises(RuntimeError):
+                    Jp2k(self.temp_j2k_filename, data=data)
 
     def test_cblkh_different_than_width(self):
         """Verify that we can set a code block size where height does not equal
@@ -1241,10 +1251,9 @@ class TestSuite(fixtures.TestCommon):
 
     def test_too_many_dimensions(self):
         """OpenJP2 only allows 2D or 3D images."""
-        with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with self.assertRaises(RuntimeError):
-                Jp2k(tfile.name,
-                     data=np.zeros((128, 128, 2, 2), dtype=np.uint8))
+        with self.assertRaises(RuntimeError):
+            Jp2k(self.temp_j2k_filename,
+                 data=np.zeros((128, 128, 2, 2), dtype=np.uint8))
 
     def test_2d_rgb(self):
         """RGB must have at least 3 components."""
@@ -1305,9 +1314,8 @@ class TestSuite(fixtures.TestCommon):
     def test_specify_ycc(self):
         """Should reject YCC"""
         data = np.zeros((128, 128, 3), dtype=np.uint8)
-        with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with self.assertRaises(RuntimeError):
-                Jp2k(tfile.name, data=data, colorspace='ycc')
+        with self.assertRaises(RuntimeError):
+            Jp2k(self.temp_jp2_filename, data=data, colorspace='ycc')
 
     def test_write_with_jp2_in_caps(self):
         """should be able to write with JP2 suffix."""
@@ -1360,9 +1368,8 @@ class TestSuite(fixtures.TestCommon):
         """
         j2k = Jp2k(self.j2kfile)
         expdata = j2k[:]
-        with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with self.assertRaises(RuntimeError):
-                Jp2k(tfile.name, data=expdata[:, :, 0], mct=True)
+        with self.assertRaises(RuntimeError):
+            Jp2k(self.temp_jp2_filename, data=expdata[:, :, 0], mct=True)
 
     def test_write_grayscale_with_mct_set_to_none(self):
         """
@@ -1428,9 +1435,8 @@ class TestSuite(fixtures.TestCommon):
     def test_unrecognized_jp2_clrspace(self):
         """We only allow RGB and GRAYSCALE.  Should error out with others"""
         data = np.zeros((128, 128, 3), dtype=np.uint8)
-        with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with self.assertRaises(RuntimeError):
-                Jp2k(tfile.name, data=data, colorspace='cmyk')
+        with self.assertRaises(RuntimeError):
+            Jp2k(self.temp_jp2_filename, data=data, colorspace='cmyk')
 
     def test_asoc_label_box(self):
         """Test asoc and label box"""

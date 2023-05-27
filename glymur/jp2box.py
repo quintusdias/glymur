@@ -179,6 +179,9 @@ class Jp2kBox(object):
         Jp2kBox
             Object corresponding to the current box.
         """
+        if fptr.tell() == 1392953:
+            # breakpoint()
+            pass
         try:
             parser = _BOX_WITH_ID[box_id].parse
 

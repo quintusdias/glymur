@@ -1632,20 +1632,17 @@ class TestSuite(fixtures.TestCommon):
             with Tiff2Jp2k(path, self.temp_jp2_filename):
                 pass
 
-    def test_colormap(self):
+    def test_tiff_with_colormap__exclude_colormap(self):
         """
-        Scenario:  The input "TIFF" has a colormap tag.
+        Scenario:  The input "TIFF" has a colormap tag.  Write the UUID box
+        without the ColorMap tag.
 
         Expected Result:  The output JP2 has a single layer and the jp2h box
-        has a pclr box.
+        has a pclr box.   The colormap tag is verified not to exist in the UUID
+        box.
         """
-        for tag in ['ColorMap', 'StripOffsets']:
-            with self.subTest(tag=tag):
-                self._test_colormap(tag=tag)
 
-    def _test_colormap(self, tag):
-
-        kwargs = {'tilesize': (32, 32), 'exclude_tags': [tag]}
+        kwargs = {'tilesize': (32, 32), 'exclude_tags': ['ColorMap']}
         path = ir.files('tests.data').joinpath('issue572.tif')
         with Tiff2Jp2k(path, self.temp_jp2_filename, **kwargs) as p:
             p.run()
@@ -1674,14 +1671,61 @@ class TestSuite(fixtures.TestCommon):
 
         # The last box should be the exif uuid.  It may or may not have the
         # colormap tag depending on what was specified.
+        self.assertEqual(j.box[-1].box_id, 'uuid')
         exif_box = j.box[-1]
         actual = exif_box.uuid
         expected = UUID(bytes=b'JpgTiffExif->JP2')
         self.assertEqual(actual, expected)
-        if tag == 'ColorMap':
-            self.assertNotIn('ColorMap', exif_box.data)
-        else:
-            self.assertIn('ColorMap', exif_box.data)
+
+        self.assertNotIn('ColorMap', exif_box.data)
+        self.assertIn('StripOffsets', exif_box.data)
+
+    def test_tiff_with_colormap__exclude_stripoffsets(self):
+        """
+        Scenario:  The input "TIFF" has a colormap tag.  Write the UUID box
+        without the StripOffsets tag.
+
+        Expected Result:  The output JP2 has a single layer and the jp2h box
+        has a pclr box.   The stripoffsets tag is verified not to exist in the
+        UUID box.
+        """
+        kwargs = {'tilesize': (32, 32), 'exclude_tags': ['StripOffsets']}
+        path = ir.files('tests.data').joinpath('issue572.tif')
+        with Tiff2Jp2k(path, self.temp_jp2_filename, **kwargs) as p:
+            p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        # the image header box shows just a single layer
+        shape = (
+            j.box[2].box[0].height,
+            j.box[2].box[0].width,
+            j.box[2].box[0].num_components,
+        )
+        self.assertEqual(shape, (64, 64, 1))
+
+        # the colr box says sRGB, not greyscale
+        self.assertEqual(j.box[2].box[1].colorspace, SRGB)
+
+        # a pclr box exists
+        self.assertEqual(j.box[2].box[2].box_id, 'pclr')
+
+        # a component mapping box exists
+        self.assertEqual(j.box[2].box[3].box_id, 'cmap')
+        self.assertEqual(j.box[2].box[3].component_index, (0, 0, 0))
+        self.assertEqual(j.box[2].box[3].mapping_type, (1, 1, 1))
+        self.assertEqual(j.box[2].box[3].palette_index, (0, 1, 2))
+
+        # The last box should be the exif uuid.  It may or may not have the
+        # colormap tag depending on what was specified.
+        self.assertEqual(j.box[-1].box_id, 'uuid')
+        exif_box = j.box[-1]
+        actual = exif_box.uuid
+        expected = UUID(bytes=b'JpgTiffExif->JP2')
+        self.assertEqual(actual, expected)
+
+        self.assertIn('ColorMap', exif_box.data)
+        self.assertNotIn('StripOffsets', exif_box.data)
 
     def test_excluded_tags_is_none(self):
         """

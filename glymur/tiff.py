@@ -697,9 +697,14 @@ class Tiff2Jp2k(object):
             self.tw = self.imagewidth
             self.rps = self.get_tag_value(278)
 
+        if self.spp == 1:
+            shape = (self.imageheight, self.imagewidth)
+        else:
+            shape = (self.imageheight, self.imagewidth, self.spp)
+
         self.jp2 = Jp2k(
             self.jp2_filename,
-            shape=(self.imageheight, self.imagewidth, self.spp),
+            shape=shape,
             tilesize=self.tilesize,
             **self.jp2_kwargs
         )
