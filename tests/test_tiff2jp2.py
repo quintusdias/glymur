@@ -1691,6 +1691,7 @@ class TestSuite(fixtures.TestCommon):
 
         # The last box should be the exif uuid.  It may or may not have the
         # colormap tag depending on what was specified.
+        self.assertEqual(j.box[-1].box_id, 'uuid')
         exif_box = j.box[-1]
         actual = exif_box.uuid
         expected = UUID(bytes=b'JpgTiffExif->JP2')
