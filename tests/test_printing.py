@@ -3,6 +3,7 @@
 Test suite for printing.
 """
 # Standard library imports ...
+from collections import OrderedDict
 import importlib.resources as ir
 from io import BytesIO, StringIO
 import struct
@@ -1058,6 +1059,9 @@ class TestPrinting(fixtures.TestCommon):
 
             actual = str(j.box[5])
 
+        # Python 3.12: gh-101446: Change repr of collections.OrderedDict
+        # https://github.com/python/cpython/pull/101661
+        exif_val = OrderedDict([('Make', 'HTC')])
         expected = (
             "UUID Box (uuid) @ (1135519, 142)\n"
             "    UUID:  4a706754-6966-6645-7869-662d3e4a5032 (EXIF)\n"
@@ -1066,7 +1070,7 @@ class TestPrinting(fixtures.TestCommon):
             "                    (   'TileOffsets',\n"
             "                        "
             "array([ 0, 10, 20, ..., 70, 80, 90], dtype=uint32)),\n"
-            "                    ('ExifTag', OrderedDict([('Make', 'HTC')]))])"
+            f"                    ('ExifTag', {exif_val!r})])"
         )
         self.assertEqual(actual, expected)
 
