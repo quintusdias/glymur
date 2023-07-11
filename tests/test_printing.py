@@ -1058,16 +1058,28 @@ class TestPrinting(fixtures.TestCommon):
 
             actual = str(j.box[5])
 
-        expected = (
-            "UUID Box (uuid) @ (1135519, 142)\n"
-            "    UUID:  4a706754-6966-6645-7869-662d3e4a5032 (EXIF)\n"
-            "    UUID Data:  OrderedDict([   ('ImageWidth', 256),\n"
-            "                    ('ImageLength', 512),\n"
-            "                    (   'TileOffsets',\n"
-            "                        "
-            "array([ 0, 10, 20, ..., 70, 80, 90], dtype=uint32)),\n"
-            "                    ('ExifTag', OrderedDict([('Make', 'HTC')]))])"
-        )
+        if sys.version_info[1] >= 12:
+            expected = (
+                "UUID Box (uuid) @ (1135519, 142)\n"
+                "    UUID:  4a706754-6966-6645-7869-662d3e4a5032 (EXIF)\n"
+                "    UUID Data:  OrderedDict([   ('ImageWidth', 256),\n"
+                "                    ('ImageLength', 512),\n"
+                "                    (   'TileOffsets',\n"
+                "                        "
+                "array([ 0, 10, 20, ..., 70, 80, 90], dtype=uint32)),\n"
+                "                    ('ExifTag', OrderedDict({'Make': 'HTC'}))])"
+            )
+        else:
+            expected = (
+                "UUID Box (uuid) @ (1135519, 142)\n"
+                "    UUID:  4a706754-6966-6645-7869-662d3e4a5032 (EXIF)\n"
+                "    UUID Data:  OrderedDict([   ('ImageWidth', 256),\n"
+                "                    ('ImageLength', 512),\n"
+                "                    (   'TileOffsets',\n"
+                "                        "
+                "array([ 0, 10, 20, ..., 70, 80, 90], dtype=uint32)),\n"
+                "                    ('ExifTag', OrderedDict([('Make', 'HTC')]))])"
+            )
         self.assertEqual(actual, expected)
 
     def test_crg(self):
