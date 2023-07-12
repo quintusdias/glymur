@@ -3,6 +3,11 @@ Changes in glymur 0.12
 ######################
 
 *****************
+Changes in 0.12.8
+*****************
+    * Fix printing issue on 3.12beta, Fedora rawhide
+
+*****************
 Changes in 0.12.7
 *****************
     * Fix failing test on fedora.
