@@ -944,7 +944,8 @@ class TestJp2k(fixtures.TestCommon):
         j.layer = 1
         d1 = j[:]
 
-        np.alltrue(d0 != d1)
+        # if the arrays were equal, their difference would not sum to 0
+        self.assertNotEqual(np.abs(d0 - d1).sum(), 0)
 
     def test_invalid_layers(self):
         """

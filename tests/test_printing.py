@@ -1067,7 +1067,7 @@ class TestPrinting(fixtures.TestCommon):
                 "                    (   'TileOffsets',\n"
                 "                        "
                 "array([ 0, 10, 20, ..., 70, 80, 90], dtype=uint32)),\n"
-                "                    ('ExifTag', OrderedDict({'Make': 'HTC'}))])"
+                "                    ('ExifTag', OrderedDict({'Make': 'HTC'}))])"  # noqa : E501
             )
         else:
             expected = (
@@ -1078,7 +1078,7 @@ class TestPrinting(fixtures.TestCommon):
                 "                    (   'TileOffsets',\n"
                 "                        "
                 "array([ 0, 10, 20, ..., 70, 80, 90], dtype=uint32)),\n"
-                "                    ('ExifTag', OrderedDict([('Make', 'HTC')]))])"
+                "                    ('ExifTag', OrderedDict([('Make', 'HTC')]))])"  # noqa : E501
             )
         self.assertEqual(actual, expected)
 

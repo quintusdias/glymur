@@ -1,5 +1,7 @@
 # Standard library imports ...
+import importlib.resources as ir
 import os
+import sys
 import time
 import unittest
 from unittest.mock import patch
@@ -11,12 +13,14 @@ import numpy as np
 # Local imports
 import glymur
 from glymur import Jp2k
+from glymur import command_line
 
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 from . import fixtures
 
 
+@unittest.skipIf(os.cpu_count() < 2, "makes no sense if 2 cores not there")
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 @unittest.skipIf(glymur.version.openjpeg_version < '2.3.0',
                  "Requires as least v2.3.0")
@@ -76,7 +80,6 @@ class TestSuite(fixtures.TestCommon):
             with self.assertRaises(RuntimeError):
                 glymur.set_option('lib.num_threads', 4)
 
-    @unittest.skipIf(os.cpu_count() < 2, "makes no sense if 2 cores not there")
     def test_threads_write_support(self):
         """
         SCENARIO:  Attempt to encode with threading support.  This feature is
@@ -96,3 +99,24 @@ class TestSuite(fixtures.TestCommon):
                 self.assertEqual(len(w), 0)
             else:
                 self.assertEqual(len(w), 1)
+
+    def test_tiff2jp2_num_threads(self):
+        """
+        Scenario:  The --num-threads option is given on the command line.
+
+        Expected Result.  No errors.  If openjpeg is earlier than 2.5.0, there
+        will be a warning.
+        """
+        path = ir.files('tests.data').joinpath('basn6a08.tif')
+
+        sys.argv = [
+            '', str(path), str(self.temp_jp2_filename), '--num-threads', '2',
+        ]
+        with warnings.catch_warnings(record=True) as w:
+            command_line.tiff2jp2()
+            if glymur.version.openjpeg_version < '2.5.0':
+                self.assertEqual(len(w), 1)
+
+        Jp2k(self.temp_jp2_filename)
+
+        self.assertTrue(True)
