@@ -55,7 +55,6 @@ class TestSuite(fixtures.TestCommon):
 
         self.assertTrue(delta1 < delta0)
 
-    @unittest.skipIf(os.cpu_count() < 4, "makes no sense if 4 cores not there")
     def test_thread_support_on_openjpeg_lt_220(self):
         """
         SCENARIO:  Set number of threads on openjpeg < 2.2.0
@@ -64,9 +63,8 @@ class TestSuite(fixtures.TestCommon):
         """
         with patch('glymur.jp2k.version.openjpeg_version', new='2.1.0'):
             with self.assertRaises(RuntimeError):
-                glymur.set_option('lib.num_threads', 4)
+                glymur.set_option('lib.num_threads', 2)
 
-    @unittest.skipIf(os.cpu_count() < 4, "makes no sense if 4 cores not there")
     @patch('glymur.lib.openjp2.has_thread_support')
     def test_thread_support_not_compiled_into_library(self, mock_ts):
         """
@@ -78,7 +76,7 @@ class TestSuite(fixtures.TestCommon):
         mock_ts.return_value = False
         with patch('glymur.jp2k.version.openjpeg_version', new='2.2.0'):
             with self.assertRaises(RuntimeError):
-                glymur.set_option('lib.num_threads', 4)
+                glymur.set_option('lib.num_threads', 2)
 
     def test_threads_write_support(self):
         """
