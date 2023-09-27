@@ -15,6 +15,7 @@ Contents:
    introduction
    detailed_installation
    how_do_i
+   api
    whatsnew/index
    roadmap
 
@@ -26,4 +27,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-
