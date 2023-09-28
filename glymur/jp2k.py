@@ -40,41 +40,54 @@ class Jp2k(Jp2kBox):
 
     Parameters
     ----------
-    filename : str or path
-        The path to JPEG 2000 file.  If you are only reading JPEG 2000 files,
-        this is the only argument you need to supply.
+    filename : str or Path
+        If you are reading JPEG 2000 files instead of writing, this is the only
+        argument you need to supply.
     data : np.ndarray, optional
-        Image data to be written to file.
+        Image data to be written.  This should not be specified when writing by
+        tile.
     shape : Tuple[int, int, ...], optional
-        Size of image data, only required when image_data is not provided.
+        Size of the image to be written.  This should only be specified when
+        the JPEG 2000 file is to be written by tiles.
     capture_resolution : Tuple[int, int], optional
-        Capture solution (VRES, HRES).  This appends a capture resolution
-        box onto the end of the JP2 file when it is created.
+        Capture solution (VRES, HRES).  Specifying this option will append a
+        capture resolution box onto the end of the JP2 file.
     cbsize : Tuple[int, int], optional
-        Code block size (NROWS, NCOLS)
+        Code block size (NROWS, NCOLS).  This parameter is for advanced use
+        cases.
     cinema2k : int, optional
-        Frames per second, either 24 or 48.
+        Frames per second, either 24 or 48.  This option is required to
+        generate a codestream compliant to the digital cinema specifications
+        for 2K resolution content.
     cinema4k : bool, optional
-        Set to True to specify Cinema4K mode, defaults to false.
+        Set to True to specify Cinema4K mode, defaults to false.  This option
+        is required to generate a codestream compliant to the digital cinema
+        specifications for 4K resolution content.
     colorspace : {'rgb', 'gray'}, optional
-        The image color space.  If not supplied, it will be inferred.
+        The image color space.  If not supplied, it will be interpreted from
+        other parameters.
     cratios : Tuple[int, ...], optional
-        Compression ratios for successive layers.
+        Each value is a factor of compression and each value represents a
+        quality layer.  If a lossless layer is intended, the last value should
+        be 1.  The default action is to write a single lossless quality layer.
     display_resolution : Tuple[int, int], optional
-        Display solution (VRES, HRES).  This appends a display resolution
-        box onto the end of the JP2 file when it is created.
+        Display solution (VRES, HRES).  Specifying this option will append a
+        display resolution box onto the end of the JP2.
     eph : bool, optional
-        If true, write EPH marker after each header packet.
+        If true, write an EPH marker after each packet header.
     grid_offset : Tuple[int, int], optional
-        Offset (DY, DX) of the origin of the image in the reference grid.
+        Offset (dY, dX) of the origin of the image in the reference grid.
     irreversible : bool, optional
-        If true, use the irreversible DWT 9-7 transform.
+        If true, use the irreversible DWT 9-7 transform in place of the
+        reversible 5-3 transform.
     mct : bool, optional
-        Usage of the multi component transform to write an image.  If not
+        If true, use the multi component transform to write an image.  If not
         specified, defaults to True if the color space is RGB, false if the
         color space is grayscale.
     modesw : int, optional
-        mode switch
+        This is an advanced option, it allows the possibility to use a mode
+        switch during the encoding process.  There are the following
+        possibilities:
             1 = BYPASS(LAZY)
             2 = RESET
             4 = RESTART(TERMALL)
@@ -85,25 +98,26 @@ class Jp2k(Jp2kBox):
         Number of resolutions, defaults to 6.  This number will be equal to
         the number of thumbnails plus the original image.
     plt : bool, optional
-        Generate PLT markers.
+        Write PLT markers in the tile-part header.
     prog : {'LRCP', 'RLCP', 'RPCL', 'PCRL', 'CPRL'}, optional
-        Progression order.  If not specified, the chosen progression order
-        will be 'CPRL' if either cinema2k or cinema4k is specified,
+        Progression order.  The default is 'LRCP'.  If cinema2k or cinema4k is
+        specified, the choice must be 'CPRL'.
         otherwise defaulting to 'LRCP'.
     psizes : List[Tuple[int, int]], optional
         Precinct sizes, each precinct size tuple is defined as
         (height, width).
     psnr : Tuple[int, ...] or None
         Different PSNR for successive layers.  If the last layer is desired
-        to be lossless, specify 0 for the last value.
+        to be lossless, specify 0 for the last value.  Do not specify psnr with
+        cratios.
     sop : bool, optional
-        If true, write SOP marker before each packet.
+        If true, write a SOP marker before each packet.
     subsam : Tuple[int, int], optional
         Subsampling factors (dy, dx).
     tilesize : Tuple[int, int], optional
         Tile size in terms of (numrows, numcols), not (X, Y).
     tlm : bool, optional
-        Generate TLM markers.
+        Write TLM markers in the main header.
     verbose : bool, optional
         Print informational messages produced by the OpenJPEG library.
 
