@@ -65,7 +65,7 @@ class Jp2k(Jp2kBox):
         specifications for 4K resolution content.
     colorspace : {'rgb', 'gray'}, optional
         The image color space.  If not supplied, it will be interpreted from
-        other parameters..
+        other parameters.
     cratios : Tuple[int, ...], optional
         Each value is a factor of compression and each value represents a
         quality layer.  If a lossless layer is intended, the last value should
