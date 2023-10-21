@@ -1830,7 +1830,7 @@ class TestJp2dump(unittest.TestCase):
             "    numcomps: 0\n"
             "    color_space: 0\n"
             "    icc_profile_buf: "
-            "<glymur.lib.openjp2.LP_c_ubyte object at 0x[0-9A-Fa-f]*>\n"
+            "<(glymur.lib.openjp2|ctypes.wintypes).LP_c_ubyte object at 0x[0-9A-Fa-f]*>\n"
             "    icc_profile_len: 0")
         self.assertRegex(actual, expected)
 
