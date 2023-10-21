@@ -12,7 +12,8 @@ In regards to metadata, most JP2 boxes are properly interpreted.
 Certain optional JP2 boxes can also be written, including XML boxes and
 XMP UUIDs.  There is incomplete support for reading JPX metadata.
 
-The current version of glymur is supported on Python versions 3.8, 3.9, 3.10, and 3.11.
+The current version of glymur is supported on Python versions 3.9,
+3.10, 3.11, and 3.12.
 
 For more information about OpenJPEG, please consult http://www.openjpeg.org.
 
