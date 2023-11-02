@@ -475,6 +475,35 @@ The :py:meth:`append` method can add an XML box as shown below::
     >>> jp2.append(xmlbox)
     >>> print(jp2)
 
+***************************************************
+... create display and/or capture resolution boxes?
+***************************************************
+
+Capture and display resolution boxes are part of the JPEG 2000 standard.  You
+may create such metadata boxes via keyword arguments.::
+
+    >>> import numpy as np, glymur
+    >>> vresc, hresc = 0.1, 0.2
+    >>> vresd, hresd = 0.3, 0.4
+    >>> j = glymur.Jp2k(
+            'my.jp2', data=np.zeros([256, 256, 3], dtype=np.uint8),
+            capture_resolution=[vresc, hresc],
+            display_resolution=[vresd, hresd],
+        )
+    >>> glymur.set_printoptions(short=True)
+    >>> print(j)
+    File:  my.jp2
+    JPEG 2000 Signature Box (jP  ) @ (0, 12)
+    File Type Box (ftyp) @ (12, 20)
+    JP2 Header Box (jp2h) @ (32, 89)
+        Image Header Box (ihdr) @ (40, 22)
+        Colour Specification Box (colr) @ (62, 15)
+        Resolution Box (res ) @ (77, 44)
+            Capture Resolution Box (resc) @ (85, 18)
+            Display Resolution Box (resd) @ (103, 18)
+    Contiguous Codestream Box (jp2c) @ (121, 174)
+
+
 *******************************************
 ... add metadata in a more general fashion?
 *******************************************
