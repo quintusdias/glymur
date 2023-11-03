@@ -1,11 +1,17 @@
-############
+########
+Examples
+########
+
+***************
+Basic Image I/O
+***************
+
 How do I...?
-############
+============
 
-
-****************
 ... read images?
-****************
+----------------
+
 Jp2k implements slicing via the :py:meth:`__getitem__` method and
 hooks it into the multiple resolution property of JPEG 2000 imagery.
 This allows you to retrieve multiresolution imagery via
@@ -26,9 +32,10 @@ second lower-resolution image.  It's always powers of two. ::
     >>> thumbnail.shape
     (200, 120, 3)
 
-****************************
+
 ... read really large images
-****************************
+----------------------------
+
 JPEG 2000 images can be much larger than what can fit into your
 computer's memory.  While you can use strides that align with the
 JPEG 2000 decomposition levels to retrieve lower resolution images,
@@ -52,9 +59,9 @@ thumbnail.::
     >>> thumbnail.shape
     (25, 15, 3)
 
-************************
 ... read an image layer?
-************************
+------------------------
+
 JPEG2000 has layers which allow you to specify images with different
 levels of quality.  Different layers may be specified by utilizing 
 the layer property.  The default layer value is 0, which specifies the
@@ -67,9 +74,26 @@ first layer. ::
     >>> jpx.layer = 3
     >>> d3 = jpx[:] # third layer
 
-*********************************************************
+... write images?
+-----------------
+
+The easiest way is just to assign the entire image, similar to what might
+be done with NumPy. ::
+    
+    >>> import glymur, skimage.data
+    >>> jp2 = glymur.Jp2k('astronaut.jp2')
+    >>> jp2[:] = skimage.data.astronaut()
+
+******************
+Advanced Image I/O
+******************
+
+How do I...?
+============
+
 ... make use of OpenJPEG's thread support to read images?
-*********************************************************
+---------------------------------------------------------
+
 If you have glymur 0.8.13 or higher
 and OpenJPEG 2.2.0 or higher,
 you can make use of OpenJPEG's thread support to speed-up read operations.
@@ -88,9 +112,10 @@ you really should look into this. ::
     >>> t1 - t0
     0.4060473537445068
 
-**************************************************
+
 ... efficiently read just one band of a big image?
-**************************************************
+--------------------------------------------------
+
 For really large images, before v0.9.4 you had to read in all bands of an
 image, even if you were only interested in just one of those bands.  With
 v0.9.4 or higher, you can make use of the :py:meth:`decoded_components`
@@ -121,20 +146,9 @@ bands.
     >>> data.shape
     (1456, 2592, 3)
 
-*****************
-... write images?
-*****************
-The easiest way is just to assign the entire image, similar to what might
-be done with NumPy. ::
-    
-    >>> import glymur, skimage.data
-    >>> jp2 = glymur.Jp2k('astronaut.jp2')
-    >>> jp2[:] = skimage.data.astronaut()
-
-
-**********************************************
 ... write images using multithreaded encoding?
-**********************************************
+----------------------------------------------
+
 If you have glymur 0.9.3 or higher
 and OpenJPEG 2.4.0 or higher,
 you can make use of OpenJPEG's thread support to speed-up read operations.
@@ -156,9 +170,9 @@ With a puny 2015 macbook, just two cores, and a 5824x10368x3 image, we get::
     7.24 seconds
 
 
-*********************************************
 ... write images that cannot fit into memory?
-*********************************************
+---------------------------------------------
+
 If you have glymur 0.9.4 or higher, you can write out an image tile-by-tile.
 In this example, we take a 512x512x3 image and tile it into a 20x20 grid, 
 resulting in a 10240x10240x3 image.
@@ -180,9 +194,9 @@ resulting in a 10240x10240x3 image.
 Note that the tiles are written out left-to-right, tile-row-by-tile-row.  You must
 have image data ready to feed each tile writer, you cannot skip a tile.
 
-****************************************
 ... force the generation of PLT markers?
-****************************************
+----------------------------------------
+
 With glymur 0.9.5 or higher, you can instruct the encoder to generate PLT markers
 by using the plt keyword. ::
 
@@ -195,9 +209,9 @@ by using the plt keyword. ::
         Index:  0
         Iplt:  [271, 201, 208, 749, 551, 548, 2569, 1852, 1814, 8300, 6370, 6061, 26987, 23437, 21431, 88511, 86763, 77253]
 
-************************************************************************
 ... write images with different compression ratios for different layers?
-************************************************************************
+------------------------------------------------------------------------
+
 Different compression factors may be specified with the cratios parameter ::
 
     >>> import skimage.data, glymur
@@ -210,9 +224,9 @@ Different compression factors may be specified with the cratios parameter ::
     >>> jp2.layer = 2
     >>> data = jp2[:]
 
-*************************************************************************
 ... write images with different PSNR (or "quality") for different layers?
-*************************************************************************
+-------------------------------------------------------------------------
+
 Different PSNR values may be specified with the psnr parameter.  Please read
 https://en.wikipedia.org/wiki/Peak_signal-to-noise_ratio
 for a basic understanding of PSNR.  
@@ -231,9 +245,8 @@ the layers to make the first layer lossless, not the last. ::
     >>> print(psnr)
     [inf, 29.028560403833303, 39.206919416670402, 47.593129828702246]
 
-*************************************
 ... convert TIFF images to JPEG 2000?
-*************************************
+-------------------------------------
 
 Many TIFFs can be converted to tiled JPEG 2000 files using glymur.
 A command line utility **tiff2jp2** is provided for this task.
@@ -254,9 +267,73 @@ inefficient no matter how you tile the JPEG 2000 file.
 The TIFF metadata is stored in a UUID box appended to the end of the
 JPEG 2000 file.
 
-*********************
+... create an image with an alpha layer?
+----------------------------------------
+
+OpenJPEG can create JP2 files with more than 3 components (use version 2.1.0+ 
+for this), but by default, any extra components are not described
+as such.  In order to do so, we need to re-wrap such an image in a
+set of boxes that includes a channel definition box.  The following example
+creates an ellipical mask. ::
+
+    >>> import numpy as np
+    >>> import glymur
+    >>> from glymur import Jp2k
+    >>> rgb = Jp2k(glymur.data.goodstuff())[:]
+    >>> ny, nx = rgb.shape[:2]
+    >>> Y, X = np.ogrid[:ny, :nx]
+    >>> mask = nx ** 2 * (Y - ny / 2) ** 2 + ny ** 2 * (X - nx / 2) ** 2 > (nx * ny / 2)**2
+    >>> alpha = 255 * np.ones((ny, nx, 1), dtype=np.uint8)
+    >>> alpha[mask] = 0
+    >>> rgba = np.concatenate((rgb, alpha), axis=2)
+    >>> jp2 = Jp2k('myfile.jp2', data=rgba)
+
+Next we need to specify what types of channels we have.
+The first three channels are color channels, but we identify the fourth as
+an alpha channel::
+
+    >>> from glymur.core import COLOR, OPACITY
+    >>> ctype = [COLOR, COLOR, COLOR, OPACITY]
+
+And finally we have to specify just exactly how each channel is to be
+interpreted.  The color channels are straightforward, they correspond to R-G-B,
+but the alpha (or opacity) channel in this case is to be applied against the 
+entire image (it is possible to apply an alpha channel to a single color 
+channel, but we aren't doing that). ::
+
+    >>> from glymur.core import RED, GREEN, BLUE, WHOLE_IMAGE
+    >>> asoc = [RED, GREEN, BLUE, WHOLE_IMAGE]
+    >>> cdef = glymur.jp2box.ChannelDefinitionBox(ctype, asoc)
+    >>> print(cdef)
+    Channel Definition Box (cdef) @ (0, 0)
+        Channel 0 (color) ==> (1)
+        Channel 1 (color) ==> (2)
+        Channel 2 (color) ==> (3)
+        Channel 3 (opacity) ==> (whole image)
+
+It's easiest to take the existing jp2 jacket and just add the channel
+definition box in the appropriate spot.  The channel definition box **must**
+go into the jp2 header box, and then we can rewrap the image. ::
+
+    >>> boxes = jp2.box  # The box attribute is the list of JP2 boxes
+    >>> boxes[2].box.append(cdef)
+    >>> jp2_rgba = jp2.wrap("goodstuff_rgba.jp2", boxes=boxes)
+
+Here's how the Preview application on the mac shows the RGBA image.
+
+.. image:: goodstuff_alpha.png
+
+
+**************
+Basic Metadata
+**************
+
+How do I...?
+============
+
 ... display metadata?
-*********************
+---------------------
+
 There are two ways.  From the command line, the console script **jp2dump** is
 available. ::
 
@@ -410,9 +487,12 @@ object, i.e. ::
             CME marker segment @ (3305, 37)
                 "Created by OpenJPEG version 2.0.0"
      
-That's fairly overwhelming, and perhaps lost in the flood of information
-is the fact that the codestream metadata is limited to just what's in the
-main codestream header.  You can suppress the codestream and XML details by
+... display less metadata?
+--------------------------
+
+The amount of metadata in a JPEG 2000 file can be overwhelming, mostly due
+to the codestream and XML and UUID boxes.  
+You can suppress the codestream and XML details by
 making use of the :py:meth:`set_option` function::
 
     >>> glymur.set_option('print.codestream', False)
@@ -439,13 +519,108 @@ making use of the :py:meth:`set_option` function::
         UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
     Contiguous Codestream Box (jp2c) @ (3223, 1132296)
 
-It is possible to easily print the codestream header details as well, i.e. ::
+... display the codestream in all its gory glory?
+-------------------------------------------------
 
-    >>> print(j.codestream)   # details not show
+By default, the codestream details are limited to the codestream header.  It is
+possible to print the full codestream, though.::
 
-*********************
+    >>> glymur.set_option('print.codestream', True)
+    >>> c = j.get_codestream(header_only=False)
+    >>> print(c)
+    Codestream:
+    SOC marker segment @ (3231, 0)
+    SIZ marker segment @ (3233, 47)
+        Profile:  no profile
+        Reference Grid Height, Width:  (1456 x 2592)
+        Vertical, Horizontal Reference Grid Offset:  (0 x 0)
+        Reference Tile Height, Width:  (1456 x 2592)
+        Vertical, Horizontal Reference Tile Offset:  (0 x 0)
+        Bitdepth:  (8, 8, 8)
+        Signed:  (False, False, False)
+        Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))
+    COD marker segment @ (3282, 12)
+        Coding style:
+            Entropy coder, without partitions
+            SOP marker segments:  False
+            EPH marker segments:  False
+        Coding style parameters:
+            Progression order:  LRCP
+            Number of layers:  2
+            Multiple component transformation usage:  reversible
+            Number of decomposition levels:  1
+            Code block height, width:  (64 x 64)
+            Wavelet transform:  5-3 reversible
+            Precinct size:  (32768, 32768)
+            Code block context:
+                Selective arithmetic coding bypass:  False
+                Reset context probabilities on coding pass boundaries:  False
+                Termination on each coding pass:  False
+                Vertically stripe causal context:  False
+                Predictable termination:  False
+                Segmentation symbols:  False
+    QCD marker segment @ (3296, 7)
+        Quantization style:  no quantization, 2 guard bits
+        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]
+    CME marker segment @ (3305, 37)
+        "Created by OpenJPEG version 2.0.0"
+    SOT marker segment @ (3344, 10)
+        Tile part index:  0
+        Tile part length:  1132173
+        Tile part instance:  0
+        Number of tile parts:  1
+    COC marker segment @ (3356, 9)
+        Associated component:  1
+        Coding style for this component:  Entropy coder, PARTITION = 0
+        Coding style parameters:
+            Number of decomposition levels:  1
+            Code block height, width:  (64 x 64)
+            Wavelet transform:  5-3 reversible
+            Precinct size:  (32768, 32768)
+            Code block context:
+                Selective arithmetic coding bypass:  False
+                Reset context probabilities on coding pass boundaries:  False
+                Termination on each coding pass:  False
+                Vertically stripe causal context:  False
+                Predictable termination:  False
+                Segmentation symbols:  False
+    QCC marker segment @ (3367, 8)
+        Associated Component:  1
+        Quantization style:  no quantization, 2 guard bits
+        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]
+    COC marker segment @ (3377, 9)
+        Associated component:  2
+        Coding style for this component:  Entropy coder, PARTITION = 0
+        Coding style parameters:
+            Number of decomposition levels:  1
+            Code block height, width:  (64 x 64)
+            Wavelet transform:  5-3 reversible
+            Precinct size:  (32768, 32768)
+            Code block context:
+                Selective arithmetic coding bypass:  False
+                Reset context probabilities on coding pass boundaries:  False
+                Termination on each coding pass:  False
+                Vertically stripe causal context:  False
+                Predictable termination:  False
+                Segmentation symbols:  False
+    QCC marker segment @ (3388, 8)
+        Associated Component:  2
+        Quantization style:  no quantization, 2 guard bits
+        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]
+    SOD marker segment @ (3398, 0)
+    EOC marker segment @ (1135517, 0)
+
+
+*****************
+Advanced Metadata
+*****************
+
+How do I...?
+============
+
 ... add XML metadata?
-*********************
+---------------------
+
 You can append any number of XML boxes to a JP2 file (not to a raw codestream).
 Consider the following XML file `data.xml` : ::
 
@@ -475,9 +650,8 @@ The :py:meth:`append` method can add an XML box as shown below::
     >>> jp2.append(xmlbox)
     >>> print(jp2)
 
-***************************************************
 ... create display and/or capture resolution boxes?
-***************************************************
+---------------------------------------------------
 
 Capture and display resolution boxes are part of the JPEG 2000 standard.  You
 may create such metadata boxes via keyword arguments.::
@@ -504,11 +678,17 @@ may create such metadata boxes via keyword arguments.::
     Contiguous Codestream Box (jp2c) @ (121, 174)
 
 
-*******************************************
-... add metadata in a more general fashion?
-*******************************************
-An existing raw codestream (or JP2 file) can be wrapped (re-wrapped) in a 
-user-defined set of JP2 boxes.  To get just a minimal JP2 jacket on the 
+... reinterpret a codestream (say what)?
+----------------------------------------
+
+An existing raw codestream (or JP2 file) can be re-wrapped in a 
+user-defined set of JP2 boxes.  The point to doing this might be
+to provide a different interpretation of an image.  For example,
+a raw codestream has no concept of a color model, whereas a JP2
+file with a 3-channel codestream will by default consider that to
+be an RGB image.
+
+To get just a minimal JP2 jacket on the 
 codestream provided by `goodstuff.j2k` (a file consisting of a raw codestream),
 you can use the :py:meth:`wrap` method with no box argument: ::
 
@@ -589,9 +769,8 @@ As to the question of which method you should use, :py:meth:`append` or
 produces a new JP2 file, while :py:meth:`append` modifies an existing file and
 is currently limited to XML and UUID boxes.
 
-***************************
 ... work with ICC profiles?
-***************************
+---------------------------
 
 A detailed answer is beyond my capabilities.  What I can tell you is how to
 gain access to ICC profiles that JPEG 2000 images may or may not provide for
@@ -617,68 +796,8 @@ are wrapped in a BytesIO object, which is fed to the most-excellent Pillow packa
 To go any further with this, you will want to consult
 `the Pillow documentation <https://pillow.readthedocs.io/en/stable/>`_.
 
-****************************************
-... create an image with an alpha layer?
-****************************************
-
-OpenJPEG can create JP2 files with more than 3 components (use version 2.1.0+ 
-for this), but by default, any extra components are not described
-as such.  In order to do so, we need to re-wrap such an image in a
-set of boxes that includes a channel definition box.  The following example
-creates an ellipical mask. ::
-
-    >>> import numpy as np
-    >>> import glymur
-    >>> from glymur import Jp2k
-    >>> rgb = Jp2k(glymur.data.goodstuff())[:]
-    >>> ny, nx = rgb.shape[:2]
-    >>> Y, X = np.ogrid[:ny, :nx]
-    >>> mask = nx ** 2 * (Y - ny / 2) ** 2 + ny ** 2 * (X - nx / 2) ** 2 > (nx * ny / 2)**2
-    >>> alpha = 255 * np.ones((ny, nx, 1), dtype=np.uint8)
-    >>> alpha[mask] = 0
-    >>> rgba = np.concatenate((rgb, alpha), axis=2)
-    >>> jp2 = Jp2k('myfile.jp2', data=rgba)
-
-Next we need to specify what types of channels we have.
-The first three channels are color channels, but we identify the fourth as
-an alpha channel::
-
-    >>> from glymur.core import COLOR, OPACITY
-    >>> ctype = [COLOR, COLOR, COLOR, OPACITY]
-
-And finally we have to specify just exactly how each channel is to be
-interpreted.  The color channels are straightforward, they correspond to R-G-B,
-but the alpha (or opacity) channel in this case is to be applied against the 
-entire image (it is possible to apply an alpha channel to a single color 
-channel, but we aren't doing that). ::
-
-    >>> from glymur.core import RED, GREEN, BLUE, WHOLE_IMAGE
-    >>> asoc = [RED, GREEN, BLUE, WHOLE_IMAGE]
-    >>> cdef = glymur.jp2box.ChannelDefinitionBox(ctype, asoc)
-    >>> print(cdef)
-    Channel Definition Box (cdef) @ (0, 0)
-        Channel 0 (color) ==> (1)
-        Channel 1 (color) ==> (2)
-        Channel 2 (color) ==> (3)
-        Channel 3 (opacity) ==> (whole image)
-
-It's easiest to take the existing jp2 jacket and just add the channel
-definition box in the appropriate spot.  The channel definition box **must**
-go into the jp2 header box, and then we can rewrap the image. ::
-
-    >>> boxes = jp2.box  # The box attribute is the list of JP2 boxes
-    >>> boxes[2].box.append(cdef)
-    >>> jp2_rgba = jp2.wrap("goodstuff_rgba.jp2", boxes=boxes)
-
-Here's how the Preview application on the mac shows the RGBA image.
-
-.. image:: goodstuff_alpha.png
-
-
-    
-************************
 ... work with XMP UUIDs?
-************************
+------------------------
 
 `Wikipedia <http://en.wikipedia.org/wiki/Extensible_Metadata_Platform>`_ states
 that "The Extensible Metadata Platform (XMP) is an ISO standard,

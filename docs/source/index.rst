@@ -10,7 +10,7 @@ Welcome to glymur's documentation!
 Contents:
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 4
 
    introduction
    detailed_installation
