@@ -147,7 +147,8 @@ class TestSuite(fixtures.TestCommon):
         """
         path = ir.files('tests.data').joinpath('issue626.j2k')
         with self.assertRaises(glymur.codestream.J2KParseError):
-            j = Jp2k(path)
+            Jp2k(path)
+
 
 class TestCodestreamRepr(unittest.TestCase):
 

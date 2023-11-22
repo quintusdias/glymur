@@ -245,7 +245,12 @@ class Codestream(object):
         while True:
 
             read_buffer = fptr.read(2)
-            self._marker_id, = struct.unpack('>H', read_buffer)
+
+            try:
+                self._marker_id, = struct.unpack('>H', read_buffer)
+            except struct.error as e:
+                raise J2KParseError(e)
+
             if self._marker_id < 0xff00:
                 offset = fptr.tell() - 2
                 msg = (
