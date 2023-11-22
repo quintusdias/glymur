@@ -139,6 +139,15 @@ class TestSuite(fixtures.TestCommon):
         # whether or not it is signed.
         self.assertEqual(codestream.segment[1].ssiz, (7, 7, 7))
 
+    def test_626(self):
+        """
+        Scenario:
+
+        Expected result:  J2KParseError
+        """
+        path = ir.files('tests.data').joinpath('issue626.j2k')
+        with self.assertRaises(glymur.codestream.J2KParseError):
+            j = Jp2k(path)
 
 class TestCodestreamRepr(unittest.TestCase):
 
