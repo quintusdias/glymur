@@ -256,7 +256,11 @@ class Codestream(object):
             try:
                 self._marker_id, = struct.unpack('>H', read_buffer)
             except struct.error as e:
-                raise J2KParseError(e)
+                msg = (
+                    f"Unable to read an expected marker in the codestream "
+                    f"at byte offset {fptr.tell()}.  \"{e}\"."
+                )
+                raise J2KParseError(msg)
 
             if self._marker_id < 0xff00:
                 offset = fptr.tell() - 2
