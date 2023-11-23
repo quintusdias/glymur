@@ -280,7 +280,7 @@ class TestJp2k(fixtures.TestCommon):
                 ofile.flush()
 
         j = Jp2k(self.temp_jp2_filename)
-        with self.assertRaises(struct.error):
+        with self.assertRaises(glymur.codestream.J2KParseError):
             j.get_codestream(header_only=False)
 
     def test_read_differing_subsamples(self):
