@@ -167,7 +167,7 @@ class Codestream(object):
         #     ITU-T Rec. T.87
         # We really don't know what to do with them, so they are treated as if
         # they are reserved markers.
-        parse_marker_segment_fcn = {
+        self.parse_marker_segment_fcn = {
 
             # The following are definitively reserved markers according to
             # table A-1 in ISO/IEC FCD15444-1.
@@ -231,9 +231,16 @@ class Codestream(object):
 
         self.offset = fptr.tell()
         self.length = length
+        self.header_only = header_only
 
         self.segment = []
 
+        self._parse(fptr)
+
+    def _parse(self, fptr):
+        """
+        Parse the codestream.
+        """
         # First two bytes are the SOC marker.  We already know that.
         read_buffer = fptr.read(2)
         segment = SOCsegment(offset=fptr.tell() - 2, length=0)
@@ -263,13 +270,13 @@ class Codestream(object):
 
             self._offset = fptr.tell() - 2
 
-            if self._marker_id == 0xff90 and header_only:
+            if self._marker_id == 0xff90 and self.header_only:
                 # Start-of-tile (SOT) means that we are out of the main header
                 # and there is no need to go further.
                 break
 
             try:
-                segment = parse_marker_segment_fcn[self._marker_id](fptr)
+                segment = self.parse_marker_segment_fcn[self._marker_id](fptr)
             except KeyError:
                 segment = self._parse_reserved_segment(fptr)
 
@@ -279,13 +286,16 @@ class Codestream(object):
                 # end of codestream, should break.
                 break
 
+            # If the marker ID is SOD, then we need to seek past the tile part
+            # bit stream.
             if self._marker_id == 0xff93:
-                # If SOD, then we need to seek past the tile part bit stream.
-                if self._parse_tpart_flag and not header_only:
+
+                if self._parse_tpart_flag and not self.header_only:
                     # But first parse the tile part bit stream for SOP and
                     # EPH segments.
-                    self._parse_tile_part_bit_stream(fptr, segment,
-                                                     self._tile_length[-1])
+                    self._parse_tile_part_bit_stream(
+                        fptr, segment, self._tile_length[-1]
+                    )
 
                 new_offset = self._tile_offset[-1] + self._tile_length[-1]
                 fptr.seek(new_offset)
