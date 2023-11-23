@@ -118,7 +118,7 @@ _CAPABILITIES_DISPLAY = {
 _KNOWN_PROFILES = _CAPABILITIES_DISPLAY.keys()
 
 
-class J2KParseError(RuntimeError):
+class J2KParseError(struct.error):
     pass
 
 
