@@ -3433,7 +3433,7 @@ class UUIDBox(Jp2kBox):
     def _parse_raw_data(self):
         """Private function for parsing UUID payloads if possible."""
         if self.uuid == _XMP_UUID:
-            txt = self.raw_data.decode('utf-8')
+            txt = self.raw_data.decode('utf-8').strip('\x00')
             elt = ET.fromstring(txt)
             self.data = ET.ElementTree(elt)
         elif self.uuid == _GEOTIFF_UUID:
