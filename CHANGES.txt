@@ -1,3 +1,8 @@
+Nov 26, 2023 - v0.12.9
+    Fix handling of null-bytes with XML data
+    Add API references to docs
+    Qualify on python 3.12
+
 Jul 12, 2023 - v0.12.8
     Fix printing issue on 3.12beta, Fedora rawhide
 
