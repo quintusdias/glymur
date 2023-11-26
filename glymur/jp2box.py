@@ -3433,9 +3433,15 @@ class UUIDBox(Jp2kBox):
     def _parse_raw_data(self):
         """Private function for parsing UUID payloads if possible."""
         if self.uuid == _XMP_UUID:
-            txt = self.raw_data.decode('utf-8').strip('\x00')
-            elt = ET.fromstring(txt)
+
+            txt = self.raw_data.decode('utf-8')
+
+            # If XMP comes from a TIFF tag, then it should be terminated
+            # by a null byte.  libxml2 now requires that null byte to be
+            # stripped off before being fed into lxml.
+            elt = ET.fromstring(txt.strip('\x00'))
             self.data = ET.ElementTree(elt)
+
         elif self.uuid == _GEOTIFF_UUID:
             self.data = tiff_header(self.raw_data)
         elif self.uuid == _EXIF_UUID:
