@@ -112,7 +112,7 @@ class TestSuite(fixtures.TestCommon):
         ]
         with warnings.catch_warnings(record=True) as w:
             command_line.tiff2jp2()
-            if glymur.version.openjpeg_version < '2.5.0':
+            if glymur.version.openjpeg_version < '2.4.0':
                 self.assertEqual(len(w), 1)
 
         Jp2k(self.temp_jp2_filename)
