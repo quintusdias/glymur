@@ -1,3 +1,6 @@
+Nov 26, 2023 - v0.12.9post1
+    Fix setup.cfg for v0.12.9 release
+
 Nov 26, 2023 - v0.12.9
     Fix handling of null-bytes with XML data
     Add API references to docs
