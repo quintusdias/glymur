@@ -173,6 +173,7 @@ class TestSuite(fixtures.TestCommon):
 
         # don't bother verifying the full output, just get some key parts
         self.assertIn('PROJCRS["Equirectangular MARS",', actual)
+        self.assertIn('ImageLength', actual)
 
     def test_print_bad_geotiff(self):
         """

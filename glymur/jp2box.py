@@ -3484,50 +3484,82 @@ class UUIDBox(Jp2kBox):
         else:
             text += ' (unknown)'
 
-        lst = [text]
+        lines = [text]
 
         if not get_option('print.xml') and self.uuid == _XMP_UUID:
             # If it's an XMP UUID, don't print the XML contents.
             pass
-
         elif self.uuid == _XMP_UUID:
-            b = ET.tostring(self.data, encoding='utf-8', pretty_print=True)
-            s = b.decode('utf-8').strip()
-            text = f'UUID Data:\n{s}'
-            lst.append(text)
+            lines = self._str_xmp_text(lines)
         elif self.uuid == _EXIF_UUID:
-            s = io.StringIO()
-
-            if self.data is None:
-                # If the UUID was malformed, just say so and go on.  This
-                # should not be a showstopper.
-                text = 'UUID Data:  Invalid Exif UUID'
-                lst.append(text)
-            else:
-                with np.printoptions(threshold=4):
-                    pprint.pprint(self.data, stream=s, indent=4)
-                text = f'UUID Data:  {s.getvalue().rstrip()}'
-                lst.append(text)
+            lines = self._str_exif_text(lines)
         elif self.uuid == _GEOTIFF_UUID:
-
-            if self.data is None:
-                return 'UUID Data:  corrupt'
-
-            options = gdal.InfoOptions(showColorTable=False)
-            txt = gdal.Info(self._ftpr.name, options=options)
-            txt = textwrap.indent(txt, ' ' * 4).rstrip()
-
-            txt = f'UUID Data:\n{txt}'
-            lst.append(txt)
+            geo_lines = self._str_gdal_text(lines)
+            tiff_lines = self._str_exif_text(lines)
+            lines = geo_lines + tiff_lines
         else:
-            text = f'UUID Data:  {len(self.raw_data)} bytes'
+            lines = self._str_unrecognized_uuid_text(lines)
+
+        body = '\n'.join(lines)
+        body = textwrap.indent(body, ' ' * 4)
+        text = '\n'.join([title, body])
+
+        return text
+
+    def _str_unrecognized_uuid_text(self, lst):
+        """
+        Get string representation of an unrecognized UUID.
+        """
+        text = f'UUID Data:  {len(self.raw_data)} bytes'
+        lst.append(text)
+
+        return lst
+
+    def _str_gdal_text(self, lst):
+        """
+        Get a string representing the Exif UUID
+        """
+        if self.data is None:
+            return 'UUID Data:  corrupt'
+
+        options = gdal.InfoOptions(showColorTable=False)
+        txt = gdal.Info(self._ftpr.name, options=options)
+        txt = textwrap.indent(txt, ' ' * 4).rstrip()
+
+        txt = f'UUID Data:\n{txt}'
+        lst.append(txt)
+
+        return lst
+
+    def _str_exif_text(self, lst):
+        """
+        Get a string representing the Exif UUID
+        """
+        s = io.StringIO()
+
+        if self.data is None:
+            # If the UUID was malformed, just say so and go on.  This
+            # should not be a showstopper.
+            text = 'UUID Data:  Invalid Exif UUID'
+            lst.append(text)
+        else:
+            with np.printoptions(threshold=4):
+                pprint.pprint(self.data, stream=s, indent=4)
+            text = f'UUID Data:  {s.getvalue().rstrip()}'
             lst.append(text)
 
-        body = '\n'.join(lst)
-        body = textwrap.indent(body, ' ' * 4)
+        return lst
 
-        text = '\n'.join([title, body])
-        return text
+    def _str_xmp_text(self, lst):
+        """
+        Get a string representing the XMP UUID
+        """
+        b = ET.tostring(self.data, encoding='utf-8', pretty_print=True)
+        s = b.decode('utf-8').strip()
+        text = f'UUID Data:\n{s}'
+        lst.append(text)
+
+        return lst
 
     def write(self, fptr):
         """Write a UUID box to file."""
