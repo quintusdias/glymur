@@ -653,8 +653,10 @@ class Codestream(object):
         mantissa_exponent_offset = 3 if cls._csiz > 256 else 2
         cqcc, sqcc = struct.unpack_from(fmt, read_buffer)
         if cqcc >= cls._csiz:
-            msg = ("Invalid QCC component number ({cqcc}), "
-                   "the actual number of components is only {cls._csiz}.")
+            msg = (
+                f"Invalid QCC component number ({cqcc}), "
+                f"the number should be in the range 0-{cls._csiz}"
+            )
             warnings.warn(msg, UserWarning)
 
         spqcc = read_buffer[mantissa_exponent_offset:]

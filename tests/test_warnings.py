@@ -194,8 +194,11 @@ class TestSuite(fixtures.TestCommon):
         fp.write(buffer)
         fp.seek(0)
 
-        with self.assertWarns(UserWarning):
+        with self.assertWarns(UserWarning) as w:
             glymur.codestream.Codestream._parse_qcc_segment(fp)
+
+            expected = 'Invalid QCC component number (64)'
+            self.assertIn(expected, str(w.warnings[0].message))
 
     def test_NR_gdal_fuzzer_check_comp_dx_dy_jp2_dump(self):
         """
