@@ -11,7 +11,7 @@ import numpy as np
 
 # local imports
 import glymur
-from glymur import Jp2k
+from glymur import Jp2k, Jp2kReader
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
@@ -56,6 +56,23 @@ class TestSuite(unittest.TestCase):
         j2k.decoded_components = None
         actual = j2k[:]
         self.assertEqual(actual.shape, (800, 480, 3))
+
+    def test_one_component_reader(self):
+        """
+        SCENARIO:  Decode the 1st component of an RGB image.  Then restore
+        the original configuration of reading all bands.
+
+        EXPECTED RESULT:  the data matches what we get from the regular way.
+        """
+        j2k = Jp2kReader(self.j2kfile)
+        expected = j2k[:, :, 0]
+
+        j2k.decoded_components = 0
+        actual = j2k[:]
+
+        np.testing.assert_array_equal(actual, expected)
+
+        self.assertEqual(j2k.decoded_components, [0])
 
     def test_second_component(self):
         """

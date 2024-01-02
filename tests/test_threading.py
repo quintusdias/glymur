@@ -78,7 +78,25 @@ class TestSuite(fixtures.TestCommon):
             with self.assertRaises(RuntimeError):
                 glymur.set_option('lib.num_threads', 2)
 
-    def test_threads_write_support(self):
+    def test_thread_support_v2p3(self):
+        """
+        SCENARIO:  Writing with threads in version 2.3 is not supported.
+
+        EXPECTED RESULTS:  The image data is written and verified.  A warning
+        is issued.
+        """
+        expected_data = np.zeros((128, 128), dtype=np.uint8)
+        with patch('glymur.jp2k.version.openjpeg_version', new='2.3.0'):
+            glymur.set_option('lib.num_threads', 2)
+            with self.assertWarns(UserWarning):
+                Jp2k(self.temp_jp2_filename, data=expected_data)
+
+            j = Jp2k(self.temp_jp2_filename)
+            actual_data = j[:]
+
+            np.testing.assert_array_equal(actual_data, expected_data)
+
+    def test_threads_write_support_all_data(self):
         """
         SCENARIO:  Attempt to encode with threading support.  This feature is
         new as of openjpeg library version 2.4.0.
@@ -97,6 +115,30 @@ class TestSuite(fixtures.TestCommon):
                 self.assertEqual(len(w), 0)
             else:
                 self.assertEqual(len(w), 1)
+
+    def test_threads_write_support_by_tiles_and_threads(self):
+        """
+        SCENARIO:  Attempt to encode by tiles with threading support.  The
+        version of the openjpeg library is < 2.4.0.
+
+        EXPECTED RESULT:  The image is written and verified, but there is a
+        warning.
+        """
+        jp2_data = fixtures.skimage.data.moon()
+
+        shape = jp2_data.shape[0] * 2, jp2_data.shape[1] * 2
+        tilesize = (jp2_data.shape[0], jp2_data.shape[1])
+
+        j = Jp2k(self.temp_jp2_filename, shape=shape, tilesize=tilesize)
+        with patch('glymur.jp2k.version.openjpeg_version', new='2.3.0'):
+            with self.assertWarns(UserWarning):
+                glymur.set_option('lib.num_threads', 2)
+                for tw in j.get_tilewriters():
+                    tw[:] = jp2_data
+
+        actual_data = j[:512, :512]
+
+        np.testing.assert_array_equal(actual_data, jp2_data)
 
     def test_tiff2jp2_num_threads(self):
         """

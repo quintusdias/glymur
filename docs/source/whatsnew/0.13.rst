@@ -1,0 +1,87 @@
+######################
+Changes in glymur 0.13
+######################
+
+*****************
+Changes in 0.13.0
+*****************
+    * Add TIFF IFD descriptive output in case of geotiff UUID.
+    * Refactor Jp2k into writer (Jp2k) and much simpler reader (Jp2kReader)
+      classes.  Other than the item below, backwards compatibility has been
+      maintained.
+    * The shape.setter property has been removed.  Setting the image shape
+      should only done in the Jp2k constructor.
+
+*****************
+Changes in 0.12.9
+*****************
+    * Fix handling of null-bytes with XML data.
+    * Add API references to docs.
+    * Qualify on python 3.12.
+
+*****************
+Changes in 0.12.8
+*****************
+    * Fix printing issue on 3.12beta, Fedora rawhide
+
+*****************
+Changes in 0.12.7
+*****************
+    * Fix failing test on fedora.
+    * Change private attribute to prevent downstream test failure with tiatoolbox.
+
+*****************
+Changes in 0.12.6
+*****************
+    * Fix conversion of uint16 TIFFs to single jp2 tile.
+    * Fix command line arguments --psnr and --cratio.
+    * Minor documentation updates.
+    * Add --num-threads option to tiff2jp2.  This was an oversight.
+    * Refactor GeoJP2 code to get support for GML-JP2.
+    * Fix broken uint16 test.
+    * Fix stripped tiff oddity with partial last strip.
+    * Refactor RGBA interface.
+
+*****************
+Changes in 0.12.5
+*****************
+    * Fix plane ordering on RGBA TIFFs on big-endian.
+    * Fix TIFF reads on partian final strips.
+
+*****************
+Changes in 0.12.4
+*****************
+    * Fix regression on default value of numres.  Thanks to John Pocock.
+
+*****************
+Changes in 0.12.3
+*****************
+    * Add support for type hints.  Some keyword options have their default
+      arguments set to False instead of None.
+    * Drop support for Python 3.8.
+
+*****************
+Changes in 0.12.2
+*****************
+    * Fix error condition when MCT specified as false for grayscale image.
+    * Make properties conform to numpydoc.
+    * Fix YCbCr/JPEG TIFF conversion test failure on Fedora.
+    * Stop using libtiff to create test files on the fly.
+
+*****************
+Changes in 0.12.1
+*****************
+    * Do not error out for JP2 files with multiple codestreams.
+    * Relax validation for invalid JP2 files with multiple jp2h boxes.
+    * Drop support for python 3.7.
+
+*****************
+Changes in 0.12.0
+*****************
+    * Add support for ICC profiles, colormaps when converting from TIFF.
+    * Add shortcut for retrieving lowest resolution thumbnail.
+    * Remove setuptools from runtime requirement.
+    * Improve pretty-printing of Exif UUIDs, TLM segments.
+    * Change default value of --create-xmp-uuid to True.
+    * Minor bugfixes.
+

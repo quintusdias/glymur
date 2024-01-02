@@ -2,12 +2,16 @@
 Tests for general glymur functionality.
 """
 # Standard library imports ...
+import collections
 import datetime
+import doctest
 import importlib.resources as ir
 from io import BytesIO
+import os
 import pathlib
 import struct
 import unittest
+from unittest.mock import patch
 import uuid
 import warnings
 
@@ -17,19 +21,36 @@ import numpy as np
 
 # Local imports
 import glymur
-from glymur import Jp2k
+from glymur import Jp2kReader
 from glymur.jp2box import InvalidJp2kError
-from glymur.core import COLOR, RED, GREEN, BLUE, RESTRICTED_ICC_PROFILE
+from glymur.core import RESTRICTED_ICC_PROFILE
 
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 from . import fixtures
 
 
+def docTearDown(doctest_obj):  # pragma: no cover
+    glymur.set_option('parse.full_codestream', False)
+
+
+# Doc tests should be run as well.
+def load_tests(loader, tests, ignore):  # pragma: no cover
+    """Should run doc tests as well"""
+    if os.name == "nt":
+        # Can't do it on windows, temporary file issue.
+        return tests
+    if glymur.lib.openjp2.OPENJP2 is not None:
+        tests.addTests(
+            doctest.DocTestSuite('glymur.jp2k', tearDown=docTearDown)
+        )
+    return tests
+
+
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 @unittest.skipIf(glymur.version.openjpeg_version < '2.3.0',
                  "Requires as least v2.3.0")
-class TestJp2k(fixtures.TestCommon):
+class TestSuite(fixtures.TestCommon):
     """These tests should be run by just about all configuration."""
 
     def setUp(self):
@@ -43,7 +64,7 @@ class TestJp2k(fixtures.TestCommon):
 
         Expected response:  the image size is verified
         """
-        j = Jp2k(self.j2kfile)
+        j = Jp2kReader(self.j2kfile)
         d = j[::-1, ::-1]
         self.assertEqual(d.shape, (25, 15, 3))
 
@@ -53,7 +74,7 @@ class TestJp2k(fixtures.TestCommon):
 
         Expected response:  the dtype property is np.uint8
         """
-        j = Jp2k(self.jp2file)
+        j = Jp2kReader(self.jp2file)
         self.assertEqual(j.dtype, np.uint8)
 
     def test_dtype_j2k_uint16(self):
@@ -63,7 +84,7 @@ class TestJp2k(fixtures.TestCommon):
         Expected response:  the dtype property is np.uint16
         """
         path = ir.files('tests.data').joinpath('uint16.j2k')
-        j = Jp2k(path)
+        j = Jp2kReader(path)
         self.assertEqual(j.dtype, np.uint16)
 
     def test_cod_segment_not_3rd(self):
@@ -73,7 +94,7 @@ class TestJp2k(fixtures.TestCommon):
 
         Expected response:  No errors.
         """
-        j = Jp2k(self.j2kfile)
+        j = Jp2kReader(self.j2kfile)
         j.codestream.segment.insert(2, j.codestream.segment[1])
         j[::2, ::2]
 
@@ -84,7 +105,7 @@ class TestJp2k(fixtures.TestCommon):
         Expected response:  the dtype property is np.int8
         """
         path = ir.files('tests.data').joinpath('p0_03.j2k')
-        j = Jp2k(path)
+        j = Jp2kReader(path)
         self.assertEqual(j.dtype, np.int8)
 
     def test_dtype_inconsistent_bitdetph(self):
@@ -99,7 +120,7 @@ class TestJp2k(fixtures.TestCommon):
             # There's a warning due to an unrecognized colorspace.  Don't care
             # about that here.
             warnings.simplefilter("ignore")
-            j = Jp2k(path)
+            j = Jp2kReader(path)
 
         with self.assertRaises(TypeError):
             j.dtype
@@ -110,7 +131,7 @@ class TestJp2k(fixtures.TestCommon):
 
         Expected response:  the ndim attribute/property is 3
         """
-        j = Jp2k(self.jp2file)
+        j = Jp2kReader(self.jp2file)
         self.assertEqual(j.ndim, 3)
 
     def test_ndims_j2k(self):
@@ -119,7 +140,7 @@ class TestJp2k(fixtures.TestCommon):
 
         Expected response:  the ndim attribute/property is 3
         """
-        j = Jp2k(self.j2kfile)
+        j = Jp2kReader(self.j2kfile)
         self.assertEqual(j.ndim, 3)
 
     def test_ndims_monochrome_j2k(self):
@@ -129,7 +150,7 @@ class TestJp2k(fixtures.TestCommon):
         Expected response:  the ndim attribute/property is 2
         """
         path = ir.files('tests.data').joinpath('p0_02.j2k')
-        j = Jp2k(path)
+        j = Jp2kReader(path)
         self.assertEqual(j.ndim, 2)
 
     def test_read_bands_unequal_subsampling(self):
@@ -140,7 +161,7 @@ class TestJp2k(fixtures.TestCommon):
         EXPECTED RESPONSE: The image is a list of arrays of unequal size.
         """
         path = ir.files('tests.data').joinpath('p0_06.j2k')
-        d = Jp2k(path).read_bands()
+        d = Jp2kReader(path).read_bands()
 
         actual = [band.shape for band in d]
         expected = [(129, 513), (129, 257), (65, 513), (65, 257)]
@@ -157,7 +178,7 @@ class TestJp2k(fixtures.TestCommon):
         protocol should be the same as the shape read by the
         read_bands method.
         """
-        j = Jp2k(self.jp2file)
+        j = Jp2kReader(self.jp2file)
         d1 = j[:]
         d2 = j.read_bands()
         self.assertEqual(d1.shape, d2.shape)
@@ -167,7 +188,7 @@ class TestJp2k(fixtures.TestCommon):
         SCENARIO: Provide a pathlib.Path instead of a string for the filename.
         """
         p = pathlib.Path(self.jp2file)
-        jp2 = Jp2k(p)
+        jp2 = Jp2kReader(p)
         self.assertEqual(jp2.shape, (1456, 2592, 3))
 
     def test_no_cxform_pclr_jpx(self):
@@ -178,7 +199,7 @@ class TestJp2k(fixtures.TestCommon):
             # Suppress a Compatibility list item warning.  We already test
             # for this elsewhere.
             warnings.simplefilter("ignore")
-            jp2 = Jp2k(self.jpxfile)
+            jp2 = Jp2kReader(self.jpxfile)
         rgb = jp2[:]
         jp2.ignore_pclr_cmap_cdef = True
         idx = jp2[:]
@@ -193,49 +214,6 @@ class TestJp2k(fixtures.TestCommon):
             for c in np.arange(rgb.shape[1]):
                 rgb_from_idx[r, c] = palette[idx[r, c]]
         np.testing.assert_array_equal(rgb, rgb_from_idx)
-
-    def test_no_cxform_cmap(self):
-        """
-        SCENARIO:  Write an RGB image as a JP2 file, but with a colr box
-        specifying the components in reverse order.  The codestream is the
-        same, it's just the colr box that is different.
-
-        EXPECTED RESULT:  The output image has bands reversed from the input
-        image.
-        """
-        j2k = Jp2k(self.j2kfile)
-        rgb = j2k[:]
-        height, width, ncomps = rgb.shape
-
-        # Rewrap the J2K file to reorder the components
-        boxes = [
-            glymur.jp2box.JPEG2000SignatureBox(),
-            glymur.jp2box.FileTypeBox()
-        ]
-        jp2h = glymur.jp2box.JP2HeaderBox()
-        jp2h.box = [
-            glymur.jp2box.ImageHeaderBox(height, width, num_components=ncomps),
-            glymur.jp2box.ColourSpecificationBox(colorspace=glymur.core.SRGB)
-        ]
-
-        channel_type = [COLOR, COLOR, COLOR]
-        association = [BLUE, GREEN, RED]
-        cdef = glymur.jp2box.ChannelDefinitionBox(
-            channel_type=channel_type, association=association
-        )
-        jp2h.box.append(cdef)
-
-        boxes.append(jp2h)
-        boxes.append(glymur.jp2box.ContiguousCodestreamBox())
-
-        # Write the image back out with reversed definition.  The codestream
-        # is the same, it's just the JP2 wrapper that is different.
-        jp2 = j2k.wrap(self.temp_jp2_filename, boxes=boxes)
-
-        jp2.ignore_pclr_cmap_cdef = False
-        bgr = jp2[:]
-
-        np.testing.assert_array_equal(rgb, bgr[:, :, [2, 1, 0]])
 
     def test_bad_tile_part_pointer(self):
         """
@@ -258,7 +236,7 @@ class TestJp2k(fixtures.TestCommon):
                 ofile.write(ifile.read())
                 ofile.flush()
 
-        j = Jp2k(self.temp_jp2_filename)
+        j = Jp2kReader(self.temp_jp2_filename)
         with self.assertRaises(struct.error):
             j.get_codestream(header_only=False)
 
@@ -289,51 +267,27 @@ class TestJp2k(fixtures.TestCommon):
                 ofile.write(ifile.read())
                 ofile.flush()
 
-            j = Jp2k(ofile.name)
+            j = Jp2kReader(ofile.name)
             with self.assertRaises(RuntimeError):
                 j[:]
 
     def test_shape_jp2(self):
         """verify shape attribute for JP2 file
         """
-        jp2 = Jp2k(self.jp2file)
+        jp2 = Jp2kReader(self.jp2file)
         self.assertEqual(jp2.shape, (1456, 2592, 3))
 
     def test_shape_3_channel_j2k(self):
         """verify shape attribute for J2K file
         """
-        j2k = Jp2k(self.j2kfile)
+        j2k = Jp2kReader(self.j2kfile)
         self.assertEqual(j2k.shape, (800, 480, 3))
 
     def test_shape_jpx_jp2(self):
         """verify shape attribute for JPX file with JP2 compatibility
         """
-        jpx = Jp2k(self.jpxfile)
+        jpx = Jp2kReader(self.jpxfile)
         self.assertEqual(jpx.shape, (1024, 1024, 3))
-
-    def test_irreversible(self):
-        """
-        SCENARIO:  Write a J2K file with the irreversible transform.
-
-        EXPECTED RESULT:  the 9-7 wavelet transform is detected in the
-        codestream.
-        """
-        j = Jp2k(self.jp2file)
-        expdata = j[:]
-        j2 = Jp2k(self.temp_j2k_filename, data=expdata, irreversible=True)
-
-        codestream = j2.get_codestream()
-        self.assertEqual(
-            codestream.segment[2].xform,
-            glymur.core.WAVELET_XFORM_9X7_IRREVERSIBLE
-        )
-
-        actdata = j2[:]
-
-        diff = actdata.astype(np.double) - expdata.astype(np.double)
-        mse = np.mean(diff**2)
-
-        self.assertTrue(mse < 0.38)
 
     def test_rlevel_max_backwards_compatibility(self):
         """
@@ -342,7 +296,7 @@ class TestJp2k(fixtures.TestCommon):
         This is an old option only available via the read method, not via
         array-style slicing.
         """
-        j = Jp2k(self.j2kfile)
+        j = Jp2kReader(self.j2kfile)
         with warnings.catch_warnings():
             # Suppress the DeprecationWarning
             warnings.simplefilter("ignore")
@@ -354,24 +308,25 @@ class TestJp2k(fixtures.TestCommon):
     @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
     def test_rlevel_too_high(self):
         """Should error out appropriately if reduce level too high"""
-        j = Jp2k(self.jp2file)
+        j = Jp2kReader(self.jp2file)
         with self.assertRaises(ValueError):
             j[::64, ::64]
 
     def test_not_jpeg2000(self):
         """
-        SCENARIO:  The Jp2k constructor is passed a file that is not JPEG 2000.
+        Scenario:  The Jp2kReader constructor is passed a file
+        that is not JPEG 2000.
 
         EXPECTED RESULT:  RuntimeError
         """
         path = ir.files('tests.data').joinpath('nemo.txt')
         with self.assertRaises(InvalidJp2kError):
-            Jp2k(path)
+            Jp2kReader(path)
 
     def test_file_does_not_exist(self):
         """
-        Scenario:  The Jp2k construtor is passed a file that does not exist
-        and the intent is reading.
+        Scenario:  The Jp2kReader construtor is passed a file
+        that does not exist and the intent is reading.
 
         Expected Result:  FileNotFoundError
         """
@@ -379,13 +334,13 @@ class TestJp2k(fixtures.TestCommon):
         # at all.
         filename = 'this file does not actually exist on the file system.'
         with self.assertRaises(FileNotFoundError):
-            Jp2k(filename)
+            Jp2kReader(filename)
 
     def test_codestream(self):
         """
         Verify the markers and segments of a JP2 file codestream.
         """
-        jp2 = Jp2k(self.jp2file)
+        jp2 = Jp2kReader(self.jp2file)
         c = jp2.get_codestream(header_only=False)
 
         # SOC
@@ -485,7 +440,7 @@ class TestJp2k(fixtures.TestCommon):
 
     def test_jp2_boxes(self):
         """Verify the boxes of a JP2 file.  Basic jp2 test."""
-        jp2k = Jp2k(self.jp2file)
+        jp2k = Jp2kReader(self.jp2file)
 
         # top-level boxes
         self.assertEqual(len(jp2k.box), 5)
@@ -541,7 +496,7 @@ class TestJp2k(fixtures.TestCommon):
     def test_j2k_box(self):
         """A J2K/J2C file must not have any boxes."""
         # Verify that a J2K file has no boxes.
-        jp2k = Jp2k(self.j2kfile)
+        jp2k = Jp2kReader(self.j2kfile)
         self.assertEqual(len(jp2k.box), 0)
 
     def test_64bit_xl_field(self):
@@ -576,7 +531,7 @@ class TestJp2k(fixtures.TestCommon):
                 tfile.write(write_buffer)
                 tfile.flush()
 
-            jp2k = Jp2k(tfile.name)
+            jp2k = Jp2kReader(tfile.name)
 
             self.assertEqual(jp2k.box[4].box_id, 'jp2c')
             self.assertEqual(jp2k.box[4].offset, 3223)
@@ -592,7 +547,7 @@ class TestJp2k(fixtures.TestCommon):
         # Verify that boxes with the L field as zero are correctly read.
         # This should only happen in the last box of a JPEG 2000 file.
         # Our example image has its last box at byte 588458.
-        baseline_jp2 = Jp2k(self.jp2file)
+        baseline_jp2 = Jp2kReader(self.jp2file)
         with open(self.temp_jp2_filename, mode='wb') as tfile:
             with open(self.jp2file, 'rb') as ifile:
                 # Everything up until the jp2c box.
@@ -611,7 +566,7 @@ class TestJp2k(fixtures.TestCommon):
                 tfile.write(write_buffer)
                 tfile.flush()
 
-            new_jp2 = Jp2k(tfile.name)
+            new_jp2 = Jp2kReader(tfile.name)
 
             # The top level boxes in each file should match.
             for j in range(len(baseline_jp2.box)):
@@ -627,7 +582,7 @@ class TestJp2k(fixtures.TestCommon):
         """
         Just a very basic test that reading a JP2 file does not error out.
         """
-        j2k = Jp2k(self.jp2file)
+        j2k = Jp2kReader(self.jp2file)
         j2k[::2, ::2]
 
     @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
@@ -635,14 +590,14 @@ class TestJp2k(fixtures.TestCommon):
         """
         Just a very basic test that reading a J2K file does not error out.
         """
-        j2k = Jp2k(self.j2kfile)
+        j2k = Jp2kReader(self.j2kfile)
         j2k[:]
 
     def test_empty_box_with_j2k(self):
         """Verify that the list of boxes in a J2C/J2K file is present, but
         empty.
         """
-        j = Jp2k(self.j2kfile)
+        j = Jp2kReader(self.j2kfile)
         self.assertEqual(j.box, [])
 
     def test_uinf_ulst_url_boxes(self):
@@ -690,7 +645,7 @@ class TestJp2k(fixtures.TestCommon):
                 tfile.write(write_buffer)
                 tfile.flush()
 
-            jp2k = Jp2k(tfile.name)
+            jp2k = Jp2kReader(tfile.name)
 
             self.assertEqual(jp2k.box[3].box_id, 'uinf')
             self.assertEqual(jp2k.box[3].offset, 77)
@@ -738,7 +693,7 @@ class TestJp2k(fixtures.TestCommon):
                 tfile.write(write_buffer)
                 tfile.flush()
 
-            jp2k = Jp2k(tfile.name)
+            jp2k = Jp2kReader(tfile.name)
 
             self.assertEqual(jp2k.box[3].box_id, 'xml ')
             self.assertEqual(jp2k.box[3].offset, 77)
@@ -748,7 +703,7 @@ class TestJp2k(fixtures.TestCommon):
 
     def test_xmp_attribute(self):
         """Verify the XMP packet in the shipping example file can be read."""
-        j = Jp2k(self.jp2file)
+        j = Jp2kReader(self.jp2file)
 
         xmp = j.box[3].data
         ns0 = '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}'
@@ -761,7 +716,7 @@ class TestJp2k(fixtures.TestCommon):
     def test_jpx_mult_codestreams_jp2_brand(self):
         """Read JPX codestream when jp2-compatible."""
         # The file in question has multiple codestreams.
-        jpx = Jp2k(self.jpxfile)
+        jpx = Jp2kReader(self.jpxfile)
         data = jpx[:]
         self.assertEqual(data.shape, (1024, 1024, 3))
 
@@ -795,7 +750,7 @@ class TestJp2k(fixtures.TestCommon):
                 ofile.write(ifile.read())
                 ofile.flush()
 
-        cstr = Jp2k(ofile.name).get_codestream(header_only=False)
+        cstr = Jp2kReader(ofile.name).get_codestream(header_only=False)
         self.assertEqual(cstr.segment[11].marker_id, '0xff00')
         self.assertEqual(cstr.segment[11].length, 0)
 
@@ -820,7 +775,7 @@ class TestJp2k(fixtures.TestCommon):
                 ofile.write(ifile.read())
                 ofile.flush()
 
-            j = Jp2k(ofile.name)
+            j = Jp2kReader(ofile.name)
             codestream = j.get_codestream(header_only=False)
 
             # The codestream is valid, so we should be able to get the entire
@@ -896,7 +851,7 @@ class TestJp2k(fixtures.TestCommon):
         EXPECTED RESULT:  The 2nd image read in is not the same as the first.
         """
         path = ir.files('tests.data').joinpath('p0_03.j2k')
-        j = Jp2k(path)
+        j = Jp2kReader(path)
         d0 = j[:]
 
         j.layer = 1
@@ -913,7 +868,7 @@ class TestJp2k(fixtures.TestCommon):
         """
         # There are 8 layers, so only values [0-7] are valid.
         path = ir.files('tests.data').joinpath('p0_03.j2k')
-        j = Jp2k(path)
+        j = Jp2kReader(path)
 
         with self.assertRaises(ValueError):
             j.layer = -1
@@ -932,7 +887,7 @@ class TestJp2k(fixtures.TestCommon):
         EXPECTED RESULT:  The default verbosity setting is False.
         """
         path = ir.files('tests.data').joinpath('p0_03.j2k')
-        j = Jp2k(path)
+        j = Jp2kReader(path)
 
         self.assertFalse(j.verbose)
 
@@ -943,6 +898,228 @@ class TestJp2k(fixtures.TestCommon):
         EXPECTED RESULT:  The default layer property value is 0.
         """
         path = ir.files('tests.data').joinpath('p0_03.j2k')
-        j = Jp2k(path)
+        j = Jp2kReader(path)
 
         self.assertEqual(j.layer, 0)
+
+    def test_mismatch_between_ihdr_and_codestream_dimensions(self):
+        """
+        Scenario:  read a file where the IHDR box and the codestream disagree
+        on the dimension of the image
+
+        Expected result:  UserWarning that mentions the codestream dimensions
+        """
+        path = ir.files('tests.data').joinpath('gdal_fuzzer_check_number_of_tiles.jp2')
+        with self.assertWarns(UserWarning) as cw:
+            glymur.Jp2kReader(path)
+            self.assertIn('codestream dimensions', str(cw.warnings[1]))
+
+    def test_invalid_colr_spec_box_when_profile_is_jp2(self):
+        """
+        Scenario:  read a jp2-brand file color_spec box that does not specify
+        either enumerated colorspace or icc profile
+
+        Expected result:  UserWarning that matches ColourSpecification
+        """
+        path = ir.files('tests.data').joinpath('openjpeg-data-issue211.jp2')
+        with self.assertWarns(UserWarning) as cw:
+            glymur.Jp2kReader(path)
+            self.assertIn('ColourSpecification', str(cw.warnings[0]))
+
+    def test_two_jp2c_boxes(self):
+        """
+        Scenario:  read a jp2 file with two JP2C boxes
+
+        Expected result:  UserWarning
+        """
+        # copy nemo.jp2 but double up on the jp2c box
+        with open(self.temp_jp2_filename, mode='wb') as ofile:
+            with open(self.jp2file, 'rb') as ifile:
+                # Copy everything
+                ofile.write(ifile.read())
+
+                # go back to the start of the codestream box and write it again
+                ifile.seek(3223)
+                ofile.write(ifile.read())
+
+        with self.assertWarns(UserWarning) as w:
+            glymur.Jp2kReader(self.temp_jp2_filename)
+
+            self.assertEqual(len(w.warnings), 1)
+            self.assertIn('2 JP2C boxes', str(w.warnings[0]))
+
+    def test_two_jp2h_boxes(self):
+        """
+        Scenario:  read a jp2 file with two JP2H boxes
+
+        Expected result:  UserWarning
+        """
+        # copy nemo.jp2 but double up on the jp2h box
+        with open(self.temp_jp2_filename, mode='wb') as ofile:
+            with open(self.jp2file, 'rb') as ifile:
+                # Copy up to the jp2h box
+                ofile.write(ifile.read(32))
+
+                # Write the jp2h box the first time
+                ofile.write(ifile.read(45))
+
+                # go back to the start of the jp2h box and write it again
+                ifile.seek(32)
+                ofile.write(ifile.read(45))
+
+                # write the rest of the file
+                ofile.write(ifile.read())
+
+        with self.assertWarns(UserWarning) as w:
+            glymur.Jp2kReader(self.temp_jp2_filename)
+
+            self.assertEqual(len(w.warnings), 1)
+            self.assertIn('2 JP2H boxes', str(w.warnings[0]))
+
+    def test_no_ftyp_box(self):
+        """
+        Scenario:  read a jp2 file with no ftyp box
+
+        Expected result:  InvalidJp2kError
+        """
+        # copy nemo.jp2 but omit the ftyp box
+        with open(self.temp_jp2_filename, mode='wb') as ofile:
+            with open(self.jp2file, 'rb') as ifile:
+                # Copy up to the ftyp box
+                ofile.write(ifile.read(12))
+
+                # seek past the ftyp box and copy the rest of the file
+                ifile.seek(32)
+                ofile.write(ifile.read())
+
+        with self.assertRaises(InvalidJp2kError) as w:
+            glymur.Jp2kReader(self.temp_jp2_filename)
+
+
+class TestVersion(fixtures.TestCommon):
+    """
+    Tests for the version of openjpeg.  These can be run regardless of the
+    version of openjpeg installed, or even if openjpeg is not installed,
+    because we fully mock the openjpeg version.
+    """
+    def test_read_minimum_version(self):
+        """
+        Scenario:  we have openjpeg, but not the minimum supported version.
+
+        Expected Result:  RuntimeError
+        """
+        with patch('glymur.version.openjpeg_version_tuple', new=(2, 2, 9)):
+            with patch('glymur.version.openjpeg_version', new='2.2.9'):
+                with self.assertRaises(RuntimeError):
+                    glymur.Jp2kReader(self.jp2file)[:]
+
+    def test_read_without_openjpeg(self):
+        """
+        Don't have openjpeg or openjp2 library?  Must error out.
+        """
+        with patch('glymur.version.openjpeg_version_tuple', new=(0, 0, 0)):
+            with patch('glymur.version.openjpeg_version', new='0.0.0'):
+                with self.assertRaises(RuntimeError):
+                    with warnings.catch_warnings():
+                        # Suppress a deprecation warning for raw read method.
+                        warnings.simplefilter("ignore")
+                        glymur.Jp2kReader(self.jp2file).read()
+                with self.assertRaises(RuntimeError):
+                    glymur.Jp2kReader(self.jp2file)[:]
+
+    def test_read_bands_without_openjp2(self):
+        """
+        Don't have openjp2 library?  Must error out.
+        """
+        exp_error = RuntimeError
+        with patch('glymur.version.openjpeg_version_tuple', new=(1, 5, 0)):
+            with patch('glymur.version.openjpeg_version', new='1.5.0'):
+                with self.assertRaises(exp_error):
+                    glymur.Jp2kReader(self.jp2file).read_bands()
+
+    def test_invalid_no_outermost_jp2c_box(self):
+        """
+        Scenario:  read a file without a top-level JP2C box
+
+        Expected result:  InvalidJp2kError
+        """
+        path = ir.files('tests.data').joinpath('edf_c2_1674177.jp2')
+        with self.assertRaises(InvalidJp2kError):
+            with warnings.catch_warnings():
+                # ignore two warnings, the file is invalid in more ways than
+                # one
+                warnings.simplefilter("ignore")
+                glymur.Jp2kReader(path)
+
+
+class TestComponent(unittest.TestCase):
+    """
+    Test how a component's precision translates into a datatype.
+    """
+    @classmethod
+    def setUpClass(cls):
+        cls.jp2file = glymur.data.nemo()
+
+    def test_nbits_lt_9(self):
+        """
+        SCENARIO:  A layer has less than 9 bits per sample
+
+        EXPECTED RESULT:  np.int8
+        """
+        j = Jp2kReader(self.jp2file)
+
+        # Fake a data structure that resembles the openjpeg component.
+        Component = collections.namedtuple('Component', ['prec', 'sgnd'])
+        c = Component(prec=7, sgnd=True)
+        dtype = j._component2dtype(c)
+        self.assertEqual(dtype, np.int8)
+
+    def test_nbits_lt_16_gt_8(self):
+        """
+        SCENARIO:  A layer has between 9 and 16 bits per sample.
+
+        EXPECTED RESULT:  np.int16
+        """
+        j = Jp2kReader(self.jp2file)
+
+        # Fake a data structure that resembles the openjpeg component.
+        Component = collections.namedtuple('Component', ['prec', 'sgnd'])
+        c = Component(prec=15, sgnd=True)
+        dtype = j._component2dtype(c)
+        self.assertEqual(dtype, np.int16)
+
+    def test_nbits_gt_16(self):
+        """
+        SCENARIO:  One of the layers has more than 16 bits per sample.
+
+        EXPECTED RESULT:  RuntimeError
+        """
+        j = Jp2kReader(self.jp2file)
+
+        # Fake a data structure that resembles the openjpeg component.
+        Component = collections.namedtuple('Component', ['prec', 'sgnd'])
+        c = Component(prec=17, sgnd=True)
+        with self.assertRaises(ValueError):
+            j._component2dtype(c)
+
+
+class TestParsingCodestream(unittest.TestCase):
+    """
+    Tests for verifying how parsing may be altered.
+    """
+    def setUp(self):
+        self.jp2file = glymur.data.nemo()
+        # Reset parseoptions for every test.
+        glymur.set_option('parse.full_codestream', False)
+
+    def tearDown(self):
+        glymur.set_option('parse.full_codestream', False)
+
+    def test_main_header(self):
+        """verify that the main header isn't loaded during normal parsing"""
+        # The hidden _main_header attribute should show up after accessing it.
+        jp2 = Jp2kReader(self.jp2file)
+        jp2c = jp2.box[4]
+        self.assertIsNone(jp2c._codestream)
+        jp2c.codestream
+        self.assertIsNotNone(jp2c._codestream)
