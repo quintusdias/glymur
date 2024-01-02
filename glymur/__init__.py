@@ -5,7 +5,7 @@ __all__ = [
     'get_option', 'set_option', 'reset_option',
     'get_printoptions', 'set_printoptions',
     'get_parseoptions', 'set_parseoptions',
-    'Jp2k', 'Tiff2Jp2k',
+    'Jp2k', 'Jp2kReader', 'Tiff2Jp2k',
 ]
 
 # Local imports
@@ -14,6 +14,7 @@ from .options import (get_option, set_option, reset_option,
                       get_printoptions, set_printoptions,
                       get_parseoptions, set_parseoptions)
 from .jp2k import Jp2k
+from .jp2kr import Jp2kReader
 from .tiff import Tiff2Jp2k
 from . import data
 

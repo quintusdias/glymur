@@ -41,6 +41,29 @@ class TestPrinting(fixtures.TestCommon):
         super().tearDown()
         glymur.reset_option('all')
 
+    def test_reader_repr(self):
+        """
+        Scenario:  repr for Jp2kReader class
+
+        Expected result:  profit
+        """
+        j = glymur.Jp2kReader(self.jp2file)
+        actual = repr(j)
+        expected = 'Jp2kReader("nemo.jp2", verbose=False)'
+        self.assertEqual(actual, expected)
+
+    def test_writer_repr(self):
+        """
+        Scenario:  repr for Jp2k class
+
+        Expected result:  profit
+        """
+        filename = self.test_dir_path / 'a.jp2'
+        j = glymur.Jp2k(filename, data=np.zeros((512, 512), dtype=np.uint8))
+        actual = repr(j)
+        expected = "Jp2k('a.jp2')"
+        self.assertEqual(actual, expected)
+
     def test_empty_file(self):
         """
         SCENARIO:  Print the file after with object is constructed, but
@@ -49,7 +72,7 @@ class TestPrinting(fixtures.TestCommon):
         EXPECTED RESULT:  Just the single line.
         """
         filename = self.test_dir_path / 'a.jp2'
-        actual = str(Jp2k(filename))
+        actual = str(Jp2k(filename, shape=[512, 512]))
         expected = 'File:  a.jp2'
         self.assertEqual(actual, expected)
 
@@ -1622,6 +1645,29 @@ class TestPrinting(fixtures.TestCommon):
               .read_text()
               .rstrip()
         )
+        self.assertEqual(actual, expected)
+
+    def test_default_nemo_reader(self):
+        """
+        Scenario:  print the reader invocation
+
+        Expected result:  Jp2kReader present
+        """
+        j = glymur.Jp2kReader(self.jp2file)
+        actual = str(j)
+
+        # strip of the header path-sensitive line
+        actual = '\n'.join(actual.splitlines()[1:])
+
+        # shave off the  non-main-header segments
+        expected = (
+            ir.files('tests.data')
+              .joinpath('nemo.txt')
+              .read_text()
+              .rstrip()
+              .split('\n')[:140]
+        )
+        expected = '\n'.join(expected)
         self.assertEqual(actual, expected)
 
 
