@@ -2,7 +2,7 @@ name: glymur
 channels:
     - defaults
 dependencies:
-    - python=3.11.*
+    - python=3.12.*
     - gdal
     - libtiff
     - lxml

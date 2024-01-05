@@ -3,7 +3,6 @@ channels:
     - defaults
 dependencies:
     - python=3.11.*
-    - gdal
     - libtiff
     - lxml
     - numpy
