@@ -1457,10 +1457,10 @@ class Jp2k(Jp2kBox):
             step = 2 ** self.codestream.segment[2].num_res
 
         # Check if the step size is a power of 2.
-        if np.abs(np.log2(step) - np.round(np.log2(step))) > 1e-6:
+        rlevel = step.bit_length() - 1
+        if step % (1 << rlevel) != 0:
             msg = "Row and column strides must be powers of 2."
             raise ValueError(msg)
-        rlevel = int(np.round(np.log2(step)))
 
         area = (
             0 if rows.start is None else rows.start,
