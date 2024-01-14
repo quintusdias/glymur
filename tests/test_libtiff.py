@@ -1,4 +1,5 @@
 # standard library imports
+import importlib.resources as ir
 import platform
 import unittest
 
@@ -11,15 +12,26 @@ from glymur.lib import tiff as libtiff
 
 
 @unittest.skipIf(
-    platform.system() == 'Darwin' and platform.machine() == 'arm64',
-    'See issue #593'
-)
-@unittest.skipIf(
     not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
 )
 @unittest.skipIf(fixtures.TIFF_NOT_AVAILABLE, fixtures.TIFF_NOT_AVAILABLE_MSG)
 class TestSuite(fixtures.TestCommon):
 
+    def test_number_of_tiles(self):
+        """
+        Scenario:  call numberOfTiles function
+
+        Expected result: 4
+        """
+        path = ir.files('tests.data.skimage').joinpath('astronaut_ycbcr_jpeg_tiled.tif')  # noqa : E501
+        fp = libtiff.open(path)
+        actual = libtiff.numberOfTiles(fp)
+        self.assertEqual(actual, 4)
+
+    @unittest.skipIf(
+        platform.system() == 'Darwin' and platform.machine() == 'arm64',
+        'See issue #593'
+    )
     def test_simple_tile(self):
         """
         SCENARIO:  create a simple monochromatic 2x2 tiled image
