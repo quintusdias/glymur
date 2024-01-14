@@ -176,7 +176,7 @@ class Jp2k(Jp2kReader):
     >>> t0 = time.time(); data = jp2[:]; t1 = time.time()
     >>> t1 - t0 #doctest: +SKIP
     0.9024193286895752
-    >>> glymur.set_options('lib.num_threads', 4)
+    >>> glymur.set_option('lib.num_threads', 4)
     >>> t0 = time.time(); data = jp2[:]; t1 = time.time()
     >>> t1 - t0 #doctest: +SKIP
     0.4060473537445068
