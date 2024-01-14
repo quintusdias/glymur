@@ -176,7 +176,7 @@ class Jp2k(Jp2kReader):
     >>> t0 = time.time(); data = jp2[:]; t1 = time.time()
     >>> t1 - t0 #doctest: +SKIP
     0.9024193286895752
-    >>> glymur.set_options('lib.num_threads', 4)
+    >>> glymur.set_option('lib.num_threads', 4)
     >>> t0 = time.time(); data = jp2[:]; t1 = time.time()
     >>> t1 - t0 #doctest: +SKIP
     0.4060473537445068
@@ -1022,11 +1022,13 @@ class Jp2k(Jp2kReader):
 
         Examples
         --------
-        >>> import glymur, tempfile
-        >>> jfile = glymur.data.goodstuff()
-        >>> j2k = glymur.Jp2k(jfile)
-        >>> tfile = tempfile.NamedTemporaryFile(suffix='jp2')
-        >>> jp2 = j2k.wrap(tfile.name)
+
+        Take a raw codestream file (J2K) and re-wrap it as a full JP2 file.
+
+        >>> import glymur
+        >>> j2kfile = glymur.data.goodstuff()
+        >>> j2k = glymur.Jp2k(j2kfile)
+        >>> jp2 = j2k.wrap('wrapped.jp2')
         """
         if boxes is None:
             boxes = self._get_default_jp2_boxes()

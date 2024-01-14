@@ -104,56 +104,8 @@ class Orientation(IntEnum):
 
 
 class Photometric(IntEnum):
-    """The color space of the image data.
-
-    Examples
-    --------
-
-    Load an image of astronaut Eileen Collins from scikit-image.
-
-    >>> import numpy as np
-    >>> import skimage.data
-    >>> image = skimage.data.astronaut()
-
-    Create a BigTIFF with JPEG compression.  There is not much reason to do
-    this if you do not also specify YCbCr as the photometric interpretation.
-
-    >>> w, h, nz = image.shape
-    >>> from spiff import TIFF, lib
-    >>> t = TIFF('astronaut-jpeg.tif', mode='w8')
-    >>> t['Photometric'] = lib.Photometric.YCBCR
-    >>> t['Compression'] = lib.Compression.JPEG
-    >>> t['JPEGColorMode'] = lib.JPEGColorMode.RGB
-    >>> t['PlanarConfig'] = lib.PlanarConfig.CONTIG
-    >>> t['JPEGQuality'] = 90
-    >>> t['YCbCrSubsampling'] = (1, 1)
-    >>> t['ImageWidth'] = w
-    >>> t['ImageLength'] = h
-    >>> t['TileWidth'] = int(w/2)
-    >>> t['TileLength'] = int(h/2)
-    >>> t['BitsPerSample'] = 8
-    >>> t['SamplesPerPixel'] = nz
-    >>> t['Software'] = lib.getVersion()
-    >>> t[:] = image
-    >>> t
-    TIFF Directory at offset 0x0 (0)
-      Image Width: 512 Image Length: 512
-      Tile Width: 256 Tile Length: 256
-      Bits/Sample: 8
-      Compression Scheme: JPEG
-      Photometric Interpretation: YCbCr
-      YCbCr Subsampling: 1, 1
-      Samples/Pixel: 3
-      Planar Configuration: single image plane
-      Reference Black/White:
-         0:     0   255
-         1:   128   255
-         2:   128   255
-      Software: LIBTIFF, Version 4.0.9
-    Copyright (c) 1988-1996 Sam Leffler
-    Copyright (c) 1991-1996 Silicon Graphics, Inc.
-      JPEG Tables: (574 bytes)
-    <BLANKLINE>
+    """
+    The color space of the image data.
     """
     MINISWHITE = 0  # value is white
     MINISBLACK = 1  # value is black
