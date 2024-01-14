@@ -123,8 +123,7 @@ class Jp2kReader(Jp2kBox):
     def __init__(
         self,
         filename: str | pathlib.Path,
-        verbose: bool = False,
-        readonly: bool = True
+        verbose: bool = False
     ):
         super().__init__()
 
