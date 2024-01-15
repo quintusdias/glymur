@@ -100,4 +100,4 @@ test_script:
   - ls -ltr
   - cmd: python -c "import sys; print(sys.executable)"
   - cmd: c:\miniconda3_64\envs\glymur\Scripts\pytest -n 2 -x
-  - cmd: c:\miniconda3_64\envs\glymur\Scripts\pytest --doc-modules glymur
+  - cmd: c:\miniconda3_64\envs\glymur\Scripts\pytest --doctest-modules glymur
