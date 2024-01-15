@@ -1025,7 +1025,7 @@ class Jp2k(Jp2kReader):
         >>> import glymur, tempfile
         >>> jfile = glymur.data.goodstuff()
         >>> j2k = glymur.Jp2k(jfile)
-        >>> tfile = tempfile.NamedTemporaryFile(suffix='jp2')
+        >>> tfile = tempfile.NamedTemporaryFile(suffix='.jp2', delete=False)  # only need delete=False on windows
         >>> jp2 = j2k.wrap(tfile.name)
         """
         if boxes is None:
