@@ -1022,11 +1022,13 @@ class Jp2k(Jp2kReader):
 
         Examples
         --------
-        >>> import glymur, tempfile
-        >>> jfile = glymur.data.goodstuff()
-        >>> j2k = glymur.Jp2k(jfile)
-        >>> tfile = tempfile.NamedTemporaryFile(suffix='.jp2', delete=False)  # only need delete=False on windows
-        >>> jp2 = j2k.wrap(tfile.name)
+
+        Take a raw codestream file (J2K) and re-wrap it as a full JP2 file.
+
+        >>> import glymur
+        >>> j2kfile = glymur.data.goodstuff()
+        >>> j2k = glymur.Jp2k(j2kfile)
+        >>> jp2 = j2k.wrap('wrapped.jp2')
         """
         if boxes is None:
             boxes = self._get_default_jp2_boxes()
