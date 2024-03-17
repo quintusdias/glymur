@@ -1,3 +1,6 @@
+Mar 16, 2024 - v0.12.9post2
+    Fix readthedocs builds
+
 Nov 26, 2023 - v0.12.9post1
     Fix setup.cfg for v0.12.9 release
 
