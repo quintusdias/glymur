@@ -29,7 +29,7 @@ second lower-resolution image.  It's always powers of two. ::
     >>> thumbnail.shape
     (400, 240, 3)
     >>> thumbnail2 = j2k[::4, ::4]
-    >>> thumbnail.shape
+    >>> thumbnail2.shape
     (200, 120, 3)
 
 
@@ -105,12 +105,13 @@ you really should look into this. ::
     >>> jp2file = glymur.data.nemo()
     >>> jp2 = glymur.Jp2k(jp2file)
     >>> t0 = time.time(); data = jp2[:]; t1 = time.time()
-    >>> t1 - t0
+    >>> t1 - t0  # doctest: +SKIP
     0.9024193286895752
     >>> glymur.set_option('lib.num_threads', 2)
     >>> t0 = time.time(); data = jp2[:]; t1 = time.time()
-    >>> t1 - t0
+    >>> t1 - t0  # doctest: +SKIP
     0.4060473537445068
+    >>> glymur.reset_option('all')
 
 
 ... efficiently read just one band of a big image?
@@ -158,15 +159,15 @@ With a puny 2015 macbook, just two cores, and a 5824x10368x3 image, we get::
     >>> data = glymur.Jp2k(glymur.data.nemo())[:]
     >>> data = np.tile(data, (4, 4, 1))
     >>> t0 = time.time()
-    >>> glymur.Jp2k('1thread.jp2', data)
+    >>> j = glymur.Jp2k('1thread.jp2', data=data)
     >>> t1 = time.time()
-    >>> print(f'1 thread:  {(t1 - t0):.3} seconds')
+    >>> print(f'1 thread:  {(t1 - t0):.3} seconds')  # doctest: +SKIP
     12.0 seconds
     >>> t0 = time.time()
     >>> glymur.set_option('lib.num_threads', 2)
-    >>> glymur.Jp2k('2threads.jp2', data)
+    >>> j = glymur.Jp2k('2threads.jp2', data=data)
     >>> t1 = time.time()
-    >>> print(f'2 threads:  {(t1 - t0):.3} seconds')
+    >>> print(f'2 threads:  {(t1 - t0):.3} seconds')  # doctest: +SKIP
     7.24 seconds
 
 
@@ -174,8 +175,11 @@ With a puny 2015 macbook, just two cores, and a 5824x10368x3 image, we get::
 ---------------------------------------------
 
 If you have glymur 0.9.4 or higher, you can write out an image tile-by-tile.
-In this example, we take a 512x512x3 image and tile it into a 20x20 grid, 
-resulting in a 10240x10240x3 image.
+In this example, we take a 512x512x3 image and tile it into a 2x2 grid,
+resulting in a 1024x1024x3 image, but we could have just as easily tiled it
+20x20 or 100x100.  Consider setting py::meth::`verbose` to
+True to get detailed feedback from the OpenJPEG library as to which tile is
+currently being written. ::
 
     >>> import skimage.data
     >>> from glymur import Jp2k
@@ -184,10 +188,10 @@ resulting in a 10240x10240x3 image.
     (512, 512, 3)
     >>> shape = img.shape[0] * 20, img.shape[1] * 20, 3
     >>> tilesize = (img.shape[0], img.shape[1])
-    >>> j = Jp2k('400astronauts.jp2', shape=shape, tilesize=tilesize, verbose=True)
+    >>> j = Jp2k('4astronauts.jp2', shape=shape, tilesize=tilesize)
     >>> for tw in j.get_tilewriters():
-            tw[:] = img
-    >>> j = Jp2k('400astronauts.jp2')
+    ...     tw[:] = img
+    >>> j = Jp2k('4astronauts.jp2')
     >>> print(j.shape)
     (10240, 10240, 3)
 
@@ -201,7 +205,7 @@ With glymur 0.9.5 or higher, you can instruct the encoder to generate PLT marker
 by using the plt keyword. ::
 
     >>> import glymur, skimage.data
-    >>> jp2 = glymur.Jp2k('astronaut.jp2', plt=True)
+    >>> jp2 = glymur.Jp2k('plt.jp2', plt=True)
     >>> jp2[:] = skimage.data.astronaut()
     >>> c = jp2.get_codestream(header_only=False)
     >>> print(c.segment[6])
@@ -219,7 +223,7 @@ Different compression factors may be specified with the cratios parameter ::
     >>> # quality layer 1: compress 20x
     >>> # quality layer 2: compress 10x
     >>> # quality layer 3: compress lossless
-    >>> jp2 = glymur.Jp2k('myfile.jp2', data=data, cratios=[20, 10, 1])
+    >>> jp2 = glymur.Jp2k('compress.jp2', data=data, cratios=[20, 10, 1])
     >>> # read the lossless layer
     >>> jp2.layer = 2
     >>> data = jp2[:]
@@ -233,17 +237,20 @@ for a basic understanding of PSNR.
 
 Values must be increasing, but the last value may be 0 to indicate
 the layer is lossless.  However, the OpenJPEG library will reorder
-the layers to make the first layer lossless, not the last. ::
+the layers to make the first layer lossless, not the last.
 
-    >>> import skimage.data, skimage.metrics, glymur
+We suppress a harmless warning from scikit-image below. ::
+
+    >>> import skimage.data, skimage.metrics, glymur, warnings
+    >>> warnings.simplefilter('ignore')
     >>> truth = skimage.data.camera()
-    >>> jp2 = glymur.Jp2k('myfile.jp2', data=truth, psnr=[30, 40, 50, 0])
+    >>> jp2 = glymur.Jp2k('psnr.jp2', data=truth, psnr=[30, 40, 50, 0])
     >>> psnr = []
     >>> for layer in range(4):
     ...     jp2.layer = layer
     ...     psnr.append(skimage.metrics.peak_signal_noise_ratio(truth, jp2[:]))
     >>> print(psnr)
-    [inf, 29.028560403833303, 39.206919416670402, 47.593129828702246]
+    [inf, 29.90221522329731, 39.71824592284344, 48.381047443043634]
 
 ... convert TIFF images to JPEG 2000?
 -------------------------------------
@@ -345,7 +352,7 @@ object, i.e. ::
     >>> import glymur
     >>> jp2file = glymur.data.nemo() # just a path to a JP2 file
     >>> jp2 = glymur.Jp2k(jp2file)
-    >>> print(jp2)
+    >>> print(jp2)  # doctest: +SKIP
     File:  nemo.jp2
     JPEG 2000 Signature Box (jP  ) @ (0, 12)
         Signature:  0d0a870a
@@ -527,8 +534,8 @@ by default that's all the codestream metadata that is retrieved. It is, howver,
 possible to print the full codestream.::
 
     >>> glymur.set_option('print.codestream', True)
-    >>> c = j.get_codestream(header_only=False)
-    >>> print(c)
+    >>> c = jp2.get_codestream(header_only=False)
+    >>> print(c)  # doctest: +SKIP
     Codestream:
     SOC marker segment @ (3231, 0)
     SIZ marker segment @ (3233, 47)
@@ -625,31 +632,33 @@ How do I...?
 You can append any number of XML boxes to a JP2 file (not to a raw codestream).
 Consider the following XML file `data.xml` : ::
 
-    <?xml version="1.0"?>
-    <info>
-        <locality>
-            <city>Boston</city>
-            <snowfall>24.9 inches</snowfall>
-        </locality>
-        <locality>
-            <city>Portland</city>
-            <snowfall>31.9 inches</snowfall>
-        </locality>
-        <locality>
-            <city>New York City</city>
-            <snowfall>11.4 inches</snowfall>
-        </locality>
-    </info>
 
 The :py:meth:`append` method can add an XML box as shown below::
 
-    >>> import shutil
-    >>> import glymur
-    >>> shutil.copyfile(glymur.data.nemo(), 'myfile.jp2')
-    >>> jp2 = glymur.Jp2k('myfile.jp2')
-    >>> xmlbox = glymur.jp2box.XMLBox(filename='data.xml')
+    >>> import glymur, io, shutil
+    >>> from lxml import etree as ET
+    >>> xml = io.BytesIO(b"""
+    ... <info>
+    ...     <locality>
+    ...         <city>Boston</city>
+    ...         <snowfall>24.9 inches</snowfall>
+    ...     </locality>
+    ...     <locality>
+    ...         <city>Portland</city>
+    ...         <snowfall>31.9 inches</snowfall>
+    ...     </locality>
+    ...     <locality>
+    ...         <city>New York City</city>
+    ...         <snowfall>11.4 inches</snowfall>
+    ...     </locality>
+    ... </info>
+    ... """)
+    >>> tree = ET.parse(xml)
+    >>> xmlbox = glymur.jp2box.XMLBox(xml=tree)
+    >>> _ = shutil.copyfile(glymur.data.nemo(), 'xml.jp2')
+    >>> jp2 = glymur.Jp2k('xml.jp2')
     >>> jp2.append(xmlbox)
-    >>> print(jp2)
+    >>> print(jp2)  # doctest: +SKIP
 
 ... create display and/or capture resolution boxes?
 ---------------------------------------------------
@@ -657,17 +666,19 @@ The :py:meth:`append` method can add an XML box as shown below::
 Capture and display resolution boxes are part of the JPEG 2000 standard.  You
 may create such metadata boxes via keyword arguments.::
 
-    >>> import numpy as np, glymur
+    >>> import numpy as np, glymur, skimage.data
+    >>> data = skimage.data.camera()
     >>> vresc, hresc = 0.1, 0.2
     >>> vresd, hresd = 0.3, 0.4
     >>> j = glymur.Jp2k(
-            'my.jp2', data=np.zeros([256, 256, 3], dtype=np.uint8),
-            capture_resolution=[vresc, hresc],
-            display_resolution=[vresd, hresd],
-        )
-    >>> glymur.set_printoptions(short=True)
+    ...     'capture.jp2',
+    ...     data=skimage.data.camera(),
+    ...     capture_resolution=[vresc, hresc],
+    ...     display_resolution=[vresd, hresd]
+    ... )
+    >>> glymur.set_option('print.short', True)
     >>> print(j)
-    File:  my.jp2
+    File:  capture.jp2
     JPEG 2000 Signature Box (jP  ) @ (0, 12)
     File Type Box (ftyp) @ (12, 20)
     JP2 Header Box (jp2h) @ (32, 89)
@@ -676,7 +687,7 @@ may create such metadata boxes via keyword arguments.::
         Resolution Box (res ) @ (77, 44)
             Capture Resolution Box (resc) @ (85, 18)
             Display Resolution Box (resd) @ (103, 18)
-    Contiguous Codestream Box (jp2c) @ (121, 174)
+    Contiguous Codestream Box (jp2c) @ (121, 129606)
 
 
 ... reinterpret a codestream (say what)?
@@ -694,6 +705,7 @@ codestream provided by `goodstuff.j2k` (a file consisting of a raw codestream),
 you can use the :py:meth:`wrap` method with no box argument: ::
 
     >>> import glymur
+    >>> glymur.reset_option('all')
     >>> glymur.set_option('print.codestream', False)
     >>> jp2file = glymur.data.goodstuff()
     >>> j2k = glymur.Jp2k(jp2file)
@@ -729,16 +741,20 @@ re-specify all of the boxes.  If you already have a JP2 jacket in place,
 you can just reuse that, though.  Take the following example content in
 an XML file `favorites.xml` : ::
 
-    <?xml version="1.0"?>
-    <favorite_things>
-        <category>Light Ale</category>
-    </favorite_things>
+    >>> import io
+    >>> from lxml import etree as ET
+    >>> s = b"""
+    ... <favorite_things>
+    ...     <category>Light Ale</category>
+    ... </favorite_things>
+    ... """
+    >>> xml = ET.parse(io.BytesIO(s))
 
 In order to add the XML after the JP2 header box, but before the codestream box, 
 the following will work. ::
 
     >>> boxes = jp2.box  # The box attribute is the list of JP2 boxes
-    >>> xmlbox = glymur.jp2box.XMLBox(filename='favorites.xml')
+    >>> xmlbox = glymur.jp2box.XMLBox(xml=xml)
     >>> boxes.insert(3, xmlbox)
     >>> jp2_xml = jp2.wrap("newfile_with_xml.jp2", boxes=boxes)
     >>> print(jp2_xml)
@@ -759,11 +775,11 @@ the following will work. ::
             Method:  enumerated colorspace
             Precedence:  0
             Colorspace:  sRGB
-    XML Box (xml ) @ (77, 76)
+    XML Box (xml ) @ (77, 79)
         <favorite_things>
-          <category>Light Ale</category>
+            <category>Light Ale</category>
         </favorite_things>
-    Contiguous Codestream Box (jp2c) @ (153, 115236)
+    Contiguous Codestream Box (jp2c) @ (156, 115228)
 
 As to the question of which method you should use, :py:meth:`append` or
 :py:meth:`wrap`, to add metadata, you should keep in mind that :py:meth:`wrap`
@@ -783,11 +799,14 @@ Basically what is done is that the raw bytes corresponding to the ICC profile
 are wrapped in a BytesIO object, which is fed to the most-excellent Pillow package.
 ::
 
+    >>> import pathlib
     >>> from glymur import Jp2k
     >>> from PIL import ImageCms
     >>> from io import BytesIO
-    >>> # This next step produces a harmless warning that has nothing to do with ICC profiles.
-    >>> j = Jp2k('text_GBR.jp2')
+    >>> # this assumes you have access to the test suite
+    >>> p = pathlib.Path('tests/data/text_GBR.jp2')
+    >>> # This next step may produce a harmless warning that has nothing to do with ICC profiles.
+    >>> j = Jp2k(p)
     >>> # The 2nd sub box of the 4th box is a ColourSpecification box.
     >>> print(j.box[3].box[1].colorspace)
     None
@@ -810,7 +829,7 @@ The example JP2 file shipped with glymur has an XMP UUID. ::
 
     >>> import glymur
     >>> j = glymur.Jp2k(glymur.data.nemo())
-    >>> print(j.box[3]) # formatting added to the XML below
+    >>> print(j.box[3]) # formatting added to the XML below  # doctest: +SKIP
     <ns0:xmpmeta xmlns:dc="http://purl.org/dc/elements/1.1/"
                  xmlns:ns0="adobe:ns:meta/"
                  xmlns:ns2="http://ns.adobe.com/xap/1.0/"
@@ -833,178 +852,18 @@ The example JP2 file shipped with glymur has an XMP UUID. ::
 Since the UUID data in this case is returned as an lxml ElementTree
 instance, one can use lxml to access the data.  For example, to
 extract the **CreatorTool** attribute value, one could do the
-following
+following. ::
 
-    >>> xmp = j.box[3].data
-    >>> rdf = '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}'
-    >>> ns2 = '{http://ns.adobe.com/xap/1.0/}'
-    >>> name = '{0}RDF/{0}Description/{1}CreatorTool'.format(rdf, ns2)
-    >>> elt = xmp.find(name)
-    >>> elt
-    <Element '{http://ns.adobe.com/xap/1.0/#}CreatorTool' at 0xb50684a4>
-    >>> elt.text
+    >>> doc = j.box[3].data
+    >>> namespaces = {
+    ...     'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
+    ...     'xap': 'http://ns.adobe.com/xap/1.0/'
+    ... }
+    >>> 
+    >>> elts = doc.xpath(
+    ...     'rdf:RDF/rdf:Description/xap:CreatorTool', namespaces=namespaces
+    ... )
+    >>> elts[0]  # doctest:  +ELLIPSIS
+    <Element {http://ns.adobe.com/xap/1.0/}CreatorTool at ...>
+    >>> elts[0].text
     'Google'
-
-But that would be painful.  A better solution is to install the Python XMP
-Toolkit (make sure it is at least version 2.0)::
-
-    >>> from libxmp import XMPMeta
-    >>> from libxmp.consts import XMP_NS_XMP as NS_XAP
-    >>> meta = XMPMeta()
-    >>> meta.parse_from_str(j.box[3].raw_data.decode('utf-8'))
-    >>> meta.get_property(NS_XAP, 'CreatorTool')
-    'Google'
-
-Where the Python XMP Toolkit can really shine, though, is when you are
-converting an image from another format such as TIFF or JPEG into JPEG 2000.
-For example, if you were to be converting the TIFF image found at
-http://photojournal.jpl.nasa.gov/tiff/PIA17145.tif info JPEG 2000::
-
-    >>> import skimage.io
-    >>> image = skimage.io.imread('PIA17145.tif')
-    >>> from glymur import Jp2k
-    >>> jp2 = Jp2k('PIA17145.jp2', data=image)
-
-Next you can extract the XMP metadata.
-
-    >>> from libxmp import XMPFiles
-    >>> xf = XMPFiles()
-    >>> xf.open_file('PIA17145.tif')
-    >>> xmp = xf.get_xmp()
-    >>> print(xmp)
-    <?xpacket begin="﻿" id="W5M0MpCehiHzreSzNTczkc9d"?>
-    <x:xmpmeta xmlns:x="adobe:ns:meta/" x:xmptk="Exempi + XMP Core 5.1.2">
-     <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
-      <rdf:Description rdf:about=""
-        xmlns:tiff="http://ns.adobe.com/tiff/1.0/">
-       <tiff:ImageWidth>1016</tiff:ImageWidth>
-       <tiff:ImageLength>1016</tiff:ImageLength>
-       <tiff:BitsPerSample>
-        <rdf:Seq>
-         <rdf:li>8</rdf:li>
-        </rdf:Seq>
-       </tiff:BitsPerSample>
-       <tiff:Compression>1</tiff:Compression>
-       <tiff:PhotometricInterpretation>1</tiff:PhotometricInterpretation>
-       <tiff:SamplesPerPixel>1</tiff:SamplesPerPixel>
-       <tiff:PlanarConfiguration>1</tiff:PlanarConfiguration>
-       <tiff:ResolutionUnit>2</tiff:ResolutionUnit>
-      </rdf:Description>
-      <rdf:Description rdf:about=""
-        xmlns:dc="http://purl.org/dc/elements/1.1/">
-       <dc:description>
-        <rdf:Alt>
-         <rdf:li xml:lang="x-default">converted PNM file</rdf:li>
-        </rdf:Alt>
-       </dc:description>
-      </rdf:Description>
-     </rdf:RDF>
-    </x:xmpmeta>
-    <?xpacket end="w"?>
-
-If you are familiar with TIFF, you can verify that there's no XMP tag in the
-TIFF file, but the Python XMP Toolkit takes advantage of the TIFF header
-structure to populate an XMP packet for you.  If you were working with a JPEG
-file with Exif metadata, that information would be included in the XMP packet 
-as well.  Now you can append the XMP packet in a UUIDBox.  In order to do this,
-though, you have to know the UUID that signifies XMP data.::
-
-    >>> import uuid
-    >>> xmp_uuid = uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
-    >>> box = glymur.jp2box.UUIDBox(xmp_uuid, str(xmp).encode())
-    >>> jp2.append(box)
-    >>> print(jp2.box[-1])
-    UUID Box (uuid) @ (592316, 1053)
-        UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
-        UUID Data:  
-        <ns0:xmpmeta xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:ns0="adobe:ns:meta/" xmlns:ns2="http://ns.adobe.com/tiff/1.0/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" ns0:xmptk="Exempi + XMP Core 5.1.2">
-          <rdf:RDF>
-            <rdf:Description rdf:about="">
-              <ns2:ImageWidth>1016</ns2:ImageWidth>
-              <ns2:ImageLength>1016</ns2:ImageLength>
-              <ns2:BitsPerSample>
-                <rdf:Seq>
-                  <rdf:li>8</rdf:li>
-                </rdf:Seq>
-              </ns2:BitsPerSample>
-              <ns2:Compression>1</ns2:Compression>
-              <ns2:PhotometricInterpretation>1</ns2:PhotometricInterpretation>
-              <ns2:SamplesPerPixel>1</ns2:SamplesPerPixel>
-              <ns2:PlanarConfiguration>1</ns2:PlanarConfiguration>
-              <ns2:ResolutionUnit>2</ns2:ResolutionUnit>
-            </rdf:Description>
-            <rdf:Description rdf:about="">
-              <dc:description>
-                <rdf:Alt>
-                  <rdf:li xml:lang="x-default">converted PNM file</rdf:li>
-                </rdf:Alt>
-              </dc:description>
-            </rdf:Description>
-          </rdf:RDF>
-        </ns0:xmpmeta>
-
-You can also build up XMP metadata from scratch.  For instance, if we try to
-wrap `goodstuff.j2k` again::
-
-    >>> import glymur
-    >>> j2kfile = glymur.data.goodstuff()
-    >>> j2k = glymur.Jp2k(j2kfile)
-    >>> jp2 = j2k.wrap("goodstuff.jp2")
-
-Now build up the metadata piece-by-piece.  It would help to have the XMP 
-standard close at hand::
-
-    >>> from libxmp import XMPMeta
-    >>> from libxmp.consts import XMP_NS_TIFF as NS_TIFF
-    >>> from libxmp.consts import XMP_NS_DC as NS_DC
-    >>> xmp = XMPMeta()
-    >>> ihdr = jp2.box[2].box[0]
-    >>> xmp.set_property(NS_TIFF, "ImageWidth", str(ihdr.width))
-    >>> xmp.set_property(NS_TIFF, "ImageHeight", str(ihdr.height))
-    >>> xmp.set_property(NS_TIFF, "BitsPerSample", '3')
-    >>> xmp.set_property(NS_DC, "Title", u'Stürm und Drang')
-    >>> xmp.set_property(NS_DC, "Creator", 'Glymur')
-
-We can then append the XMP in a UUID box just as before::
-
-    >>> import uuid
-    >>> xmp_uuid = uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
-    >>> box = glymur.jp2box.UUIDBox(xmp_uuid, str(xmp).encode())
-    >>> jp2.append(box)
-    >>> glymur.set_option('print.codestream', False)
-    >>> print(jp2)
-    File:  goodstuff.jp2
-    JPEG 2000 Signature Box (jP  ) @ (0, 12)
-        Signature:  0d0a870a
-    File Type Box (ftyp) @ (12, 20)
-        Brand:  jp2 
-        Compatibility:  ['jp2 ']
-    JP2 Header Box (jp2h) @ (32, 45)
-        Image Header Box (ihdr) @ (40, 22)
-            Size:  [800 480 3]
-            Bitdepth:  8
-            Signed:  False
-            Compression:  wavelet
-            Colorspace Unknown:  False
-        Colour Specification Box (colr) @ (62, 15)
-            Method:  enumerated colorspace
-            Precedence:  0
-            Colorspace:  sRGB
-    Contiguous Codestream Box (jp2c) @ (77, 115228)
-    UUID Box (uuid) @ (115305, 671)
-        UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
-        UUID Data:  
-        <ns0:xmpmeta xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:ns0="adobe:ns:meta/" xmlns:ns2="http://ns.adobe.com/tiff/1.0/" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" ns0:xmptk="Exempi + XMP Core 5.1.2">
-          <rdf:RDF>
-            <rdf:Description rdf:about="">
-              <ns2:ImageWidth>480</ns2:ImageWidth>
-              <ns2:ImageHeight>800</ns2:ImageHeight>
-              <ns2:BitsPerSample>3</ns2:BitsPerSample>
-            </rdf:Description>
-            <rdf:Description rdf:about="">
-              <dc:Title>Stürm und Drang</dc:Title>
-              <dc:Creator>Glymur</dc:Creator>
-            </rdf:Description>
-          </rdf:RDF>
-        </ns0:xmpmeta>
-

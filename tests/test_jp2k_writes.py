@@ -115,6 +115,28 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(j.box[2].box[2].box[1].vertical_resolution, vresd)
         self.assertEqual(j.box[2].box[2].box[1].horizontal_resolution, hresd)
 
+    @unittest.skipIf(
+        not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
+    )
+    def test_capture_resolution_camera(self):
+        """
+        SCENARIO:  The capture_resolution keyword is specified.
+
+        EXPECTED RESULT:  The offset and length of the resolution superbox
+        are verified.
+        """
+        vresc, hresc = 0.1, 0.2
+        vresd, hresd = 0.3, 0.4
+        j = glymur.Jp2k(
+            self.temp_jp2_filename, data=fixtures.skimage.data.camera(),
+            capture_resolution=[vresc, hresc],
+            display_resolution=[vresd, hresd],
+        )
+
+        self.assertEqual(j.box[2].box[2].box_id, 'res ')
+        self.assertEqual(j.box[2].box[2].length, 44)
+        self.assertEqual(j.box[2].box[2].offset, 77)
+
     def test_capture_resolution_when_j2k_specified(self):
         """
         Scenario:  Capture/Display resolution boxes are specified when the file
@@ -431,6 +453,47 @@ class TestSuite(fixtures.TestCommon):
         kwargs = {
             'data': fixtures.skimage.data.camera(),
             'psnr': [30, 35, 40, 0],
+        }
+        j = Jp2k(self.temp_jp2_filename, **kwargs)
+
+        d = {}
+        for layer in range(4):
+            j.layer = layer
+            d[layer] = j[:]
+
+        with warnings.catch_warnings():
+            # MSE is zero for that first image, resulting in a divide-by-zero
+            # warning
+            warnings.simplefilter('ignore')
+            psnr = [
+                fixtures.skimage.metrics.peak_signal_noise_ratio(
+                    fixtures.skimage.data.camera(), d[j]
+                )
+                for j in range(4)
+            ]
+
+        # That first image should be lossless.
+        self.assertTrue(np.isinf(psnr[0]))
+
+        # None of the subsequent images should have inf PSNR.
+        self.assertTrue(not np.any(np.isinf(psnr[1:])))
+
+        # PSNR should increase for the remaining images.
+        self.assertTrue(np.all(np.diff(psnr[1:])) > 0)
+
+    @unittest.skipIf(
+        not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
+    )
+    def test_psnr_from_doctest(self):
+        """
+        SCENARIO:  Four peak signal-to-noise ratio values are supplied, the
+        last is zero.
+
+        EXPECTED RESULT:  Four quality layers, the first should be lossless.
+        """
+        kwargs = {
+            'data': fixtures.skimage.data.camera(),
+            'psnr': [30, 40, 50, 0],
         }
         j = Jp2k(self.temp_jp2_filename, **kwargs)
 

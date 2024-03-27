@@ -1158,13 +1158,13 @@ class Jp2k(Jp2kr):
         self._verbose = verbose
 
         if shape is not None:
-            self.shape = shape
+            self._shape = shape
         elif data is not None:
-            self.shape = data.shape
+            self._shape = data.shape
         elif not hasattr(self, 'shape'):
             # We must be writing via slicing.
             # Must be determined when writing.
-            self.shape = None
+            self._shape = None
 
         # If there already was a shape attribute, then don't mess with it,
         # it was set by the reader superclass.
@@ -1235,7 +1235,7 @@ class Jp2k(Jp2kr):
         temp_filename = self.filename + '.tmp'
         self.wrap(temp_filename, boxes=self.box)
         shutil.move(temp_filename, self.filename)
-        self.parse()
+        self.parse(force=True)
 
     def _validate_kwargs(self):
         """Validate keyword parameters passed to the constructor."""
