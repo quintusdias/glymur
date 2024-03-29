@@ -29,7 +29,7 @@ second lower-resolution image.  It's always powers of two. ::
     >>> thumbnail.shape
     (400, 240, 3)
     >>> thumbnail2 = j2k[::4, ::4]
-    >>> thumbnail.shape
+    >>> thumbnail2.shape
     (200, 120, 3)
 
 
@@ -105,11 +105,11 @@ you really should look into this. ::
     >>> jp2file = glymur.data.nemo()
     >>> jp2 = glymur.Jp2k(jp2file)
     >>> t0 = time.time(); data = jp2[:]; t1 = time.time()
-    >>> t1 - t0
+    >>> t1 - t0  # doctest: +SKIP
     0.9024193286895752
     >>> glymur.set_option('lib.num_threads', 2)
     >>> t0 = time.time(); data = jp2[:]; t1 = time.time()
-    >>> t1 - t0
+    >>> t1 - t0  # doctest: +SKIP
     0.4060473537445068
 
 
@@ -158,15 +158,15 @@ With a puny 2015 macbook, just two cores, and a 5824x10368x3 image, we get::
     >>> data = glymur.Jp2k(glymur.data.nemo())[:]
     >>> data = np.tile(data, (4, 4, 1))
     >>> t0 = time.time()
-    >>> glymur.Jp2k('1thread.jp2', data)
+    >>> j = glymur.Jp2k('1thread.jp2', data=data)
     >>> t1 = time.time()
-    >>> print(f'1 thread:  {(t1 - t0):.3} seconds')
+    >>> print(f'1 thread:  {(t1 - t0):.3} seconds')  # doctest: +SKIP
     12.0 seconds
     >>> t0 = time.time()
     >>> glymur.set_option('lib.num_threads', 2)
-    >>> glymur.Jp2k('2threads.jp2', data)
+    >>> j = glymur.Jp2k('2threads.jp2', data=data)
     >>> t1 = time.time()
-    >>> print(f'2 threads:  {(t1 - t0):.3} seconds')
+    >>> print(f'2 threads:  {(t1 - t0):.3} seconds')  # doctest: +SKIP
     7.24 seconds
 
 
@@ -175,7 +175,8 @@ With a puny 2015 macbook, just two cores, and a 5824x10368x3 image, we get::
 
 If you have glymur 0.9.4 or higher, you can write out an image tile-by-tile.
 In this example, we take a 512x512x3 image and tile it into a 20x20 grid, 
-resulting in a 10240x10240x3 image.
+resulting in a 10240x10240x3 image.  Consider setting py::meth::`verbose` to
+True to get detailed feedback from the OpenJPEG library.
 
     >>> import skimage.data
     >>> from glymur import Jp2k
@@ -184,9 +185,8 @@ resulting in a 10240x10240x3 image.
     (512, 512, 3)
     >>> shape = img.shape[0] * 20, img.shape[1] * 20, 3
     >>> tilesize = (img.shape[0], img.shape[1])
-    >>> j = Jp2k('400astronauts.jp2', shape=shape, tilesize=tilesize, verbose=True)
-    >>> for tw in j.get_tilewriters():
-            tw[:] = img
+    >>> j = Jp2k('400astronauts.jp2', shape=shape, tilesize=tilesize)
+    >>> for tw in j.get_tilewriters(): tw[:] = img
     >>> j = Jp2k('400astronauts.jp2')
     >>> print(j.shape)
     (10240, 10240, 3)
