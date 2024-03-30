@@ -242,8 +242,8 @@ the layers to make the first layer lossless, not the last. ::
     >>> for layer in range(4):
     ...     jp2.layer = layer
     ...     psnr.append(skimage.metrics.peak_signal_noise_ratio(truth, jp2[:]))
-    >>> print(psnr)
-    [inf, 29.028560403833303, 39.206919416670402, 47.593129828702246]
+    >>> print(psnr)  # doctest: +ELLIPSIS
+    [inf, 29.90221522329731, 39.71824592284344, 48.381047443043634]
 
 ... convert TIFF images to JPEG 2000?
 -------------------------------------
@@ -345,7 +345,7 @@ object, i.e. ::
     >>> import glymur
     >>> jp2file = glymur.data.nemo() # just a path to a JP2 file
     >>> jp2 = glymur.Jp2k(jp2file)
-    >>> print(jp2)
+    >>> print(jp2)  # doctest: +SKIP
     File:  nemo.jp2
     JPEG 2000 Signature Box (jP  ) @ (0, 12)
         Signature:  0d0a870a
@@ -528,7 +528,7 @@ possible to print the full codestream.::
 
     >>> glymur.set_option('print.codestream', True)
     >>> c = j.get_codestream(header_only=False)
-    >>> print(c)
+    >>> print(c)  # doctest: +SKIP
     Codestream:
     SOC marker segment @ (3231, 0)
     SIZ marker segment @ (3233, 47)
@@ -625,31 +625,32 @@ How do I...?
 You can append any number of XML boxes to a JP2 file (not to a raw codestream).
 Consider the following XML file `data.xml` : ::
 
-    <?xml version="1.0"?>
-    <info>
-        <locality>
-            <city>Boston</city>
-            <snowfall>24.9 inches</snowfall>
-        </locality>
-        <locality>
-            <city>Portland</city>
-            <snowfall>31.9 inches</snowfall>
-        </locality>
-        <locality>
-            <city>New York City</city>
-            <snowfall>11.4 inches</snowfall>
-        </locality>
-    </info>
 
 The :py:meth:`append` method can add an XML box as shown below::
 
     >>> import shutil
     >>> import glymur
-    >>> shutil.copyfile(glymur.data.nemo(), 'myfile.jp2')
+    >>> with open('data.xml', mode='wt') as f:  # doctest: +SKIP
+    ...     f.write("""<info>
+    ...         <locality>
+    ...             <city>Boston</city>
+    ...             <snowfall>24.9 inches</snowfall>
+    ...         </locality>
+    ...         <locality>
+    ...             <city>Portland</city>
+    ...             <snowfall>31.9 inches</snowfall>
+    ...         </locality>
+    ...         <locality>
+    ...             <city>New York City</city>
+    ...             <snowfall>11.4 inches</snowfall>
+    ...         </locality>
+    ...     </info>
+    ...     """)
+    >>> _ = shutil.copyfile(glymur.data.nemo(), 'myfile.jp2')
     >>> jp2 = glymur.Jp2k('myfile.jp2')
     >>> xmlbox = glymur.jp2box.XMLBox(filename='data.xml')
     >>> jp2.append(xmlbox)
-    >>> print(jp2)
+    >>> print(jp2)  # doctest: +SKIP
 
 ... create display and/or capture resolution boxes?
 ---------------------------------------------------
@@ -661,10 +662,10 @@ may create such metadata boxes via keyword arguments.::
     >>> vresc, hresc = 0.1, 0.2
     >>> vresd, hresd = 0.3, 0.4
     >>> j = glymur.Jp2k(
-            'my.jp2', data=np.zeros([256, 256, 3], dtype=np.uint8),
-            capture_resolution=[vresc, hresc],
-            display_resolution=[vresd, hresd],
-        )
+    ...     'my.jp2', data=np.zeros([256, 256, 3], dtype=np.uint8),
+    ...     capture_resolution=[vresc, hresc],
+    ...     display_resolution=[vresd, hresd],
+    ... )
     >>> glymur.set_printoptions(short=True)
     >>> print(j)
     File:  my.jp2
@@ -694,6 +695,7 @@ codestream provided by `goodstuff.j2k` (a file consisting of a raw codestream),
 you can use the :py:meth:`wrap` method with no box argument: ::
 
     >>> import glymur
+    >>> glymur.reset_option('all')
     >>> glymur.set_option('print.codestream', False)
     >>> jp2file = glymur.data.goodstuff()
     >>> j2k = glymur.Jp2k(jp2file)
@@ -729,10 +731,13 @@ re-specify all of the boxes.  If you already have a JP2 jacket in place,
 you can just reuse that, though.  Take the following example content in
 an XML file `favorites.xml` : ::
 
-    <?xml version="1.0"?>
-    <favorite_things>
-        <category>Light Ale</category>
-    </favorite_things>
+    >>> s = """
+    ... <favorite_things>
+    ...     <category>Light Ale</category>
+    ... </favorite_things>
+    ... """
+    >>> with open('favorites.xml', mode='wt') as f:
+    ...    _ = f.write(s)
 
 In order to add the XML after the JP2 header box, but before the codestream box, 
 the following will work. ::
@@ -759,11 +764,11 @@ the following will work. ::
             Method:  enumerated colorspace
             Precedence:  0
             Colorspace:  sRGB
-    XML Box (xml ) @ (77, 76)
+    XML Box (xml ) @ (77, 79)
         <favorite_things>
-          <category>Light Ale</category>
+            <category>Light Ale</category>
         </favorite_things>
-    Contiguous Codestream Box (jp2c) @ (153, 115236)
+    Contiguous Codestream Box (jp2c) @ (156, 115228)
 
 As to the question of which method you should use, :py:meth:`append` or
 :py:meth:`wrap`, to add metadata, you should keep in mind that :py:meth:`wrap`
@@ -783,11 +788,14 @@ Basically what is done is that the raw bytes corresponding to the ICC profile
 are wrapped in a BytesIO object, which is fed to the most-excellent Pillow package.
 ::
 
+    >>> import importlib.resources as ir
     >>> from glymur import Jp2k
     >>> from PIL import ImageCms
     >>> from io import BytesIO
-    >>> # This next step produces a harmless warning that has nothing to do with ICC profiles.
-    >>> j = Jp2k('text_GBR.jp2')
+    >>> # this assumes you have access to the test suite
+    >>> p = ir.files('tests.data').joinpath('text_GBR.jp2')
+    >>> # This next step may produce a harmless warning that has nothing to do with ICC profiles.
+    >>> j = Jp2k(p)
     >>> # The 2nd sub box of the 4th box is a ColourSpecification box.
     >>> print(j.box[3].box[1].colorspace)
     None
