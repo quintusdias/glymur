@@ -1235,7 +1235,7 @@ class Jp2k(Jp2kr):
         temp_filename = self.filename + '.tmp'
         self.wrap(temp_filename, boxes=self.box)
         shutil.move(temp_filename, self.filename)
-        self.parse()
+        self.parse(force=True)
 
     def _validate_kwargs(self):
         """Validate keyword parameters passed to the constructor."""
