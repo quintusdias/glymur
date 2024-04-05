@@ -857,7 +857,7 @@ class TestJp2kr(fixtures.TestCommon):
         j.layer = 1
         d1 = j[:]
 
-        np.alltrue(d0 != d1)
+        np.all(d0 != d1)
 
     def test_invalid_layers(self):
         """
