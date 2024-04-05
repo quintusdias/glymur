@@ -237,9 +237,12 @@ for a basic understanding of PSNR.
 
 Values must be increasing, but the last value may be 0 to indicate
 the layer is lossless.  However, the OpenJPEG library will reorder
-the layers to make the first layer lossless, not the last. ::
+the layers to make the first layer lossless, not the last.
 
-    >>> import skimage.data, skimage.metrics, glymur
+We suppress a harmless warning from scikit-image below. ::
+
+    >>> import skimage.data, skimage.metrics, glymur, warnings
+    >>> warnings.simplefilter('ignore')
     >>> truth = skimage.data.camera()
     >>> jp2 = glymur.Jp2k('psnr.jp2', data=truth, psnr=[30, 40, 50, 0])
     >>> psnr = []
@@ -632,9 +635,9 @@ Consider the following XML file `data.xml` : ::
 
 The :py:meth:`append` method can add an XML box as shown below::
 
-    >>> import shutil
-    >>> import glymur
-    >>> s = """
+    >>> import glymur, io, shutil
+    >>> from lxml import etree as ET
+    >>> xml = io.BytesIO(b"""
     ... <info>
     ...     <locality>
     ...         <city>Boston</city>
@@ -649,9 +652,10 @@ The :py:meth:`append` method can add an XML box as shown below::
     ...         <snowfall>11.4 inches</snowfall>
     ...     </locality>
     ... </info>
-    ... """
-    >>> xml = ET.fromstring(s)
-    >>> xmlbox = glymur.jp2box.XMLBox(xml=xml)
+    ... """)
+    >>> tree = ET.parse(xml)
+    >>> xmlbox = glymur.jp2box.XMLBox(xml=tree)
+    >>> _ = shutil.copyfile(glymur.data.nemo(), 'xml.jp2')
     >>> jp2 = glymur.Jp2k('xml.jp2')
     >>> jp2.append(xmlbox)
     >>> print(jp2)  # doctest: +SKIP
@@ -737,19 +741,20 @@ re-specify all of the boxes.  If you already have a JP2 jacket in place,
 you can just reuse that, though.  Take the following example content in
 an XML file `favorites.xml` : ::
 
-    >>> s = """
+    >>> import io
+    >>> from lxml import etree as ET
+    >>> s = b"""
     ... <favorite_things>
     ...     <category>Light Ale</category>
     ... </favorite_things>
     ... """
-    >>> with open('favorites.xml', mode='wt') as f:
-    ...    _ = f.write(s)
+    >>> xml = ET.parse(io.BytesIO(s))
 
 In order to add the XML after the JP2 header box, but before the codestream box, 
 the following will work. ::
 
     >>> boxes = jp2.box  # The box attribute is the list of JP2 boxes
-    >>> xmlbox = glymur.jp2box.XMLBox(filename='favorites.xml')
+    >>> xmlbox = glymur.jp2box.XMLBox(xml=xml)
     >>> boxes.insert(3, xmlbox)
     >>> jp2_xml = jp2.wrap("newfile_with_xml.jp2", boxes=boxes)
     >>> print(jp2_xml)
@@ -794,12 +799,12 @@ Basically what is done is that the raw bytes corresponding to the ICC profile
 are wrapped in a BytesIO object, which is fed to the most-excellent Pillow package.
 ::
 
-    >>> import importlib.resources as ir
+    >>> import pathlib
     >>> from glymur import Jp2k
     >>> from PIL import ImageCms
     >>> from io import BytesIO
     >>> # this assumes you have access to the test suite
-    >>> p = ir.files('tests.data').joinpath('text_GBR.jp2')
+    >>> p = pathlib.Path('tests/data/text_GBR.jp2')
     >>> # This next step may produce a harmless warning that has nothing to do with ICC profiles.
     >>> j = Jp2k(p)
     >>> # The 2nd sub box of the 4th box is a ColourSpecification box.
