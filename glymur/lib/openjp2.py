@@ -5,6 +5,7 @@
 import ctypes
 import queue
 import textwrap
+import warnings
 
 # 3rd party library imports
 import numpy as np
@@ -1495,3 +1496,32 @@ def write_tile(codec, tile_index, data, *pargs):
 def set_error_message(msg):
     """The openjpeg error handler has recorded an error message."""
     ERROR_MSG_LST.put(msg)
+
+
+# Setup the default callback handlers.  See the callback functions subsection
+# in the ctypes section of the Python documentation for a solid explanation of
+# what's going on here.
+_CMPFUNC = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_char_p, ctypes.c_void_p)
+
+
+def _default_error_handler(msg, _):
+    """Default error handler callback for libopenjp2."""
+    msg = "OpenJPEG library error:  {0}".format(msg.decode('utf-8').rstrip())
+    set_error_message(msg)
+
+
+def _default_info_handler(msg, _):
+    """Default info handler callback."""
+    print("[INFO] {0}".format(msg.decode('utf-8').rstrip()))
+
+
+def _default_warning_handler(library_msg, _):
+    """Default warning handler callback."""
+    library_msg = library_msg.decode('utf-8').rstrip()
+    msg = "OpenJPEG library warning:  {0}".format(library_msg)
+    warnings.warn(msg, UserWarning)
+
+
+_ERROR_CALLBACK = _CMPFUNC(_default_error_handler)
+_INFO_CALLBACK = _CMPFUNC(_default_info_handler)
+_WARNING_CALLBACK = _CMPFUNC(_default_warning_handler)

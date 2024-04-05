@@ -14,7 +14,6 @@ import numpy as np
 # Local imports ...
 import glymur
 from glymur.lib import openjp2
-from glymur.jp2k import _INFO_CALLBACK, _WARNING_CALLBACK, _ERROR_CALLBACK
 from . import fixtures
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
@@ -239,11 +238,11 @@ class TestOpenJP2(fixtures.TestCommon):
             codec = openjp2.create_compress(openjp2.CODEC_J2K)
             stack.callback(openjp2.destroy_codec, codec)
 
-            info_handler = _INFO_CALLBACK
+            info_handler = openjp2._INFO_CALLBACK
 
             openjp2.set_info_handler(codec, info_handler)
-            openjp2.set_warning_handler(codec, _WARNING_CALLBACK)
-            openjp2.set_error_handler(codec, _ERROR_CALLBACK)
+            openjp2.set_warning_handler(codec, openjp2._WARNING_CALLBACK)
+            openjp2.set_error_handler(codec, openjp2._ERROR_CALLBACK)
 
             # l_params == comptparms
             # l_image == tile
@@ -337,11 +336,11 @@ class TestOpenJP2(fixtures.TestCommon):
             codec = openjp2.create_compress(openjp2.CODEC_J2K)
             stack.callback(openjp2.destroy_codec, codec)
 
-            info_handler = _INFO_CALLBACK
+            info_handler = openjp2._INFO_CALLBACK
 
             openjp2.set_info_handler(codec, info_handler)
-            openjp2.set_warning_handler(codec, _WARNING_CALLBACK)
-            openjp2.set_error_handler(codec, _ERROR_CALLBACK)
+            openjp2.set_warning_handler(codec, openjp2._WARNING_CALLBACK)
+            openjp2.set_error_handler(codec, openjp2._ERROR_CALLBACK)
 
             image = openjp2.image_tile_create(comptparms, openjp2.CLRSPC_SRGB)
             stack.callback(openjp2.image_destroy, image)
