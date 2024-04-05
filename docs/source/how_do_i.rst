@@ -634,25 +634,25 @@ The :py:meth:`append` method can add an XML box as shown below::
 
     >>> import shutil
     >>> import glymur
-    >>> with open('data.xml', mode='wt') as f:  # doctest: +SKIP
-    ...     f.write("""<info>
-    ...         <locality>
-    ...             <city>Boston</city>
-    ...             <snowfall>24.9 inches</snowfall>
-    ...         </locality>
-    ...         <locality>
-    ...             <city>Portland</city>
-    ...             <snowfall>31.9 inches</snowfall>
-    ...         </locality>
-    ...         <locality>
-    ...             <city>New York City</city>
-    ...             <snowfall>11.4 inches</snowfall>
-    ...         </locality>
-    ...     </info>
-    ...     """)
-    >>> _ = shutil.copyfile(glymur.data.nemo(), 'myfile.jp2')
-    >>> jp2 = glymur.Jp2k('myfile.jp2')
-    >>> xmlbox = glymur.jp2box.XMLBox(filename='data.xml')
+    >>> s = """
+    ... <info>
+    ...     <locality>
+    ...         <city>Boston</city>
+    ...         <snowfall>24.9 inches</snowfall>
+    ...     </locality>
+    ...     <locality>
+    ...         <city>Portland</city>
+    ...         <snowfall>31.9 inches</snowfall>
+    ...     </locality>
+    ...     <locality>
+    ...         <city>New York City</city>
+    ...         <snowfall>11.4 inches</snowfall>
+    ...     </locality>
+    ... </info>
+    ... """
+    >>> xml = ET.fromstring(s)
+    >>> xmlbox = glymur.jp2box.XMLBox(xml=xml)
+    >>> jp2 = glymur.Jp2k('xml.jp2')
     >>> jp2.append(xmlbox)
     >>> print(jp2)  # doctest: +SKIP
 
