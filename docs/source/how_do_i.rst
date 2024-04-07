@@ -201,14 +201,15 @@ have image data ready to feed each tile writer, you cannot skip a tile.
 ... force the generation of PLT markers?
 ----------------------------------------
 
-With glymur 0.9.5 or higher, you can instruct the encoder to generate PLT markers
-by using the plt keyword. ::
+With glymur 0.9.5 or higher and openjpeg 2.4.0 or higher, you can instruct the
+encoder to generate PLT markers by using the plt keyword. ::
 
     >>> import glymur, skimage.data
-    >>> jp2 = glymur.Jp2k('plt.jp2', plt=True)
-    >>> jp2[:] = skimage.data.astronaut()
-    >>> c = jp2.get_codestream(header_only=False)
-    >>> print(c.segment[6])
+    >>> if glymur.version.openjpeg_version >= '2.4.0':
+    ...     jp2 = glymur.Jp2k('plt.jp2', plt=True)
+    ...     jp2[:] = skimage.data.astronaut()
+    ...     c = jp2.get_codestream(header_only=False)
+    ...     print(c.segment[6])  # doctest: +SKIP
     PLT marker segment @ (222, 45)
         Index:  0
         Iplt:  [271, 201, 208, 749, 551, 548, 2569, 1852, 1814, 8300, 6370, 6061, 26987, 23437, 21431, 88511, 86763, 77253]
