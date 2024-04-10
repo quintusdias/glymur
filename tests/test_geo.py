@@ -83,7 +83,7 @@ class TestSuite(fixtures.TestCommon):
         j = glymur.Jp2k(dst)
         j.append(asocbox)
 
-        actual = str(j.box[5])
+        actual = str(j.box[-1])
 
         # just verify that some gdal stuff is present
         self.assertIn('PROJCRS', actual)

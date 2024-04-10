@@ -122,7 +122,6 @@ class TestJPXWrap(fixtures.TestCommon):
     def test_jp2_with_jpx_box(self):
         """If the brand is jp2, then no jpx boxes are allowed."""
         jp2 = Jp2k(self.jp2file)
-        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
         boxes = jp2.box
 
         boxes.append(glymur.jp2box.AssociationBox())
@@ -134,7 +133,7 @@ class TestJPXWrap(fixtures.TestCommon):
     def test_jpch_jplh(self):
         """Write a codestream header, compositing layer header box."""
         jp2 = Jp2k(self.jp2file)
-        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+        boxes = jp2.box
 
         # The ftyp box must be modified to jpx.
         boxes[1].brand = 'jpx '
@@ -154,7 +153,7 @@ class TestJPXWrap(fixtures.TestCommon):
     def test_cgrp(self):
         """Write a color group box."""
         jp2 = Jp2k(self.jp2file)
-        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+        boxes = jp2.box
 
         # The ftyp box must be modified to jpx.
         boxes[1].brand = 'jpx '
@@ -177,7 +176,7 @@ class TestJPXWrap(fixtures.TestCommon):
     def test_label_neg(self):
         """Can't write a label box embedded in any old box."""
         jp2 = Jp2k(self.jp2file)
-        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+        boxes = jp2.box
 
         # The ftyp box must be modified to jpx.
         boxes[1].brand = 'jpx '
@@ -196,7 +195,7 @@ class TestJPXWrap(fixtures.TestCommon):
     def test_cgrp_neg(self):
         """Can't write a cgrp with anything but colr sub boxes"""
         jp2 = Jp2k(self.jp2file)
-        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+        boxes = jp2.box
 
         # The ftyp box must be modified to jpx.
         boxes[1].brand = 'jpx '
@@ -221,7 +220,7 @@ class TestJPXWrap(fixtures.TestCommon):
         # Add a negative test where more than one flst
         # Add negative test where ftbl contained in a superbox.
         jp2 = Jp2k(self.jp2file)
-        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+        boxes = jp2.box
 
         # The ftyp box must be modified to jpx.
         boxes[1].brand = 'jpx '
@@ -244,7 +243,7 @@ class TestJPXWrap(fixtures.TestCommon):
     def test_jpxb_compatibility(self):
         """Wrap JP2 to JPX, state jpxb compatibility"""
         jp2 = Jp2k(self.jp2file)
-        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+        boxes = jp2.box
 
         # The ftyp box must be modified to jpx with jp2 compatibility.
         boxes[1].brand = 'jpx '
@@ -272,7 +271,7 @@ class TestJPXWrap(fixtures.TestCommon):
     def test_association_label_box(self):
         """Wrap JP2 to JPX with asoc, label, and nlst boxes"""
         jp2 = Jp2k(self.jp2file)
-        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+        boxes = jp2.box
 
         # The ftyp box must be modified to jpx with jp2 compatibility.
         boxes[1].brand = 'jpx '
@@ -304,7 +303,7 @@ class TestJPXWrap(fixtures.TestCommon):
     def test_empty_data_reference(self):
         """Empty data reference boxes can be created, but not written."""
         jp2 = Jp2k(self.jp2file)
-        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+        boxes = jp2.box
 
         boxes[1].brand = 'jpx '
 
@@ -318,7 +317,7 @@ class TestJPXWrap(fixtures.TestCommon):
     def test_deurl_child_of_dtbl(self):
         """Data reference boxes can only contain data entry url boxes."""
         jp2 = Jp2k(self.jp2file)
-        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+        boxes = jp2.box
 
         ftyp = glymur.jp2box.FileTypeBox()
         with warnings.catch_warnings():
@@ -338,7 +337,7 @@ class TestJPXWrap(fixtures.TestCommon):
     def test_only_one_data_reference(self):
         """Data reference boxes cannot be inside a superbox ."""
         jp2 = Jp2k(self.jp2file)
-        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+        boxes = jp2.box
 
         # Have to make the ftyp brand jpx.
         boxes[1].brand = 'jpx '
@@ -358,7 +357,7 @@ class TestJPXWrap(fixtures.TestCommon):
     def test_lbl_at_top_level(self):
         """Label boxes can only be inside a asoc box ."""
         jp2 = Jp2k(self.jp2file)
-        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+        boxes = jp2.box
 
         # Have to make the ftyp brand jpx.
         boxes[1].brand = 'jpx '
@@ -375,7 +374,7 @@ class TestJPXWrap(fixtures.TestCommon):
     def test_data_reference_in_subbox(self):
         """Data reference boxes cannot be inside a superbox ."""
         jp2 = Jp2k(self.jp2file)
-        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+        boxes = jp2.box
 
         # Have to make the ftyp brand jpx.
         boxes[1].brand = 'jpx '
@@ -396,7 +395,7 @@ class TestJPXWrap(fixtures.TestCommon):
     def test_jp2_to_jpx_sans_jp2_compatibility(self):
         """jp2 wrapped to jpx not including jp2 compatibility is wrong."""
         jp2 = Jp2k(self.jp2file)
-        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+        boxes = jp2.box
 
         # Have to make the ftyp brand jpx.
         boxes[1].brand = 'jpx '
@@ -416,7 +415,7 @@ class TestJPXWrap(fixtures.TestCommon):
     def test_jp2_to_jpx_sans_jpx_brand(self):
         """Verify error when jp2 wrapped to jpx does not include jpx brand."""
         jp2 = Jp2k(self.jp2file)
-        boxes = [jp2.box[idx] for idx in [0, 1, 2, 4]]
+        boxes = jp2.box
         boxes[1].brand = 'jpx '
         numbers = [0, 1]
         nlst = glymur.jp2box.NumberListBox(numbers)

@@ -673,12 +673,12 @@ class TestSuite(fixtures.TestCommon):
         with open(self.temp_jp2_filename, mode='wb') as ofile:
             with open(self.jp2file, 'rb') as ifile:
                 # Copy up until the RSIZ value.
-                ofile.write(ifile.read(3237))
+                ofile.write(ifile.read(91))
 
                 # Write the bad RSIZ value.
                 buffer = struct.pack('>H', 32)
                 ofile.write(buffer)
-                ifile.seek(3239)
+                ifile.seek(93)
 
                 # Get the rest of the file.
                 ofile.write(ifile.read())
@@ -709,9 +709,8 @@ class TestSuite(fixtures.TestCommon):
 
             # Now make sure we got all of the boxes.
             box_ids = [box.box_id for box in jp2.box]
-            self.assertEqual(box_ids, ['jP  ', 'ftyp', 'jp2h', 'uuid', 'jp2c',
-                                       'xxxx'])
-            self.assertEqual(jp2.box[5].claimed_box_id, b'abcd')
+            self.assertEqual(box_ids, ['jP  ', 'ftyp', 'jp2h', 'jp2c', 'xxxx'])
+            self.assertEqual(jp2.box[-1].claimed_box_id, b'abcd')
 
     def test_bad_ftyp_brand(self):
         """

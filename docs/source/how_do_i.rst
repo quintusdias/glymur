@@ -499,33 +499,87 @@ object, i.e. ::
 --------------------------
 
 The amount of metadata in a JPEG 2000 file can be overwhelming, mostly due
-to the codestream and XML and UUID boxes.  
-You can suppress the codestream and XML details by
+to the codestream and XML.  You can suppress the codestream and XML details by
 making use of the :py:meth:`set_option` function::
 
+    >>> import glymur
+    >>> jpx = glymur.Jp2k(glymur.data.jpxfile())
     >>> glymur.set_option('print.codestream', False)
     >>> glymur.set_option('print.xml', False)
-    >>> print(jp2)
-    File:  nemo.jp2
+    >>> print(jpx)
+    File:  heliov.jpx
     JPEG 2000 Signature Box (jP  ) @ (0, 12)
         Signature:  0d0a870a
-    File Type Box (ftyp) @ (12, 20)
-        Brand:  jp2 
-        Compatibility:  ['jp2 ']
-    JP2 Header Box (jp2h) @ (32, 45)
-        Image Header Box (ihdr) @ (40, 22)
-            Size:  [1456 2592 3]
+    File Type Box (ftyp) @ (12, 28)
+        Brand:  jpx 
+        Compatibility:  ['jpx ', 'jp2 ', 'jpxb']
+    JP2 Header Box (jp2h) @ (40, 847)
+        Image Header Box (ihdr) @ (48, 22)
+            Size:  [1024 1024 1]
             Bitdepth:  8
             Signed:  False
             Compression:  wavelet
             Colorspace Unknown:  False
-        Colour Specification Box (colr) @ (62, 15)
+        Colour Specification Box (colr) @ (70, 15)
             Method:  enumerated colorspace
             Precedence:  0
             Colorspace:  sRGB
-    UUID Box (uuid) @ (77, 3146)
-        UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
-    Contiguous Codestream Box (jp2c) @ (3223, 1132296)
+        Palette Box (pclr) @ (85, 782)
+            Size:  (256 x 3)
+        Component Mapping Box (cmap) @ (867, 20)
+            Component 0 ==> palette column 0
+            Component 0 ==> palette column 1
+            Component 0 ==> palette column 2
+    Codestream Header Box (jpch) @ (887, 8)
+    Compositing Layer Header Box (jplh) @ (895, 8)
+    Contiguous Codestream Box (jp2c) @ (903, 313274)
+    Codestream Header Box (jpch) @ (314177, 50)
+        Image Header Box (ihdr) @ (314185, 22)
+            Size:  [256 256 3]
+            Bitdepth:  8
+            Signed:  False
+            Compression:  wavelet
+            Colorspace Unknown:  True
+        Component Mapping Box (cmap) @ (314207, 20)
+            Component 0 ==> 0
+            Component 1 ==> 1
+            Component 2 ==> 2
+    Compositing Layer Header Box (jplh) @ (314227, 31)
+        Colour Group Box (cgrp) @ (314235, 23)
+            Colour Specification Box (colr) @ (314243, 15)
+                Method:  enumerated colorspace
+                Precedence:  0
+                Colorspace:  sRGB
+    Contiguous Codestream Box (jp2c) @ (314258, 26609)
+    Codestream Header Box (jpch) @ (340867, 42)
+        Image Header Box (ihdr) @ (340875, 22)
+            Size:  [4096 4096 1]
+            Bitdepth:  8
+            Signed:  False
+            Compression:  wavelet
+            Colorspace Unknown:  True
+        Component Mapping Box (cmap) @ (340897, 12)
+            Component 0 ==> 0
+    Compositing Layer Header Box (jplh) @ (340909, 31)
+        Colour Group Box (cgrp) @ (340917, 23)
+            Colour Specification Box (colr) @ (340925, 15)
+                Method:  enumerated colorspace
+                Precedence:  0
+                Colorspace:  greyscale
+    Contiguous Codestream Box (jp2c) @ (340940, 1048552)
+    Association Box (asoc) @ (1389492, 9579)
+        Association Box (asoc) @ (1389500, 3421)
+            Number List Box (nlst) @ (1389508, 16)
+                Association[0]:  codestream 0
+                Association[1]:  compositing layer 0
+            XML Box (xml ) @ (1389524, 3397)
+        Association Box (asoc) @ (1392921, 6150)
+            Number List Box (nlst) @ (1392929, 16)
+                Association[0]:  codestream 2
+                Association[1]:  compositing layer 2
+            XML Box (xml ) @ (1392945, 6126)
+
+Now try it without suppressing the XML and codestream details.
 
 ... display the codestream in all its gory glory?
 -------------------------------------------------
@@ -816,55 +870,3 @@ are wrapped in a BytesIO object, which is fed to the most-excellent Pillow packa
 
 To go any further with this, you will want to consult
 `the Pillow documentation <https://pillow.readthedocs.io/en/stable/>`_.
-
-... work with XMP UUIDs?
-------------------------
-
-`Wikipedia <http://en.wikipedia.org/wiki/Extensible_Metadata_Platform>`_ states
-that "The Extensible Metadata Platform (XMP) is an ISO standard,
-originally created by Adobe Systems Inc., for the creation, processing
-and interchange of standardized and custom metadata for all kinds
-of resources."
-
-The example JP2 file shipped with glymur has an XMP UUID. ::
-
-    >>> import glymur
-    >>> j = glymur.Jp2k(glymur.data.nemo())
-    >>> print(j.box[3]) # formatting added to the XML below  # doctest: +SKIP
-    <ns0:xmpmeta xmlns:dc="http://purl.org/dc/elements/1.1/"
-                 xmlns:ns0="adobe:ns:meta/"
-                 xmlns:ns2="http://ns.adobe.com/xap/1.0/"
-                 xmlns:ns3="http://ns.adobe.com/tiff/1.0/"
-                 xmlns:ns4="http://ns.adobe.com/exif/1.0/"
-                 xmlns:ns5="http://ns.adobe.com/photoshop/1.0/"
-                 xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-                 ns0:xmptk="Exempi + XMP Core 5.1.2">
-          <rdf:RDF>
-            <rdf:Description rdf:about="">
-              <ns2:CreatorTool>Google</ns2:CreatorTool>
-              <ns2:CreateDate>2013-02-09T14:47:53</ns2:CreateDate>
-            </rdf:Description>
-
-          .
-          .
-          .
-    </ns0:xmpmeta>
-
-Since the UUID data in this case is returned as an lxml ElementTree
-instance, one can use lxml to access the data.  For example, to
-extract the **CreatorTool** attribute value, one could do the
-following. ::
-
-    >>> doc = j.box[3].data
-    >>> namespaces = {
-    ...     'rdf': 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
-    ...     'xap': 'http://ns.adobe.com/xap/1.0/'
-    ... }
-    >>> 
-    >>> elts = doc.xpath(
-    ...     'rdf:RDF/rdf:Description/xap:CreatorTool', namespaces=namespaces
-    ... )
-    >>> elts[0]  # doctest:  +ELLIPSIS
-    <Element {http://ns.adobe.com/xap/1.0/}CreatorTool at ...>
-    >>> elts[0].text
-    'Google'

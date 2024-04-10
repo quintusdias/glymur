@@ -5,6 +5,7 @@ Test suite for printing.
 # Standard library imports ...
 import importlib.resources as ir
 from io import BytesIO, StringIO
+import shutil
 import struct
 import sys
 import unittest
@@ -479,7 +480,7 @@ class TestPrinting(fixtures.TestCommon):
         codestream = j.get_codestream(header_only=False)
         actual = str(codestream.segment[6])
 
-        exp = ('COC marker segment @ (3356, 9)\n'
+        exp = ('COC marker segment @ (210, 9)\n'
                '    Associated component:  1\n'
                '    Coding style for this component:  '
                'Entropy coder, PARTITION = 0\n'
@@ -592,7 +593,7 @@ class TestPrinting(fixtures.TestCommon):
         codestream = j.get_codestream()
         actual = str(codestream.segment[2])
 
-        exp = ('COD marker segment @ (3282, 12)\n'
+        exp = ('COD marker segment @ (136, 12)\n'
                '    Coding style:\n'
                '        Entropy coder, without partitions\n'
                '        SOP marker segments:  False\n'
@@ -623,7 +624,7 @@ class TestPrinting(fixtures.TestCommon):
         codestream = j.get_codestream(header_only=False)
         actual = str(codestream.segment[-1])
 
-        expected = 'EOC marker segment @ (1135517, 0)'
+        expected = 'EOC marker segment @ (1132371, 0)'
         self.assertEqual(actual, expected)
 
     def test_qcc_segment(self):
@@ -632,7 +633,7 @@ class TestPrinting(fixtures.TestCommon):
         codestream = j.get_codestream(header_only=False)
         actual = str(codestream.segment[7])
 
-        expected = ('QCC marker segment @ (3367, 8)\n'
+        expected = ('QCC marker segment @ (221, 8)\n'
                     '    Associated Component:  1\n'
                     '    Quantization style:  no quantization, 2 guard bits\n'
                     '    Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]')
@@ -645,7 +646,7 @@ class TestPrinting(fixtures.TestCommon):
         codestream = j.get_codestream()
         actual = str(codestream.segment[3])
 
-        expected = ('QCD marker segment @ (3296, 7)\n'
+        expected = ('QCD marker segment @ (150, 7)\n'
                     '    Quantization style:  no quantization, 2 guard bits\n'
                     '    Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]')
 
@@ -656,7 +657,7 @@ class TestPrinting(fixtures.TestCommon):
         j = glymur.Jp2k(self.jp2file)
         actual = str(j.codestream.segment[1])
 
-        exp = ('SIZ marker segment @ (3233, 47)\n'
+        exp = ('SIZ marker segment @ (87, 47)\n'
                '    Profile:  no profile\n'
                '    Reference Grid Height, Width:  (1456 x 2592)\n'
                '    Vertical, Horizontal Reference Grid Offset:  (0 x 0)\n'
@@ -675,7 +676,7 @@ class TestPrinting(fixtures.TestCommon):
         codestream = j.get_codestream()
         actual = str(codestream.segment[0])
 
-        expected = 'SOC marker segment @ (3231, 0)'
+        expected = 'SOC marker segment @ (85, 0)'
         self.assertEqual(actual, expected)
 
     def test_sod_segment(self):
@@ -684,7 +685,7 @@ class TestPrinting(fixtures.TestCommon):
         codestream = j.get_codestream(header_only=False)
         actual = str(codestream.segment[10])
 
-        expected = 'SOD marker segment @ (3398, 0)'
+        expected = 'SOD marker segment @ (252, 0)'
         self.assertEqual(actual, expected)
 
     def test_sot_segment(self):
@@ -693,7 +694,7 @@ class TestPrinting(fixtures.TestCommon):
         codestream = j.get_codestream(header_only=False)
         actual = str(codestream.segment[5])
 
-        expected = ('SOT marker segment @ (3344, 10)\n'
+        expected = ('SOT marker segment @ (198, 10)\n'
                     '    Tile part index:  0\n'
                     '    Tile part length:  1132173\n'
                     '    Tile part instance:  0\n'
@@ -705,12 +706,20 @@ class TestPrinting(fixtures.TestCommon):
         """
         Verify the printing of a UUID/XMP box.
         """
-        j = glymur.Jp2k(self.jp2file)
-        actual = str(j.box[3])
+        the_uuid = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
+        raw_data = (
+            ir.files('tests.data')
+              .joinpath('simple_rdf.txt')
+              .read_text()
+              .encode('utf-8')
+        )
+        ubox = glymur.jp2box.UUIDBox(the_uuid=the_uuid, raw_data=raw_data)
+
+        actual = str(ubox)
 
         expected = (
             ir.files('tests.data')
-              .joinpath('nemo_xmp_box.txt')
+              .joinpath('simple_rdf.uuid-box.txt')
               .read_text()
               .rstrip()
         )
@@ -722,47 +731,16 @@ class TestPrinting(fixtures.TestCommon):
         """
         j = glymur.Jp2k(self.jp2file)
         actual = str(j.get_codestream())
-        exp = ('Codestream:\n'
-               '    SOC marker segment @ (3231, 0)\n'
-               '    SIZ marker segment @ (3233, 47)\n'
-               '        Profile:  no profile\n'
-               '        Reference Grid Height, Width:  (1456 x 2592)\n'
-               '        Vertical, Horizontal Reference Grid Offset:  (0 x 0)\n'
-               '        Reference Tile Height, Width:  (1456 x 2592)\n'
-               '        Vertical, Horizontal Reference Tile Offset:  (0 x 0)\n'
-               '        Bitdepth:  (8, 8, 8)\n'
-               '        Signed:  (False, False, False)\n'
-               '        Vertical, Horizontal Subsampling:  '
-               '((1, 1), (1, 1), (1, 1))\n'
-               '    COD marker segment @ (3282, 12)\n'
-               '        Coding style:\n'
-               '            Entropy coder, without partitions\n'
-               '            SOP marker segments:  False\n'
-               '            EPH marker segments:  False\n'
-               '        Coding style parameters:\n'
-               '            Progression order:  LRCP\n'
-               '            Number of layers:  2\n'
-               '            Multiple component transformation usage:  '
-               'reversible\n'
-               '            Number of decomposition levels:  1\n'
-               '            Code block height, width:  (64 x 64)\n'
-               '            Wavelet transform:  5-3 reversible\n'
-               '            Precinct size:  (32768, 32768)\n'
-               '            Code block context:\n'
-               '                Selective arithmetic coding bypass:  False\n'
-               '                Reset context probabilities on '
-               'coding pass boundaries:  False\n'
-               '                Termination on each coding pass:  False\n'
-               '                Vertically stripe causal context:  False\n'
-               '                Predictable termination:  False\n'
-               '                Segmentation symbols:  False\n'
-               '    QCD marker segment @ (3296, 7)\n'
-               '        Quantization style:  no quantization, '
-               '2 guard bits\n'
-               '        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]\n'
-               '    CME marker segment @ (3305, 37)\n'
-               '        "Created by OpenJPEG version 2.0.0"')
-        self.assertEqual(actual, exp)
+        expected = (
+            ir.files('tests.data')
+              .joinpath('nemo.txt')
+              .read_text()
+              .rstrip()
+        )
+        expected = '\n'.join(expected.splitlines()[17:52])
+        expected = f'Codestream:\n{expected}'
+
+        self.assertEqual(actual, expected)
 
     def test_xml_latin1(self):
         """Should be able to print an XMLBox with utf-8 encoding (latin1)."""
@@ -1057,11 +1035,11 @@ class TestPrinting(fixtures.TestCommon):
 
             j = glymur.Jp2k(tfile.name)
 
-            actual = str(j.box[5])
+            actual = str(j.box[-1])
 
         if sys.version_info[1] >= 12:
             expected = (
-                "UUID Box (uuid) @ (1135519, 142)\n"
+                "UUID Box (uuid) @ (1132373, 142)\n"
                 "    UUID:  4a706754-6966-6645-7869-662d3e4a5032 (EXIF)\n"
                 "    UUID Data:  OrderedDict([   ('ImageWidth', 256),\n"
                 "                    ('ImageLength', 512),\n"
@@ -1072,7 +1050,7 @@ class TestPrinting(fixtures.TestCommon):
             )
         else:
             expected = (
-                "UUID Box (uuid) @ (1135519, 142)\n"
+                "UUID Box (uuid) @ (1132373, 142)\n"
                 "    UUID:  4a706754-6966-6645-7869-662d3e4a5032 (EXIF)\n"
                 "    UUID Data:  OrderedDict([   ('ImageWidth', 256),\n"
                 "                    ('ImageLength', 512),\n"
@@ -1498,22 +1476,28 @@ class TestPrinting(fixtures.TestCommon):
         """
         Verify printing with xml suppressed
         """
-        jp2 = Jp2k(self.jp2file)
+        s = ir.files('tests.data').joinpath('file1_xml.txt').read_text()
+        elt = ET.fromstring(s)
+        xml = ET.ElementTree(elt)
+        box = glymur.jp2box.XMLBox(xml=xml, length=439, offset=36)
+
+        shutil.copyfile(self.jp2file, self.temp_jp2_filename)
+        jp2 = Jp2k(self.temp_jp2_filename)
+        jp2.append(box)
+
         glymur.set_option('print.xml', False)
 
         actual = str(jp2)
 
         # Get rid of the file line, that's kind of volatile.
         actual = '\n'.join(actual.splitlines()[1:])
-
-        # shave off the XML and non-main-header segments
         expected = (
             ir.files('tests.data')
-              .joinpath('nemo_dump_no_xml.txt')
+              .joinpath('appended_xml_box.txt')
               .read_text()
               .rstrip()
         )
-        self.assertEqual(actual, expected)
+
         self.assertEqual(actual, expected)
 
         opt = glymur.get_option('print.xml')
@@ -1626,17 +1610,16 @@ class TestPrinting(fixtures.TestCommon):
         self.assertEqual(actual, expected)
 
 
-class TestJp2dump(unittest.TestCase):
+class TestJp2dump(fixtures.TestCommon):
     """Tests for verifying how jp2dump console script works."""
     def setUp(self):
-        self.jpxfile = glymur.data.jpxfile()
-        self.jp2file = glymur.data.nemo()
-        self.j2kfile = glymur.data.goodstuff()
+        super().setUp()
 
         # Reset printoptions for every test.
         glymur.reset_option('all')
 
     def tearDown(self):
+        super().tearDown()
         glymur.reset_option('all')
 
     def run_jp2dump(self, args):
@@ -1659,7 +1642,7 @@ class TestJp2dump(unittest.TestCase):
               .joinpath('nemo.txt')
               .read_text()
               .rstrip()
-              .split('\n')[:140]
+              .split('\n')[:52]
         )
         expected = '\n'.join(expected)
         self.assertEqual(actual, expected)
@@ -1674,7 +1657,7 @@ class TestJp2dump(unittest.TestCase):
               .joinpath('nemo.txt')
               .read_text()
               .rstrip()
-              .split('\n')[:105]
+              .split('\n')[:17]
         )
         expected = '\n'.join(expected)
         self.assertEqual(actual, expected)
@@ -1689,7 +1672,7 @@ class TestJp2dump(unittest.TestCase):
               .joinpath('nemo.txt')
               .read_text()
               .rstrip()
-              .split('\n')[:140]
+              .split('\n')[:52]
         )
         expected = '\n'.join(expected)
         self.assertEqual(actual, expected)
@@ -1703,6 +1686,7 @@ class TestJp2dump(unittest.TestCase):
               .read_text()
               .rstrip()
         )
+        self.maxDiff = None
         self.assertEqual(actual, expected)
 
     def test_j2k_codestream_0(self):
@@ -1767,18 +1751,26 @@ class TestJp2dump(unittest.TestCase):
 
     def test_suppress_xml(self):
         """Verify dumping with -x, suppress XML."""
-        actual = self.run_jp2dump(['', '-x', self.jp2file])
+
+        s = ir.files('tests.data').joinpath('file1_xml.txt').read_text()
+        elt = ET.fromstring(s)
+        xml = ET.ElementTree(elt)
+        box = glymur.jp2box.XMLBox(xml=xml, length=439, offset=36)
+
+        shutil.copyfile(self.jp2file, self.temp_jp2_filename)
+        jp2 = Jp2k(self.temp_jp2_filename)
+        jp2.append(box)
+
+        actual = self.run_jp2dump(['', '-x', str(self.temp_jp2_filename)])
 
         # shave off the XML and non-main-header segments
-        lines = ir.files('tests.data') \
-                  .joinpath('nemo.txt') \
-                  .read_text() \
-                  .rstrip() \
-                  .splitlines()
+        expected = (
+            ir.files('tests.data')
+              .joinpath('appended_xml_box.txt')
+              .read_text()
+              .rstrip()
+        )
 
-        expected = lines[:18]
-        expected.extend(lines[104:140])
-        expected = '\n'.join(expected)
         self.assertEqual(actual, expected)
 
     def test_suppress_warnings_until_end(self):

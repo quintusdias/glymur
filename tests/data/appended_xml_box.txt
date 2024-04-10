@@ -50,48 +50,4 @@ Contiguous Codestream Box (jp2c) @ (77, 1132296)
         Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]
     CME marker segment @ (159, 37)
         "Created by OpenJPEG version 2.0.0"
-    SOT marker segment @ (198, 10)
-        Tile part index:  0
-        Tile part length:  1132173
-        Tile part instance:  0
-        Number of tile parts:  1
-    COC marker segment @ (210, 9)
-        Associated component:  1
-        Coding style for this component:  Entropy coder, PARTITION = 0
-        Coding style parameters:
-            Number of decomposition levels:  1
-            Code block height, width:  (64 x 64)
-            Wavelet transform:  5-3 reversible
-            Precinct size:  (32768, 32768)
-            Code block context:
-                Selective arithmetic coding bypass:  False
-                Reset context probabilities on coding pass boundaries:  False
-                Termination on each coding pass:  False
-                Vertically stripe causal context:  False
-                Predictable termination:  False
-                Segmentation symbols:  False
-    QCC marker segment @ (221, 8)
-        Associated Component:  1
-        Quantization style:  no quantization, 2 guard bits
-        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]
-    COC marker segment @ (231, 9)
-        Associated component:  2
-        Coding style for this component:  Entropy coder, PARTITION = 0
-        Coding style parameters:
-            Number of decomposition levels:  1
-            Code block height, width:  (64 x 64)
-            Wavelet transform:  5-3 reversible
-            Precinct size:  (32768, 32768)
-            Code block context:
-                Selective arithmetic coding bypass:  False
-                Reset context probabilities on coding pass boundaries:  False
-                Termination on each coding pass:  False
-                Vertically stripe causal context:  False
-                Predictable termination:  False
-                Segmentation symbols:  False
-    QCC marker segment @ (242, 8)
-        Associated Component:  2
-        Quantization style:  no quantization, 2 guard bits
-        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]
-    SOD marker segment @ (252, 0)
-    EOC marker segment @ (1132371, 0)
+XML Box (xml ) @ (1132373, 416)

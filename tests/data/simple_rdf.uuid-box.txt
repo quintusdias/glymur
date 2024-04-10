@@ -1,0 +1,17 @@
+UUID Box (uuid) @ (-1, 0)
+    UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)
+    UUID Data:
+    <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+      <rdf:Description xmlns:ns1="ns:test1/" xmlns:ns2="ns:test2/" rdf:about="Test:XMPCoreCoverage/kSimpleRDF">
+
+        <ns1:SimpleProp>Simple value</ns1:SimpleProp>
+
+        <ns1:Distros>
+          <rdf:Bag>
+            <rdf:li>Suse</rdf:li>
+            <rdf:li>Fedora</rdf:li>
+          </rdf:Bag>
+        </ns1:Distros>
+
+      </rdf:Description>
+    </rdf:RDF>

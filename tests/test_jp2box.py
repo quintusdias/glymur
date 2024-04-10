@@ -602,7 +602,7 @@ class TestAppend(fixtures.TestCommon):
             # The sequence of box IDs should be the same as before, but with an
             # xml box at the end.
             box_ids = [box.box_id for box in jp2.box]
-            expected = ['jP  ', 'ftyp', 'jp2h', 'uuid', 'jp2c', 'xml ']
+            expected = ['jP  ', 'ftyp', 'jp2h', 'jp2c', 'xml ']
             self.assertEqual(box_ids, expected)
             self.assertEqual(
                 ET.tostring(jp2.box[-1].xml.getroot()),
@@ -654,7 +654,7 @@ class TestAppend(fixtures.TestCommon):
             # The sequence of box IDs should be the same as before, but with an
             # xml box at the end.
             box_ids = [box.box_id for box in jp2.box]
-            expected = ['jP  ', 'ftyp', 'jp2h', 'uuid', 'jp2c', 'xml ']
+            expected = ['jP  ', 'ftyp', 'jp2h', 'jp2c', 'xml ']
             self.assertEqual(box_ids, expected)
             self.assertEqual(
                 ET.tostring(jp2.box[-1].xml.getroot()),
@@ -785,11 +785,11 @@ class TestWrap(fixtures.TestCommon):
         """Wrap jp2 with jp2c box length is 1, implies Q field"""
         with open(self.temp_jp2_filename, mode='wb') as tfile:
             with open(self.jp2file, 'rb') as ifile:
-                tfile.write(ifile.read(3223))
+                tfile.write(ifile.read(77))
                 # Write new L, T, Q fields
                 tfile.write(struct.pack('>I4sQ', 1, b'jp2c', 1132296 + 8))
                 # skip over the old L, T fields
-                ifile.seek(3231)
+                ifile.seek(85)
                 tfile.write(ifile.read())
             tfile.flush()
             jp2 = Jp2k(tfile.name)
@@ -1489,18 +1489,27 @@ class TestRepr(fixtures.TestCommon):
         regex = re.compile(pattern, re.VERBOSE)
         self.assertRegex(repr(box), regex)
 
-    def test_uuid_box_xmp(self):
-        """Verify uuid repr method for XMP UUID box."""
-        jp2file = glymur.data.nemo()
-        j = Jp2k(jp2file)
-        box = j.box[3]
+    def test_xmp_uuid_box_repr(self):
+        """
+        Scenario:  Run an XMP UUID box thru repr.
 
-        # Since the raw_data parameter is a sequence of bytes which could be
-        # quite long, don't bother trying to make it conform to eval(repr()).
+        Expected Result:  validated against a regex.
+
+        """
+        the_uuid = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
+        raw_data = (
+            ir.files('tests.data')
+              .joinpath('simple_rdf.txt')
+              .read_text()
+              .encode('utf-8')
+        )
+
+        box = glymur.jp2box.UUIDBox(the_uuid=the_uuid, raw_data=raw_data)
+
         pattern = r"""
             glymur.jp2box.UUIDBox\(
                 UUID\('be7acfcb-97a9-42e8-9c71-999491e3afac'\),\s
-                raw_data=<byte\sarray\s3122\selements>
+                raw_data=<byte\sarray\s410\selements>
             \)
         """
         regex = re.compile(pattern, re.VERBOSE)
