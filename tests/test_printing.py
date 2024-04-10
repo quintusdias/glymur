@@ -479,7 +479,7 @@ class TestPrinting(fixtures.TestCommon):
         codestream = j.get_codestream(header_only=False)
         actual = str(codestream.segment[6])
 
-        exp = ('COC marker segment @ (3356, 9)\n'
+        exp = ('COC marker segment @ (210, 9)\n'
                '    Associated component:  1\n'
                '    Coding style for this component:  '
                'Entropy coder, PARTITION = 0\n'
@@ -592,7 +592,7 @@ class TestPrinting(fixtures.TestCommon):
         codestream = j.get_codestream()
         actual = str(codestream.segment[2])
 
-        exp = ('COD marker segment @ (3282, 12)\n'
+        exp = ('COD marker segment @ (136, 12)\n'
                '    Coding style:\n'
                '        Entropy coder, without partitions\n'
                '        SOP marker segments:  False\n'
@@ -623,7 +623,7 @@ class TestPrinting(fixtures.TestCommon):
         codestream = j.get_codestream(header_only=False)
         actual = str(codestream.segment[-1])
 
-        expected = 'EOC marker segment @ (1135517, 0)'
+        expected = 'EOC marker segment @ (1132371, 0)'
         self.assertEqual(actual, expected)
 
     def test_qcc_segment(self):
@@ -632,7 +632,7 @@ class TestPrinting(fixtures.TestCommon):
         codestream = j.get_codestream(header_only=False)
         actual = str(codestream.segment[7])
 
-        expected = ('QCC marker segment @ (3367, 8)\n'
+        expected = ('QCC marker segment @ (221, 8)\n'
                     '    Associated Component:  1\n'
                     '    Quantization style:  no quantization, 2 guard bits\n'
                     '    Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]')
@@ -645,7 +645,7 @@ class TestPrinting(fixtures.TestCommon):
         codestream = j.get_codestream()
         actual = str(codestream.segment[3])
 
-        expected = ('QCD marker segment @ (3296, 7)\n'
+        expected = ('QCD marker segment @ (150, 7)\n'
                     '    Quantization style:  no quantization, 2 guard bits\n'
                     '    Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]')
 
@@ -656,7 +656,7 @@ class TestPrinting(fixtures.TestCommon):
         j = glymur.Jp2k(self.jp2file)
         actual = str(j.codestream.segment[1])
 
-        exp = ('SIZ marker segment @ (3233, 47)\n'
+        exp = ('SIZ marker segment @ (87, 47)\n'
                '    Profile:  no profile\n'
                '    Reference Grid Height, Width:  (1456 x 2592)\n'
                '    Vertical, Horizontal Reference Grid Offset:  (0 x 0)\n'
@@ -675,7 +675,7 @@ class TestPrinting(fixtures.TestCommon):
         codestream = j.get_codestream()
         actual = str(codestream.segment[0])
 
-        expected = 'SOC marker segment @ (3231, 0)'
+        expected = 'SOC marker segment @ (85, 0)'
         self.assertEqual(actual, expected)
 
     def test_sod_segment(self):
@@ -684,7 +684,7 @@ class TestPrinting(fixtures.TestCommon):
         codestream = j.get_codestream(header_only=False)
         actual = str(codestream.segment[10])
 
-        expected = 'SOD marker segment @ (3398, 0)'
+        expected = 'SOD marker segment @ (252, 0)'
         self.assertEqual(actual, expected)
 
     def test_sot_segment(self):
@@ -693,7 +693,7 @@ class TestPrinting(fixtures.TestCommon):
         codestream = j.get_codestream(header_only=False)
         actual = str(codestream.segment[5])
 
-        expected = ('SOT marker segment @ (3344, 10)\n'
+        expected = ('SOT marker segment @ (198, 10)\n'
                     '    Tile part index:  0\n'
                     '    Tile part length:  1132173\n'
                     '    Tile part instance:  0\n'
@@ -762,7 +762,15 @@ class TestPrinting(fixtures.TestCommon):
                '        Step size:  [(0, 8), (0, 9), (0, 9), (0, 10)]\n'
                '    CME marker segment @ (3305, 37)\n'
                '        "Created by OpenJPEG version 2.0.0"')
-        self.assertEqual(actual, exp)
+        expected = (
+            ir.files('tests.data')
+              .joinpath('nemo.txt')
+              .read_text()
+              .rstrip()
+        )
+        expected = '\n'.join(expected.splitlines()[16:52])
+
+        self.assertEqual(actual, expected)
 
     def test_xml_latin1(self):
         """Should be able to print an XMLBox with utf-8 encoding (latin1)."""
@@ -1057,7 +1065,7 @@ class TestPrinting(fixtures.TestCommon):
 
             j = glymur.Jp2k(tfile.name)
 
-            actual = str(j.box[5])
+            actual = str(j.box[-1])
 
         if sys.version_info[1] >= 12:
             expected = (
@@ -1072,7 +1080,7 @@ class TestPrinting(fixtures.TestCommon):
             )
         else:
             expected = (
-                "UUID Box (uuid) @ (1135519, 142)\n"
+                "UUID Box (uuid) @ (1132373, 142)\n"
                 "    UUID:  4a706754-6966-6645-7869-662d3e4a5032 (EXIF)\n"
                 "    UUID Data:  OrderedDict([   ('ImageWidth', 256),\n"
                 "                    ('ImageLength', 512),\n"
@@ -1659,7 +1667,7 @@ class TestJp2dump(unittest.TestCase):
               .joinpath('nemo.txt')
               .read_text()
               .rstrip()
-              .split('\n')[:140]
+              .split('\n')[:52]
         )
         expected = '\n'.join(expected)
         self.assertEqual(actual, expected)
@@ -1674,7 +1682,7 @@ class TestJp2dump(unittest.TestCase):
               .joinpath('nemo.txt')
               .read_text()
               .rstrip()
-              .split('\n')[:105]
+              .split('\n')[:17]
         )
         expected = '\n'.join(expected)
         self.assertEqual(actual, expected)
@@ -1689,7 +1697,7 @@ class TestJp2dump(unittest.TestCase):
               .joinpath('nemo.txt')
               .read_text()
               .rstrip()
-              .split('\n')[:140]
+              .split('\n')[:52]
         )
         expected = '\n'.join(expected)
         self.assertEqual(actual, expected)
@@ -1703,6 +1711,7 @@ class TestJp2dump(unittest.TestCase):
               .read_text()
               .rstrip()
         )
+        self.maxDiff = None
         self.assertEqual(actual, expected)
 
     def test_j2k_codestream_0(self):

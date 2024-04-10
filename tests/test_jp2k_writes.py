@@ -1596,9 +1596,11 @@ class TestSuite(fixtures.TestCommon):
         with open(self.jp2file, 'rb') as fptr:
             data = fptr.read()
             with open(self.temp_jp2_filename, mode='wb') as tfile:
-                # Codestream starts at byte 3323. SIZ marker at 3233.
+                # Codestream starts at byte 3223. SIZ marker at 3233.
                 # COD marker at 3282.  Subsampling at 3276.
-                offset = 3223
+                # Codestream starts at byte 77. SIZ marker at 10.
+                # COD marker at 59.  Subsampling at 53.
+                offset = 77
                 tfile.write(data[0:offset + 52])
 
                 # Make the DY bytes of the SIZ segment zero.  That means that

@@ -255,8 +255,7 @@ class TestSuite(fixtures.TestCommon):
         ubox = glymur.jp2box.UUIDBox(the_uuid=the_uuid, raw_data=raw_data)
         jp2.append(ubox)
 
-        # Should be two UUID boxes now.
-        expected_ids = ['jP  ', 'ftyp', 'jp2h', 'uuid', 'jp2c', 'uuid']
+        expected_ids = ['jP  ', 'ftyp', 'jp2h', 'jp2c', 'uuid']
         actual_ids = [b.box_id for b in jp2.box]
         self.assertEqual(actual_ids, expected_ids)
 

@@ -226,13 +226,13 @@ class TestJp2kr(fixtures.TestCommon):
         with open(self.temp_jp2_filename, 'wb') as ofile:
             with open(self.jp2file, 'rb') as ifile:
                 # Copy up until Psot field.
-                ofile.write(ifile.read(3350))
+                ofile.write(ifile.read(204))
 
                 # Write a bad Psot value.
                 ofile.write(struct.pack('>I', 2000000))
 
                 # copy the rest of the file as-is.
-                ifile.seek(3354)
+                ifile.seek(208)
                 ofile.write(ifile.read())
                 ofile.flush()
 
@@ -252,7 +252,7 @@ class TestJp2kr(fixtures.TestCommon):
         with open(self.temp_jp2_filename, mode='wb') as ofile:
             with open(self.jp2file, 'rb') as ifile:
                 # Copy up until codestream box.
-                ofile.write(ifile.read(3223))
+                ofile.write(ifile.read(77))
 
                 # Write the jp2c header and SOC marker.
                 ofile.write(ifile.read(10))
@@ -364,7 +364,7 @@ class TestJp2kr(fixtures.TestCommon):
         self.assertEqual(c.segment[1].yrsiz, (1, 1, 1))
 
         self.assertEqual(c.segment[2].marker_id, 'COD')
-        self.assertEqual(c.segment[2].offset, 3282)
+        self.assertEqual(c.segment[2].offset, 136)
         self.assertEqual(c.segment[2].length, 12)
         self.assertEqual(c.segment[2].scod, 0)
         self.assertEqual(c.segment[2].layers, 2)
@@ -374,7 +374,7 @@ class TestJp2kr(fixtures.TestCommon):
         self.assertEqual(c.segment[2].precinct_size, ((32768, 32768)))
 
         self.assertEqual(c.segment[3].marker_id, 'QCD')
-        self.assertEqual(c.segment[3].offset, 3296)
+        self.assertEqual(c.segment[3].offset, 150)
         self.assertEqual(c.segment[3].length, 7)
         self.assertEqual(c.segment[3].sqcd, 64)
         self.assertEqual(c.segment[3].mantissa, [0, 0, 0, 0])
@@ -387,7 +387,7 @@ class TestJp2kr(fixtures.TestCommon):
                          b'Created by OpenJPEG version 2.0.0')
 
         self.assertEqual(c.segment[5].marker_id, 'SOT')
-        self.assertEqual(c.segment[5].offset, 3344)
+        self.assertEqual(c.segment[5].offset, 198)
         self.assertEqual(c.segment[5].length, 10)
         self.assertEqual(c.segment[5].isot, 0)
         self.assertEqual(c.segment[5].psot, 1132173)
@@ -395,7 +395,7 @@ class TestJp2kr(fixtures.TestCommon):
         self.assertEqual(c.segment[5].tnsot, 1)
 
         self.assertEqual(c.segment[6].marker_id, 'COC')
-        self.assertEqual(c.segment[6].offset, 3356)
+        self.assertEqual(c.segment[6].offset, 210)
         self.assertEqual(c.segment[6].length, 9)
         self.assertEqual(c.segment[6].ccoc, 1)
         np.testing.assert_array_equal(c.segment[6].scoc,
@@ -406,7 +406,7 @@ class TestJp2kr(fixtures.TestCommon):
                          ((32768, 32768)))
 
         self.assertEqual(c.segment[7].marker_id, 'QCC')
-        self.assertEqual(c.segment[7].offset, 3367)
+        self.assertEqual(c.segment[7].offset, 221)
         self.assertEqual(c.segment[7].length, 8)
         self.assertEqual(c.segment[7].cqcc, 1)
         self.assertEqual(c.segment[7].sqcc, 64)
@@ -415,7 +415,7 @@ class TestJp2kr(fixtures.TestCommon):
         self.assertEqual(c.segment[7].guard_bits, 2)
 
         self.assertEqual(c.segment[8].marker_id, 'COC')
-        self.assertEqual(c.segment[8].offset, 3377)
+        self.assertEqual(c.segment[8].offset, 231)
         self.assertEqual(c.segment[8].length, 9)
         self.assertEqual(c.segment[8].ccoc, 2)
         np.testing.assert_array_equal(c.segment[8].scoc,
@@ -426,7 +426,7 @@ class TestJp2kr(fixtures.TestCommon):
                          ((32768, 32768)))
 
         self.assertEqual(c.segment[9].marker_id, 'QCC')
-        self.assertEqual(c.segment[9].offset, 3388)
+        self.assertEqual(c.segment[9].offset, 242)
         self.assertEqual(c.segment[9].length, 8)
         self.assertEqual(c.segment[9].cqcc, 2)
         self.assertEqual(c.segment[9].sqcc, 64)
@@ -443,7 +443,7 @@ class TestJp2kr(fixtures.TestCommon):
         jp2k = Jp2kr(self.jp2file)
 
         # top-level boxes
-        self.assertEqual(len(jp2k.box), 5)
+        self.assertEqual(len(jp2k.box), 4)
 
         self.assertEqual(jp2k.box[0].box_id, 'jP  ')
         self.assertEqual(jp2k.box[0].offset, 0)
@@ -460,13 +460,9 @@ class TestJp2kr(fixtures.TestCommon):
         self.assertEqual(jp2k.box[2].length, 45)
         self.assertEqual(jp2k.box[2].longname, 'JP2 Header')
 
-        self.assertEqual(jp2k.box[3].box_id, 'uuid')
+        self.assertEqual(jp2k.box[3].box_id, 'jp2c')
         self.assertEqual(jp2k.box[3].offset, 77)
-        self.assertEqual(jp2k.box[3].length, 3146)
-
-        self.assertEqual(jp2k.box[4].box_id, 'jp2c')
-        self.assertEqual(jp2k.box[4].offset, 3223)
-        self.assertEqual(jp2k.box[4].length, 1132296)
+        self.assertEqual(jp2k.box[3].length, 1132296)
 
         # jp2h super box
         self.assertEqual(len(jp2k.box[2].box), 2)
@@ -512,7 +508,7 @@ class TestJp2kr(fixtures.TestCommon):
         with open(self.temp_jp2_filename, mode='wb') as tfile:
             with open(self.jp2file, 'rb') as ifile:
                 # Everything up until the jp2c box.
-                write_buffer = ifile.read(3223)
+                write_buffer = ifile.read(77)
                 tfile.write(write_buffer)
 
                 # The L field must be 1 in order to signal the presence of the
@@ -520,7 +516,7 @@ class TestJp2kr(fixtures.TestCommon):
                 # (8 bytes for the XL field).
                 length = 1
                 typ = b'jp2c'
-                xlen = 1133427 + 8
+                xlen = 1132296 + 8
                 write_buffer = struct.pack('>I4sQ', int(length), typ, xlen)
                 tfile.write(write_buffer)
 
@@ -533,9 +529,9 @@ class TestJp2kr(fixtures.TestCommon):
 
             jp2k = Jp2kr(tfile.name)
 
-            self.assertEqual(jp2k.box[4].box_id, 'jp2c')
-            self.assertEqual(jp2k.box[4].offset, 3223)
-            self.assertEqual(jp2k.box[4].length, 1133427 + 8)
+            self.assertEqual(jp2k.box[-1].box_id, 'jp2c')
+            self.assertEqual(jp2k.box[-1].offset, 77)
+            self.assertEqual(jp2k.box[-1].length, 1132296 + 8)
 
     def test_length_field_is_zero(self):
         """
@@ -701,17 +697,6 @@ class TestJp2kr(fixtures.TestCommon):
             self.assertEqual(ET.tostring(jp2k.box[3].xml.getroot()),
                              b'<test>this is a test</test>')
 
-    def test_xmp_attribute(self):
-        """Verify the XMP packet in the shipping example file can be read."""
-        j = Jp2kr(self.jp2file)
-
-        xmp = j.box[3].data
-        ns0 = '{http://www.w3.org/1999/02/22-rdf-syntax-ns#}'
-        ns1 = '{http://ns.adobe.com/xap/1.0/}'
-        name = '{0}RDF/{0}Description/{1}CreatorTool'.format(ns0, ns1)
-        elt = xmp.find(name)
-        self.assertEqual(elt.text, 'Google')
-
     @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
     def test_jpx_mult_codestreams_jp2_brand(self):
         """Read JPX codestream when jp2-compatible."""
@@ -732,14 +717,14 @@ class TestJp2kr(fixtures.TestCommon):
         with open(self.temp_jp2_filename, mode='wb') as ofile:
             with open(self.jp2file, 'rb') as ifile:
                 # Copy up until codestream box.
-                ofile.write(ifile.read(3223))
+                ofile.write(ifile.read(77))
 
                 # Write the new codestream length (+4) and the box ID.
                 buffer = struct.pack('>I4s', 1132296 + 4, b'jp2c')
                 ofile.write(buffer)
 
                 # Copy up until the EOC marker.
-                ifile.seek(3231)
+                ifile.seek(85)
                 ofile.write(ifile.read(1132286))
 
                 # Write the zero-length reserved segment.
@@ -1011,7 +996,7 @@ class TestParsing(unittest.TestCase):
         """verify that the main header isn't loaded during normal parsing"""
         # The hidden _main_header attribute should show up after accessing it.
         jp2 = Jp2kr(self.jp2file)
-        jp2c = jp2.box[4]
+        jp2c = jp2.box[-1]
         self.assertIsNone(jp2c._codestream)
         jp2c.codestream
         self.assertIsNotNone(jp2c._codestream)
