@@ -1,3 +1,8 @@
+Apr 19, 2024 - v0.13.0
+    Refactor Jp2k class into Jp2k, Jp2kr
+    Simplify example file nemo.jp2
+    Fix doctests
+
 Mar 16, 2024 - v0.12.9post2
     Fix readthedocs builds
 
