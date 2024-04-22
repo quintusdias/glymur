@@ -9,3 +9,11 @@ Changes in 0.13.0
     * Refactor Jp2k class into Jp2kr (just for reading) and Jp2k (reading and writing).  Backwards compatibility should be maintained.
     * Simplify example file nemo.jp2
     * Fix doctests
+
+*****************
+Changes in 0.13.1
+*****************
+
+    * Remove debugging code
+    * Improve code coverage
+
