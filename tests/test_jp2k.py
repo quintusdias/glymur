@@ -57,6 +57,15 @@ class TestJp2k(fixtures.TestCommon):
         super().setUp()
         glymur.reset_option('all')
 
+    def test_repr(self):
+        """
+        Scenario:  run repr on Jp2k object
+
+        Expected response:  the representation is verified
+        """
+        j = Jp2k(self.j2kfile)
+        self.assertRegex(repr(j), 'glymur.Jp2k(.*?)')
+
     def test_write_using_slicing(self):
         """
         Scenario: write to a file using slicing then read it back
