@@ -1,3 +1,7 @@
+Apr 22, 2024 - v0.13.1
+    Remove debugging code
+    Improve code coverage
+
 Apr 19, 2024 - v0.13.0
     Refactor Jp2k class into Jp2k, Jp2kr
     Simplify example file nemo.jp2
