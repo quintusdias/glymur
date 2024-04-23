@@ -552,24 +552,6 @@ def getVersion():
     return m.group('version')
 
 
-def printDirectory(tiff_fp, ofp, mode=0):
-    """Corresponds to TIFFPrintDirectory
-
-    Parameters
-    ----------
-    filename : path or str
-        Path to TIFF
-    """
-    err_handler, warn_handler = _set_error_warning_handlers()
-
-    ARGTYPES = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_long]
-    _LIBTIFF.TIFFPrintDirectory.argtypes = ARGTYPES
-    _LIBTIFF.TIFFPrintDirectory.restype = ctypes.c_void_p
-    _LIBTIFF.TIFFPrintDirectory(tiff_fp, ofp, mode)
-
-    _reset_error_warning_handlers(err_handler, warn_handler)
-
-
 def open(filename, mode='r'):
     """Corresponds to TIFFOpen
 

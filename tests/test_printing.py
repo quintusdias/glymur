@@ -21,7 +21,7 @@ import glymur
 from glymur.codestream import LRCP, WAVELET_XFORM_5X3_REVERSIBLE
 from glymur.core import COLOR, RED, GREEN, BLUE, RESTRICTED_ICC_PROFILE
 from glymur.jp2box import BitsPerComponentBox, ColourSpecificationBox
-from glymur.jp2box import LabelBox
+from glymur.jp2box import LabelBox, UUIDBox
 from glymur import Jp2k, command_line
 from glymur.lib import openjp2 as opj2
 from . import fixtures
@@ -1849,3 +1849,64 @@ class TestJp2dump(fixtures.TestCommon):
             '''    alpha: 0\n'''
         )
         self.assertRegex(actual, expected)
+
+    def test_xmp_uuid_short(self):
+        """
+        SCENARIO:  Append an XMP UUID box to an existing JP2 file, print it
+        with the short option.
+
+        EXPECTED RESULT:  strings are validated
+        """
+        the_uuid = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
+        raw_data = (
+            ir.files('tests.data')
+              .joinpath('simple_rdf.txt')
+              .read_text()
+              .encode('utf-8')
+        )
+
+        shutil.copyfile(self.jp2file, self.temp_jp2_filename)
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        ubox = glymur.jp2box.UUIDBox(the_uuid=the_uuid, raw_data=raw_data)
+        jp2.append(ubox)
+
+        glymur.set_option('print.short', True)
+
+        actual = str(jp2.box[-1])
+        expected = 'UUID Box (uuid) @ (1132373, 434)'
+
+        self.assertEqual(actual, expected)
+
+        # now invoke print.xml, answer should be nearly the same.
+        glymur.reset_option('all')
+        glymur.set_option('print.xml', False)
+
+        actual = str(jp2.box[-1])
+        expected = 'UUID Box (uuid) @ (1132373, 434)\n    UUID:  be7acfcb-97a9-42e8-9c71-999491e3afac (XMP)'  # noqa : E501
+
+        self.assertEqual(actual, expected)
+
+    def test__print_malformed_exif_uuid(self):
+        """
+        SCENARIO:  Parse a JpgTiffExif->Jp2 UUID that is not only missing the
+        'EXIF\0\0' lead-in, but even the TIFF header is malformed.  Then print
+        it.
+
+        EXPECTED RESULT:  a UUIDBox string showing that it is invalid
+        """
+        box_data = ir.files('tests.data').joinpath('issue549.dat').read_bytes()
+        bf = BytesIO(box_data[:16] + box_data[20:])
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
+            box = UUIDBox.parse(bf, 0, 37700)
+
+        actual = str(box)
+        expected = [
+            "UUID Box (uuid) @ (0, 37700)",
+            "    UUID:  4a706754-6966-6645-7869-662d3e4a5032 (EXIF)",
+            "    UUID Data:  Invalid Exif UUID",
+        ]
+        expected = '\n'.join(expected)
+
+        self.assertEqual(actual, expected)

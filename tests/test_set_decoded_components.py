@@ -50,6 +50,7 @@ class TestSuite(unittest.TestCase):
         j2k.decoded_components = 0
         actual = j2k[:]
 
+        self.assertEqual(j2k.decoded_components, [0])
         np.testing.assert_array_equal(actual, expected)
 
         # restore the original configuration

@@ -79,3 +79,48 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(actual_tw, tw)
 
         libtiff.close(fp)
+
+    def test_simple_strip(self):
+        """
+        SCENARIO:  create a simple monochromatic 2 strip image
+
+        Expected result:  The image matches.  The number of tiles checks out.
+        The tile width and height checks out.
+        """
+        data = fixtures.skimage.data.moon()
+        h, w = data.shape
+        rps = h // 2
+
+        fp = libtiff.open(self.temp_tiff_filename, mode='w')
+
+        libtiff.setField(fp, 'Photometric', libtiff.Photometric.MINISBLACK)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.ADOBE_DEFLATE)
+        libtiff.setField(fp, 'ImageLength', data.shape[0])
+        libtiff.setField(fp, 'ImageWidth', data.shape[1])
+        libtiff.setField(fp, 'RowsPerStrip', rps)
+        libtiff.setField(fp, 'BitsPerSample', 8)
+        libtiff.setField(fp, 'SamplesPerPixel', 1)
+        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
+
+        libtiff.writeEncodedStrip(fp, 0, data[:rps, :].copy())
+        libtiff.writeEncodedStrip(fp, 1, data[rps:h, :].copy())
+
+        libtiff.close(fp)
+
+        fp = libtiff.open(self.temp_tiff_filename)
+
+        strip = np.zeros((rps, w), dtype=np.uint8)
+        actual_data = np.zeros((h, w), dtype=np.uint8)
+
+        libtiff.readEncodedStrip(fp, 0, strip)
+        actual_data[:rps, :] = strip
+
+        libtiff.readEncodedStrip(fp, 1, strip)
+        actual_data[rps:h, :] = strip
+
+        np.testing.assert_array_equal(data, actual_data)
+
+        n = libtiff.numberOfStrips(fp)
+        self.assertEqual(n, 2)
+
+        libtiff.close(fp)

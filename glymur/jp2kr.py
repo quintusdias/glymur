@@ -915,62 +915,6 @@ class Jp2kr(Jp2kBox):
 
             return codestream
 
-    def _populate_image_struct(
-        self, image, imgdata, tile_x_factor=1, tile_y_factor=1
-    ):
-        """Populates image struct needed for compression.
-
-        Parameters
-        ----------
-        image : ImageType(ctypes.Structure)
-            Corresponds to image_t type in openjp2 headers.
-        imgdata : ndarray
-            Image data to be written to file.
-        tile_x_factor, tile_y_factor: int
-            Used only when writing tile-by-tile.  In this case, the image data
-            that we have is only the size of a single tile.
-        """
-
-        if len(self.shape) < 3:
-            (numrows, numcols), num_comps = self.shape, 1
-        else:
-            numrows, numcols, num_comps = self.shape
-
-        for k in range(num_comps):
-            self._validate_nonzero_image_size(numrows, numcols, k)
-
-        # set image offset and reference grid
-        image.contents.x0 = self._cparams.image_offset_x0
-        image.contents.y0 = self._cparams.image_offset_y0
-        image.contents.x1 = (
-            image.contents.x0
-            + (numcols - 1) * self._cparams.subsampling_dx * tile_x_factor
-            + 1
-        )
-        image.contents.y1 = (
-            image.contents.y0
-            + (numrows - 1) * self._cparams.subsampling_dy * tile_y_factor
-            + 1
-        )
-
-        if tile_x_factor != 1 or tile_y_factor != 1:
-            # don't stage the data if writing tiles
-            return image
-
-        # Stage the image data to the openjpeg data structure.
-        for k in range(0, num_comps):
-            if self._cparams.rsiz in (core.OPJ_PROFILE_CINEMA_2K,
-                                      core.OPJ_PROFILE_CINEMA_4K):
-                image.contents.comps[k].prec = 12
-                image.contents.comps[k].bpp = 12
-
-            layer = np.ascontiguousarray(imgdata[:, :, k], dtype=np.int32)
-            dest = image.contents.comps[k].data
-            src = layer.ctypes.data
-            ctypes.memmove(dest, src, layer.nbytes)
-
-        return image
-
     def _validate_nonzero_image_size(self, nrows, ncols, component_index):
         """The image cannot have area of zero."""
         if nrows == 0 or ncols == 0:
