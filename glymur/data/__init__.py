@@ -7,7 +7,6 @@ These include:
 
 """
 import importlib.resources as ir
-import sys
 
 
 def nemo():
@@ -18,7 +17,7 @@ def nemo():
     file : str
         Platform-independent path to nemo.jp2.
     """
-    return _str_path_to('nemo.jp2')
+    return str(ir.files('glymur.data').joinpath('nemo.jp2'))
 
 
 def goodstuff():
@@ -29,7 +28,7 @@ def goodstuff():
     file : str
         Platform-independent path to goodstuff.j2k.
     """
-    return _str_path_to('goodstuff.j2k')
+    return str(ir.files('glymur.data').joinpath('goodstuff.j2k'))
 
 
 def jpxfile():
@@ -40,13 +39,4 @@ def jpxfile():
     file : str
         Platform-independent path to heliov.jpx
     """
-    return _str_path_to('heliov.jpx')
-
-
-def _str_path_to(filename):
-    """Hide differences between 3.9.0 and below."""
-    if sys.version_info[1] >= 9:
-        return str(ir.files('glymur.data').joinpath(filename))
-    else:
-        with ir.path('glymur.data', filename) as path:
-            return str(path)
+    return str(ir.files('glymur.data').joinpath('heliov.jpx'))

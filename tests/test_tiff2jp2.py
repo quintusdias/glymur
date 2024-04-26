@@ -23,35 +23,26 @@ from . import fixtures
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
-def _file_helper(filename, module='tests.data.skimage'):
-    """
-    Mask importlib.resources differences between >=3.9 and below.
-    """
-    if sys.version_info[1] >= 9:
-        return ir.files(module).joinpath(filename)
-    else:
-        with ir.path(module, filename) as path:
-            return path
-
-
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 class TestSuite(fixtures.TestCommon):
 
     @classmethod
     def setUpClass(cls):
 
-        cls.astronaut8 = _file_helper('astronaut8.tif')
-        cls.astronaut_u16 = _file_helper('astronaut_uint16.tif')
-        cls.astronaut_s_u16 = _file_helper('astronaut_s_uint16.tif')
-        cls.astronaut8_stripped = _file_helper('astronaut8_stripped.tif')
-        cls.astronaut_ycbcr_jpeg_tiled = _file_helper('astronaut_ycbcr_jpeg_tiled.tif')  # noqa : E501
-        cls.moon = _file_helper('moon.tif')
-        cls.moon_3x3 = _file_helper('moon_3x3.tif')
-        cls.moon_3stripped = _file_helper('moon3_stripped.tif')
-        cls.moon3_partial_last_strip = _file_helper('moon3_partial_last_strip.tif')  # noqa : E501
-        cls.ycbcr_bg = _file_helper('ycbcr_bg.tif')
-        cls.ycbcr_stripped = _file_helper('ycbcr_stripped.tif')
-        cls.stripped = _file_helper('stripped.tif')
+        module = 'tests.data.skimage'
+
+        cls.astronaut8 = ir.files(module).joinpath('astronaut8.tif')
+        cls.astronaut_u16 = ir.files(module).joinpath('astronaut_uint16.tif')
+        cls.astronaut_s_u16 = ir.files(module).joinpath('astronaut_s_uint16.tif')  # noqa : E501
+        cls.astronaut8_stripped = ir.files(module).joinpath('astronaut8_stripped.tif')  # noqa : E501
+        cls.astronaut_ycbcr_jpeg_tiled = ir.files(module).joinpath('astronaut_ycbcr_jpeg_tiled.tif')  # noqa : E501
+        cls.moon = ir.files(module).joinpath('moon.tif')
+        cls.moon_3x3 = ir.files(module).joinpath('moon_3x3.tif')
+        cls.moon_3stripped = ir.files(module).joinpath('moon3_stripped.tif')
+        cls.moon3_partial_last_strip = ir.files(module).joinpath('moon3_partial_last_strip.tif')  # noqa : E501
+        cls.ycbcr_bg = ir.files(module).joinpath('ycbcr_bg.tif')
+        cls.ycbcr_stripped = ir.files(module).joinpath('ycbcr_stripped.tif')
+        cls.stripped = ir.files(module).joinpath('stripped.tif')
 
         test_tiff_dir = tempfile.mkdtemp()
         cls.test_tiff_path = pathlib.Path(test_tiff_dir)
@@ -685,7 +676,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        infile = _file_helper('uint32.tif', module='tests.data.tiff')
+        infile = ir.files('tests.data.tiff').joinpath('uint32.tif')
         with Tiff2Jp2k(infile, self.temp_jp2_filename) as j:
             with self.assertRaises(RuntimeError):
                 j.run()
@@ -696,7 +687,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        infile = _file_helper('ieeefp32.tif', module='tests.data.tiff')
+        infile = ir.files('tests.data.tiff').joinpath('ieeefp32.tif')
         with Tiff2Jp2k(infile, self.temp_jp2_filename) as j:
             with self.assertRaises(RuntimeError):
                 j.run()
@@ -1068,7 +1059,7 @@ class TestSuite(fixtures.TestCommon):
 
         Expected result:  RuntimeError
         """
-        infile = _file_helper('cmyk.tif', module='tests.data.tiff')
+        infile = ir.files('tests.data.tiff').joinpath('cmyk.tif')
         with Tiff2Jp2k(infile, self.temp_jp2_filename) as j:
             with self.assertRaises(RuntimeError):
                 j.run()
