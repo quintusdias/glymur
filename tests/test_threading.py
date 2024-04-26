@@ -139,3 +139,34 @@ class TestSuite(fixtures.TestCommon):
         Jp2k(self.temp_jp2_filename)
 
         self.assertTrue(True)
+
+    def test_openjpeg_library_too_old_for_threaded_tile_writing(self):
+        """
+        SCENARIO:  Try to create a jp2 file via writing tiles, but while the 
+        openjpeg library is not too old for writing, it's too old for threaded
+        writing.  In other words, it's version 2.3.0
+
+        EXPECTED RESULT:  There is a warning, but the image is created.
+        """
+        expected = fixtures.skimage.data.astronaut()
+
+        shape = (
+            expected.shape[0] * 2, expected.shape[1] * 2, expected.shape[2]
+        )
+        tilesize = (expected.shape[0], expected.shape[1])
+
+        glymur.set_option('lib.num_threads', 2)
+        j = Jp2k(
+            self.temp_j2k_filename, shape=shape, tilesize=tilesize,
+        )
+
+        with patch('glymur.version.openjpeg_version', new='2.3.0'):
+            with self.assertWarns(UserWarning):
+                for tw in j.get_tilewriters():
+                    tw[:] = expected
+
+        expected = np.concatenate((expected, expected), axis=0)
+        expected = np.concatenate((expected, expected), axis=1)
+        actual = j[:]
+
+        np.testing.assert_array_equal(actual, expected)

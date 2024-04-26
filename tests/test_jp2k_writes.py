@@ -1853,9 +1853,9 @@ class TestSuite(fixtures.TestCommon):
         j2k_data = fixtures.skimage.data.astronaut()
 
         shape = (
-            j2k_data.shape[0], j2k_data.shape[1], j2k_data.shape[2]
+            j2k_data.shape[0] * 2, j2k_data.shape[1] * 2, j2k_data.shape[2]
         )
-        tilesize = (j2k_data.shape[0] // 2, j2k_data.shape[1] // 2)
+        tilesize = (j2k_data.shape[0], j2k_data.shape[1])
 
         j = Jp2k(
             self.temp_j2k_filename, shape=shape, tilesize=tilesize,
