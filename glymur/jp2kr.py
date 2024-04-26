@@ -265,7 +265,7 @@ class Jp2kr(Jp2kBox):
         self._shape = shape
 
     def __repr__(self):
-        msg = f"glymur.Jp2k('{self.path}')"
+        msg = f"glymur.Jp2kr('{self.path}')"
         return msg
 
     def __str__(self):

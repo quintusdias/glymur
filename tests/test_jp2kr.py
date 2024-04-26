@@ -57,6 +57,15 @@ class TestJp2kr(fixtures.TestCommon):
         super().setUp()
         glymur.reset_option('all')
 
+    def test_repr(self):
+        """
+        Scenario:  repr is run on a Jp2kr object
+
+        Expected response:  Should clearly indicate Jp2kr, not Jp2k
+        """
+        j = Jp2kr(self.j2kfile)
+        self.assertRegex(repr(j), 'glymur.Jp2kr(.*?)')
+
     def test_last_decomposition(self):
         """
         Scenario:  The last decomposition image is requested using [::-1]
