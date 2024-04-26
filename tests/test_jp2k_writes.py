@@ -1842,3 +1842,25 @@ class TestSuite(fixtures.TestCommon):
         with self.assertRaises(RuntimeError):
             for tw in j.get_tilewriters():
                 tw[:] = j2k_data
+
+    def test_openjpeg_library_too_old_for_tile_writing(self):
+        """
+        SCENARIO:  Try to create a jp2 file via writing tiles, but the openjpeg
+        library is too old.
+
+        EXPECTED RESULT:  RuntimeError.
+        """
+        j2k_data = fixtures.skimage.data.astronaut()
+
+        shape = (
+            j2k_data.shape[0], j2k_data.shape[1], j2k_data.shape[2]
+        )
+        tilesize = (j2k_data.shape[0] // 2, j2k_data.shape[1] // 2)
+
+        j = Jp2k(
+            self.temp_j2k_filename, shape=shape, tilesize=tilesize,
+        )
+        with patch('glymur.version.openjpeg_version', new='2.2.0'):
+            with self.assertRaises(RuntimeError):
+                for tw in j.get_tilewriters():
+                    tw[:] = j2k_data
