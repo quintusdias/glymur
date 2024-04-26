@@ -57,13 +57,9 @@ def _determine_full_path(libname):
     if platform.system().startswith('CYGWIN'):
         g = pathlib.Path('/usr/bin').glob('cygopenjp2*.dll')
         try:
-            path = list(g)[0]
+            return list(g)[0]
         except IndexError:
-            # openjpeg possibly not installed
-            pass
-        else:
-            if path.exists():
-                return path
+            return None
 
     # No joy on config file and not Cygwin.  Can ctypes find it anyway?
     path = find_library(libname)
@@ -132,12 +128,7 @@ def glymur_config(libname):
 
     loader = ctypes.windll.LoadLibrary if os.name == 'nt' else ctypes.CDLL
     try:
-        opj_lib = loader(path)
-    except TypeError:
-        # This can happen on Windows.  Apparently ctypes.windll.LoadLibrary
-        # is no longer taking a WindowsPath
-        path = str(path)
-        opj_lib = loader(path)
+        opj_lib = loader(str(path))
     except OSError:
         msg = f'The {libname} library at {path} could not be loaded.'
         warnings.warn(msg, UserWarning)

@@ -79,6 +79,45 @@ class TestSuitePathToLibrary(fixtures.TestCommon):
 
         self.assertEqual(actual, expected)
 
+    @patch('glymur.config.read_config_file')
+    @patch('glymur.config.pathlib')
+    @patch('glymur.config.platform.system')
+    def test_get_library_on_cygwin(
+        self, mock_platform_system, mock_pathlib, mock_read_config_file
+    ):
+        """
+        SCENARIO:  the platform is cygwin and there is no config file
+
+        EXPECTED RESULT:  return the path of the openjpeg library on cygwin
+        """
+        mock_platform_system.return_value = 'CYGWIN'
+        mock_pathlib.Path.return_value.glob.return_value = [pathlib.Path('/usr/bin/cygopenjp2.dll')]  # noqa : E501
+        mock_read_config_file.return_value = None
+
+        actual = glymur.config._determine_full_path('openjp2')
+        expected = pathlib.Path('/usr/bin/cygopenjp2.dll')
+        self.assertEqual(actual, expected)
+
+    @patch('glymur.config.read_config_file')
+    @patch('glymur.config.pathlib')
+    @patch('glymur.config.platform.system')
+    def test_get_library_on_cygwin_when_it_does_not_exist(
+        self, mock_platform_system, mock_pathlib, mock_read_config_file
+    ):
+        """
+        SCENARIO:  the platform is cygwin, there is no config file, and openjp2
+        is not installed
+
+        EXPECTED RESULT:  None
+        """
+        mock_platform_system.return_value = 'CYGWIN'
+        mock_pathlib.Path.return_value.glob.return_value = []
+        mock_read_config_file.return_value = None
+
+        actual = glymur.config._determine_full_path('openjp2')
+
+        self.assertIsNone(actual)
+
 
 @patch('glymur.config.glymurrc_fname', lambda: None)
 class TestSuite(fixtures.TestCommon):
@@ -87,6 +126,24 @@ class TestSuite(fixtures.TestCommon):
     path to not run in case we are actively using it.  This should not be a
     problem in CI environments, just development environments.
     """
+
+    @patch('glymur.config._determine_full_path')
+    @patch('glymur.config.platform.system')
+    def test_library_cannot_be_loaded(
+        self, mock_platform_system, mock_determine_path
+    ):
+        """
+        SCENARIO:  the platform is Linux but the ctypes module does not find
+        libopenjp2
+
+        EXPECTED RESULT:  glymur_config returns None and issues a warning
+        """
+        mock_platform_system.return_value = 'Linux'
+        mock_determine_path.return_value = '/does/not/exist'
+
+        with self.assertWarns(UserWarning):
+            actual = glymur.config.glymur_config('openjp2')
+        self.assertIsNone(actual)
 
     @patch('glymur.config.find_library')
     @patch('glymur.config.platform.system')

@@ -277,6 +277,7 @@ class Jp2kr(Jp2kBox):
             # No codestream either.  Empty file?  We are done.
             return metadata[0]
         else:
+            # Just a codestream, so J2K
             metadata.append(str(self.codestream))
         return '\n'.join(metadata)
 
@@ -419,9 +420,6 @@ class Jp2kr(Jp2kBox):
 
     def __getitem__(self, pargs):
         """Slicing protocol."""
-        if not self.path.exists():
-            msg = f"Cannot read from {self.filename}, it does not yet exist."
-            raise FileNotFoundError(msg)
         if len(self.shape) == 2:
             numrows, numcols = self.shape
             numbands = 1

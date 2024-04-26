@@ -754,20 +754,6 @@ class Tiff2Jp2k(object):
         )
         self.logger.info(msg)
 
-        if self.photo not in [
-            libtiff.Photometric.MINISWHITE,
-            libtiff.Photometric.MINISBLACK,
-            libtiff.Photometric.PALETTE,
-            libtiff.Photometric.YCBCR,
-            libtiff.Photometric.RGB
-        ]:
-            photostr = self.tagvalue2str(libtiff.Photometric, self.photo)
-            msg = (
-                "Beware, the RGBA interface is attempting to read this TIFF "
-                f"when it has a PhotometricInterpretation of {photostr}."
-            )
-            warnings.warn(msg)
-
         image = libtiff.readRGBAImageOriented(
             self.tiff_fp, self.imagewidth, self.imageheight
         )

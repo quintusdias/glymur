@@ -1,6 +1,9 @@
 # standard library imports
+import importlib.resources as ir
 import platform
 import unittest
+from unittest.mock import patch
+import warnings
 
 # 3rd party library imports
 import numpy as np
@@ -124,3 +127,45 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(n, 2)
 
         libtiff.close(fp)
+
+    def test_warning(self):
+        """
+        SCENARIO:  open a geotiff with just the regular tiff library
+
+        Expected result:  the library will warn about geotiff tags being
+        unrecognized
+        """
+        path = ir.files('tests.data.tiff').joinpath('warning.tif')
+        with warnings.catch_warnings(record=True) as w:
+            fp = libtiff.open(path)
+            libtiff.close(fp)
+        self.assertTrue(len(w) > 0)
+
+    def test_read_rgba_without_image_length_width(self):
+        """
+        SCENARIO:  open a CMYK tiff, read via rgba interface without supplying
+        the width or height.
+
+        Expected result:  the image is read as expected
+        """
+        path = ir.files('tests.data.tiff').joinpath('cmyk.tif')
+        fp = libtiff.open(path)
+
+        # need to set the inkset appropriately, multi-ink won't cut it
+        libtiff.setField(fp, 'InkSet', libtiff.InkSet.CMYK)
+
+        image = libtiff.readRGBAImageOriented(fp)
+        libtiff.close(fp)
+
+        self.assertEqual(image.shape, (512, 512, 4))
+
+    def test_tiff_version_when_not_installed(self):
+        """
+        SCENARIO:  access the tiff library version when the library is not
+        installed
+
+        Expected result:  '0.0.0'
+        """
+        with patch.object(libtiff, '_LIBTIFF', new=None):
+            actual = libtiff.getVersion()
+        self.assertEqual(actual, '0.0.0')

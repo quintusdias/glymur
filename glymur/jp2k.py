@@ -229,6 +229,10 @@ class Jp2k(Jp2kr):
             # contained in memory.
             self[:] = data
 
+    def __repr__(self):
+        msg = f"glymur.Jp2k('{self.path}')"
+        return msg
+
     def finalize(self, force_parse=False):
         """For now, the only remaining tasks are to possibly parse the file
         and to possibly write out a ResolutionBox.  There could be other
@@ -350,10 +354,6 @@ class Jp2k(Jp2kr):
                 f"size {self.shape[:2]}."
             )
             raise RuntimeError(msg)
-
-    def __repr__(self):
-        msg = f"glymur.Jp2k('{self.path}')"
-        return msg
 
     def get_tilewriters(self):
         """Return an object that facilitates writing tile by tile."""

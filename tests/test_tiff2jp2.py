@@ -644,15 +644,15 @@ class TestSuite(fixtures.TestCommon):
 
     def test_partial_last_strip(self):
         """
-        SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF has a
-        partial last strip.
+        SCENARIO:  Convert monochromatic stripped TIFF with a partial last
+        strip to a single-tile JP2.
 
-        EXPECTED RESULT:  The data matches.  The JP2 file has 4 tiles.
+        EXPECTED RESULT:  The data matches.  The JP2 file has 1 tile.
         """
         with Tiff2Jp2k(
             self.moon3_partial_last_strip,
             self.temp_jp2_filename,
-            tilesize=(48, 48), verbose='DEBUG'
+            verbose='DEBUG'
         ) as j:
             j.run()
 
@@ -667,8 +667,8 @@ class TestSuite(fixtures.TestCommon):
         c = jp2.get_codestream()
         self.assertEqual(c.segment[1].xsiz, 90)
         self.assertEqual(c.segment[1].ysiz, 90)
-        self.assertEqual(c.segment[1].xtsiz, 48)
-        self.assertEqual(c.segment[1].ytsiz, 48)
+        self.assertEqual(c.segment[1].xtsiz, 90)
+        self.assertEqual(c.segment[1].ytsiz, 90)
 
     def test_32bit(self):
         """

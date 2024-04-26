@@ -33,10 +33,7 @@ def version():
     return v.decode('utf-8')
 
 
-if OPENJP2 is not None:
-    _MAJOR, _MINOR, _PATCH = [int(x) for x in version().split('.')]
-else:
-    _MAJOR, _MINOR, _PATCH = 0, 0, 0
+_MAJOR, _MINOR, _PATCH = [int(x) for x in version().split('.')]
 
 ERROR_MSG_LST = queue.Queue()
 
@@ -973,13 +970,15 @@ def encoder_set_extra_options(codec, plt=False, tlm=False):
     OPENJP2.opj_encoder_set_extra_options.argtypes = ARGTYPES
     OPENJP2.opj_encoder_set_extra_options.restype = check_error
 
+    # Send the library a null terminated array of char instructions.  As of
+    # version 2.4.0, there is only a single instruction possible.  As of 2.5.0,
+    # there are two possible instructions.
     arr = (ctypes.c_char_p * 3)()
+    arr[0] = arr[1] = arr[2] = None
+
     arr[0] = 'PLT=YES'.encode('utf-8') if plt else 'PLT=NO'.encode('utf-8')
     if version() >= '2.5.0':
         arr[1] = 'TLM=YES'.encode('utf-8') if tlm else 'TLM=NO'.encode('utf-8')
-        arr[2] = None
-    else:
-        arr[1] = None
 
     OPENJP2.opj_encoder_set_extra_options(codec, arr)
 
