@@ -78,12 +78,15 @@ class TestSuite(fixtures.TestCommon):
             with self.assertRaises(RuntimeError):
                 glymur.set_option('lib.num_threads', 2)
 
-    def test_threads_write_support(self):
+    @unittest.skipIf(
+        glymur.version.openjpeg_version < '2.4.0', "Requires as least v2.3.0"
+    )
+    def test_threads_write_support__ge_2p4(self):
         """
         SCENARIO:  Attempt to encode with threading support.  This feature is
         new as of openjpeg library version 2.4.0.
 
-        EXPECTED RESULT:  In library versions prior to 2.4.0, a warning is
+        EXPECTED RESULT:  No errors.
         issued.
         """
         glymur.set_option('lib.num_threads', 2)
@@ -96,6 +99,24 @@ class TestSuite(fixtures.TestCommon):
             if glymur.version.openjpeg_version >= '2.4.0':
                 self.assertEqual(len(w), 0)
             else:
+                self.assertEqual(len(w), 1)
+
+    def test_threads_write_support__eq_2p3(self):
+        """
+        SCENARIO:  Attempt to encode with threading support.  This feature is
+        new as of openjpeg library version 2.4.0.
+
+        EXPECTED RESULT:  In library versions prior to 2.4.0, a warning is
+        issued.
+        """
+        with patch('glymur.jp2k.version.openjpeg_version', new='2.3.0'):
+            glymur.set_option('lib.num_threads', 2)
+
+            with warnings.catch_warnings(record=True) as w:
+                Jp2k(
+                    self.temp_jp2_filename,
+                    data=np.zeros((128, 128), dtype=np.uint8)
+                )
                 self.assertEqual(len(w), 1)
 
     def test_tiff2jp2_num_threads(self):
