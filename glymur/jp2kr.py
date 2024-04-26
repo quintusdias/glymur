@@ -277,6 +277,7 @@ class Jp2kr(Jp2kBox):
             # No codestream either.  Empty file?  We are done.
             return metadata[0]
         else:
+            # Just a codestream, so J2K
             metadata.append(str(self.codestream))
         return '\n'.join(metadata)
 

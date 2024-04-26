@@ -42,7 +42,6 @@ class TestPrinting(fixtures.TestCommon):
         super().tearDown()
         glymur.reset_option('all')
 
-    @unittest.skip('this test makes no sense')
     def test_empty_file(self):
         """
         SCENARIO:  Print the file after with object is constructed, but
