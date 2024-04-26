@@ -1,6 +1,8 @@
 # standard library imports
+import importlib.resources as ir
 import platform
 import unittest
+import warnings
 
 # 3rd party library imports
 import numpy as np
@@ -124,3 +126,16 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(n, 2)
 
         libtiff.close(fp)
+
+    def test_warning(self):
+        """
+        SCENARIO:  open a geotiff with just the regular tiff library
+
+        Expected result:  the library will warn about geotiff tags being
+        unrecognized
+        """
+        path = ir.files('tests.data').joinpath('albers27.tif')
+        with warnings.catch_warnings(record=True) as w:
+            fp = libtiff.open(path)
+            libtiff.close(fp)
+        self.assertEqual(len(w), 5)
