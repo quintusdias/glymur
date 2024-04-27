@@ -89,7 +89,7 @@ install:
   - cmd: conda info -a
 
   # create our env
-  - SET REQ=ci\cforge-travis-%CONDA_PY%.yaml
+  - SET REQ=ci\travis-%CONDA_PY%.yaml
   - cmd: echo "installing requirements from %REQ%"
   - cmd: conda env create --file=%REQ%
   - cmd: conda list -n glymur
