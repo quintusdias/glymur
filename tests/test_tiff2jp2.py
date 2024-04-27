@@ -29,20 +29,20 @@ class TestSuite(fixtures.TestCommon):
     @classmethod
     def setUpClass(cls):
 
-        root = ir.files('tests.data.skimage')
+        module = 'tests.data.skimage'
 
-        cls.astronaut8 = root.joinpath('astronaut8.tif')
-        cls.astronaut_u16 = root.joinpath('astronaut_uint16.tif')
-        cls.astronaut_s_u16 = root.joinpath('astronaut_s_uint16.tif')
-        cls.astronaut8_stripped = root.joinpath('astronaut8_stripped.tif')
-        cls.astronaut_ycbcr_jpeg_tiled = root.joinpath('astronaut_ycbcr_jpeg_tiled.tif')  # noqa : E501
-        cls.moon = root.joinpath('moon.tif')
-        cls.moon_3x3 = root.joinpath('moon_3x3.tif')
-        cls.moon_3stripped = root.joinpath('moon3_stripped.tif')
-        cls.moon3_partial_last_strip = root.joinpath('moon3_partial_last_strip.tif')  # noqa : E501
-        cls.ycbcr_bg = root.joinpath('ycbcr_bg.tif')
-        cls.ycbcr_stripped = root.joinpath('ycbcr_stripped.tif')
-        cls.stripped = root.joinpath('stripped.tif')
+        cls.astronaut8 = ir.files(module).joinpath('astronaut8.tif')
+        cls.astronaut_u16 = ir.files(module).joinpath('astronaut_uint16.tif')
+        cls.astronaut_s_u16 = ir.files(module).joinpath('astronaut_s_uint16.tif')  # noqa : E501
+        cls.astronaut8_stripped = ir.files(module).joinpath('astronaut8_stripped.tif')  # noqa : E501
+        cls.astronaut_ycbcr_jpeg_tiled = ir.files(module).joinpath('astronaut_ycbcr_jpeg_tiled.tif')  # noqa : E501
+        cls.moon = ir.files(module).joinpath('moon.tif')
+        cls.moon_3x3 = ir.files(module).joinpath('moon_3x3.tif')
+        cls.moon_3stripped = ir.files(module).joinpath('moon3_stripped.tif')
+        cls.moon3_partial_last_strip = ir.files(module).joinpath('moon3_partial_last_strip.tif')  # noqa : E501
+        cls.ycbcr_bg = ir.files(module).joinpath('ycbcr_bg.tif')
+        cls.ycbcr_stripped = ir.files(module).joinpath('ycbcr_stripped.tif')
+        cls.stripped = ir.files(module).joinpath('stripped.tif')
 
         test_tiff_dir = tempfile.mkdtemp()
         cls.test_tiff_path = pathlib.Path(test_tiff_dir)
