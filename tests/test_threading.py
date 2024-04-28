@@ -142,7 +142,7 @@ class TestSuite(fixtures.TestCommon):
 
     def test_openjpeg_library_too_old_for_threaded_tile_writing(self):
         """
-        SCENARIO:  Try to create a jp2 file via writing tiles, but while the 
+        SCENARIO:  Try to create a jp2 file via writing tiles, but while the
         openjpeg library is not too old for writing, it's too old for threaded
         writing.  In other words, it's version 2.3.0
 

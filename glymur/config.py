@@ -57,13 +57,9 @@ def _determine_full_path(libname):
     if platform.system().startswith('CYGWIN'):
         g = pathlib.Path('/usr/bin').glob('cygopenjp2*.dll')
         try:
-            path = list(g)[0]
+            return list(g)[0]
         except IndexError:
-            # openjpeg possibly not installed
-            pass
-        else:
-            if path.exists():
-                return path
+            return None
 
     # No joy on config file and not Cygwin.  Can ctypes find it anyway?
     path = find_library(libname)
