@@ -2,6 +2,7 @@
 import importlib.resources as ir
 import platform
 import unittest
+from unittest.mock import patch
 import warnings
 
 # 3rd party library imports
@@ -157,3 +158,14 @@ class TestSuite(fixtures.TestCommon):
         libtiff.close(fp)
 
         self.assertEqual(image.shape, (512, 512, 4))
+
+    def test_tiff_version_when_not_installed(self):
+        """
+        SCENARIO:  access the tiff library version when the library is not
+        installed
+
+        Expected result:  '0.0.0'
+        """
+        with patch.object(libtiff, '_LIBTIFF', new=None):
+            actual = libtiff.getVersion()
+        self.assertEqual(actual, '0.0.0')
