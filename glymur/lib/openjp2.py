@@ -33,10 +33,7 @@ def version():
     return v.decode('utf-8')
 
 
-if OPENJP2 is not None:
-    _MAJOR, _MINOR, _PATCH = [int(x) for x in version().split('.')]
-else:
-    _MAJOR, _MINOR, _PATCH = 0, 0, 0
+_MAJOR, _MINOR, _PATCH = [int(x) for x in version().split('.')]
 
 ERROR_MSG_LST = queue.Queue()
 
