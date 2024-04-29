@@ -139,3 +139,21 @@ class TestSuite(fixtures.TestCommon):
             fp = libtiff.open(path)
             libtiff.close(fp)
         self.assertEqual(len(w), 5)
+
+    def test_read_rgba_without_image_length_width(self):
+        """
+        SCENARIO:  open a CMYK tiff, read via rgba interface without supplying
+        the width or height.
+
+        Expected result:  the image is read as expected
+        """
+        path = ir.files('tests.data.tiff').joinpath('cmyk.tif')
+        fp = libtiff.open(path)
+
+        # need to set the inkset appropriately, multi-ink won't cut it
+        libtiff.setField(fp, 'InkSet', libtiff.InkSet.CMYK)
+
+        image = libtiff.readRGBAImageOriented(fp)
+        libtiff.close(fp)
+
+        self.assertEqual(image.shape, (512, 512, 4))
