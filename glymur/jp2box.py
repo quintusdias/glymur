@@ -3510,11 +3510,8 @@ class UUIDBox(Jp2kBox):
                 lst.append(text)
         elif self.uuid == _GEOTIFF_UUID:
 
-            if self.data is None:
-                return 'UUID Data:  corrupt'
-
             options = gdal.InfoOptions(showColorTable=False)
-            txt = gdal.Info(self._ftpr.name, options=options)
+            txt = gdal.Info(self._fptr.name, options=options)
             txt = textwrap.indent(txt, ' ' * 4).rstrip()
 
             txt = f'UUID Data:\n{txt}'
@@ -3559,7 +3556,7 @@ class UUIDBox(Jp2kBox):
         the_uuid = UUID(bytes=read_buffer[0:16])
 
         o = cls(the_uuid, read_buffer[16:], length=length, offset=offset)
-        o._ftpr = fptr
+        o._fptr = fptr
 
         return o
 

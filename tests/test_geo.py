@@ -97,7 +97,11 @@ class TestSuite(fixtures.TestCommon):
         about GDAL not being able to print the UUID data as expected, but that
         is no longer the case.
         """
-        box_data = ir.files('tests.data').joinpath('0220000800_uuid.dat').read_bytes()  # noqa : E501
+        box_data = (
+            ir.files('tests.data')
+              .joinpath('0220000800_uuid.dat')
+              .read_bytes()
+        )
         bf = io.BytesIO(box_data)
         bf.seek(8)
         box = UUIDBox.parse(bf, 0, 703)
