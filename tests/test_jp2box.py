@@ -770,7 +770,7 @@ class TestWrap(fixtures.TestCommon):
             with open(self.jp2file, 'rb') as ifile:
                 tfile.write(ifile.read())
             # Rewrite with codestream length as zero.
-            tfile.seek(3223)
+            tfile.seek(77)
             tfile.write(struct.pack('>I', 0))
             tfile.flush()
 
