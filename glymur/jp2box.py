@@ -3608,7 +3608,7 @@ def decompose_resolution(value: Number) -> Tuple[int, int, int]:
         value:
             A number to be represented as a fraction.
     Returns:
-        A tuple of the form (numerator, denominator, exponent).
+        A tuple of the form (exponent, numerator, denominator).
     """
     frac = Fraction(value)
     max_allowed_frac = Fraction(2**15 - 1)

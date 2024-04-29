@@ -25,7 +25,7 @@ from glymur import Jp2k
 from glymur.jp2box import (
     ColourSpecificationBox, ContiguousCodestreamBox, FileTypeBox,
     ImageHeaderBox, JP2HeaderBox, JPEG2000SignatureBox, BitsPerComponentBox,
-    PaletteBox, UnknownBox, InvalidJp2kError
+    PaletteBox, CaptureResolutionBox, UnknownBox, InvalidJp2kError
 )
 from glymur.core import COLOR, OPACITY, SRGB, GREYSCALE
 from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE
@@ -422,6 +422,17 @@ class TestResolutionBoxes(fixtures.TestCommon):
     """
     Test suite for resolution boxes
     """
+    def test_invalid_resolution(self):
+        """
+        Scenario:  the supplied resolution cannot be represented
+
+        Expected Result:  ValueError when trying to write
+        """
+        resc = CaptureResolutionBox(1e-200, 0.5)
+        with self.assertRaises(ValueError):
+            with tempfile.NamedTemporaryFile(mode='wb') as tf:
+                resc.write(tf)
+
     def test_repr(self):
         """
         Verify __repr__ method on resolution boxes.
