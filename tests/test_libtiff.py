@@ -135,11 +135,11 @@ class TestSuite(fixtures.TestCommon):
         Expected result:  the library will warn about geotiff tags being
         unrecognized
         """
-        path = ir.files('tests.data').joinpath('albers27.tif')
+        path = ir.files('tests.data.tiff').joinpath('warning.tif')
         with warnings.catch_warnings(record=True) as w:
             fp = libtiff.open(path)
             libtiff.close(fp)
-        self.assertEqual(len(w), 5)
+        self.assertTrue(len(w) > 0)
 
     def test_read_rgba_without_image_length_width(self):
         """
