@@ -6,4 +6,3 @@ build-backend = "setuptools.build_meta"
 filterwarnings = [
     "ignore::DeprecationWarning:skimage.util.*",
 ]
-addopts = "--doctest-glob='*.rst'"

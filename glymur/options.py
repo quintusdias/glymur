@@ -57,6 +57,12 @@ def set_option(key, value):
         When False, printing of the XML contents of any XML boxes or UUID XMP
         boxes is suppressed. [default: True]
 
+    Examples
+    --------
+    >>> import glymur
+    >>> glymur.set_option('print.short', True)
+    >>> glymur.reset_option('all')
+
     See also
     --------
     get_option
@@ -132,83 +138,18 @@ def reset_option(key):
 
 
 def set_parseoptions(full_codestream=True):
-    """Set parsing options.
-
-    These options determine the way JPEG 2000 boxes are parsed.
-
-    Parameters
-    ----------
-    full_codestream : bool, defaults to True
-        When False, only the codestream header is parsed for metadata.  This
-        can results in faster JP2/JPX parsing.  When True, the entire
-        codestream is parsed for metadata.
-
-    See also
-    --------
-    get_parseoptions
-
-    Examples
-    --------
-    To put back the default options, you can use:
-
-    >>> import glymur
-    >>> glymur.set_parseoptions(full_codestream=True)
-    """
     warnings.warn('Use set_option instead of set_parseoptions.',
                   DeprecationWarning)
     set_option('parse.full_codestream', full_codestream)
 
 
 def get_parseoptions():
-    """Return the current parsing options.
-
-    Returns
-    -------
-    dict
-        Dictionary of current print options with keys
-
-          - codestream : bool
-
-        For a full description of these options, see `set_parseoptions`.
-
-    See also
-    --------
-    set_parseoptions
-    """
     warnings.warn('Use set_option instead of set_parseoptions.',
                   DeprecationWarning)
     return {'full_codestream': get_option('parse.full_codestream')}
 
 
 def set_printoptions(**kwargs):
-    """Set printing options.
-
-    These options determine the way JPEG 2000 boxes are displayed.
-
-    Parameters
-    ----------
-    short : bool, optional
-        When True, only the box ID, offset, and length are displayed.  Useful
-        for displaying only the basic structure or skeleton of a JPEG 2000
-        file.
-    xml : bool, optional
-        When False, printing of the XML contents of any XML boxes or UUID XMP
-        boxes is suppressed.
-    codestream : bool, optional
-        When False, the codestream segments are not printed.  Otherwise the
-        segments are printed depending on how set_parseoptions has been used.
-
-    See also
-    --------
-    get_printoptions
-
-    Examples
-    --------
-    To put back the default options, you can use:
-
-    >>> import glymur
-    >>> glymur.set_printoptions(short=False, xml=True, codestream=True)
-    """
     warnings.warn('Use set_option instead of set_printoptions.',
                   DeprecationWarning)
     for key, value in kwargs.items():
@@ -218,23 +159,6 @@ def set_printoptions(**kwargs):
 
 
 def get_printoptions():
-    """Return the current print options.
-
-    Returns
-    -------
-    dict
-        Dictionary of current print options with keys
-
-          - short : bool
-          - xml : bool
-          - codestream : bool
-
-        For a full description of these options, see `set_printoptions`.
-
-    See also
-    --------
-    set_printoptions
-    """
     warnings.warn('Use get_option instead of get_printoptions.',
                   DeprecationWarning)
     d = {}
