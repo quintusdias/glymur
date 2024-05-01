@@ -805,11 +805,10 @@ class Jp2k(Jp2kr):
 
         Examples
         --------
-        >>> import glymur, tempfile
+        >>> import glymur
         >>> jfile = glymur.data.goodstuff()
         >>> j2k = glymur.Jp2k(jfile)
-        >>> tfile = tempfile.NamedTemporaryFile(suffix='jp2')
-        >>> jp2 = j2k.wrap(tfile.name)
+        >>> jp2 = j2k.wrap('jp2_from_j2k.jp2')
         """
         if boxes is None:
             boxes = self._get_default_jp2_boxes()
