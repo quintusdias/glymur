@@ -19,7 +19,6 @@ array-style slicing, i.e. strides.  For example, here's how
 to retrieve a full resolution, first lower-resolution image, and
 second lower-resolution image.  It's always powers of two. ::
 
-    >>> import glymur
     >>> j2kfile = glymur.data.goodstuff() # just a path to a raw JPEG 2000 codestream
     >>> j2k = glymur.Jp2k(j2kfile)
     >>> fullres = j2k[:]
@@ -46,7 +45,6 @@ glymur provides you with a shortcut.  Normally the stride must be
 a power of 2, but you can provide -1 instead to get the smallest
 thumbnail.::
 
-    >>> import glymur
     >>> j2kfile = glymur.data.goodstuff() # just a path to a JPEG 2000 file
     >>> j2k = glymur.Jp2k(j2kfile)
     >>> j2k.shape
@@ -67,7 +65,6 @@ levels of quality.  Different layers may be specified by utilizing
 the layer property.  The default layer value is 0, which specifies the
 first layer. ::
 
-    >>> import glymur
     >>> file = glymur.data.jpxfile() # just a path to a JPEG2000 file
     >>> jpx = glymur.Jp2k(file)
     >>> d0 = jpx[:] # first layer
@@ -80,7 +77,7 @@ first layer. ::
 The easiest way is just to assign the entire image, similar to what might
 be done with NumPy. ::
     
-    >>> import glymur, skimage.data
+    >>> import skimage.data
     >>> jp2 = glymur.Jp2k('astronaut.jp2')
     >>> jp2[:] = skimage.data.astronaut()
 
@@ -100,7 +97,6 @@ you can make use of OpenJPEG's thread support to speed-up read operations.
 If you have really big images and a large number of cores at your disposal,
 you really should look into this. ::
 
-    >>> import glymur
     >>> import time
     >>> jp2file = glymur.data.nemo()
     >>> jp2 = glymur.Jp2k(jp2file)
@@ -128,7 +124,6 @@ employ the MCT when decoding these components.
 You can set the property to None to restore the behavior of decoding all
 bands.
 
-    >>> import glymur
     >>> jp2file = glymur.data.nemo()
     >>> jp2 = glymur.Jp2k(jp2file)
     >>> data = jp2[:]
@@ -155,7 +150,7 @@ and OpenJPEG 2.4.0 or higher,
 you can make use of OpenJPEG's thread support to speed-up read operations.
 With a puny 2015 macbook, just two cores, and a 5824x10368x3 image, we get::
 
-    >>> import time, numpy as np, glymur
+    >>> import time, numpy as np
     >>> data = glymur.Jp2k(glymur.data.nemo())[:]
     >>> data = np.tile(data, (4, 4, 1))
     >>> t0 = time.time()
@@ -204,7 +199,7 @@ have image data ready to feed each tile writer, you cannot skip a tile.
 With glymur 0.9.5 or higher and openjpeg 2.4.0 or higher, you can instruct the
 encoder to generate PLT markers by using the plt keyword. ::
 
-    >>> import glymur, skimage.data
+    >>> import skimage.data
     >>> if glymur.version.openjpeg_version >= '2.4.0':
     ...     jp2 = glymur.Jp2k('plt.jp2', plt=True)
     ...     jp2[:] = skimage.data.astronaut()
@@ -219,7 +214,7 @@ encoder to generate PLT markers by using the plt keyword. ::
 
 Different compression factors may be specified with the cratios parameter ::
 
-    >>> import skimage.data, glymur
+    >>> import skimage.data
     >>> data = skimage.data.camera()
     >>> # quality layer 1: compress 20x
     >>> # quality layer 2: compress 10x
@@ -242,7 +237,7 @@ the layers to make the first layer lossless, not the last.
 
 We suppress a harmless warning from scikit-image below. ::
 
-    >>> import skimage.data, skimage.metrics, glymur, warnings
+    >>> import skimage.data, skimage.metrics, warnings
     >>> warnings.simplefilter('ignore')
     >>> truth = skimage.data.camera()
     >>> jp2 = glymur.Jp2k('psnr.jp2', data=truth, psnr=[30, 40, 50, 0])
@@ -285,7 +280,6 @@ set of boxes that includes a channel definition box.  The following example
 creates an ellipical mask. ::
 
     >>> import numpy as np
-    >>> import glymur
     >>> from glymur import Jp2k
     >>> rgb = Jp2k(glymur.data.goodstuff())[:]
     >>> ny, nx = rgb.shape[:2]
@@ -350,7 +344,6 @@ available. ::
 From within Python, the same result is obtained simply by printing the Jp2k
 object, i.e. ::
 
-    >>> import glymur
     >>> jp2file = glymur.data.nemo() # just a path to a JP2 file
     >>> jp2 = glymur.Jp2k(jp2file)
     >>> print(jp2)  # doctest: +SKIP
@@ -416,7 +409,6 @@ The amount of metadata in a JPEG 2000 file can be overwhelming, mostly due
 to the codestream and XML.  You can suppress the codestream and XML details by
 making use of the :py:meth:`set_option` function::
 
-    >>> import glymur
     >>> jpx = glymur.Jp2k(glymur.data.jpxfile())
     >>> glymur.set_option('print.codestream', False)
     >>> glymur.set_option('print.xml', False)
@@ -604,7 +596,7 @@ Consider the following XML file `data.xml` : ::
 
 The :py:meth:`append` method can add an XML box as shown below::
 
-    >>> import glymur, io, shutil
+    >>> import io, shutil
     >>> from lxml import etree as ET
     >>> xml = io.BytesIO(b"""
     ... <info>
@@ -635,7 +627,7 @@ The :py:meth:`append` method can add an XML box as shown below::
 Capture and display resolution boxes are part of the JPEG 2000 standard.  You
 may create such metadata boxes via keyword arguments.::
 
-    >>> import numpy as np, glymur, skimage.data
+    >>> import numpy as np, skimage.data
     >>> data = skimage.data.camera()
     >>> vresc, hresc = 0.1, 0.2
     >>> vresd, hresd = 0.3, 0.4
@@ -673,7 +665,6 @@ To get just a minimal JP2 jacket on the
 codestream provided by `goodstuff.j2k` (a file consisting of a raw codestream),
 you can use the :py:meth:`wrap` method with no box argument: ::
 
-    >>> import glymur
     >>> glymur.reset_option('all')
     >>> glymur.set_option('print.codestream', False)
     >>> jp2file = glymur.data.goodstuff()

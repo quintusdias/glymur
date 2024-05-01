@@ -107,7 +107,6 @@ class Jp2k(Jp2kr):
 
     Examples
     --------
-    >>> import glymur
     >>> jfile = glymur.data.nemo()
     >>> jp2 = glymur.Jp2k(jfile)
     >>> jp2.shape
@@ -124,7 +123,6 @@ class Jp2k(Jp2kr):
 
     Make use of OpenJPEG's thread support
 
-    >>> import glymur
     >>> import time
     >>> if glymur.version.openjpeg_version >= '2.2.0':
     ...     jp2file = glymur.data.nemo()
@@ -805,7 +803,6 @@ class Jp2k(Jp2kr):
 
         Examples
         --------
-        >>> import glymur
         >>> jfile = glymur.data.goodstuff()
         >>> j2k = glymur.Jp2k(jfile)
         >>> jp2 = j2k.wrap('jp2_from_j2k.jp2')

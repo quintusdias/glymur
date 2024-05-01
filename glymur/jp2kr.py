@@ -42,7 +42,6 @@ class Jp2kr(Jp2kBox):
 
     Examples
     --------
-    >>> import glymur
     >>> jfile = glymur.data.nemo()
     >>> jp2 = glymur.Jp2kr(jfile)
     >>> jp2.shape
@@ -748,7 +747,6 @@ class Jp2kr(Jp2kBox):
 
         Examples
         --------
-        >>> import glymur
         >>> jfile = glymur.data.nemo()
         >>> jp = glymur.Jp2k(jfile)
         >>> components_lst = jp.read_bands(rlevel=1)
@@ -876,7 +874,6 @@ class Jp2kr(Jp2kBox):
 
         Examples
         --------
-        >>> import glymur
         >>> jfile = glymur.data.nemo()
         >>> jp2 = glymur.Jp2k(jfile)
         >>> codestream = jp2.get_codestream()

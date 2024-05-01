@@ -1675,7 +1675,6 @@ class ImageHeaderBox(Jp2kBox):
     ):
         """Examples
         --------
-        >>> import glymur
         >>> box = glymur.jp2box.ImageHeaderBox(height=512, width=256)
         """
         super().__init__()

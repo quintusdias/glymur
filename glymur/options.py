@@ -59,7 +59,6 @@ def set_option(key, value):
 
     Examples
     --------
-    >>> import glymur
     >>> glymur.set_option('print.short', True)
     >>> glymur.reset_option('all')
 

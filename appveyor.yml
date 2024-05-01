@@ -106,5 +106,6 @@ test_script:
   - cmd: cd c:\projects\glymur
   - ls -ltr
   - cmd: python -c "import sys; print(sys.executable)"
-  - cmd: c:\miniconda3_64\envs\glymur\Scripts\pytest -n 4 -x --doctest-glob='*.rst'
+  - cmd: c:\miniconda3_64\envs\glymur\Scripts\pytest -n 4 -x
+  - cmd: c:\miniconda3_64\envs\glymur\Scripts\pytest --doctest-glob='*.rst' --ignore-glob='*.py'
   - cmd: c:\miniconda3_64\envs\glymur\Scripts\pytest --doctest-modules glymur
