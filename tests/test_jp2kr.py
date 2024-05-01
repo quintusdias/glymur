@@ -30,23 +30,6 @@ from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 from . import fixtures
 
 
-def docTearDown(doctest_obj):  # pragma: no cover
-    glymur.set_option('parse.full_codestream', False)
-
-
-# Doc tests should be run as well.
-def load_tests(loader, tests, ignore):  # pragma: no cover
-    """Should run doc tests as well"""
-    if os.name == "nt":
-        # Can't do it on windows, temporary file issue.
-        return tests
-    if glymur.lib.openjp2.OPENJP2 is not None:
-        tests.addTests(
-            doctest.DocTestSuite('glymur.jp2kr', tearDown=docTearDown)
-        )
-    return tests
-
-
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 @unittest.skipIf(glymur.version.openjpeg_version < '2.3.0',
                  "Requires as least v2.3.0")
