@@ -17,7 +17,7 @@ hooks it into the multiple resolution property of JPEG 2000 imagery.
 This allows you to retrieve multiresolution imagery via
 array-style slicing, i.e. strides.  For example, here's how
 to retrieve a full resolution, first lower-resolution image, and
-second lower-resolution image.  It's always powers of two. ::
+second lower-resolution image.  A stride will always be a power of two. ::
 
     >>> import glymur
     >>> j2kfile = glymur.data.goodstuff() # just a path to a raw JPEG 2000 codestream
@@ -100,8 +100,7 @@ you can make use of OpenJPEG's thread support to speed-up read operations.
 If you have really big images and a large number of cores at your disposal,
 you really should look into this. ::
 
-    >>> import glymur
-    >>> import time
+    >>> import glymur, time
     >>> jp2file = glymur.data.nemo()
     >>> jp2 = glymur.Jp2k(jp2file)
     >>> t0 = time.time(); data = jp2[:]; t1 = time.time()
@@ -128,7 +127,6 @@ employ the MCT when decoding these components.
 You can set the property to None to restore the behavior of decoding all
 bands.
 
-    >>> import glymur
     >>> jp2file = glymur.data.nemo()
     >>> jp2 = glymur.Jp2k(jp2file)
     >>> data = jp2[:]
@@ -155,7 +153,7 @@ and OpenJPEG 2.4.0 or higher,
 you can make use of OpenJPEG's thread support to speed-up read operations.
 With a puny 2015 macbook, just two cores, and a 5824x10368x3 image, we get::
 
-    >>> import time, numpy as np, glymur
+    >>> import glymur, time, numpy as np
     >>> data = glymur.Jp2k(glymur.data.nemo())[:]
     >>> data = np.tile(data, (4, 4, 1))
     >>> t0 = time.time()
@@ -181,7 +179,7 @@ resulting in a 1024x1024x3 image, but we could have just as easily tiled it
 True to get detailed feedback from the OpenJPEG library as to which tile is
 currently being written. ::
 
-    >>> import skimage.data
+    >>> import glymur, skimage.data
     >>> from glymur import Jp2k
     >>> img = skimage.data.astronaut()
     >>> print(img.shape)
@@ -219,7 +217,7 @@ encoder to generate PLT markers by using the plt keyword. ::
 
 Different compression factors may be specified with the cratios parameter ::
 
-    >>> import skimage.data, glymur
+    >>> import glymur, skimage.data
     >>> data = skimage.data.camera()
     >>> # quality layer 1: compress 20x
     >>> # quality layer 2: compress 10x
@@ -242,7 +240,7 @@ the layers to make the first layer lossless, not the last.
 
 We suppress a harmless warning from scikit-image below. ::
 
-    >>> import skimage.data, skimage.metrics, glymur, warnings
+    >>> import glymur, skimage.data, skimage.metrics, warnings
     >>> warnings.simplefilter('ignore')
     >>> truth = skimage.data.camera()
     >>> jp2 = glymur.Jp2k('psnr.jp2', data=truth, psnr=[30, 40, 50, 0])
@@ -284,8 +282,7 @@ as such.  In order to do so, we need to re-wrap such an image in a
 set of boxes that includes a channel definition box.  The following example
 creates an ellipical mask. ::
 
-    >>> import numpy as np
-    >>> import glymur
+    >>> import glymur, numpy as np
     >>> from glymur import Jp2k
     >>> rgb = Jp2k(glymur.data.goodstuff())[:]
     >>> ny, nx = rgb.shape[:2]
@@ -502,6 +499,7 @@ The codestream details are limited to the codestream header because
 by default that's all the codestream metadata that is retrieved. It is, howver,
 possible to print the full codestream.::
 
+    >>> import glymur
     >>> glymur.set_option('print.codestream', True)
     >>> c = jp2.get_codestream(header_only=False)
     >>> print(c)  # doctest: +SKIP
@@ -635,7 +633,7 @@ The :py:meth:`append` method can add an XML box as shown below::
 Capture and display resolution boxes are part of the JPEG 2000 standard.  You
 may create such metadata boxes via keyword arguments.::
 
-    >>> import numpy as np, glymur, skimage.data
+    >>> import glymur, numpy as np, skimage.data
     >>> data = skimage.data.camera()
     >>> vresc, hresc = 0.1, 0.2
     >>> vresd, hresd = 0.3, 0.4
@@ -710,7 +708,7 @@ re-specify all of the boxes.  If you already have a JP2 jacket in place,
 you can just reuse that, though.  Take the following example content in
 an XML file `favorites.xml` : ::
 
-    >>> import io
+    >>> import glymur, io
     >>> from lxml import etree as ET
     >>> s = b"""
     ... <favorite_things>

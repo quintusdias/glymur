@@ -119,41 +119,27 @@ class Photometric(IntEnum):
     this if you do not also specify YCbCr as the photometric interpretation.
 
     >>> w, h, nz = image.shape
-    >>> from spiff import TIFF, lib
-    >>> t = TIFF('astronaut-jpeg.tif', mode='w8')
-    >>> t['Photometric'] = lib.Photometric.YCBCR
-    >>> t['Compression'] = lib.Compression.JPEG
-    >>> t['JPEGColorMode'] = lib.JPEGColorMode.RGB
-    >>> t['PlanarConfig'] = lib.PlanarConfig.CONTIG
-    >>> t['JPEGQuality'] = 90
-    >>> t['YCbCrSubsampling'] = (1, 1)
-    >>> t['ImageWidth'] = w
-    >>> t['ImageLength'] = h
-    >>> t['TileWidth'] = int(w/2)
-    >>> t['TileLength'] = int(h/2)
-    >>> t['BitsPerSample'] = 8
-    >>> t['SamplesPerPixel'] = nz
-    >>> t['Software'] = lib.getVersion()
-    >>> t[:] = image
-    >>> t
-    TIFF Directory at offset 0x0 (0)
-      Image Width: 512 Image Length: 512
-      Tile Width: 256 Tile Length: 256
-      Bits/Sample: 8
-      Compression Scheme: JPEG
-      Photometric Interpretation: YCbCr
-      YCbCr Subsampling: 1, 1
-      Samples/Pixel: 3
-      Planar Configuration: single image plane
-      Reference Black/White:
-         0:     0   255
-         1:   128   255
-         2:   128   255
-      Software: LIBTIFF, Version 4.0.9
-    Copyright (c) 1988-1996 Sam Leffler
-    Copyright (c) 1991-1996 Silicon Graphics, Inc.
-      JPEG Tables: (574 bytes)
-    <BLANKLINE>
+    >>> tw, th = w // 2, h // 2
+    >>> from glymur.lib import tiff as libtiff
+    >>> fp = libtiff.open('astronaut-jpeg.tif', mode='w8')
+    >>> libtiff.setField(fp, 'Photometric', libtiff.Photometric.YCBCR)
+    >>> libtiff.setField(fp, 'Compression', libtiff.Compression.JPEG)
+    >>> libtiff.setField(fp, 'JPEGColorMode', libtiff.JPEGColorMode.RGB)
+    >>> libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
+    >>> libtiff.setField(fp, 'JPEGQuality', 90)
+    >>> libtiff.setField(fp, 'YCbCrSubsampling', 1, 1)
+    >>> libtiff.setField(fp, 'ImageWidth', w)
+    >>> libtiff.setField(fp, 'ImageLength', h)
+    >>> libtiff.setField(fp, 'TileWidth', tw)
+    >>> libtiff.setField(fp, 'TileLength', th)
+    >>> libtiff.setField(fp, 'BitsPerSample', 8)
+    >>> libtiff.setField(fp, 'SamplesPerPixel', nz)
+    >>> libtiff.setField(fp, 'Software', libtiff.getVersion())
+    >>> libtiff.writeEncodedTile(fp, 0, image[:th, :tw].copy())
+    >>> libtiff.writeEncodedTile(fp, 1, image[:th, tw:w].copy())
+    >>> libtiff.writeEncodedTile(fp, 2, image[th:h, :tw].copy())
+    >>> libtiff.writeEncodedTile(fp, 3, image[th:h, tw:w].copy())
+    >>> libtiff.close(fp)
     """
     MINISWHITE = 0  # value is white
     MINISBLACK = 1  # value is black
@@ -588,7 +574,7 @@ def setErrorHandler(func=_ERROR_HANDLER):
     return old_error_handler
 
 
-def setField(fp, tag, value):
+def setField(fp, tag, *value):
     """Corresponds to TIFFSetField"""
     err_handler, warn_handler = _set_error_warning_handlers()
 
@@ -598,11 +584,21 @@ def setField(fp, tag, value):
     tag_num = TAGS[tag]['number']
     tag_type = TAGS[tag]['type']
 
-    ARGTYPES.append(tag_type)
+    try:
+        for ttype in tag_type:
+            ARGTYPES.append(ttype)
+    except TypeError:
+        ARGTYPES.append(tag_type)
+
     _LIBTIFF.TIFFSetField.argtypes = ARGTYPES
     _LIBTIFF.TIFFSetField.restype = check_error
 
-    _LIBTIFF.TIFFSetField(fp, tag_num, value)
+    if len(value) == 1 and tag_type == ctypes.c_char_p:
+        _LIBTIFF.TIFFSetField(fp, tag_num, ctypes.c_char_p(value[0].encode()))
+    elif len(value) == 1:
+        _LIBTIFF.TIFFSetField(fp, tag_num, value[0])
+    else:
+        _LIBTIFF.TIFFSetField(fp, tag_num, *value)
 
     _reset_error_warning_handlers(err_handler, warn_handler)
 

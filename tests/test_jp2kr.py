@@ -4,10 +4,8 @@ Tests for reading JPEG 2000 files with the reader class.
 # Standard library imports ...
 import collections
 import datetime
-import doctest
 import importlib.resources as ir
 from io import BytesIO
-import os
 import pathlib
 import struct
 import unittest

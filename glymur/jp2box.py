@@ -28,7 +28,7 @@ import warnings
 try:
     from osgeo import gdal
     _HAVE_GDAL = True
-except (ImportError, ModuleNotFoundError):
+except (ImportError, ModuleNotFoundError):  # pragma: no cover
     _HAVE_GDAL = False
 else:
     gdal.UseExceptions()
@@ -1675,7 +1675,6 @@ class ImageHeaderBox(Jp2kBox):
     ):
         """Examples
         --------
-        >>> import glymur
         >>> box = glymur.jp2box.ImageHeaderBox(height=512, width=256)
         """
         super().__init__()

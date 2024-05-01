@@ -4,10 +4,8 @@ Tests for general glymur functionality.
 # Standard library imports ...
 import collections
 import datetime
-import doctest
 import importlib.resources as ir
 from io import BytesIO
-import os
 import pathlib
 import struct
 import unittest
