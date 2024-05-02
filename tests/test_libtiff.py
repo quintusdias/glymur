@@ -23,7 +23,7 @@ from glymur.lib import tiff as libtiff
 @unittest.skipIf(fixtures.TIFF_NOT_AVAILABLE, fixtures.TIFF_NOT_AVAILABLE_MSG)
 class TestSuite(fixtures.TestCommon):
 
-    def test_simple_tile(self):
+    def test_simple_2x2_tiled(self):
         """
         SCENARIO:  create a simple monochromatic 2x2 tiled image
 
@@ -44,6 +44,7 @@ class TestSuite(fixtures.TestCommon):
         libtiff.setField(fp, 'TileWidth', tw)
         libtiff.setField(fp, 'BitsPerSample', 8)
         libtiff.setField(fp, 'SamplesPerPixel', 1)
+        libtiff.setField(fp, 'Software', 'glymur')
         libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
 
         libtiff.writeEncodedTile(fp, 0, data[:th, :tw].copy())
@@ -82,6 +83,46 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(actual_tw, tw)
 
         libtiff.close(fp)
+
+    def test_bigtiff_ycbcr_2x2_tiled(self):
+        """
+        SCENARIO:  create a YCbCr/JPEG 2x2 tiled image
+
+        Expected result:  The data is subject to lossy JPEG compression, so it
+        will not match exactly, but should be reasonably close.
+        """
+        expected = fixtures.skimage.data.astronaut()
+        h, w, nz = expected.shape
+        th, tw = h // 2, w // 2
+
+        fp = libtiff.open(self.temp_tiff_filename, mode='w8')
+        libtiff.setField(fp, 'Photometric', libtiff.Photometric.YCBCR)
+        libtiff.setField(fp, 'Compression', libtiff.Compression.JPEG)
+        libtiff.setField(fp, 'JPEGColorMode', libtiff.JPEGColorMode.RGB)
+        libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
+        libtiff.setField(fp, 'JPEGQuality', 90)
+        libtiff.setField(fp, 'YCbCrSubsampling', 1, 1)
+        libtiff.setField(fp, 'ImageWidth', w)
+        libtiff.setField(fp, 'ImageLength', h)
+        libtiff.setField(fp, 'TileWidth', tw)
+        libtiff.setField(fp, 'TileLength', th)
+        libtiff.setField(fp, 'BitsPerSample', 8)
+        libtiff.setField(fp, 'SamplesPerPixel', nz)
+        libtiff.setField(fp, 'Software', libtiff.getVersion())
+        libtiff.writeEncodedTile(fp, 0, expected[:th, :tw].copy())
+        libtiff.writeEncodedTile(fp, 1, expected[:th, tw:w].copy())
+        libtiff.writeEncodedTile(fp, 2, expected[th:h, :tw].copy())
+        libtiff.writeEncodedTile(fp, 3, expected[th:h, tw:w].copy())
+        libtiff.close(fp)
+
+        fp = libtiff.open(self.temp_tiff_filename)
+        actual = libtiff.readRGBAImageOriented(fp)
+        libtiff.close(fp)
+
+        error = fixtures.skimage.metrics.mean_squared_error(
+            actual[:, :, :3], expected
+        )
+        self.assertTrue(error < 9)
 
     def test_simple_strip(self):
         """

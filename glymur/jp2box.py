@@ -28,7 +28,7 @@ import warnings
 try:
     from osgeo import gdal
     _HAVE_GDAL = True
-except (ImportError, ModuleNotFoundError):
+except (ImportError, ModuleNotFoundError):  # pragma: no cover
     _HAVE_GDAL = False
 else:
     gdal.UseExceptions()
