@@ -1,3 +1,10 @@
+May 06, 2024 - v0.13.2rc1
+    Fix doctests
+    Increase code coverage
+    Remove python 3.8 anachronisms
+    Fix repr for Jp2kr
+    Clean up ci directory
+
 Apr 22, 2024 - v0.13.1
     Remove debugging code
     Improve code coverage
