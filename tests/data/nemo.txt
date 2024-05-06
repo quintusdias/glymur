@@ -37,7 +37,7 @@ Contiguous Codestream Box (jp2c) @ (77, 1132296)
             Number of decomposition levels:  1
             Code block height, width:  (64 x 64)
             Wavelet transform:  5-3 reversible
-            Precinct size:  (32768, 32768)
+            Precinct size:  [32768, 32768]
             Code block context:
                 Selective arithmetic coding bypass:  False
                 Reset context probabilities on coding pass boundaries:  False
@@ -62,7 +62,7 @@ Contiguous Codestream Box (jp2c) @ (77, 1132296)
             Number of decomposition levels:  1
             Code block height, width:  (64 x 64)
             Wavelet transform:  5-3 reversible
-            Precinct size:  (32768, 32768)
+            Precinct size:  [32768, 32768]
             Code block context:
                 Selective arithmetic coding bypass:  False
                 Reset context probabilities on coding pass boundaries:  False
@@ -81,7 +81,7 @@ Contiguous Codestream Box (jp2c) @ (77, 1132296)
             Number of decomposition levels:  1
             Code block height, width:  (64 x 64)
             Wavelet transform:  5-3 reversible
-            Precinct size:  (32768, 32768)
+            Precinct size:  [32768, 32768]
             Code block context:
                 Selective arithmetic coding bypass:  False
                 Reset context probabilities on coding pass boundaries:  False

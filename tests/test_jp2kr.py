@@ -361,7 +361,9 @@ class TestJp2kr(fixtures.TestCommon):
         self.assertEqual(c.segment[2].code_block_size, (64.0, 64.0))
         self.assertEqual(c.segment[2].prog_order, 0)
         self.assertEqual(c.segment[2].xform, 1)
-        self.assertEqual(c.segment[2].precinct_size, ((32768, 32768)))
+        np.testing.assert_array_equal(
+            c.segment[2].precinct_size, np.array(((32768, 32768)))
+        )
 
         self.assertEqual(c.segment[3].marker_id, 'QCD')
         self.assertEqual(c.segment[3].offset, 150)
@@ -392,8 +394,9 @@ class TestJp2kr(fixtures.TestCommon):
                                       np.array([0]))
         np.testing.assert_array_equal(c.segment[6].spcoc,
                                       np.array([1, 4, 4, 0, 1]))
-        self.assertEqual(c.segment[6].precinct_size,
-                         ((32768, 32768)))
+        np.testing.assert_array_equal(
+            c.segment[6].precinct_size, np.array(((32768, 32768)))
+        )
 
         self.assertEqual(c.segment[7].marker_id, 'QCC')
         self.assertEqual(c.segment[7].offset, 221)
@@ -412,8 +415,9 @@ class TestJp2kr(fixtures.TestCommon):
                                       np.array([0]))
         np.testing.assert_array_equal(c.segment[8].spcoc,
                                       np.array([1, 4, 4, 0, 1]))
-        self.assertEqual(c.segment[8].precinct_size,
-                         ((32768, 32768)))
+        np.testing.assert_array_equal(
+            c.segment[8].precinct_size, np.array(((32768, 32768)))
+        )
 
         self.assertEqual(c.segment[9].marker_id, 'QCC')
         self.assertEqual(c.segment[9].offset, 242)

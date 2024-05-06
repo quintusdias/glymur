@@ -951,8 +951,8 @@ class COCsegment(Segment):
         Coding style for this component.
     spcoc : byte array
         Coding style parameters for this component.
-    precinct_size : list of tuples
-        Dimensions of precinct.
+    precinct_size : nx2 array
+        Dimensions of precincts.
 
     References
     ----------
@@ -971,7 +971,7 @@ class COCsegment(Segment):
         if len(self.spcoc) > 5:
             self.precinct_size = _parse_precinct_size(self.spcoc[5:])
         else:
-            self.precinct_size = ((32768, 32768))
+            self.precinct_size = np.array(((32768, 32768)))
 
         self.length = length
         self.offset = offset
@@ -993,7 +993,7 @@ class COCsegment(Segment):
             f'        Number of decomposition levels:  {self.spcoc[0]}\n'
             f'        Code block height, width:  ({width} x {height})\n'
             f'        Wavelet transform:  {xform}\n'
-            f'        Precinct size:  {self.precinct_size}\n'
+            f'        Precinct size:  {self.precinct_size.tolist()}\n'
             f'        {_context_string(self.spcoc[3])}'
         )
 
@@ -1028,8 +1028,8 @@ class CODsegment(Segment):
         Wavelet transform used
     cstyle : int
         Style of the code-block passes
-    precinct_size : list
-        2-tuples of precinct sizes.
+    precinct_size : nx2 array
+        Array of precinct sizes.
 
     References
     ----------
@@ -1071,9 +1071,9 @@ class CODsegment(Segment):
         self.code_block_size = 4 * 2 ** ycb, 4 * 2 ** xcb
 
         if precinct_size is None:
-            self.precinct_size = ((2 ** 15, 2 ** 15))
+            self.precinct_size = np.array(((2 ** 15, 2 ** 15)))
         else:
-            self.precinct_size = precinct_size
+            self.precinct_size = np.array(precinct_size)
 
     def __str__(self):
         msg = Segment.__str__(self)
@@ -1123,7 +1123,7 @@ class CODsegment(Segment):
             cbh=int(self.code_block_size[0]),
             cbw=int(self.code_block_size[1]),
             xform=xform,
-            precinct_size=self.precinct_size,
+            precinct_size=self.precinct_size.tolist(),
             code_block_context=_context_string(self.cstyle)
         )
 
@@ -1898,7 +1898,7 @@ def _parse_precinct_size(spcod):
         ep2 = (item & 0xF0) >> 4
         ep1 = item & 0x0F
         precinct_size.append((2 ** ep1, 2 ** ep2))
-    return tuple(precinct_size)
+    return np.array(precinct_size)
 
 
 def _context_string(context):

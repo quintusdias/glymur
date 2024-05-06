@@ -552,8 +552,9 @@ class TestSuite(fixtures.TestCommon):
         )
         self.assertEqual(codestream.segment[2].xform,
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-        self.assertEqual(codestream.segment[2].precinct_size,
-                         ((32768, 32768)))
+        np.testing.assert_array_equal(
+            codestream.segment[2].precinct_size, np.array(((32768, 32768)))
+        )
 
     def test_NR_ENC_Bretagne1_ppm_1_encode(self):
         """
@@ -580,7 +581,9 @@ class TestSuite(fixtures.TestCommon):
         )
         self.assertEqual(c.segment[2].xform,
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-        self.assertEqual(c.segment[2].precinct_size, ((32768, 32768)))
+        np.testing.assert_array_equal(
+            c.segment[2].precinct_size, np.array((32768, 32768))
+        )
 
     def test_NR_ENC_Bretagne1_ppm_3_encode(self):
         """
@@ -614,9 +617,9 @@ class TestSuite(fixtures.TestCommon):
         )
         self.assertEqual(codestream.segment[2].xform,
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-        self.assertEqual(
+        np.testing.assert_array_equal(
             codestream.segment[2].precinct_size,
-            ((2, 2), (4, 4), (8, 8), (16, 16), (32, 32), (64, 64))
+            np.array(((2, 2), (4, 4), (8, 8), (16, 16), (32, 32), (64, 64)))
         )
 
     def test_NR_ENC_Bretagne2_ppm_4_encode(self):
@@ -662,12 +665,12 @@ class TestSuite(fixtures.TestCommon):
             codestream.segment[2].xform,
             glymur.core.WAVELET_XFORM_5X3_REVERSIBLE
         )
-        self.assertEqual(
+        np.testing.assert_array_equal(
             codestream.segment[2].precinct_size,
-            (
+            np.array((
                 (16, 16), (32, 32), (64, 64), (128, 128), (128, 128),
                 (128, 128)
-            )
+            ))
         )
 
     def test_NR_ENC_Bretagne2_ppm_5_encode(self):
@@ -702,8 +705,10 @@ class TestSuite(fixtures.TestCommon):
         )
         self.assertEqual(codestream.segment[2].xform,
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-        self.assertEqual(codestream.segment[2].precinct_size,
-                         ((32768, 32768)))
+        np.testing.assert_array_equal(
+            codestream.segment[2].precinct_size,
+            np.array(((32768, 32768)))
+        )
 
     def test_sop_explicitly_true(self):
         """
@@ -781,8 +786,10 @@ class TestSuite(fixtures.TestCommon):
         )
         self.assertEqual(codestream.segment[2].xform,
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-        self.assertEqual(codestream.segment[2].precinct_size,
-                         ((32768, 32768)))
+        np.testing.assert_array_equal(
+            codestream.segment[2].precinct_size,
+            np.array(((32768, 32768)))
+        )
 
         # 18 SOP segments.
         nsops = [x.nsop for x in codestream.segment
@@ -867,8 +874,10 @@ class TestSuite(fixtures.TestCommon):
         )
         self.assertEqual(codestream.segment[2].xform,
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-        self.assertEqual(codestream.segment[2].precinct_size,
-                         ((32768, 32768)))
+        np.testing.assert_array_equal(
+            codestream.segment[2].precinct_size,
+            np.array(((32768, 32768)))
+        )
 
         # 18 EPH segments.
         ephs = [x for x in codestream.segment if x.marker_id == 'EPH']
@@ -940,8 +949,10 @@ class TestSuite(fixtures.TestCommon):
         )
         self.assertEqual(codestream.segment[2].xform,
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-        self.assertEqual(codestream.segment[2].precinct_size,
-                         ((32768, 32768)))
+        np.testing.assert_array_equal(
+            codestream.segment[2].precinct_size,
+            np.array(((32768, 32768)))
+        )
 
     def test_NR_ENC_Cevennes1_bmp_9_encode(self):
         """
@@ -970,8 +981,10 @@ class TestSuite(fixtures.TestCommon):
         )
         self.assertEqual(codestream.segment[2].xform,
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-        self.assertEqual(codestream.segment[2].precinct_size,
-                         ((32768, 32768)))
+        np.testing.assert_array_equal(
+            codestream.segment[2].precinct_size,
+            np.array(((32768, 32768)))
+        )
 
     def test_NR_ENC_Cevennes2_ppm_10_encode(self):
         """
@@ -1000,8 +1013,10 @@ class TestSuite(fixtures.TestCommon):
         )
         self.assertEqual(codestream.segment[2].xform,
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-        self.assertEqual(codestream.segment[2].precinct_size,
-                         ((32768, 32768)))
+        np.testing.assert_array_equal(
+            codestream.segment[2].precinct_size,
+            np.array(((32768, 32768)))
+        )
 
     def test_NR_ENC_Rome_bmp_11_encode(self):
         """
@@ -1079,8 +1094,10 @@ class TestSuite(fixtures.TestCommon):
         )
         self.assertEqual(codestream.segment[2].xform,
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-        self.assertEqual(codestream.segment[2].precinct_size,
-                         ((32768, 32768)))
+        np.testing.assert_array_equal(
+            codestream.segment[2].precinct_size,
+            np.array(((32768, 32768)))
+        )
 
     def test_NR_ENC_random_issue_0005_tif_12_encode(self):
         """
@@ -1122,8 +1139,9 @@ class TestSuite(fixtures.TestCommon):
         )
         self.assertEqual(codestream.segment[2].xform,
                          glymur.core.WAVELET_XFORM_5X3_REVERSIBLE)
-        self.assertEqual(codestream.segment[2].precinct_size,
-                         ((32768, 32768)))
+        np.testing.assert_array_equal(
+            codestream.segment[2].precinct_size, np.array((32768, 32768))
+        )
 
     def test_NR_ENC_issue141_rawl_23_encode(self):
         """

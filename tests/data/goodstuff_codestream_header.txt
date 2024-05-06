@@ -22,7 +22,7 @@ Codestream:
             Number of decomposition levels:  5
             Code block height, width:  (64 x 64)
             Wavelet transform:  5-3 reversible
-            Precinct size:  (32768, 32768)
+            Precinct size:  [32768, 32768]
             Code block context:
                 Selective arithmetic coding bypass:  False
                 Reset context probabilities on coding pass boundaries:  False
