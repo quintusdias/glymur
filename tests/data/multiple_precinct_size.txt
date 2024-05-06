@@ -10,7 +10,7 @@ COD marker segment @ (51, 18)
         Number of decomposition levels:  5
         Code block height, width:  (64 x 64)
         Wavelet transform:  5-3 reversible
-        Precinct size:  ((16, 16), (32, 32), (64, 64), (128, 128), (128, 128), (128, 128))
+        Precinct size:  [[16, 16], [32, 32], [64, 64], [128, 128], [128, 128], [128, 128]]
         Code block context:
             Selective arithmetic coding bypass:  False
             Reset context probabilities on coding pass boundaries:  False

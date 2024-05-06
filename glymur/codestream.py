@@ -993,7 +993,7 @@ class COCsegment(Segment):
             f'        Number of decomposition levels:  {self.spcoc[0]}\n'
             f'        Code block height, width:  ({width} x {height})\n'
             f'        Wavelet transform:  {xform}\n'
-            f'        Precinct size:  {self.precinct_size}\n'
+            f'        Precinct size:  {np.uint16(self.precinct_size).tolist()}\n'
             f'        {_context_string(self.spcoc[3])}'
         )
 
@@ -1123,7 +1123,7 @@ class CODsegment(Segment):
             cbh=int(self.code_block_size[0]),
             cbw=int(self.code_block_size[1]),
             xform=xform,
-            precinct_size=self.precinct_size,
+            precinct_size=np.uint16(self.precinct_size).tolist(),
             code_block_context=_context_string(self.cstyle)
         )
 

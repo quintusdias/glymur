@@ -567,7 +567,9 @@ class TestPaletteBox(fixtures.TestCommon):
 
     def test_signed_components(self):
         """
-        Palettes with signed components are not supported.
+        Scenario:  a palette box with signed components is read (not supported)
+
+        Expected Results InvalidJp2kError
         """
         b = BytesIO()
 
@@ -579,10 +581,9 @@ class TestPaletteBox(fixtures.TestCommon):
         nrows = 2
         b.write(struct.pack('>HB', nrows, ncols))
 
-        # bits per sample is 8, but signed
-        bps = (np.int8(7), np.int8(7), np.int8(7))
-        bps_signed = (x | 0x80 for x in bps)
-        b.write(struct.pack('BBB', *bps_signed))
+        # Force the leading bit to be 1, which signifies "signed"
+        bps = (np.int8(-1), np.int8(-1), np.int8(-1))
+        b.write(struct.pack('bbb', *bps))
 
         # Write the palette itself.
         #

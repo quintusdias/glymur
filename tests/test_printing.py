@@ -487,7 +487,7 @@ class TestPrinting(fixtures.TestCommon):
                '        Number of decomposition levels:  1\n'
                '        Code block height, width:  (64 x 64)\n'
                '        Wavelet transform:  5-3 reversible\n'
-               '        Precinct size:  (32768, 32768)\n'
+               '        Precinct size:  [32768, 32768]\n'
                '        Code block context:\n'
                '            Selective arithmetic coding bypass:  False\n'
                '            Reset context probabilities '
@@ -530,7 +530,7 @@ class TestPrinting(fixtures.TestCommon):
                '        Number of decomposition levels:  1\n'
                '        Code block height, width:  (64 x 64)\n'
                '        Wavelet transform:  5-3 reversible\n'
-               '        Precinct size:  (32768, 32768)\n'
+               '        Precinct size:  [32768, 32768]\n'
                '        Code block context:\n'
                '            Selective arithmetic coding bypass:  False\n'
                '            Reset context probabilities on coding '
@@ -574,7 +574,7 @@ class TestPrinting(fixtures.TestCommon):
                '        Number of decomposition levels:  1\n'
                '        Code block height, width:  (64 x 64)\n'
                '        Wavelet transform:  5-3 reversible\n'
-               '        Precinct size:  (32768, 32768)\n'
+               '        Precinct size:  [32768, 32768]\n'
                '        Code block context:\n'
                '            Selective arithmetic coding bypass:  False\n'
                '            Reset context probabilities on coding '
@@ -605,7 +605,7 @@ class TestPrinting(fixtures.TestCommon):
                '        Number of decomposition levels:  1\n'
                '        Code block height, width:  (64 x 64)\n'
                '        Wavelet transform:  5-3 reversible\n'
-               '        Precinct size:  (32768, 32768)\n'
+               '        Precinct size:  [32768, 32768]\n'
                '        Code block context:\n'
                '            Selective arithmetic coding bypass:  False\n'
                '            Reset context probabilities on coding '
@@ -1566,7 +1566,6 @@ class TestPrinting(fixtures.TestCommon):
               .read_text()
               .rstrip()
         )
-        self.assertEqual(actual, expected)
         self.assertEqual(actual, expected)
 
         opt = glymur.get_option('print.codestream')
