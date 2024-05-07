@@ -1,3 +1,11 @@
+May 07, 2024 - v0.13.2
+    Improve doctesting, fix broken libtiff doctest
+    Increase code coverage
+    Remove python 3.8 anachronisms
+    Fix repr for Jp2kr
+    Clean up ci directory
+    Change parsing of precinct sizes due to numpy 2.0
+
 Apr 22, 2024 - v0.13.1
     Remove debugging code
     Improve code coverage
