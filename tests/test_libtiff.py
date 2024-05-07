@@ -1,6 +1,7 @@
 # standard library imports
 import importlib.resources as ir
 import platform
+import sys
 import unittest
 from unittest.mock import patch
 import warnings
@@ -118,6 +119,9 @@ class TestSuite(fixtures.TestCommon):
         fp = libtiff.open(self.temp_tiff_filename)
         actual = libtiff.readRGBAImageOriented(fp)
         libtiff.close(fp)
+
+        # Adjust for big-endian if necessary
+        actual = np.flip(actual, 2) if sys.byteorder == 'big' else actual
 
         error = fixtures.skimage.metrics.mean_squared_error(
             actual[:, :, :3], expected
