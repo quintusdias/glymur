@@ -1,3 +1,6 @@
+May 07, 2024 - v0.13.2.post1
+    Fix big endian test issue
+
 May 07, 2024 - v0.13.2
     Improve doctesting, fix broken libtiff doctest
     Increase code coverage
