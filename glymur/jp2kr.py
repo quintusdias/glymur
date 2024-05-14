@@ -106,8 +106,9 @@ class Jp2kr(Jp2kBox):
         if not self.path.exists():
             raise FileNotFoundError(f"{self.filename} does not exist.")
 
-        self.parse()
-        self._initialize_shape()
+        with self.path.open('rb') as self._fptr:
+            self.parse()
+            self._initialize_shape()
 
     def _initialize_shape(self):
         """If there was no image data provided and if no shape was
@@ -313,44 +314,42 @@ class Jp2kr(Jp2kBox):
 
         self.length = self.path.stat().st_size
 
-        with self.path.open("rb") as fptr:
+        # Make sure we have a JPEG2000 file.  It could be either JP2 or
+        # J2C.  Check for J2C first, single box in that case.
+        read_buffer = self._fptr.read(2)
+        signature, = struct.unpack('>H', read_buffer)
+        if signature == 0xff4f:
+            self._codec_format = opj2.CODEC_J2K
+            # That's it, we're done.  The codestream object is only
+            # produced upon explicit request.
+            return
 
-            # Make sure we have a JPEG2000 file.  It could be either JP2 or
-            # J2C.  Check for J2C first, single box in that case.
-            read_buffer = fptr.read(2)
-            (signature,) = struct.unpack(">H", read_buffer)
-            if signature == 0xFF4F:
-                self._codec_format = opj2.CODEC_J2K
-                # That's it, we're done.  The codestream object is only
-                # produced upon explicit request.
-                return
+        self._codec_format = opj2.CODEC_JP2
 
-            self._codec_format = opj2.CODEC_JP2
+        # Should be JP2.
+        # First 4 bytes should be 12, the length of the 'jP  ' box.
+        # 2nd 4 bytes should be the box ID ('jP  ').
+        # 3rd 4 bytes should be the box signature (13, 10, 135, 10).
+        self._fptr.seek(0)
+        read_buffer = self._fptr.read(12)
+        values = struct.unpack('>I4s4B', read_buffer)
+        box_length = values[0]
+        box_id = values[1]
+        signature = values[2:]
 
-            # Should be JP2.
-            # First 4 bytes should be 12, the length of the 'jP  ' box.
-            # 2nd 4 bytes should be the box ID ('jP  ').
-            # 3rd 4 bytes should be the box signature (13, 10, 135, 10).
-            fptr.seek(0)
-            read_buffer = fptr.read(12)
-            values = struct.unpack(">I4s4B", read_buffer)
-            box_length = values[0]
-            box_id = values[1]
-            signature = values[2:]
+        if (
+            box_length != 12
+            or box_id != b'jP  '
+            or signature != (13, 10, 135, 10)
+        ):
+            msg = f'{self.filename} is not a JPEG 2000 file.'
+            raise InvalidJp2kError(msg)
 
-            if (
-                box_length != 12
-                or box_id != b"jP  "
-                or signature != (13, 10, 135, 10)
-            ):
-                msg = f"{self.filename} is not a JPEG 2000 file."
-                raise InvalidJp2kError(msg)
-
-            # Back up and start again, we know we have a superbox (box of
-            # boxes) here.
-            fptr.seek(0)
-            self.box = self.parse_superbox(fptr)
-            self._validate()
+        # Back up and start again, we know we have a superbox (box of
+        # boxes) here.
+        self._fptr.seek(0)
+        self.box = self.parse_superbox(self._fptr)
+        self._validate()
 
         self._parse_count += 1
 
@@ -931,38 +930,53 @@ class Jp2kr(Jp2kBox):
             Signed:  (False, False, False)
             Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))
         """
-        with self.path.open("rb") as fptr:
+        if self._fptr.closed:
+            with self.path.open("rb") as self._fptr:
+                c = self._get_codestream(header_only)
+        else:
+            self._fptr.seek(0)
+            c = self._get_codestream(header_only)
 
-            # if it's just a raw codestream file, it's easy
-            if self._codec_format == opj2.CODEC_J2K:
-                return self._get_codestream(fptr, self.length, header_only)
+        return c
+
+    def _get_codestream(self, header_only):
+
+        # if it's just a raw codestream file, it's easy
+        if self._codec_format == opj2.CODEC_J2K:
+
+            c = self._get_raw_codestream(self.length, header_only)
+
+        else:
 
             # continue assuming JP2, must seek to the JP2C box and past its
             # header
             box = next(filter(lambda x: x.box_id == "jp2c", self.box), None)
 
-            fptr.seek(box.offset)
-            read_buffer = fptr.read(8)
+            self._fptr.seek(box.offset)
+            read_buffer = self._fptr.read(8)
             (box_length, _) = struct.unpack(">I4s", read_buffer)
             if box_length == 0:
                 # The length of the box is presumed to last until the end
                 # of the file.  Compute the effective length of the box.
-                box_length = self.path.stat().st_size - fptr.tell() + 8
+                box_length = self.path.stat().st_size - self._fptr.tell()
             elif box_length == 1:
                 # Seek past the XL field.
-                read_buffer = fptr.read(8)
+                read_buffer = self._fptr.read(8)
                 (box_length,) = struct.unpack(">Q", read_buffer)
+                box_length -= 8
 
-            return self._get_codestream(fptr, box_length - 8, header_only)
+            c = self._get_raw_codestream(box_length, header_only)
 
-    def _get_codestream(self, fptr, length, header_only):
+        return c
+
+    def _get_raw_codestream(self, length, header_only):
         """
         Parsing errors can make for confusing errors sometimes, so catch any
         such error and add context to it.
         """
 
         try:
-            codestream = Codestream(fptr, length, header_only=header_only)
+            codestream = Codestream(self._fptr, length, header_only=header_only)
         except Exception:
             _, value, traceback = sys.exc_info()
             msg = (

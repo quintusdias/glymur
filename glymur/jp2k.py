@@ -216,7 +216,8 @@ class Jp2k(Jp2kr):
         force : bool
             If true, then run finalize operations
         """
-        self.parse(force=force_parse)
+        with self.path.open(mode='rb') as self._fptr:
+            self.parse(force=force_parse)
 
         if (
             self._capture_resolution is None
@@ -256,7 +257,8 @@ class Jp2k(Jp2kr):
         temp_filename = self.filename + ".tmp"
         self.wrap(temp_filename, boxes=self.box)
         shutil.move(temp_filename, self.filename)
-        self.parse(force=True)
+        with open(self.filename, mode='rb') as self._fptr:
+            self.parse(force=True)
 
     def _validate_kwargs(self):
         """Validate keyword parameters passed to the constructor."""
@@ -752,7 +754,8 @@ class Jp2k(Jp2kr):
         with self.path.open("ab") as ofile:
             box.write(ofile)
 
-        self.parse(force=True)
+        with self.path.open(mode='rb') as self._fptr:
+            self.parse(force=True)
 
     def wrap(self, filename, boxes=None):
         """
