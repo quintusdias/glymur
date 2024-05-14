@@ -92,8 +92,9 @@ class Jp2kr(Jp2kBox):
         if not self.path.exists():
             raise FileNotFoundError(f"{self.filename} does not exist.")
 
-        self.parse()
-        self._initialize_shape()
+        with self.path.open('rb') as self._fptr:
+            self.parse()
+            self._initialize_shape()
 
     def _initialize_shape(self):
         """If there was no image data provided and if no shape was
@@ -299,44 +300,42 @@ class Jp2kr(Jp2kBox):
 
         self.length = self.path.stat().st_size
 
-        with self.path.open('rb') as fptr:
+        # Make sure we have a JPEG2000 file.  It could be either JP2 or
+        # J2C.  Check for J2C first, single box in that case.
+        read_buffer = self._fptr.read(2)
+        signature, = struct.unpack('>H', read_buffer)
+        if signature == 0xff4f:
+            self._codec_format = opj2.CODEC_J2K
+            # That's it, we're done.  The codestream object is only
+            # produced upon explicit request.
+            return
 
-            # Make sure we have a JPEG2000 file.  It could be either JP2 or
-            # J2C.  Check for J2C first, single box in that case.
-            read_buffer = fptr.read(2)
-            signature, = struct.unpack('>H', read_buffer)
-            if signature == 0xff4f:
-                self._codec_format = opj2.CODEC_J2K
-                # That's it, we're done.  The codestream object is only
-                # produced upon explicit request.
-                return
+        self._codec_format = opj2.CODEC_JP2
 
-            self._codec_format = opj2.CODEC_JP2
+        # Should be JP2.
+        # First 4 bytes should be 12, the length of the 'jP  ' box.
+        # 2nd 4 bytes should be the box ID ('jP  ').
+        # 3rd 4 bytes should be the box signature (13, 10, 135, 10).
+        self._fptr.seek(0)
+        read_buffer = self._fptr.read(12)
+        values = struct.unpack('>I4s4B', read_buffer)
+        box_length = values[0]
+        box_id = values[1]
+        signature = values[2:]
 
-            # Should be JP2.
-            # First 4 bytes should be 12, the length of the 'jP  ' box.
-            # 2nd 4 bytes should be the box ID ('jP  ').
-            # 3rd 4 bytes should be the box signature (13, 10, 135, 10).
-            fptr.seek(0)
-            read_buffer = fptr.read(12)
-            values = struct.unpack('>I4s4B', read_buffer)
-            box_length = values[0]
-            box_id = values[1]
-            signature = values[2:]
+        if (
+            box_length != 12
+            or box_id != b'jP  '
+            or signature != (13, 10, 135, 10)
+        ):
+            msg = f'{self.filename} is not a JPEG 2000 file.'
+            raise InvalidJp2kError(msg)
 
-            if (
-                box_length != 12
-                or box_id != b'jP  '
-                or signature != (13, 10, 135, 10)
-            ):
-                msg = f'{self.filename} is not a JPEG 2000 file.'
-                raise InvalidJp2kError(msg)
-
-            # Back up and start again, we know we have a superbox (box of
-            # boxes) here.
-            fptr.seek(0)
-            self.box = self.parse_superbox(fptr)
-            self._validate()
+        # Back up and start again, we know we have a superbox (box of
+        # boxes) here.
+        self._fptr.seek(0)
+        self.box = self.parse_superbox(self._fptr)
+        self._validate()
 
         self._parse_count += 1
 
