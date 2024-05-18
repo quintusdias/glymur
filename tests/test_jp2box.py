@@ -1,7 +1,6 @@
 """Test suite specifically targeting JP2 box layout.
 """
 # Standard library imports ...
-import doctest
 import importlib.resources as ir
 from io import BytesIO
 import os
@@ -31,20 +30,6 @@ from glymur.core import COLOR, OPACITY, SRGB, GREYSCALE
 from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE
 from . import fixtures
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
-
-
-def docTearDown(doctest_obj):  # pragma: no cover
-    glymur.set_option('parse.full_codestream', False)
-
-
-def load_tests(loader, tests, ignore):  # pragma: no cover
-    """Run doc tests as well."""
-    if os.name == "nt":
-        # Can't do it on windows, temporary file issue.
-        return tests
-    tests.addTests(doctest.DocTestSuite('glymur.jp2box',
-                                        tearDown=docTearDown))
-    return tests
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
@@ -1055,11 +1040,40 @@ class TestJp2Boxes(fixtures.TestCommon):
         box._filename = str(self.jp2file)
         box.codestream
 
+    def test_no_jp2h_box(self):
+        """
+        SCENARIO:  The JP2/JP2H box is missing
+
+        EXPECTED RESULT:  InvalidJp2kError
+        """
+        # Write a new JP2 file that omits the IHDR box.
+        j = Jp2k(self.jp2file)
+        jp2h = [box for box in j.box if box.box_id == 'jp2h'][0]
+        with open(self.temp_jp2_filename, mode='wb') as tfile:
+            numbytes = jp2h.offset
+            with open(self.jp2file, 'rb') as ifile:
+                # Write all the way up to the ihdr box
+                tfile.write(ifile.read(numbytes))
+
+                # Seek past the ihdr box
+                ifile.seek(jp2h.length, os.SEEK_CUR)
+
+                # Write the rest of the JP2 file
+                tfile.write(ifile.read(numbytes))
+
+            tfile.flush()
+
+            with self.assertRaises(InvalidJp2kError):
+                with warnings.catch_warnings():
+                    # Lots of things wrong with this file.
+                    warnings.simplefilter('ignore')
+                    Jp2k(tfile.name)
+
     def test_no_ihdr_box(self):
         """
         SCENARIO:  The JP2/IHDR box cannot be parsed.
 
-        EXPECTED RESULT:  An RuntimeError is issued.
+        EXPECTED RESULT:  InvalidJp2kError
         """
         # Write a new JP2 file that omits the IHDR box.
         j = Jp2k(self.jp2file)
@@ -1089,19 +1103,16 @@ class TestJp2Boxes(fixtures.TestCommon):
         """
         SCENARIO:  The JP2 file has no JP2C box.
 
-        EXPECTED RESULT:  An InvalidJp2kError is issued.
+        EXPECTED RESULT:  An InvalidJp2kError is issued when the file is
+        parsed.
         """
-        # Write a new JP2 file that omits the JP2C box.
-        j = Jp2k(self.jp2file)
-        jp2c = [box for box in j.box if box.box_id == 'jp2c'][0]
-        with open(self.temp_jp2_filename, mode='wb') as tfile:
-            numbytes = jp2c.offset
-            with open(self.jp2file, 'rb') as ifile:
-                tfile.write(ifile.read(numbytes))
-            tfile.flush()
+        testfile = ir.files('tests.data').joinpath('no_jp2c.jp2')
 
+        with warnings.catch_warnings():
+            # Lots of things wrong with this file.
+            warnings.simplefilter('ignore')
             with self.assertRaises(InvalidJp2kError):
-                Jp2k(tfile.name)
+                Jp2k(testfile)
 
     def test_two_jp2c_boxes(self):
         """

@@ -1842,7 +1842,7 @@ class TestSuite(fixtures.TestCommon):
 
     def test_1x1_tile(self):
         """
-        SCENARIO:  Write an image that is tiled 1x1.
+        SCENARIO:  Write by tiles an image that is tiled 1x1.
 
         EXPECTED RESULT:  RuntimeError, as this triggers an unresolved
         bug, issue586.
@@ -1858,8 +1858,7 @@ class TestSuite(fixtures.TestCommon):
             self.temp_j2k_filename, shape=shape, tilesize=tilesize,
         )
         with self.assertRaises(RuntimeError):
-            for tw in j.get_tilewriters():
-                tw[:] = j2k_data
+            j.get_tilewriters()
 
     def test_openjpeg_library_too_old_for_tile_writing(self):
         """

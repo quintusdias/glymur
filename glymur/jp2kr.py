@@ -14,6 +14,7 @@ import ctypes
 import pathlib
 import re
 import struct
+import sys
 import warnings
 
 # Third party library imports
@@ -22,7 +23,7 @@ import numpy as np
 # Local imports...
 from .codestream import Codestream
 from . import core, version, get_option
-from .jp2box import Jp2kBox, FileTypeBox, InvalidJp2kError
+from .jp2box import Jp2kBox, FileTypeBox, InvalidJp2kError, InvalidJp2kWarning
 from .lib import openjp2 as opj2
 
 
@@ -355,7 +356,14 @@ class Jp2kr(Jp2kBox):
             # Don't bother trying to validate JPX.
             return
 
-        jp2h = [box for box in self.box if box.box_id == 'jp2h'][0]
+        try:
+            jp2h = [box for box in self.box if box.box_id == 'jp2h'][0]
+        except IndexError:
+            msg = (
+                "No JP2 header box was located in the outermost jacket of "
+                "boxes."
+            )
+            raise InvalidJp2kError(msg)
 
         # An IHDR box is required as the first child box of the JP2H box.
         if jp2h.box[0].box_id != 'ihdr':
@@ -373,7 +381,7 @@ class Jp2kr(Jp2kBox):
                     "enumerated colorspace or a restricted ICC profile if the "
                     "file type box brand is 'jp2 '."
                 )
-                warnings.warn(msg, UserWarning)
+                warnings.warn(msg, InvalidJp2kWarning)
 
         # We need to have one and only one JP2H box if we have a JP2 file.
         num_jp2h_boxes = len([box for box in self.box if box.box_id == 'jp2h'])
@@ -382,7 +390,7 @@ class Jp2kr(Jp2kBox):
                 f"This file has {num_jp2h_boxes} JP2H boxes in the outermost "
                 "layer of boxes.  There should only be one."
             )
-            warnings.warn(msg)
+            warnings.warn(msg, InvalidJp2kWarning)
 
         # We should have one and only one JP2C box if we have a JP2 file.
         num_jp2c_boxes = len([box for box in self.box if box.box_id == 'jp2c'])
@@ -889,25 +897,45 @@ class Jp2kr(Jp2kBox):
             Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))
         """
         with self.path.open('rb') as fptr:
-            if self._codec_format == opj2.CODEC_J2K:
-                codestream = Codestream(fptr, self.length,
-                                        header_only=header_only)
-            else:
-                box = [x for x in self.box if x.box_id == 'jp2c']
-                fptr.seek(box[0].offset)
-                read_buffer = fptr.read(8)
-                (box_length, _) = struct.unpack('>I4s', read_buffer)
-                if box_length == 0:
-                    # The length of the box is presumed to last until the end
-                    # of the file.  Compute the effective length of the box.
-                    box_length = self.path.stat().st_size - fptr.tell() + 8
-                elif box_length == 1:
-                    # Seek past the XL field.
-                    read_buffer = fptr.read(8)
-                    box_length, = struct.unpack('>Q', read_buffer)
-                codestream = Codestream(fptr, box_length - 8,
-                                        header_only=header_only)
 
+            # if it's just a raw codestream file, it's easy
+            if self._codec_format == opj2.CODEC_J2K:
+                return self._get_codestream(fptr, self.length, header_only)
+
+            # continue assuming JP2, must seek to the JP2C box and past its
+            # header
+            box = next(filter(lambda x: x.box_id == 'jp2c', self.box), None)
+
+            fptr.seek(box.offset)
+            read_buffer = fptr.read(8)
+            (box_length, _) = struct.unpack('>I4s', read_buffer)
+            if box_length == 0:
+                # The length of the box is presumed to last until the end
+                # of the file.  Compute the effective length of the box.
+                box_length = self.path.stat().st_size - fptr.tell() + 8
+            elif box_length == 1:
+                # Seek past the XL field.
+                read_buffer = fptr.read(8)
+                box_length, = struct.unpack('>Q', read_buffer)
+
+            return self._get_codestream(fptr, box_length - 8, header_only)
+
+    def _get_codestream(self, fptr, length, header_only):
+        """
+        Parsing errors can make for confusing errors sometimes, so catch any
+        such error and add context to it.
+        """
+
+        try:
+            codestream = Codestream(fptr, length, header_only=header_only)
+        except Exception:
+            _, value, traceback = sys.exc_info()
+            msg = (
+                f'The file is invalid '
+                f'because the codestream could not be parsed:  "{value}"'
+            )
+            raise InvalidJp2kError(msg).with_traceback(traceback)
+        else:
             return codestream
 
     def _validate_nonzero_image_size(self, nrows, ncols, component_index):

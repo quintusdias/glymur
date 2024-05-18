@@ -71,7 +71,7 @@ _EXIF_UUID = UUID(bytes=b'JpgTiffExif->JP2')
 _XMP_UUID = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
 
 
-class InvalidJp2kWarning(RuntimeError):
+class InvalidJp2kWarning(UserWarning):
     """Issue this warning in case the file is technically invalid but we can
     still read the image.
     """
