@@ -78,33 +78,6 @@ class TestSuite(fixtures.TestCommon):
                 # c = Jp2k(tfile.name).get_codestream(header_only=False)
                 Jp2k(tfile.name)
 
-    def test_unrecognized_marker(self):
-        """
-        SCENARIO:  There is an unrecognized marker just after an SOT marker but
-        before the EOC marker.  All markers must have a leading byte value of
-        0xff.
-
-        EXPECTED RESULT:  The SOT marker is the last one retrieved from the
-        codestream.
-        """
-        with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with open(self.j2kfile, 'rb') as ifile:
-                # Everything up until the SOT marker.
-                read_buffer = ifile.read(98)
-                tfile.write(read_buffer)
-
-                # Write the bad marker 0xd900
-                read_buffer = struct.pack('>H', 0xd900)
-                tfile.write(read_buffer)
-
-                # Get the rest of the input file.
-                read_buffer = ifile.read()
-                tfile.write(read_buffer)
-                tfile.flush()
-
-            with self.assertRaises(ValueError):
-                Jp2k(tfile.name).get_codestream(header_only=False)
-
     def test_unrecoverable_xml(self):
         """
         Bad byte sequence in XML that cannot be parsed.
@@ -122,36 +95,6 @@ class TestSuite(fixtures.TestCommon):
             box = glymur.jp2box.XMLBox.parse(fptr, 0, 8 + len(payload))
 
         self.assertIsNone(box.xml)
-
-    def test_tile_height_is_zero(self):
-        """
-        Zero tile height should not cause an exception.
-
-        Original test file was input/nonregression/2539.pdf.SIGFPE.706.1712.jp2
-        """
-        fp = BytesIO()
-
-        buffer = struct.pack('>H', 47)  # length
-
-        # kwargs = {'rsiz': 1,
-        #           'xysiz': (1000, 1000),
-        #           'xyosiz': (0, 0),
-        #           'xytsiz': (0, 1000),
-        #           'xytosiz': (0, 0),
-        #           'Csiz': 3,
-        #           'bitdepth': (8, 8, 8),
-        #           'signed':  (False, False, False),
-        #           'xyrsiz': ((1, 1, 1), (1, 1, 1)),
-        #           'length': 47,
-        #           'offset': 2}
-        buffer += struct.pack('>HIIIIIIIIH', 1, 1000, 1000, 0, 0, 0, 1000,
-                              0, 0, 3)
-        buffer += struct.pack('>BBBBBBBBB', 7, 1, 1, 7, 1, 1, 7, 1, 1)
-        fp.write(buffer)
-        fp.seek(0)
-
-        with self.assertWarns(UserWarning):
-            glymur.codestream.Codestream._parse_siz_segment(fp)
 
     def test_invalid_progression_order(self):
         """

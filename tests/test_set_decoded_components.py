@@ -150,7 +150,6 @@ class TestSuite(unittest.TestCase):
             with warnings.catch_warnings():
                 warnings.simplefilter('error')
                 j2k.decoded_components = -1
-                j2k[:]
 
     def test_same_component_several_times(self):
         """

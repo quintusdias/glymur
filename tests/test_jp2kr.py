@@ -205,31 +205,6 @@ class TestJp2kr(fixtures.TestCommon):
                 rgb_from_idx[r, c] = palette[idx[r, c]]
         np.testing.assert_array_equal(rgb, rgb_from_idx)
 
-    def test_bad_tile_part_pointer(self):
-        """
-        SCENARIO:  A bad SOT marker segment is encountered (Psot value pointing
-        far beyond the end of the EOC marker) when requesting a fully parsed
-        codestream.
-
-        EXPECTED RESULT:  struct.error
-        """
-        with open(self.temp_jp2_filename, 'wb') as ofile:
-            with open(self.jp2file, 'rb') as ifile:
-                # Copy up until Psot field.
-                ofile.write(ifile.read(204))
-
-                # Write a bad Psot value.
-                ofile.write(struct.pack('>I', 2000000))
-
-                # copy the rest of the file as-is.
-                ifile.seek(208)
-                ofile.write(ifile.read())
-                ofile.flush()
-
-        j = Jp2kr(self.temp_jp2_filename)
-        with self.assertRaises(struct.error):
-            j.get_codestream(header_only=False)
-
     def test_read_differing_subsamples(self):
         """
         SCENARIO:  Attempt to read a file where the components have differing

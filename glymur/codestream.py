@@ -767,11 +767,10 @@ class Codestream(object):
             num_tiles_y = (xysiz[1] - xyosiz[1]) / (xytsiz[1] - xytosiz[1])
         except ZeroDivisionError:
             msg = (
-                f"Invalid tile specification:  "
-                f"size of {xytsiz[1]} x {xytsiz[0]}, "
-                f"offset of {xytosiz[1]} x {xytsiz[0]}."
+                f"Invalid tile specification in SIZ segment at byte offset "
+                f"{offset}:  tile size of {xytsiz[1]} x {xytsiz[0]}."
             )
-            warnings.warn(msg, UserWarning)
+            raise ZeroDivisionError(msg)
         else:
             numtiles = np.ceil(num_tiles_x) * np.ceil(num_tiles_y)
             if numtiles > 65535:

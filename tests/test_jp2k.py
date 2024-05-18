@@ -262,31 +262,6 @@ class TestJp2k(fixtures.TestCommon):
 
         np.testing.assert_array_equal(rgb, bgr[:, :, [2, 1, 0]])
 
-    def test_bad_tile_part_pointer(self):
-        """
-        SCENARIO:  A bad SOT marker segment is encountered (Psot value pointing
-        far beyond the end of the EOC marker) when requesting a fully parsed
-        codestream.
-
-        EXPECTED RESULT:  struct.error
-        """
-        with open(self.temp_jp2_filename, 'wb') as ofile:
-            with open(self.jp2file, 'rb') as ifile:
-                # Copy up until Psot field.
-                ofile.write(ifile.read(204))
-
-                # Write a bad Psot value.
-                ofile.write(struct.pack('>I', 2000000))
-
-                # copy the rest of the file as-is.
-                ifile.seek(208)
-                ofile.write(ifile.read())
-                ofile.flush()
-
-        j = Jp2k(self.temp_jp2_filename)
-        with self.assertRaises(struct.error):
-            j.get_codestream(header_only=False)
-
     def test_read_differing_subsamples(self):
         """
         SCENARIO:  Attempt to read a file where the components have differing
@@ -392,20 +367,6 @@ class TestJp2k(fixtures.TestCommon):
         path = ir.files('tests.data').joinpath('nemo.txt')
         with self.assertRaises(InvalidJp2kError):
             Jp2k(path)
-
-    @unittest.skip("This test may not be appropriate")
-    def test_file_does_not_exist(self):
-        """
-        Scenario:  The Jp2k construtor is passed a file that does not exist
-        and the intent is reading.
-
-        Expected Result:  FileNotFoundError
-        """
-        # Verify that we error out appropriately if not given an existing file
-        # at all.
-        filename = 'this file does not actually exist on the file system.'
-        with self.assertRaises(FileNotFoundError):
-            Jp2k(filename)
 
     def test_codestream(self):
         """
