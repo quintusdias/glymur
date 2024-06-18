@@ -258,7 +258,7 @@ class Jp2k(Jp2kr):
         header box if we were so instructed.  This requires a wrapping
         operation.
         """
-        jp2h = [box for box in self.box if box.box_id == 'jp2h'][0]
+        jp2h = next(filter(lambda x: x.box_id == 'jp2h', self.box), None)
 
         extra_boxes = []
         if self._capture_resolution is not None:
@@ -1125,8 +1125,7 @@ class Jp2k(Jp2kr):
 
     def _validate_jp2_colr(self, boxes):
         """Validate JP2 requirements on colour specification boxes."""
-        lst = [box for box in boxes if box.box_id == 'jp2h']
-        jp2h = lst[0]
+        jp2h = next(filter(lambda x: x.box_id == 'jp2h', boxes), None)
         for colr in [box for box in jp2h.box if box.box_id == 'colr']:
             if colr.approximation != 0:
                 msg = (
@@ -1161,19 +1160,21 @@ class Jp2k(Jp2kr):
     def _validate_jp2c(self, boxes):
         """Validate the codestream box in relation to other boxes."""
         # jp2c must be preceeded by jp2h
-        jp2h_lst = [idx for (idx, box) in enumerate(boxes)
-                    if box.box_id == 'jp2h']
-        jp2h_idx = jp2h_lst[0]
-        jp2c_lst = [idx for (idx, box) in enumerate(boxes)
-                    if box.box_id == 'jp2c']
-        if len(jp2c_lst) == 0:
+        jp2h_idx, _ = next(
+            filter(lambda x: x[1].box_id == 'jp2h', enumerate(boxes)),
+            (None, None)
+        )
+        jp2c_idx, _ = next(
+            filter(lambda x: x[1].box_id == 'jp2c', enumerate(boxes)),
+            (None, None)
+        )
+        if jp2c_idx is None:
             msg = (
                 "A codestream box must be defined in the outermost list of "
                 "boxes."
             )
             raise InvalidJp2kError(msg)
 
-        jp2c_idx = jp2c_lst[0]
         if jp2h_idx >= jp2c_idx:
             msg = "The codestream box must be preceeded by a jp2 header box."
             raise InvalidJp2kError(msg)
@@ -1182,8 +1183,7 @@ class Jp2k(Jp2kr):
         """Validate the JP2 Header box."""
         self._check_jp2h_child_boxes(boxes, 'top-level')
 
-        jp2h_lst = [box for box in boxes if box.box_id == 'jp2h']
-        jp2h = jp2h_lst[0]
+        jp2h = next(filter(lambda x: x.box_id == 'jp2h', boxes), None)
 
         # 1st jp2 header box cannot be empty.
         if len(jp2h.box) == 0:
@@ -1199,20 +1199,18 @@ class Jp2k(Jp2kr):
             raise InvalidJp2kError(msg)
 
         # colr must be present in jp2 header box.
-        colr_lst = [
-            j for (j, box) in enumerate(jp2h.box) if box.box_id == 'colr'
-        ]
-        if len(colr_lst) == 0:
+        colr = next(filter(lambda x: x.box_id == 'colr', jp2h.box), None)
+        if colr is None:
             msg = "The jp2 header box must contain a color definition box."
             raise InvalidJp2kError(msg)
-        colr = jp2h.box[colr_lst[0]]
 
         self._validate_channel_definition(jp2h, colr)
 
     def _validate_channel_definition(self, jp2h, colr):
         """Validate the channel definition box."""
-        cdef_lst = [j for (j, box) in enumerate(jp2h.box)
-                    if box.box_id == 'cdef']
+        cdef_lst = [
+            idx for (idx, box) in enumerate(jp2h.box) if box.box_id == 'cdef'
+        ]
         if len(cdef_lst) > 1:
             msg = ("Only one channel definition box is allowed in the "
                    "JP2 header.")
