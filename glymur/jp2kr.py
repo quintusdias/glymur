@@ -9,7 +9,6 @@ License:  MIT
 # Standard library imports...
 from __future__ import annotations
 from contextlib import ExitStack
-from itertools import filterfalse
 import ctypes
 import pathlib
 import re
@@ -109,8 +108,8 @@ class Jp2kr(Jp2kBox):
             num_components = len(cstr.segment[1].xrsiz)
         else:
             # try to get the image size from the IHDR box
-            jp2h = [box for box in self.box if box.box_id == 'jp2h'][0]
-            ihdr = [box for box in jp2h.box if box.box_id == 'ihdr'][0]
+            jp2h = next(filter(lambda x: x.box_id == 'jp2h', self.box), None)
+            ihdr = next(filter(lambda x: x.box_id == 'ihdr', jp2h.box), None)
 
             height, width = ihdr.height, ihdr.width
             num_components = ihdr.num_components
@@ -190,10 +189,10 @@ class Jp2kr(Jp2kBox):
     @layer.setter
     def layer(self, layer):
         # Set to the indicated value so long as it is valid.
-        cod = [
-            segment for segment in self.codestream.segment
-            if segment.marker_id == 'COD'
-        ][0]
+        cod = next(
+            filter(lambda x: x.marker_id == 'COD', self.codestream.segment),
+            None
+        )
         if layer < 0 or layer >= cod.layers:
             msg = f"Invalid layer number, must be in range [0, {cod.layers})."
             raise ValueError(msg)
@@ -356,9 +355,8 @@ class Jp2kr(Jp2kBox):
             # Don't bother trying to validate JPX.
             return
 
-        try:
-            jp2h = [box for box in self.box if box.box_id == 'jp2h'][0]
-        except IndexError:
+        jp2h = next(filter(lambda x: x.box_id == 'jp2h', self.box), None)
+        if jp2h is None:
             msg = (
                 "No JP2 header box was located in the outermost jacket of "
                 "boxes."
@@ -412,10 +410,10 @@ class Jp2kr(Jp2kBox):
         ihdr = jp2h.box[0]
         ihdr_dims = ihdr.height, ihdr.width, ihdr.num_components
 
-        siz = [
-            segment for segment in self.codestream.segment
-            if segment.marker_id == 'SIZ'
-        ][0]
+        siz = next(
+            filter(lambda x: x.marker_id == 'SIZ', self.codestream.segment),
+            None
+        )
 
         siz_dims = (siz.ysiz, siz.xsiz, len(siz.bitdepth))
         if ihdr_dims != siz_dims:
@@ -468,9 +466,9 @@ class Jp2kr(Jp2kBox):
         if isinstance(pargs, tuple) and any(isinstance(x, int) for x in pargs):
             # Replace the first such integer argument, replace it with a slice.
             lst = list(pargs)
-            g = filterfalse(lambda x: not isinstance(x[1], int),
-                            enumerate(pargs))
-            idx = next(g)[0]
+            idx, _ = next(
+                filter(lambda x: isinstance(x[1], int), enumerate(lst)), None
+            )
             lst[idx] = slice(pargs[idx], pargs[idx] + 1)
             newindex = tuple(lst)
 
@@ -684,10 +682,13 @@ class Jp2kr(Jp2kBox):
         # Must check the specified rlevel against the maximum.
         if rlevel != 0:
             # Must check the specified rlevel against the maximum.
-            cod_seg = [
-                segment for segment in self.codestream.segment
-                if segment.marker_id == 'COD'
-            ][0]
+            cod_seg = next(
+                filter(
+                    lambda x: x.marker_id == 'COD',
+                    self.codestream.segment
+                ),
+                None
+            )
             max_rlevel = cod_seg.num_res
             if rlevel == -1:
                 # -1 is shorthand for the largest rlevel
