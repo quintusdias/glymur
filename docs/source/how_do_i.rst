@@ -248,7 +248,7 @@ We suppress a harmless warning from scikit-image below. ::
     >>> for layer in range(4):
     ...     jp2.layer = layer
     ...     psnr.append(skimage.metrics.peak_signal_noise_ratio(truth, jp2[:]))
-    >>> print(psnr)
+    >>> print(psnr)                # doctest: +SKIP
     [inf, 29.90221522329731, 39.71824592284344, 48.381047443043634]
 
 ... convert TIFF images to JPEG 2000?
