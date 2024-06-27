@@ -5,7 +5,7 @@ dependencies:
     - python=3.11.*
     - libtiff
     - lxml
-    - numpy
+    - numpy>=1.26,<2.0
     - openjpeg
     - pytest-xdist
     - scikit-image

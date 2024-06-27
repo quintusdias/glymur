@@ -5,7 +5,7 @@ dependencies:
     - python=3.11.*
     - gdal
     - lxml
-    - numpy
+    - numpy>=1.26,<2.0
     - pip
     - pytest-xdist
     - scikit-image
