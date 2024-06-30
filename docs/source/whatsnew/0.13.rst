@@ -3,6 +3,16 @@ Changes in glymur 0.13
 ######################
 
 *****************
+Changes in 0.13.3
+*****************
+
+    * Refactor parsing errors and warnings.
+    * Update CI configuration for numpy 2.0.
+    * Skip psnr doctest for numpy 2.0.
+    * Fix test issue on s390x.
+    * Refactor code pattern for finding first element.
+
+*****************
 Changes in 0.13.2
 *****************
 

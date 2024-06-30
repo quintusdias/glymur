@@ -1,3 +1,10 @@
+June 30, 2024 - v0.13.3
+    Refactor parsing errors and warnings.
+    Update CI configuration for numpy 2.0.
+    Skip psnr doctest for numpy 2.0.
+    Fix test issue on s390x.
+    Refactor code pattern for finding first element.
+
 May 07, 2024 - v0.13.2
     Improve doctesting, fix broken libtiff doctest
     Increase code coverage
