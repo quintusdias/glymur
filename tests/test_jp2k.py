@@ -38,6 +38,17 @@ class TestJp2k(fixtures.TestCommon):
         super().setUp()
         glymur.reset_option('all')
 
+    def test_read_jph(self):
+        """
+        Scenario:  read a JPH file using Jp2k
+
+        Expected response:  The size of the image read is verified.
+        """
+        path = ir.files('tests.data').joinpath('oj-ht-byte.jph')
+        j = Jp2k(path)
+        d = j[:]
+        self.assertEqual(j.shape, (20, 20))
+
     def test_repr(self):
         """
         Scenario:  run repr on Jp2k object
