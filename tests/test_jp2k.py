@@ -47,7 +47,7 @@ class TestJp2k(fixtures.TestCommon):
         path = ir.files('tests.data').joinpath('oj-ht-byte.jph')
         j = Jp2k(path)
         d = j[:]
-        self.assertEqual(j.shape, (20, 20))
+        self.assertEqual(d.shape, (20, 20))
 
     def test_repr(self):
         """
