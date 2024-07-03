@@ -20,7 +20,7 @@ import numpy as np
 
 # Local imports ...
 import glymur
-from glymur import Jp2k
+from glymur import Jp2k, Jp2kr
 from glymur.jp2box import (
     ColourSpecificationBox, ContiguousCodestreamBox, FileTypeBox,
     ImageHeaderBox, JP2HeaderBox, JPEG2000SignatureBox, BitsPerComponentBox,
@@ -355,6 +355,16 @@ class TestChannelDefinition(fixtures.TestCommon):
 
 class TestFileTypeBox(fixtures.TestCommon):
     """Test suite for ftyp box issues."""
+
+    def test_jph(self):
+        """
+        SCENARIO:  JPH box
+
+        EXPECTED RESULT:  The brand is verified.
+        """
+        path = ir.files('tests.data').joinpath('oj-ht-byte.jph')
+        j = Jp2kr(path)
+        self.assertEqual(j.box[1].brand, 'jph ')
 
     def test_bad_brand_on_parse(self):
         """

@@ -1259,7 +1259,7 @@ class FileTypeBox(Jp2kBox):
     """
     box_id = 'ftyp'
     longname = 'File Type'
-    _valid_cls = ['jp2 ', 'jpx ', 'jpxb']
+    _valid_cls = ['jp2 ', 'jph ', 'jpx ', 'jpxb']
 
     def __init__(
         self, brand='jp2 ', minor_version=0, compatibility_list=None,
@@ -1304,16 +1304,19 @@ class FileTypeBox(Jp2kBox):
         return text
 
     def _validate(self, writing=False):
-        """Validate the box before writing to file."""
-        if self.brand not in ['jp2 ', 'jpx ']:
+        """
+        Validate the box before writing to file.
+        """
+        if self.brand not in ['jp2 ', 'jpx ', 'jph ']:
             msg = (
                 f"The file type brand was '{self.brand}'.  "
-                f"It should be either 'jp2 ' or 'jpx '."
+                f"It should be either 'jp2 ', 'jpx ', or 'jph '."
             )
             if writing:
                 raise InvalidJp2kError(msg)
             else:
                 warnings.warn(msg, UserWarning)
+
         for item in self.compatibility_list:
             if item not in self._valid_cls:
                 msg = (
