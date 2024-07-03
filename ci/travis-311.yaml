@@ -7,6 +7,6 @@ dependencies:
     - libtiff
     - lxml
     - numpy>=1.26,<2.0
-    - openjpeg
+    - openjpeg>=2.5
     - pytest-xdist
     - scikit-image

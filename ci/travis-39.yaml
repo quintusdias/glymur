@@ -6,7 +6,7 @@ dependencies:
     - gdal
     - lxml
     - numpy>=1.24,<1.25
-    - openjpeg
+    - openjpeg>=2.4,<2.5
     - scikit-image
     - libtiff
     - pytest-xdist
