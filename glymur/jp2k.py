@@ -206,13 +206,13 @@ class Jp2k(Jp2kr):
             # Must be determined when writing.
             self._shape = None
 
-        # If there already was a shape attribute, then don't mess with it,
-        # it was set by the reader superclass.
-
-        if self.filename[-4:].endswith(('.jp2', '.JP2', '.jpx', 'JPX')):
-            self._codec_format = opj2.CODEC_JP2
-        else:
-            self._codec_format = opj2.CODEC_J2K
+        if not hasattr(self, '_codec_format'):
+            # Only set codec format if the superclass has not done so, i.e.
+            # we are writing instead of reading.
+            if self.filename[-4:].endswith(('.jp2', '.JP2', '.jpx', 'JPX')):
+                self._codec_format = opj2.CODEC_JP2
+            else:
+                self._codec_format = opj2.CODEC_J2K
 
         self._validate_kwargs()
 

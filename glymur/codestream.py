@@ -736,7 +736,9 @@ class Codestream(object):
         data = struct.unpack_from('>HIIIIIIIIH', read_buffer)
 
         rsiz = data[0]
-        if rsiz not in _KNOWN_PROFILES:
+
+        # Bit 14 (16384) signifies HTJ2K (JPH)
+        if rsiz not in _KNOWN_PROFILES and not np.bitwise_and(rsiz, 16384):
             msg = f"Invalid profile: (Rsiz={rsiz})."
             warnings.warn(msg, UserWarning)
 
@@ -1666,7 +1668,12 @@ class SIZsegment(Segment):
         try:
             profile = _CAPABILITIES_DISPLAY[self.rsiz]
         except KeyError:
-            profile = f'{self.rsiz} (invalid)'
+            if np.bitwise_and(self.rsiz, 16384):
+                # HTJ2K profile that is uninterpreted
+                profile = f'{self.rsiz}'
+            else:
+                # profile unknown
+                profile = f'{self.rsiz} (invalid)'
         msg = msg.format(
             profile=profile,
             height=self.ysiz, width=self.xsiz,
