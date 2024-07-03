@@ -38,9 +38,12 @@ class TestJp2k(fixtures.TestCommon):
         super().setUp()
         glymur.reset_option('all')
 
-    def test_read_jph(self):
+    @unittest.skipIf(
+        glymur.version.openjpeg_version < '2.5.0', "Requires as least v2.5.0"
+    )
+    def test_read_htj2k(self):
         """
-        Scenario:  read a JPH file using Jp2k
+        Scenario:  read an HTJ2K (JPH) file using Jp2k
 
         Expected response:  The size of the image read is verified.
         """
