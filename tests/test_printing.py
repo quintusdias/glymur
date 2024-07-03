@@ -1607,6 +1607,27 @@ class TestPrinting(fixtures.TestCommon):
         )
         self.assertEqual(actual, expected)
 
+    def test_jph_rsiz(self):
+        """
+        Scenario:  parse a JPH file, print the SIZ segment
+
+        Expected result:  no warnings, the output is verified
+        """
+        path = ir.files('tests.data').joinpath('oj-ht-byte.jph')
+
+        with warnings.catch_warnings():
+            warnings.simplefilter('error')
+            j = Jp2k(path)
+            actual = str(j.codestream.segment[1])
+
+        expected = (
+            ir.files('tests.data')
+              .joinpath('jph_siz.txt')
+              .read_text()
+              .rstrip()
+        )
+        self.assertEqual(actual, expected)
+
 
 class TestJp2dump(fixtures.TestCommon):
     """Tests for verifying how jp2dump console script works."""
