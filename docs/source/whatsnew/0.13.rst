@@ -3,6 +3,13 @@ Changes in glymur 0.13
 ######################
 
 *****************
+Changes in 0.13.4
+*****************
+
+    * Don't reset openjpeg codec in Jp2k if already set in Jp2kr.
+    * Update CI configuration to specify openjpeg versions.
+
+*****************
 Changes in 0.13.3
 *****************
 

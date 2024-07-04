@@ -1,3 +1,7 @@
+July 4, 2024 - v0.13.4
+    Don't reset openjpeg codec in Jp2k if already set in Jp2kr.
+    Update CI configuration to specify openjpeg versions.
+    
 June 30, 2024 - v0.13.3
     Refactor parsing errors and warnings.
     Update CI configuration for numpy 2.0.
