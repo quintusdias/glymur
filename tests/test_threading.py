@@ -22,8 +22,8 @@ from . import fixtures
 
 @unittest.skipIf(os.cpu_count() < 2, "makes no sense if 2 cores not there")
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-@unittest.skipIf(glymur.version.openjpeg_version < '2.3.0',
-                 "Requires as least v2.3.0")
+@unittest.skipIf(glymur.version.openjpeg_version < '2.4.0',
+                 "Requires as least v2.4.0")
 class TestSuite(fixtures.TestCommon):
     """Test behavior when multiple threads are possible."""
 
@@ -79,7 +79,7 @@ class TestSuite(fixtures.TestCommon):
                 glymur.set_option('lib.num_threads', 2)
 
     @unittest.skipIf(
-        glymur.version.openjpeg_version < '2.4.0', "Requires as least v2.3.0"
+        glymur.version.openjpeg_version < '2.4.0', "Requires as least v2.4.0"
     )
     def test_threads_write_support__ge_2p4(self):
         """
