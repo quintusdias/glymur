@@ -29,8 +29,8 @@ from . import fixtures
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-@unittest.skipIf(glymur.version.openjpeg_version < '2.3.0',
-                 "Requires as least v2.3.0")
+@unittest.skipIf(glymur.version.openjpeg_version < '2.4.0',
+                 "Requires as least v2.4.0")
 class TestJp2k(fixtures.TestCommon):
     """These tests should be run by just about all configuration."""
 
