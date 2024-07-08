@@ -42,6 +42,22 @@ class TestPrinting(fixtures.TestCommon):
         super().tearDown()
         glymur.reset_option('all')
 
+    def test_cap_segment(self):
+        """
+        Scenario:  Print a CAP segment
+
+        Expected Result:  segment is verified
+        """
+        htj2k_file = ir.files('tests.data').joinpath('oj-ht-byte.jph')
+        j = glymur.Jp2kr(htj2k_file)
+        actual = str(j.codestream.segment[2])
+        expected = (
+            'CAP marker segment @ (467, 8)\n'
+            '    Pcap:  Part 15 (ISO/IEC 15444-15)\n'
+            '    Ccap:  (3,)'
+        )
+        self.assertEqual(actual, expected)
+
     def test_empty_file(self):
         """
         SCENARIO:  Print the file after with object is constructed, but
