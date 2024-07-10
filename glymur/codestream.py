@@ -995,9 +995,12 @@ class CAPsegment(Segment):
 
         msg += '\n'
 
+        # have to cast to uint64 because, you know, stupid windows
         parts = [
-            k for k in range(32) if np.bitwise_and(self.pcap, 1 << (32 - k))
+            k for k in range(32)
+            if np.bitwise_and(np.uint64(self.pcap), np.uint64(1 << (32 - k)))
         ]
+
         for b in parts:
             msg += f'    Pcap:  Part {b} (ISO/IEC 15444-{b})\n'
         msg += f'    Ccap:  {self.ccap}'
