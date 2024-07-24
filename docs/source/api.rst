@@ -2,8 +2,12 @@
 API reference
 #############
 
-.. autoclass:: glymur.Jp2k
+.. automodule:: glymur.jp2kr
+
+.. autoclass:: glymur.Jp2kr
     :members:
 
-.. autoclass:: glymur.jp2box.Jp2kBox
+.. automodule:: glymur.jp2k
+
+.. autoclass:: glymur.Jp2k
     :members:

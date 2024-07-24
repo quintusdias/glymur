@@ -55,6 +55,19 @@ class Jp2kr(Jp2kBox):
     >>> thumbnail = jp2[::2, ::2]
     >>> thumbnail.shape
     (728, 1296, 3)
+
+    Make use of OpenJPEG's thread support
+
+    >>> import time
+    >>> jp2file = glymur.data.nemo()
+    >>> jp2 = glymur.Jp2k(jp2file)
+    >>> t0 = time.time(); data = jp2[:]; t1 = time.time()
+    >>> t1 - t0 #doctest: +SKIP
+    0.9024193286895752
+    >>> glymur.set_option('lib.num_threads', 4)
+    >>> t0 = time.time(); data = jp2[:]; t1 = time.time()
+    >>> t1 - t0 #doctest: +SKIP
+    0.4060473537445068
     """
 
     def __init__(
@@ -233,7 +246,7 @@ class Jp2kr(Jp2kBox):
 
     @property
     def codestream(self):
-        """Metadata for JP2 or J2K codestream (header only)."""
+        """Metadata for JP2 or J2K codestream."""
         if self._codestream is None:
             self._codestream = self.get_codestream(header_only=True)
         return self._codestream
@@ -523,6 +536,9 @@ class Jp2kr(Jp2kBox):
     def read(self, **kwargs):
         """Read a JPEG 2000 image.
 
+        .. deprecated:: 0.13.5
+           Use numpy-style slicing instead.
+
         Returns
         -------
         img_array : ndarray
@@ -724,7 +740,7 @@ class Jp2kr(Jp2kBox):
                    verbose=False, ignore_pclr_cmap_cdef=False):
         """Read a JPEG 2000 image.
 
-        The only time you should use this method is when the image has
+        The only time you should ever use this method is when the image has
         different subsampling factors across components.  Otherwise you should
         use the read method.
 
