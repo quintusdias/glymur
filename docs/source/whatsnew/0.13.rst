@@ -3,6 +3,14 @@ Changes in glymur 0.13
 ######################
 
 *****************
+Changes in 0.13.5
+*****************
+
+    * Add support for parsing the CAP segment.
+    * End official support for OpenJPEG 2.3.x.
+    * Fix issue preventing API docs from building.
+
+*****************
 Changes in 0.13.4
 *****************
 
