@@ -30,6 +30,19 @@ class TestSuite(fixtures.TestCommon):
         self.p1_06 = ir.files('tests.data').joinpath('p1_06.j2k')
         self.issue142 = ir.files('tests.data').joinpath('issue142.j2k')
         self.edf_c2_1178956 = ir.files('tests.data').joinpath('edf_c2_1178956.jp2')  # noqa : E501
+        self.htj2k = ir.files('tests.data').joinpath('oj-ht-byte.jph')
+
+    def test_cap_marker_segment(self):
+        """
+        SCENARIO:  the file has a CAP marker segment for the 3rd segment
+
+        EXPECTED RESULT:  the segment metadata is verified
+        """
+        j = Jp2k(self.htj2k)
+        cap = j.codestream.segment[2]
+
+        self.assertEqual(cap.pcap, 131072)
+        self.assertEqual(cap.ccap, (3,))
 
     def test_unrecognized_marker(self):
         """

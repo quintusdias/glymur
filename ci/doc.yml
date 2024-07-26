@@ -3,6 +3,7 @@ channels:
     - conda-forge
 dependencies:
     - python=3.12
+    - lxml
     - numpydoc>=0.8
     - sphinx_rtd_theme>=0.4.2
 

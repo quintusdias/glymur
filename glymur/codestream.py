@@ -189,7 +189,7 @@ class Codestream(object):
             0xff3f: self._parse_reserved_marker,
 
             # 0xff4f:  SOC (already encountered by the time we get here)
-            0xff50: self._parse_reserved_segment,
+            0xff50: self._parse_cap_segment,
             0xff51: self._parse_siz_segment,
             0xff52: self._parse_cod_segment,
             0xff53: self._parse_coc_segment,
@@ -714,6 +714,37 @@ class Codestream(object):
         return RGNsegment(crgn, srgn, sprgn, length, offset)
 
     @classmethod
+    def _parse_cap_segment(cls, fptr):
+        """Parse the SIZ segment.
+
+        Parameters
+        ----------
+        fptr : file
+            Open file object.
+
+        Returns
+        -------
+        SIZSegment
+            The current SIZ segment.
+        """
+        offset = fptr.tell() - 2
+
+        read_buffer = fptr.read(2)
+        length, = struct.unpack('>H', read_buffer)
+        read_buffer = fptr.read(length - 2)
+
+        pcap, = struct.unpack('>I', read_buffer[:4])
+
+        n = (length - 6) // 2
+        ccap = struct.unpack('>' + 'H' * n, read_buffer[4:])
+
+        segment = CAPsegment(
+            pcap=pcap, ccap=ccap, length=length, offset=offset,
+        )
+
+        return segment
+
+    @classmethod
     def _parse_siz_segment(cls, fptr):
         """Parse the SIZ segment.
 
@@ -931,6 +962,49 @@ class Segment(object):
     def __str__(self):
         msg = (f'{self.marker_id} marker segment @ '
                f'({self.offset}, {self.length})')
+        return msg
+
+
+class CAPsegment(Segment):
+    """CAP (Extended Capabilities) segment information.
+
+    Attributes
+    ----------
+    marker_id : str
+        Identifier for the segment.
+    offset : int
+        Offset of marker segment in bytes from beginning of file.
+    length : int
+        Length of marker segment in bytes.  This number does not include the
+        two bytes constituting the marker.
+    pcap : 32-bit unsigned int
+        bitmask where the kth 1 represents use of capabilities in Part k of
+        ISO/IEC 15444-k.
+    ccap : 16-bit unsigned int
+        The precise meaning depends on the related parts of ISO/IEC 15444-k.
+    """
+    def __init__(self, pcap, ccap, length, offset):
+        super().__init__(marker_id='CAP')
+        self.pcap = pcap
+        self.ccap = ccap
+        self.length = length
+        self.offset = offset
+
+    def __str__(self):
+        msg = Segment.__str__(self)
+
+        msg += '\n'
+
+        # have to cast to uint64 because, you know, stupid windows
+        parts = [
+            k for k in range(32)
+            if np.bitwise_and(np.uint64(self.pcap), np.uint64(1 << (32 - k)))
+        ]
+
+        for b in parts:
+            msg += f'    Pcap:  Part {b} (ISO/IEC 15444-{b})\n'
+        msg += f'    Ccap:  {self.ccap}'
+
         return msg
 
 

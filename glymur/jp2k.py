@@ -34,13 +34,12 @@ from .lib import openjp2 as opj2
 
 
 class Jp2k(Jp2kr):
-    """Write JPEG 2000 files.
+    """Write JPEG 2000 files (and optionally read them as well).
 
     Parameters
     ----------
     filename : str or path
-        The path to JPEG 2000 file.  If you are only reading JPEG 2000 files,
-        this is the only argument you need to supply.
+        The path to JPEG 2000 file.
     data : np.ndarray, optional
         Image data to be written to file.
     shape : Tuple[int, int, ...], optional
@@ -105,35 +104,6 @@ class Jp2k(Jp2kr):
     verbose : bool, optional
         Print informational messages produced by the OpenJPEG library.
 
-    Examples
-    --------
-    >>> jfile = glymur.data.nemo()
-    >>> jp2 = glymur.Jp2k(jfile)
-    >>> jp2.shape
-    (1456, 2592, 3)
-    >>> image = jp2[:]
-    >>> image.shape
-    (1456, 2592, 3)
-
-    Read a lower resolution thumbnail.
-
-    >>> thumbnail = jp2[::2, ::2]
-    >>> thumbnail.shape
-    (728, 1296, 3)
-
-    Make use of OpenJPEG's thread support
-
-    >>> import time
-    >>> if glymur.version.openjpeg_version >= '2.2.0':
-    ...     jp2file = glymur.data.nemo()
-    ...     jp2 = glymur.Jp2k(jp2file)
-    ...     t0 = time.time(); data = jp2[:]; t1 = time.time()
-    ...     t1 - t0 #doctest: +SKIP
-    0.9024193286895752
-    ...     glymur.set_options('lib.num_threads', 4)
-    ...     t0 = time.time(); data = jp2[:]; t1 = time.time()
-    ...     t1 - t0 #doctest: +SKIP
-    0.4060473537445068
     """
 
     def __init__(
@@ -800,12 +770,6 @@ class Jp2k(Jp2kr):
         -------
         Jp2k
             Newly wrapped Jp2k object.
-
-        Examples
-        --------
-        >>> jfile = glymur.data.goodstuff()
-        >>> j2k = glymur.Jp2k(jfile)
-        >>> jp2 = j2k.wrap('jp2_from_j2k.jp2')
         """
         if boxes is None:
             boxes = self._get_default_jp2_boxes()

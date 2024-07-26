@@ -1,3 +1,8 @@
+July 26, 2024 - v0.13.5
+    Add support for parsing the CAP segment.
+    End official support for OpenJPEG 2.3.x.
+    Fix issue preventing API docs from building.
+
 July 4, 2024 - v0.13.4
     Don't reset openjpeg codec in Jp2k if already set in Jp2kr.
     Update CI configuration to specify openjpeg versions.
