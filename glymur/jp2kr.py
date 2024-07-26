@@ -246,7 +246,7 @@ class Jp2kr(Jp2kBox):
 
     @property
     def codestream(self):
-        """Metadata for JP2 or J2K codestream."""
+        """Metadata for JP2 or J2K codestream header."""
         if self._codestream is None:
             self._codestream = self.get_codestream(header_only=True)
         return self._codestream
@@ -885,6 +885,10 @@ class Jp2kr(Jp2kBox):
 
     def get_codestream(self, header_only=True):
         """Retrieve codestream.
+
+	    This differs from the codestream property in that segment
+    	metadata that lies past the end of the codestream header
+    	can be retrieved.
 
         Parameters
         ----------
