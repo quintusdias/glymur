@@ -862,7 +862,7 @@ class Tiff2Jp2k(object):
         partial_jp2_tile_rows = (self.imageheight / jth) != (self.imageheight // jth)  # noqa : E501
         partial_jp2_tile_cols = (self.imagewidth / jtw) != (self.imagewidth // jtw)  # noqa : E501
 
-        num_jp2k_tile_rows = int(np.ceil(self.imagewidth / jtw))
+        num_jp2k_tile_rows = int(np.ceil(self.imageheight / jth))
         num_jp2k_tile_cols = int(np.ceil(self.imagewidth / jtw))
 
         jp2k_tile_row = int(np.ceil(jp2k_tile_num // num_jp2k_tile_cols))

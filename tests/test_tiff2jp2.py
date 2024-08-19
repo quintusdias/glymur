@@ -43,6 +43,7 @@ class TestSuite(fixtures.TestCommon):
         cls.ycbcr_bg = root.joinpath('ycbcr_bg.tif')
         cls.ycbcr_stripped = root.joinpath('ycbcr_stripped.tif')
         cls.stripped = root.joinpath('stripped.tif')
+        cls.moon63 = root.joinpath('moon63.tif')
 
         test_tiff_dir = tempfile.mkdtemp()
         cls.test_tiff_path = pathlib.Path(test_tiff_dir)
@@ -1919,3 +1920,26 @@ class TestSuite(fixtures.TestCommon):
         expected = expected[:, :, :3]
 
         np.testing.assert_array_equal(actual, expected)
+
+    def test_unevenly_tiled(self):
+        """
+        SCENARIO:  Convert monochromatic TIFF file to JP2.  The TIFF is tiled
+        2x3, and the 2nd row of tiles consists of partial tiles.
+
+        EXPECTED RESULT:  The JP2 file validates
+        """
+        with Tiff2Jp2k(
+            self.moon63, self.temp_jp2_filename, tilesize=(32, 32)
+        ) as j:
+            j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+        expected = skimage.io.imread(self.moon63)
+        np.testing.assert_array_equal(actual, expected)
+
+        c = jp2.get_codestream()
+        self.assertEqual(c.segment[1].xsiz, 96)
+        self.assertEqual(c.segment[1].ysiz, 63)
+        self.assertEqual(c.segment[1].xtsiz, 32)
+        self.assertEqual(c.segment[1].ytsiz, 32)
