@@ -3,6 +3,12 @@ Changes in glymur 0.13
 ######################
 
 *****************
+Changes in 0.13.6
+*****************
+
+    * Fix tiff2jp2 when tile coverage not square.
+
+*****************
 Changes in 0.13.5
 *****************
 

@@ -1,3 +1,6 @@
+Aug 19, 2024 - v0.13.6
+    Fix tiff2jp2 when tile coverage not square.
+
 July 26, 2024 - v0.13.5
     Add support for parsing the CAP segment.
     End official support for OpenJPEG 2.3.x.
