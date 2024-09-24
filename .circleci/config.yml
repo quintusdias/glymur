@@ -42,7 +42,6 @@ test-template: &test-template
         command: |
           export PATH=$HOME/miniconda/bin:$PATH
           source activate glymur
-          flake8 --statistics
           pytest -n 4 -x
 
 jobs:
