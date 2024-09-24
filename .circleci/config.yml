@@ -1,0 +1,64 @@
+# See https://stackoverflow.com/questions/58243255/circleci-testing-with-specific-miniconda-python-and-numpy-versions
+#
+version: 2.0
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - travis-39
+      - travis-310
+      - travis-311-no-gdal
+      - travis-311-no-opj
+      - travis-311
+      - travis-312
+
+test-template: &test-template
+  docker:
+    - image: cimg/base:2021.04
+  steps:
+    - checkout
+
+    - run:
+        name: install anaconda
+        command: |
+          cd $HOME
+          wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O ~/miniconda.sh
+          chmod +x ~/miniconda.sh && bash ~/miniconda.sh -b -p $HOME/miniconda
+          export PATH=$HOME/miniconda/bin:$PATH
+
+    - run:
+        name: Install environment
+        command: |
+          export PATH="$HOME/miniconda/bin:$PATH"
+          conda update  --yes conda
+          echo $PYTHON_VERSION
+          conda env create -f ci/$CIRCLE_JOB.yaml
+          source activate glymur
+          python --version
+
+    - run:
+        name: Run tests
+        command: |
+          export PATH=$HOME/miniconda/bin:$PATH
+          source activate glymur
+          pytest -n 4 -x
+
+jobs:
+  travis-39:
+    <<: *test-template
+
+  travis-310:
+    <<: *test-template
+
+  travis-311-no-gdal:
+    <<: *test-template
+
+  travis-311-no-opj:
+    <<: *test-template
+
+  travis-311:
+    <<: *test-template
+
+  travis-312:
+    <<: *test-template
