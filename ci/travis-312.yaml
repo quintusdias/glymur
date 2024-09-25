@@ -3,9 +3,9 @@ channels:
     - conda-forge
 dependencies:
     - python=3.12.*
-    - gdal
-    - libtiff
-    - lxml
+    - gdal>=3.8.0,<3.9.0
+    - libtiff>=4.7.0,<4.8.0
+    - lxml>=5.0.0
     - numpy>=2.0
     - openjpeg>=2.5
     - pytest-xdist
