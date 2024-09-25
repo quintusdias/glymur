@@ -3,10 +3,10 @@ channels:
     - conda-forge
 dependencies:
     - python=3.11.*
-    - gdal
-    - lxml
+    - gdal>=3.7.0,<3.8.0
+    - libtiff>=4.5.0,<4.6.0
+    - lxml>=5.0
     - numpy>=1.26,<2.0
     - pip
     - pytest-xdist
     - scikit-image
-    - libtiff
