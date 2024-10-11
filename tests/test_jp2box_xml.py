@@ -4,8 +4,9 @@ Test suite specifically targeting the JP2 XML box layout.
 """
 # Standard library imports
 import importlib.resources as ir
-from io import BytesIO
+from io import BytesIO, StringIO
 import pathlib
+import shutil
 import struct
 import warnings
 
@@ -30,35 +31,11 @@ class TestXML(fixtures.TestCommon):
     def setUp(self):
         super().setUp()
 
-        raw_xml = b"""<?xml version="1.0"?>
-        <data>
-            <country name="Liechtenstein">
-                <rank>1</rank>
-                <year>2008</year>
-                <gdppc>141100</gdppc>
-                <neighbor name="Austria" direction="E"/>
-                <neighbor name="Switzerland" direction="W"/>
-            </country>
-            <country name="Singapore">
-                <rank>4</rank>
-                <year>2011</year>
-                <gdppc>59900</gdppc>
-                <neighbor name="Malaysia" direction="N"/>
-            </country>
-            <country name="Panama">
-                <rank>68</rank>
-                <year>2011</year>
-                <gdppc>13600</gdppc>
-                <neighbor name="Costa Rica" direction="W"/>
-                <neighbor name="Colombia" direction="E"/>
-            </country>
-        </data>"""
-        path = self.test_dir_path / 'data.xml'
-        with path.open(mode='wb') as tfile:
-            tfile.write(raw_xml)
-            tfile.flush()
-        self.xmlfile_path = path
-        self.xmlfile = str(path)
+        p = ir.files('tests.data').joinpath('countries.xml')
+        dest_path = self.test_dir_path / 'data.xml'
+        shutil.copyfile(p, dest_path)
+        self.xmlfile_path = dest_path
+        self.xmlfile = str(dest_path)
 
         j2k = Jp2k(self.j2kfile)
         codestream = j2k.get_codestream()
@@ -126,6 +103,40 @@ class TestXML(fixtures.TestCommon):
         EXPECTED RESULT:  The xml box is validated.
         """
         box = glymur.jp2box.XMLBox(filename=self.xmlfile)
+
+        elts = box.xml.findall('country')
+        self.assertEqual(len(elts), 3)
+
+        neighbor = elts[1].find('neighbor')
+        self.assertEqual(neighbor.attrib['name'], 'Malaysia')
+        self.assertEqual(neighbor.attrib['direction'], 'N')
+
+    def test_xml_from_bytesio_object(self):
+        """
+        SCENARIO:  Create an xml box by pointing at a file-like BytesIO object
+
+        EXPECTED RESULT:  The xml box is validated.
+        """
+        btext = self.xmlfile_path.read_bytes()
+        b = BytesIO(btext)
+        box = glymur.jp2box.XMLBox(filename=b)
+
+        elts = box.xml.findall('country')
+        self.assertEqual(len(elts), 3)
+
+        neighbor = elts[1].find('neighbor')
+        self.assertEqual(neighbor.attrib['name'], 'Malaysia')
+        self.assertEqual(neighbor.attrib['direction'], 'N')
+
+    def test_xml_from_stringio_object(self):
+        """
+        SCENARIO:  Create an xml box by pointing at a file-like StringIO object
+
+        EXPECTED RESULT:  The xml box is validated.
+        """
+        text = self.xmlfile_path.read_text()
+        sio = StringIO(text)
+        box = glymur.jp2box.XMLBox(filename=sio)
 
         elts = box.xml.findall('country')
         self.assertEqual(len(elts), 3)
