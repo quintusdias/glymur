@@ -886,9 +886,9 @@ class Jp2kr(Jp2kBox):
     def get_codestream(self, header_only=True):
         """Retrieve codestream.
 
-	    This differs from the codestream property in that segment
-    	metadata that lies past the end of the codestream header
-    	can be retrieved.
+        This differs from the codestream property in that segment
+        metadata that lies past the end of the codestream header
+        can be retrieved.
 
         Parameters
         ----------

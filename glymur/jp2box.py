@@ -2969,9 +2969,9 @@ class XMLBox(Jp2kBox):
         ----------
         xml : ElementTree
             An ElementTree object already existing in python.
-        filename : str or path
-            File from which to read XML.  If filename is not None, then the xml
-            keyword argument must be None.
+        filename : file, str, or pathlib.Path
+            File to read.  If filename is not None, then the xml keyword
+            argument must be None.
         """
         super().__init__()
         if filename is not None and xml is not None:
@@ -2981,7 +2981,7 @@ class XMLBox(Jp2kBox):
             )
             raise RuntimeError(msg)
         if filename is not None:
-            self.xml = ET.parse(str(filename))
+            self.xml = ET.parse(filename)
         else:
             self.xml = xml
         self.length = length
