@@ -3134,7 +3134,8 @@ class XMLBox(Jp2kBox):
             )
             raise RuntimeError(msg)
         if filename is not None:
-            self.xml = ET.parse(filename)
+            parser = ET.XMLParser()
+            self.xml = ET.parse(filename, parser=parser)
         else:
             self.xml = xml
         self.length = length

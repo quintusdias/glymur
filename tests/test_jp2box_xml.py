@@ -28,7 +28,7 @@ from glymur.jp2box import JPEG2000SignatureBox
 from . import fixtures
 
 
-class TestXML(fixtures.TestCommon):
+class TestSuite(fixtures.TestCommon):
     """Test suite for XML boxes."""
 
     def setUp(self):
@@ -287,3 +287,35 @@ class TestXML(fixtures.TestCommon):
         self.assertEqual(jp2.box[3].offset, 77)
         self.assertEqual(jp2.box[3].length, 64)
         self.assertEqual(ET.tostring(jp2.box[3].xml.getroot()), doc)
+
+    def test_billion_laughs_exploit(self):
+        """
+        SCENARIO:  XML file has billion laughs exploit.
+
+        EXPECTED RESULT:  lmxl throws an error
+        """
+        text = (
+            ir.files('tests.data')
+              .joinpath('billion-laughs.xml')
+              .read_text()
+        )
+        with self.assertRaises(ET.XMLSyntaxError):
+            glymur.jp2box.XMLBox(filename=StringIO(text))
+
+    def test_entity_expansion(self):
+        """
+        SCENARIO:  Try to expand an entity with XMLBox text.
+
+        EXPECTED RESULT:  lmxl throws an error
+        """
+        # create a document with a text file in same directory
+
+        p = pathlib.Path('thingone.txt')
+        path = str(p.resolve())
+
+        with p.open(mode='wt') as f:
+            f.write('well hello there')
+
+        text = f'<!DOCTYPE d [<!ENTITY e SYSTEM "file://{path}">]><t>&e;</t>'
+        with self.assertRaises(ET.XMLSyntaxError):
+            b = glymur.jp2box.XMLBox(filename=BytesIO(text.encode('utf-8')))
