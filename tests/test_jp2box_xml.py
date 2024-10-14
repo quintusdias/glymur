@@ -283,3 +283,17 @@ class TestXML(fixtures.TestCommon):
         self.assertEqual(jp2.box[3].offset, 77)
         self.assertEqual(jp2.box[3].length, 64)
         self.assertEqual(ET.tostring(jp2.box[3].xml.getroot()), doc)
+
+    def test_billion_laughs_exploit(self):
+        """
+        SCENARIO:  XML file has billion laughs exploit.
+
+        EXPECTED RESULT:  lmxl throws an error
+        """
+        text = (
+            ir.files('tests.data')
+              .joinpath('billion-laughs.xml')
+              .read_text()
+        )
+        with self.assertRaises(ET.XMLSyntaxError):
+            glymur.jp2box.XMLBox(filename=StringIO(text))
