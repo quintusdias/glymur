@@ -297,3 +297,53 @@ class TestXML(fixtures.TestCommon):
         )
         with self.assertRaises(ET.XMLSyntaxError):
             glymur.jp2box.XMLBox(filename=StringIO(text))
+
+    def test_quadratic_expansion(self):
+        """
+        SCENARIO:  
+
+        EXPECTED RESULT:  lmxl throws an error
+        """
+        btext = b"""<!DOCTYPE bomb [
+            <!ENTITY a "xxxxxxx... a couple of ten thousand chars">
+            ]>
+        """
+        btext += b"<bomb>"
+        for j in range(1000):
+            btext += b"&a;"
+        btext += b"</bomb>"
+
+        glymur.jp2box.XMLBox(filename=BytesIO(btext))
+        with self.assertRaises(ET.XMLSyntaxError):
+            glymur.jp2box.XMLBox(filename=BytesIO(btext))
+
+    def test_external_entity(self):
+        """
+        SCENARIO:  XML file has billion laughs exploit.
+
+        EXPECTED RESULT:  lmxl throws an error
+        """
+        btext = b"""<?xml version="1.0" encoding="ISO-8859-1"?>
+                  <!DOCTYPE foo [  
+                  <!ELEMENT foo ANY >
+                  <!ENTITY xxe SYSTEM "file:///etc/passwd" >]><foo>&xxe;</foo>
+        """
+        with self.assertRaises(ET.XMLSyntaxError):
+            glymur.jp2box.XMLBox(filename=BytesIO(btext))
+
+    def test_dtd_retrieval(self):
+        """
+        SCENARIO:  tries to pull document type definitions from remote location
+
+        EXPECTED RESULT:  lmxl throws an error
+        """
+        btext = b"""<?xml version="1.0" encoding="utf-8"?>
+            <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+              "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+            <html>
+                <head/>
+                <body>text</body>
+            </html>"""
+        b = glymur.jp2box.XMLBox(filename=BytesIO(btext))
+        with self.assertRaises(ET.XMLSyntaxError):
+            glymur.jp2box.XMLBox(filename=BytesIO(btext))
