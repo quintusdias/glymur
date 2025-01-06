@@ -1074,7 +1074,8 @@ class TestPrinting(fixtures.TestCommon):
                 "array([ 0, 10, 20, ..., 70, 80, 90], dtype=uint32)),\n"
                 "                    ('ExifTag', OrderedDict([('Make', 'HTC')]))])"  # noqa : E501
             )
-        self.assertEqual(actual, expected)
+        # Numpy 2.x adds shape to string representation
+        self.assertEqual(actual.replace("shape=(10,), ", ""), expected)
 
     def test_crg(self):
         """verify printing of CRG segment"""
