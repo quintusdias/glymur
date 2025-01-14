@@ -12,6 +12,7 @@ from uuid import UUID
 import warnings
 
 # 3rd party library imports
+from PIL import Image
 import numpy as np
 import skimage
 
@@ -193,6 +194,17 @@ class TestSuite(fixtures.TestCommon):
 
         cls.exif = path
 
+    def _imread(self, path, mode=None):
+
+        with Image.open(path) as img:
+
+            if mode is not None:
+                img = img.convert(mode)
+
+            imagedata = np.array(img)
+
+        return imagedata
+
     def test_smoke(self):
         """
         SCENARIO:  Convert TIFF file to JP2
@@ -355,7 +367,7 @@ class TestSuite(fixtures.TestCommon):
             j.layer = layer
             d[layer] = j[:]
 
-        truth = skimage.io.imread(self.moon)
+        truth = self._imread(self.moon)
 
         with warnings.catch_warnings():
             # MSE is zero for that first image, resulting in a divide-by-zero
@@ -394,7 +406,7 @@ class TestSuite(fixtures.TestCommon):
             j.layer = layer
             d[layer] = j[:]
 
-        truth = skimage.io.imread(self.moon)
+        truth = self._imread(self.moon)
 
         with warnings.catch_warnings():
             # MSE is zero for that first image, resulting in a divide-by-zero
@@ -632,9 +644,7 @@ class TestSuite(fixtures.TestCommon):
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
-        expected = skimage.io.imread(
-            self.moon3_partial_last_strip, plugin='pil'
-        )
+        expected = self._imread(self.moon3_partial_last_strip)
         np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
@@ -660,9 +670,8 @@ class TestSuite(fixtures.TestCommon):
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
 
-        expected = skimage.io.imread(
-            self.moon3_partial_last_strip, plugin='pil'
-        )
+        expected = self._imread(self.moon3_partial_last_strip)
+
         np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
@@ -813,7 +822,7 @@ class TestSuite(fixtures.TestCommon):
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
-        expected = skimage.io.imread(self.ycbcr_stripped, plugin='pil')
+        expected = self._imread(self.ycbcr_stripped)
         np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
@@ -836,7 +845,7 @@ class TestSuite(fixtures.TestCommon):
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
-        expected = skimage.io.imread(self.ycbcr_bg, plugin='pil')
+        expected = self._imread(self.ycbcr_bg)
         np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
@@ -883,9 +892,8 @@ class TestSuite(fixtures.TestCommon):
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
-        expected = skimage.io.imread(
-            self.astronaut_ycbcr_jpeg_tiled, plugin='pil'
-        )
+        expected = self._imread(self.astronaut_ycbcr_jpeg_tiled)
+
         np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
@@ -909,9 +917,7 @@ class TestSuite(fixtures.TestCommon):
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
-        expected = skimage.io.imread(
-            self.astronaut_ycbcr_jpeg_tiled, plugin='pil'
-        )
+        expected = self._imread(self.astronaut_ycbcr_jpeg_tiled)
         np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
@@ -934,9 +940,7 @@ class TestSuite(fixtures.TestCommon):
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
-        expected = skimage.io.imread(
-            self.astronaut_ycbcr_jpeg_tiled, plugin='pil'
-        )
+        expected = self._imread(self.astronaut_ycbcr_jpeg_tiled)
         np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
@@ -1836,9 +1840,7 @@ class TestSuite(fixtures.TestCommon):
         # Read in the image (as expected on little-endian), flip it
         # around, prepend an alpha layer, then get rid of the last layer
         # to simulate what would have happened on big-endian.
-        expected = skimage.io.imread(
-            self.astronaut_ycbcr_jpeg_tiled, plugin='pil'
-        )
+        expected = self._imread(self.astronaut_ycbcr_jpeg_tiled)
         h, w, _ = expected.shape
         expected = np.flip(expected, axis=2)
         A = np.ones((h, w, 1), dtype=np.uint8) * 255
@@ -1874,9 +1876,7 @@ class TestSuite(fixtures.TestCommon):
         # Read in the image (as expected on little-endian), flip it
         # around, prepend an alpha layer, then get rid of the last layer
         # to simulate what would have happened on big-endian.
-        expected = skimage.io.imread(
-            self.astronaut_ycbcr_jpeg_tiled, plugin='pil'
-        )
+        expected = self._imread(self.astronaut_ycbcr_jpeg_tiled)
         h, w, _ = expected.shape
         expected = np.flip(expected, axis=2)
         A = np.ones((h, w, 1), dtype=np.uint8) * 255
@@ -1912,7 +1912,7 @@ class TestSuite(fixtures.TestCommon):
         # Read in the image (as expected on little-endian), flip it
         # around, prepend an alpha layer, then get rid of the last layer
         # to simulate what would have happened on big-endian.
-        expected = skimage.io.imread(self.ycbcr_stripped, plugin='pil')
+        expected = self._imread(self.ycbcr_stripped)
         h, w, _ = expected.shape
         expected = np.flip(expected, axis=2)
         A = np.ones((h, w, 1), dtype=np.uint8) * 255
@@ -1935,7 +1935,7 @@ class TestSuite(fixtures.TestCommon):
 
         jp2 = Jp2k(self.temp_jp2_filename)
         actual = jp2[:]
-        expected = skimage.io.imread(self.moon63)
+        expected = self._imread(self.moon63)
         np.testing.assert_array_equal(actual, expected)
 
         c = jp2.get_codestream()
