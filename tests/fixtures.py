@@ -21,15 +21,6 @@ try:
 
 except (ImportError, ModuleNotFoundError):
     _HAVE_GDAL = False
-try:
-    import skimage.data  # noqa : F401
-    import skimage.io  # noqa : F401
-    import skimage.metrics  # noqa : F401
-    HAVE_SCIKIT_IMAGE = True
-    HAVE_SCIKIT_IMAGE_MSG = None
-except ModuleNotFoundError:
-    HAVE_SCIKIT_IMAGE = False
-    HAVE_SCIKIT_IMAGE_MSG = 'scikit-image not available'
 
 # Local imports
 import glymur

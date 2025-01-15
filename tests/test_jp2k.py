@@ -16,6 +16,7 @@ import warnings
 # Third party library imports ...
 from lxml import etree as ET
 import numpy as np
+import skimage
 
 # Local imports
 import glymur
@@ -67,7 +68,7 @@ class TestJp2k(fixtures.TestCommon):
 
         Expected results:  no errors, data matches
         """
-        expected = fixtures.skimage.data.astronaut()
+        expected = skimage.data.astronaut()
 
         j1 = Jp2k(self.temp_jp2_filename)
         j1[:] = expected

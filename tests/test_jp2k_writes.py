@@ -10,6 +10,7 @@ import warnings
 
 # 3rd party library imports
 import numpy as np
+import skimage
 
 # local imports
 import glymur
@@ -19,9 +20,6 @@ from . import fixtures
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
-@unittest.skipIf(
-    not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
-)
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 class TestSuite(fixtures.TestCommon):
     """Test writing Jpeg2000 files"""
@@ -115,9 +113,6 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(j.box[2].box[2].box[1].vertical_resolution, vresd)
         self.assertEqual(j.box[2].box[2].box[1].horizontal_resolution, hresd)
 
-    @unittest.skipIf(
-        not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
-    )
     def test_capture_resolution_camera(self):
         """
         SCENARIO:  The capture_resolution keyword is specified.
@@ -128,7 +123,8 @@ class TestSuite(fixtures.TestCommon):
         vresc, hresc = 0.1, 0.2
         vresd, hresd = 0.3, 0.4
         j = glymur.Jp2k(
-            self.temp_jp2_filename, data=fixtures.skimage.data.camera(),
+            self.temp_jp2_filename,
+            data=skimage.data.camera(),
             capture_resolution=[vresc, hresc],
             display_resolution=[vresd, hresd],
         )
@@ -300,9 +296,6 @@ class TestSuite(fixtures.TestCommon):
                 data=np.zeros((0, 256), dtype=np.uint8)
             )
 
-    @unittest.skipIf(
-        not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
-    )
     def test_psnr_zero_value_not_last(self):
         """
         SCENARIO:  The PSNR keyword argument has a zero value, but it is not
@@ -311,7 +304,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  RuntimeError
         """
         kwargs = {
-            'data': fixtures.skimage.data.camera(),
+            'data': skimage.data.camera(),
             'psnr': [0, 35, 40, 30],
         }
         with self.assertRaises(RuntimeError):
@@ -371,9 +364,6 @@ class TestSuite(fixtures.TestCommon):
     @unittest.skipIf(
         glymur.version.openjpeg_version < '2.4.0', "Requires as least v2.4.0"
     )
-    @unittest.skipIf(
-        not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
-    )
     def test_plt_yes(self):
         """
         SCENARIO:  Use the plt keyword.
@@ -387,9 +377,6 @@ class TestSuite(fixtures.TestCommon):
         lst = [seg for seg in codestream.segment if seg.marker_id == 'PLT']
         self.assertEqual(len(lst), 1)
 
-    @unittest.skipIf(
-        not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
-    )
     def test_plt_no(self):
         """
         SCENARIO:  Use the plt keyword set to false.
@@ -405,9 +392,6 @@ class TestSuite(fixtures.TestCommon):
         )
         self.assertFalse(at_least_one_plt)
 
-    @unittest.skipIf(
-        not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
-    )
     def test_plt_none(self):
         """
         SCENARIO:  Use the plt keyword set to None.
@@ -423,9 +407,6 @@ class TestSuite(fixtures.TestCommon):
         )
         self.assertFalse(at_least_one_plt)
 
-    @unittest.skipIf(
-        not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
-    )
     def test_psnr_non_zero_non_monotonically_decreasing(self):
         """
         SCENARIO:  The PSNR keyword argument is non-monotonically increasing
@@ -434,15 +415,12 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  RuntimeError
         """
         kwargs = {
-            'data': fixtures.skimage.data.camera(),
+            'data': skimage.data.camera(),
             'psnr': [30, 35, 40, 30],
         }
         with self.assertRaises(RuntimeError):
             Jp2k(self.temp_jp2_filename, **kwargs)
 
-    @unittest.skipIf(
-        not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
-    )
     def test_psnr(self):
         """
         SCENARIO:  Four peak signal-to-noise ratio values are supplied, the
@@ -451,7 +429,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  Four quality layers, the first should be lossless.
         """
         kwargs = {
-            'data': fixtures.skimage.data.camera(),
+            'data': skimage.data.camera(),
             'psnr': [30, 35, 40, 0],
         }
         j = Jp2k(self.temp_jp2_filename, **kwargs)
@@ -466,8 +444,8 @@ class TestSuite(fixtures.TestCommon):
             # warning
             warnings.simplefilter('ignore')
             psnr = [
-                fixtures.skimage.metrics.peak_signal_noise_ratio(
-                    fixtures.skimage.data.camera(), d[j]
+                skimage.metrics.peak_signal_noise_ratio(
+                    skimage.data.camera(), d[j]
                 )
                 for j in range(4)
             ]
@@ -481,9 +459,6 @@ class TestSuite(fixtures.TestCommon):
         # PSNR should increase for the remaining images.
         self.assertTrue(np.all(np.diff(psnr[1:])) > 0)
 
-    @unittest.skipIf(
-        not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
-    )
     def test_psnr_from_doctest(self):
         """
         SCENARIO:  Four peak signal-to-noise ratio values are supplied, the
@@ -492,7 +467,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  Four quality layers, the first should be lossless.
         """
         kwargs = {
-            'data': fixtures.skimage.data.camera(),
+            'data': skimage.data.camera(),
             'psnr': [30, 40, 50, 0],
         }
         j = Jp2k(self.temp_jp2_filename, **kwargs)
@@ -507,8 +482,8 @@ class TestSuite(fixtures.TestCommon):
             # warning
             warnings.simplefilter('ignore')
             psnr = [
-                fixtures.skimage.metrics.peak_signal_noise_ratio(
-                    fixtures.skimage.data.camera(), d[j]
+                skimage.metrics.peak_signal_noise_ratio(
+                    skimage.data.camera(), d[j]
                 )
                 for j in range(4)
             ]
@@ -1644,7 +1619,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  the written image validates
         """
-        j2k_data = fixtures.skimage.data.astronaut()
+        j2k_data = skimage.data.astronaut()
         data = [
             j2k_data[:256, :256, :],
             j2k_data[:256, 256:512, :],
@@ -1670,7 +1645,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  the written image matches the 2x2 grid
         """
-        j2k_data = fixtures.skimage.data.astronaut()
+        j2k_data = skimage.data.astronaut()
 
         shape = (
             j2k_data.shape[0] * 2, j2k_data.shape[1] * 2, j2k_data.shape[2]
@@ -1692,7 +1667,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  the written image matches the 3x2 grid
         """
-        jp2_data = fixtures.skimage.data.moon()
+        jp2_data = skimage.data.moon()
 
         shape = jp2_data.shape[0] * 3, jp2_data.shape[1] * 2
         tilesize = (jp2_data.shape[0], jp2_data.shape[1])
@@ -1713,7 +1688,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        jp2_data = fixtures.skimage.data.moon()
+        jp2_data = skimage.data.moon()
 
         shape = jp2_data.shape[0] * 2, jp2_data.shape[1] * 2
         tilesize = (jp2_data.shape[0], jp2_data.shape[1])
@@ -1730,7 +1705,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        jp2_data = fixtures.skimage.data.moon()
+        jp2_data = skimage.data.moon()
 
         shape = jp2_data.shape[0] * 2, jp2_data.shape[1] * 2
         tilesize = (jp2_data.shape[0], jp2_data.shape[1])
@@ -1747,7 +1722,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        jp2_data = fixtures.skimage.data.moon()
+        jp2_data = skimage.data.moon()
 
         shape = jp2_data.shape[0] * 2, jp2_data.shape[1] * 2
         tilesize = (jp2_data.shape[0], jp2_data.shape[1])
@@ -1763,7 +1738,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  There are three layers.
         """
-        jp2_data = fixtures.skimage.data.moon()
+        jp2_data = skimage.data.moon()
 
         shape = jp2_data.shape[0] * 2, jp2_data.shape[1] * 2
         tilesize = (jp2_data.shape[0], jp2_data.shape[1])
@@ -1786,7 +1761,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  The resolution superbox, along with a capture
         box, is inserted into the jp2 header box.
         """
-        j2k_data = fixtures.skimage.data.astronaut()
+        j2k_data = skimage.data.astronaut()
 
         shape = (
             j2k_data.shape[0] * 2, j2k_data.shape[1] * 2, j2k_data.shape[2]
@@ -1818,7 +1793,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  Plt segment is detected.
         """
-        j2k_data = fixtures.skimage.data.astronaut()
+        j2k_data = skimage.data.astronaut()
 
         shape = (
             j2k_data.shape[0] * 2, j2k_data.shape[1] * 2, j2k_data.shape[2]
@@ -1847,7 +1822,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  RuntimeError, as this triggers an unresolved
         bug, issue586.
         """
-        j2k_data = fixtures.skimage.data.astronaut()
+        j2k_data = skimage.data.astronaut()
 
         shape = (
             j2k_data.shape[0], j2k_data.shape[1], j2k_data.shape[2]
@@ -1867,7 +1842,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError.
         """
-        j2k_data = fixtures.skimage.data.astronaut()
+        j2k_data = skimage.data.astronaut()
 
         shape = (
             j2k_data.shape[0] * 2, j2k_data.shape[1] * 2, j2k_data.shape[2]

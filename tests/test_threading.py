@@ -9,6 +9,7 @@ import warnings
 
 # Third party library imports ...
 import numpy as np
+import skimage
 
 # Local imports
 import glymur
@@ -148,7 +149,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  There is a warning, but the image is created.
         """
-        expected = fixtures.skimage.data.astronaut()
+        expected = skimage.data.astronaut()
 
         shape = (
             expected.shape[0] * 2, expected.shape[1] * 2, expected.shape[2]

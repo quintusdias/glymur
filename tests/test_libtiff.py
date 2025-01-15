@@ -8,6 +8,7 @@ import warnings
 
 # 3rd party library imports
 import numpy as np
+import skimage
 
 # local imports
 from . import fixtures
@@ -17,9 +18,6 @@ from glymur.lib import tiff as libtiff
 @unittest.skipIf(
     platform.system() == 'Darwin' and platform.machine() == 'arm64',
     'See issue #593'
-)
-@unittest.skipIf(
-    not fixtures.HAVE_SCIKIT_IMAGE, fixtures.HAVE_SCIKIT_IMAGE_MSG
 )
 @unittest.skipIf(fixtures.TIFF_NOT_AVAILABLE, fixtures.TIFF_NOT_AVAILABLE_MSG)
 class TestSuite(fixtures.TestCommon):
@@ -31,7 +29,7 @@ class TestSuite(fixtures.TestCommon):
         Expected result:  The image matches.  The number of tiles checks out.
         The tile width and height checks out.
         """
-        data = fixtures.skimage.data.moon()
+        data = skimage.data.moon()
         h, w = data.shape
         th, tw = h // 2, w // 2
 
@@ -92,7 +90,7 @@ class TestSuite(fixtures.TestCommon):
         Expected result:  The data is subject to lossy JPEG compression, so it
         will not match exactly, but should be reasonably close.
         """
-        expected = fixtures.skimage.data.astronaut()
+        expected = skimage.data.astronaut()
         h, w, nz = expected.shape
         th, tw = h // 2, w // 2
 
@@ -123,9 +121,7 @@ class TestSuite(fixtures.TestCommon):
         # Adjust for big-endian if necessary
         actual = np.flip(actual, 2) if sys.byteorder == 'big' else actual
 
-        error = fixtures.skimage.metrics.mean_squared_error(
-            actual[:, :, :3], expected
-        )
+        error = skimage.metrics.mean_squared_error(actual[:, :, :3], expected)
         self.assertTrue(error < 9)
 
     def test_simple_strip(self):
@@ -135,7 +131,7 @@ class TestSuite(fixtures.TestCommon):
         Expected result:  The image matches.  The number of tiles checks out.
         The tile width and height checks out.
         """
-        data = fixtures.skimage.data.moon()
+        data = skimage.data.moon()
         h, w = data.shape
         rps = h // 2
 
