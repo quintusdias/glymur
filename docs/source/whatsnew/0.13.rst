@@ -3,6 +3,17 @@ Changes in glymur 0.13
 ######################
 
 *****************
+Changes in 0.13.7
+*****************
+
+    * Qualify on python 3.13
+    * Fix test warnings due to scikit-image deprecation.
+    * Update CI test matrix, tighten 3rd party library requirements.
+    * Add ability to construct XML box from file-like object.
+    * Add circle-ci CI.
+    * Fix test suite for numpy 2.x printing (thanks to Arne Keller).
+
+*****************
 Changes in 0.13.6
 *****************
 
