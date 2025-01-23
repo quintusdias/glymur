@@ -695,7 +695,12 @@ class Tiff2Jp2k(object):
             self.th = self.get_tag_value(323)
         else:
             self.tw = self.imagewidth
-            self.rps = self.get_tag_value(278)
+            try:
+                self.rps = self.get_tag_value(278)
+            except KeyError:
+                # stripped but no RowsPerStrip tag?  default to the image
+                # height
+                self.rps = self.imageheight
 
         if self.spp == 1:
             shape = (self.imageheight, self.imagewidth)

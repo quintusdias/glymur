@@ -1943,3 +1943,24 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].ysiz, 63)
         self.assertEqual(c.segment[1].xtsiz, 32)
         self.assertEqual(c.segment[1].ytsiz, 32)
+
+    def test_issue678(self):
+        """
+        SCENARIO:  The TIFF is stripped, but has no RowsPerStrip tag.
+
+        EXPECTED RESULT:  No errors, the image data validates.
+        """
+        tfile = ir.files('tests.data.tiff').joinpath('issue678.tif')
+
+        with warnings.catch_warnings():
+
+            # Two TIFF warnings we can ignore, both due to the fact that we
+            # had to mangle an existing file to get an appropriate test file.
+            warnings.simplefilter('ignore')
+            with Tiff2Jp2k(tfile, self.temp_jp2_filename) as j:
+                j.run()
+
+        jp2 = Jp2k(self.temp_jp2_filename)
+        actual = jp2[:]
+        expected = self._imread(tfile)
+        np.testing.assert_array_equal(actual, expected)
