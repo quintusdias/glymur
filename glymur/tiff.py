@@ -21,7 +21,7 @@ from .lib.tiff import DATATYPE2FMT
 from . import jp2box
 
 # we need a lower case mapping from the tag name to the tag number
-TAGNAME2NUM = {k.lower(): v['number'] for k, v in libtiff.TAGS.items()}
+TAGNAME2NUM = {k.lower(): v["number"] for k, v in libtiff.TAGS.items()}
 
 
 # Mnemonics for the two TIFF format version numbers.
@@ -78,7 +78,7 @@ class Tiff2Jp2k(object):
         tilesize: Tuple[int, int] | None = None,
         include_icc_profile: bool = False,
         verbosity: int = logging.CRITICAL,
-        **kwargs
+        **kwargs,
     ):
         """
         Construct the object.
@@ -108,7 +108,7 @@ class Tiff2Jp2k(object):
 
         self.tiff_filename = tiff_filename
         if not self.tiff_filename.exists():
-            raise FileNotFoundError(f'{tiff_filename} does not exist')
+            raise FileNotFoundError(f"{tiff_filename} does not exist")
 
         self.jp2_filename = jp2_filename
         self.tilesize = tilesize
@@ -135,7 +135,7 @@ class Tiff2Jp2k(object):
         self.setup_logging(verbosity)
 
         if num_threads > 1:
-            set_option('lib.num_threads', num_threads)
+            set_option("lib.num_threads", num_threads)
 
     def _process_exclude_tags(self, exclude_tags):
         """The list of tags to exclude may be mixed type (str or integer).
@@ -189,7 +189,7 @@ class Tiff2Jp2k(object):
         return lst
 
     def setup_logging(self, verbosity):
-        self.logger = logging.getLogger('tiff2jp2')
+        self.logger = logging.getLogger("tiff2jp2")
         self.logger.setLevel(verbosity)
         ch = logging.StreamHandler()
         ch.setLevel(verbosity)
@@ -226,7 +226,7 @@ class Tiff2Jp2k(object):
         if photo != libtiff.Photometric.PALETTE:
             return
 
-        jp2h = [box for box in self.jp2.box if box.box_id == 'jp2h'][0]
+        jp2h = [box for box in self.jp2.box if box.box_id == "jp2h"][0]
 
         bps = (8, 8, 8)
         pclr = jp2box.PaletteBox(
@@ -246,10 +246,10 @@ class Tiff2Jp2k(object):
 
         # fix the colr box.  the colorspace needs to be changed from greyscale
         # to rgb
-        colr = [box for box in jp2h.box if box.box_id == 'colr'][0]
+        colr = [box for box in jp2h.box if box.box_id == "colr"][0]
         colr.colorspace = SRGB
 
-        temp_filename = str(self.jp2_filename) + '.tmp'
+        temp_filename = str(self.jp2_filename) + ".tmp"
         self.jp2.wrap(temp_filename, boxes=self.jp2.box)
         shutil.move(temp_filename, self.jp2_filename)
         self.jp2.parse()
@@ -263,7 +263,7 @@ class Tiff2Jp2k(object):
             return
 
         self.logger.info(
-            'Consuming an ICC profile into JP2 color specification box.'
+            "Consuming an ICC profile into JP2 color specification box."
         )
 
         colr = jp2box.ColourSpecificationBox(
@@ -279,9 +279,9 @@ class Tiff2Jp2k(object):
         boxes[2].box = [boxes[2].box[0], colr]
 
         # re-wrap the codestream, involves a file copy
-        tmp_filename = str(self.jp2_filename) + '.tmp'
+        tmp_filename = str(self.jp2_filename) + ".tmp"
 
-        with open(tmp_filename, mode='wb') as tfile:
+        with open(tmp_filename, mode="wb") as tfile:
             jp2.wrap(tfile.name, boxes=boxes)
 
         shutil.move(tmp_filename, self.jp2_filename)
@@ -305,7 +305,7 @@ class Tiff2Jp2k(object):
 
         # write this 32-bit header into the UUID, no matter if we had bigtiff
         # or regular tiff or big endian
-        data = struct.pack('<BBHI', 73, 73, 42, 8)
+        data = struct.pack("<BBHI", 73, 73, 42, 8)
         b.write(data)
 
         self._write_ifd(b, self.tags)
@@ -313,19 +313,19 @@ class Tiff2Jp2k(object):
         # create the Exif UUID
         if self.found_geotiff_tags:
             # geotiff UUID
-            the_uuid = UUID('b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03')
+            the_uuid = UUID("b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03")
             payload = b.getvalue()
         else:
             # Make it an exif UUID.
-            the_uuid = UUID(bytes=b'JpgTiffExif->JP2')
-            payload = b'EXIF\0\0' + b.getvalue()
+            the_uuid = UUID(bytes=b"JpgTiffExif->JP2")
+            payload = b"EXIF\0\0" + b.getvalue()
 
         # the length of the box is the length of the payload plus 8 bytes
         # to store the length of the box and the box ID
         box_length = len(payload) + 8
 
         uuid_box = jp2box.UUIDBox(the_uuid, payload, box_length)
-        with open(self.jp2_filename, mode='ab') as f:
+        with open(self.jp2_filename, mode="ab") as f:
             uuid_box.write(f)
 
         self.jp2.finalize(force_parse=True)
@@ -342,11 +342,11 @@ class Tiff2Jp2k(object):
             return
 
         # create the XMP UUID
-        the_uuid = jp2box.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
+        the_uuid = jp2box.UUID("be7acfcb-97a9-42e8-9c71-999491e3afac")
         payload = bytes(self.xmp_data)
         box_length = len(payload) + 8
         uuid_box = jp2box.UUIDBox(the_uuid, payload, box_length)
-        with open(self.jp2_filename, mode='ab') as f:
+        with open(self.jp2_filename, mode="ab") as f:
             uuid_box.write(f)
 
     def get_main_ifd(self):
@@ -355,7 +355,7 @@ class Tiff2Jp2k(object):
         can differ.
         """
 
-        with open(self.tiff_filename, 'rb') as tfp:
+        with open(self.tiff_filename, "rb") as tfp:
 
             self.read_tiff_header(tfp)
 
@@ -364,7 +364,7 @@ class Tiff2Jp2k(object):
             if 320 in self.tags:
 
                 # the TIFF must have PALETTE photometric interpretation
-                data = np.array(self.tags[320]['payload'])
+                data = np.array(self.tags[320]["payload"])
                 self._colormap = data.reshape(len(data) // 3, 3)
                 self._colormap = self._colormap / 65535
                 self._colormap = (self._colormap * 255).astype(np.uint8)
@@ -372,22 +372,22 @@ class Tiff2Jp2k(object):
             if 700 in self.tags:
 
                 # XMLPacket
-                self.xmp_data = self.tags[700]['payload']
+                self.xmp_data = self.tags[700]["payload"]
 
             else:
                 self.xmp_data = None
 
             if 34665 in self.tags:
                 # we have an EXIF IFD
-                offset = self.tags[34665]['payload'][0]
+                offset = self.tags[34665]["payload"][0]
                 tfp.seek(offset)
                 exif_ifd = self.read_ifd(tfp)
 
-                self.tags[34665]['payload'] = exif_ifd
+                self.tags[34665]["payload"] = exif_ifd
 
             if 34675 in self.tags:
                 # ICC profile
-                self.icc_profile = bytes(self.tags[34675]['payload'])
+                self.icc_profile = bytes(self.tags[34675]["payload"])
 
             else:
                 self.icc_profile = None
@@ -412,10 +412,10 @@ class Tiff2Jp2k(object):
         # how many tags?
         if self.version == _BIGTIFF:
             buffer = tfp.read(8)
-            num_tags, = struct.unpack(self.endian + 'Q', buffer)
+            (num_tags,) = struct.unpack(self.endian + "Q", buffer)
         else:
             buffer = tfp.read(2)
-            num_tags, = struct.unpack(self.endian + 'H', buffer)
+            (num_tags,) = struct.unpack(self.endian + "H", buffer)
 
         # Ok, so now we have the IFD main body, but following that we have
         # the tag payloads that cannot fit into 4 bytes.
@@ -425,11 +425,11 @@ class Tiff2Jp2k(object):
         buffer = tfp.read(num_tags * tag_length)
 
         if self.version == _BIGTIFF:
-            tag_format_str = self.endian + 'HHQQ'
+            tag_format_str = self.endian + "HHQQ"
             tag_payload_offset = 12
             max_tag_payload_length = 8
         else:
-            tag_format_str = self.endian + 'HHII'
+            tag_format_str = self.endian + "HHII"
             tag_payload_offset = 8
             max_tag_payload_length = 4
 
@@ -437,16 +437,18 @@ class Tiff2Jp2k(object):
 
         for idx in range(num_tags):
 
-            self.logger.debug(f'tag #: {idx}')
+            self.logger.debug(f"tag #: {idx}")
 
             tag_data = buffer[idx * tag_length:(idx + 1) * tag_length]
 
-            tag, dtype, nvalues, offset = struct.unpack(tag_format_str, tag_data)  # noqa : E501
+            tag, dtype, nvalues, offset = struct.unpack(
+                tag_format_str, tag_data
+            )  # noqa : E501
 
             if tag == 34735:
                 self.found_geotiff_tags = True
 
-            payload_length = DATATYPE2FMT[dtype]['nbytes'] * nvalues
+            payload_length = DATATYPE2FMT[dtype]["nbytes"] * nvalues
 
             if payload_length > max_tag_payload_length:
                 # the payload does not fit into the tag entry, so use the
@@ -457,9 +459,10 @@ class Tiff2Jp2k(object):
                 tfp.seek(current_position)
 
                 # read the payload from the TIFF
-                payload_format = DATATYPE2FMT[dtype]['format'] * nvalues
+                payload_format = DATATYPE2FMT[dtype]["format"] * nvalues
                 payload = struct.unpack(
-                    self.endian + payload_format, payload_buffer
+                    self.endian + payload_format,
+                    payload_buffer
                 )
 
             else:
@@ -467,10 +470,9 @@ class Tiff2Jp2k(object):
                 payload_buffer = tag_data[tag_payload_offset:]
 
                 # read ALL of the payload buffer
-                fmt = DATATYPE2FMT[dtype]['format']
-                num_items = (
-                    int(max_tag_payload_length / DATATYPE2FMT[dtype]['nbytes'])
-                )
+                fmt = DATATYPE2FMT[dtype]["format"]
+                nelts = max_tag_payload_length / DATATYPE2FMT[dtype]["nbytes"]
+                num_items = int(nelts)
                 payload_format = self.endian + fmt * num_items
                 payload = struct.unpack(payload_format, payload_buffer)
 
@@ -483,15 +485,11 @@ class Tiff2Jp2k(object):
                 # unsigned rational datatypes effectively have twice
                 # the number of values so we need to account for that.
                 if dtype in [5, 10]:
-                    payload = payload[:2 * nvalues]
+                    payload = payload[: 2 * nvalues]
                 else:
                     payload = payload[:nvalues]
 
-            tags[tag] = {
-                'dtype': dtype,
-                'nvalues': nvalues,
-                'payload': payload
-            }
+            tags[tag] = {"dtype": dtype, "nvalues": nvalues, "payload": payload}
 
         return tags
 
@@ -511,7 +509,7 @@ class Tiff2Jp2k(object):
                     tags.pop(tag)
 
         num_tags = len(tags)
-        write_buffer = struct.pack('<H', num_tags)
+        write_buffer = struct.pack("<H", num_tags)
         b.write(write_buffer)
 
         # Ok, so now we have the IFD main body, but following that we have
@@ -523,28 +521,26 @@ class Tiff2Jp2k(object):
         for idx, tag in enumerate(tags):
 
             tag_offset = ifd_start_loc + idx * little_tiff_tag_length
-            self.logger.debug(f'tag #: {tag}, writing to {tag_offset}')
-            self.logger.debug(f'tag #: {tag}, after IFD {after_ifd_position}')
+            self.logger.debug(f"tag #: {tag}, writing to {tag_offset}")
+            self.logger.debug(f"tag #: {tag}, after IFD {after_ifd_position}")
 
             b.seek(tag_offset)
 
-            dtype = tags[tag]['dtype']
-            nvalues = tags[tag]['nvalues']
-            payload = tags[tag]['payload']
+            dtype = tags[tag]["dtype"]
+            nvalues = tags[tag]["nvalues"]
+            payload = tags[tag]["payload"]
 
-            payload_length = DATATYPE2FMT[dtype]['nbytes'] * nvalues
+            payload_length = DATATYPE2FMT[dtype]["nbytes"] * nvalues
 
             if payload_length > max_tag_payload_length:
                 # the payload does not fit into the tag entry
 
                 # read the payload from the TIFF
-                payload_format = DATATYPE2FMT[dtype]['format'] * nvalues
+                payload_format = DATATYPE2FMT[dtype]["format"] * nvalues
 
                 # write the tag entry to the UUID
                 new_offset = after_ifd_position
-                buffer = struct.pack(
-                    '<HHII', tag, dtype, nvalues, new_offset
-                )
+                buffer = struct.pack("<HHII", tag, dtype, nvalues, new_offset)
                 b.write(buffer)
 
                 # now write the payload at the outlying position and then come
@@ -552,7 +548,7 @@ class Tiff2Jp2k(object):
                 cpos = b.tell()
                 b.seek(new_offset)
 
-                format = '<' + DATATYPE2FMT[dtype]['format'] * nvalues
+                format = "<" + DATATYPE2FMT[dtype]["format"] * nvalues
                 buffer = struct.pack(format, *payload)
                 b.write(buffer)
 
@@ -564,26 +560,26 @@ class Tiff2Jp2k(object):
 
                 # the payload DOES fit into the TIFF tag entry
                 # write the tag metadata
-                buffer = struct.pack('<HHI', tag, dtype, nvalues)
+                buffer = struct.pack("<HHI", tag, dtype, nvalues)
                 b.write(buffer)
 
-                payload_format = DATATYPE2FMT[dtype]['format'] * nvalues
+                payload_format = DATATYPE2FMT[dtype]["format"] * nvalues
 
                 # we may need to alter the output format
-                if payload_format in ['H', 'B', 'I']:
+                if payload_format in ["H", "B", "I"]:
                     # just write it as an integer
-                    payload_format = 'I'
+                    payload_format = "I"
 
                 if tag == 34665:
                     # special case for an EXIF IFD
-                    buffer = struct.pack('<I', after_ifd_position)
+                    buffer = struct.pack("<I", after_ifd_position)
                     b.write(buffer)
                     b.seek(after_ifd_position)
                     after_ifd_position = self._write_ifd(b, payload)
 
                 else:
                     # write a normal tag
-                    buffer = struct.pack('<' + payload_format, *payload)
+                    buffer = struct.pack("<" + payload_format, *payload)
                     b.write(buffer)
 
         return after_ifd_position
@@ -592,15 +588,15 @@ class Tiff2Jp2k(object):
         """Get the endian-ness of the TIFF, seek to the main IFD"""
 
         buffer = tfp.read(4)
-        data = struct.unpack('BB', buffer[:2])
+        data = struct.unpack("BB", buffer[:2])
 
         # big endian or little endian?
         if data[0] == 73 and data[1] == 73:
             # little endian
-            self.endian = '<'
+            self.endian = "<"
         elif data[0] == 77 and data[1] == 77:
             # big endian
-            self.endian = '>'
+            self.endian = ">"
         # no other option is possible, libtiff.open would have errored out
         # else:
         #     msg = (
@@ -611,15 +607,15 @@ class Tiff2Jp2k(object):
         #     raise RuntimeError(msg)
 
         # version number and offset to the first IFD
-        version, = struct.unpack(self.endian + 'H', buffer[2:4])
+        (version,) = struct.unpack(self.endian + "H", buffer[2:4])
         self.version = _TIFF if version == 42 else _BIGTIFF
 
         if self.version == _BIGTIFF:
             buffer = tfp.read(12)
-            _, _, offset = struct.unpack(self.endian + 'HHQ', buffer)
+            _, _, offset = struct.unpack(self.endian + "HHQ", buffer)
         else:
             buffer = tfp.read(4)
-            offset, = struct.unpack(self.endian + 'I', buffer)
+            (offset,) = struct.unpack(self.endian + "I", buffer)
         tfp.seek(offset)
 
     def get_tag_value(self, tagnum):
@@ -640,11 +636,10 @@ class Tiff2Jp2k(object):
             return 1
 
         # The tag value is always stored as a tuple with at least one member.
-        return self.tags[tagnum]['payload'][0]
+        return self.tags[tagnum]["payload"][0]
 
     def copy_image(self):
-        """Transfer the image data from the TIFF to the JPEG 2000 file.
-        """
+        """Transfer the image data from the TIFF to the JPEG 2000 file."""
 
         if libtiff.isTiled(self.tiff_fp):
             isTiled = True
@@ -764,7 +759,7 @@ class Tiff2Jp2k(object):
         )
 
         # must reorder image planes on big-endian
-        if sys.byteorder == 'big':
+        if sys.byteorder == "big":
             image = np.flip(image, axis=2)
 
         # potentially get rid of the alpha plane
@@ -782,7 +777,9 @@ class Tiff2Jp2k(object):
         # This might be a bit bigger than the actual image because of a
         # possibly partial last strip.
         stripped_shape = (
-            num_tiff_strip_rows * self.rps, self.imagewidth, self.spp
+            num_tiff_strip_rows * self.rps,
+            self.imagewidth,
+            self.spp
         )
         image = np.zeros(stripped_shape, dtype=self.dtype)
 
@@ -798,7 +795,7 @@ class Tiff2Jp2k(object):
 
         if self.imageheight != stripped_shape[0]:
             # cut the image down due to a partial last strip
-            image = image[:self.imageheight, :, :]
+            image = image[: self.imageheight, :, :]
 
         self.jp2[:] = image
 
@@ -815,7 +812,7 @@ class Tiff2Jp2k(object):
         tiled_shape = (
             num_tiff_tile_rows * self.th,
             num_tiff_tile_cols * self.tw,
-            self.spp
+            self.spp,
         )
 
         image = np.zeros(tiled_shape, dtype=self.dtype)
@@ -835,7 +832,7 @@ class Tiff2Jp2k(object):
                 image[rows, cols, :] = tiff_tile
 
         if final_shape != tiled_shape:
-            image = image[:final_shape[0], :final_shape[1], :]
+            image = image[: final_shape[0], : final_shape[1], :]
 
         self.jp2[:] = image
 
@@ -846,7 +843,7 @@ class Tiff2Jp2k(object):
         for jp2k_tilenum, tilewriter in enumerate(self.jp2.get_tilewriters()):
             tiff_tiles = self._get_covering_tiles(jp2k_tilenum)
             jp2k_tile = self._cover_tile(jp2k_tilenum, tiff_tiles)
-            self.logger.info(f'Writing tile {jp2k_tilenum}')
+            self.logger.info(f"Writing tile {jp2k_tilenum}")
             tilewriter[:] = jp2k_tile
 
     def _cover_tile(self, jp2k_tile_num, tiff_tile_nums):
@@ -864,8 +861,12 @@ class Tiff2Jp2k(object):
 
         # Does the JP2K have partial tiles on the far right and bottom of the
         # image.
-        partial_jp2_tile_rows = (self.imageheight / jth) != (self.imageheight // jth)  # noqa : E501
-        partial_jp2_tile_cols = (self.imagewidth / jtw) != (self.imagewidth // jtw)  # noqa : E501
+        partial_jp2_tile_rows = (self.imageheight / jth) != (
+            self.imageheight // jth
+        )  # noqa : E501
+        partial_jp2_tile_cols = (self.imagewidth / jtw) != (
+            self.imagewidth // jtw
+        )  # noqa : E501
 
         num_jp2k_tile_rows = int(np.ceil(self.imageheight / jth))
         num_jp2k_tile_cols = int(np.ceil(self.imagewidth / jtw))
@@ -901,7 +902,7 @@ class Tiff2Jp2k(object):
                 libtiff.readRGBATile(self.tiff_fp, x, y, rgba_tile)
 
                 # The RGBA interface requires some reordering.
-                if sys.byteorder == 'little':
+                if sys.byteorder == "little":
                     # image is upside down
                     dims = [0]
                 else:
@@ -916,7 +917,8 @@ class Tiff2Jp2k(object):
             else:
 
                 tiff_tile = np.zeros(
-                    (self.th, self.tw, self.spp), dtype=self.dtype
+                    (self.th, self.tw, self.spp),
+                    dtype=self.dtype
                 )
                 libtiff.readEncodedTile(self.tiff_fp, ttile_num, tiff_tile)
 
@@ -941,17 +943,11 @@ class Tiff2Jp2k(object):
             jp2k_tile[jrows, jcols, :] = tiff_tile[trows, tcols, :]
 
         # last tile column?  last tile row?  If so, we may have a partial tile.
-        if (
-            partial_jp2_tile_cols
-            and jp2k_tile_col == num_jp2k_tile_cols - 1
-        ):
+        if partial_jp2_tile_cols and jp2k_tile_col == num_jp2k_tile_cols - 1:
             last_j2k_cols = slice(0, self.imagewidth - jp2k_ulx)
             jp2k_tile = jp2k_tile[:, last_j2k_cols, :].copy()
 
-        if (
-            partial_jp2_tile_rows
-            and jp2k_tile_row == num_jp2k_tile_rows - 1
-        ):
+        if partial_jp2_tile_rows and jp2k_tile_row == num_jp2k_tile_rows - 1:
             last_j2k_rows = slice(0, self.imageheight - jp2k_uly)
             jp2k_tile = jp2k_tile[last_j2k_rows, :, :].copy()
 
@@ -984,8 +980,6 @@ class Tiff2Jp2k(object):
         # lower left corner
         llx = ulx
         lly = min(uly + jth - 1, self.imageheight - 1)
-        ll_tiff_tilenum = libtiff.computeTile(self.tiff_fp, llx, lly, 0, 0)
-        lower_tiff_tile_row = int(np.ceil(ll_tiff_tilenum // num_tiff_tile_cols))  # noqa : E501
 
         # lower right corner
         lrx = min(llx + jtw - 1, self.imagewidth - 1)
@@ -1019,8 +1013,8 @@ class Tiff2Jp2k(object):
 
         jth, jtw = self.tilesize
 
-        self.logger.debug(f'image:  {self.imageheight} x {self.imagewidth}')
-        self.logger.debug(f'jptile:  {jth} x {jtw}')
+        self.logger.debug(f"image:  {self.imageheight} x {self.imagewidth}")
+        self.logger.debug(f"jptile:  {jth} x {jtw}")
         num_strips = libtiff.numberOfStrips(self.tiff_fp)
 
         num_jp2k_tile_cols = int(np.ceil(self.imagewidth / jtw))
@@ -1030,7 +1024,7 @@ class Tiff2Jp2k(object):
             jp2k_tile_row = idx // num_jp2k_tile_cols
             jp2k_tile_col = idx % num_jp2k_tile_cols
 
-            msg = f'Tile:  #{idx} row #{jp2k_tile_row} col #{jp2k_tile_col}'
+            msg = f"Tile:  #{idx} row #{jp2k_tile_row} col #{jp2k_tile_col}"
             self.logger.info(msg)
 
             # the coordinates of the upper left pixel of the jp2k tile
@@ -1042,7 +1036,9 @@ class Tiff2Jp2k(object):
             # jp2k tiles from this same TIFF multi-strip.
             if jp2k_tile_col == 0:
                 tiff_multi_strip = self._construct_multi_strip(
-                    july, num_strips, jth,
+                    july,
+                    num_strips,
+                    jth,
                 )
 
             # construct the TIFF row and column slices from the multi-strip,
@@ -1107,7 +1103,8 @@ class Tiff2Jp2k(object):
         # This may result in a multi-strip that has more rows than the jp2k
         # tile
         tiff_multi_strip = np.zeros(
-            (num_rows, self.imagewidth, spp), dtype=dtype
+            (num_rows, self.imagewidth, spp),
+            dtype=dtype
         )
 
         # Fill the multi-strip
@@ -1116,7 +1113,8 @@ class Tiff2Jp2k(object):
             if self.photo == libtiff.Photometric.YCBCR:
 
                 tiff_rgba_strip = np.zeros(
-                    (self.rps, self.imagewidth, 4), dtype=dtype
+                    (self.rps, self.imagewidth, 4),
+                    dtype=dtype
                 )
 
                 libtiff.readRGBAStrip(
@@ -1143,24 +1141,23 @@ class Tiff2Jp2k(object):
 
                 # The rgba interface requires at least flipping the image
                 # upside down, and also reordering the planes on big endian
-                if sys.byteorder == 'little':
+                if sys.byteorder == "little":
                     dims = [0]
                 else:
                     dims = [0, 2]
                 tiff_rgba_strip = np.flip(tiff_rgba_strip, axis=dims)
 
                 # potentially get rid of alpha plane
-                tiff_strip = tiff_rgba_strip[:, :, :self.spp]
+                tiff_strip = tiff_rgba_strip[:, :, : self.spp]
 
             else:
 
                 tiff_strip = np.zeros(
-                   (self.rps, self.imagewidth, spp), dtype=dtype
+                    (self.rps, self.imagewidth, spp),
+                    dtype=dtype
                 )
 
-                libtiff.readEncodedStrip(
-                    self.tiff_fp, stripnum, tiff_strip
-                )
+                libtiff.readEncodedStrip(self.tiff_fp, stripnum, tiff_strip)
 
             # push the strip into the multi-strip
             top_row = (stripnum - top_strip_num) * self.rps

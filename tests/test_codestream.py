@@ -25,12 +25,11 @@ class TestSuite(fixtures.TestCommon):
     def setUp(self):
         super().setUp()
 
-        self.p0_03 = ir.files('tests.data').joinpath('p0_03.j2k')
-        self.p0_06 = ir.files('tests.data').joinpath('p0_06.j2k')
-        self.p1_06 = ir.files('tests.data').joinpath('p1_06.j2k')
-        self.issue142 = ir.files('tests.data').joinpath('issue142.j2k')
-        self.edf_c2_1178956 = ir.files('tests.data').joinpath('edf_c2_1178956.jp2')  # noqa : E501
-        self.htj2k = ir.files('tests.data').joinpath('oj-ht-byte.jph')
+        self.p0_03 = ir.files("tests.data").joinpath("p0_03.j2k")
+        self.p0_06 = ir.files("tests.data").joinpath("p0_06.j2k")
+        self.p1_06 = ir.files("tests.data").joinpath("p1_06.j2k")
+        self.issue142 = ir.files("tests.data").joinpath("issue142.j2k")
+        self.htj2k = ir.files("tests.data").joinpath("oj-ht-byte.jph")
 
     def test_cap_marker_segment(self):
         """
@@ -52,14 +51,14 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  InvalidJp2kError
         """
-        with open(self.temp_j2k_filename, mode='wb') as tfile:
-            with open(self.j2kfile, 'rb') as ifile:
+        with open(self.temp_j2k_filename, mode="wb") as tfile:
+            with open(self.j2kfile, "rb") as ifile:
                 # Everything up until the SOT marker.
                 read_buffer = ifile.read(98)
                 tfile.write(read_buffer)
 
                 # Write the bad marker 0xd900
-                read_buffer = struct.pack('>H', 0xd900)
+                read_buffer = struct.pack(">H", 0xD900)
                 tfile.write(read_buffer)
 
                 # Get the rest of the input file.
@@ -78,13 +77,13 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  InvalidJp2kError
         """
-        with open(self.temp_jp2_filename, 'wb') as ofile:
-            with open(self.jp2file, 'rb') as ifile:
+        with open(self.temp_jp2_filename, "wb") as ofile:
+            with open(self.jp2file, "rb") as ifile:
                 # Copy up until Psot field.
                 ofile.write(ifile.read(204))
 
                 # Write a bad Psot value.
-                ofile.write(struct.pack('>I', 2000000))
+                ofile.write(struct.pack(">I", 2000000))
 
                 # copy the rest of the file as-is.
                 ifile.seek(208)
@@ -105,7 +104,7 @@ class TestSuite(fixtures.TestCommon):
         """
         fp = BytesIO()
 
-        buffer = struct.pack('>H', 47)  # length
+        buffer = struct.pack(">H", 47)  # length
 
         # kwargs = {'rsiz': 1,
         #           'xysiz': (1000, 1000),
@@ -118,9 +117,8 @@ class TestSuite(fixtures.TestCommon):
         #           'xyrsiz': ((1, 1, 1), (1, 1, 1)),
         #           'length': 47,
         #           'offset': 2}
-        buffer += struct.pack('>HIIIIIIIIH', 1, 1000, 1000, 0, 0, 0, 1000,
-                              0, 0, 3)
-        buffer += struct.pack('>BBBBBBBBB', 7, 1, 1, 7, 1, 1, 7, 1, 1)
+        buffer += struct.pack(">HIIIIIIIIH", 1, 1000, 1000, 0, 0, 0, 1000, 0, 0, 3)  # noqa : E501
+        buffer += struct.pack(">BBBBBBBBB", 7, 1, 1, 7, 1, 1, 7, 1, 1)
         fp.write(buffer)
         fp.seek(0)
 
@@ -134,15 +132,15 @@ class TestSuite(fixtures.TestCommon):
 
         Expected result:  InvalidJp2kError
         """
-        path = ir.files('tests.data').joinpath('p1_06.j2k')
+        path = ir.files("tests.data").joinpath("p1_06.j2k")
 
         with tempfile.TemporaryDirectory() as tdir:
-            with open(path, mode='rb') as ifile:
-                with open(pathlib.Path(tdir) / 'tmp.j2k', mode='wb') as ofile:
+            with open(path, mode="rb") as ifile:
+                with open(pathlib.Path(tdir) / "tmp.j2k", mode="wb") as ofile:
                     ofile.write(ifile.read(555))
 
                 with self.assertRaises(InvalidJp2kError):
-                    j = Jp2k(pathlib.Path(tdir) / 'tmp.j2k')
+                    j = Jp2k(pathlib.Path(tdir) / "tmp.j2k")
                     j.get_codestream(header_only=False)
 
     def test_tlm_segment(self):
@@ -151,10 +149,10 @@ class TestSuite(fixtures.TestCommon):
 
         In this case there's only a single tile.
         """
-        path = ir.files('tests.data').joinpath('p0_06.j2k')
+        path = ir.files("tests.data").joinpath("p0_06.j2k")
         j2k = Jp2k(path)
 
-        buffer = b'\xffU\x00\x08\x00@\x00\x00YW'
+        buffer = b"\xffU\x00\x08\x00@\x00\x00YW"
         b = BytesIO(buffer[2:])
         segment = j2k.codestream._parse_tlm_segment(b)
 
@@ -169,7 +167,7 @@ class TestSuite(fixtures.TestCommon):
         """
         Verify parsing of the PPT segment
         """
-        path = ir.files('tests.data').joinpath('p1_06.j2k')
+        path = ir.files("tests.data").joinpath("p1_06.j2k")
         j2k = Jp2k(path)
         c = j2k.get_codestream(header_only=False)
         self.assertEqual(c.segment[6].zppt, 0)
@@ -178,7 +176,7 @@ class TestSuite(fixtures.TestCommon):
         """
         Verify parsing of the PLT segment
         """
-        path = ir.files('tests.data').joinpath('issue142.j2k')
+        path = ir.files("tests.data").joinpath("issue142.j2k")
         c = Jp2k(path).get_codestream(header_only=False)
         self.assertEqual(c.segment[7].zplt, 0)
         self.assertEqual(len(c.segment[7].iplt), 59)
@@ -188,9 +186,11 @@ class TestSuite(fixtures.TestCommon):
         Verify parsing of the PPM segment
         """
         with warnings.catch_warnings():
+
             # Lots of things wrong with this file.
-            warnings.simplefilter('ignore')
-            jp2 = Jp2k(self.edf_c2_1178956)
+            warnings.simplefilter("ignore")
+
+            jp2 = Jp2k(ir.files("tests.data").joinpath("edf_c2_1178956.jp2"))
 
         c = jp2.get_codestream()
         self.assertEqual(c.segment[2].zppm, 0)
@@ -200,7 +200,7 @@ class TestSuite(fixtures.TestCommon):
         """
         Verify parsing of the CRG segment
         """
-        path = ir.files('tests.data').joinpath('p0_03.j2k')
+        path = ir.files("tests.data").joinpath("p0_03.j2k")
         j2k = Jp2k(path)
         c = j2k.get_codestream()
         self.assertEqual(c.segment[6].xcrg, (65424,))
@@ -210,7 +210,7 @@ class TestSuite(fixtures.TestCommon):
         """
         Verify parsing of the RGN segment
         """
-        path = ir.files('tests.data').joinpath('p0_06.j2k')
+        path = ir.files("tests.data").joinpath("p0_06.j2k")
         j2k = Jp2k(path)
         c = j2k.get_codestream()
         self.assertEqual(c.segment[-1].crgn, 0)
@@ -225,14 +225,14 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  The marker segment should be properly parsed.
         """
 
-        with open(self.temp_j2k_filename, 'wb') as tfile:
-            with open(self.j2kfile, 'rb') as ifile:
+        with open(self.temp_j2k_filename, "wb") as tfile:
+            with open(self.j2kfile, "rb") as ifile:
                 # Everything up until the first QCD marker.
                 read_buffer = ifile.read(65)
                 tfile.write(read_buffer)
 
                 # Write the new marker segment, 0xff6f = 65391
-                read_buffer = struct.pack('>HHB', int(65391), int(3), int(0))
+                read_buffer = struct.pack(">HHB", int(65391), int(3), int(0))
                 tfile.write(read_buffer)
 
                 # Get the rest of the input file.
@@ -242,9 +242,9 @@ class TestSuite(fixtures.TestCommon):
 
         codestream = Jp2k(tfile.name).get_codestream()
 
-        self.assertEqual(codestream.segment[3].marker_id, '0xff6f')
+        self.assertEqual(codestream.segment[3].marker_id, "0xff6f")
         self.assertEqual(codestream.segment[3].length, 3)
-        self.assertEqual(codestream.segment[3].data, b'\x00')
+        self.assertEqual(codestream.segment[3].data, b"\x00")
 
     def test_siz_segment_ssiz_unsigned(self):
         """ssiz attribute to be removed in future release"""
@@ -264,7 +264,7 @@ class TestSuite(fixtures.TestCommon):
 
         Expected result:  InvalidJp2kError
         """
-        path = ir.files('tests.data').joinpath('issue626.j2k')
+        path = ir.files("tests.data").joinpath("issue626.j2k")
         with self.assertRaises(InvalidJp2kError):
             Jp2k(path)
 
@@ -281,24 +281,24 @@ class TestCodestreamRepr(unittest.TestCase):
         """Test SOC segment repr"""
         segment = glymur.codestream.SOCsegment()
         newseg = eval(repr(segment))
-        self.assertEqual(newseg.marker_id, 'SOC')
+        self.assertEqual(newseg.marker_id, "SOC")
 
     def test_siz(self):
         """Test SIZ segment repr"""
         kwargs = {
-            'rsiz': 0,
-            'xysiz': (2592, 1456),
-            'xyosiz': (0, 0),
-            'xytsiz': (2592, 1456),
-            'xytosiz': (0, 0),
-            'Csiz': 3,
-            'bitdepth': (8, 8, 8),
-            'signed': (False, False, False),
-            'xyrsiz': ((1, 1, 1), (1, 1, 1))
+            "rsiz": 0,
+            "xysiz": (2592, 1456),
+            "xyosiz": (0, 0),
+            "xytsiz": (2592, 1456),
+            "xytosiz": (0, 0),
+            "Csiz": 3,
+            "bitdepth": (8, 8, 8),
+            "signed": (False, False, False),
+            "xyrsiz": ((1, 1, 1), (1, 1, 1)),
         }
         segment = glymur.codestream.SIZsegment(**kwargs)
         newseg = eval(repr(segment))
-        self.assertEqual(newseg.marker_id, 'SIZ')
+        self.assertEqual(newseg.marker_id, "SIZ")
         self.assertEqual(newseg.xsiz, 2592)
         self.assertEqual(newseg.ysiz, 1456)
         self.assertEqual(newseg.xosiz, 0)

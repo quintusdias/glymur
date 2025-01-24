@@ -19,8 +19,13 @@ import glymur
 from glymur import Jp2k
 from glymur._iccprofile import _ICCProfile
 from glymur.jp2box import (
-    ColourSpecificationBox, ContiguousCodestreamBox, FileTypeBox,
-    ImageHeaderBox, JP2HeaderBox, JPEG2000SignatureBox, InvalidJp2kError
+    ColourSpecificationBox,
+    ContiguousCodestreamBox,
+    FileTypeBox,
+    ImageHeaderBox,
+    JP2HeaderBox,
+    JPEG2000SignatureBox,
+    InvalidJp2kError,
 )
 from glymur.core import SRGB
 from . import fixtures
@@ -43,12 +48,12 @@ class TestColourSpecificationBox(fixtures.TestCommon):
         self.jp2h = JP2HeaderBox()
         self.jp2c = ContiguousCodestreamBox()
         self.ihdr = ImageHeaderBox(
-            height=height,
-            width=width,
-            num_components=num_components
+            height=height, width=width, num_components=num_components
         )
 
-        self.icc_profile = ir.files('tests.data').joinpath('sgray.icc').read_bytes()  # noqa : E501
+        self.icc_profile = (
+            ir.files("tests.data").joinpath("sgray.icc").read_bytes()
+        )  # noqa : E501
 
     def test_bad_method_printing(self):
         """
@@ -58,12 +63,12 @@ class TestColourSpecificationBox(fixtures.TestCommon):
         EXPECTED RESULT:  Warnings are issued.  Printing the string
         representation should not error out.
         """
-        path = ir.files('tests.data').joinpath('issue405.dat')
-        with path.open('rb') as f:
+        path = ir.files("tests.data").joinpath("issue405.dat")
+        with path.open("rb") as f:
             f.seek(8)
             with warnings.catch_warnings():
                 # Lots of things wrong with this file.
-                warnings.simplefilter('ignore')
+                warnings.simplefilter("ignore")
                 box = ColourSpecificationBox.parse(f, length=80, offset=0)
                 str(box)
 
@@ -73,7 +78,7 @@ class TestColourSpecificationBox(fixtures.TestCommon):
 
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
         boxes[2].box = [self.ihdr, ColourSpecificationBox(colorspace=None)]
-        with open(self.temp_jp2_filename, mode='wb') as tfile:
+        with open(self.temp_jp2_filename, mode="wb") as tfile:
             with self.assertRaises(InvalidJp2kError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
@@ -82,7 +87,7 @@ class TestColourSpecificationBox(fixtures.TestCommon):
         j2k = Jp2k(self.j2kfile)
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
         boxes[2].box = [self.ihdr]
-        with open(self.temp_jp2_filename, mode='wb') as tfile:
+        with open(self.temp_jp2_filename, mode="wb") as tfile:
             with self.assertRaises(InvalidJp2kError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
@@ -92,7 +97,7 @@ class TestColourSpecificationBox(fixtures.TestCommon):
         boxes = [self.jp2b, self.ftyp, self.jp2h, self.jp2c]
         colr = ColourSpecificationBox(colorspace=SRGB, approximation=1)
         boxes[2].box = [self.ihdr, colr]
-        with open(self.temp_jp2_filename, mode='wb') as tfile:
+        with open(self.temp_jp2_filename, mode="wb") as tfile:
             with self.assertRaises(InvalidJp2kError):
                 j2k.wrap(tfile.name, boxes=boxes)
 
@@ -113,12 +118,12 @@ class TestColourSpecificationBox(fixtures.TestCommon):
         self.assertEqual(colr.approximation, 0)
 
         icc_profile = _ICCProfile(colr.icc_profile)
-        self.assertEqual(icc_profile.header['Version'], '2.1.0')
-        self.assertEqual(icc_profile.header['Color Space'], 'gray')
-        self.assertIsNone(icc_profile.header['Datetime'])
+        self.assertEqual(icc_profile.header["Version"], "2.1.0")
+        self.assertEqual(icc_profile.header["Color Space"], "gray")
+        self.assertIsNone(icc_profile.header["Datetime"])
 
         # Only True for version4
-        self.assertFalse('Profile Id' in icc_profile.header.keys())
+        self.assertFalse("Profile Id" in icc_profile.header.keys())
 
     def test_colr_with_bad_color(self):
         """
@@ -142,7 +147,7 @@ class TestColourSpecificationBox(fixtures.TestCommon):
         EXPECTED RESULT:  InvalidJp2kError
         """
         with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
+            warnings.simplefilter("ignore")
             colr = ColourSpecificationBox(colorspace=SRGB, method=5)
         with tempfile.TemporaryFile() as tfile:
             with self.assertRaises(InvalidJp2kError):
@@ -153,7 +158,7 @@ class TestSuite(unittest.TestCase):
     """Test suite for ICC Profile code."""
 
     def setUp(self):
-        self.buffer = ir.files('tests.data').joinpath('sgray.icc').read_bytes()
+        self.buffer = ir.files("tests.data").joinpath("sgray.icc").read_bytes()
 
     def test_bad_rendering_intent(self):
         """
@@ -161,22 +166,22 @@ class TestSuite(unittest.TestCase):
 
         It should be classified as 'unknown'
         """
-        intent = struct.pack('>I', 10)
+        intent = struct.pack(">I", 10)
         self.buffer = self.buffer[:64] + intent + self.buffer[68:]
 
         icc_profile = _ICCProfile(self.buffer)
-        self.assertEqual(icc_profile.header['Rendering Intent'], 'unknown')
+        self.assertEqual(icc_profile.header["Rendering Intent"], "unknown")
 
     def test_version4(self):
         """
         ICC profile is version 4
         """
-        leadoff = struct.pack('>IIBB', 416, 0, 4, 0)
+        leadoff = struct.pack(">IIBB", 416, 0, 4, 0)
         self.buffer = leadoff + self.buffer[10:]
 
         icc_profile = _ICCProfile(self.buffer)
-        self.assertEqual(icc_profile.header['Version'], '4.0.0')
-        self.assertTrue('Profile Id' in icc_profile.header.keys())
+        self.assertEqual(icc_profile.header["Version"], "4.0.0")
+        self.assertTrue("Profile Id" in icc_profile.header.keys())
 
     def test_icc_profile(self):
         """
@@ -184,37 +189,38 @@ class TestSuite(unittest.TestCase):
 
         EXPECTED RESULT:  Verify the ICC profile metadata.
         """
-        path = ir.files('tests.data').joinpath('text_GBR.jp2')
+        path = ir.files("tests.data").joinpath("text_GBR.jp2")
         with self.assertWarns(UserWarning):
             # The brand is wrong, this is JPX, not JP2.
             j = Jp2k(path)
         box = j.box[3].box[1]
 
-        self.assertEqual(box.icc_profile_header['Size'], 1328)
-        self.assertEqual(box.icc_profile_header['Color Space'], 'RGB')
-        self.assertEqual(box.icc_profile_header['Connection Space'], 'XYZ')
+        self.assertEqual(box.icc_profile_header["Size"], 1328)
+        self.assertEqual(box.icc_profile_header["Color Space"], "RGB")
+        self.assertEqual(box.icc_profile_header["Connection Space"], "XYZ")
         self.assertEqual(
-            box.icc_profile_header['Datetime'],
+            box.icc_profile_header["Datetime"],
             datetime(2009, 2, 25, 11, 26, 11)
         )
-        self.assertEqual(box.icc_profile_header['File Signature'], 'acsp')
-        self.assertEqual(box.icc_profile_header['Platform'], 'APPL')
+        self.assertEqual(box.icc_profile_header["File Signature"], "acsp")
+        self.assertEqual(box.icc_profile_header["Platform"], "APPL")
         self.assertEqual(
-            box.icc_profile_header['Flags'],
-            'not embedded, can be used independently'
+            box.icc_profile_header["Flags"],
+            "not embedded, can be used independently"
         )
-        self.assertEqual(box.icc_profile_header['Device Manufacturer'], 'appl')
-        self.assertEqual(box.icc_profile_header['Device Model'], '')
+        self.assertEqual(box.icc_profile_header["Device Manufacturer"], "appl")
+        self.assertEqual(box.icc_profile_header["Device Model"], "")
         self.assertEqual(
-            box.icc_profile_header['Device Attributes'],
-            'reflective, glossy, positive media polarity, color media'
+            box.icc_profile_header["Device Attributes"],
+            "reflective, glossy, positive media polarity, color media",
         )
         self.assertEqual(
-            box.icc_profile_header['Rendering Intent'], 'perceptual'
+            box.icc_profile_header["Rendering Intent"],
+            "perceptual"
         )
         np.testing.assert_almost_equal(
-            box.icc_profile_header['Illuminant'],
+            box.icc_profile_header["Illuminant"],
             np.array([0.9642023, 1.0, 0.824905]),
-            decimal=6
+            decimal=6,
         )
-        self.assertEqual(box.icc_profile_header['Creator'], 'appl')
+        self.assertEqual(box.icc_profile_header["Creator"], "appl")

@@ -18,8 +18,14 @@ import lxml.etree as ET
 import glymur
 from glymur import Jp2k
 from glymur.jp2box import (
-    DataEntryURLBox, FileTypeBox, JPEG2000SignatureBox, DataReferenceBox,
-    FragmentListBox, FragmentTableBox, ColourSpecificationBox, InvalidJp2kError
+    DataEntryURLBox,
+    FileTypeBox,
+    JPEG2000SignatureBox,
+    DataReferenceBox,
+    FragmentListBox,
+    FragmentTableBox,
+    ColourSpecificationBox,
+    InvalidJp2kError,
 )
 from . import fixtures
 
@@ -40,8 +46,8 @@ class TestJPXWrap(fixtures.TestCommon):
                 <neighbor name="Switzerland" direction="W"/>
             </country>
         </data>"""
-        self.xmlfile = self.test_dir_path / 'liechtenstein.xml'
-        with self.xmlfile.open(mode='wb') as tfile:
+        self.xmlfile = self.test_dir_path / "liechtenstein.xml"
+        with self.xmlfile.open(mode="wb") as tfile:
             tfile.write(raw_xml)
             tfile.flush()
 
@@ -56,7 +62,7 @@ class TestJPXWrap(fixtures.TestCommon):
         jp2_1 = Jp2k(self.temp_jp2_filename)
         jp2h = jp2_1.box[2]
 
-        jp2c = [box for box in jp2_1.box if box.box_id == 'jp2c'][0]
+        jp2c = [box for box in jp2_1.box if box.box_id == "jp2c"][0]
 
         # coff and clen will be the offset and length input arguments
         # to the fragment list box.  dr_idx is the data reference index.
@@ -69,34 +75,28 @@ class TestJPXWrap(fixtures.TestCommon):
         dr_idx.append(1)
 
         # Make the url box for this codestream.
-        url1 = DataEntryURLBox(
-            0,
-            [0, 0, 0],
-            f'file://{self.temp_jp2_filename}'
-        )
+        url1 = DataEntryURLBox(0, [0, 0, 0], f"file://{self.temp_jp2_filename}")
         url1_name_len = len(url1.url) + 1
 
         # Wrap our own J2K file as a JP2 file.
-        file2 = self.test_dir_path / 'file2.jp2'
+        file2 = self.test_dir_path / "file2.jp2"
         j2k = Jp2k(self.j2kfile)
         jp2_2 = j2k.wrap(file2)
 
-        jp2c = [box for box in jp2_2.box if box.box_id == 'jp2c'][0]
+        jp2c = [box for box in jp2_2.box if box.box_id == "jp2c"][0]
         coff.append(jp2c.main_header_offset)
         clen.append(jp2c.length - (coff[0] - jp2c.offset))
         dr_idx.append(2)
 
         # Make the url box for this codestream.
-        url2 = DataEntryURLBox(0, [0, 0, 0], 'file://{file2}')
+        url2 = DataEntryURLBox(0, [0, 0, 0], "file://{file2}")
 
         boxes = [
             JPEG2000SignatureBox(),
-            FileTypeBox(
-                brand='jpx ', compatibility_list=['jpx ', 'jp2 ', 'jpxb']
-            ),
-            jp2h
+            FileTypeBox(brand="jpx ", compatibility_list=["jpx ", "jp2 ", "jpxb"]),  # noqa : E501
+            jp2h,
         ]
-        with open(self.temp_jpx_filename, mode='wb') as tjpx:
+        with open(self.temp_jpx_filename, mode="wb") as tjpx:
             for box in boxes:
                 box.write(tjpx)
 
@@ -111,9 +111,7 @@ class TestJPXWrap(fixtures.TestCommon):
 
             jpx_no_jp2c = Jp2k(tjpx.name)
             jpx_boxes = [box.box_id for box in jpx_no_jp2c.box]
-            self.assertEqual(
-                jpx_boxes, ['jP  ', 'ftyp', 'jp2h', 'ftbl', 'dtbl']
-            )
+            self.assertEqual(jpx_boxes, ["jP  ", "ftyp", "jp2h", "ftbl", "dtbl"])  # noqa : E501
             self.assertEqual(jpx_no_jp2c.box[4].DR[0].offset, 141)
 
             offset = 141 + 8 + 4 + url1_name_len
@@ -126,7 +124,7 @@ class TestJPXWrap(fixtures.TestCommon):
 
         boxes.append(glymur.jp2box.AssociationBox())
 
-        with open(self.temp_jpx_filename, mode='wb') as tfile:
+        with open(self.temp_jpx_filename, mode="wb") as tfile:
             with self.assertRaises(RuntimeError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
@@ -136,19 +134,19 @@ class TestJPXWrap(fixtures.TestCommon):
         boxes = jp2.box
 
         # The ftyp box must be modified to jpx.
-        boxes[1].brand = 'jpx '
-        boxes[1].compatibility_list = ['jp2 ', 'jpxb']
+        boxes[1].brand = "jpx "
+        boxes[1].compatibility_list = ["jp2 ", "jpxb"]
 
         jpch = glymur.jp2box.CodestreamHeaderBox()
         boxes.append(jpch)
         jplh = glymur.jp2box.CompositingLayerHeaderBox()
         boxes.append(jplh)
 
-        with open(self.temp_jpx_filename, mode='wb') as tfile:
+        with open(self.temp_jpx_filename, mode="wb") as tfile:
             jpx = jp2.wrap(tfile.name, boxes=boxes)
 
-            self.assertEqual(jpx.box[-2].box_id, 'jpch')
-            self.assertEqual(jpx.box[-1].box_id, 'jplh')
+            self.assertEqual(jpx.box[-2].box_id, "jpch")
+            self.assertEqual(jpx.box[-1].box_id, "jplh")
 
     def test_cgrp(self):
         """Write a color group box."""
@@ -156,8 +154,8 @@ class TestJPXWrap(fixtures.TestCommon):
         boxes = jp2.box
 
         # The ftyp box must be modified to jpx.
-        boxes[1].brand = 'jpx '
-        boxes[1].compatibility_list = ['jp2 ', 'jpxb']
+        boxes[1].brand = "jpx "
+        boxes[1].compatibility_list = ["jp2 ", "jpxb"]
 
         colr_rgb = ColourSpecificationBox(colorspace=glymur.core.SRGB)
         colr_gr = ColourSpecificationBox(colorspace=glymur.core.GREYSCALE)
@@ -166,12 +164,12 @@ class TestJPXWrap(fixtures.TestCommon):
         cgrp = glymur.jp2box.ColourGroupBox(box=box)
         boxes.append(cgrp)
 
-        with open(self.temp_jpx_filename, mode='wb') as tfile:
+        with open(self.temp_jpx_filename, mode="wb") as tfile:
             jpx = jp2.wrap(tfile.name, boxes=boxes)
 
-            self.assertEqual(jpx.box[-1].box_id, 'cgrp')
-            self.assertEqual(jpx.box[-1].box[0].box_id, 'colr')
-            self.assertEqual(jpx.box[-1].box[1].box_id, 'colr')
+            self.assertEqual(jpx.box[-1].box_id, "cgrp")
+            self.assertEqual(jpx.box[-1].box[0].box_id, "colr")
+            self.assertEqual(jpx.box[-1].box[1].box_id, "colr")
 
     def test_label_neg(self):
         """Can't write a label box embedded in any old box."""
@@ -179,8 +177,8 @@ class TestJPXWrap(fixtures.TestCommon):
         boxes = jp2.box
 
         # The ftyp box must be modified to jpx.
-        boxes[1].brand = 'jpx '
-        boxes[1].compatibility_list = ['jp2 ', 'jpxb']
+        boxes[1].brand = "jpx "
+        boxes[1].compatibility_list = ["jp2 ", "jpxb"]
 
         lblb = glymur.jp2box.LabelBox("Just a test")
         box = [lblb]
@@ -188,7 +186,7 @@ class TestJPXWrap(fixtures.TestCommon):
         cgrp = glymur.jp2box.ColourGroupBox(box=box)
         boxes.append(cgrp)
 
-        with open(self.temp_jpx_filename, mode='wb') as tfile:
+        with open(self.temp_jpx_filename, mode="wb") as tfile:
             with self.assertRaises(InvalidJp2kError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
@@ -198,8 +196,8 @@ class TestJPXWrap(fixtures.TestCommon):
         boxes = jp2.box
 
         # The ftyp box must be modified to jpx.
-        boxes[1].brand = 'jpx '
-        boxes[1].compatibility_list = ['jp2 ', 'jpxb']
+        boxes[1].brand = "jpx "
+        boxes[1].compatibility_list = ["jp2 ", "jpxb"]
 
         the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
         xmlb = glymur.jp2box.XMLBox(xml=the_xml)
@@ -208,7 +206,7 @@ class TestJPXWrap(fixtures.TestCommon):
         cgrp = glymur.jp2box.ColourGroupBox(box=box)
         boxes.append(cgrp)
 
-        with open(self.temp_jpx_filename, mode='wb') as tfile:
+        with open(self.temp_jpx_filename, mode="wb") as tfile:
             with self.assertRaises(RuntimeError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
@@ -223,8 +221,8 @@ class TestJPXWrap(fixtures.TestCommon):
         boxes = jp2.box
 
         # The ftyp box must be modified to jpx.
-        boxes[1].brand = 'jpx '
-        boxes[1].compatibility_list = ['jp2 ', 'jpxb']
+        boxes[1].brand = "jpx "
+        boxes[1].compatibility_list = ["jp2 ", "jpxb"]
 
         offset = [89]
         length = [1132288]
@@ -233,12 +231,12 @@ class TestJPXWrap(fixtures.TestCommon):
         ftbl = glymur.jp2box.FragmentTableBox(box=[flst])
         boxes.append(ftbl)
 
-        with open(self.temp_jpx_filename, mode='wb') as tfile:
+        with open(self.temp_jpx_filename, mode="wb") as tfile:
             jpx = jp2.wrap(tfile.name, boxes=boxes)
 
-            self.assertEqual(jpx.box[1].compatibility_list, ['jp2 ', 'jpxb'])
-            self.assertEqual(jpx.box[-1].box_id, 'ftbl')
-            self.assertEqual(jpx.box[-1].box[0].box_id, 'flst')
+            self.assertEqual(jpx.box[1].compatibility_list, ["jp2 ", "jpxb"])
+            self.assertEqual(jpx.box[-1].box_id, "ftbl")
+            self.assertEqual(jpx.box[-1].box[0].box_id, "flst")
 
     def test_jpxb_compatibility(self):
         """Wrap JP2 to JPX, state jpxb compatibility"""
@@ -246,8 +244,8 @@ class TestJPXWrap(fixtures.TestCommon):
         boxes = jp2.box
 
         # The ftyp box must be modified to jpx with jp2 compatibility.
-        boxes[1].brand = 'jpx '
-        boxes[1].compatibility_list = ['jp2 ', 'jpxb']
+        boxes[1].brand = "jpx "
+        boxes[1].compatibility_list = ["jp2 ", "jpxb"]
 
         numbers = (0, 1)
         nlst = glymur.jp2box.NumberListBox(numbers)
@@ -257,16 +255,17 @@ class TestJPXWrap(fixtures.TestCommon):
         asoc = glymur.jp2box.AssociationBox([nlst, xmlb])
         boxes.append(asoc)
 
-        with open(self.temp_jpx_filename, mode='wb') as tfile:
+        with open(self.temp_jpx_filename, mode="wb") as tfile:
             jpx = jp2.wrap(tfile.name, boxes=boxes)
 
-            self.assertEqual(jpx.box[1].compatibility_list, ['jp2 ', 'jpxb'])
-            self.assertEqual(jpx.box[-1].box_id, 'asoc')
-            self.assertEqual(jpx.box[-1].box[0].box_id, 'nlst')
-            self.assertEqual(jpx.box[-1].box[1].box_id, 'xml ')
+            self.assertEqual(jpx.box[1].compatibility_list, ["jp2 ", "jpxb"])
+            self.assertEqual(jpx.box[-1].box_id, "asoc")
+            self.assertEqual(jpx.box[-1].box[0].box_id, "nlst")
+            self.assertEqual(jpx.box[-1].box[1].box_id, "xml ")
             self.assertEqual(jpx.box[-1].box[0].associations, numbers)
-            self.assertEqual(ET.tostring(jpx.box[-1].box[1].xml.getroot()),
-                             b'<data>0</data>')
+            self.assertEqual(
+                ET.tostring(jpx.box[-1].box[1].xml.getroot()), b"<data>0</data>"
+            )
 
     def test_association_label_box(self):
         """Wrap JP2 to JPX with asoc, label, and nlst boxes"""
@@ -274,10 +273,10 @@ class TestJPXWrap(fixtures.TestCommon):
         boxes = jp2.box
 
         # The ftyp box must be modified to jpx with jp2 compatibility.
-        boxes[1].brand = 'jpx '
-        boxes[1].compatibility_list = ['jp2 ', 'jpx ']
+        boxes[1].brand = "jpx "
+        boxes[1].compatibility_list = ["jp2 ", "jpx "]
 
-        label = 'this is a test'
+        label = "this is a test"
         lblb = glymur.jp2box.LabelBox(label)
         numbers = (0, 1)
         nlst = glymur.jp2box.NumberListBox(numbers)
@@ -287,17 +286,18 @@ class TestJPXWrap(fixtures.TestCommon):
         asoc = glymur.jp2box.AssociationBox([nlst, xmlb, lblb])
         boxes.append(asoc)
 
-        with open(self.temp_jpx_filename, mode='wb') as tfile:
+        with open(self.temp_jpx_filename, mode="wb") as tfile:
             jpx = jp2.wrap(tfile.name, boxes=boxes)
 
-            self.assertEqual(jpx.box[1].compatibility_list, ['jp2 ', 'jpx '])
-            self.assertEqual(jpx.box[-1].box_id, 'asoc')
-            self.assertEqual(jpx.box[-1].box[0].box_id, 'nlst')
+            self.assertEqual(jpx.box[1].compatibility_list, ["jp2 ", "jpx "])
+            self.assertEqual(jpx.box[-1].box_id, "asoc")
+            self.assertEqual(jpx.box[-1].box[0].box_id, "nlst")
             self.assertEqual(jpx.box[-1].box[0].associations, numbers)
-            self.assertEqual(jpx.box[-1].box[1].box_id, 'xml ')
-            self.assertEqual(ET.tostring(jpx.box[-1].box[1].xml.getroot()),
-                             b'<data>0</data>')
-            self.assertEqual(jpx.box[-1].box[2].box_id, 'lbl ')
+            self.assertEqual(jpx.box[-1].box[1].box_id, "xml ")
+            self.assertEqual(
+                ET.tostring(jpx.box[-1].box[1].xml.getroot()), b"<data>0</data>"
+            )
+            self.assertEqual(jpx.box[-1].box[2].box_id, "lbl ")
             self.assertEqual(jpx.box[-1].box[2].label, label)
 
     def test_empty_data_reference(self):
@@ -305,12 +305,12 @@ class TestJPXWrap(fixtures.TestCommon):
         jp2 = Jp2k(self.jp2file)
         boxes = jp2.box
 
-        boxes[1].brand = 'jpx '
+        boxes[1].brand = "jpx "
 
         dref = glymur.jp2box.DataReferenceBox()
         boxes.append(dref)
 
-        with open(self.temp_jpx_filename, mode='wb') as tfile:
+        with open(self.temp_jpx_filename, mode="wb") as tfile:
             with self.assertRaises(InvalidJp2kError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
@@ -321,7 +321,7 @@ class TestJPXWrap(fixtures.TestCommon):
 
         ftyp = glymur.jp2box.FileTypeBox()
         with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
+            warnings.simplefilter("ignore")
             dref = glymur.jp2box.DataReferenceBox([ftyp])
 
         # Try to get around it by appending the ftyp box after creation.
@@ -330,7 +330,7 @@ class TestJPXWrap(fixtures.TestCommon):
 
         boxes.append(dref)
 
-        with open(self.temp_jpx_filename, mode='wb') as tfile:
+        with open(self.temp_jpx_filename, mode="wb") as tfile:
             with self.assertRaises(RuntimeError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
@@ -340,17 +340,17 @@ class TestJPXWrap(fixtures.TestCommon):
         boxes = jp2.box
 
         # Have to make the ftyp brand jpx.
-        boxes[1].brand = 'jpx '
+        boxes[1].brand = "jpx "
 
         flag = 0
         version = (0, 0, 0)
-        url = 'file:////usr/local/bin'
+        url = "file:////usr/local/bin"
         deurl = glymur.jp2box.DataEntryURLBox(flag, version, url)
         dref = glymur.jp2box.DataReferenceBox([deurl])
         boxes.append(dref)
         boxes.append(dref)
 
-        with open(self.temp_jpx_filename, mode='wb') as tfile:
+        with open(self.temp_jpx_filename, mode="wb") as tfile:
             with self.assertRaises(InvalidJp2kError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
@@ -360,14 +360,14 @@ class TestJPXWrap(fixtures.TestCommon):
         boxes = jp2.box
 
         # Have to make the ftyp brand jpx.
-        boxes[1].brand = 'jpx '
+        boxes[1].brand = "jpx "
 
-        lblb = glymur.jp2box.LabelBox('hi there')
+        lblb = glymur.jp2box.LabelBox("hi there")
 
         # Put it inside the jp2 header box.
         boxes[2].box.append(lblb)
 
-        with open(self.temp_jpx_filename, mode='wb') as tfile:
+        with open(self.temp_jpx_filename, mode="wb") as tfile:
             with self.assertRaises(InvalidJp2kError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
@@ -377,18 +377,18 @@ class TestJPXWrap(fixtures.TestCommon):
         boxes = jp2.box
 
         # Have to make the ftyp brand jpx.
-        boxes[1].brand = 'jpx '
+        boxes[1].brand = "jpx "
 
         flag = 0
         version = (0, 0, 0)
-        url = 'file:////usr/local/bin'
+        url = "file:////usr/local/bin"
         deurl = glymur.jp2box.DataEntryURLBox(flag, version, url)
         dref = glymur.jp2box.DataReferenceBox([deurl])
 
         # Put it inside the jp2 header box.
         boxes[2].box.append(dref)
 
-        with open(self.temp_jpx_filename, mode='wb') as tfile:
+        with open(self.temp_jpx_filename, mode="wb") as tfile:
             with self.assertRaises(InvalidJp2kError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
@@ -398,8 +398,8 @@ class TestJPXWrap(fixtures.TestCommon):
         boxes = jp2.box
 
         # Have to make the ftyp brand jpx.
-        boxes[1].brand = 'jpx '
-        boxes[1].compatibility_list.append('jp2 ')
+        boxes[1].brand = "jpx "
+        boxes[1].compatibility_list.append("jp2 ")
 
         numbers = [0, 1]
         nlst = glymur.jp2box.NumberListBox(numbers)
@@ -408,7 +408,7 @@ class TestJPXWrap(fixtures.TestCommon):
         asoc = glymur.jp2box.AssociationBox([nlst, xmlb])
         boxes.append(asoc)
 
-        with open(self.temp_jpx_filename, mode='wb') as tfile:
+        with open(self.temp_jpx_filename, mode="wb") as tfile:
             with self.assertRaises(RuntimeError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
@@ -416,7 +416,7 @@ class TestJPXWrap(fixtures.TestCommon):
         """Verify error when jp2 wrapped to jpx does not include jpx brand."""
         jp2 = Jp2k(self.jp2file)
         boxes = jp2.box
-        boxes[1].brand = 'jpx '
+        boxes[1].brand = "jpx "
         numbers = [0, 1]
         nlst = glymur.jp2box.NumberListBox(numbers)
         the_xml = ET.fromstring('<?xml version="1.0"?><data>0</data>')
@@ -424,7 +424,7 @@ class TestJPXWrap(fixtures.TestCommon):
         asoc = glymur.jp2box.AssociationBox([nlst, xmlb])
         boxes.append(asoc)
 
-        with open(self.temp_jpx_filename, mode='wb') as tfile:
+        with open(self.temp_jpx_filename, mode="wb") as tfile:
             with self.assertRaises(RuntimeError):
                 jp2.wrap(tfile.name, boxes=boxes)
 
@@ -439,9 +439,9 @@ class TestJPX(fixtures.TestCommon):
 
         EXPECTED RESULT:  The box is parsed without error.
         """
-        path = ir.files('tests.data').joinpath('text_GBR.jp2')
+        path = ir.files("tests.data").joinpath("text_GBR.jp2")
         with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
+            warnings.simplefilter("ignore")
             j = Jp2k(path)
 
         self.assertEqual(len(j.box[2].vendor_feature), 4)
@@ -453,9 +453,9 @@ class TestJPX(fixtures.TestCommon):
 
         EXPECTED RESULT:  NotImplementedError
         """
-        path = ir.files('tests.data').joinpath('text_GBR.jp2')
+        path = ir.files("tests.data").joinpath("text_GBR.jp2")
         with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
+            warnings.simplefilter("ignore")
             j = Jp2k(path)
 
         box = j.box[2]
@@ -489,7 +489,7 @@ class TestJPX(fixtures.TestCommon):
         length = [1132288]
         reference = [0]
         with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
+            warnings.simplefilter("ignore")
             flst = glymur.jp2box.FragmentListBox(offset, length, reference)
         with tempfile.TemporaryFile() as tfile:
             with self.assertRaises(InvalidJp2kError):
@@ -501,7 +501,7 @@ class TestJPX(fixtures.TestCommon):
         length = [0]
         reference = [0]
         with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
+            warnings.simplefilter("ignore")
             flst = glymur.jp2box.FragmentListBox(offset, length, reference)
         with tempfile.TemporaryFile() as tfile:
             with self.assertRaises(InvalidJp2kError):
@@ -526,18 +526,18 @@ class TestJPX(fixtures.TestCommon):
         """The existance of data reference box requires a ftbl box as well."""
         flag = 0
         version = (0, 0, 0)
-        url1 = 'file:////usr/local/bin'
-        url2 = 'http://glymur.readthedocs.org'
+        url1 = "file:////usr/local/bin"
+        url2 = "http://glymur.readthedocs.org"
         jpx1 = glymur.Jp2k(self.jp2file)
         boxes = jpx1.box
-        boxes[1].brand = 'jpx '
+        boxes[1].brand = "jpx "
 
         deurl1 = glymur.jp2box.DataEntryURLBox(flag, version, url1)
         deurl2 = glymur.jp2box.DataEntryURLBox(flag, version, url2)
         dref = glymur.jp2box.DataReferenceBox([deurl1, deurl2])
         boxes.append(dref)
 
-        with open(self.temp_jpx_filename, mode='wb') as tfile:
+        with open(self.temp_jpx_filename, mode="wb") as tfile:
             with self.assertRaises(InvalidJp2kError):
                 jpx1.wrap(tfile.name, boxes=boxes)
 
@@ -546,10 +546,10 @@ class TestJPX(fixtures.TestCommon):
         # Copy the existing JPX file, add a data reference box onto the end.
         flag = 0
         version = (0, 0, 0)
-        url1 = 'file:////usr/local/bin'
-        url2 = 'http://glymur.readthedocs.org' + chr(0) * 3
-        with open(self.temp_jpx_filename, mode='wb') as tfile:
-            with open(self.jpxfile, 'rb') as ifile:
+        url1 = "file:////usr/local/bin"
+        url2 = "http://glymur.readthedocs.org" + chr(0) * 3
+        with open(self.temp_jpx_filename, mode="wb") as tfile:
+            with open(self.jpxfile, "rb") as ifile:
                 tfile.write(ifile.read())
 
                 deurl1 = glymur.jp2box.DataEntryURLBox(flag, version, url1)
@@ -558,43 +558,43 @@ class TestJPX(fixtures.TestCommon):
                 dref.write(tfile)
 
                 # Free box.  The content does not matter.
-                tfile.write(struct.pack('>I4s', 12, b'free'))
-                tfile.write(struct.pack('>I', 0))
+                tfile.write(struct.pack(">I4s", 12, b"free"))
+                tfile.write(struct.pack(">I", 0))
 
             tfile.flush()
 
             jpx = Jp2k(tfile.name)
 
-            self.assertEqual(jpx.box[-2].box_id, 'dtbl')
+            self.assertEqual(jpx.box[-2].box_id, "dtbl")
             self.assertEqual(len(jpx.box[-2].DR), 2)
             self.assertEqual(jpx.box[-2].DR[0].url, url1)
-            self.assertEqual(jpx.box[-2].DR[1].url, url2.rstrip('\0'))
+            self.assertEqual(jpx.box[-2].DR[1].url, url2.rstrip("\0"))
 
-            self.assertEqual(jpx.box[-1].box_id, 'free')
+            self.assertEqual(jpx.box[-1].box_id, "free")
 
     def test_ftbl(self):
         """Verify that we can interpret Fragment Table boxes."""
         # Copy the existing JPX file, add a fragment table box onto the end.
-        with open(self.temp_jpx_filename, mode='wb') as tfile:
-            with open(self.jpxfile, 'rb') as ifile:
+        with open(self.temp_jpx_filename, mode="wb") as tfile:
+            with open(self.jpxfile, "rb") as ifile:
                 tfile.write(ifile.read())
-            write_buffer = struct.pack('>I4s', 32, b'ftbl')
+            write_buffer = struct.pack(">I4s", 32, b"ftbl")
             tfile.write(write_buffer)
 
             # Just one fragment list box
-            write_buffer = struct.pack('>I4s', 24, b'flst')
+            write_buffer = struct.pack(">I4s", 24, b"flst")
             tfile.write(write_buffer)
 
             # Simple offset, length, reference
-            write_buffer = struct.pack('>HQIH', 1, 4237, 170246, 3)
+            write_buffer = struct.pack(">HQIH", 1, 4237, 170246, 3)
             tfile.write(write_buffer)
 
             tfile.flush()
 
             jpx = Jp2k(tfile.name)
 
-            self.assertEqual(jpx.box[-1].box_id, 'ftbl')
-            self.assertEqual(jpx.box[-1].box[0].box_id, 'flst')
+            self.assertEqual(jpx.box[-1].box_id, "ftbl")
+            self.assertEqual(jpx.box[-1].box[0].box_id, "flst")
             self.assertEqual(jpx.box[-1].box[0].fragment_offset, (4237,))
             self.assertEqual(jpx.box[-1].box[0].fragment_length, (170246,))
             self.assertEqual(jpx.box[-1].box[0].data_reference, (3,))
@@ -607,44 +607,47 @@ class TestJPX(fixtures.TestCommon):
         EXPECTED RESULT:  A warning is issued.
         """
         rreq_buffer = ctypes.create_string_buffer(74)
-        struct.pack_into('>I4s', rreq_buffer, 0, 74, b'rreq')
+        struct.pack_into(">I4s", rreq_buffer, 0, 74, b"rreq")
 
         # mask length
-        struct.pack_into('>B', rreq_buffer, 8, 3)
+        struct.pack_into(">B", rreq_buffer, 8, 3)
 
         # fuam, dcm.  6 bytes, two sets of 3.
         lst = (255, 224, 0, 0, 31, 252)
-        struct.pack_into('>BBBBBB', rreq_buffer, 9, *lst)
+        struct.pack_into(">BBBBBB", rreq_buffer, 9, *lst)
 
         # number of standard features: 11
-        struct.pack_into('>H', rreq_buffer, 15, 11)
+        struct.pack_into(">H", rreq_buffer, 15, 11)
 
         standard_flags = [5, 42, 45, 2, 18, 19, 1, 8, 12, 31, 20]
         standard_masks = [
-            8388608, 4194304, 2097152, 1048576, 524288, 262144, 131072, 65536,
-            32768, 16384, 8192
+            8388608,
+            4194304,
+            2097152,
+            1048576,
+            524288,
+            262144,
+            131072,
+            65536,
+            32768,
+            16384,
+            8192,
         ]
         for j in range(len(standard_flags)):
             mask = (
                 standard_masks[j] >> 16,
-                standard_masks[j] & 0x0000ffff >> 8,
-                standard_masks[j] & 0x000000ff
+                standard_masks[j] & 0x0000FFFF >> 8,
+                standard_masks[j] & 0x000000FF,
             )
-            struct.pack_into(
-                '>HBBB',
-                rreq_buffer,
-                17 + j * 5,
-                standard_flags[j],
-                *mask
-            )
+            struct.pack_into(">HBBB", rreq_buffer, 17 + j * 5, standard_flags[j], *mask)  # noqa : E501
 
         # num vendor features: 0
-        struct.pack_into('>H', rreq_buffer, 72, 0)
+        struct.pack_into(">H", rreq_buffer, 72, 0)
 
         # Ok, done with the box, we can now insert it into the jpx file after
         # the ftyp box.
-        with open(self.temp_jpx_filename, mode='wb') as ofile:
-            with open(self.jpxfile, 'rb') as ifile:
+        with open(self.temp_jpx_filename, mode="wb") as ofile:
+            with open(self.jpxfile, "rb") as ifile:
                 ofile.write(ifile.read(40))
                 ofile.write(rreq_buffer)
                 ofile.write(ifile.read())
@@ -657,7 +660,7 @@ class TestJPX(fixtures.TestCommon):
         """Verify that we can handle a number list box."""
         j = Jp2k(self.jpxfile)
         nlst = j.box[12].box[0].box[0]
-        self.assertEqual(nlst.box_id, 'nlst')
+        self.assertEqual(nlst.box_id, "nlst")
         self.assertEqual(type(nlst), glymur.jp2box.NumberListBox)
 
         # Two associations.

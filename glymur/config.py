@@ -1,6 +1,7 @@
 """
 Configure glymur to use installed libraries if possible.
 """
+
 from configparser import ConfigParser, NoOptionError, NoSectionError
 import ctypes
 from ctypes.util import find_library
@@ -20,13 +21,13 @@ def glymurrc_fname():
     """
 
     # Current directory.
-    path = pathlib.Path.cwd() / 'glymurrc'
+    path = pathlib.Path.cwd() / "glymurrc"
     if path.exists():
         return path
 
     confdir_path = get_configdir()
     if confdir_path is not None:
-        path = confdir_path / 'glymurrc'
+        path = confdir_path / "glymurrc"
         if path.exists():
             return path
 
@@ -54,8 +55,8 @@ def _determine_full_path(libname):
         return path
 
     # No joy on config file.  Cygwin?  Cygwin is a bit of an odd case.
-    if platform.system().startswith('CYGWIN'):
-        g = pathlib.Path('/usr/bin').glob('cygopenjp2*.dll')
+    if platform.system().startswith("CYGWIN"):
+        g = pathlib.Path("/usr/bin").glob("cygopenjp2*.dll")
         try:
             return list(g)[0]
         except IndexError:
@@ -92,7 +93,7 @@ def read_config_file(libname):
     parser = ConfigParser()
     parser.read(filename)
     try:
-        path = parser.get('library', libname)
+        path = parser.get("library", libname)
     except (NoOptionError, NoSectionError):
         path = None
     else:
@@ -114,23 +115,23 @@ def glymur_config(libname):
     -------
     loaded shared library
     """
-    if platform.system().startswith('Windows') and libname == 'c':
+    if platform.system().startswith("Windows") and libname == "c":
         return ctypes.cdll.msvcrt
 
     path = _determine_full_path(libname)
 
-    if path is None or path in ['None', 'none']:
+    if path is None or path in ["None", "none"]:
         # Either could not find a library via ctypes or
         # user-configuration-file, or we could not find it in any of the
         # default locations, or possibly the user intentionally does not want
         # one of the libraries to load.
         return None
 
-    loader = ctypes.windll.LoadLibrary if os.name == 'nt' else ctypes.CDLL
+    loader = ctypes.windll.LoadLibrary if os.name == "nt" else ctypes.CDLL
     try:
         opj_lib = loader(str(path))
     except OSError:
-        msg = f'The {libname} library at {path} could not be loaded.'
+        msg = f"The {libname} library at {path} could not be loaded."
         warnings.warn(msg, UserWarning)
         opj_lib = None
 
@@ -143,13 +144,13 @@ def get_configdir():
     Default is $HOME/.config/glymur.  You can override this with the
     XDG_CONFIG_HOME environment variable.
     """
-    if 'XDG_CONFIG_HOME' in os.environ:
-        return pathlib.Path(os.environ['XDG_CONFIG_HOME']) / 'glymur'
+    if "XDG_CONFIG_HOME" in os.environ:
+        return pathlib.Path(os.environ["XDG_CONFIG_HOME"]) / "glymur"
 
-    if 'HOME' in os.environ and platform.system() != 'Windows':
+    if "HOME" in os.environ and platform.system() != "Windows":
         # HOME is set by WinPython to something unusual, so we don't
         # necessarily want that.
-        return pathlib.Path(os.environ['HOME']) / '.config' / 'glymur'
+        return pathlib.Path(os.environ["HOME"]) / ".config" / "glymur"
 
     # Last stand.  Should handle windows... others?
-    return pathlib.Path.home() / 'glymur'
+    return pathlib.Path.home() / "glymur"

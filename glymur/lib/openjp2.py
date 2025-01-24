@@ -13,12 +13,12 @@ import numpy as np
 # Local imports
 from ..config import glymur_config
 
-OPENJP2 = glymur_config('openjp2')
+OPENJP2 = glymur_config("openjp2")
 
 
 class OpenJPEGLibraryError(IOError):
-    """Issue when the OpenJPEG library signals an error.
-    """
+    """Issue when the OpenJPEG library signals an error."""
+
     pass
 
 
@@ -30,10 +30,10 @@ def version():
         return "0.0.0"
 
     v = OPENJP2.opj_version()
-    return v.decode('utf-8')
+    return v.decode("utf-8")
 
 
-_MAJOR, _MINOR, _PATCH = [int(x) for x in version().split('.')]
+_MAJOR, _MINOR, _PATCH = [int(x) for x in version().split(".")]
 
 ERROR_MSG_LST = queue.Queue()
 
@@ -47,7 +47,7 @@ STREAM_TYPE_P = ctypes.c_void_p
 
 PATH_LEN = 4096
 J2K_MAXRLVLS = 33
-J2K_MAXBANDS = (3 * J2K_MAXRLVLS - 2)
+J2K_MAXBANDS = 3 * J2K_MAXRLVLS - 2
 
 JPWL_MAX_NO_TILESPECS = 16
 
@@ -76,65 +76,56 @@ class PocType(ctypes.Structure):
 
     Corresponds to poc_t type in openjp2 headers.
     """
+
     # Resolution num start, Component num start, given by POC
     _fields_ = [
-        ("resno0",     ctypes.c_uint32),  # noqa
-        ("compno0",    ctypes.c_uint32),  # noqa
-
+        ("resno0", ctypes.c_uint32),  # noqa
+        ("compno0", ctypes.c_uint32),  # noqa
         # Layer num end,Resolution num end, Component num end, given by POC
-        ("layno1",     ctypes.c_uint32),  # noqa
-        ("resno1",     ctypes.c_uint32),  # noqa
-        ("compno1",    ctypes.c_uint32),  # noqa
-
+        ("layno1", ctypes.c_uint32),  # noqa
+        ("resno1", ctypes.c_uint32),  # noqa
+        ("compno1", ctypes.c_uint32),  # noqa
         # Layer num start,Precinct num start, Precinct num end
-        ("layno0",     ctypes.c_uint32),  # noqa
-        ("precno0",    ctypes.c_uint32),  # noqa
-        ("precno1",    ctypes.c_uint32),  # noqa
-
+        ("layno0", ctypes.c_uint32),  # noqa
+        ("precno0", ctypes.c_uint32),  # noqa
+        ("precno1", ctypes.c_uint32),  # noqa
         # Progression order enum
-        ("prg1",       PROG_ORDER_TYPE),  # noqa
-        ("prg",        PROG_ORDER_TYPE),  # noqa
-
+        ("prg1", PROG_ORDER_TYPE),  # noqa
+        ("prg", PROG_ORDER_TYPE),  # noqa
         # Progression order string
-        ("progorder",  ctypes.c_char * 5),  # noqa
-
+        ("progorder", ctypes.c_char * 5),  # noqa
         # Tile number
-        ("tile",       ctypes.c_uint32),  # noqa
-
+        ("tile", ctypes.c_uint32),  # noqa
         # Start and end values for Tile width and height*
-        ("tx0",       ctypes.c_int32),  # noqa
-        ("tx1",       ctypes.c_int32),  # noqa
-        ("ty0",       ctypes.c_int32),  # noqa
-        ("ty1",       ctypes.c_int32),  # noqa
-
+        ("tx0", ctypes.c_int32),  # noqa
+        ("tx1", ctypes.c_int32),  # noqa
+        ("ty0", ctypes.c_int32),  # noqa
+        ("ty1", ctypes.c_int32),  # noqa
         # Start value, initialised in pi_initialise_encode
-        ("layS",       ctypes.c_uint32),  # noqa
-        ("resS",       ctypes.c_uint32),  # noqa
-        ("compS",      ctypes.c_uint32),  # noqa
-        ("prcS",       ctypes.c_uint32),  # noqa
-
+        ("layS", ctypes.c_uint32),  # noqa
+        ("resS", ctypes.c_uint32),  # noqa
+        ("compS", ctypes.c_uint32),  # noqa
+        ("prcS", ctypes.c_uint32),  # noqa
         # End value, initialised in pi_initialise_encode
-        ("layE",       ctypes.c_uint32),  # noqa
-        ("resE",       ctypes.c_uint32),  # noqa
-        ("compE",      ctypes.c_uint32),  # noqa
-        ("prcE",       ctypes.c_uint32),  # noqa
-
+        ("layE", ctypes.c_uint32),  # noqa
+        ("resE", ctypes.c_uint32),  # noqa
+        ("compE", ctypes.c_uint32),  # noqa
+        ("prcE", ctypes.c_uint32),  # noqa
         # Start and end values of Tile width and height, initialised in
         # pi_initialise_encode
-        ("txS",        ctypes.c_uint32),  # noqa
-        ("txE",        ctypes.c_uint32),  # noqa
-        ("tyS",        ctypes.c_uint32),  # noqa
-        ("tyE",        ctypes.c_uint32),  # noqa
-        ("dx",         ctypes.c_uint32),  # noqa
-        ("dy",         ctypes.c_uint32),  # noqa
-
+        ("txS", ctypes.c_uint32),  # noqa
+        ("txE", ctypes.c_uint32),  # noqa
+        ("tyS", ctypes.c_uint32),  # noqa
+        ("tyE", ctypes.c_uint32),  # noqa
+        ("dx", ctypes.c_uint32),  # noqa
+        ("dy", ctypes.c_uint32),  # noqa
         # Temporary values for Tile parts, initialised in pi_create_encode
-        ("lay_t",      ctypes.c_uint32),  # noqa
-        ("res_t",      ctypes.c_uint32),  # noqa
-        ("comp_t",     ctypes.c_uint32),  # noqa
-        ("prec_t",     ctypes.c_uint32),  # noqa
-        ("tx0_t",      ctypes.c_uint32),  # noqa
-        ("ty0_t",      ctypes.c_uint32),  # noqa
+        ("lay_t", ctypes.c_uint32),  # noqa
+        ("res_t", ctypes.c_uint32),  # noqa
+        ("comp_t", ctypes.c_uint32),  # noqa
+        ("prec_t", ctypes.c_uint32),  # noqa
+        ("tx0_t", ctypes.c_uint32),  # noqa
+        ("ty0_t", ctypes.c_uint32),  # noqa
     ]
 
     def __str__(self):
@@ -149,6 +140,7 @@ class DecompressionParametersType(ctypes.Structure):
 
     Corresponds to dparameters_t type in openjp2 headers.
     """
+
     _fields_ = [
         # Set the number of highest resolutio levels to be discarded.  The
         # image resolution is effectively divided by 2 to the power of
@@ -157,54 +149,42 @@ class DecompressionParametersType(ctypes.Structure):
         # zero, then the original dimension is divided by 2^(reduce).  If
         # equal to zero or not used, the image is decoded to the full
         # resolution.
-        ("cp_reduce",         ctypes.c_uint32), # noqa
-
+        ("cp_reduce", ctypes.c_uint32),  # noqa
         # Set the maximum number of quality layers to decode.  If there are
         # fewer quality layers than the specified number, all the quality
         # layers are decoded.
         #
         # If != 0, then only the first cp_layer layers are decoded.
         # If == 0 or not used, all the quality layers are decoded.
-        ("cp_layer",          ctypes.c_uint32), # noqa
-
+        ("cp_layer", ctypes.c_uint32),  # noqa
         # input file name
-        ("infile",            ctypes.c_char * PATH_LEN), # noqa
-
+        ("infile", ctypes.c_char * PATH_LEN),  # noqa
         # output file name
-        ("outfile",           ctypes.c_char * PATH_LEN), # noqa
-
+        ("outfile", ctypes.c_char * PATH_LEN),  # noqa
         # input file format 0: PGX, 1: PxM, 2: BMP 3:TIF
         # output file format 0: J2K, 1: JP2, 2: JPT
-        ("decod_format",      ctypes.c_int), # noqa
-        ("cod_format",        ctypes.c_int), # noqa
-
+        ("decod_format", ctypes.c_int),  # noqa
+        ("cod_format", ctypes.c_int),  # noqa
         # Decoding area left and right boundary.
         # Decoding area upper and lower boundary.
-        ("DA_x0",             ctypes.c_uint32), # noqa
-        ("DA_x1",             ctypes.c_uint32), # noqa
-        ("DA_y0",             ctypes.c_uint32), # noqa
-        ("DA_y1",             ctypes.c_uint32), # noqa
-
+        ("DA_x0", ctypes.c_uint32),  # noqa
+        ("DA_x1", ctypes.c_uint32),  # noqa
+        ("DA_y0", ctypes.c_uint32),  # noqa
+        ("DA_y1", ctypes.c_uint32),  # noqa
         # verbose mode
-        ("m_verbose",         BOOL_TYPE), # noqa
-
+        ("m_verbose", BOOL_TYPE),  # noqa
         # tile number of the decoded tile
-        ("tile_index",        ctypes.c_uint32), # noqa
-
+        ("tile_index", ctypes.c_uint32),  # noqa
         # number of tiles to decode
-        ("nb_tile_to_decode", ctypes.c_uint32), # noqa
-
+        ("nb_tile_to_decode", ctypes.c_uint32),  # noqa
         # activates the JPWL correction capabilities
-        ("jpwl_correct",      BOOL_TYPE), # noqa
-
+        ("jpwl_correct", BOOL_TYPE),  # noqa
         # activates the JPWL correction capabilities
-        ("jpwl_exp_comps",    ctypes.c_int32), # noqa
-
+        ("jpwl_exp_comps", ctypes.c_int32),  # noqa
         # maximum number of tiles
-        ("jpwl_max_tiles",    ctypes.c_int32), # noqa
-
+        ("jpwl_max_tiles", ctypes.c_int32),  # noqa
         # maximum number of tiles
-        ("flags",             ctypes.c_uint32), # noqa
+        ("flags", ctypes.c_uint32),  # noqa
     ]
 
     def __str__(self):
@@ -219,179 +199,128 @@ class CompressionParametersType(ctypes.Structure):
 
     Corresponds to cparameters_t type in openjp2 headers.
     """
+
     _fields_ = [
         # size of tile:
         #     tile_size_on = false (not in argument) or
         #                  = true (in argument)
-        ("tile_size_on",     BOOL_TYPE),  # noqa
-
+        ("tile_size_on", BOOL_TYPE),  # noqa
         # XTOsiz, YTOsiz
-        ("cp_tx0",           ctypes.c_int),  # noqa
-        ("cp_ty0",           ctypes.c_int),  # noqa
-
+        ("cp_tx0", ctypes.c_int),  # noqa
+        ("cp_ty0", ctypes.c_int),  # noqa
         # XTsiz, YTsiz
-        ("cp_tdx",           ctypes.c_int),  # noqa
-        ("cp_tdy",           ctypes.c_int),  # noqa
-
+        ("cp_tdx", ctypes.c_int),  # noqa
+        ("cp_tdy", ctypes.c_int),  # noqa
         # allocation by rate/distortion
-        ("cp_disto_alloc",   ctypes.c_int),  # noqa
-
+        ("cp_disto_alloc", ctypes.c_int),  # noqa
         # allocation by fixed layer
-        ("cp_fixed_alloc",   ctypes.c_int),  # noqa
-
+        ("cp_fixed_alloc", ctypes.c_int),  # noqa
         # add fixed_quality
         ("cp_fixed_quality", ctypes.c_int),  # noqa
-
         # fixed layer
-        ("cp_matrice",       ctypes.c_void_p),  # noqa
-
+        ("cp_matrice", ctypes.c_void_p),  # noqa
         # comment for coding
-        ("cp_comment",       ctypes.c_char_p),  # noqa
-
+        ("cp_comment", ctypes.c_char_p),  # noqa
         # csty : coding style
-        ("csty",             ctypes.c_int),  # noqa
-
+        ("csty", ctypes.c_int),  # noqa
         # progression order (default OPJ_LRCP)
-        ("prog_order",       ctypes.c_int),  # noqa
-
+        ("prog_order", ctypes.c_int),  # noqa
         # progression order changes
-        ("poc",              PocType * 32),  # noqa
-
+        ("poc", PocType * 32),  # noqa
         # number of progression order changes (POC), default to 0
-        ("numpocs",          ctypes.c_uint),  # noqa
-
+        ("numpocs", ctypes.c_uint),  # noqa
         # number of layers
-        ("tcp_numlayers",    ctypes.c_int),  # noqa
-
+        ("tcp_numlayers", ctypes.c_int),  # noqa
         # rates of layers
-        ("tcp_rates",        ctypes.c_float * 100),  # noqa
-
+        ("tcp_rates", ctypes.c_float * 100),  # noqa
         # different psnr for successive layers
-        ("tcp_distoratio",   ctypes.c_float * 100),  # noqa
-
+        ("tcp_distoratio", ctypes.c_float * 100),  # noqa
         # number of resolutions
-        ("numresolution",    ctypes.c_int),  # noqa
-
+        ("numresolution", ctypes.c_int),  # noqa
         # initial code block width, default to 64
-        ("cblockw_init",     ctypes.c_int),  # noqa
-
+        ("cblockw_init", ctypes.c_int),  # noqa
         # initial code block height, default to 64
-        ("cblockh_init",     ctypes.c_int),  # noqa
-
+        ("cblockh_init", ctypes.c_int),  # noqa
         # mode switch (cblk_style)
-        ("mode",             ctypes.c_int),  # noqa
-
+        ("mode", ctypes.c_int),  # noqa
         # 1 : use the irreversible DWT 9-7
         # 0 : use lossless compression (default)
-        ("irreversible",     ctypes.c_int),  # noqa
-
+        ("irreversible", ctypes.c_int),  # noqa
         # region of interest: affected component in [0..3], -1 means no ROI
-        ("roi_compno",       ctypes.c_int),  # noqa
-
+        ("roi_compno", ctypes.c_int),  # noqa
         # region of interest: upshift value
-        ("roi_shift",        ctypes.c_int),  # noqa
-
+        ("roi_shift", ctypes.c_int),  # noqa
         # number of precinct size specifications
-        ("res_spec",         ctypes.c_int),  # noqa
-
+        ("res_spec", ctypes.c_int),  # noqa
         # initial precinct width
-        ("prcw_init",        ctypes.c_int * J2K_MAXRLVLS),  # noqa
-
+        ("prcw_init", ctypes.c_int * J2K_MAXRLVLS),  # noqa
         # initial precinct height
-        ("prch_init",        ctypes.c_int * J2K_MAXRLVLS),  # noqa
-
+        ("prch_init", ctypes.c_int * J2K_MAXRLVLS),  # noqa
         # input file name
-        ("infile",           ctypes.c_char * PATH_LEN),  # noqa
-
+        ("infile", ctypes.c_char * PATH_LEN),  # noqa
         # output file name
-        ("outfile",          ctypes.c_char * PATH_LEN),  # noqa
-
+        ("outfile", ctypes.c_char * PATH_LEN),  # noqa
         # DEPRECATED.
-        ("index_on",         ctypes.c_int),  # noqa
-
+        ("index_on", ctypes.c_int),  # noqa
         # DEPRECATED.
-        ("index",            ctypes.c_char * PATH_LEN),  # noqa
-
+        ("index", ctypes.c_char * PATH_LEN),  # noqa
         # subimage encoding: origin image offset in x direction
         # subimage encoding: origin image offset in y direction
-        ("image_offset_x0",  ctypes.c_int),  # noqa
-        ("image_offset_y0",  ctypes.c_int),  # noqa
-
+        ("image_offset_x0", ctypes.c_int),  # noqa
+        ("image_offset_y0", ctypes.c_int),  # noqa
         # subsampling value for dx
         # subsampling value for dy
-        ("subsampling_dx",  ctypes.c_int),  # noqa
-        ("subsampling_dy",  ctypes.c_int),  # noqa
-
+        ("subsampling_dx", ctypes.c_int),  # noqa
+        ("subsampling_dy", ctypes.c_int),  # noqa
         # input file format 0: PGX, 1: PxM, 2: BMP 3:TIF
         # output file format 0: J2K, 1: JP2, 2: JPT
-        ("decod_format",    ctypes.c_int),  # noqa
-        ("cod_format",      ctypes.c_int),  # noqa
-
+        ("decod_format", ctypes.c_int),  # noqa
+        ("cod_format", ctypes.c_int),  # noqa
         # JPWL encoding parameters
         # enables writing of EPC in MH, thus activating JPWL
-        ("jpwl_epc_on",     BOOL_TYPE),  # noqa
-
+        ("jpwl_epc_on", BOOL_TYPE),  # noqa
         # error protection method for MH (0,1,16,32,37-128)
-        ("jpwl_hprot_mh",   ctypes.c_int),  # noqa
-
+        ("jpwl_hprot_mh", ctypes.c_int),  # noqa
         # tile number of header protection specification (>=0)
         ("jpwl_hprot_tph_tileno", ctypes.c_int * JPWL_MAX_NO_TILESPECS),  # noqa
-
         # error protection methods for TPHs (0,1,16,32,37-128)
-        ("jpwl_hprot_tph",        ctypes.c_int * JPWL_MAX_NO_TILESPECS),  # noqa
-
+        ("jpwl_hprot_tph", ctypes.c_int * JPWL_MAX_NO_TILESPECS),  # noqa
         # tile number of packet protection specification (>=0)
-        ("jpwl_pprot_tileno",     ctypes.c_int * JPWL_MAX_NO_TILESPECS),  # noqa
-
+        ("jpwl_pprot_tileno", ctypes.c_int * JPWL_MAX_NO_TILESPECS),  # noqa
         # packet number of packet protection specification (>=0)
-        ("jpwl_pprot_packno",     ctypes.c_int * JPWL_MAX_NO_TILESPECS),  # noqa
-
+        ("jpwl_pprot_packno", ctypes.c_int * JPWL_MAX_NO_TILESPECS),  # noqa
         # error protection methods for packets (0,1,16,32,37-128)
-        ("jpwl_pprot",            ctypes.c_int * JPWL_MAX_NO_TILESPECS),  # noqa
-
+        ("jpwl_pprot", ctypes.c_int * JPWL_MAX_NO_TILESPECS),  # noqa
         # enables writing of ESD, (0=no/1/2 bytes)
-        ("jpwl_sens_size",        ctypes.c_int),  # noqa
-
+        ("jpwl_sens_size", ctypes.c_int),  # noqa
         # sensitivity addressing size (0=auto/2/4 bytes)
-        ("jpwl_sens_addr",        ctypes.c_int),  # noqa
-
+        ("jpwl_sens_addr", ctypes.c_int),  # noqa
         # sensitivity range (0-3)
-        ("jpwl_sens_range",      ctypes.c_int),  # noqa
-
+        ("jpwl_sens_range", ctypes.c_int),  # noqa
         # sensitivity method for MH (-1=no,0-7)
-        ("jpwl_sens_mh",         ctypes.c_int),  # noqa
-
+        ("jpwl_sens_mh", ctypes.c_int),  # noqa
         # tile number of sensitivity specification (>=0)
         ("jpwl_sens_tph_tileno", ctypes.c_int * JPWL_MAX_NO_TILESPECS),  # noqa
-
         # sensitivity methods for TPHs (-1=no,0-7)
-        ("jpwl_sens_tph",        ctypes.c_int * JPWL_MAX_NO_TILESPECS),  # noqa
-
+        ("jpwl_sens_tph", ctypes.c_int * JPWL_MAX_NO_TILESPECS),  # noqa
         # Digital Cinema compliance 0-not compliant, 1-compliant
-        ("cp_cinema",            CINEMA_MODE_TYPE),  # noqa
-
+        ("cp_cinema", CINEMA_MODE_TYPE),  # noqa
         # Maximum rate for each component.
         # If == 0, component size limitation is not considered
-        ("max_comp_size",        ctypes.c_int),  # noqa
-
+        ("max_comp_size", ctypes.c_int),  # noqa
         # Profile name
-        ("cp_rsiz",              RSIZ_CAPABILITIES_TYPE),  # noqa
-
+        ("cp_rsiz", RSIZ_CAPABILITIES_TYPE),  # noqa
         # Tile part generation
-        ("tp_on",                ctypes.c_uint8),  # noqa
-
+        ("tp_on", ctypes.c_uint8),  # noqa
         # Flag for Tile part generation
-        ("tp_flag",              ctypes.c_uint8),  # noqa
-
+        ("tp_flag", ctypes.c_uint8),  # noqa
         # MCT (multiple component transform)
-        ("tcp_mct",              ctypes.c_uint8),  # noqa
-
+        ("tcp_mct", ctypes.c_uint8),  # noqa
         # Enable JPIP indexing
-        ("jpip_on",              BOOL_TYPE),  # noqa
-
+        ("jpip_on", BOOL_TYPE),  # noqa
         # Naive implementation of MCT restricted to a single reversible array
         # based encoding without offset concerning all the components.
-        ("mct_data",             ctypes.c_void_p),  # noqa
+        ("mct_data", ctypes.c_void_p),  # noqa
     ]
 
     if _MAJOR >= 2 and _MINOR >= 1:
@@ -409,19 +338,19 @@ class CompressionParametersType(ctypes.Structure):
         msg = f"{self.__class__}:\n"
         for field_name, _ in self._fields_:
 
-            if field_name == 'poc':
+            if field_name == "poc":
                 msg += f"    numpocs: {self.numpocs}\n"
 
-            elif field_name in ['tcp_rates', 'tcp_distoratio']:
+            elif field_name in ["tcp_rates", "tcp_distoratio"]:
                 lst = []
                 arr = getattr(self, field_name)
                 lst = [arr[j] for j in range(self.tcp_numlayers)]
                 msg += f"    {field_name}: {lst}\n"
 
-            elif field_name in ['prcw_init', 'prch_init']:
+            elif field_name in ["prcw_init", "prch_init"]:
                 pass
 
-            elif field_name == 'res_spec':
+            elif field_name == "res_spec":
                 prcw_init = [self.prcw_init[j] for j in range(self.res_spec)]
                 prch_init = [self.prch_init[j] for j in range(self.res_spec)]
                 msg += f"    res_spec: {self.res_spec}\n"
@@ -429,9 +358,14 @@ class CompressionParametersType(ctypes.Structure):
                 msg += f"    prcw_init: {prcw_init}\n"
 
             elif field_name in [
-                    'jpwl_hprot_tph_tileno', 'jpwl_hprot_tph',
-                    'jpwl_pprot_tileno', 'jpwl_pprot_packno', 'jpwl_pprot',
-                    'jpwl_sens_tph_tileno', 'jpwl_sens_tph']:
+                "jpwl_hprot_tph_tileno",
+                "jpwl_hprot_tph",
+                "jpwl_pprot_tileno",
+                "jpwl_pprot_packno",
+                "jpwl_pprot",
+                "jpwl_sens_tph_tileno",
+                "jpwl_sens_tph",
+            ]:
                 arr = getattr(self, field_name)
                 lst = [arr[j] for j in range(JPWL_MAX_NO_TILESPECS)]
                 msg += f"    {field_name}: {lst}\n"
@@ -446,38 +380,31 @@ class ImageCompType(ctypes.Structure):
 
     Corresponds to image_comp_t type in openjp2 headers.
     """
+
     _fields_ = [
         # XRsiz, YRsiz:  horizontal, vertical separation of ith component with
         # respect to the reference grid
-        ("dx",                  ctypes.c_uint32), # noqa
-        ("dy",                  ctypes.c_uint32), # noqa
-
+        ("dx", ctypes.c_uint32),  # noqa
+        ("dy", ctypes.c_uint32),  # noqa
         # data width and height
-        ("w",                   ctypes.c_uint32), # noqa
-        ("h",                   ctypes.c_uint32), # noqa
-
+        ("w", ctypes.c_uint32),  # noqa
+        ("h", ctypes.c_uint32),  # noqa
         # x, y component offset compared to the whole image
-        ("x0",                  ctypes.c_uint32), # noqa
-        ("y0",                  ctypes.c_uint32), # noqa
-
+        ("x0", ctypes.c_uint32),  # noqa
+        ("y0", ctypes.c_uint32),  # noqa
         # component depth in bits
-        ("prec",                ctypes.c_uint32), # noqa
-
+        ("prec", ctypes.c_uint32),  # noqa
         # component depth in bits
-        ("bpp",                 ctypes.c_uint32), # noqa
-
+        ("bpp", ctypes.c_uint32),  # noqa
         # signed (1) or unsigned (0)
-        ("sgnd",                ctypes.c_uint32), # noqa
-
+        ("sgnd", ctypes.c_uint32),  # noqa
         # number of decoded resolution
-        ("resno_decoded",       ctypes.c_uint32), # noqa
-
+        ("resno_decoded", ctypes.c_uint32),  # noqa
         # number of division by 2 of the out image component as compared to the
         # original size of the image
-        ("factor",              ctypes.c_uint32), # noqa
-
+        ("factor", ctypes.c_uint32),  # noqa
         # image component data
-        ("data",                ctypes.POINTER(ctypes.c_int32)),  # noqa
+        ("data", ctypes.POINTER(ctypes.c_int32)),  # noqa
     ]
 
     if _MAJOR >= 2 and _MINOR >= 1:
@@ -495,28 +422,23 @@ class ImageType(ctypes.Structure):
 
     Corresponds to image_t type in openjp2 headers.
     """
+
     _fields_ = [
         # XOsiz, YOsiz:  horizontal and vertical offset from the origin of the
         # reference grid to the left side of the image area
-        ("x0",              ctypes.c_uint32), # noqa
-        ("y0",              ctypes.c_uint32), # noqa
-
+        ("x0", ctypes.c_uint32),  # noqa
+        ("y0", ctypes.c_uint32),  # noqa
         # Xsiz, Ysiz:  width and height of the reference grid.
-        ("x1",              ctypes.c_uint32), # noqa
-        ("y1",              ctypes.c_uint32), # noqa
-
+        ("x1", ctypes.c_uint32),  # noqa
+        ("y1", ctypes.c_uint32),  # noqa
         # number of components in the image
-        ("numcomps",        ctypes.c_uint32), # noqa
-
+        ("numcomps", ctypes.c_uint32),  # noqa
         # color space:  should be sRGB, greyscale, or YUV
-        ("color_space",     COLOR_SPACE_TYPE), # noqa
-
+        ("color_space", COLOR_SPACE_TYPE),  # noqa
         # image components
-        ("comps",           ctypes.POINTER(ImageCompType)), # noqa
-
+        ("comps", ctypes.POINTER(ImageCompType)),  # noqa
         # restricted ICC profile buffer
         ("icc_profile_buf", ctypes.POINTER(ctypes.c_uint8)),
-
         # restricted ICC profile buffer length
         ("icc_profile_len", ctypes.c_uint32),
     ]
@@ -529,7 +451,7 @@ class ImageType(ctypes.Structure):
                 msg += f"    numcomps: {self.numcomps}\n"
                 for j in range(self.numcomps):  # pragma: no cover
                     msg += f"        comps[#{j}]:\n"
-                    msg += textwrap.indent(str(self.comps[j]), ' ' * 12)
+                    msg += textwrap.indent(str(self.comps[j]), " " * 12)
 
             elif field_name == "comps":
                 # handled above
@@ -546,26 +468,22 @@ class ImageComptParmType(ctypes.Structure):
 
     Corresponds to image_comptparm_t type in openjp2 headers.
     """
+
     _fields_ = [
         # XRsiz, YRsiz: horizontal, vertical separation of a sample of ith
         # component with respect to the reference grid
-        ("dx",   ctypes.c_uint32), # noqa
-        ("dy",   ctypes.c_uint32), # noqa
-
+        ("dx", ctypes.c_uint32),  # noqa
+        ("dy", ctypes.c_uint32),  # noqa
         # data width, height
-        ("w",    ctypes.c_uint32), # noqa
-        ("h",    ctypes.c_uint32), # noqa
-
+        ("w", ctypes.c_uint32),  # noqa
+        ("h", ctypes.c_uint32),  # noqa
         # x, y component offset compared to the whole image
-        ("x0",   ctypes.c_uint32), # noqa
-        ("y0",   ctypes.c_uint32), # noqa
-
+        ("x0", ctypes.c_uint32),  # noqa
+        ("y0", ctypes.c_uint32),  # noqa
         # precision
         ("prec", ctypes.c_uint32),
-
         # image depth in bits
-        ("bpp",  ctypes.c_uint32), # noqa
-
+        ("bpp", ctypes.c_uint32),  # noqa
         # signed (1) / unsigned (0)
         ("sgnd", ctypes.c_uint32),
     ]
@@ -587,7 +505,7 @@ def check_error(status):
         lst = []
         while ERROR_MSG_LST.qsize() > 0:
             lst.append(ERROR_MSG_LST.get())
-        msg = '\n'.join(lst)
+        msg = "\n".join(lst)
         raise OpenJPEGLibraryError(msg)
 
 
@@ -691,17 +609,13 @@ def decode_tile_data(codec, tidx, data, data_size, stream):
         ctypes.c_uint32,
         ctypes.POINTER(ctypes.c_uint8),
         ctypes.c_uint32,
-        STREAM_TYPE_P
+        STREAM_TYPE_P,
     ]
     OPENJP2.opj_decode_tile_data.restype = check_error
 
     datap = data.ctypes.data_as(ctypes.POINTER(ctypes.c_uint8))
     OPENJP2.opj_decode_tile_data(
-        codec,
-        ctypes.c_uint32(tidx),
-        datap,
-        ctypes.c_uint32(data_size),
-        stream
+        codec, ctypes.c_uint32(tidx), datap, ctypes.c_uint32(data_size), stream
     )
 
 
@@ -789,7 +703,7 @@ def get_decoded_tile(codec, stream, imagep, tile_index):
         CODEC_TYPE,
         STREAM_TYPE_P,
         ctypes.POINTER(ImageType),
-        ctypes.c_uint32
+        ctypes.c_uint32,
     ]
     OPENJP2.opj_get_decoded_tile.restype = check_error
 
@@ -903,15 +817,11 @@ def image_create(comptparms, clrspc):
     OPENJP2.opj_image_create.argtypes = [
         ctypes.c_uint32,
         ctypes.POINTER(ImageComptParmType),
-        COLOR_SPACE_TYPE
+        COLOR_SPACE_TYPE,
     ]
     OPENJP2.opj_image_create.restype = ctypes.POINTER(ImageType)
 
-    image = OPENJP2.opj_image_create(
-        len(comptparms),
-        comptparms,
-        clrspc
-    )
+    image = OPENJP2.opj_image_create(len(comptparms), comptparms, clrspc)
     return image
 
 
@@ -940,11 +850,7 @@ def image_tile_create(comptparms, clrspc):
     OPENJP2.opj_image_tile_create.argtypes = ARGTYPES
     OPENJP2.opj_image_tile_create.restype = ctypes.POINTER(ImageType)
 
-    image = OPENJP2.opj_image_tile_create(
-        len(comptparms),
-        comptparms,
-        clrspc
-    )
+    image = OPENJP2.opj_image_tile_create(len(comptparms), comptparms, clrspc)
     return image
 
 
@@ -963,10 +869,7 @@ def encoder_set_extra_options(codec, plt=False, tlm=False):
     tlm : bool
         If True, TLM segments will be generated.
     """
-    ARGTYPES = [
-        CODEC_TYPE,
-        ctypes.POINTER(ctypes.c_char_p)
-    ]
+    ARGTYPES = [CODEC_TYPE, ctypes.POINTER(ctypes.c_char_p)]
     OPENJP2.opj_encoder_set_extra_options.argtypes = ARGTYPES
     OPENJP2.opj_encoder_set_extra_options.restype = check_error
 
@@ -976,9 +879,9 @@ def encoder_set_extra_options(codec, plt=False, tlm=False):
     arr = (ctypes.c_char_p * 3)()
     arr[0] = arr[1] = arr[2] = None
 
-    arr[0] = 'PLT=YES'.encode('utf-8') if plt else 'PLT=NO'.encode('utf-8')
-    if version() >= '2.5.0':
-        arr[1] = 'TLM=YES'.encode('utf-8') if tlm else 'TLM=NO'.encode('utf-8')
+    arr[0] = "PLT=YES".encode("utf-8") if plt else "PLT=NO".encode("utf-8")
+    if version() >= "2.5.0":
+        arr[1] = "TLM=YES".encode("utf-8") if tlm else "TLM=NO".encode("utf-8")
 
     OPENJP2.opj_encoder_set_extra_options(codec, arr)
 
@@ -1060,7 +963,7 @@ def read_tile_header(codec, stream):
         ctypes.POINTER(ctypes.c_int32),
         ctypes.POINTER(ctypes.c_int32),
         ctypes.POINTER(ctypes.c_uint32),
-        ctypes.POINTER(BOOL_TYPE)
+        ctypes.POINTER(BOOL_TYPE),
     ]
     OPENJP2.opj_read_tile_header.argtypes = ARGTYPES
     OPENJP2.opj_read_tile_header.restype = check_error
@@ -1083,7 +986,7 @@ def read_tile_header(codec, stream):
         ctypes.byref(col1),
         ctypes.byref(row1),
         ctypes.byref(ncomps),
-        ctypes.byref(go_on)
+        ctypes.byref(go_on),
     )
     go_on = bool(go_on.value)
     return (
@@ -1094,7 +997,7 @@ def read_tile_header(codec, stream):
         col1.value,
         row1.value,
         ncomps.value,
-        go_on
+        go_on,
     )
 
 
@@ -1126,16 +1029,17 @@ def set_decode_area(codec, image, start_x=0, start_y=0, end_x=0, end_y=0):
         ctypes.c_int32,
         ctypes.c_int32,
         ctypes.c_int32,
-        ctypes.c_int32
+        ctypes.c_int32,
     ]
     OPENJP2.opj_set_decode_area.restype = check_error
 
     OPENJP2.opj_set_decode_area(
-        codec, image,
+        codec,
+        image,
         ctypes.c_int32(start_x),
         ctypes.c_int32(start_y),
         ctypes.c_int32(end_x),
-        ctypes.c_int32(end_y)
+        ctypes.c_int32(end_y),
     )
 
 
@@ -1163,7 +1067,7 @@ def set_decoded_components(codec, comp_indices):
         CODEC_TYPE,
         ctypes.c_uint32,
         ctypes.POINTER(ctypes.c_uint32),
-        ctypes.c_int32
+        ctypes.c_int32,
     ]
     OPENJP2.opj_set_decoded_components.restype = check_error
 
@@ -1174,7 +1078,10 @@ def set_decoded_components(codec, comp_indices):
     apply_color_xforms = ctypes.c_int32(0)
 
     OPENJP2.opj_set_decoded_components(
-        codec, ncomps, indices_p, apply_color_xforms
+        codec,
+        ncomps,
+        indices_p,
+        apply_color_xforms
     )
 
 
@@ -1258,7 +1165,7 @@ def set_error_handler(codec, handler, data=None):
     OPENJP2.opj_set_error_handler.argtypes = [
         CODEC_TYPE,
         ctypes.c_void_p,
-        ctypes.c_void_p
+        ctypes.c_void_p,
     ]
     OPENJP2.opj_set_error_handler.restype = check_error
     OPENJP2.opj_set_error_handler(codec, handler, data)
@@ -1284,7 +1191,9 @@ def set_info_handler(codec, handler, data=None):
         If the OpenJPEG library routine opj_set_info_handler fails.
     """
     OPENJP2.opj_set_info_handler.argtypes = [
-        CODEC_TYPE, ctypes.c_void_p, ctypes.c_void_p
+        CODEC_TYPE,
+        ctypes.c_void_p,
+        ctypes.c_void_p,
     ]
     OPENJP2.opj_set_info_handler.restype = check_error
     OPENJP2.opj_set_info_handler(codec, handler, data)
@@ -1310,7 +1219,9 @@ def set_warning_handler(codec, handler, data=None):
         If the OpenJPEG library routine opj_set_warning_handler fails.
     """
     OPENJP2.opj_set_warning_handler.argtypes = [
-        CODEC_TYPE, ctypes.c_void_p, ctypes.c_void_p
+        CODEC_TYPE,
+        ctypes.c_void_p,
+        ctypes.c_void_p,
     ]
     OPENJP2.opj_set_warning_handler.restype = check_error
 
@@ -1364,7 +1275,7 @@ def setup_encoder(codec, cparams, image):
     ARGTYPES = [
         CODEC_TYPE,
         ctypes.POINTER(CompressionParametersType),
-        ctypes.POINTER(ImageType)
+        ctypes.POINTER(ImageType),
     ]
     OPENJP2.opj_setup_encoder.argtypes = ARGTYPES
     OPENJP2.opj_setup_encoder.restype = check_error
@@ -1391,7 +1302,9 @@ def start_compress(codec, image, stream):
         If the OpenJPEG library routine opj_start_compress fails.
     """
     OPENJP2.opj_start_compress.argtypes = [
-        CODEC_TYPE, ctypes.POINTER(ImageType), STREAM_TYPE_P
+        CODEC_TYPE,
+        ctypes.POINTER(ImageType),
+        STREAM_TYPE_P,
     ]
     OPENJP2.opj_start_compress.restype = check_error
 
@@ -1478,7 +1391,7 @@ def write_tile(codec, tile_index, data, *pargs):
         ctypes.c_uint32,
         ctypes.POINTER(ctypes.c_uint8),
         ctypes.c_uint32,
-        STREAM_TYPE_P
+        STREAM_TYPE_P,
     ]
     OPENJP2.opj_write_tile.restype = check_error
 
@@ -1488,7 +1401,7 @@ def write_tile(codec, tile_index, data, *pargs):
         ctypes.c_uint32(int(tile_index)),
         datap,
         ctypes.c_uint32(int(data_size)),
-        stream
+        stream,
     )
 
 
@@ -1505,18 +1418,18 @@ _CMPFUNC = ctypes.CFUNCTYPE(ctypes.c_void_p, ctypes.c_char_p, ctypes.c_void_p)
 
 def _default_error_handler(msg, _):
     """Default error handler callback for libopenjp2."""
-    msg = "OpenJPEG library error:  {0}".format(msg.decode('utf-8').rstrip())
+    msg = "OpenJPEG library error:  {0}".format(msg.decode("utf-8").rstrip())
     set_error_message(msg)
 
 
 def _default_info_handler(msg, _):
     """Default info handler callback."""
-    print("[INFO] {0}".format(msg.decode('utf-8').rstrip()))
+    print("[INFO] {0}".format(msg.decode("utf-8").rstrip()))
 
 
 def _default_warning_handler(library_msg, _):
     """Default warning handler callback."""
-    library_msg = library_msg.decode('utf-8').rstrip()
+    library_msg = library_msg.decode("utf-8").rstrip()
     msg = "OpenJPEG library warning:  {0}".format(library_msg)
     warnings.warn(msg, UserWarning)
 

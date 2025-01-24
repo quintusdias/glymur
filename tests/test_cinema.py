@@ -33,22 +33,32 @@ class CinemaBase(fixtures.TestCommon):
         Verify the fields of the SIZ segment.
         """
         for field in [
-            'rsiz', 'xsiz', 'ysiz', 'xosiz', 'yosiz', 'xtsiz', 'ytsiz',
-            'xtosiz', 'ytosiz', 'bitdepth', 'xrsiz', 'yrsiz'
+            "rsiz",
+            "xsiz",
+            "ysiz",
+            "xosiz",
+            "yosiz",
+            "xtsiz",
+            "ytsiz",
+            "xtosiz",
+            "ytosiz",
+            "bitdepth",
+            "xrsiz",
+            "yrsiz",
         ]:
             self.assertEqual(getattr(actual, field), getattr(expected, field))
 
     def check_cinema4k_codestream(self, codestream, image_size):
 
         kwargs = {
-            'rsiz': 4,
-            'xysiz': image_size,
-            'xyosiz': (0, 0),
-            'xytsiz': image_size,
-            'xytosiz': (0, 0),
-            'bitdepth': (12, 12, 12),
-            'signed': (False, False, False),
-            'xyrsiz': [(1, 1, 1), (1, 1, 1)]
+            "rsiz": 4,
+            "xysiz": image_size,
+            "xyosiz": (0, 0),
+            "xytsiz": image_size,
+            "xytosiz": (0, 0),
+            "bitdepth": (12, 12, 12),
+            "signed": (False, False, False),
+            "xyrsiz": [(1, 1, 1), (1, 1, 1)],
         }
         self._verify_siz_segment(codestream.segment[1], SIZsegment(**kwargs))
 
@@ -57,14 +67,14 @@ class CinemaBase(fixtures.TestCommon):
     def check_cinema2k_codestream(self, codestream, image_size):
 
         kwargs = {
-            'rsiz': 3,
-            'xysiz': image_size,
-            'xyosiz': (0, 0),
-            'xytsiz': image_size,
-            'xytosiz': (0, 0),
-            'bitdepth': (12, 12, 12),
-            'signed': (False, False, False),
-            'xyrsiz': [(1, 1, 1), (1, 1, 1)]
+            "rsiz": 3,
+            "xysiz": image_size,
+            "xyosiz": (0, 0),
+            "xytsiz": image_size,
+            "xytosiz": (0, 0),
+            "bitdepth": (12, 12, 12),
+            "signed": (False, False, False),
+            "xyrsiz": [(1, 1, 1), (1, 1, 1)],
         }
         self._verify_siz_segment(codestream.segment[1], SIZsegment(**kwargs))
 
@@ -105,7 +115,7 @@ class WriteCinema(CinemaBase):
 
         with warnings.catch_warnings():
             # Ignore a warning issued by the library.
-            warnings.simplefilter('ignore')
+            warnings.simplefilter("ignore")
             j = Jp2k(self.temp_jp2_filename, data=data, cinema2k=24)
 
         codestream = j.get_codestream()
@@ -127,7 +137,7 @@ class WriteCinema(CinemaBase):
 
         with warnings.catch_warnings():
             # Ignore a warning issued by the library.
-            warnings.simplefilter('ignore')
+            warnings.simplefilter("ignore")
             j = Jp2k(self.temp_j2k_filename, data=data, cinema2k=48)
 
         codestream = j.get_codestream()
@@ -149,7 +159,7 @@ class WriteCinema(CinemaBase):
 
         with warnings.catch_warnings():
             # Ignore a warning issued by the library.
-            warnings.simplefilter('ignore')
+            warnings.simplefilter("ignore")
             j = Jp2k(self.temp_j2k_filename, data=data, cinema4k=True)
 
         codestream = j.get_codestream()

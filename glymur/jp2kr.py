@@ -6,6 +6,7 @@ Copyright 2013 John Evans
 
 License:  MIT
 """
+
 # Standard library imports...
 from __future__ import annotations
 from contextlib import ExitStack
@@ -121,8 +122,8 @@ class Jp2kr(Jp2kBox):
             num_components = len(cstr.segment[1].xrsiz)
         else:
             # try to get the image size from the IHDR box
-            jp2h = next(filter(lambda x: x.box_id == 'jp2h', self.box), None)
-            ihdr = next(filter(lambda x: x.box_id == 'ihdr', jp2h.box), None)
+            jp2h = next(filter(lambda x: x.box_id == "jp2h", self.box), None)
+            ihdr = next(filter(lambda x: x.box_id == "ihdr", jp2h.box), None)
 
             height, width = ihdr.height, ihdr.width
             num_components = ihdr.num_components
@@ -131,7 +132,7 @@ class Jp2kr(Jp2kBox):
                 # but if there is a PCLR box, then we need to check
                 # that as well, as that turns a single-channel image
                 # into a multi-channel image
-                pclr = [box for box in jp2h.box if box.box_id == 'pclr']
+                pclr = [box for box in jp2h.box if box.box_id == "pclr"]
                 if len(pclr) > 0:
                     num_components = len(pclr[0].signed)
 
@@ -203,7 +204,7 @@ class Jp2kr(Jp2kBox):
     def layer(self, layer):
         # Set to the indicated value so long as it is valid.
         cod = next(
-            filter(lambda x: x.marker_id == 'COD', self.codestream.segment),
+            filter(lambda x: x.marker_id == "COD", self.codestream.segment),
             None
         )
         if layer < 0 or layer >= cod.layers:
@@ -281,7 +282,7 @@ class Jp2kr(Jp2kBox):
         return msg
 
     def __str__(self):
-        metadata = [f'File:  {self.path.name}']
+        metadata = [f"File:  {self.path.name}"]
         if len(self.box) > 0:
             for box in self.box:
                 metadata.append(str(box))
@@ -291,7 +292,7 @@ class Jp2kr(Jp2kBox):
         else:
             # Just a codestream, so J2K
             metadata.append(str(self.codestream))
-        return '\n'.join(metadata)
+        return "\n".join(metadata)
 
     def parse(self, force=False):
         """Parses the JPEG 2000 file.
@@ -312,13 +313,13 @@ class Jp2kr(Jp2kBox):
 
         self.length = self.path.stat().st_size
 
-        with self.path.open('rb') as fptr:
+        with self.path.open("rb") as fptr:
 
             # Make sure we have a JPEG2000 file.  It could be either JP2 or
             # J2C.  Check for J2C first, single box in that case.
             read_buffer = fptr.read(2)
-            signature, = struct.unpack('>H', read_buffer)
-            if signature == 0xff4f:
+            (signature,) = struct.unpack(">H", read_buffer)
+            if signature == 0xFF4F:
                 self._codec_format = opj2.CODEC_J2K
                 # That's it, we're done.  The codestream object is only
                 # produced upon explicit request.
@@ -332,17 +333,17 @@ class Jp2kr(Jp2kBox):
             # 3rd 4 bytes should be the box signature (13, 10, 135, 10).
             fptr.seek(0)
             read_buffer = fptr.read(12)
-            values = struct.unpack('>I4s4B', read_buffer)
+            values = struct.unpack(">I4s4B", read_buffer)
             box_length = values[0]
             box_id = values[1]
             signature = values[2:]
 
             if (
                 box_length != 12
-                or box_id != b'jP  '
+                or box_id != b"jP  "
                 or signature != (13, 10, 135, 10)
             ):
-                msg = f'{self.filename} is not a JPEG 2000 file.'
+                msg = f"{self.filename} is not a JPEG 2000 file."
                 raise InvalidJp2kError(msg)
 
             # Back up and start again, we know we have a superbox (box of
@@ -364,11 +365,11 @@ class Jp2kr(Jp2kBox):
             raise InvalidJp2kError(msg)
 
         ftyp = self.box[1]
-        if ftyp.brand != 'jp2 ':
+        if ftyp.brand != "jp2 ":
             # Don't bother trying to validate JPX.
             return
 
-        jp2h = next(filter(lambda x: x.box_id == 'jp2h', self.box), None)
+        jp2h = next(filter(lambda x: x.box_id == "jp2h", self.box), None)
         if jp2h is None:
             msg = (
                 "No JP2 header box was located in the outermost jacket of "
@@ -377,15 +378,16 @@ class Jp2kr(Jp2kBox):
             raise InvalidJp2kError(msg)
 
         # An IHDR box is required as the first child box of the JP2H box.
-        if jp2h.box[0].box_id != 'ihdr':
+        if jp2h.box[0].box_id != "ihdr":
             msg = "A valid IHDR box was not found.  The JP2 file is invalid."
             raise InvalidJp2kError(msg)
 
         # A jp2-branded file cannot contain an "any ICC profile
-        colrs = [box for box in jp2h.box if box.box_id == 'colr']
+        colrs = [box for box in jp2h.box if box.box_id == "colr"]
         for colr in colrs:
             if colr.method not in (
-                core.ENUMERATED_COLORSPACE, core.RESTRICTED_ICC_PROFILE
+                core.ENUMERATED_COLORSPACE,
+                core.RESTRICTED_ICC_PROFILE,
             ):
                 msg = (
                     "Color Specification box method must specify either an "
@@ -395,7 +397,7 @@ class Jp2kr(Jp2kBox):
                 warnings.warn(msg, InvalidJp2kWarning)
 
         # We need to have one and only one JP2H box if we have a JP2 file.
-        num_jp2h_boxes = len([box for box in self.box if box.box_id == 'jp2h'])
+        num_jp2h_boxes = len([box for box in self.box if box.box_id == "jp2h"])
         if num_jp2h_boxes > 1:
             msg = (
                 f"This file has {num_jp2h_boxes} JP2H boxes in the outermost "
@@ -404,8 +406,8 @@ class Jp2kr(Jp2kBox):
             warnings.warn(msg, InvalidJp2kWarning)
 
         # We should have one and only one JP2C box if we have a JP2 file.
-        num_jp2c_boxes = len([box for box in self.box if box.box_id == 'jp2c'])
-        if num_jp2c_boxes > 1 and self.box[1].brand == 'jp2 ':
+        num_jp2c_boxes = len([box for box in self.box if box.box_id == "jp2c"])
+        if num_jp2c_boxes > 1 and self.box[1].brand == "jp2 ":
             msg = (
                 f"This file has {num_jp2c_boxes} JP2C boxes (images) in the "
                 "outermost layer of boxes.  All JP2C boxes after the first "
@@ -424,7 +426,7 @@ class Jp2kr(Jp2kBox):
         ihdr_dims = ihdr.height, ihdr.width, ihdr.num_components
 
         siz = next(
-            filter(lambda x: x.marker_id == 'SIZ', self.codestream.segment),
+            filter(lambda x: x.marker_id == "SIZ", self.codestream.segment),
             None
         )
 
@@ -524,7 +526,7 @@ class Jp2kr(Jp2kBox):
             0 if rows.start is None else rows.start,
             0 if cols.start is None else cols.start,
             numrows if rows.stop is None else rows.stop,
-            numcols if cols.stop is None else cols.stop
+            numcols if cols.stop is None else cols.stop,
         )
         data = self._read(area=area, rlevel=rlevel)
         if len(pargs) == 2:
@@ -545,9 +547,9 @@ class Jp2kr(Jp2kBox):
             The image data.
         """
 
-        if 'ignore_pclr_cmap_cdef' in kwargs:
-            self.ignore_pclr_cmap_cdef = kwargs['ignore_pclr_cmap_cdef']
-            kwargs.pop('ignore_pclr_cmap_cdef')
+        if "ignore_pclr_cmap_cdef" in kwargs:
+            self.ignore_pclr_cmap_cdef = kwargs["ignore_pclr_cmap_cdef"]
+            kwargs.pop("ignore_pclr_cmap_cdef")
         warnings.warn("Use array-style slicing instead.", DeprecationWarning)
         img = self._read(**kwargs)
         return img
@@ -642,8 +644,8 @@ class Jp2kr(Jp2kBox):
                 opj2.set_info_handler(codec, None)
 
             opj2.setup_decoder(codec, self._dparams)
-            if version.openjpeg_version >= '2.2.0':
-                opj2.codec_set_threads(codec, get_option('lib.num_threads'))
+            if version.openjpeg_version >= "2.2.0":
+                opj2.codec_set_threads(codec, get_option("lib.num_threads"))
 
             raw_image = opj2.read_header(stream, codec)
             stack.callback(opj2.image_destroy, raw_image)
@@ -652,13 +654,17 @@ class Jp2kr(Jp2kBox):
                 opj2.set_decoded_components(codec, self._decoded_components)
 
             if self._dparams.nb_tile_to_decode:
-                opj2.get_decoded_tile(codec, stream, raw_image,
-                                      self._dparams.tile_index)
+                opj2.get_decoded_tile(
+                    codec, stream, raw_image, self._dparams.tile_index
+                )
             else:
                 opj2.set_decode_area(
-                    codec, raw_image,
-                    self._dparams.DA_x0, self._dparams.DA_y0,
-                    self._dparams.DA_x1, self._dparams.DA_y1
+                    codec,
+                    raw_image,
+                    self._dparams.DA_x0,
+                    self._dparams.DA_y0,
+                    self._dparams.DA_x1,
+                    self._dparams.DA_y1,
                 )
                 opj2.decode(codec, stream, raw_image)
 
@@ -685,7 +691,7 @@ class Jp2kr(Jp2kBox):
 
         infile = self.filename.encode()
         nelts = opj2.PATH_LEN - len(infile)
-        infile += b'0' * nelts
+        infile += b"0" * nelts
         dparam.infile = infile
 
         # Return raw codestream components instead of "interpolating" the
@@ -700,8 +706,7 @@ class Jp2kr(Jp2kBox):
             # Must check the specified rlevel against the maximum.
             cod_seg = next(
                 filter(
-                    lambda x: x.marker_id == 'COD',
-                    self.codestream.segment
+                    lambda x: x.marker_id == "COD", self.codestream.segment
                 ),
                 None
             )
@@ -710,8 +715,10 @@ class Jp2kr(Jp2kBox):
                 # -1 is shorthand for the largest rlevel
                 rlevel = max_rlevel
             elif rlevel < -1 or rlevel > max_rlevel:
-                msg = (f"rlevel must be in the range [-1, {max_rlevel}] "
-                       "for this image.")
+                msg = (
+                    f"rlevel must be in the range [-1, {max_rlevel}] "
+                    "for this image."
+                )
                 raise ValueError(msg)
 
         dparam.cp_reduce = rlevel
@@ -736,8 +743,15 @@ class Jp2kr(Jp2kBox):
 
         self._dparams = dparam
 
-    def read_bands(self, rlevel=0, layer=0, area=None, tile=None,
-                   verbose=False, ignore_pclr_cmap_cdef=False):
+    def read_bands(
+        self,
+        rlevel=0,
+        layer=0,
+        area=None,
+        tile=None,
+        verbose=False,
+        ignore_pclr_cmap_cdef=False,
+    ):
         """Read a JPEG 2000 image.
 
         The only time you should ever use this method is when the image has
@@ -776,7 +790,7 @@ class Jp2kr(Jp2kBox):
         >>> jp = glymur.Jp2k(jfile)
         >>> components_lst = jp.read_bands(rlevel=1)
         """
-        if version.openjpeg_version < '2.3.0':
+        if version.openjpeg_version < "2.3.0":
             msg = (
                 f"You must have at least version 2.3.0 of OpenJPEG installed "
                 f"before using this method.  Your version of OpenJPEG is "
@@ -917,7 +931,7 @@ class Jp2kr(Jp2kBox):
             Signed:  (False, False, False)
             Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))
         """
-        with self.path.open('rb') as fptr:
+        with self.path.open("rb") as fptr:
 
             # if it's just a raw codestream file, it's easy
             if self._codec_format == opj2.CODEC_J2K:
@@ -925,11 +939,11 @@ class Jp2kr(Jp2kBox):
 
             # continue assuming JP2, must seek to the JP2C box and past its
             # header
-            box = next(filter(lambda x: x.box_id == 'jp2c', self.box), None)
+            box = next(filter(lambda x: x.box_id == "jp2c", self.box), None)
 
             fptr.seek(box.offset)
             read_buffer = fptr.read(8)
-            (box_length, _) = struct.unpack('>I4s', read_buffer)
+            (box_length, _) = struct.unpack(">I4s", read_buffer)
             if box_length == 0:
                 # The length of the box is presumed to last until the end
                 # of the file.  Compute the effective length of the box.
@@ -937,7 +951,7 @@ class Jp2kr(Jp2kBox):
             elif box_length == 1:
                 # Seek past the XL field.
                 read_buffer = fptr.read(8)
-                box_length, = struct.unpack('>Q', read_buffer)
+                (box_length,) = struct.unpack(">Q", read_buffer)
 
             return self._get_codestream(fptr, box_length - 8, header_only)
 
@@ -952,7 +966,7 @@ class Jp2kr(Jp2kBox):
         except Exception:
             _, value, traceback = sys.exc_info()
             msg = (
-                f'The file is invalid '
+                f"The file is invalid "
                 f'because the codestream could not be parsed:  "{value}"'
             )
             raise InvalidJp2kError(msg).with_traceback(traceback)

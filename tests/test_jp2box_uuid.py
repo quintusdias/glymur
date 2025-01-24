@@ -92,10 +92,10 @@ class TestSuite(fixtures.TestCommon):
 
         # Create the header.
         # Signature, version, offset to IFD
-        if e == '<':
-            buffer = struct.pack('<2sHI', b'II', 42, 8)
+        if e == "<":
+            buffer = struct.pack("<2sHI", b"II", 42, 8)
         else:
-            buffer = struct.pack('>2sHI', b'MM', 42, 8)
+            buffer = struct.pack(">2sHI", b"MM", 42, 8)
         b.write(buffer)
 
         offset = b.tell()
@@ -115,78 +115,90 @@ class TestSuite(fixtures.TestCommon):
         offset += 1
 
         # Write the tag count
-        buffer = struct.pack(e + 'H', num_tags)
+        buffer = struct.pack(e + "H", num_tags)
         b.write(buffer)
 
         # Write out all the IFD tags.  Any data that exceeds 4 bytes has to
         # be appended later.
         lst = [
-            struct.pack(e + 'HHII', SUBFILETYPE, TIFF_LONG, 1, 1),
-            struct.pack(e + 'HHII', IMAGEWIDTH, TIFF_SHORT, 1, 1),
-            struct.pack(e + 'HHII', IMAGELENGTH, TIFF_SHORT, 1, 1),
-            struct.pack(e + 'HHII', BITSPERSAMPLE, TIFF_SHORT, 1, 8),
-            struct.pack(e + 'HHII', COMPRESSION, TIFF_SHORT, 1,
-                        COMPRESSION_NONE),
-            struct.pack(e + 'HHII', PHOTOMETRIC, TIFF_SHORT, 1, 1),
-            struct.pack(e + 'HHII', STRIPOFFSETS, TIFF_LONG, 1, 1),
-            struct.pack(e + 'HHII', SAMPLESPERPIXEL, TIFF_SHORT, 1, 1),
-            struct.pack(e + 'HHII', ROWSPERSTRIP, TIFF_LONG, 1, 1),
-            struct.pack(e + 'HHII', STRIPBYTECOUNTS, TIFF_LONG, 1, 1),
-            struct.pack(e + 'HHII', XRESOLUTION, TIFF_RATIONAL, 1, offset),
-            struct.pack(e + 'HHII', YRESOLUTION, TIFF_RATIONAL, 1, offset + 8),
-            struct.pack(e + 'HHII', MODELPIXELSCALE, TIFF_DOUBLE, 3,
-                        offset + 16),
-            struct.pack(e + 'HHII', MODELTIEPOINT, TIFF_DOUBLE, 6,
-                        offset + 40),
-            struct.pack(e + 'HHII', GEOKEYDIRECTORY, TIFF_SHORT, 24,
-                        offset + 88),
-            struct.pack(e + 'HHII', GEOASCIIPARAMS, TIFF_ASCII, 45,
-                        offset + 136),
+            struct.pack(e + "HHII", SUBFILETYPE, TIFF_LONG, 1, 1),
+            struct.pack(e + "HHII", IMAGEWIDTH, TIFF_SHORT, 1, 1),
+            struct.pack(e + "HHII", IMAGELENGTH, TIFF_SHORT, 1, 1),
+            struct.pack(e + "HHII", BITSPERSAMPLE, TIFF_SHORT, 1, 8),
+            struct.pack(e + "HHII", COMPRESSION, TIFF_SHORT, 1, COMPRESSION_NONE),  # noqa : E501
+            struct.pack(e + "HHII", PHOTOMETRIC, TIFF_SHORT, 1, 1),
+            struct.pack(e + "HHII", STRIPOFFSETS, TIFF_LONG, 1, 1),
+            struct.pack(e + "HHII", SAMPLESPERPIXEL, TIFF_SHORT, 1, 1),
+            struct.pack(e + "HHII", ROWSPERSTRIP, TIFF_LONG, 1, 1),
+            struct.pack(e + "HHII", STRIPBYTECOUNTS, TIFF_LONG, 1, 1),
+            struct.pack(e + "HHII", XRESOLUTION, TIFF_RATIONAL, 1, offset),
+            struct.pack(e + "HHII", YRESOLUTION, TIFF_RATIONAL, 1, offset + 8),
+            struct.pack(e + "HHII", MODELPIXELSCALE, TIFF_DOUBLE, 3, offset + 16),  # noqa : E501
+            struct.pack(e + "HHII", MODELTIEPOINT, TIFF_DOUBLE, 6, offset + 40),
+            struct.pack(e + "HHII", GEOKEYDIRECTORY, TIFF_SHORT, 24, offset + 88),  # noqa : E501
+            struct.pack(e + "HHII", GEOASCIIPARAMS, TIFF_ASCII, 45, offset + 136),  # noqa : E501
         ]
         for buffer in lst:
             b.write(buffer)
 
         # NULL pointer to next IFD
-        buffer = struct.pack(e + 'I', 0)
+        buffer = struct.pack(e + "I", 0)
         b.write(buffer)
 
         # Image data.  Just a single byte will do.
-        buffer = struct.pack(e + 'B', 0)
+        buffer = struct.pack(e + "B", 0)
         b.write(buffer)
 
         # Now append the tag payloads that did not fit into the IFD.
 
         # XResolution
         tag_payloads = [
-            (e + 'I', 75),  # XResolution
-            (e + 'I', 1),
-            (e + 'I', 75),  # YResolution
-            (e + 'I', 1),
-            (e + 'd', 10),  # Model pixel scale tag
-            (e + 'd', 10),
-            (e + 'd', 0),
+            (e + "I", 75),  # XResolution
+            (e + "I", 1),
+            (e + "I", 75),  # YResolution
+            (e + "I", 1),
+            (e + "d", 10),  # Model pixel scale tag
+            (e + "d", 10),
+            (e + "d", 0),
         ]
 
         # MODELTIEPOINT
         datums = [0.0, 0.0, 0.0, 44650.0, 4640510.0, 0.0]
         for datum in datums:
-            tag_payloads.append((e + 'd', datum))
+            tag_payloads.append((e + "d", datum))
 
         # GeoKeyDirectory
         datums = [
-            1, 1, 0, 5,
-            1024, 0, 1, 1,
-            1025, 0, 1, 1,
-            1026, 34737, 20, 0,
-            2049, 34737, 24, 20,
-            3072, 0, 1, 26716,
+            1,
+            1,
+            0,
+            5,
+            1024,
+            0,
+            1,
+            1,
+            1025,
+            0,
+            1,
+            1,
+            1026,
+            34737,
+            20,
+            0,
+            2049,
+            34737,
+            24,
+            20,
+            3072,
+            0,
+            1,
+            26716,
         ]
         for datum in datums:
-            tag_payloads.append((e + 'H', datum))
+            tag_payloads.append((e + "H", datum))
 
         # GEOASCIIPARAMS
-        items = (e + '45s',
-                 b'UTM Zone 16N NAD27"|Clarke, 1866 by Default| ')
+        items = (e + "45s", b'UTM Zone 16N NAD27"|Clarke, 1866 by Default| ')
         tag_payloads.append(items)
 
         # Tag payloads
@@ -205,17 +217,17 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  Should not error out.  Verify the UUID type.  Verify
         the existance of one of the "Exif.Photo" tags.
         """
-        box_data = ir.files('tests.data').joinpath('issue549.dat').read_bytes()
+        box_data = ir.files("tests.data").joinpath("issue549.dat").read_bytes()
         bf = io.BytesIO(box_data)
         box = UUIDBox.parse(bf, 0, len(box_data))
 
         actual = box.uuid
-        expected = uuid.UUID(bytes=b'JpgTiffExif->JP2')
+        expected = uuid.UUID(bytes=b"JpgTiffExif->JP2")
         self.assertEqual(actual, expected)
 
         np.testing.assert_array_equal(
-            box.data['ExifTag']['ExifVersion'],
-            np.array([48, 50, 51, 50], dtype=np.uint8)
+            box.data["ExifTag"]["ExifVersion"],
+            np.array([48, 50, 51, 50], dtype=np.uint8),
         )
 
     def test__read_malformed_exif_uuid(self):
@@ -225,14 +237,14 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        box_data = ir.files('tests.data').joinpath('issue549.dat').read_bytes()
+        box_data = ir.files("tests.data").joinpath("issue549.dat").read_bytes()
         bf = io.BytesIO(box_data[:16] + box_data[20:])
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             box = UUIDBox.parse(bf, 0, 37700)
 
         actual = box.uuid
-        expected = uuid.UUID(bytes=b'JpgTiffExif->JP2')
+        expected = uuid.UUID(bytes=b"JpgTiffExif->JP2")
         self.assertEqual(actual, expected)
 
     def test_append_xmp_uuid(self):
@@ -241,12 +253,12 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  The new last box in the JP2 file is UUID.
         """
-        the_uuid = uuid.UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
+        the_uuid = uuid.UUID("be7acfcb-97a9-42e8-9c71-999491e3afac")
         raw_data = (
-            ir.files('tests.data')
-              .joinpath('simple_rdf.txt')
-              .read_text()
-              .encode('utf-8')
+            ir.files("tests.data")
+            .joinpath("simple_rdf.txt")
+            .read_text()
+            .encode("utf-8")
         )
 
         shutil.copyfile(self.jp2file, self.temp_jp2_filename)
@@ -255,7 +267,7 @@ class TestSuite(fixtures.TestCommon):
         ubox = glymur.jp2box.UUIDBox(the_uuid=the_uuid, raw_data=raw_data)
         jp2.append(ubox)
 
-        expected_ids = ['jP  ', 'ftyp', 'jp2h', 'jp2c', 'uuid']
+        expected_ids = ["jP  ", "ftyp", "jp2h", "jp2c", "uuid"]
         actual_ids = [b.box_id for b in jp2.box]
         self.assertEqual(actual_ids, expected_ids)
 
@@ -267,14 +279,14 @@ class TestSuite(fixtures.TestCommon):
         """
         Corrupt the Exif IFD with an invalid tag should produce a warning.
         """
-        b = self._create_exif_uuid('<')
+        b = self._create_exif_uuid("<")
 
         b.seek(0)
         buffer = b.read()
 
         # The first tag should begin at byte 32.  Replace the entire IDF
         # entry with zeros.
-        tag = struct.pack('<HHII', 0, 3, 0, 0)
+        tag = struct.pack("<HHII", 0, 3, 0, 0)
         buffer = buffer[:40] + tag + buffer[52:]
 
         b = io.BytesIO()
@@ -284,7 +296,7 @@ class TestSuite(fixtures.TestCommon):
         with self.assertWarns(UserWarning):
             box = glymur.jp2box.UUIDBox.parse(b, 0, 418)
 
-        self.assertEqual(box.box_id, 'uuid')
+        self.assertEqual(box.box_id, "uuid")
 
         # Should still get the IFD.  16 tags.
         self.assertEqual(len(box.data.keys()), 16)
@@ -294,7 +306,7 @@ class TestSuite(fixtures.TestCommon):
         Verify read of both big and little endian Exif IFDs.
         """
         # Check both little and big endian.
-        for endian in ['<', '>']:
+        for endian in ["<", ">"]:
             self._test_endian_exif(endian)
 
     def _create_exif_uuid(self, endian):
@@ -313,10 +325,10 @@ class TestSuite(fixtures.TestCommon):
         # 16 = length of UUID identifier
         # 8 = length of L, T
         # 388 + 6 + 16 + 8 = 418
-        b.write(struct.pack('>I4s', 418, b'uuid'))
-        b.write(b'JpgTiffExif->JP2')
+        b.write(struct.pack(">I4s", 418, b"uuid"))
+        b.write(b"JpgTiffExif->JP2")
 
-        b.write(b'Exif\x00\x00')
+        b.write(b"Exif\x00\x00")
 
         buffer = self._create_degenerate_geotiff(endian)
         b.write(buffer)
@@ -337,7 +349,7 @@ class TestSuite(fixtures.TestCommon):
         bptr = self._create_exif_uuid(endian)
 
         box = glymur.jp2box.UUIDBox.parse(bptr, 0, 418)
-        self.assertEqual(box.data['XResolution'], 75)
+        self.assertEqual(box.data["XResolution"], 75)
 
         expected = 'UTM Zone 16N NAD27"|Clarke, 1866 by Default| '
-        self.assertEqual(box.data['GeoAsciiParams'], expected)
+        self.assertEqual(box.data["GeoAsciiParams"], expected)

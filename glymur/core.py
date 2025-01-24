@@ -11,18 +11,14 @@ STD = 0
 CINEMA2K = 3
 CINEMA4K = 4
 
-RSIZ = {
-    'STD': STD,
-    'CINEMA2K': CINEMA2K,
-    'CINEMA4K': CINEMA4K
-}
+RSIZ = {"STD": STD, "CINEMA2K": CINEMA2K, "CINEMA4K": CINEMA4K}
 
 OFF = 0
 CINEMA2K_24 = 1
 CINEMA2K_48 = 2
 CINEMA4K_24 = 3
 
-OPJ_OFF = 0          # Not Digital Cinema
+OPJ_OFF = 0  # Not Digital Cinema
 OPJ_CINEMA2K_24 = 1  # 2K Digital Cinema at 24 fps
 OPJ_CINEMA2K_48 = 2  # 2K Digital Cinema at 48 fps
 OPJ_CINEMA4K_24 = 3  # 4K Digital Cinema at 24 fps
@@ -77,11 +73,11 @@ OPJ_CINEMA_48_COMP = 520833
 
 
 PROGRESSION_ORDER = {
-    'LRCP': LRCP,
-    'RLCP': RLCP,
-    'RPCL': RPCL,
-    'PCRL': PCRL,
-    'CPRL': CPRL
+    "LRCP": LRCP,
+    "RLCP": RLCP,
+    "RPCL": RPCL,
+    "PCRL": PCRL,
+    "CPRL": CPRL,
 }
 
 WAVELET_XFORM_9X7_IRREVERSIBLE = 0
@@ -93,7 +89,7 @@ ANY_ICC_PROFILE = 3
 VENDOR_COLOR_METHOD = 4
 
 # Registration values for comment markers.
-RCME_BINARY = 0      # binary value comments
+RCME_BINARY = 0  # binary value comments
 RCME_ISO_8859_1 = 1  # comments in latin-1 codec
 
 # enumerated colorspaces
@@ -106,12 +102,12 @@ ROMM_RGB = 21
 
 
 _COLORSPACE_MAP_DISPLAY = {
-    CMYK: 'CMYK',
-    SRGB: 'sRGB',
-    GREYSCALE: 'greyscale',
-    YCC: 'YCC',
-    E_SRGB: 'e-sRGB',
-    ROMM_RGB: 'ROMM-RGB',
+    CMYK: "CMYK",
+    SRGB: "sRGB",
+    GREYSCALE: "greyscale",
+    YCC: "YCC",
+    E_SRGB: "e-sRGB",
+    ROMM_RGB: "ROMM-RGB",
 }
 
 # enumerated color channel types
@@ -122,10 +118,10 @@ _UNSPECIFIED = 65535
 
 
 _COLOR_TYPE_MAP_DISPLAY = {
-    COLOR: 'color',
-    OPACITY: 'opacity',
-    PRE_MULTIPLIED_OPACITY: 'pre-multiplied opacity',
-    _UNSPECIFIED: 'unspecified',
+    COLOR: "color",
+    OPACITY: "opacity",
+    PRE_MULTIPLIED_OPACITY: "pre-multiplied opacity",
+    _UNSPECIFIED: "unspecified",
 }
 
 # color channel definitions.

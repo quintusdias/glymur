@@ -17,8 +17,11 @@ import lxml.etree as ET
 import glymur
 from glymur import Jp2k
 from glymur.jp2box import (
-    ColourSpecificationBox, ContiguousCodestreamBox, FileTypeBox,
-    ImageHeaderBox, JP2HeaderBox
+    ColourSpecificationBox,
+    ContiguousCodestreamBox,
+    FileTypeBox,
+    ImageHeaderBox,
+    JP2HeaderBox,
 )
 from glymur.jp2box import JPEG2000SignatureBox
 
@@ -31,8 +34,8 @@ class TestXML(fixtures.TestCommon):
     def setUp(self):
         super().setUp()
 
-        p = ir.files('tests.data').joinpath('countries.xml')
-        dest_path = self.test_dir_path / 'data.xml'
+        p = ir.files("tests.data").joinpath("countries.xml")
+        dest_path = self.test_dir_path / "data.xml"
         shutil.copyfile(p, dest_path)
         self.xmlfile_path = dest_path
         self.xmlfile = str(dest_path)
@@ -47,8 +50,9 @@ class TestXML(fixtures.TestCommon):
         self.ftyp = FileTypeBox()
         self.jp2h = JP2HeaderBox()
         self.jp2c = ContiguousCodestreamBox()
-        self.ihdr = ImageHeaderBox(height=height, width=width,
-                                   num_components=num_components)
+        self.ihdr = ImageHeaderBox(
+            height=height, width=width, num_components=num_components
+        )
         self.colr = ColourSpecificationBox(colorspace=glymur.core.SRGB)
 
     def test_negative_file_and_xml(self):
@@ -69,16 +73,14 @@ class TestXML(fixtures.TestCommon):
 
         doc = ET.parse(BytesIO(b'<?xml version="1.0"?><data>0</data>'))
         xmlb = glymur.jp2box.XMLBox(xml=doc)
-        self.assertEqual(ET.tostring(xmlb.xml.getroot()),
-                         b'<data>0</data>')
+        self.assertEqual(ET.tostring(xmlb.xml.getroot()), b"<data>0</data>")
 
         boxes = [self.jp2b, self.ftyp, self.jp2h, xmlb, self.jp2c]
 
         j2k.wrap(self.temp_jp2_filename, boxes=boxes)
         jp2 = Jp2k(self.temp_jp2_filename)
-        self.assertEqual(jp2.box[3].box_id, 'xml ')
-        self.assertEqual(ET.tostring(jp2.box[3].xml.getroot()),
-                         b'<data>0</data>')
+        self.assertEqual(jp2.box[3].box_id, "xml ")
+        self.assertEqual(ET.tostring(jp2.box[3].xml.getroot()), b"<data>0</data>")  # noqa : E501
 
     def test_xml_from_file_as_path(self):
         """
@@ -89,12 +91,12 @@ class TestXML(fixtures.TestCommon):
         """
         box = glymur.jp2box.XMLBox(filename=pathlib.Path(self.xmlfile))
 
-        elts = box.xml.findall('country')
+        elts = box.xml.findall("country")
         self.assertEqual(len(elts), 3)
 
-        neighbor = elts[1].find('neighbor')
-        self.assertEqual(neighbor.attrib['name'], 'Malaysia')
-        self.assertEqual(neighbor.attrib['direction'], 'N')
+        neighbor = elts[1].find("neighbor")
+        self.assertEqual(neighbor.attrib["name"], "Malaysia")
+        self.assertEqual(neighbor.attrib["direction"], "N")
 
     def test_xml_from_file_as_string(self):
         """
@@ -104,12 +106,12 @@ class TestXML(fixtures.TestCommon):
         """
         box = glymur.jp2box.XMLBox(filename=self.xmlfile)
 
-        elts = box.xml.findall('country')
+        elts = box.xml.findall("country")
         self.assertEqual(len(elts), 3)
 
-        neighbor = elts[1].find('neighbor')
-        self.assertEqual(neighbor.attrib['name'], 'Malaysia')
-        self.assertEqual(neighbor.attrib['direction'], 'N')
+        neighbor = elts[1].find("neighbor")
+        self.assertEqual(neighbor.attrib["name"], "Malaysia")
+        self.assertEqual(neighbor.attrib["direction"], "N")
 
     def test_xml_from_bytesio_object(self):
         """
@@ -121,12 +123,12 @@ class TestXML(fixtures.TestCommon):
         b = BytesIO(btext)
         box = glymur.jp2box.XMLBox(filename=b)
 
-        elts = box.xml.findall('country')
+        elts = box.xml.findall("country")
         self.assertEqual(len(elts), 3)
 
-        neighbor = elts[1].find('neighbor')
-        self.assertEqual(neighbor.attrib['name'], 'Malaysia')
-        self.assertEqual(neighbor.attrib['direction'], 'N')
+        neighbor = elts[1].find("neighbor")
+        self.assertEqual(neighbor.attrib["name"], "Malaysia")
+        self.assertEqual(neighbor.attrib["direction"], "N")
 
     def test_xml_from_stringio_object(self):
         """
@@ -138,12 +140,12 @@ class TestXML(fixtures.TestCommon):
         sio = StringIO(text)
         box = glymur.jp2box.XMLBox(filename=sio)
 
-        elts = box.xml.findall('country')
+        elts = box.xml.findall("country")
         self.assertEqual(len(elts), 3)
 
-        neighbor = elts[1].find('neighbor')
-        self.assertEqual(neighbor.attrib['name'], 'Malaysia')
-        self.assertEqual(neighbor.attrib['direction'], 'N')
+        neighbor = elts[1].find("neighbor")
+        self.assertEqual(neighbor.attrib["name"], "Malaysia")
+        self.assertEqual(neighbor.attrib["direction"], "N")
 
     def test_utf8_xml_from_xml_file(self):
         """
@@ -153,14 +155,14 @@ class TestXML(fixtures.TestCommon):
         doc = "<country>Россия</country>"
         xml = f"""<?xml version="1.0" encoding="utf-8"?>{doc}"""
 
-        path = self.test_dir_path / 'cyrillic.xml'
+        path = self.test_dir_path / "cyrillic.xml"
         with path.open(mode="wb") as f:
-            f.write(xml.encode('utf-8'))
+            f.write(xml.encode("utf-8"))
 
         xmlbox = glymur.jp2box.XMLBox(filename=str(path))
 
         root = xmlbox.xml.getroot()
-        actual = ET.tostring(root, encoding='utf-8').decode('utf-8')
+        actual = ET.tostring(root, encoding="utf-8").decode("utf-8")
         self.assertEqual(actual, doc)
 
     def test_xml_box_with_encoding_declaration(self):
@@ -170,13 +172,13 @@ class TestXML(fixtures.TestCommon):
 
         EXPECTED RESULT:  The xml box is validated.
         """
-        xmldata = ir.files('tests.data').joinpath('encoding_declaration.xml').read_bytes()  # noqa : E501
+        xmldata = ir.files("tests.data").joinpath("encoding_declaration.xml").read_bytes()  # noqa : E501
         with open(self.temp_jp2_filename, mode="wb") as ofile:
-            with open(self.jp2file, mode='rb') as ifile:
+            with open(self.jp2file, mode="rb") as ifile:
                 ofile.write(ifile.read())
 
             # Write the additional box.
-            box_header = struct.pack('>I4s', len(xmldata) + 8, b'xml ')
+            box_header = struct.pack(">I4s", len(xmldata) + 8, b"xml ")
             ofile.write(box_header)
             ofile.write(xmldata)
 
@@ -186,23 +188,23 @@ class TestXML(fixtures.TestCommon):
         jp2 = glymur.Jp2k(ofile.name)
 
         # Verify that XML box
-        self.assertEqual(jp2.box[-1].box_id, 'xml ')
+        self.assertEqual(jp2.box[-1].box_id, "xml ")
 
         namespaces = {
-            'gml': "http://www.opengis.net/gml",
-            'xsi': "http://www.w3.org/2001/XMLSchema-instance",
+            "gml": "http://www.opengis.net/gml",
+            "xsi": "http://www.w3.org/2001/XMLSchema-instance",
         }
-        elts = jp2.box[-1].xml.xpath('//gml:rangeSet', namespaces=namespaces)
+        elts = jp2.box[-1].xml.xpath("//gml:rangeSet", namespaces=namespaces)
         self.assertEqual(len(elts), 1)
 
         # Write it back out, read it back in.
-        file2 = self.test_dir_path / 'file2.jp2'
+        file2 = self.test_dir_path / "file2.jp2"
         jp2_2 = jp2.wrap(file2, boxes=jp2.box)
 
         # Verify that XML box
-        self.assertEqual(jp2_2.box[-1].box_id, 'xml ')
+        self.assertEqual(jp2_2.box[-1].box_id, "xml ")
 
-        elts = jp2.box[-1].xml.xpath('//gml:rangeSet', namespaces=namespaces)
+        elts = jp2.box[-1].xml.xpath("//gml:rangeSet", namespaces=namespaces)
 
         self.assertEqual(len(elts), 1)
 
@@ -213,18 +215,18 @@ class TestXML(fixtures.TestCommon):
         EXPECTED RESULT:  The XML cannot be recovered, but the JP2 parsing
         does not fail
         """
-        with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with open(self.jp2file, 'rb') as ifile:
+        with open(self.temp_jp2_filename, mode="wb") as tfile:
+            with open(self.jp2file, "rb") as ifile:
                 # Everything up until the UUID box.
                 write_buffer = ifile.read(77)
                 tfile.write(write_buffer)
 
                 # Write the xml box with bad xml
                 # Length = 28, id is 'xml '.
-                write_buffer = struct.pack('>I4s', int(28), b'xml ')
+                write_buffer = struct.pack(">I4s", int(28), b"xml ")
                 tfile.write(write_buffer)
 
-                write_buffer = '<test>this is a test'
+                write_buffer = "<test>this is a test"
                 write_buffer = write_buffer.encode()
                 tfile.write(write_buffer)
 
@@ -234,10 +236,10 @@ class TestXML(fixtures.TestCommon):
                 tfile.flush()
 
         with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
+            warnings.simplefilter("ignore")
             jp2k = Jp2k(self.temp_jp2_filename)
 
-        self.assertEqual(jp2k.box[3].box_id, 'xml ')
+        self.assertEqual(jp2k.box[3].box_id, "xml ")
         self.assertEqual(jp2k.box[3].offset, 77)
         self.assertEqual(jp2k.box[3].length, 28)
         self.assertIsNone(jp2k.box[3].xml)
@@ -249,25 +251,25 @@ class TestXML(fixtures.TestCommon):
 
         EXPECTED RESULT:
         """
-        with open(self.temp_jp2_filename, mode='wb') as tfile:
-            with open(self.jp2file, 'rb') as ifile:
+        with open(self.temp_jp2_filename, mode="wb") as tfile:
+            with open(self.jp2file, "rb") as ifile:
                 # Everything up until the UUID box.
                 write_buffer = ifile.read(77)
                 tfile.write(write_buffer)
 
                 # Write the xml box with bad xml
                 # Length = 64, id is 'xml '.
-                write_buffer = struct.pack('>I4s', int(64), b'xml ')
+                write_buffer = struct.pack(">I4s", int(64), b"xml ")
                 tfile.write(write_buffer)
 
                 # Write out 8 bad bytes.
-                write_buffer = b'\x00\x00\x07\x90xml '
+                write_buffer = b"\x00\x00\x07\x90xml "
                 tfile.write(write_buffer)
 
                 # Write out 48 good bytes constituting the XML payload.
                 write_buffer = b'<?xml version="1.0"?>'
                 tfile.write(write_buffer)
-                doc = b'<test>this is a test</test>'
+                doc = b"<test>this is a test</test>"
                 tfile.write(doc)
 
                 # Get the rest of the input file.
@@ -276,10 +278,10 @@ class TestXML(fixtures.TestCommon):
                 tfile.flush()
 
         with warnings.catch_warnings():
-            warnings.simplefilter('ignore')
+            warnings.simplefilter("ignore")
             jp2 = Jp2k(self.temp_jp2_filename)
 
-        self.assertEqual(jp2.box[3].box_id, 'xml ')
+        self.assertEqual(jp2.box[3].box_id, "xml ")
         self.assertEqual(jp2.box[3].offset, 77)
         self.assertEqual(jp2.box[3].length, 64)
         self.assertEqual(ET.tostring(jp2.box[3].xml.getroot()), doc)
