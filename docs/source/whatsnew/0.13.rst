@@ -3,6 +3,12 @@ Changes in glymur 0.13
 ######################
 
 *****************
+Changes in 0.13.8
+*****************
+
+    * Fix tiff2jp2 bug when stripped TIFF has no RowsPerStrip tag.
+
+*****************
 Changes in 0.13.7
 *****************
 

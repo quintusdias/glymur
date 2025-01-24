@@ -1,3 +1,6 @@
+Jan 14, 2025 - v0.13.8
+    Fix tiff2jp2 bug when stripped TIFF has no RowsPerStrip tag
+
 Jan 15, 2025 - v0.13.7
     Qualify on python 3.13
     Fix test warnings due to scikit-image deprecation.
