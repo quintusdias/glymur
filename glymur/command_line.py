@@ -180,6 +180,9 @@ def tiff2jp2():
         '--tilesize', nargs=2, type=int, help=help, metavar=('NROWS', 'NCOLS')
     )
 
+    help = 'Force palette TIFF to RGB'
+    group2.add_argument('--no-colormap', help=help, action='store_true')
+
     help = 'Use this many threads/cores.'
     group1.add_argument(
         '--num-threads', type=int, default=1, help=help,
@@ -221,6 +224,7 @@ def tiff2jp2():
         'irreversible': args.irreversible,
         'numres': args.numres,
         'num_threads': args.num_threads,
+        'pclr': not args.no_colormap,
         'plt': args.plt,
         'prog': args.prog,
         'psnr': args.psnr,
