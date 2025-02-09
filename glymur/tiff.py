@@ -6,7 +6,7 @@ import pathlib
 import shutil
 import struct
 import sys
-from typing import List, Tuple
+from typing import List, Tuple, Optional
 from uuid import UUID
 import warnings
 
@@ -75,6 +75,7 @@ class Tiff2Jp2k(object):
         create_xmp_uuid: bool = True,
         exclude_tags: List[int | str] | None = None,
         num_threads: int = 1,
+        pclr: Optional[bool] = None,
         tilesize: Tuple[int, int] | None = None,
         include_icc_profile: bool = False,
         verbosity: int = logging.CRITICAL,
@@ -98,6 +99,9 @@ class Tiff2Jp2k(object):
             tags from the EXIF UUID.
         jp2_filename : path or str
             Path to JPEG 2000 file to be written.
+        pclr : bool or None
+            If the TIFF is a palette TIFF and if this is False, then the JP2 is
+            constructed with 3 components and with no pclr box.
         tiff_filename : path or str
             Path to TIFF file.
         tilesize : tuple
@@ -115,6 +119,7 @@ class Tiff2Jp2k(object):
         self.create_exif_uuid = create_exif_uuid
         self.create_xmp_uuid = create_xmp_uuid
         self.include_icc_profile = include_icc_profile
+        self.pclr = pclr
 
         if exclude_tags is None:
             exclude_tags = []
@@ -220,10 +225,16 @@ class Tiff2Jp2k(object):
     def rewrap_for_colormap(self):
         """If the photometric interpretation was PALETTE, then we need to
         insert a pclr box and a cmap (component mapping box).
+
+        Unless, of course, if we were specifically instructed not to write the
+        image using a colormap.
         """
 
         photo = self.get_tag_value(262)
         if photo != libtiff.Photometric.PALETTE:
+            return
+
+        if self.photo == libtiff.Photometric.PALETTE and self.pclr is False:
             return
 
         jp2h = [box for box in self.jp2.box if box.box_id == "jp2h"][0]
@@ -697,7 +708,12 @@ class Tiff2Jp2k(object):
                 # height
                 self.rps = self.imageheight
 
-        if self.spp == 1:
+        if self.photo == libtiff.Photometric.PALETTE and self.pclr is False:
+            shape = (self.imageheight, self.imagewidth, 3)
+
+            # must specify spp in this case, don't trust the TIFF
+            self.spp = 3
+        elif self.spp == 1:
             shape = (self.imageheight, self.imagewidth)
         else:
             shape = (self.imageheight, self.imagewidth, self.spp)
@@ -825,7 +841,15 @@ class Tiff2Jp2k(object):
 
             for tc in range(num_tiff_tile_cols):
                 ttile_num = num_tiff_tile_cols * tr + tc
-                libtiff.readEncodedTile(self.tiff_fp, ttile_num, tiff_tile)
+                if (
+                    self.photo == libtiff.Photometric.PALETTE
+                    and self.pclr is False
+                ):
+                    x = tc * self.tw
+                    y = tr * self.th
+                    libtiff.readRGBATile(self.tiff_fp, x, y, tiff_tile)
+                else:
+                    libtiff.readEncodedTile(self.tiff_fp, ttile_num, tiff_tile)
 
                 cols = slice(tc * self.tw, (tc + 1) * self.tw)
 
