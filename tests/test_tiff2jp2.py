@@ -1628,6 +1628,45 @@ class TestSuite(fixtures.TestCommon):
             with Tiff2Jp2k(path, self.temp_jp2_filename):
                 pass
 
+    def test_stripped_tiff_with_colormap_to_jp2_with_no_pclr(self):
+        """
+        Scenario:  The input stripped "TIFF" has a colormap tag.
+
+        Expected Result:  The output JP2 has three layers and the jp2h box
+        has no pclr box.
+        """
+
+        path = ir.files('tests.data').joinpath('issue572-stripped.tif')
+        with Tiff2Jp2k(path, self.temp_jp2_filename, pclr=False) as p:
+            p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        # the image header box shows just a single layer
+        shape = (
+            j.box[2].box[0].height,
+            j.box[2].box[0].width,
+            j.box[2].box[0].num_components,
+        )
+        self.assertEqual(shape, (64, 64, 3))
+
+        # the colr box says sRGB, not greyscale
+        self.assertEqual(j.box[2].box[1].colorspace, SRGB)
+
+        # a pclr box does not exist, a cmap box does not exist
+        self.assertTrue(all(box.box_id != 'pclr' for box in j.box[2].box))
+        self.assertTrue(all(box.box_id != 'cmap' for box in j.box[2].box))
+
+        # The last box should be the exif uuid.  It has a colormap tag
+        # colormap tag depending on what was specified.
+        self.assertEqual(j.box[-1].box_id, 'uuid')
+        exif_box = j.box[-1]
+        actual = exif_box.uuid
+        expected = UUID(bytes=b'JpgTiffExif->JP2')
+        self.assertEqual(actual, expected)
+
+        self.assertIn('ColorMap', exif_box.data)
+
     def test_tiff_with_colormap_to_jp2_with_no_pclr(self):
         """
         Scenario:  The input "TIFF" has a colormap tag.
