@@ -8,6 +8,7 @@ License:  MIT
 """
 
 # Standard library imports ...
+import importlib.metadata
 import sys
 
 # Third party library imports ...
@@ -20,7 +21,7 @@ from .lib import tiff
 
 # Do not change the format of this next line!  Doing so risks breaking
 # setup.py
-version = "0.13.8"
+version = importlib.metadata.version('glymur')
 
 version_tuple = parse(version).release
 
