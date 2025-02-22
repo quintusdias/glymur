@@ -13,18 +13,6 @@ environment:
   matrix:
 
     - CONDA_ROOT: "C:\\Miniconda3_64"
-      PYTHON_VERSION: "3.9"
-      PYTHON_ARCH: "64"
-      CONDA_PY: "39"
-      USE_PATH_FOR_GDAL_PYTHON: "YES"
-
-    - CONDA_ROOT: "C:\\Miniconda3_64"
-      PYTHON_VERSION: "3.10"
-      PYTHON_ARCH: "64"
-      CONDA_PY: "310"
-      USE_PATH_FOR_GDAL_PYTHON: "YES"
-
-    - CONDA_ROOT: "C:\\Miniconda3_64"
       PYTHON_VERSION: "3.11"
       PYTHON_ARCH: "64"
       CONDA_PY: "311"
