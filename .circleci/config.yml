@@ -6,8 +6,6 @@ workflows:
   version: 2
   test:
     jobs:
-      - travis-39
-      - travis-310
       - travis-311-no-gdal
       - travis-311-no-opj
       - travis-311
@@ -46,12 +44,6 @@ test-template: &test-template
           pytest -n 4 -x
 
 jobs:
-  travis-39:
-    <<: *test-template
-
-  travis-310:
-    <<: *test-template
-
   travis-311-no-gdal:
     <<: *test-template
 
