@@ -18,7 +18,7 @@ import skimage
 
 # Local imports
 import glymur
-from glymur import Jp2k, Tiff2Jp2k, command_line
+from glymur import Jp2k, Tiff2Jp2k
 from glymur.core import SRGB
 from . import fixtures
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
@@ -387,45 +387,6 @@ class TestSuite(fixtures.TestCommon):
         # PSNR should increase for the remaining images.
         self.assertTrue(np.all(np.diff(psnr[1:])) > 0)
 
-    def test_psnr_commandline(self):
-        """
-        SCENARIO:  Convert TIFF file to JP2, specify psnr via the command line
-
-        EXPECTED RESULT:  data matches
-        """
-        sys.argv = [
-            '', str(self.moon), str(self.temp_jp2_filename),
-            '--psnr', '30', '35', '40', '0'
-        ]
-        command_line.tiff2jp2()
-
-        j = Jp2k(self.temp_jp2_filename)
-
-        d = {}
-        for layer in range(4):
-            j.layer = layer
-            d[layer] = j[:]
-
-        truth = self._imread(self.moon)
-
-        with warnings.catch_warnings():
-            # MSE is zero for that first image, resulting in a divide-by-zero
-            # warning
-            warnings.simplefilter('ignore')
-            psnr = [
-                skimage.metrics.peak_signal_noise_ratio(truth, d[j])
-                for j in range(4)
-            ]
-
-        # That first image should be lossless.
-        self.assertTrue(np.isinf(psnr[0]))
-
-        # None of the subsequent images should have inf PSNR.
-        self.assertTrue(not np.any(np.isinf(psnr[1:])))
-
-        # PSNR should increase for the remaining images.
-        self.assertTrue(np.all(np.diff(psnr[1:])) > 0)
-
     def test_irreversible(self):
         """
         SCENARIO:  Convert TIFF file to JP2 with the irreversible transform.
@@ -570,28 +531,6 @@ class TestSuite(fixtures.TestCommon):
         c = j.get_codestream()
         self.assertEqual(c.segment[2].layers, 3)
 
-    def test_layers_commandline(self):
-        """
-        SCENARIO:  Convert TIFF file to JP2 with multiple compression layers
-        using the command line.
-
-        EXPECTED RESULT:  data matches, number of layers is 3
-        """
-        sys.argv = [
-            '',
-            str(self.astronaut_ycbcr_jpeg_tiled), str(self.temp_jp2_filename),
-            '--cratio', '200', '50', '10'
-        ]
-        command_line.tiff2jp2()
-
-        j = Jp2k(self.temp_jp2_filename)
-
-        actual = j[:]
-        self.assertEqual(actual.shape, (512, 512, 3))
-
-        c = j.get_codestream()
-        self.assertEqual(c.segment[2].layers, 3)
-
     def test_codeblock_size(self):
         """
         SCENARIO:  Convert TIFF file to JP2 with a specific code block size
@@ -618,7 +557,7 @@ class TestSuite(fixtures.TestCommon):
         """
         SCENARIO:  Convert TIFF file to JP2, use INFO log level.
 
-        EXPECTED RESULT:  data matches
+        EXPECTED RESULT:  data matches, logs at INFO level verified
         """
         with Tiff2Jp2k(
             self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename,
@@ -1012,52 +951,6 @@ class TestSuite(fixtures.TestCommon):
         expected = skimage.io.imread(self.astronaut_s_u16)
         np.testing.assert_array_equal(actual, expected)
 
-    def test_commandline_tiff2jp2(self):
-        """
-        Scenario:  patch sys such that we can run the command line tiff2jp2
-        script.
-
-        Expected Results:  Same as test_astronaut.
-        """
-        sys.argv = [
-            '', str(self.astronaut8), str(self.temp_jp2_filename),
-            '--tilesize', '32', '32'
-        ]
-        command_line.tiff2jp2()
-
-        jp2 = Jp2k(self.temp_jp2_filename)
-        actual = jp2[:]
-        expected = skimage.io.imread(self.astronaut8)
-
-        np.testing.assert_array_equal(actual, expected)
-
-        c = jp2.get_codestream()
-        self.assertEqual(c.segment[1].xsiz, 64)
-        self.assertEqual(c.segment[1].ysiz, 64)
-        self.assertEqual(c.segment[1].xtsiz, 32)
-        self.assertEqual(c.segment[1].ytsiz, 32)
-
-    def test_commandline_tiff2jp2_exclude_tags_numeric(self):
-        """
-        Scenario:  patch sys such that we can run the command line tiff2jp2
-        script.  Exclude TileByteCounts and TileByteOffsets, but provide those
-        tags as numeric values.
-
-        Expected Results:  Same as test_astronaut.
-        """
-        sys.argv = [
-            '', str(self.astronaut8), str(self.temp_jp2_filename),
-            '--tilesize', '32', '32',
-            '--exclude-tags', '324', '325'
-        ]
-        command_line.tiff2jp2()
-
-        jp2 = Jp2k(self.temp_jp2_filename)
-        tags = jp2.box[-1].data
-
-        self.assertNotIn('TileByteCounts', tags)
-        self.assertNotIn('TileOffsets', tags)
-
     def test_cmyk(self):
         """
         Scenario:  CMYK (or separated) is not a supported colorspace.
@@ -1068,27 +961,6 @@ class TestSuite(fixtures.TestCommon):
         with Tiff2Jp2k(infile, self.temp_jp2_filename) as j:
             with self.assertRaises(RuntimeError):
                 j.run()
-
-    def test_commandline_tiff2jp2_exclude_tags(self):
-        """
-        Scenario:  patch sys such that we can run the command line tiff2jp2
-        script.  Exclude TileByteCounts and TileByteOffsets
-
-        Expected Results:  TileByteCounts and TileOffsets are not in the EXIF
-        UUID.
-        """
-        sys.argv = [
-            '', str(self.astronaut8), str(self.temp_jp2_filename),
-            '--tilesize', '32', '32',
-            '--exclude-tags', 'tilebytecounts', 'tileoffsets'
-        ]
-        command_line.tiff2jp2()
-
-        jp2 = Jp2k(self.temp_jp2_filename)
-        tags = jp2.box[-1].data
-
-        self.assertNotIn('TileByteCounts', tags)
-        self.assertNotIn('TileOffsets', tags)
 
     def test_numeric_exclude_keyword_argument(self):
         """
@@ -1378,104 +1250,6 @@ class TestSuite(fixtures.TestCommon):
             j.box[-1].data.getroot().values(), ['Public XMP Toolkit Core 3.5']
         )
 
-    def test_commandline_capture_display_resolution(self):
-        """
-        Scenario:  patch sys such that we can run the command
-        line tiff2jp2 script.  Supply the --capture-resolution and
-        --display-resolution arguments.
-
-        Expected Result:  The last box is a ResolutionBox.
-        """
-        vresc, hresc = 0.1, 0.2
-        vresd, hresd = 0.3, 0.4
-
-        sys.argv = [
-            '', str(self.exif), str(self.temp_jp2_filename),
-            '--capture-resolution', str(vresc), str(hresc),
-            '--display-resolution', str(vresd), str(hresd),
-        ]
-        command_line.tiff2jp2()
-
-        j = Jp2k(self.temp_jp2_filename)
-
-        # the resolution superbox is appended in the jp2 header box.
-        # the exit uuid comes later
-        self.assertEqual(j.box[-1].box_id, 'uuid')
-
-        self.assertEqual(j.box[2].box[2].box_id, 'res ')
-
-        self.assertEqual(j.box[2].box[2].box[0].box_id, 'resc')
-        self.assertEqual(j.box[2].box[2].box[0].vertical_resolution, vresc)
-        self.assertEqual(j.box[2].box[2].box[0].horizontal_resolution, hresc)
-
-        self.assertEqual(j.box[2].box[2].box[1].box_id, 'resd')
-        self.assertEqual(j.box[2].box[2].box[1].vertical_resolution, vresd)
-        self.assertEqual(j.box[2].box[2].box[1].horizontal_resolution, hresd)
-
-    def test_commandline__capture_display_resolution__tilesize(self):
-        """
-        Scenario:  patch sys such that we can run the command line
-        tiff2jp2 script.  Supply the --tilesize, --capture-resolution
-        and --display-resolution arguments.
-
-        Expected Result:  The last box is a ResolutionBox.
-        """
-        vresc, hresc = 0.1, 0.2
-        vresd, hresd = 0.3, 0.4
-
-        sys.argv = [
-            '', str(self.exif), str(self.temp_jp2_filename),
-            '--tilesize', '64', '64',
-            '--capture-resolution', str(vresc), str(hresc),
-            '--display-resolution', str(vresd), str(hresd),
-        ]
-        command_line.tiff2jp2()
-
-        j = Jp2k(self.temp_jp2_filename)
-
-        # the resolution superbox is appended in the jp2 header box.
-        # the exit uuid comes later
-        self.assertEqual(j.box[-1].box_id, 'uuid')
-
-        self.assertEqual(j.box[2].box[2].box_id, 'res ')
-
-        self.assertEqual(j.box[2].box[2].box[0].box_id, 'resc')
-        self.assertEqual(j.box[2].box[2].box[0].vertical_resolution, vresc)
-        self.assertEqual(j.box[2].box[2].box[0].horizontal_resolution, hresc)
-
-        self.assertEqual(j.box[2].box[2].box[1].box_id, 'resd')
-        self.assertEqual(j.box[2].box[2].box[1].vertical_resolution, vresd)
-        self.assertEqual(j.box[2].box[2].box[1].horizontal_resolution, hresd)
-
-    def test_commandline_tiff2jp2_xmp_uuid(self):
-        """
-        Scenario:  patch sys such that we can run the command line tiff2jp2
-        script.  Use the --create-xmp-uuid option.
-
-        Expected Result:  An Exif UUID is appended to the end of the
-        JP2 file, and then an XMP UUID is appended.
-        """
-        sys.argv = [
-            '', str(self.exif), str(self.temp_jp2_filename),
-            '--tilesize', '64', '64',
-            '--create-xmp-uuid'
-        ]
-        command_line.tiff2jp2()
-
-        j = Jp2k(self.temp_jp2_filename)
-
-        # first we find the Exif UUID, then the XMP UUID.
-        actual = j.box[-2].uuid
-        expected = UUID(bytes=b'JpgTiffExif->JP2')
-        self.assertEqual(actual, expected)
-
-        actual = j.box[-1].uuid
-        expected = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
-        self.assertEqual(actual, expected)
-        self.assertEqual(
-            j.box[-1].data.getroot().values(), ['Public XMP Toolkit Core 3.5']
-        )
-
     def test_one_component_no_tilesize(self):
         """
         Scenario:  The jp2 tilesize is the same as the image size.
@@ -1536,85 +1310,6 @@ class TestSuite(fixtures.TestCommon):
 
         # The colour specification box has the profile
         self.assertEqual(j.box[2].box[1].icc_profile, bytes(icc_profile))
-
-    def test_icc_profile_commandline(self):
-        """
-        Scenario:  The input TIFF has the ICC profile tag.  Provide the
-        --include-icc-profile argument.
-
-        Expected Result.  The ICC profile is verified in the
-        ColourSpecificationBox.
-        """
-        path = ir.files('tests.data').joinpath('basn6a08.tif')
-        buffer = path.read_bytes()
-        ifd = glymur.lib.tiff.tiff_header(buffer)
-        icc_profile = bytes(ifd['ICCProfile'])
-
-        sys.argv = [
-            '', str(path), str(self.temp_jp2_filename),
-            '--include-icc-profile'
-        ]
-        command_line.tiff2jp2()
-
-        j = Jp2k(self.temp_jp2_filename)
-
-        # The colour specification box has the profile
-        self.assertEqual(j.box[2].box[1].icc_profile, bytes(icc_profile))
-
-    def test_exclude_icc_profile_commandline(self):
-        """
-        Scenario:  The input TIFF has the ICC profile tag.  Do not provide the
-        --include-icc-profile flag.
-
-        Expected Result.  The ColourSpecificationBox is normal (no ICC
-        profile).  The ICC profile tag will be present in the
-        JpgTiffExif->JP2 UUID box.
-        """
-        path = ir.files('tests.data').joinpath('basn6a08.tif')
-
-        sys.argv = ['', str(path), str(self.temp_jp2_filename)]
-        command_line.tiff2jp2()
-
-        j = Jp2k(self.temp_jp2_filename)
-
-        # The colour specification box does not have the profile
-        colr = j.box[2].box[1]
-        self.assertEqual(colr.method, glymur.core.ENUMERATED_COLORSPACE)
-        self.assertEqual(colr.precedence, 0)
-        self.assertEqual(colr.approximation, 0)
-        self.assertEqual(colr.colorspace, SRGB)
-        self.assertIsNone(colr.icc_profile)
-
-    def test_exclude_icc_profile_commandline__exclude_from_uuid(self):
-        """
-        Scenario:  The input TIFF has the ICC profile tag.  Do not specify
-        the --include-icc-profile flag.  Specify the 34675 (ICCProfile) tag
-        in the --exclude-tags flag.
-
-        Expected Result.  The ICC profile is verified to not be present in the
-        ColourSpecificationBox.  The ICC profile tag will be not present in the
-        JpgTiffExif->JP2 UUID box.
-        """
-        path = ir.files('tests.data').joinpath('basn6a08.tif')
-
-        sys.argv = [
-            '', str(path), str(self.temp_jp2_filename),
-            '--exclude-tags', 'ICCProfile',
-        ]
-        command_line.tiff2jp2()
-
-        j = Jp2k(self.temp_jp2_filename)
-
-        # The colour specification box does not have the profile
-        colr = j.box[2].box[1]
-        self.assertEqual(colr.method, glymur.core.ENUMERATED_COLORSPACE)
-        self.assertEqual(colr.precedence, 0)
-        self.assertEqual(colr.approximation, 0)
-        self.assertEqual(colr.colorspace, SRGB)
-        self.assertIsNone(colr.icc_profile)
-
-        # the exif UUID box does not have the profile
-        self.assertNotIn('ICCProfile', j.box[-1].data)
 
     def test_not_a_tiff(self):
         """
@@ -1964,3 +1659,17 @@ class TestSuite(fixtures.TestCommon):
         actual = jp2[:]
         expected = self._imread(tfile)
         np.testing.assert_array_equal(actual, expected)
+
+    def test_existing_file(self):
+        """
+        Scenario:  provide an existing JP2 file as the output file
+
+        Expected Result:  RuntimeError
+        """
+        tfile = ir.files('tests.data.tiff').joinpath('issue678.tif')
+        shutil.copyfile(glymur.data.nemo(), self.temp_jp2_filename)
+        with (
+            self.assertRaises(FileExistsError),
+            Tiff2Jp2k(tfile, self.temp_jp2_filename) as p,
+        ):
+            p.run()

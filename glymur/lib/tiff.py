@@ -670,9 +670,133 @@ def check_error(status):
 
 
 TAGS = {
-    "ProcessingSoftware": {
+    "GPSVersionID": {
+        "number": 0,
+        "type": ctypes.c_char_p,
+    },
+    "GPSLatitudeRef": {
+        "number": 1,
+        "type": ctypes.c_char_p,
+    },
+    "GPSLatitude": {
+        "number": 2,
+        "type": ctypes.c_char_p,
+    },
+    "GPSLongitudeRef": {
+        "number": 3,
+        "type": ctypes.c_char_p,
+    },
+    "GPSLongitude": {
+        "number": 4,
+        "type": ctypes.c_char_p,
+    },
+    "GPSAltitudeRef": {
+        "number": 5,
+        "type": ctypes.c_char_p,
+    },
+    "GPSAltitude": {
+        "number": 6,
+        "type": ctypes.c_char_p,
+    },
+    "GPSTimestamp": {
+        "number": 7,
+        "type": ctypes.c_char_p,
+    },
+    "GPSSatellites": {
+        "number": 8,
+        "type": ctypes.c_char_p,
+    },
+    "GPSStatus": {
+        "number": 9,
+        "type": ctypes.c_char_p,
+    },
+    "GPSMeasureMode": {
+        "number": 10,
+        "type": ctypes.c_char_p,
+    },
+    "GPSDOP": {
         "number": 11,
         "type": ctypes.c_char_p,
+    },
+    "GPSSpeedRef": {
+        "number": 12,
+        "type": ctypes.c_char_p,
+    },
+    "GPSSpeed": {
+        "number": 13,
+        "type": ctypes.c_char_p,
+    },
+    "GPSTrackRef": {
+        "number": 14,
+        "type": ctypes.c_char_p,
+    },
+    "GPSTrack": {
+        "number": 15,
+        "type": ctypes.c_char_p,
+    },
+    "GPSImgDirectionRef": {
+        "number": 16,
+        "type": ctypes.c_char_p,
+    },
+    "GPSImgDirection": {
+        "number": 17,
+        "type": ctypes.c_char_p,
+    },
+    "GPSMapDatum": {
+        "number": 18,
+        "type": ctypes.c_char_p,
+    },
+    "GPSDestLatitudeRef": {
+        "number": 19,
+        "type": ctypes.c_char_p,
+    },
+    "GPSDestLatitude": {
+        "number": 20,
+        "type": ctypes.c_char_p,
+    },
+    "GPSDestLongitudeRef": {
+        "number": 21,
+        "type": ctypes.c_char_p,
+    },
+    "GPSDestLongitude": {
+        "number": 22,
+        "type": ctypes.c_char_p,
+    },
+    "GPSBearingRef": {
+        "number": 23,
+        "type": ctypes.c_char_p,
+    },
+    "GPSBearing": {
+        "number": 24,
+        "type": ctypes.c_char_p,
+    },
+    "GPSDestDistanceRef": {
+        "number": 25,
+        "type": ctypes.c_char_p,
+    },
+    "GPSDestDistance": {
+        "number": 26,
+        "type": ctypes.c_int16,
+    },
+    "GPSProcessingMethod": {
+        "number": 27,
+        "type": ctypes.c_char_p,
+    },
+    "GPSAreaInformation": {
+        "number": 28,
+        "type": ctypes.c_char_p,
+    },
+    "GPSDateStamp": {
+        "number": 29,
+        "type": ctypes.c_char_p,
+    },
+    "GPSDifferential": {
+        "number": 30,
+        "type": ctypes.c_char_p,
+    },
+    "GPSHPositioningError": {
+        "number": 31,
+        "type": ctypes.c_int16,
     },
     "SubFileType": {
         "number": 254,
@@ -1968,6 +2092,7 @@ class _Ifd(object):
 
     def parse_tag(self, tag, dtype, count, offset_buf):
         """Interpret an Exif image tag data payload."""
+
         try:
             fmt = DATATYPE2FMT[dtype]["format"] * count
             payload_size = DATATYPE2FMT[dtype]["nbytes"] * count
@@ -1994,7 +2119,10 @@ class _Ifd(object):
                 # Rational or Signed Rational.  Construct the list of values.
                 rational_payload = []
                 for j in range(count):
-                    value = float(payload[j * 2]) / float(payload[j * 2 + 1])
+                    try:
+                        value = float(payload[j * 2]) / float(payload[j * 2 + 1])  # noqa : E501
+                    except ZeroDivisionError:
+                        value = np.nan
                     rational_payload.append(value)
                 payload = np.array(rational_payload)
             if count == 1:
@@ -2017,8 +2145,8 @@ class _Ifd(object):
                 warnings.warn(msg, UserWarning)
                 tag_name = tag
 
-            if tag_name == "ExifTag":
-                # There's an Exif IFD at the offset specified here.
+            if tag_name in ("ExifTag", 'GPSIFD'):
+                # There's an IFD at the offset specified here.
                 ifd = _Ifd(self.endian, self.read_buffer, value)
                 self.processed_ifd[tag_name] = ifd.processed_ifd
             else:

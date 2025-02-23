@@ -3,10 +3,41 @@ Test fixtures common to more than one test point.
 """
 
 # Standard library imports
+import importlib.metadata as im
 import pathlib
+import platform
 import shutil
+import sys
 import tempfile
 import unittest
+
+# are we anaconda?
+try:
+    import conda  # noqa : F401
+except ImportError:
+    ANACONDA = False
+else:
+    ANACONDA = True
+
+# are we macports?
+if sys.executable.startswith('/opt/local/Library/Frameworks/Python.framework'):
+    MACPORTS = True
+else:
+    MACPORTS = False
+
+# are we a linux platform that can use importlib.metadata
+if (
+    platform.system() == 'linux'
+    and platform.freedesktop_os_release()['id'] == 'opensuse-tumbleweed'
+):
+    LINUX_WITH_GOOD_IMPORTLIBMETADATA = True
+else:
+    LINUX_WITH_GOOD_IMPORTLIBMETADATA = False
+
+if ANACONDA or MACPORTS or LINUX_WITH_GOOD_IMPORTLIBMETADATA:
+    CANNOT_USE_IMPORTLIB_METADATA = False
+else:
+    CANNOT_USE_IMPORTLIB_METADATA = True
 
 # 3rd party library imports
 try:
@@ -48,6 +79,29 @@ class TestCommon(unittest.TestCase):
     """
     Common setup for many if not all tests.
     """
+
+    @classmethod
+    def setUpClass(cls):
+        """
+        Use some files supplied by scikit-image for our tests.
+        """
+
+        files = im.files('scikit-image')
+
+        jpeg = next(filter(lambda x: 'retina' in x.name, files), None)
+        cls.retina = jpeg.locate()
+
+        jpeg = next(
+            filter(lambda x: 'hubble_deep_field' in x.name, files),
+            None
+        )
+        cls.hubble = jpeg.locate()
+
+        jpeg = next(
+            filter(lambda x: 'rocket' in x.name, files),
+            None
+        )
+        cls.rocket = jpeg.locate()
 
     def setUp(self):
         # Supply paths to these three shipping example files.

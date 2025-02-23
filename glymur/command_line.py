@@ -7,7 +7,7 @@ import warnings
 
 # Local imports ...
 from . import Jp2k, set_option, lib
-from . import tiff
+from . import tiff, jpeg
 
 
 def main():
@@ -76,6 +76,134 @@ def main():
                 f"{warning.filename}:{warning.lineno}: "
                 f"{warning.category.__name__}: {warning.message}"
             )
+
+
+def jpeg2jp2():
+    """Entry point for console script jpeg2jp2."""
+
+    kwargs = {
+        'description': 'Convert JPEG to JPEG 2000.',
+        'formatter_class': argparse.ArgumentDefaultsHelpFormatter,
+        'add_help': False
+    }
+    parser = argparse.ArgumentParser(**kwargs)
+
+    group1 = parser.add_argument_group(
+        'JP2K', 'Pass-through arguments to Jp2k.'
+    )
+
+    help = 'Capture resolution parameters'
+    group1.add_argument(
+        '--capture-resolution', nargs=2, type=float, help=help,
+        metavar=('VRESC', 'HRESC')
+    )
+
+    help = 'Display resolution parameters'
+    group1.add_argument(
+        '--display-resolution', nargs=2, type=float, help=help,
+        metavar=('VRESD', 'HRESD')
+    )
+
+    help = 'Compression ratios for successive layers.'
+    group1.add_argument('--cratio', nargs='+', type=int, help=help)
+
+    help = 'PSNR for successive layers.'
+    group1.add_argument('--psnr', nargs='+', type=int, help=help)
+
+    help = 'Codeblock size.'
+    group1.add_argument(
+        '--codeblocksize', nargs=2, type=int, help=help,
+        metavar=('cblkh', 'cblkw')
+    )
+
+    help = 'Number of decomposition levels.'
+    group1.add_argument('--numres', type=int, help=help, default=6)
+
+    help = 'Progression order.'
+    choices = ['lrcp', 'rlcp', 'rpcl', 'prcl', 'cprl']
+    group1.add_argument('--prog', choices=choices, help=help, default='lrcp')
+
+    help = 'Use irreversible 9x7 transform.'
+    group1.add_argument('--irreversible', help=help, action='store_true')
+
+    help = 'Generate EPH markers.'
+    group1.add_argument('--eph', help=help, action='store_true')
+
+    help = 'Generate PLT markers.'
+    group1.add_argument('--plt', help=help, action='store_true')
+
+    help = 'Generate SOP markers.'
+    group1.add_argument('--sop', help=help, action='store_true')
+
+    help = 'Use this many threads/cores.'
+    group1.add_argument(
+        '--num-threads', type=int, default=1, help=help,
+    )
+
+    help = (
+        'Dimensions of JP2K tile.  If not provided, the JPEG2000 image will '
+        'be written as a single tile.'
+    )
+    group1.add_argument(
+        '--tilesize', nargs=2, type=int, help=help, metavar=('NROWS', 'NCOLS')
+    )
+
+    group2 = parser.add_argument_group(
+        'JPEG', 'Arguments specific to conversion of JPEG imagery.'
+    )
+
+    help = (
+        'If specified, subsume any ICC profile found in an APP2 segment(s) '
+        'into the colour specification box.  This will involve a file copy '
+        'and is therefore a potentially costly operation.'
+    )
+    group2.add_argument(
+        '--include-icc-profile', help=help, action='store_true'
+    )
+
+    group2.add_argument('jpeg', help='Input JPEG file.')
+    group2.add_argument('jp2k', help='Output JPEG 2000 file.')
+
+    # These arguments are not specific to either group.
+    help = 'Show this help message and exit'
+    parser.add_argument('--help', '-h', action='help', help=help)
+
+    help = (
+        'Logging level, one of "critical", "error", "warning", "info", '
+        'or "debug".'
+    )
+    parser.add_argument(
+        '--verbosity', help=help, default='warning',
+        choices=['critical', 'error', 'warning', 'info', 'debug']
+    )
+
+    args = parser.parse_args()
+
+    logging_level = getattr(logging, args.verbosity.upper())
+
+    jpegp = pathlib.Path(args.jpeg)
+    jp2kp = pathlib.Path(args.jp2k)
+
+    kwargs = {
+        'cbsize': args.codeblocksize,
+        'cratios': args.cratio,
+        'capture_resolution': args.capture_resolution,
+        'display_resolution': args.display_resolution,
+        'eph': args.eph,
+        'include_icc_profile': args.include_icc_profile,
+        'irreversible': args.irreversible,
+        'numres': args.numres,
+        'num_threads': args.num_threads,
+        'plt': args.plt,
+        'prog': args.prog,
+        'psnr': args.psnr,
+        'sop': args.sop,
+        'tilesize': args.tilesize,
+        'verbosity': logging_level,
+    }
+
+    with jpeg.JPEG2JP2(jpegp, jp2kp, **kwargs) as j:
+        j.run()
 
 
 def tiff2jp2():

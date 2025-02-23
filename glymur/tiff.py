@@ -1,13 +1,10 @@
 # standard library imports
 from __future__ import annotations
-import io
 import logging
 import pathlib
 import shutil
-import struct
 import sys
 from typing import List, Tuple
-from uuid import UUID
 import warnings
 
 # 3rd party library imports
@@ -15,21 +12,16 @@ import numpy as np
 
 # local imports
 from glymur import Jp2k, set_option
-from glymur.core import SRGB, RESTRICTED_ICC_PROFILE
+from glymur.core import SRGB
+from ._core_converter import _2JP2Converter
 from .lib import tiff as libtiff
-from .lib.tiff import DATATYPE2FMT
 from . import jp2box
 
 # we need a lower case mapping from the tag name to the tag number
 TAGNAME2NUM = {k.lower(): v["number"] for k, v in libtiff.TAGS.items()}
 
 
-# Mnemonics for the two TIFF format version numbers.
-_TIFF = 42
-_BIGTIFF = 43
-
-
-class Tiff2Jp2k(object):
+class Tiff2Jp2k(_2JP2Converter):
     """
     Transform a TIFF image into a JP2 image.
 
@@ -45,7 +37,7 @@ class Tiff2Jp2k(object):
         Dimensions of the image.
     jp2 : JP2K object
         Write to this JPEG2000 file
-    jp2_filename : path
+    jp2_path : path
         Path to JPEG 2000 file to be written.
     jp2_kwargs : dict
         Keyword arguments to pass along to the Jp2k constructor.
@@ -55,7 +47,7 @@ class Tiff2Jp2k(object):
         The number of rows per strip in the TIFF.
     spp : int
         Samples Per Pixel TIFF tag value
-    tiff_filename : path
+    tiff_path : path
         Path to TIFF file.
     tilesize : tuple
         The dimensions of a tile in the JP2K file.
@@ -69,8 +61,8 @@ class Tiff2Jp2k(object):
 
     def __init__(
         self,
-        tiff_filename: pathlib.Path,
-        jp2_filename: pathlib.Path,
+        tiff_path: pathlib.Path,
+        jp2_path: pathlib.Path,
         create_exif_uuid: bool = True,
         create_xmp_uuid: bool = True,
         exclude_tags: List[int | str] | None = None,
@@ -105,16 +97,25 @@ class Tiff2Jp2k(object):
         verbosity : int
             Set the level of logging, i.e. WARNING, INFO, etc.
         """
+        super().__init__(
+            create_exif_uuid, create_xmp_uuid, include_icc_profile, tilesize,
+            verbosity
+        )
 
-        self.tiff_filename = tiff_filename
-        if not self.tiff_filename.exists():
-            raise FileNotFoundError(f"{tiff_filename} does not exist")
+        self.tiff_path = pathlib.Path(tiff_path)
+        if not self.tiff_path.exists():
+            raise FileNotFoundError(f"{tiff_path} does not exist")
 
-        self.jp2_filename = jp2_filename
-        self.tilesize = tilesize
+        self.jp2_path = pathlib.Path(jp2_path)
+        if self.jp2_path.exists():
+            msg = (
+                f'{str(self.jp2_path)} already exists, ',
+                'please delete if you wish to overwrite.'
+            )
+            raise FileExistsError(msg)
+
         self.create_exif_uuid = create_exif_uuid
         self.create_xmp_uuid = create_xmp_uuid
-        self.include_icc_profile = include_icc_profile
 
         if exclude_tags is None:
             exclude_tags = []
@@ -125,9 +126,6 @@ class Tiff2Jp2k(object):
 
         # Assume that there is no ColorMap tag until we know otherwise.
         self._colormap = None
-
-        # Assume that there is no ICC profile tag until we know otherwise.
-        self.icc_profile = None
 
         # Assume no XML_PACKET tag until we know otherwise.
         self.xmp_data = None
@@ -188,16 +186,9 @@ class Tiff2Jp2k(object):
 
         return lst
 
-    def setup_logging(self, verbosity):
-        self.logger = logging.getLogger("tiff2jp2")
-        self.logger.setLevel(verbosity)
-        ch = logging.StreamHandler()
-        ch.setLevel(verbosity)
-        self.logger.addHandler(ch)
-
     def __enter__(self):
         """The Tiff2Jp2k must be used with a context manager."""
-        self.tiff_fp = libtiff.open(self.tiff_filename)
+        self.tiff_fp = libtiff.open(str(self.tiff_path))
         return self
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
@@ -249,42 +240,10 @@ class Tiff2Jp2k(object):
         colr = [box for box in jp2h.box if box.box_id == "colr"][0]
         colr.colorspace = SRGB
 
-        temp_filename = str(self.jp2_filename) + ".tmp"
+        temp_filename = str(self.jp2_path) + ".tmp"
         self.jp2.wrap(temp_filename, boxes=self.jp2.box)
-        shutil.move(temp_filename, self.jp2_filename)
+        shutil.move(temp_filename, self.jp2_path)
         self.jp2.parse()
-
-    def rewrap_for_icc_profile(self):
-        """Consume a TIFF ICC profile, if one is there."""
-        if self.icc_profile is None and self.include_icc_profile:
-            self.logger.warning("No ICC profile was found.")
-
-        if self.icc_profile is None or not self.include_icc_profile:
-            return
-
-        self.logger.info(
-            "Consuming an ICC profile into JP2 color specification box."
-        )
-
-        colr = jp2box.ColourSpecificationBox(
-            method=RESTRICTED_ICC_PROFILE,
-            precedence=0,
-            icc_profile=self.icc_profile
-        )
-
-        # construct the new set of JP2 boxes, insert the color specification
-        # box with the ICC profile
-        jp2 = Jp2k(self.jp2_filename)
-        boxes = jp2.box
-        boxes[2].box = [boxes[2].box[0], colr]
-
-        # re-wrap the codestream, involves a file copy
-        tmp_filename = str(self.jp2_filename) + ".tmp"
-
-        with open(tmp_filename, mode="wb") as tfile:
-            jp2.wrap(tfile.name, boxes=boxes)
-
-        shutil.move(tmp_filename, self.jp2_filename)
 
     def append_extra_jp2_boxes(self):
         """Copy over the TIFF IFD.  Place it in a UUID box.  Append to the JPEG
@@ -293,69 +252,13 @@ class Tiff2Jp2k(object):
         self.append_exif_uuid_box()
         self.append_xmp_uuid_box()
 
-    def append_exif_uuid_box(self):
-        """Append an EXIF UUID box onto the end of the JPEG 2000 file.  It will
-        contain metadata from the TIFF IFD.
-        """
-        if not self.create_exif_uuid:
-            return
-
-        # create a bytesio object for the IFD
-        b = io.BytesIO()
-
-        # write this 32-bit header into the UUID, no matter if we had bigtiff
-        # or regular tiff or big endian
-        data = struct.pack("<BBHI", 73, 73, 42, 8)
-        b.write(data)
-
-        self._write_ifd(b, self.tags)
-
-        # create the Exif UUID
-        if self.found_geotiff_tags:
-            # geotiff UUID
-            the_uuid = UUID("b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03")
-            payload = b.getvalue()
-        else:
-            # Make it an exif UUID.
-            the_uuid = UUID(bytes=b"JpgTiffExif->JP2")
-            payload = b"EXIF\0\0" + b.getvalue()
-
-        # the length of the box is the length of the payload plus 8 bytes
-        # to store the length of the box and the box ID
-        box_length = len(payload) + 8
-
-        uuid_box = jp2box.UUIDBox(the_uuid, payload, box_length)
-        with open(self.jp2_filename, mode="ab") as f:
-            uuid_box.write(f)
-
-        self.jp2.finalize(force_parse=True)
-
-    def append_xmp_uuid_box(self):
-        """Append an XMP UUID box onto the end of the JPEG 2000 file if there
-        was an XMP tag in the TIFF IFD.
-        """
-
-        if self.xmp_data is None:
-            return
-
-        if not self.create_xmp_uuid:
-            return
-
-        # create the XMP UUID
-        the_uuid = jp2box.UUID("be7acfcb-97a9-42e8-9c71-999491e3afac")
-        payload = bytes(self.xmp_data)
-        box_length = len(payload) + 8
-        uuid_box = jp2box.UUIDBox(the_uuid, payload, box_length)
-        with open(self.jp2_filename, mode="ab") as f:
-            uuid_box.write(f)
-
     def get_main_ifd(self):
         """Read all the tags in the main IFD.  We do it this way because of the
         difficulty in using TIFFGetFieldDefaulted when the datatype of a tag
         can differ.
         """
 
-        with open(self.tiff_filename, "rb") as tfp:
+        with self.tiff_path.open(mode="rb") as tfp:
 
             self.read_tiff_header(tfp)
 
@@ -372,18 +275,10 @@ class Tiff2Jp2k(object):
             if 700 in self.tags:
 
                 # XMLPacket
-                self.xmp_data = self.tags[700]["payload"]
+                self.xmp_data = bytes(self.tags[700]["payload"])
 
             else:
                 self.xmp_data = None
-
-            if 34665 in self.tags:
-                # we have an EXIF IFD
-                offset = self.tags[34665]["payload"][0]
-                tfp.seek(offset)
-                exif_ifd = self.read_ifd(tfp)
-
-                self.tags[34665]["payload"] = exif_ifd
 
             if 34675 in self.tags:
                 # ICC profile
@@ -391,232 +286,6 @@ class Tiff2Jp2k(object):
 
             else:
                 self.icc_profile = None
-
-    def read_ifd(self, tfp):
-        """Process either the main IFD or an Exif IFD
-
-        Parameters
-        ----------
-        tfp : file-like
-            FILE pointer for TIFF
-
-        Returns
-        -------
-        dictionary of the TIFF IFD
-        """
-
-        self.found_geotiff_tags = False
-
-        tag_length = 20 if self.version == _BIGTIFF else 12
-
-        # how many tags?
-        if self.version == _BIGTIFF:
-            buffer = tfp.read(8)
-            (num_tags,) = struct.unpack(self.endian + "Q", buffer)
-        else:
-            buffer = tfp.read(2)
-            (num_tags,) = struct.unpack(self.endian + "H", buffer)
-
-        # Ok, so now we have the IFD main body, but following that we have
-        # the tag payloads that cannot fit into 4 bytes.
-
-        # the IFD main body in the TIFF.  As it might be big endian, we
-        # cannot just process it as one big chunk.
-        buffer = tfp.read(num_tags * tag_length)
-
-        if self.version == _BIGTIFF:
-            tag_format_str = self.endian + "HHQQ"
-            tag_payload_offset = 12
-            max_tag_payload_length = 8
-        else:
-            tag_format_str = self.endian + "HHII"
-            tag_payload_offset = 8
-            max_tag_payload_length = 4
-
-        tags = {}
-
-        for idx in range(num_tags):
-
-            self.logger.debug(f"tag #: {idx}")
-
-            tag_data = buffer[idx * tag_length:(idx + 1) * tag_length]
-
-            tag, dtype, nvalues, offset = struct.unpack(
-                tag_format_str, tag_data
-            )  # noqa : E501
-
-            if tag == 34735:
-                self.found_geotiff_tags = True
-
-            payload_length = DATATYPE2FMT[dtype]["nbytes"] * nvalues
-
-            if payload_length > max_tag_payload_length:
-                # the payload does not fit into the tag entry, so use the
-                # offset to seek to that position
-                current_position = tfp.tell()
-                tfp.seek(offset)
-                payload_buffer = tfp.read(payload_length)
-                tfp.seek(current_position)
-
-                # read the payload from the TIFF
-                payload_format = DATATYPE2FMT[dtype]["format"] * nvalues
-                payload = struct.unpack(
-                    self.endian + payload_format,
-                    payload_buffer
-                )
-
-            else:
-                # the payload DOES fit into the TIFF tag entry
-                payload_buffer = tag_data[tag_payload_offset:]
-
-                # read ALL of the payload buffer
-                fmt = DATATYPE2FMT[dtype]["format"]
-                nelts = max_tag_payload_length / DATATYPE2FMT[dtype]["nbytes"]
-                num_items = int(nelts)
-                payload_format = self.endian + fmt * num_items
-                payload = struct.unpack(payload_format, payload_buffer)
-
-                # Extract the actual payload.  Two things going
-                # on here.  First of all, not all of the items may
-                # be used.  For example, if the payload length is
-                # 4 bytes but the format string was HHH, the that
-                # last 16 bit value is not wanted, so we should
-                # discard it.  Second thing is that the signed and
-                # unsigned rational datatypes effectively have twice
-                # the number of values so we need to account for that.
-                if dtype in [5, 10]:
-                    payload = payload[: 2 * nvalues]
-                else:
-                    payload = payload[:nvalues]
-
-            tags[tag] = {"dtype": dtype, "nvalues": nvalues, "payload": payload}
-
-        return tags
-
-    def _write_ifd(self, b, tags):
-        """Write the IFD out to the UUIDBox.  We will always write IFDs
-        for 32-bit TIFFs, i.e. 12 byte tags, meaning just 4 bytes within
-        the tag for the tag data
-        """
-
-        little_tiff_tag_length = 12
-        max_tag_payload_length = 4
-
-        # exclude any unwanted tags
-        if self.exclude_tags is not None:
-            for tag in self.exclude_tags:
-                if tag in tags:
-                    tags.pop(tag)
-
-        num_tags = len(tags)
-        write_buffer = struct.pack("<H", num_tags)
-        b.write(write_buffer)
-
-        # Ok, so now we have the IFD main body, but following that we have
-        # the tag payloads that cannot fit into 4 bytes.
-
-        ifd_start_loc = b.tell()
-        after_ifd_position = ifd_start_loc + num_tags * little_tiff_tag_length
-
-        for idx, tag in enumerate(tags):
-
-            tag_offset = ifd_start_loc + idx * little_tiff_tag_length
-            self.logger.debug(f"tag #: {tag}, writing to {tag_offset}")
-            self.logger.debug(f"tag #: {tag}, after IFD {after_ifd_position}")
-
-            b.seek(tag_offset)
-
-            dtype = tags[tag]["dtype"]
-            nvalues = tags[tag]["nvalues"]
-            payload = tags[tag]["payload"]
-
-            payload_length = DATATYPE2FMT[dtype]["nbytes"] * nvalues
-
-            if payload_length > max_tag_payload_length:
-                # the payload does not fit into the tag entry
-
-                # read the payload from the TIFF
-                payload_format = DATATYPE2FMT[dtype]["format"] * nvalues
-
-                # write the tag entry to the UUID
-                new_offset = after_ifd_position
-                buffer = struct.pack("<HHII", tag, dtype, nvalues, new_offset)
-                b.write(buffer)
-
-                # now write the payload at the outlying position and then come
-                # back to the same position in the file stream
-                cpos = b.tell()
-                b.seek(new_offset)
-
-                format = "<" + DATATYPE2FMT[dtype]["format"] * nvalues
-                buffer = struct.pack(format, *payload)
-                b.write(buffer)
-
-                # keep track of the next position to write out-of-IFD data
-                after_ifd_position = b.tell()
-                b.seek(cpos)
-
-            else:
-
-                # the payload DOES fit into the TIFF tag entry
-                # write the tag metadata
-                buffer = struct.pack("<HHI", tag, dtype, nvalues)
-                b.write(buffer)
-
-                payload_format = DATATYPE2FMT[dtype]["format"] * nvalues
-
-                # we may need to alter the output format
-                if payload_format in ["H", "B", "I"]:
-                    # just write it as an integer
-                    payload_format = "I"
-
-                if tag == 34665:
-                    # special case for an EXIF IFD
-                    buffer = struct.pack("<I", after_ifd_position)
-                    b.write(buffer)
-                    b.seek(after_ifd_position)
-                    after_ifd_position = self._write_ifd(b, payload)
-
-                else:
-                    # write a normal tag
-                    buffer = struct.pack("<" + payload_format, *payload)
-                    b.write(buffer)
-
-        return after_ifd_position
-
-    def read_tiff_header(self, tfp):
-        """Get the endian-ness of the TIFF, seek to the main IFD"""
-
-        buffer = tfp.read(4)
-        data = struct.unpack("BB", buffer[:2])
-
-        # big endian or little endian?
-        if data[0] == 73 and data[1] == 73:
-            # little endian
-            self.endian = "<"
-        elif data[0] == 77 and data[1] == 77:
-            # big endian
-            self.endian = ">"
-        # no other option is possible, libtiff.open would have errored out
-        # else:
-        #     msg = (
-        #         f"The byte order indication in the TIFF header "
-        #         f"({data}) is invalid.  It should be either "
-        #         f"{bytes([73, 73])} or {bytes([77, 77])}."
-        #     )
-        #     raise RuntimeError(msg)
-
-        # version number and offset to the first IFD
-        (version,) = struct.unpack(self.endian + "H", buffer[2:4])
-        self.version = _TIFF if version == 42 else _BIGTIFF
-
-        if self.version == _BIGTIFF:
-            buffer = tfp.read(12)
-            _, _, offset = struct.unpack(self.endian + "HHQ", buffer)
-        else:
-            buffer = tfp.read(4)
-            (offset,) = struct.unpack(self.endian + "I", buffer)
-        tfp.seek(offset)
 
     def get_tag_value(self, tagnum):
         """Return the value associated with the tag.  Some tags are not
@@ -703,7 +372,7 @@ class Tiff2Jp2k(object):
             shape = (self.imageheight, self.imagewidth, self.spp)
 
         self.jp2 = Jp2k(
-            self.jp2_filename,
+            self.jp2_path,
             shape=shape,
             tilesize=self.tilesize,
             **self.jp2_kwargs
