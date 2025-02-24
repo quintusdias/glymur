@@ -33,3 +33,22 @@ class TestSuite(fixtures.TestCommon):
             patch.object(JPEG2JP2, 'run', new=lambda x: None)
         ):
             command_line.jpeg2jp2()
+
+    def test_tilesize(self):
+        """
+        SCENARIO:  tilesize is specified on the command line
+
+        EXPECTED RESULT:  no errors
+        """
+        files = im.files('scikit-image')
+        jpeg = next(filter(lambda x: 'retina' in x.name, files), None)
+
+        new = [
+            '', str(jpeg.locate()), str(self.temp_jp2_filename),
+            '--tilesize', '512', '512'
+        ]
+        with (
+            patch('sys.argv', new=new),
+            patch.object(JPEG2JP2, 'run', new=lambda x: None)
+        ):
+            command_line.jpeg2jp2()
