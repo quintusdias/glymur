@@ -1,5 +1,8 @@
 # standard library imports
+import io
+import logging
 import pathlib
+import struct
 from typing import Tuple
 
 # 3rd party library imports
@@ -7,9 +10,10 @@ import skimage
 
 # local imports
 from .jp2k import Jp2k
+from ._core_converter import _2JP2Converter
 
 
-class JPEG2JP2(object):
+class JPEG2JP2(_2JP2Converter):
     """
     Attributes
     ----------
@@ -19,17 +23,29 @@ class JPEG2JP2(object):
         Path to JPEG file.
     tilesize : tuple
         The dimensions of a tile in the JP2K file.
+    verbosity : int
+        Set the level of logging, i.e. WARNING, INFO, etc.
+    exif_ifd : dict
+        Tags retrieved from APP1 segment, if any.
     """
     def __init__(
         self,
-        jpeg: pathlib.Path,
-        jp2: pathlib.Path,
+        jpeg: pathlib.Path | str,
+        jp2: pathlib.Path | str,
+        create_exif_uuid: bool = True,
         tilesize: Tuple[int, int] | None = None,
+        verbosity: int = logging.CRITICAL,
         **kwargs
     ):
-        self.jpeg = jpeg
-        self.jp2 = jp2
-        self.tilesize = tilesize
+        super().__init__(create_exif_uuid, tilesize, verbosity)
+
+        self.jpeg_path = pathlib.Path(jpeg)
+        self.jp2_path = pathlib.Path(jp2)
+
+        self.tags = None
+
+        # This is never set for JPEG
+        self.exclude_tags = None
 
     def __enter__(self):
         """The JPEG2JP2 object must be used with a context manager."""
@@ -41,13 +57,59 @@ class JPEG2JP2(object):
     def run(self):
 
         self.copy_image()
+        self.copy_metadata()
+
+    def copy_metadata(self):
+        """Transfer any EXIF or XMP metadata from the APPx segments."""
+
+        with self.jpeg_path.open(mode='rb') as f:
+
+            eof = False
+            while not eof:
+
+                marker = f.read(2)
+
+                match marker:
+
+                    case b'\xff\xd8':
+                        # marker-only, SOI
+                        pass
+
+                    case b'\xff\xe1':
+                        # EXIF using APP1
+                        data = f.read(2)
+                        size, = struct.unpack('>H', data)
+                        buffer = f.read(size - 2)
+
+                        if buffer[:6] == b'Exif\x00\x00':
+
+                            # ok it is Exif
+
+                            buffer = buffer[6:]
+
+                            bf = io.BytesIO(buffer)
+
+                            self.read_tiff_header(bf)
+                            self.tags = self.read_ifd(bf)
+                            self.append_exif_uuid_box()
+
+                        else:
+
+                            self.logger.warning('Unrecognized APP1 segment')
+
+                    case b'\xff\xd9':
+                        # marker-only, EOI
+                        eof = True
+
+                    case _:
+                        self.logger.warning('Unrecognized APPx segment')
 
     def copy_image(self):
         """Transfer the image data from the JPEG to the JP2 file."""
-        image = skimage.io.imread(self.jpeg)
+        image = skimage.io.imread(self.jpeg_path)
 
         self.jp2 = Jp2k(
-            self.jp2,
+            self.jp2_path,
             tilesize=self.tilesize,
         )
 
