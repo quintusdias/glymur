@@ -1,5 +1,6 @@
 # standard library imports
 import pathlib
+from typing import Tuple
 
 # 3rd party library imports
 import skimage
@@ -16,16 +17,19 @@ class JPEG2JP2(object):
         Path to JPEG 2000 file to be written.
     jpeg_filename : path
         Path to JPEG file.
+    tilesize : tuple
+        The dimensions of a tile in the JP2K file.
     """
     def __init__(
         self,
         jpeg: pathlib.Path,
         jp2: pathlib.Path,
+        tilesize: Tuple[int, int] | None = None,
         **kwargs
     ):
         self.jpeg = jpeg
         self.jp2 = jp2
-        pass
+        self.tilesize = tilesize
 
     def __enter__(self):
         """The JPEG2JP2 object must be used with a context manager."""
@@ -42,6 +46,9 @@ class JPEG2JP2(object):
         """Transfer the image data from the JPEG to the JP2 file."""
         image = skimage.io.imread(self.jpeg)
 
-        self.jp2 = Jp2k(self.jp2)
+        self.jp2 = Jp2k(
+            self.jp2,
+            tilesize=self.tilesize,
+        )
 
         self.jp2[:] = image
