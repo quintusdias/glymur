@@ -21,6 +21,7 @@ class JPEG2JP2(object):
         self,
         jpeg: pathlib.Path,
         jp2: pathlib.Path,
+        **kwargs
     ):
         self.jpeg = jpeg
         self.jp2 = jp2
