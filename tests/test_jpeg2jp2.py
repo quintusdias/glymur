@@ -15,17 +15,22 @@ from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 class TestSuite(fixtures.TestCommon):
 
+    @classmethod
+    def setUpClass(cls):
+
+        files = im.files('scikit-image')
+
+        jpeg = next(filter(lambda x: 'retina' in x.name, files), None)
+        cls.retina = jpeg.locate()
+
     def test_smoke(self):
         """
         SCENARIO:  Convert JPEG without metadata to JP2
 
         EXPECTED RESULT:  data matches
         """
-        files = im.files('scikit-image')
-        jpeg = next(filter(lambda x: 'retina' in x.name, files), None)
-        jpeg = jpeg.locate()
 
-        with JPEG2JP2(jpeg, self.temp_jp2_filename) as j:
+        with JPEG2JP2(self.retina, self.temp_jp2_filename) as j:
             j.run()
 
         actual = Jp2k(self.temp_jp2_filename)[:]
@@ -39,12 +44,9 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  data matches, tile size matches
         """
-        files = im.files('scikit-image')
-        jpeg = next(filter(lambda x: 'retina' in x.name, files), None)
-        jpeg = jpeg.locate()
 
         kwargs = {'tilesize': (512, 512)}
-        with JPEG2JP2(jpeg, self.temp_jp2_filename, **kwargs) as j:
+        with JPEG2JP2(self.retina, self.temp_jp2_filename, **kwargs) as j:
             j.run()
 
         jp2 = Jp2k(self.temp_jp2_filename)
