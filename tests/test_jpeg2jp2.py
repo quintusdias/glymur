@@ -33,16 +33,26 @@ class TestSuite(fixtures.TestCommon):
         """
         SCENARIO:  Convert JPEG without metadata to JP2
 
-        EXPECTED RESULT:  data matches
+        EXPECTED RESULT:  data matches, it's just one big tile
         """
 
-        with JPEG2JP2(self.retina, self.temp_jp2_filename) as j:
-            j.run()
+        with JPEG2JP2(self.retina, self.temp_jp2_filename) as p:
+            p.run()
 
-        actual = Jp2k(self.temp_jp2_filename)[:]
+        j = Jp2k(self.temp_jp2_filename)
+
+        actual = j[:]
         expected = skimage.data.retina()
 
+        # data matches
         np.testing.assert_array_equal(actual, expected)
+
+        [h, w, _] = actual.shape
+
+        # it's one big tile
+        c = j.get_codestream()
+        self.assertEqual(c.segment[1].xtsiz, w)
+        self.assertEqual(c.segment[1].ytsiz, h)
 
     def test_tilesize(self):
         """
