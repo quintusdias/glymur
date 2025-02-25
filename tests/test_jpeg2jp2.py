@@ -1,6 +1,7 @@
 # standard library imports
 import importlib.metadata as im
 import logging
+import shutil
 import unittest
 import warnings
 
@@ -9,6 +10,7 @@ import numpy as np
 import skimage
 
 # Local imports
+import glymur
 from glymur import Jp2k, JPEG2JP2
 from . import fixtures
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
@@ -151,3 +153,17 @@ class TestSuite(fixtures.TestCommon):
 
         # PSNR should increase for the remaining images.
         self.assertTrue(np.all(np.diff(psnr[1:])) > 0)
+
+    def test_existing_file(self):
+        """
+        Scenario:  provide an existing JP2 file as the output file
+
+        Expected Result:  RuntimeError
+        """
+        shutil.copyfile(glymur.data.nemo(), self.temp_jp2_filename)
+        with (
+            self.assertRaises(FileExistsError),
+            JPEG2JP2(self.retina, self.temp_jp2_filename) as p,
+        ):
+            p.run()
+

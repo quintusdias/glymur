@@ -43,7 +43,12 @@ class JPEG2JP2(_2JP2Converter):
         super().__init__(True, tilesize, verbosity)
 
         self.jpeg_path = pathlib.Path(jpeg)
+
         self.jp2_path = pathlib.Path(jp2)
+        if self.jp2_path.exists():
+            msg = f"{str(self.jp2_path)} already exists, please delete if you wish to overwrite."
+            raise FileExistsError(msg)
+
         self.jp2_kwargs = kwargs
 
         self.tags = None
