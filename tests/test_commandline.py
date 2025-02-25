@@ -102,3 +102,67 @@ class TestSuite(fixtures.TestCommon):
             patch.object(JPEG2JP2, 'run', new=lambda x: None)
         ):
             command_line.jpeg2jp2()
+
+    def test_plt(self):
+        """
+        SCENARIO:  specify the PLT markers via the command line
+
+        EXPECTED RESULT:  no errors
+        """
+        new = [
+            '', self.retina, str(self.temp_jp2_filename),
+            '--plt'
+        ]
+        with (
+            patch('sys.argv', new=new),
+            patch.object(JPEG2JP2, 'run', new=lambda x: None)
+        ):
+            command_line.jpeg2jp2()
+
+    def test_eph(self):
+        """
+        SCENARIO:  specify the EPH markers via the command line
+
+        EXPECTED RESULT:  no errors
+        """
+        new = [
+            '', self.retina, str(self.temp_jp2_filename),
+            '--eph'
+        ]
+        with (
+            patch('sys.argv', new=new),
+            patch.object(JPEG2JP2, 'run', new=lambda x: None)
+        ):
+            command_line.jpeg2jp2()
+
+    def test_sop(self):
+        """
+        SCENARIO:  specify the SOP markers via the command line
+
+        EXPECTED RESULT:  no errors
+        """
+        new = [
+            '', self.retina, str(self.temp_jp2_filename),
+            '--sop'
+        ]
+        with (
+            patch('sys.argv', new=new),
+            patch.object(JPEG2JP2, 'run', new=lambda x: None)
+        ):
+            command_line.jpeg2jp2()
+
+    def test_progression_order(self):
+        """
+        SCENARIO:  specify the procession order via the command line
+
+        EXPECTED RESULT:  no errors
+        """
+        new = [
+            '', self.retina, str(self.temp_jp2_filename),
+            '--prog', 'rlcp'
+        ]
+        with (
+            patch('sys.argv', new=new),
+            patch.object(JPEG2JP2, 'run', new=lambda x: None)
+        ):
+            command_line.jpeg2jp2()
