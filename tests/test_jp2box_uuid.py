@@ -277,16 +277,18 @@ class TestSuite(fixtures.TestCommon):
 
     def test_bad_exif_tag(self):
         """
-        Corrupt the Exif IFD with an invalid tag should produce a warning.
+        Scenario:  Exif IFD has unrecognized tag.
+
+        Expected Result:  UserWarning
         """
         b = self._create_exif_uuid("<")
 
         b.seek(0)
         buffer = b.read()
 
-        # The first tag should begin at byte 32.  Replace the entire IDF
-        # entry with zeros.
-        tag = struct.pack("<HHII", 0, 3, 0, 0)
+        # The first tag should begin at byte 32.  Create a tag with tag number
+        # 32, which is not currently recognized.
+        tag = struct.pack("<HHII", 32, 3, 0, 0)
         buffer = buffer[:40] + tag + buffer[52:]
 
         b = io.BytesIO()
