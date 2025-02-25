@@ -140,16 +140,16 @@ def jpeg2jp2():
         '--num-threads', type=int, default=1, help=help,
     )
 
-    group2 = parser.add_argument_group(
-        'JPEG', 'Arguments specific to conversion of JPEG imagery.'
-    )
-
     help = (
         'Dimensions of JP2K tile.  If not provided, the JPEG2000 image will '
         'be written as a single tile.'
     )
-    group2.add_argument(
+    group1.add_argument(
         '--tilesize', nargs=2, type=int, help=help, metavar=('NROWS', 'NCOLS')
+    )
+
+    group2 = parser.add_argument_group(
+        'JPEG', 'Arguments specific to conversion of JPEG imagery.'
     )
 
     group2.add_argument('jpeg', help='Input JPEG file.')
