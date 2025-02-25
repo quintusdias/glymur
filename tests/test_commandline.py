@@ -166,3 +166,55 @@ class TestSuite(fixtures.TestCommon):
             patch.object(JPEG2JP2, 'run', new=lambda x: None)
         ):
             command_line.jpeg2jp2()
+
+    def test_number_of_resolutions(self):
+        """
+        SCENARIO:  specify resolution
+
+        EXPECTED RESULT:  no errors
+        """
+        new = [
+            '', self.retina, str(self.temp_jp2_filename),
+            '--numres', '6'
+        ]
+        with (
+            patch('sys.argv', new=new),
+            patch.object(JPEG2JP2, 'run', new=lambda x: None)
+        ):
+            command_line.jpeg2jp2()
+
+    def test_layers(self):
+        """
+        SCENARIO:  specify compression ratios
+
+        EXPECTED RESULT:  no errors
+        """
+        new = [
+            '', self.retina, str(self.temp_jp2_filename),
+            '--cratio', '200', '50', '10'
+        ]
+        with (
+            patch('sys.argv', new=new),
+            patch.object(JPEG2JP2, 'run', new=lambda x: None)
+        ):
+            command_line.jpeg2jp2()
+
+    def test_resolution_boxes(self):
+        """
+        SCENARIO:  specify capture and display resolution
+
+        EXPECTED RESULT:  no errors
+        """
+        vresc, hresc = 0.1, 0.2
+        vresd, hresd = 0.3, 0.4
+
+        new = [
+            '', self.retina, str(self.temp_jp2_filename),
+            '--capture-resolution', str(vresc), str(hresc),
+            '--display-resolution', str(vresd), str(hresd),
+        ]
+        with (
+            patch('sys.argv', new=new),
+            patch.object(JPEG2JP2, 'run', new=lambda x: None)
+        ):
+            command_line.jpeg2jp2()
