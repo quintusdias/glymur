@@ -75,11 +75,27 @@ class TestSuite(fixtures.TestCommon):
         """
         SCENARIO:  specify psnr via the command line
 
-        EXPECTED RESULT:  data matches
+        EXPECTED RESULT:  no errors
         """
         new = [
             '', self.retina, str(self.temp_jp2_filename),
             '--psnr', '30', '35', '40', '0'
+        ]
+        with (
+            patch('sys.argv', new=new),
+            patch.object(JPEG2JP2, 'run', new=lambda x: None)
+        ):
+            command_line.jpeg2jp2()
+
+    def test_irreversible(self):
+        """
+        SCENARIO:  specify the irreversible transform via the command line
+
+        EXPECTED RESULT:  no errors
+        """
+        new = [
+            '', self.retina, str(self.temp_jp2_filename),
+            '--irreversible'
         ]
         with (
             patch('sys.argv', new=new),
