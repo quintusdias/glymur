@@ -10,7 +10,7 @@ from unittest.mock import patch
 # 3rd party library imports
 
 # Local imports
-from glymur import JPEG2JP2, command_line
+from glymur import JPEG2JP2, command_line, reset_option
 from . import fixtures
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
@@ -182,6 +182,24 @@ class TestSuite(fixtures.TestCommon):
             patch.object(JPEG2JP2, 'run', new=lambda x: None)
         ):
             command_line.jpeg2jp2()
+
+    def test_num_threads(self):
+        """
+        SCENARIO:  specify number of threads to use
+
+        EXPECTED RESULT:  no errors
+        """
+        new = [
+            '', self.retina, str(self.temp_jp2_filename),
+            '--num-threads', '4'
+        ]
+        with (
+            patch('sys.argv', new=new),
+            patch.object(JPEG2JP2, 'run', new=lambda x: None)
+        ):
+            command_line.jpeg2jp2()
+
+        reset_option('all')
 
     def test_layers(self):
         """

@@ -10,6 +10,7 @@ import skimage
 
 # local imports
 from .jp2k import Jp2k
+from .options import set_option
 from ._core_converter import _2JP2Converter
 
 
@@ -34,6 +35,7 @@ class JPEG2JP2(_2JP2Converter):
         self,
         jpeg: pathlib.Path | str,
         jp2: pathlib.Path | str,
+        num_threads: int = 1,
         tilesize: Tuple[int, int] | None = None,
         verbosity: int = logging.CRITICAL,
         **kwargs
@@ -48,6 +50,9 @@ class JPEG2JP2(_2JP2Converter):
 
         # This is never set for JPEG
         self.exclude_tags = None
+
+        if num_threads > 1:
+            set_option("lib.num_threads", num_threads)
 
     def __enter__(self):
         """The JPEG2JP2 object must be used with a context manager."""
