@@ -27,7 +27,7 @@ class JPEG2JP2(_2JP2Converter):
         The dimensions of a tile in the JP2K file.
     verbosity : int
         Set the level of logging, i.e. WARNING, INFO, etc.
-    exif_ifd : dict
+    tags : dict
         Tags retrieved from APP1 segment, if any.
     """
     def __init__(
@@ -42,6 +42,7 @@ class JPEG2JP2(_2JP2Converter):
 
         self.jpeg_path = pathlib.Path(jpeg)
         self.jp2_path = pathlib.Path(jp2)
+        self.jp2_kwargs = kwargs
 
         self.tags = None
 
@@ -117,6 +118,7 @@ class JPEG2JP2(_2JP2Converter):
         self.jp2 = Jp2k(
             self.jp2_path,
             tilesize=self.tilesize,
+            **self.jp2_kwargs
         )
 
         self.jp2[:] = image

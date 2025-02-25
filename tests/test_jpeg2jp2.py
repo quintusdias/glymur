@@ -2,6 +2,7 @@
 import importlib.metadata as im
 import logging
 import unittest
+import warnings
 
 # 3rd party library imports
 import numpy as np
@@ -112,3 +113,41 @@ class TestSuite(fixtures.TestCommon):
             p.run()
 
             self.assertEqual(len(cm.output), 1)
+
+    def test_psnr(self):
+        """
+        SCENARIO:  Convert JPEG file to JP2 with the psnr keyword argument
+
+        EXPECTED RESULT:  data matches
+        """
+        with JPEG2JP2(
+            self.retina, self.temp_jp2_filename, psnr=(30, 35, 40, 0)
+        ) as p:
+            p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        d = {}
+        for layer in range(4):
+            j.layer = layer
+            d[layer] = j[:]
+
+        truth = skimage.io.imread(self.retina)
+
+        with warnings.catch_warnings():
+            # MSE is zero for that first image, resulting in a divide-by-zero
+            # warning
+            warnings.simplefilter('ignore')
+            psnr = [
+                skimage.metrics.peak_signal_noise_ratio(truth, d[j])
+                for j in range(4)
+            ]
+
+        # That first image should be lossless.
+        self.assertTrue(np.isinf(psnr[0]))
+
+        # None of the subsequent images should have inf PSNR.
+        self.assertTrue(not np.any(np.isinf(psnr[1:])))
+
+        # PSNR should increase for the remaining images.
+        self.assertTrue(np.all(np.diff(psnr[1:])) > 0)
