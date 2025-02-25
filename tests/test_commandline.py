@@ -70,3 +70,19 @@ class TestSuite(fixtures.TestCommon):
             patch.object(JPEG2JP2, 'run', new=lambda x: None)
         ):
             command_line.jpeg2jp2()
+
+    def test_psnr(self):
+        """
+        SCENARIO:  specify psnr via the command line
+
+        EXPECTED RESULT:  data matches
+        """
+        new = [
+            '', self.retina, str(self.temp_jp2_filename),
+            '--psnr', '30', '35', '40', '0'
+        ]
+        with (
+            patch('sys.argv', new=new),
+            patch.object(JPEG2JP2, 'run', new=lambda x: None)
+        ):
+            command_line.jpeg2jp2()
