@@ -144,18 +144,6 @@ def jpeg2jp2():
         'JPEG', 'Arguments specific to conversion of JPEG imagery.'
     )
 
-    help = 'Create Exif UUID box from JPEG metadata.'
-    group2.add_argument(
-        '--create-exif-uuid', help=help, action='store_true', default=True
-    )
-
-    help = (
-        'Extract XML data from an APP1 segment and store in XMP UUID box. '
-    )
-    group2.add_argument(
-        '--create-xmp-uuid', help=help, action='store_true', default=True
-    )
-
     help = (
         'Dimensions of JP2K tile.  If not provided, the JPEG2000 image will '
         'be written as a single tile.'
@@ -191,8 +179,6 @@ def jpeg2jp2():
         'cbsize': args.codeblocksize,
         'cratios': args.cratio,
         'capture_resolution': args.capture_resolution,
-        'create_exif_uuid': args.create_exif_uuid,
-        'create_xmp_uuid': args.create_xmp_uuid,
         'display_resolution': args.display_resolution,
         'eph': args.eph,
         'irreversible': args.irreversible,

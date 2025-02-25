@@ -618,7 +618,7 @@ class TestSuite(fixtures.TestCommon):
         """
         SCENARIO:  Convert TIFF file to JP2, use INFO log level.
 
-        EXPECTED RESULT:  data matches
+        EXPECTED RESULT:  data matches, logs at INFO level verified
         """
         with Tiff2Jp2k(
             self.astronaut_ycbcr_jpeg_tiled, self.temp_jp2_filename,

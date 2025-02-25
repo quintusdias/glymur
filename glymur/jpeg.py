@@ -17,6 +17,8 @@ class JPEG2JP2(_2JP2Converter):
     """
     Attributes
     ----------
+    create_exif_uuid : bool
+        Create a UUIDBox for the Exif metadata.  Always True for JPEG.
     jp2_filename : path
         Path to JPEG 2000 file to be written.
     jpeg_filename : path
@@ -32,12 +34,11 @@ class JPEG2JP2(_2JP2Converter):
         self,
         jpeg: pathlib.Path | str,
         jp2: pathlib.Path | str,
-        create_exif_uuid: bool = True,
         tilesize: Tuple[int, int] | None = None,
         verbosity: int = logging.CRITICAL,
         **kwargs
     ):
-        super().__init__(create_exif_uuid, tilesize, verbosity)
+        super().__init__(True, tilesize, verbosity)
 
         self.jpeg_path = pathlib.Path(jpeg)
         self.jp2_path = pathlib.Path(jp2)
@@ -75,6 +76,13 @@ class JPEG2JP2(_2JP2Converter):
                         # marker-only, SOI
                         pass
 
+                    case b'\xff\xe0':
+                        # APP0 JFIF, just skip over it
+                        self.logger.warning('Ignoring APP0 JFIF segment...')
+                        data = f.read(2)
+                        size, = struct.unpack('>H', data)
+                        buffer = f.read(size - 2)
+
                     case b'\xff\xe1':
                         # EXIF using APP1
                         data = f.read(2)
@@ -97,12 +105,10 @@ class JPEG2JP2(_2JP2Converter):
 
                             self.logger.warning('Unrecognized APP1 segment')
 
-                    case b'\xff\xd9':
-                        # marker-only, EOI
-                        eof = True
-
                     case _:
-                        self.logger.warning('Unrecognized APPx segment')
+                        # We don't care about anything else.  No need to scan
+                        # the file any further, we're done.
+                        eof = True
 
     def copy_image(self):
         """Transfer the image data from the JPEG to the JP2 file."""

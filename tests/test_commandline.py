@@ -18,16 +18,37 @@ from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 class TestSuite(fixtures.TestCommon):
 
+    @classmethod
+    def setUpClass(cls):
+
+        files = im.files('scikit-image')
+
+        jpeg = next(filter(lambda x: 'retina' in x.name, files), None)
+        cls.retina = str(jpeg.locate())
+
     def test_smoke(self):
         """
         SCENARIO:  no special options
 
         EXPECTED RESULT:  no errors
         """
-        files = im.files('scikit-image')
-        jpeg = next(filter(lambda x: 'retina' in x.name, files), None)
+        new = ['', self.retina, str(self.temp_jp2_filename)]
+        with (
+            patch('sys.argv', new=new),
+            patch.object(JPEG2JP2, 'run', new=lambda x: None)
+        ):
+            command_line.jpeg2jp2()
 
-        new = ['', str(jpeg.locate()), str(self.temp_jp2_filename)]
+    def test_verbosity(self):
+        """
+        SCENARIO:  verbosity is specified on the command line
+
+        EXPECTED RESULT:  no errors
+        """
+        new = [
+            '', self.retina, str(self.temp_jp2_filename),
+            '--verbosity', 'info'
+        ]
         with (
             patch('sys.argv', new=new),
             patch.object(JPEG2JP2, 'run', new=lambda x: None)
@@ -40,11 +61,8 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  no errors
         """
-        files = im.files('scikit-image')
-        jpeg = next(filter(lambda x: 'retina' in x.name, files), None)
-
         new = [
-            '', str(jpeg.locate()), str(self.temp_jp2_filename),
+            '', self.retina, str(self.temp_jp2_filename),
             '--tilesize', '512', '512'
         ]
         with (

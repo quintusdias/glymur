@@ -1,5 +1,6 @@
 # standard library imports
 import importlib.metadata as im
+import logging
 import unittest
 
 # 3rd party library imports
@@ -95,3 +96,19 @@ class TestSuite(fixtures.TestCommon):
 
         box = next(filter(lambda x: x.box_id == 'uuid', j.box), None)
         self.assertIsNotNone(box)
+
+    def test_verbosity(self):
+        """
+        SCENARIO:  Convert JPEG to JP2, use WARN log level.
+
+        EXPECTED RESULT:  data matches, one message detected at WARN level
+        """
+        with (
+            JPEG2JP2(
+                self.retina, self.temp_jp2_filename, verbosity=logging.INFO
+            ) as p,
+            self.assertLogs(logger='tiff2jp2', level=logging.WARN) as cm
+        ):
+            p.run()
+
+            self.assertEqual(len(cm.output), 1)
