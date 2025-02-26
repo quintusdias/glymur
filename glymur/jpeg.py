@@ -6,7 +6,7 @@ import struct
 from typing import Tuple
 
 # 3rd party library imports
-import skimage
+import imageio.v3 as iio
 
 # local imports
 from .jp2k import Jp2k
@@ -154,7 +154,7 @@ class JPEG2JP2(_2JP2Converter):
 
     def copy_image(self):
         """Transfer the image data from the JPEG to the JP2 file."""
-        image = skimage.io.imread(self.jpeg_path)
+        image = iio.imread(self.jpeg_path)
 
         self.jp2 = Jp2k(
             self.jp2_path,

@@ -4,6 +4,7 @@ channels:
 dependencies:
     - python=3.13.*
     - gdal>=3.10.0,<3.11.0
+    - imageio
     - libtiff>=4.7.0,<4.8.0
     - lxml>=5.3.0
     - numpy>=2.1
