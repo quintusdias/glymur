@@ -97,7 +97,9 @@ class Tiff2Jp2k(_2JP2Converter):
         verbosity : int
             Set the level of logging, i.e. WARNING, INFO, etc.
         """
-        super().__init__(create_exif_uuid, tilesize, verbosity)
+        super().__init__(
+            create_exif_uuid, create_xmp_uuid, tilesize, verbosity
+        )
 
         self.tiff_path = pathlib.Path(tiff_path)
         if not self.tiff_path.exists():
@@ -278,25 +280,6 @@ class Tiff2Jp2k(_2JP2Converter):
         self.append_exif_uuid_box()
         self.append_xmp_uuid_box()
 
-    def append_xmp_uuid_box(self):
-        """Append an XMP UUID box onto the end of the JPEG 2000 file if there
-        was an XMP tag in the TIFF IFD.
-        """
-
-        if self.xmp_data is None:
-            return
-
-        if not self.create_xmp_uuid:
-            return
-
-        # create the XMP UUID
-        the_uuid = jp2box.UUID("be7acfcb-97a9-42e8-9c71-999491e3afac")
-        payload = bytes(self.xmp_data)
-        box_length = len(payload) + 8
-        uuid_box = jp2box.UUIDBox(the_uuid, payload, box_length)
-        with self.jp2_path.open(mode="ab") as f:
-            uuid_box.write(f)
-
     def get_main_ifd(self):
         """Read all the tags in the main IFD.  We do it this way because of the
         difficulty in using TIFFGetFieldDefaulted when the datatype of a tag
@@ -320,7 +303,7 @@ class Tiff2Jp2k(_2JP2Converter):
             if 700 in self.tags:
 
                 # XMLPacket
-                self.xmp_data = self.tags[700]["payload"]
+                self.xmp_data = bytes(self.tags[700]["payload"])
 
             else:
                 self.xmp_data = None

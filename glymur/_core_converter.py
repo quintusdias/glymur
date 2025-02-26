@@ -34,11 +34,13 @@ class _2JP2Converter(object):
     def __init__(
         self,
         create_exif_uuid: bool,
+        create_xmp_uuid: bool,
         tilesize: Tuple[int, int] | None,
         verbosity: int
     ):
 
         self.create_exif_uuid = create_exif_uuid
+        self.create_xmp_uuid = create_xmp_uuid
         self.tilesize = tilesize
 
         self.setup_logging(verbosity)
@@ -329,3 +331,21 @@ class _2JP2Converter(object):
                     b.write(buffer)
 
         return after_ifd_position
+
+    def append_xmp_uuid_box(self):
+        """Append an XMP UUID box onto the end of the JPEG 2000 file if there
+        was an XMP tag in the TIFF IFD.
+        """
+
+        if self.xmp_data is None:
+            return
+
+        if not self.create_xmp_uuid:
+            return
+
+        # create the XMP UUID
+        the_uuid = jp2box.UUID("be7acfcb-97a9-42e8-9c71-999491e3afac")
+        box_length = len(self.xmp_data) + 8
+        uuid_box = jp2box.UUIDBox(the_uuid, self.xmp_data, box_length)
+        with self.jp2_path.open(mode="ab") as f:
+            uuid_box.write(f)

@@ -3,6 +3,7 @@ import importlib.metadata as im
 import logging
 import shutil
 import unittest
+import uuid
 import warnings
 
 # 3rd party library imports
@@ -80,11 +81,12 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 512)
         self.assertEqual(c.segment[1].ytsiz, 512)
 
-    def test_exif(self):
+    def test_exif_xmp(self):
         """
-        SCENARIO:  Convert JPEG with EXIF metadata to JP2
+        SCENARIO:  Convert JPEG with EXIF and XMP metadata to JP2
 
-        EXPECTED RESULT:  data matches, there is an EXIF UUID box
+        EXPECTED RESULT:  data matches, there is an EXIF UUID box, there is an
+        XMP UUID box
         """
 
         with JPEG2JP2(self.hubble, self.temp_jp2_filename) as p:
@@ -97,7 +99,24 @@ class TestSuite(fixtures.TestCommon):
 
         np.testing.assert_array_equal(actual, expected)
 
-        box = next(filter(lambda x: x.box_id == 'uuid', j.box), None)
+        def exif_predicate(x):
+            exif_uuid = uuid.UUID(bytes=b"JpgTiffExif->JP2")
+            if x.box_id == 'uuid' and x.uuid == exif_uuid:
+                return True
+            else:
+                return False
+
+        box = next(filter(exif_predicate, j.box), None)
+        self.assertIsNotNone(box)
+
+        def xmp_predicate(x):
+            xmp_uuid = uuid.UUID("be7acfcb-97a9-42e8-9c71-999491e3afac")
+            if x.box_id == 'uuid' and x.uuid == xmp_uuid:
+                return True
+            else:
+                return False
+
+        box = next(filter(xmp_predicate, j.box), None)
         self.assertIsNotNone(box)
 
     def test_verbosity(self):
@@ -166,4 +185,3 @@ class TestSuite(fixtures.TestCommon):
             JPEG2JP2(self.retina, self.temp_jp2_filename) as p,
         ):
             p.run()
-

@@ -40,13 +40,16 @@ class JPEG2JP2(_2JP2Converter):
         verbosity: int = logging.CRITICAL,
         **kwargs
     ):
-        super().__init__(True, tilesize, verbosity)
+        super().__init__(True, True, tilesize, verbosity)
 
         self.jpeg_path = pathlib.Path(jpeg)
 
         self.jp2_path = pathlib.Path(jp2)
         if self.jp2_path.exists():
-            msg = f"{str(self.jp2_path)} already exists, please delete if you wish to overwrite."
+            msg = (
+                f'{str(self.jp2_path)} already exists, ',
+                'please delete if you wish to overwrite.'
+            )
             raise FileExistsError(msg)
 
         self.jp2_kwargs = kwargs
@@ -112,9 +115,37 @@ class JPEG2JP2(_2JP2Converter):
                             self.tags = self.read_ifd(bf)
                             self.append_exif_uuid_box()
 
+                        elif buffer[:28] == b'http://ns.adobe.com/xap/1.0/':
+
+                            # XMP APP segment
+                            self.xmp_data = buffer[29:]
+                            self.append_xmp_uuid_box()
+
                         else:
 
-                            self.logger.warning('Unrecognized APP1 segment')
+                            msg = (
+                                f'Unrecognized APP1 segment at offset '
+                                f'{f.tell() - 2 - 2 - size}'
+                            )
+                            self.logger.warning(msg)
+
+                    case b'\xff\xe2':
+                        # ICC profile
+                        data = f.read(2)
+                        size, = struct.unpack('>H', data)
+                        buffer = f.read(size - 2)
+
+                    case b'\xff\xec':
+                        # ducky?  ignore
+                        data = f.read(2)
+                        size, = struct.unpack('>H', data)
+                        buffer = f.read(size - 2)
+
+                    case b'\xff\xee':
+                        # Adobe?
+                        data = f.read(2)
+                        size, = struct.unpack('>H', data)
+                        buffer = f.read(size - 2)
 
                     case _:
                         # We don't care about anything else.  No need to scan
