@@ -101,9 +101,9 @@ class _2JP2Converter(object):
 
             payload_length = DATATYPE2FMT[dtype]["nbytes"] * nvalues
 
-            if tag == 34665:
+            if tag in (34665, 34853):
 
-                # found exif ifd
+                # found exif or gps ifd
                 # save our location, go get that IFD, and come on back
                 orig_pos = tfp.tell()
                 tfp.seek(offset)
@@ -277,6 +277,7 @@ class _2JP2Converter(object):
             payload_length = DATATYPE2FMT[dtype]["nbytes"] * nvalues
 
             if payload_length > max_tag_payload_length:
+
                 # the payload does not fit into the tag entry
 
                 # read the payload from the TIFF
@@ -314,15 +315,16 @@ class _2JP2Converter(object):
                     # just write it as an integer
                     payload_format = "I"
 
-                if tag == 34665:
-                    # special case for an EXIF IFD
+                if tag in (34665, 34853):
+
+                    # special case for an EXIF or GPS IFD
                     buffer = struct.pack("<I", after_ifd_position)
                     b.write(buffer)
                     b.seek(after_ifd_position)
                     after_ifd_position = self.write_ifd(b, payload)
 
                 else:
-                    # write a normal tag
+
                     buffer = struct.pack("<" + payload_format, *payload)
                     b.write(buffer)
 

@@ -2092,6 +2092,7 @@ class _Ifd(object):
 
     def parse_tag(self, tag, dtype, count, offset_buf):
         """Interpret an Exif image tag data payload."""
+
         try:
             fmt = DATATYPE2FMT[dtype]["format"] * count
             payload_size = DATATYPE2FMT[dtype]["nbytes"] * count
@@ -2141,8 +2142,8 @@ class _Ifd(object):
                 warnings.warn(msg, UserWarning)
                 tag_name = tag
 
-            if tag_name == "ExifTag":
-                # There's an Exif IFD at the offset specified here.
+            if tag_name in ("ExifTag", 'GPSIFD'):
+                # There's an IFD at the offset specified here.
                 ifd = _Ifd(self.endian, self.read_buffer, value)
                 self.processed_ifd[tag_name] = ifd.processed_ifd
             else:
