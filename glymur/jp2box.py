@@ -33,6 +33,7 @@ except (ImportError, ModuleNotFoundError):  # pragma: no cover
     _HAVE_GDAL = False
 else:
     gdal.UseExceptions()
+import lxml.objectify
 import lxml.etree as ET
 import numpy as np
 
@@ -3651,9 +3652,10 @@ class UUIDBox(Jp2kBox):
             pass
 
         elif self.uuid == _XMP_UUID:
-            b = ET.tostring(self.data, encoding="utf-8", pretty_print=True)
-            s = b.decode("utf-8").strip()
-            text = f"UUID Data:\n{s}"
+            s = self.raw_data.decode('utf-8').rstrip('\0')
+            e = lxml.objectify.fromstring(s)
+            xml = ET.tostring(e, pretty_print=True).decode('utf-8').strip()
+            text = f"UUID Data:\n{xml}"
             lst.append(text)
         elif self.uuid == _EXIF_UUID:
             s = io.StringIO()
