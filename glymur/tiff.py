@@ -106,6 +106,13 @@ class Tiff2Jp2k(_2JP2Converter):
             raise FileNotFoundError(f"{tiff_path} does not exist")
 
         self.jp2_path = pathlib.Path(jp2_path)
+        if self.jp2_path.exists():
+            msg = (
+                f'{str(self.jp2_path)} already exists, ',
+                'please delete if you wish to overwrite.'
+            )
+            raise FileExistsError(msg)
+
         self.create_exif_uuid = create_exif_uuid
         self.create_xmp_uuid = create_xmp_uuid
         self.include_icc_profile = include_icc_profile

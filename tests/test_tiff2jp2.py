@@ -1964,3 +1964,17 @@ class TestSuite(fixtures.TestCommon):
         actual = jp2[:]
         expected = self._imread(tfile)
         np.testing.assert_array_equal(actual, expected)
+
+    def test_existing_file(self):
+        """
+        Scenario:  provide an existing JP2 file as the output file
+
+        Expected Result:  RuntimeError
+        """
+        tfile = ir.files('tests.data.tiff').joinpath('issue678.tif')
+        shutil.copyfile(glymur.data.nemo(), self.temp_jp2_filename)
+        with (
+            self.assertRaises(FileExistsError),
+            Tiff2Jp2k(tfile, self.temp_jp2_filename) as p,
+        ):
+            p.run()
