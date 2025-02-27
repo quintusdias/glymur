@@ -251,11 +251,13 @@ We suppress a harmless warning from scikit-image below. ::
     >>> print(psnr)                # doctest: +SKIP
     [inf, 29.90221522329731, 39.71824592284344, 48.381047443043634]
 
-... convert TIFF images to JPEG 2000?
--------------------------------------
 
-Many TIFFs can be converted to tiled JPEG 2000 files using glymur.
-A command line utility **tiff2jp2** is provided for this task.
+... convert JPEG or TIFF images to JPEG 2000?
+---------------------------------------------
+
+Many JPEGs and TIFFs can be converted to tiled JPEG 2000 files using glymur.
+Command line utilities **jpeg2jp2** and **tiff2jp2** are provided for this task.
+TIFF conversion is described here, but JPEG conversion is similar.
 
 In most cases, you should provide your own choice of a JPEG 2000 tile
 size.  Not providing a tile size will cause glymur to try to covert
@@ -270,7 +272,7 @@ RowsPerStrip tag (like the seemingly ubiquitous value of 3, which was
 reasonable only in prehistoric times) ... well that's going to be very
 inefficient no matter how you tile the JPEG 2000 file.
 
-The TIFF metadata is stored in a UUID box appended to the end of the
+The TIFF metadata is stored in UUID boxes appended to the end of the
 JPEG 2000 file.
 
 ... create an image with an alpha layer?
