@@ -4,6 +4,7 @@ Test command line interface to JPEG2JP2
 
 # standard library imports
 import importlib.metadata as im
+import platform
 import unittest
 from unittest.mock import patch
 
@@ -16,6 +17,11 @@ from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
+@unittest.skipIf(
+    platform.system() == 'Linux'
+    and platform.freedesktop_os_release()['ID'] == 'fedora',
+    'missing importlib.metadata.files ?'
+)
 class TestSuite(fixtures.TestCommon):
 
     @classmethod

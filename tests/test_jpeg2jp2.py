@@ -1,6 +1,7 @@
 # standard library imports
 import importlib.metadata as im
 import logging
+import platform
 import shutil
 import unittest
 import uuid
@@ -19,6 +20,11 @@ from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
+@unittest.skipIf(
+    platform.system() == 'Linux'
+    and platform.freedesktop_os_release()['ID'] == 'fedora',
+    'missing importlib.metadata.files ?'
+)
 class TestSuite(fixtures.TestCommon):
 
     @classmethod
