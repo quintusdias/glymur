@@ -152,7 +152,8 @@ class JPEG2JP2(_2JP2Converter):
 
         else:
 
-            msg = f'Unrecognized APP1 segment at offset {f.tell() - 2 - 2 - size}'  # noqa : E501
+            offset = f.tell() - 2 - 2 - size
+            msg = f'Unrecognized APP1 segment at offset {offset}'
             self.logger.warning(msg)
 
     def process_app2_segment(self, buffer):
