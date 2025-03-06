@@ -12,7 +12,7 @@ import numpy as np
 
 # local imports
 from glymur import Jp2k, set_option
-from glymur.core import SRGB, RESTRICTED_ICC_PROFILE
+from glymur.core import SRGB
 from ._core_converter import _2JP2Converter
 from .lib import tiff as libtiff
 from . import jp2box
@@ -98,7 +98,8 @@ class Tiff2Jp2k(_2JP2Converter):
             Set the level of logging, i.e. WARNING, INFO, etc.
         """
         super().__init__(
-            create_exif_uuid, create_xmp_uuid, tilesize, verbosity
+            create_exif_uuid, create_xmp_uuid, include_icc_profile, tilesize,
+            verbosity
         )
 
         self.tiff_path = pathlib.Path(tiff_path)
@@ -115,7 +116,6 @@ class Tiff2Jp2k(_2JP2Converter):
 
         self.create_exif_uuid = create_exif_uuid
         self.create_xmp_uuid = create_xmp_uuid
-        self.include_icc_profile = include_icc_profile
 
         if exclude_tags is None:
             exclude_tags = []
@@ -126,9 +126,6 @@ class Tiff2Jp2k(_2JP2Converter):
 
         # Assume that there is no ColorMap tag until we know otherwise.
         self._colormap = None
-
-        # Assume that there is no ICC profile tag until we know otherwise.
-        self.icc_profile = None
 
         # Assume no XML_PACKET tag until we know otherwise.
         self.xmp_data = None
@@ -247,38 +244,6 @@ class Tiff2Jp2k(_2JP2Converter):
         self.jp2.wrap(temp_filename, boxes=self.jp2.box)
         shutil.move(temp_filename, self.jp2_path)
         self.jp2.parse()
-
-    def rewrap_for_icc_profile(self):
-        """Consume a TIFF ICC profile, if one is there."""
-        if self.icc_profile is None and self.include_icc_profile:
-            self.logger.warning("No ICC profile was found.")
-
-        if self.icc_profile is None or not self.include_icc_profile:
-            return
-
-        self.logger.info(
-            "Consuming an ICC profile into JP2 color specification box."
-        )
-
-        colr = jp2box.ColourSpecificationBox(
-            method=RESTRICTED_ICC_PROFILE,
-            precedence=0,
-            icc_profile=self.icc_profile
-        )
-
-        # construct the new set of JP2 boxes, insert the color specification
-        # box with the ICC profile
-        jp2 = Jp2k(self.jp2_path)
-        boxes = jp2.box
-        boxes[2].box = [boxes[2].box[0], colr]
-
-        # re-wrap the codestream, involves a file copy
-        tmp_filename = str(self.jp2_path) + ".tmp"
-
-        with open(tmp_filename, mode="wb") as tfile:
-            jp2.wrap(tfile.name, boxes=boxes)
-
-        shutil.move(tmp_filename, self.jp2_path)
 
     def append_extra_jp2_boxes(self):
         """Copy over the TIFF IFD.  Place it in a UUID box.  Append to the JPEG

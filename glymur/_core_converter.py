@@ -2,6 +2,7 @@
 # standard library imports
 import io
 import logging
+import shutil
 import struct
 from typing import Tuple
 from uuid import UUID
@@ -9,7 +10,8 @@ from uuid import UUID
 # local imports
 from . import jp2box
 from .lib.tiff import DATATYPE2FMT
-
+from .jp2k import Jp2k
+from glymur.core import RESTRICTED_ICC_PROFILE
 
 # Mnemonics for the two TIFF format version numbers.
 TIFF = 42
@@ -35,13 +37,18 @@ class _2JP2Converter(object):
         self,
         create_exif_uuid: bool,
         create_xmp_uuid: bool,
+        include_icc_profile: bool,
         tilesize: Tuple[int, int] | None,
         verbosity: int
     ):
 
         self.create_exif_uuid = create_exif_uuid
         self.create_xmp_uuid = create_xmp_uuid
+        self.include_icc_profile = include_icc_profile
         self.tilesize = tilesize
+
+        # Assume that there is no ICC profile tag until we know otherwise.
+        self.icc_profile = None
 
         self.setup_logging(verbosity)
 
@@ -349,3 +356,35 @@ class _2JP2Converter(object):
         uuid_box = jp2box.UUIDBox(the_uuid, self.xmp_data, box_length)
         with self.jp2_path.open(mode="ab") as f:
             uuid_box.write(f)
+
+    def rewrap_for_icc_profile(self):
+        """Consume an ICC profile, if one is there."""
+        if self.icc_profile is None and self.include_icc_profile:
+            self.logger.warning("No ICC profile was found.")
+
+        if self.icc_profile is None or not self.include_icc_profile:
+            return
+
+        self.logger.info(
+            "Consuming an ICC profile into JP2 color specification box."
+        )
+
+        colr = jp2box.ColourSpecificationBox(
+            method=RESTRICTED_ICC_PROFILE,
+            precedence=0,
+            icc_profile=self.icc_profile
+        )
+
+        # construct the new set of JP2 boxes, insert the color specification
+        # box with the ICC profile
+        jp2 = Jp2k(self.jp2_path)
+        boxes = jp2.box
+        boxes[2].box = [boxes[2].box[0], colr]
+
+        # re-wrap the codestream, involves a file copy
+        tmp_filename = str(self.jp2_path) + ".tmp"
+
+        with open(tmp_filename, mode="wb") as tfile:
+            jp2.wrap(tfile.name, boxes=boxes)
+
+        shutil.move(tmp_filename, self.jp2_path)

@@ -99,6 +99,34 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(colr.colorspace, SRGB)
         self.assertIsNone(colr.icc_profile)
 
+    def test_embed_icc_profile(self):
+        """
+        SCENARIO:  Convert JPEG with an ICC profile, specifically setting the
+        include_icc_profile keyword.
+
+        EXPECTED RESULT:  The JP2 has ICC profile information.
+        """
+
+        with (
+            JPEG2JP2(
+                self.rocket,
+                self.temp_jp2_filename,
+                include_icc_profile=True
+            ) as p,
+        ):
+            p.run()
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        actual = j[:]
+        expected = skimage.data.rocket()
+
+        # data matches
+        np.testing.assert_array_equal(actual, expected)
+
+        # The colour specification box has the profile
+        self.assertIsNotNone(j.box[2].box[1].icc_profile)
+
     def test_tilesize(self):
         """
         SCENARIO:  Convert JPEG without metadata to JP2, specify tile size

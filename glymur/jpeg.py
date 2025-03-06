@@ -35,12 +35,13 @@ class JPEG2JP2(_2JP2Converter):
         self,
         jpeg: pathlib.Path | str,
         jp2: pathlib.Path | str,
+        include_icc_profile: bool = False,
         num_threads: int = 1,
         tilesize: Tuple[int, int] | None = None,
         verbosity: int = logging.CRITICAL,
         **kwargs
     ):
-        super().__init__(True, True, tilesize, verbosity)
+        super().__init__(True, True, include_icc_profile, tilesize, verbosity)
 
         self.jpeg_path = pathlib.Path(jpeg)
 
@@ -130,9 +131,14 @@ class JPEG2JP2(_2JP2Converter):
                         data = f.read(2)
                         size, = struct.unpack('>H', data)
                         buffer = f.read(size - 2)
-                        if buffer[:11] == b'ICC_PROFILE':
-                            msg = 'ICC profile detected (skipped)'
-                            self.logger.warning(msg)
+                        if buffer[:12] == b'ICC_PROFILE\x00':
+                            if not self.include_icc_profile:
+                                msg = 'ICC profile detected (skipped)'
+                                self.logger.warning(msg)
+                            count, nchunks = struct.unpack('BB', buffer[12:14])
+
+                            self.icc_profile = bytes(buffer[14:])
+                            self.rewrap_for_icc_profile()
 
                     case b'\xff\xec':
                         # ducky?  ignore
