@@ -13,6 +13,7 @@ import skimage
 # Local imports
 import glymur
 from glymur import Jp2k, JPEG2JP2
+from glymur.core import SRGB
 from . import fixtures
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 
@@ -33,6 +34,12 @@ class TestSuite(fixtures.TestCommon):
             None
         )
         cls.hubble = jpeg.locate()
+
+        jpeg = next(
+            filter(lambda x: 'rocket' in x.name, files),
+            None
+        )
+        cls.rocket = jpeg.locate()
 
     def test_smoke(self):
         """
@@ -58,6 +65,39 @@ class TestSuite(fixtures.TestCommon):
         c = j.get_codestream()
         self.assertEqual(c.segment[1].xtsiz, w)
         self.assertEqual(c.segment[1].ytsiz, h)
+
+    def test_default_action_icc_profile(self):
+        """
+        SCENARIO:  Convert JPEG with an ICC profile using default options
+
+        EXPECTED RESULT:  data matches, it's just one big tile.  The JP2 has
+        no ICC profile information.  There is a warning about a skipped ICC
+        profile.
+        """
+
+        with (
+            JPEG2JP2(self.rocket, self.temp_jp2_filename) as p,
+            self.assertLogs(logger='tiff2jp2', level=logging.INFO) as cm,
+        ):
+            p.run()
+
+        self.assertEqual(sum('ICC profile' in msg for msg in cm.output), 1)
+
+        j = Jp2k(self.temp_jp2_filename)
+
+        actual = j[:]
+        expected = skimage.data.rocket()
+
+        # data matches
+        np.testing.assert_array_equal(actual, expected)
+
+        # The colour specification box does not have the profile
+        colr = j.box[2].box[1]
+        self.assertEqual(colr.method, glymur.core.ENUMERATED_COLORSPACE)
+        self.assertEqual(colr.precedence, 0)
+        self.assertEqual(colr.approximation, 0)
+        self.assertEqual(colr.colorspace, SRGB)
+        self.assertIsNone(colr.icc_profile)
 
     def test_tilesize(self):
         """

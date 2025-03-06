@@ -46,11 +46,7 @@ class JPEG2JP2(_2JP2Converter):
 
         self.jp2_path = pathlib.Path(jp2)
         if self.jp2_path.exists():
-            msg = (
-                f'{str(self.jp2_path)} already exists, ',
-                'please delete if you wish to overwrite.'
-            )
-            raise FileExistsError(msg)
+            raise FileExistsError(f'{str(self.jp2_path)} already exists, please delete if you wish to overwrite.')  # noqa : E501
 
         self.jp2_kwargs = kwargs
 
@@ -134,6 +130,9 @@ class JPEG2JP2(_2JP2Converter):
                         data = f.read(2)
                         size, = struct.unpack('>H', data)
                         buffer = f.read(size - 2)
+                        if buffer[:11] == b'ICC_PROFILE':
+                            msg = 'ICC profile detected (skipped)'
+                            self.logger.warning(msg)
 
                     case b'\xff\xec':
                         # ducky?  ignore
