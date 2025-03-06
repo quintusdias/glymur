@@ -100,45 +100,15 @@ class JPEG2JP2(_2JP2Converter):
                         size, = struct.unpack('>H', data)
                         buffer = f.read(size - 2)
 
-                        if buffer[:6] == b'Exif\x00\x00':
-
-                            # ok it is Exif
-
-                            buffer = buffer[6:]
-
-                            bf = io.BytesIO(buffer)
-
-                            self.read_tiff_header(bf)
-                            self.tags = self.read_ifd(bf)
-                            self.append_exif_uuid_box()
-
-                        elif buffer[:28] == b'http://ns.adobe.com/xap/1.0/':
-
-                            # XMP APP segment
-                            self.xmp_data = buffer[29:]
-                            self.append_xmp_uuid_box()
-
-                        else:
-
-                            msg = (
-                                f'Unrecognized APP1 segment at offset '
-                                f'{f.tell() - 2 - 2 - size}'
-                            )
-                            self.logger.warning(msg)
+                        self.process_app1_segment(buffer)
 
                     case b'\xff\xe2':
                         # ICC profile
                         data = f.read(2)
                         size, = struct.unpack('>H', data)
                         buffer = f.read(size - 2)
-                        if buffer[:12] == b'ICC_PROFILE\x00':
-                            if not self.include_icc_profile:
-                                msg = 'ICC profile detected (skipped)'
-                                self.logger.warning(msg)
-                            count, nchunks = struct.unpack('BB', buffer[12:14])
 
-                            self.icc_profile = bytes(buffer[14:])
-                            self.rewrap_for_icc_profile()
+                        self.process_app2_segment(buffer)
 
                     case b'\xff\xec':
                         # ducky?  ignore
@@ -156,6 +126,49 @@ class JPEG2JP2(_2JP2Converter):
                         # We don't care about anything else.  No need to scan
                         # the file any further, we're done.
                         eof = True
+
+    def process_app1_segment(self, buffer):
+        """
+        An APP1 segment can contain Exif or XMP data.
+        """
+
+        if buffer[:6] == b'Exif\x00\x00':
+
+            # ok it is Exif
+
+            buffer = buffer[6:]
+
+            bf = io.BytesIO(buffer)
+
+            self.read_tiff_header(bf)
+            self.tags = self.read_ifd(bf)
+            self.append_exif_uuid_box()
+
+        elif buffer[:28] == b'http://ns.adobe.com/xap/1.0/':
+
+            # XMP APP segment
+            self.xmp_data = buffer[29:]
+            self.append_xmp_uuid_box()
+
+        else:
+
+            msg = f'Unrecognized APP1 segment at offset {f.tell() - 2 - 2 - size}'  # noqa : E501
+            self.logger.warning(msg)
+
+    def process_app2_segment(self, buffer):
+        """
+        The APP2 segment(s) usually contains an ICC profile.  It may be split
+        across more than one APP2 segment.
+        """
+
+        if buffer[:12] == b'ICC_PROFILE\x00':
+            if not self.include_icc_profile:
+                msg = 'ICC profile detected (skipped)'
+                self.logger.warning(msg)
+            count, nchunks = struct.unpack('BB', buffer[12:14])
+
+            self.icc_profile = bytes(buffer[14:])
+            self.rewrap_for_icc_profile()
 
     def copy_image(self):
         """Transfer the image data from the JPEG to the JP2 file."""
