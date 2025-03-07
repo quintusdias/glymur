@@ -163,10 +163,19 @@ class JPEG2JP2(_2JP2Converter):
         """
 
         if buffer[:12] == b'ICC_PROFILE\x00':
-            if not self.include_icc_profile:
-                msg = 'ICC profile detected (skipped)'
-                self.logger.warning(msg)
+
             count, nchunks = struct.unpack('BB', buffer[12:14])
+
+            if not self.include_icc_profile:
+                msg = (
+                    f'ICC profile chunk {count} of {nchunks} detected '
+                    '(skipped)'
+                )
+                self.logger.warning(msg)
+                return
+
+            msg = f'Processing ICC profile chunk {count} of {nchunks}...'
+            self.logger.info(msg)
 
             self.icc_profile = bytes(buffer[14:])
             self.rewrap_for_icc_profile()
