@@ -20,11 +20,26 @@ class TestSuite(fixtures.TestCommon):
 
     @classmethod
     def setUpClass(cls):
+        """
+        Use some files supplied by scikit-image for our tests.
+        """
 
         files = im.files('scikit-image')
 
         jpeg = next(filter(lambda x: 'retina' in x.name, files), None)
-        cls.retina = str(jpeg.locate())
+        cls.retina = jpeg.locate()
+
+        jpeg = next(
+            filter(lambda x: 'hubble_deep_field' in x.name, files),
+            None
+        )
+        cls.hubble = jpeg.locate()
+
+        jpeg = next(
+            filter(lambda x: 'rocket' in x.name, files),
+            None
+        )
+        cls.rocket = jpeg.locate()
 
     def test_smoke(self):
         """
@@ -32,7 +47,7 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  no errors
         """
-        new = ['', self.retina, str(self.temp_jp2_filename)]
+        new = ['', str(self.retina), str(self.temp_jp2_filename)]
         with (
             patch('sys.argv', new=new),
             patch.object(JPEG2JP2, 'run', new=lambda x: None)
@@ -46,7 +61,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  no errors
         """
         new = [
-            '', self.retina, str(self.temp_jp2_filename),
+            '', str(self.retina), str(self.temp_jp2_filename),
             '--verbosity', 'info'
         ]
         with (
@@ -62,7 +77,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  no errors
         """
         new = [
-            '', self.retina, str(self.temp_jp2_filename),
+            '', str(self.retina), str(self.temp_jp2_filename),
             '--tilesize', '512', '512'
         ]
         with (
@@ -78,7 +93,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  no errors
         """
         new = [
-            '', self.retina, str(self.temp_jp2_filename),
+            '', str(self.retina), str(self.temp_jp2_filename),
             '--psnr', '30', '35', '40', '0'
         ]
         with (
@@ -94,7 +109,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  no errors
         """
         new = [
-            '', self.retina, str(self.temp_jp2_filename),
+            '', str(self.retina), str(self.temp_jp2_filename),
             '--irreversible'
         ]
         with (
@@ -110,7 +125,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  no errors
         """
         new = [
-            '', self.retina, str(self.temp_jp2_filename),
+            '', str(self.retina), str(self.temp_jp2_filename),
             '--plt'
         ]
         with (
@@ -126,7 +141,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  no errors
         """
         new = [
-            '', self.retina, str(self.temp_jp2_filename),
+            '', str(self.retina), str(self.temp_jp2_filename),
             '--eph'
         ]
         with (
@@ -142,7 +157,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  no errors
         """
         new = [
-            '', self.retina, str(self.temp_jp2_filename),
+            '', str(self.retina), str(self.temp_jp2_filename),
             '--sop'
         ]
         with (
@@ -158,7 +173,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  no errors
         """
         new = [
-            '', self.retina, str(self.temp_jp2_filename),
+            '', str(self.retina), str(self.temp_jp2_filename),
             '--prog', 'rlcp'
         ]
         with (
@@ -174,7 +189,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  no errors
         """
         new = [
-            '', self.retina, str(self.temp_jp2_filename),
+            '', str(self.retina), str(self.temp_jp2_filename),
             '--numres', '6'
         ]
         with (
@@ -190,7 +205,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  no errors
         """
         new = [
-            '', self.retina, str(self.temp_jp2_filename),
+            '', str(self.retina), str(self.temp_jp2_filename),
             '--num-threads', '4'
         ]
         with (
@@ -201,6 +216,22 @@ class TestSuite(fixtures.TestCommon):
 
         reset_option('all')
 
+    def test_icc_profile(self):
+        """
+        SCENARIO:  specify to include an ICC profile
+
+        EXPECTED RESULT:  no errors
+        """
+        new = [
+            '', str(self.rocket), str(self.temp_jp2_filename),
+            '--include-icc-profile',
+        ]
+        with (
+            patch('sys.argv', new=new),
+            patch.object(JPEG2JP2, 'run', new=lambda x: None)
+        ):
+            command_line.jpeg2jp2()
+
     def test_layers(self):
         """
         SCENARIO:  specify compression ratios
@@ -208,7 +239,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  no errors
         """
         new = [
-            '', self.retina, str(self.temp_jp2_filename),
+            '', str(self.retina), str(self.temp_jp2_filename),
             '--cratio', '200', '50', '10'
         ]
         with (
@@ -227,7 +258,7 @@ class TestSuite(fixtures.TestCommon):
         vresd, hresd = 0.3, 0.4
 
         new = [
-            '', self.retina, str(self.temp_jp2_filename),
+            '', str(self.retina), str(self.temp_jp2_filename),
             '--capture-resolution', str(vresc), str(hresc),
             '--display-resolution', str(vresd), str(hresd),
         ]

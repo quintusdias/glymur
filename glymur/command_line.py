@@ -152,6 +152,15 @@ def jpeg2jp2():
         'JPEG', 'Arguments specific to conversion of JPEG imagery.'
     )
 
+    help = (
+        'If specified, subsume any ICC profile found in an APP2 segment(s) '
+        'into the colour specification box.  This will involve a file copy '
+        'and is therefore a potentially costly operation.'
+    )
+    group2.add_argument(
+        '--include-icc-profile', help=help, action='store_true'
+    )
+
     group2.add_argument('jpeg', help='Input JPEG file.')
     group2.add_argument('jp2k', help='Output JPEG 2000 file.')
 
@@ -181,6 +190,7 @@ def jpeg2jp2():
         'capture_resolution': args.capture_resolution,
         'display_resolution': args.display_resolution,
         'eph': args.eph,
+        'include_icc_profile': args.include_icc_profile,
         'irreversible': args.irreversible,
         'numres': args.numres,
         'num_threads': args.num_threads,

@@ -23,6 +23,9 @@ class TestSuite(fixtures.TestCommon):
 
     @classmethod
     def setUpClass(cls):
+        """
+        Use some files supplied by scikit-image for our tests.
+        """
 
         files = im.files('scikit-image')
 

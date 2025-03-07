@@ -92,45 +92,41 @@ class JPEG2JP2(_2JP2Converter):
                         self.logger.warning('Ignoring APP0 JFIF segment...')
                         data = f.read(2)
                         size, = struct.unpack('>H', data)
-                        buffer = f.read(size - 2)
+                        _ = f.read(size - 2)
 
                     case b'\xff\xe1':
                         # EXIF using APP1
-                        data = f.read(2)
-                        size, = struct.unpack('>H', data)
-                        buffer = f.read(size - 2)
-
-                        self.process_app1_segment(buffer)
+                        self.process_app1_segment(f)
 
                     case b'\xff\xe2':
                         # ICC profile
-                        data = f.read(2)
-                        size, = struct.unpack('>H', data)
-                        buffer = f.read(size - 2)
-
-                        self.process_app2_segment(buffer)
+                        self.process_app2_segment(f)
 
                     case b'\xff\xec':
                         # ducky?  ignore
                         data = f.read(2)
                         size, = struct.unpack('>H', data)
-                        buffer = f.read(size - 2)
+                        _ = f.read(size - 2)
 
                     case b'\xff\xee':
                         # Adobe?
                         data = f.read(2)
                         size, = struct.unpack('>H', data)
-                        buffer = f.read(size - 2)
+                        _ = f.read(size - 2)
 
                     case _:
                         # We don't care about anything else.  No need to scan
                         # the file any further, we're done.
                         eof = True
 
-    def process_app1_segment(self, buffer):
+    def process_app1_segment(self, f):
         """
         An APP1 segment can contain Exif or XMP data.
         """
+
+        data = f.read(2)
+        size, = struct.unpack('>H', data)
+        buffer = f.read(size - 2)
 
         if buffer[:6] == b'Exif\x00\x00':
 
@@ -152,15 +148,18 @@ class JPEG2JP2(_2JP2Converter):
 
         else:
 
-            offset = f.tell() - 2 - 2 - size
+            offset = f.tell() - 2 - 2 - len(buffer)
             msg = f'Unrecognized APP1 segment at offset {offset}'
             self.logger.warning(msg)
 
-    def process_app2_segment(self, buffer):
+    def process_app2_segment(self, f):
         """
         The APP2 segment(s) usually contains an ICC profile.  It may be split
         across more than one APP2 segment.
         """
+        data = f.read(2)
+        size, = struct.unpack('>H', data)
+        buffer = f.read(size - 2)
 
         if buffer[:12] == b'ICC_PROFILE\x00':
 
