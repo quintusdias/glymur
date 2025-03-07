@@ -2120,7 +2120,7 @@ class _Ifd(object):
                 rational_payload = []
                 for j in range(count):
                     try:
-                        value = float(payload[j * 2]) / float(payload[j * 2 + 1])
+                        value = float(payload[j * 2]) / float(payload[j * 2 + 1])  # noqa : E501
                     except ZeroDivisionError:
                         value = np.nan
                     rational_payload.append(value)

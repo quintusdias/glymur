@@ -3,6 +3,7 @@ Test fixtures common to more than one test point.
 """
 
 # Standard library imports
+import importlib.metadata as im
 import pathlib
 import shutil
 import tempfile
@@ -48,6 +49,29 @@ class TestCommon(unittest.TestCase):
     """
     Common setup for many if not all tests.
     """
+
+    @classmethod
+    def setUpClass(cls):
+        """
+        Use some files supplied by scikit-image for our tests.
+        """
+
+        files = im.files('scikit-image')
+
+        jpeg = next(filter(lambda x: 'retina' in x.name, files), None)
+        cls.retina = jpeg.locate()
+
+        jpeg = next(
+            filter(lambda x: 'hubble_deep_field' in x.name, files),
+            None
+        )
+        cls.hubble = jpeg.locate()
+
+        jpeg = next(
+            filter(lambda x: 'rocket' in x.name, files),
+            None
+        )
+        cls.rocket = jpeg.locate()
 
     def setUp(self):
         # Supply paths to these three shipping example files.
