@@ -194,13 +194,13 @@ class TestSuite(fixtures.TestCommon):
         """
         SCENARIO:  Convert JPEG to JP2, use WARN log level.
 
-        EXPECTED RESULT:  data matches, one message detected at WARN level
+        EXPECTED RESULT:  data matches, one message detected at INFO level
         """
         with (
             JPEG2JP2(
                 self.retina, self.temp_jp2_filename, verbosity=logging.INFO
             ) as p,
-            self.assertLogs(logger='tiff2jp2', level=logging.WARN) as cm
+            self.assertLogs(logger='tiff2jp2', level=logging.INFO) as cm
         ):
             p.run()
 

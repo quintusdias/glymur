@@ -87,9 +87,8 @@ class JPEG2JP2(_2JP2Converter):
                         # marker-only, SOI
                         pass
 
-                    case b'\xff\xe0':
-                        # APP0 JFIF, just skip over it
-                        self.process_app0_segment(f)
+                    case b'\xff\xe0' | b'\xff\xec' | b'\xff\xee':
+                        self.process_appx_segment(marker, f)
 
                     case b'\xff\xe1':
                         # EXIF using APP1
@@ -99,31 +98,20 @@ class JPEG2JP2(_2JP2Converter):
                         # ICC profile
                         self.process_app2_segment(f)
 
-                    case b'\xff\xec':
-                        self.process_app12_segment(f)
-
-                    case b'\xff\xee':
-                        self.process_app14_segment(f)
-
                     case _:
                         # We don't care about anything else.  No need to scan
                         # the file any further, we're done.
                         eof = True
 
-    def process_app0_segment(self, f):
-        self.logger.warning('Ignoring APP0 JFIF segment...')
-        data = f.read(2)
-        size, = struct.unpack('>H', data)
-        _ = f.read(size - 2)
+    def process_appx_segment(self, marker, f):
+        # APP0 (JFIF) is b'\xff\xe0'
+        # APP12 ducky(?) is b'\xff\xec'
+        # APP14 Adobe(?) is b'\xff\xee'
+        _, n = struct.unpack('BB', marker)
 
-    def process_app12_segment(self, f):
-        # ducky?  ignore
-        data = f.read(2)
-        size, = struct.unpack('>H', data)
-        _ = f.read(size - 2)
+        msg = f'Skipping APP{n - 224} segment...'
+        self.logger.info(msg)
 
-    def process_app14_segment(self, f):
-        # Adobe?
         data = f.read(2)
         size, = struct.unpack('>H', data)
         _ = f.read(size - 2)
