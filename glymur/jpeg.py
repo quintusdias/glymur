@@ -103,6 +103,9 @@ class JPEG2JP2(_2JP2Converter):
                         # the file any further, we're done.
                         eof = True
 
+        if self.include_icc_profile and self.icc_profile is not None:
+            self.rewrap_for_icc_profile()
+
     def process_appx_segment(self, marker, f):
         # APP0 (JFIF) is b'\xff\xe0'
         # APP12 ducky(?) is b'\xff\xec'
@@ -173,8 +176,12 @@ class JPEG2JP2(_2JP2Converter):
             msg = f'Processing ICC profile chunk {count} of {nchunks}...'
             self.logger.info(msg)
 
-            self.icc_profile = bytes(buffer[14:])
-            self.rewrap_for_icc_profile()
+            if count == 1:
+                self.icc_profile = b''
+
+            # accumulate the ICC profile stored in this chunk.  it's likely
+            # that this is all that there is, though.
+            self.icc_profile += bytes(buffer[14:])
 
     def copy_image(self):
         """Transfer the image data from the JPEG to the JP2 file."""
