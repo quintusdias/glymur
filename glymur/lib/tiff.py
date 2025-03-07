@@ -2119,7 +2119,10 @@ class _Ifd(object):
                 # Rational or Signed Rational.  Construct the list of values.
                 rational_payload = []
                 for j in range(count):
-                    value = float(payload[j * 2]) / float(payload[j * 2 + 1])
+                    try:
+                        value = float(payload[j * 2]) / float(payload[j * 2 + 1])
+                    except ZeroDivisionError:
+                        value = np.nan
                     rational_payload.append(value)
                 payload = np.array(rational_payload)
             if count == 1:
