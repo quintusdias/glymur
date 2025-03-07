@@ -10,7 +10,7 @@ from uuid import UUID
 import warnings
 
 # 3rd party library imports
-from PIL import Image
+import imageio.v3 as iio
 import numpy as np
 import skimage
 
@@ -192,17 +192,6 @@ class TestSuite(fixtures.TestCommon):
 
         cls.exif = path
 
-    def _imread(self, path, mode=None):
-
-        with Image.open(path) as img:
-
-            if mode is not None:
-                img = img.convert(mode)
-
-            imagedata = np.array(img)
-
-        return imagedata
-
     def test_psnr_commandline(self):
         """
         SCENARIO:  Convert TIFF file to JP2, specify psnr via the command line
@@ -222,7 +211,7 @@ class TestSuite(fixtures.TestCommon):
             j.layer = layer
             d[layer] = j[:]
 
-        truth = self._imread(self.moon)
+        truth = iio.imread(self.moon)
 
         with warnings.catch_warnings():
             # MSE is zero for that first image, resulting in a divide-by-zero
