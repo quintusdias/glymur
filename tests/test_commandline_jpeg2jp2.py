@@ -3,7 +3,6 @@ Test command line interface to JPEG2JP2
 """
 
 # standard library imports
-import platform
 import unittest
 from unittest.mock import patch
 
@@ -12,13 +11,16 @@ from unittest.mock import patch
 # Local imports
 from glymur import JPEG2JP2, command_line, reset_option
 from . import fixtures
-from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
+from .fixtures import (
+    OPENJPEG_NOT_AVAILABLE,
+    OPENJPEG_NOT_AVAILABLE_MSG,
+    CANNOT_USE_IMPORTLIB_METADATA
+)
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 @unittest.skipIf(
-    platform.system() == 'Linux'
-    and platform.freedesktop_os_release()['ID'] == 'fedora',
+    CANNOT_USE_IMPORTLIB_METADATA,
     'missing importlib.metadata.files ?'
 )
 class TestSuite(fixtures.TestCommon):

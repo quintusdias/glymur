@@ -1,6 +1,5 @@
 # standard library imports
 import logging
-import platform
 import shutil
 import unittest
 import uuid
@@ -15,13 +14,16 @@ import glymur
 from glymur import Jp2k, JPEG2JP2
 from glymur.core import SRGB
 from . import fixtures
-from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
+from .fixtures import (
+    OPENJPEG_NOT_AVAILABLE,
+    OPENJPEG_NOT_AVAILABLE_MSG,
+    CANNOT_USE_IMPORTLIB_METADATA
+)
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
 @unittest.skipIf(
-    platform.system() == 'Linux'
-    and platform.freedesktop_os_release()['ID'] == 'fedora',
+    CANNOT_USE_IMPORTLIB_METADATA,
     'missing importlib.metadata.files ?'
 )
 class TestSuite(fixtures.TestCommon):
