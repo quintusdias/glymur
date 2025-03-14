@@ -23,7 +23,7 @@ from .fixtures import (
     CANNOT_USE_IMPORTLIB_METADATA,
     'missing importlib.metadata.files ?'
 )
-class TestSuite(fixtures.TestCommon):
+class TestSuite(fixtures.TestJPEGCommon):
 
     def test_smoke(self):
         """

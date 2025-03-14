@@ -80,6 +80,27 @@ class TestCommon(unittest.TestCase):
     Common setup for many if not all tests.
     """
 
+    def setUp(self):
+        # Supply paths to these three shipping example files.
+        self.jp2file = glymur.data.nemo()
+        self.j2kfile = glymur.data.goodstuff()
+        self.jpxfile = glymur.data.jpxfile()
+
+        # Create a temporary directory to be cleaned up following each test, as
+        # well as names for a JP2 and a J2K file.
+        self.test_dir = tempfile.mkdtemp()
+        self.test_dir_path = pathlib.Path(self.test_dir)
+        self.temp_jp2_filename = self.test_dir_path / "test.jp2"
+        self.temp_j2k_filename = self.test_dir_path / "test.j2k"
+        self.temp_jpx_filename = self.test_dir_path / "test.jpx"
+        self.temp_tiff_filename = self.test_dir_path / "test.tif"
+
+    def tearDown(self):
+        shutil.rmtree(self.test_dir)
+
+
+class TestJPEGCommon(TestCommon):
+
     @classmethod
     def setUpClass(cls):
         """
@@ -104,19 +125,7 @@ class TestCommon(unittest.TestCase):
         cls.rocket = jpeg.locate()
 
     def setUp(self):
-        # Supply paths to these three shipping example files.
-        self.jp2file = glymur.data.nemo()
-        self.j2kfile = glymur.data.goodstuff()
-        self.jpxfile = glymur.data.jpxfile()
-
-        # Create a temporary directory to be cleaned up following each test, as
-        # well as names for a JP2 and a J2K file.
-        self.test_dir = tempfile.mkdtemp()
-        self.test_dir_path = pathlib.Path(self.test_dir)
-        self.temp_jp2_filename = self.test_dir_path / "test.jp2"
-        self.temp_j2k_filename = self.test_dir_path / "test.j2k"
-        self.temp_jpx_filename = self.test_dir_path / "test.jpx"
-        self.temp_tiff_filename = self.test_dir_path / "test.tif"
+        super().setUp()
 
     def tearDown(self):
-        shutil.rmtree(self.test_dir)
+        super().tearDown()
