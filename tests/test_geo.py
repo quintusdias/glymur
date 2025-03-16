@@ -11,8 +11,10 @@ import uuid
 import warnings
 
 # 3rd party library imports
+from osgeo import gdal
 from lxml import etree as ET
 import numpy as np
+from packaging.version import Version
 
 # local imports
 from glymur.jp2box import LabelBox, XMLBox, AssociationBox, UUIDBox
@@ -184,6 +186,9 @@ class TestSuite(fixtures.TestCommon):
 
         expected = ir.files("tests.data.geo").joinpath("hirise.txt").read_text()  # noqa : E501
         expected = expected.rstrip()
+
+        if Version(gdal.__version__) < Version('3.9.0'):
+            expected = expected.replace(' JP2OpenJPEG ', ' OpenJPEG ')
 
         self.assertEqual(actual, expected)
 
