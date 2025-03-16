@@ -3688,7 +3688,13 @@ class UUIDBox(Jp2kBox):
 
                 ifd_txt = s.getvalue().rstrip()
 
-            txt = f"UUID Data:\n\nGeo Metadata:\n{gdal_txt}\n\nRaw IFD Metadata:\n{ifd_txt}"
+            txt = (
+                    f'UUID Data:'
+                    f'\n\n'
+                    f'Geo Metadata:\n{gdal_txt}'
+                    f'\n\n'
+                    f'Raw IFD Metadata:\n{ifd_txt}'
+            )
 
             lst.append(txt)
 
