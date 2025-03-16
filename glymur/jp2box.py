@@ -3648,37 +3648,52 @@ class UUIDBox(Jp2kBox):
         lst = [text]
 
         if not get_option("print.xml") and self.uuid == _XMP_UUID:
+
             # If it's an XMP UUID, don't print the XML contents.
             pass
 
         elif self.uuid == _XMP_UUID:
+
             s = self.raw_data.decode('utf-8').rstrip('\0')
             e = lxml.objectify.fromstring(s)
             xml = ET.tostring(e, pretty_print=True).decode('utf-8').strip()
             text = f"UUID Data:\n{xml}"
             lst.append(text)
+
         elif self.uuid == _EXIF_UUID:
+
             s = io.StringIO()
 
             if self.data is None:
                 # If the UUID was malformed, just say so and go on.  This
                 # should not be a showstopper.
                 text = "UUID Data:  Invalid Exif UUID"
-                lst.append(text)
             else:
                 with np.printoptions(threshold=4):
                     pprint.pprint(self.data, stream=s, indent=4)
                 text = f"UUID Data:  {s.getvalue().rstrip()}"
-                lst.append(text)
+
+            lst.append(text)
+
         elif self.uuid == _GEOTIFF_UUID:
 
             options = gdal.InfoOptions(showColorTable=False)
-            txt = gdal.Info(self._fptr.name, options=options)
-            txt = textwrap.indent(txt, " " * 4).rstrip()
+            gdal_txt = gdal.Info(self._fptr.name, options=options)
+            gdal_txt = textwrap.indent(gdal_txt, " " * 4).rstrip()
 
-            txt = f"UUID Data:\n{txt}"
+            # now append the raw IFD
+            s = io.StringIO()
+            with np.printoptions(threshold=4):
+                pprint.pprint(self.data, stream=s, indent=4)
+
+                ifd_txt = s.getvalue().rstrip()
+
+            txt = f"UUID Data:\n\nGeo Metadata:\n{gdal_txt}\n\nRaw IFD Metadata:\n{ifd_txt}"
+
             lst.append(txt)
+
         else:
+
             text = f"UUID Data:  {len(self.raw_data)} bytes"
             lst.append(text)
 

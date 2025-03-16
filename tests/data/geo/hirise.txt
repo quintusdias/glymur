@@ -1,6 +1,8 @@
 UUID Box (uuid) @ (149, 523)
     UUID:  b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03 (GeoTIFF)
     UUID Data:
+
+    Geo Metadata:
         Driver: JP2OpenJPEG/JPEG-2000 driver based on JP2OpenJPEG library
         Size is 2592, 1456
         Coordinate System is:
@@ -64,3 +66,25 @@ UUID Box (uuid) @ (149, 523)
           Overviews: arbitrary
           Image Structure Metadata:
             COMPRESSION=JPEG2000
+
+    Raw IFD Metadata:
+    OrderedDict([   ('ImageWidth', 1),
+                    ('ImageLength', 1),
+                    ('BitsPerSample', 8),
+                    ('Compression', 1),
+                    ('Photometric', 1),
+                    ('StripOffsets', 8),
+                    ('SamplesPerPixel', 1),
+                    ('RowsPerStrip', 1),
+                    ('StripByteCounts', 1),
+                    ('PlanarConfig', 1),
+                    ('ModelPixelScale', array([0.25, 0.25, 0.  ])),
+                    (   'ModelTiePoint',
+                        array([       0.   ,        0.   ,        0.   , -2523306.125,
+            -268608.875,        0.   ])),
+                    (   'GeoKeyDirectory',
+                        array([    1,     1,     0, ..., 34736,     1,     0], dtype=uint16)),
+                    (   'GeoDoubleParams',
+                        array([0.00000e+00, 1.80000e+02, 0.00000e+00, 0.00000e+00, 3.39619e+06,
+           3.39619e+06])),
+                    ('GeoAsciiParams', 'Equirectangular MARS|GCS_MARS|')])
