@@ -1,0 +1,66 @@
+UUID Box (uuid) @ (149, 523)
+    UUID:  b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03 (GeoTIFF)
+    UUID Data:
+        Driver: JP2OpenJPEG/JPEG-2000 driver based on JP2OpenJPEG library
+        Size is 2592, 1456
+        Coordinate System is:
+        PROJCRS["Equirectangular MARS",
+            BASEGEOGCRS["GCS_MARS",
+                DATUM["unnamed",
+                    ELLIPSOID["unnamed",3396190,0,
+                        LENGTHUNIT["metre",1,
+                            ID["EPSG",9001]]]],
+                PRIMEM["Reference meridian",0,
+                    ANGLEUNIT["degree",0.0174532925199433,
+                        ID["EPSG",9122]]]],
+            CONVERSION["Equidistant Cylindrical",
+                METHOD["Equidistant Cylindrical",
+                    ID["EPSG",1028]],
+                PARAMETER["Latitude of 1st standard parallel",0,
+                    ANGLEUNIT["degree",0.0174532925199433],
+                    ID["EPSG",8823]],
+                PARAMETER["Longitude of natural origin",180,
+                    ANGLEUNIT["degree",0.0174532925199433],
+                    ID["EPSG",8802]],
+                PARAMETER["False easting",0,
+                    LENGTHUNIT["metre",1],
+                    ID["EPSG",8806]],
+                PARAMETER["False northing",0,
+                    LENGTHUNIT["metre",1],
+                    ID["EPSG",8807]]],
+            CS[Cartesian,2],
+                AXIS["easting",east,
+                    ORDER[1],
+                    LENGTHUNIT["metre",1,
+                        ID["EPSG",9001]]],
+                AXIS["northing",north,
+                    ORDER[2],
+                    LENGTHUNIT["metre",1,
+                        ID["EPSG",9001]]]]
+        Data axis to CRS axis mapping: 1,2
+        Origin = (-2523306.125000000000000,-268608.875000000000000)
+        Pixel Size = (0.250000000000000,-0.250000000000000)
+        Image Structure Metadata:
+          INTERLEAVE=PIXEL
+          COMPRESSION_REVERSIBILITY=LOSSLESS (possibly)
+        Corner Coordinates:
+        Upper Left  (-2523306.125, -268608.875) (137d25'49.08"E,  4d31'53.74"S)
+        Lower Left  (-2523306.125, -268972.875) (137d25'49.08"E,  4d32'15.85"S)
+        Upper Right (-2522658.125, -268608.875) (137d26'28.43"E,  4d31'53.74"S)
+        Lower Right (-2522658.125, -268972.875) (137d26'28.43"E,  4d32'15.85"S)
+        Center      (-2522982.125, -268790.875) (137d26' 8.76"E,  4d32' 4.79"S)
+        Band 1 Block=1024x1024 Type=Byte, ColorInterp=Red
+          Overviews: 1296x728
+          Overviews: arbitrary
+          Image Structure Metadata:
+            COMPRESSION=JPEG2000
+        Band 2 Block=1024x1024 Type=Byte, ColorInterp=Green
+          Overviews: 1296x728
+          Overviews: arbitrary
+          Image Structure Metadata:
+            COMPRESSION=JPEG2000
+        Band 3 Block=1024x1024 Type=Byte, ColorInterp=Blue
+          Overviews: 1296x728
+          Overviews: arbitrary
+          Image Structure Metadata:
+            COMPRESSION=JPEG2000

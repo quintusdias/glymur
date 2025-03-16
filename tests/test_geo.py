@@ -178,8 +178,14 @@ class TestSuite(fixtures.TestCommon):
         jp2 = glymur.Jp2k(self.hirise_jp2file_name)
         actual = str(jp2.box[4])
 
-        # don't bother verifying the full output, just get some key parts
-        self.assertIn('PROJCRS["Equirectangular MARS",', actual)
+        # delete the Files line because that is volatile
+        lines = [line for line in actual.splitlines() if 'Files:' not in line]
+        actual = '\n'.join(lines)
+
+        expected = ir.files("tests.data.geo").joinpath("hirise.txt").read_text()  # noqa : E501
+        expected = expected.rstrip()
+
+        self.assertEqual(actual, expected)
 
     def test_print_bad_geotiff(self):
         """
