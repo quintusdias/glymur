@@ -11,8 +11,10 @@ import uuid
 import warnings
 
 # 3rd party library imports
+from osgeo import gdal
 from lxml import etree as ET
 import numpy as np
+from packaging.version import Version
 
 # local imports
 from glymur.jp2box import LabelBox, XMLBox, AssociationBox, UUIDBox
@@ -172,14 +174,13 @@ class TestSuite(fixtures.TestCommon):
         """
         SCENARIO:  Print a geotiff UUID.
 
-        EXPECTED RESULT:  Should match a known geotiff UUID.  The string
-        representation validates.
+        EXPECTED RESULT:  There should be both gdal and IFD information.
         """
         jp2 = glymur.Jp2k(self.hirise_jp2file_name)
         actual = str(jp2.box[4])
 
-        # don't bother verifying the full output, just get some key parts
-        self.assertIn('PROJCRS["Equirectangular MARS",', actual)
+        self.assertIn('Equirectangular MARS', actual)
+        self.assertIn('ModelPixelScale', actual)
 
     def test_print_bad_geotiff(self):
         """
