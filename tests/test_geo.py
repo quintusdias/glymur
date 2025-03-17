@@ -180,17 +180,10 @@ class TestSuite(fixtures.TestCommon):
         jp2 = glymur.Jp2k(self.hirise_jp2file_name)
         actual = str(jp2.box[4])
 
-        # delete the Files line because that is volatile
-        lines = [line for line in actual.splitlines() if 'Files:' not in line]
-        actual = '\n'.join(lines)
-
-        expected = ir.files("tests.data.geo").joinpath("hirise.txt").read_text()  # noqa : E501
-        expected = expected.rstrip()
-
-        if Version(gdal.__version__) < Version('3.9.0'):
-            expected = expected.replace(' JP2OpenJPEG ', ' OpenJPEG ')
-
-        self.assertEqual(actual, expected)
+        # rather than try to verify how non-glymur software is printing the
+        # information, just make sure certain things are there.
+        self.assertIn('Equirectangular MARS', actual)
+        self.assertIn('ModelPixelScale', actual)
 
     def test_print_bad_geotiff(self):
         """
