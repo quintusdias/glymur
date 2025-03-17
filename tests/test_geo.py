@@ -174,14 +174,11 @@ class TestSuite(fixtures.TestCommon):
         """
         SCENARIO:  Print a geotiff UUID.
 
-        EXPECTED RESULT:  Should match a known geotiff UUID.  The string
-        representation validates.
+        EXPECTED RESULT:  There should be both gdal and IFD information.
         """
         jp2 = glymur.Jp2k(self.hirise_jp2file_name)
         actual = str(jp2.box[4])
 
-        # rather than try to verify how non-glymur software is printing the
-        # information, just make sure certain things are there.
         self.assertIn('Equirectangular MARS', actual)
         self.assertIn('ModelPixelScale', actual)
 
