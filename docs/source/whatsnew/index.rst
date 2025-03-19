@@ -8,6 +8,7 @@ These document the changes between minor (or major) versions of glymur.
 
 .. toctree::
 
+    0.14
     0.13
     0.12
     0.11
