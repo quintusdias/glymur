@@ -1,0 +1,11 @@
+######################
+Changes in glymur 0.14
+######################
+
+*****************
+Changes in 0.14.0
+*****************
+
+    * Add description of raw IFD for geojp2 UUIDs
+    * Add feature to convert JPEGs to JP2
+    * Remove support for python 3.10
