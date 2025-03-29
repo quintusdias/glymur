@@ -2,6 +2,16 @@
 Changes in glymur 0.14
 ######################
 
+**********************
+Changes in 0.14.0post2
+**********************
+    * Fix python_requires value
+
+**********************
+Changes in 0.14.0post1
+**********************
+    * Fix docs for whatsnew
+
 *****************
 Changes in 0.14.0
 *****************

@@ -1,3 +1,6 @@
+Mar 29, 2025 - v0.14.0post2
+    Fix python_requires value
+
 Mar 19, 2025 - v0.14.0
     Add description of raw IFD for geojp2 UUIDs
     Add feature to convert JPEGs to JP2
