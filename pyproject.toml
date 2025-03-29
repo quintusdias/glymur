@@ -1,3 +1,38 @@
+[project]
+authors = [{ name = 'John Evans', email = 'jevans667cc@proton.me' }]
+classifiers = [
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3.11',
+    'Programming Language :: Python :: 3.12',
+    'Programming Language :: Python :: 3.13',
+    'Programming Language :: Python :: Implementation :: CPython',
+    'Intended Audience :: Science/Research',
+    'Operating System :: OS Independent',
+    'Topic :: Scientific/Engineering',
+]
+description = 'Read and write JPEG 2000 files'
+dependencies = [
+    'numpy',
+    'lxml',
+    'imageio',
+]
+keywords = ['JPEG2000', 'JPEG', '2000', 'imagery']
+license = 'MIT'
+name = 'Glymur'
+readme = 'README.md'
+requires-python = '>=3.11'
+version = '0.14post1'
+
+[project.scripts]
+jp2dump = 'glymur.command_line:main'
+tiff2jp2 = 'glymur.command_line:tiff2jp2'
+jpeg2jp2 = 'glymur.command_line:jpeg2jp2'
+
+[project.urls]
+Homepage = 'https://glymur.readthedocs.io'
+Documentation = 'https://glymur.readthedocs.io'
+Repository = 'https://github.com/quintusdias/glymur'
+
 [build-system]
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
