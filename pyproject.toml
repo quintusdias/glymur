@@ -34,7 +34,7 @@ Documentation = 'https://glymur.readthedocs.io'
 Repository = 'https://github.com/quintusdias/glymur'
 
 [build-system]
-requires = ["setuptools", "wheel"]
+requires = ["setuptools>=60", "setuptools-scm>=8.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.pytest.ini_options]
