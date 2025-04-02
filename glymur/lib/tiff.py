@@ -111,43 +111,7 @@ class Orientation(IntEnum):
 
 
 class Photometric(IntEnum):
-    """The color space of the image data.
-
-    Examples
-    --------
-
-    Load an image of astronaut Eileen Collins from scikit-image.
-
-    >>> import numpy as np
-    >>> import skimage.data
-    >>> image = skimage.data.astronaut()
-
-    Create a BigTIFF with JPEG compression.  There is not much reason to do
-    this if you do not also specify YCbCr as the photometric interpretation.
-
-    >>> w, h, nz = image.shape
-    >>> tw, th = w // 2, h // 2
-    >>> from glymur.lib import tiff as libtiff
-    >>> fp = libtiff.open('astronaut-jpeg.tif', mode='w8')
-    >>> libtiff.setField(fp, 'Photometric', libtiff.Photometric.YCBCR)
-    >>> libtiff.setField(fp, 'Compression', libtiff.Compression.JPEG)
-    >>> libtiff.setField(fp, 'JPEGColorMode', libtiff.JPEGColorMode.RGB)
-    >>> libtiff.setField(fp, 'PlanarConfig', libtiff.PlanarConfig.CONTIG)
-    >>> libtiff.setField(fp, 'JPEGQuality', 90)
-    >>> libtiff.setField(fp, 'YCbCrSubsampling', 1, 1)
-    >>> libtiff.setField(fp, 'ImageWidth', w)
-    >>> libtiff.setField(fp, 'ImageLength', h)
-    >>> libtiff.setField(fp, 'TileWidth', tw)
-    >>> libtiff.setField(fp, 'TileLength', th)
-    >>> libtiff.setField(fp, 'BitsPerSample', 8)
-    >>> libtiff.setField(fp, 'SamplesPerPixel', nz)
-    >>> libtiff.setField(fp, 'Software', libtiff.getVersion())
-    >>> libtiff.writeEncodedTile(fp, 0, image[:th, :tw].copy())
-    >>> libtiff.writeEncodedTile(fp, 1, image[:th, tw:w].copy())
-    >>> libtiff.writeEncodedTile(fp, 2, image[th:h, :tw].copy())
-    >>> libtiff.writeEncodedTile(fp, 3, image[th:h, tw:w].copy())
-    >>> libtiff.close(fp)
-    """
+    """The color space of the image data."""
 
     MINISWHITE = 0  # value is white
     MINISBLACK = 1  # value is black

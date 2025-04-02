@@ -602,8 +602,6 @@ You can append any number of XML boxes to a JP2 file (not to a raw codestream).
 Consider the following XML file `data.xml` : ::
 
 
-The :py:meth:`append` method can add an XML box as shown below::
-
     >>> import glymur, io, shutil
     >>> from lxml import etree as ET
     >>> xml = io.BytesIO(b"""

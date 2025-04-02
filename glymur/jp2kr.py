@@ -147,7 +147,23 @@ class Jp2kr(Jp2kBox):
     @property
     def ignore_pclr_cmap_cdef(self):
         """If true, ignore the pclr, cmap, or cdef boxes during any
-        color transformation.  Defaults to false.
+        color transformation.  Why would you wish to do that?  In the immortal
+        words of Critical Drinker, don't know!
+
+        Defaults to false.
+
+        Examples
+        --------
+        >>> from glymur import Jp2kr
+        >>> jpxfile = glymur.data.jpxfile()
+        >>> j = Jp2kr(jpxfile)
+        >>> d = j[:]
+        >>> print(d.shape)
+        (1024, 1024, 3)
+        >>> j.ignore_pclr_cmap_cdef = True
+        >>> d = j[:]
+        >>> print(d.shape)
+        (1024, 1024)
         """
         return self._ignore_pclr_cmap_cdef
 
@@ -159,6 +175,18 @@ class Jp2kr(Jp2kBox):
     def decoded_components(self):
         """If true, decode only these components.  The MCT will not be used.
         List or scalar or None (default).
+
+        Examples
+        --------
+        >>> from glymur import Jp2kr
+        >>> j = Jp2kr(glymur.data.nemo())
+        >>> rgb = j[:]
+        >>> print(rgb.shape)
+        (1456, 2592, 3)
+        >>> j.decoded_components = 0
+        >>> comp0 = j[:]
+        >>> print(comp0.shape)
+        (1456, 2592)
         """
         return self._decoded_components
 
@@ -216,7 +244,17 @@ class Jp2kr(Jp2kBox):
 
     @property
     def dtype(self):
-        """Datatype of the image."""
+        """Datatype of the image.
+
+        Examples
+        --------
+        >>> from glymur import Jp2kr
+        >>> jp2file = glymur.data.nemo()
+        >>> j = Jp2kr(jp2file)
+        >>> j.dtype
+        <class 'numpy.uint8'>
+        """
+
         if self._dtype is None:
             c = self.get_codestream()
             bps0 = c.segment[1].bitdepth[0]
@@ -243,19 +281,48 @@ class Jp2kr(Jp2kBox):
 
     @property
     def ndim(self):
-        """Number of image dimensions."""
+        """Number of image dimensions.
+
+        Examples
+        --------
+        >>> from glymur import Jp2kr
+        >>> jp2file = glymur.data.nemo()
+        >>> j = Jp2kr(jp2file)
+        >>> j.ndim
+        3
+        """
         return len(self.shape)
 
     @property
     def codestream(self):
-        """Metadata for JP2 or J2K codestream header."""
+        """Metadata for JP2 or J2K codestream header.
+
+        Examples
+        --------
+        >>> from glymur import Jp2kr
+        >>> jp2file = glymur.data.nemo()
+        >>> c = Jp2kr(jp2file).codestream
+        >>> print(c.segment[0])
+        SOC marker segment @ (85, 0)
+        >>> len(c.segment)
+        5
+        """
         if self._codestream is None:
             self._codestream = self.get_codestream(header_only=True)
         return self._codestream
 
     @property
     def tilesize(self):
-        """Height and width of the image tiles."""
+        """Height and width of the image tiles.
+
+        Examples
+        --------
+        >>> jp = glymur.Jp2kr(glymur.data.nemo())
+        >>> print(jp.shape)
+        (1456, 2592, 3)
+        >>> print(jp.tilesize)
+        (1456, 2592)
+        """
 
         if not hasattr(self, '_tilesize_w') and self._tilesize_r is None:
             # file was opened as read-only case
@@ -275,6 +342,16 @@ class Jp2kr(Jp2kBox):
     def verbose(self):
         """If true, print informational messages produced by the
         OpenJPEG library.  Defaults to false.
+
+        Examples
+        --------
+        >>> import skimage
+        >>> j = glymur.Jp2k('moon.jp2', tilesize=[256, 256], verbose=True)
+        >>> j[:] = skimage.data.moon()
+        [INFO] tile number 1 / 4
+        [INFO] tile number 2 / 4
+        [INFO] tile number 3 / 4
+        [INFO] tile number 4 / 4
         """
         return self._verbose
 
@@ -284,7 +361,14 @@ class Jp2kr(Jp2kBox):
 
     @property
     def shape(self):
-        """Dimensions of full resolution image."""
+        """Dimensions of full resolution image.
+
+        Examples
+        --------
+        >>> jp = glymur.Jp2kr(glymur.data.nemo())
+        >>> print(jp.shape)
+        (1456, 2592, 3)
+        """
         return self._shape
 
     @shape.setter
@@ -933,7 +1017,7 @@ class Jp2kr(Jp2kBox):
         --------
         >>> jfile = glymur.data.nemo()
         >>> jp2 = glymur.Jp2k(jfile)
-        >>> codestream = jp2.get_codestream()
+        >>> codestream = jp2.get_codestream(header_only=False)
         >>> print(codestream.segment[1])
         SIZ marker segment @ (87, 47)
             Profile:  no profile
@@ -944,6 +1028,10 @@ class Jp2kr(Jp2kBox):
             Bitdepth:  (8, 8, 8)
             Signed:  (False, False, False)
             Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))
+        >>> print(len(codestream.segment))
+        12
+        >>> print(codestream.segment[-1])
+        EOC marker segment @ (1132371, 0)
         """
         with self.path.open("rb") as fptr:
 
