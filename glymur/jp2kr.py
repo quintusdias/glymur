@@ -216,7 +216,17 @@ class Jp2kr(Jp2kBox):
 
     @property
     def dtype(self):
-        """Datatype of the image."""
+        """Datatype of the image.
+
+        Examples
+        --------
+        >>> from glymur import Jp2kr
+        >>> jp2file = glymur.data.nemo()
+        >>> j = Jp2kr(jp2file)
+        >>> j.dtype
+        numpy.uint8
+        """
+
         if self._dtype is None:
             c = self.get_codestream()
             bps0 = c.segment[1].bitdepth[0]
@@ -243,12 +253,32 @@ class Jp2kr(Jp2kBox):
 
     @property
     def ndim(self):
-        """Number of image dimensions."""
+        """Number of image dimensions.
+
+        Examples
+        --------
+        >>> from glymur import Jp2kr
+        >>> jp2file = glymur.data.nemo()
+        >>> j = Jp2kr(jp2file)
+        >>> j.ndim
+        3
+        """
         return len(self.shape)
 
     @property
     def codestream(self):
-        """Metadata for JP2 or J2K codestream header."""
+        """Metadata for JP2 or J2K codestream header.
+
+        Examples
+        --------
+        >>> from glymur import Jp2kr
+        >>> jp2file = glymur.data.nemo()
+        >>> c = Jp2kr(jp2file).codestream
+        >>> print(c.segment[0])
+        SOC marker segment @ (85, 0)
+        >>> len(c.segment)
+        5
+        """
         if self._codestream is None:
             self._codestream = self.get_codestream(header_only=True)
         return self._codestream
