@@ -14,7 +14,7 @@ description = 'Read and write JPEG 2000 files'
 dependencies = [
     'numpy',
     'lxml',
-    'imageio',
+    'PIL',
 ]
 keywords = ['JPEG2000', 'JPEG', '2000', 'imagery']
 license = 'MIT'

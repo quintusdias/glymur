@@ -6,7 +6,8 @@ import struct
 from typing import Tuple
 
 # 3rd party library imports
-import imageio.v3 as iio
+import numpy as np
+from PIL import Image
 
 # local imports
 from .jp2k import Jp2k
@@ -185,7 +186,8 @@ class JPEG2JP2(_2JP2Converter):
 
     def copy_image(self):
         """Transfer the image data from the JPEG to the JP2 file."""
-        image = iio.imread(self.jpeg_path)
+        with Image.open(self.jpeg_path) as im:
+            image = np.array(im)
 
         self.jp2 = Jp2k(
             self.jp2_path,
