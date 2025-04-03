@@ -224,7 +224,7 @@ class Jp2kr(Jp2kBox):
         >>> jp2file = glymur.data.nemo()
         >>> j = Jp2kr(jp2file)
         >>> j.dtype
-        numpy.uint8
+        <class 'numpy.uint8'>
         """
 
         if self._dtype is None:
