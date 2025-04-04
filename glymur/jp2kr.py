@@ -313,7 +313,17 @@ class Jp2kr(Jp2kBox):
 
     @property
     def tilesize(self):
-        """Height and width of the image tiles."""
+        """Height and width of the image tiles.
+
+        Examples
+        --------
+        >>> jp = glymur.Jp2kr(glymur.data.nemo())
+        >>> print(jp.shape)
+        (1456, 2592, 3)
+        >>> print(jp.tilesize)
+        (1456, 2592)
+        """
+
 
         if not hasattr(self, '_tilesize_w') and self._tilesize_r is None:
             # file was opened as read-only case
