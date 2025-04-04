@@ -342,7 +342,14 @@ class Jp2kr(Jp2kBox):
 
     @property
     def shape(self):
-        """Dimensions of full resolution image."""
+        """Dimensions of full resolution image.
+
+        Examples
+        --------
+        >>> jp = glymur.Jp2kr(glymur.data.nemo())
+        >>> print(jp.shape)
+        (1456, 2592, 3)
+        """
         return self._shape
 
     @shape.setter
