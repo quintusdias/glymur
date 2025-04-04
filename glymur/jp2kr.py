@@ -147,7 +147,23 @@ class Jp2kr(Jp2kBox):
     @property
     def ignore_pclr_cmap_cdef(self):
         """If true, ignore the pclr, cmap, or cdef boxes during any
-        color transformation.  Defaults to false.
+        color transformation.  Why would you wish to do that?  In the immortal
+        words of Critical Drinker, don't know!
+
+        Defaults to false.
+
+        Examples
+        --------
+        >>> from glymur import Jp2kr
+        >>> jpxfile = glymur.data.jpxfile()
+        >>> j = Jp2kr(jpxfile)
+        >>> d = j[:]
+        >>> print(d.shape)
+        (1024, 1024, 3)
+        >>> j.ignore_pclr_cmap_cdef = True
+        >>> d = j[:]
+        >>> print(d.shape)
+        (1024, 1024)
         """
         return self._ignore_pclr_cmap_cdef
 
