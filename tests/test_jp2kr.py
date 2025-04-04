@@ -47,6 +47,17 @@ class TestJp2kr(fixtures.TestCommon):
         j = Jp2kr(self.j2kfile)
         self.assertRegex(repr(j), 'glymur.Jp2kr(.*?)')
 
+    def test_tilesize(self):
+        """
+        Scenario:  access the tilesize property after opening a file read-only
+
+        Expected response:  the actual tilesize should be returned
+        """
+        j = Jp2kr(self.j2kfile)
+        actual = j.tilesize
+        expected = 800, 480
+        self.assertEqual(actual, expected)
+
     def test_last_decomposition(self):
         """
         Scenario:  The last decomposition image is requested using [::-1]

@@ -168,7 +168,7 @@ class Jp2k(Jp2kr):
         self._psnr = psnr
         self._sop = sop
         self._subsam = subsam
-        self._tilesize = tilesize
+        self._tilesize_w = tilesize
         self._tlm = tlm
         self._verbose = verbose
 
@@ -458,9 +458,9 @@ class Jp2k(Jp2kr):
             cparams.subsampling_dy = self._subsam[0]
             cparams.subsampling_dx = self._subsam[1]
 
-        if self._tilesize is not None:
-            cparams.cp_tdx = self._tilesize[1]
-            cparams.cp_tdy = self._tilesize[0]
+        if self.tilesize is not None:
+            cparams.cp_tdx = self.tilesize[1]
+            cparams.cp_tdy = self.tilesize[0]
             cparams.tile_size_on = opj2.TRUE
 
         if self._mct is None:

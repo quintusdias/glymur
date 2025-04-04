@@ -102,6 +102,7 @@ class Jp2kr(Jp2kBox):
         self._ndim = None
         self._parse_count = 0
         self._verbose = verbose
+        self._tilesize_r = None
 
         if not self.path.exists():
             raise FileNotFoundError(f"{self.filename} does not exist.")
@@ -255,7 +256,16 @@ class Jp2kr(Jp2kBox):
     @property
     def tilesize(self):
         """Height and width of the image tiles."""
-        return self._tilesize
+
+        if not hasattr(self, '_tilesize_w') and self._tilesize_r is None:
+            # read-only case
+            segment = self.codestream.segment[1]
+            tilesize = segment.ytsiz, segment.xtsiz
+        else:
+            # write case
+            tilesize = self._tilesize_w
+
+        return tilesize
 
     @property
     def verbose(self):
