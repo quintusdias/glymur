@@ -175,6 +175,18 @@ class Jp2kr(Jp2kBox):
     def decoded_components(self):
         """If true, decode only these components.  The MCT will not be used.
         List or scalar or None (default).
+
+        Examples
+        --------
+        >>> from glymur import Jp2kr
+        >>> j = Jp2kr(glymur.data.nemo())
+        >>> rgb = j[:]
+        >>> print(rgb.shape)
+        (1456, 2592, 3)
+        >>> j.decoded_components = 0
+        >>> comp0 = j[:]
+        >>> print(comp0.shape)
+        (1456, 2592)
         """
         return self._decoded_components
 
