@@ -991,7 +991,7 @@ class Jp2kr(Jp2kBox):
         --------
         >>> jfile = glymur.data.nemo()
         >>> jp2 = glymur.Jp2k(jfile)
-        >>> codestream = jp2.get_codestream()
+        >>> codestream = jp2.get_codestream(header_only=False)
         >>> print(codestream.segment[1])
         SIZ marker segment @ (87, 47)
             Profile:  no profile
@@ -1002,6 +1002,10 @@ class Jp2kr(Jp2kBox):
             Bitdepth:  (8, 8, 8)
             Signed:  (False, False, False)
             Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))
+        >>> print(len(codestream.segment))
+        12
+        >>> print(codestream.segment[-1])
+        EOC marker segment @ (1132371, 0)
         """
         with self.path.open("rb") as fptr:
 
