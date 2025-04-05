@@ -86,7 +86,10 @@ class TestSuite(fixtures.TestCommon):
         tilesize = (jp2_data.shape[0], jp2_data.shape[1])
 
         j = glymur.Jp2k(
-            self.temp_jp2_filename, shape=shape, tilesize=tilesize, verbose=True
+            self.temp_jp2_filename,
+            shape=shape,
+            tilesize=tilesize,
+            verbose=True
         )
         with patch("sys.stdout", new=StringIO()) as fake_out:
             for tw in j.get_tilewriters():

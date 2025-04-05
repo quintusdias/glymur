@@ -75,7 +75,9 @@ class TestJPXWrap(fixtures.TestCommon):
         dr_idx.append(1)
 
         # Make the url box for this codestream.
-        url1 = DataEntryURLBox(0, [0, 0, 0], f"file://{self.temp_jp2_filename}")
+        url1 = DataEntryURLBox(
+            0, [0, 0, 0], f"file://{self.temp_jp2_filename}"
+        )
         url1_name_len = len(url1.url) + 1
 
         # Wrap our own J2K file as a JP2 file.
@@ -264,7 +266,8 @@ class TestJPXWrap(fixtures.TestCommon):
             self.assertEqual(jpx.box[-1].box[1].box_id, "xml ")
             self.assertEqual(jpx.box[-1].box[0].associations, numbers)
             self.assertEqual(
-                ET.tostring(jpx.box[-1].box[1].xml.getroot()), b"<data>0</data>"
+                ET.tostring(jpx.box[-1].box[1].xml.getroot()),
+                b"<data>0</data>"
             )
 
     def test_association_label_box(self):
@@ -295,7 +298,8 @@ class TestJPXWrap(fixtures.TestCommon):
             self.assertEqual(jpx.box[-1].box[0].associations, numbers)
             self.assertEqual(jpx.box[-1].box[1].box_id, "xml ")
             self.assertEqual(
-                ET.tostring(jpx.box[-1].box[1].xml.getroot()), b"<data>0</data>"
+                ET.tostring(jpx.box[-1].box[1].xml.getroot()),
+                b"<data>0</data>"
             )
             self.assertEqual(jpx.box[-1].box[2].box_id, "lbl ")
             self.assertEqual(jpx.box[-1].box[2].label, label)

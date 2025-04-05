@@ -2130,7 +2130,9 @@ class _Ifd(object):
                 # tuple.
                 payload = payload[0]
             else:
-                payload = np.array(payload, dtype=DATATYPE2FMT[dtype]["nptype"])
+                payload = np.array(
+                    payload, dtype=DATATYPE2FMT[dtype]["nptype"]
+                )
 
         return payload
 

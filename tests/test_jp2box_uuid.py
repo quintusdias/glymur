@@ -120,23 +120,24 @@ class TestSuite(fixtures.TestCommon):
 
         # Write out all the IFD tags.  Any data that exceeds 4 bytes has to
         # be appended later.
+        fmt = f"{e}HHII"
         lst = [
-            struct.pack(e + "HHII", SUBFILETYPE, TIFF_LONG, 1, 1),
-            struct.pack(e + "HHII", IMAGEWIDTH, TIFF_SHORT, 1, 1),
-            struct.pack(e + "HHII", IMAGELENGTH, TIFF_SHORT, 1, 1),
-            struct.pack(e + "HHII", BITSPERSAMPLE, TIFF_SHORT, 1, 8),
-            struct.pack(e + "HHII", COMPRESSION, TIFF_SHORT, 1, COMPRESSION_NONE),  # noqa : E501
-            struct.pack(e + "HHII", PHOTOMETRIC, TIFF_SHORT, 1, 1),
-            struct.pack(e + "HHII", STRIPOFFSETS, TIFF_LONG, 1, 1),
-            struct.pack(e + "HHII", SAMPLESPERPIXEL, TIFF_SHORT, 1, 1),
-            struct.pack(e + "HHII", ROWSPERSTRIP, TIFF_LONG, 1, 1),
-            struct.pack(e + "HHII", STRIPBYTECOUNTS, TIFF_LONG, 1, 1),
-            struct.pack(e + "HHII", XRESOLUTION, TIFF_RATIONAL, 1, offset),
-            struct.pack(e + "HHII", YRESOLUTION, TIFF_RATIONAL, 1, offset + 8),
-            struct.pack(e + "HHII", MODELPIXELSCALE, TIFF_DOUBLE, 3, offset + 16),  # noqa : E501
-            struct.pack(e + "HHII", MODELTIEPOINT, TIFF_DOUBLE, 6, offset + 40),
-            struct.pack(e + "HHII", GEOKEYDIRECTORY, TIFF_SHORT, 24, offset + 88),  # noqa : E501
-            struct.pack(e + "HHII", GEOASCIIPARAMS, TIFF_ASCII, 45, offset + 136),  # noqa : E501
+            struct.pack(fmt, SUBFILETYPE, TIFF_LONG, 1, 1),
+            struct.pack(fmt, IMAGEWIDTH, TIFF_SHORT, 1, 1),
+            struct.pack(fmt, IMAGELENGTH, TIFF_SHORT, 1, 1),
+            struct.pack(fmt, BITSPERSAMPLE, TIFF_SHORT, 1, 8),
+            struct.pack(fmt, COMPRESSION, TIFF_SHORT, 1, COMPRESSION_NONE),
+            struct.pack(fmt, PHOTOMETRIC, TIFF_SHORT, 1, 1),
+            struct.pack(fmt, STRIPOFFSETS, TIFF_LONG, 1, 1),
+            struct.pack(fmt, SAMPLESPERPIXEL, TIFF_SHORT, 1, 1),
+            struct.pack(fmt, ROWSPERSTRIP, TIFF_LONG, 1, 1),
+            struct.pack(fmt, STRIPBYTECOUNTS, TIFF_LONG, 1, 1),
+            struct.pack(fmt, XRESOLUTION, TIFF_RATIONAL, 1, offset),
+            struct.pack(fmt, YRESOLUTION, TIFF_RATIONAL, 1, offset + 8),
+            struct.pack(fmt, MODELPIXELSCALE, TIFF_DOUBLE, 3, offset + 16),
+            struct.pack(fmt, MODELTIEPOINT, TIFF_DOUBLE, 6, offset + 40),
+            struct.pack(fmt, GEOKEYDIRECTORY, TIFF_SHORT, 24, offset + 88),
+            struct.pack(fmt, GEOASCIIPARAMS, TIFF_ASCII, 45, offset + 136),
         ]
         for buffer in lst:
             b.write(buffer)

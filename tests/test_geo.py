@@ -11,10 +11,8 @@ import uuid
 import warnings
 
 # 3rd party library imports
-from osgeo import gdal
 from lxml import etree as ET
 import numpy as np
-from packaging.version import Version
 
 # local imports
 from glymur.jp2box import LabelBox, XMLBox, AssociationBox, UUIDBox

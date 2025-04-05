@@ -148,7 +148,9 @@ class TestSuite(TestCommon):
 
     @patch("glymur.config.find_library")
     @patch("glymur.config.platform.system")
-    def test_tiff_not_via_ctypes(self, mock_platform_system, mock_find_library):
+    def test_tiff_not_via_ctypes(
+        self, mock_platform_system, mock_find_library
+    ):
         """
         SCENARIO:  the platform is not anaconda and not MacPorts.  The ctypes
         module does NOT find tiff.

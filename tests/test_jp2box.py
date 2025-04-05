@@ -95,10 +95,11 @@ class TestDataEntryURL(fixtures.TestCommon):
 
             # Go to the last box.  Seek past the L, T, version,
             # and flag fields.
+            lastbox = jp22.box[-1]
             with open(tfile.name, "rb") as fptr:
-                fptr.seek(jp22.box[-1].offset + 4 + 4 + 1 + 3)
+                fptr.seek(lastbox.offset + 4 + 4 + 1 + 3)
 
-                nbytes = jp22.box[-1].offset + jp22.box[-1].length - fptr.tell()
+                nbytes = lastbox.offset + lastbox.length - fptr.tell()
                 read_buffer = fptr.read(nbytes)
                 read_url = read_buffer.decode("utf-8")
                 self.assertEqual(url + chr(0), read_url)

@@ -158,7 +158,9 @@ class _2JP2Converter(object):
                 else:
                     payload = payload[:nvalues]
 
-            tags[tag] = {"dtype": dtype, "nvalues": nvalues, "payload": payload}
+            tags[tag] = {
+                "dtype": dtype, "nvalues": nvalues, "payload": payload
+            }
 
         return tags
 

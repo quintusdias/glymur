@@ -3088,7 +3088,9 @@ class NumberListBox(Jp2kBox):
 
     def write(self, fptr):
         """Write a NumberList box to file."""
-        fptr.write(struct.pack(">I4s", len(self.associations) * 4 + 8, b"nlst"))
+        fptr.write(
+             struct.pack(">I4s", len(self.associations) * 4 + 8, b"nlst")
+        )
 
         fmt = ">" + "I" * len(self.associations)
         write_buffer = struct.pack(fmt, *self.associations)
