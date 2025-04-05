@@ -324,7 +324,6 @@ class Jp2kr(Jp2kBox):
         (1456, 2592)
         """
 
-
         if not hasattr(self, '_tilesize_w') and self._tilesize_r is None:
             # file was opened as read-only case
             segment = self.codestream.segment[1]

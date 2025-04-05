@@ -336,7 +336,30 @@ class Jp2k(Jp2kr):
             raise RuntimeError(msg)
 
     def get_tilewriters(self):
-        """Return an object that facilitates writing tile by tile."""
+        """Return an object that facilitates writing tile by tile.
+
+        The tiles are written out left-to-right, tile-row-by-tile-row.
+        You must have image data ready to feed each tile writer, and you
+        cannot skip a tile.
+
+        You can use this method to write extremely large images that cannot
+        fit into memory, tile by tile.
+
+        Examples
+        --------
+        >>> import skimage.data
+        >>> img = skimage.data.moon()
+        >>> print(img.shape)
+        (512, 512)
+        >>> shape = img.shape[0] * 2, img.shape[1] * 2
+        >>> tilesize = (img.shape[0], img.shape[1])
+        >>> j = Jp2k('moon-4.jp2', shape=shape, tilesize=tilesize)
+        >>> for tw in j.get_tilewriters():
+        ...     tw[:] = img
+        >>> j = Jp2kr('moon-4.jp2')
+        >>> print(j.shape)
+        (1024, 1024)
+        """
 
         if self.shape[:2] == self.tilesize:
             msg = (
@@ -715,6 +738,48 @@ class Jp2k(Jp2kr):
         ----------
         box : Jp2Box
             Instance of a JP2 box.
+
+        Examples
+        --------
+        >>> import io, shutil, lxml.etree as ET
+        >>> _ = shutil.copyfile(glymur.data.nemo(), 'new-nemo.jp2')
+        >>> j = glymur.Jp2k('new-nemo.jp2')
+        >>> b = io.BytesIO(b'''
+        ... <info>
+        ...     <city>Nashville</city>
+        ...     <city>Knoxville</city>
+        ...     <city>Whoville</city>
+        ... </info>
+        ... ''')
+        >>> doc = ET.parse(b)
+        >>> xmlbox = glymur.jp2box.XMLBox(xml=doc)
+        >>> j.append(xmlbox)
+        >>> glymur.set_option('print.codestream', False)
+        >>> print(j)
+        File:  new-nemo.jp2
+        JPEG 2000 Signature Box (jP  ) @ (0, 12)
+            Signature:  0d0a870a
+        File Type Box (ftyp) @ (12, 20)
+            Brand:  jp2 
+            Compatibility:  ['jp2 ']
+        JP2 Header Box (jp2h) @ (32, 45)
+            Image Header Box (ihdr) @ (40, 22)
+                Size:  [1456 2592 3]
+                Bitdepth:  8
+                Signed:  False
+                Compression:  wavelet
+                Colorspace Unknown:  False
+            Colour Specification Box (colr) @ (62, 15)
+                Method:  enumerated colorspace
+                Precedence:  0
+                Colorspace:  sRGB
+        Contiguous Codestream Box (jp2c) @ (77, 1132296)
+        XML Box (xml ) @ (1132373, 102)
+            <info>
+                <city>Nashville</city>
+                <city>Knoxville</city>
+                <city>Whoville</city>
+            </info>
         """
         if self._codec_format == opj2.CODEC_J2K:
             msg = "You cannot append to a J2K file (raw codestream)."
@@ -761,7 +826,9 @@ class Jp2k(Jp2kr):
         This method is primarily aimed at wrapping a raw codestream in a set of
         of JP2 boxes (turning it into a JP2 file instead of just a raw
         codestream), or rewrapping a codestream in a JP2 file in a new "jacket"
-        of JP2 boxes.
+        of JP2 boxes.  Wrapping a raw codestream preserves the internal
+        structure of the codestream, whereas simply writing it back out by
+        invoking the Jp2k constructor might rewrite the internal structure.
 
         Parameters
         ----------
@@ -778,6 +845,21 @@ class Jp2k(Jp2kr):
         -------
         Jp2k
             Newly wrapped Jp2k object.
+
+        Examples
+        --------
+
+        >>> j2c = glymur.Jp2k(glymur.data.goodstuff())
+        >>> jp2 = j2c.wrap('new-goodstuff.jp2')
+        >>> glymur.set_option('print.short', True)
+        >>> print(jp2)
+        File:  new-goodstuff.jp2
+        JPEG 2000 Signature Box (jP  ) @ (0, 12)
+        File Type Box (ftyp) @ (12, 20)
+        JP2 Header Box (jp2h) @ (32, 45)
+            Image Header Box (ihdr) @ (40, 22)
+            Colour Specification Box (colr) @ (62, 15)
+        Contiguous Codestream Box (jp2c) @ (77, 115228)
         """
         if boxes is None:
             boxes = self._get_default_jp2_boxes()
