@@ -343,6 +343,16 @@ class Jp2kr(Jp2kBox):
     def verbose(self):
         """If true, print informational messages produced by the
         OpenJPEG library.  Defaults to false.
+
+        Examples
+        --------
+        >>> import skimage
+        >>> j = glymur.Jp2k('moon.jp2', tilesize=[256, 256], verbose=True)
+        >>> j[:] = skimage.data.moon()
+        [INFO] tile number 1 / 4
+        [INFO] tile number 2 / 4
+        [INFO] tile number 3 / 4
+        [INFO] tile number 4 / 4
         """
         return self._verbose
 
