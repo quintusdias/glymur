@@ -323,7 +323,7 @@ class Jp2k(Jp2kr):
 
         if (
             self._shape is not None
-            and self.tilesize is not None
+            and self._tilesize_w is not None
             and (
                 self.tilesize[0] > self.shape[0]
                 or self.tilesize[1] > self.shape[1]
@@ -458,7 +458,7 @@ class Jp2k(Jp2kr):
             cparams.subsampling_dy = self._subsam[0]
             cparams.subsampling_dx = self._subsam[1]
 
-        if self.tilesize is not None:
+        if self._tilesize_w is not None:
             cparams.cp_tdx = self.tilesize[1]
             cparams.cp_tdy = self.tilesize[0]
             cparams.tile_size_on = opj2.TRUE

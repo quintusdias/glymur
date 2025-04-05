@@ -53,6 +53,17 @@ class TestJp2k(fixtures.TestCommon):
         d = j[:]
         self.assertEqual(d.shape, (20, 20))
 
+    def test_tilesize_property(self):
+        """
+        Scenario:  open existing jp2 in read-write mode
+
+        Expected response:  the tilesize is reported, is not None
+        """
+        j = Jp2k(self.jp2file)
+        actual = j.tilesize
+        expected = 1456, 2592
+        self.assertEqual(actual, expected)
+
     def test_repr(self):
         """
         Scenario:  run repr on Jp2k object

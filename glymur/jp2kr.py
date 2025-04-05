@@ -258,11 +258,15 @@ class Jp2kr(Jp2kBox):
         """Height and width of the image tiles."""
 
         if not hasattr(self, '_tilesize_w') and self._tilesize_r is None:
-            # read-only case
+            # file was opened as read-only case
+            segment = self.codestream.segment[1]
+            tilesize = segment.ytsiz, segment.xtsiz
+        elif self._tilesize_w is None:
+            # read-write case, but we are reading not writing
             segment = self.codestream.segment[1]
             tilesize = segment.ytsiz, segment.xtsiz
         else:
-            # write case
+            # write-only case
             tilesize = self._tilesize_w
 
         return tilesize
