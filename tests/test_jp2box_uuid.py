@@ -218,7 +218,9 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  Should not error out.  Verify the UUID type.  Verify
         the existance of one of the "Exif.Photo" tags.
         """
-        box_data = ir.files("tests.data").joinpath("issue549.dat").read_bytes()
+        box_data = ir.files("tests.data.misc") \
+                     .joinpath("issue549.dat") \
+                     .read_bytes()
         bf = io.BytesIO(box_data)
         box = UUIDBox.parse(bf, 0, len(box_data))
 
@@ -238,7 +240,9 @@ class TestSuite(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        box_data = ir.files("tests.data").joinpath("issue549.dat").read_bytes()
+        box_data = ir.files("tests.data.misc") \
+                     .joinpath("issue549.dat") \
+                     .read_bytes()
         bf = io.BytesIO(box_data[:16] + box_data[20:])
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
@@ -256,7 +260,7 @@ class TestSuite(fixtures.TestCommon):
         """
         the_uuid = uuid.UUID("be7acfcb-97a9-42e8-9c71-999491e3afac")
         raw_data = (
-            ir.files("tests.data")
+            ir.files("tests.data.misc")
             .joinpath("simple_rdf.txt")
             .read_text()
             .encode("utf-8")

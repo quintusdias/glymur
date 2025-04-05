@@ -595,7 +595,7 @@ class TestPrintingOpenjp2(unittest.TestCase):
             print(dparams)
             actual = fake_out.getvalue().strip()
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.misc')
               .joinpath('decompression_parameters_type.txt')
               .read_text()
               .rstrip()
@@ -609,7 +609,7 @@ class TestPrintingOpenjp2(unittest.TestCase):
             print(ptype)
             actual = fake_out.getvalue().strip()
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.misc')
               .joinpath('default_progression_order_changes_type.txt')
               .read_text()
               .rstrip()
@@ -623,7 +623,7 @@ class TestPrintingOpenjp2(unittest.TestCase):
             print(cparams)
             actual = fake_out.getvalue().strip()
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.misc')
               .joinpath('default_compression_parameters_type.txt')
               .read_text()
               .rstrip()

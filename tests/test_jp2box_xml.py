@@ -34,7 +34,7 @@ class TestXML(fixtures.TestCommon):
     def setUp(self):
         super().setUp()
 
-        p = ir.files("tests.data").joinpath("countries.xml")
+        p = ir.files("tests.data.misc").joinpath("countries.xml")
         dest_path = self.test_dir_path / "data.xml"
         shutil.copyfile(p, dest_path)
         self.xmlfile_path = dest_path
@@ -172,7 +172,9 @@ class TestXML(fixtures.TestCommon):
 
         EXPECTED RESULT:  The xml box is validated.
         """
-        xmldata = ir.files("tests.data").joinpath("encoding_declaration.xml").read_bytes()  # noqa : E501
+        xmldata = ir.files("tests.data.misc") \
+                    .joinpath("encoding_declaration.xml") \
+                    .read_bytes()
         with open(self.temp_jp2_filename, mode="wb") as ofile:
             with open(self.jp2file, mode="rb") as ifile:
                 ofile.write(ifile.read())

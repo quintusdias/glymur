@@ -48,7 +48,8 @@ class TestPrinting(fixtures.TestCommon):
 
         Expected Result:  segment is verified
         """
-        htj2k_file = ir.files('tests.data').joinpath('oj-ht-byte.jph')
+        htj2k_file = ir.files('tests.data.from-openjpeg') \
+                       .joinpath('oj-ht-byte.jph')
         j = glymur.Jp2kr(htj2k_file)
         actual = str(j.codestream.segment[2])
         expected = (
@@ -165,13 +166,15 @@ class TestPrinting(fixtures.TestCommon):
         EXPECTED RESULT:  The string representation of the XML box matches
         expectations.
         """
-        s = ir.files('tests.data').joinpath('file1_xml.txt').read_text()
+        s = ir.files('tests.data.conformance') \
+              .joinpath('file1_xml.txt') \
+              .read_text()
         elt = ET.fromstring(s)
         xml = ET.ElementTree(elt)
         box = glymur.jp2box.XMLBox(xml=xml, length=439, offset=36)
         actual = str(box)
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.conformance')
               .joinpath('file1_xml_box.txt')
               .read_text()
               .rstrip()
@@ -182,7 +185,9 @@ class TestPrinting(fixtures.TestCommon):
         """
         verify printing of XML box when print.xml option set to false
         """
-        s = ir.files('tests.data').joinpath('file1_xml.txt').read_text()
+        s = ir.files('tests.data.conformance') \
+              .joinpath('file1_xml.txt') \
+              .read_text()
         elt = ET.fromstring(s)
         xml = ET.ElementTree(elt)
         box = glymur.jp2box.XMLBox(xml=xml, length=439, offset=36)
@@ -190,7 +195,7 @@ class TestPrinting(fixtures.TestCommon):
 
         actual = str(box)
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.conformance')
               .joinpath('file1_xml_box.txt')
               .read_text()
               .rstrip()
@@ -202,7 +207,9 @@ class TestPrinting(fixtures.TestCommon):
         """
         verify printing of XML box when print.xml option set to false
         """
-        s = ir.files('tests.data').joinpath('file1_xml.txt').read_text()
+        s = ir.files('tests.data.conformance') \
+              .joinpath('file1_xml.txt') \
+              .read_text()
         elt = ET.fromstring(s)
         xml = ET.ElementTree(elt)
         box = glymur.jp2box.XMLBox(xml=xml, length=439, offset=36)
@@ -210,7 +217,7 @@ class TestPrinting(fixtures.TestCommon):
         glymur.set_option('print.xml', False)
         actual = str(box)
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.conformance')
               .joinpath('file1_xml_box.txt')
               .read_text()
               .rstrip()
@@ -257,7 +264,7 @@ class TestPrinting(fixtures.TestCommon):
                                                    offset=174)
         actual = str(segment)
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.misc')
               .joinpath('issue186_progression_order.txt')
               .read_text()
               .rstrip()
@@ -723,7 +730,7 @@ class TestPrinting(fixtures.TestCommon):
         """
         the_uuid = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
         raw_data = (
-            ir.files('tests.data')
+            ir.files('tests.data.misc')
               .joinpath('simple_rdf.txt')
               .read_text()
               .encode('utf-8')
@@ -733,7 +740,7 @@ class TestPrinting(fixtures.TestCommon):
         actual = str(ubox)
 
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.misc')
               .joinpath('simple_rdf.uuid-box.txt')
               .read_text()
               .rstrip()
@@ -747,7 +754,7 @@ class TestPrinting(fixtures.TestCommon):
         j = glymur.Jp2k(self.jp2file)
         actual = str(j.get_codestream())
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.misc')
               .joinpath('nemo.txt')
               .read_text()
               .rstrip()
@@ -1333,7 +1340,7 @@ class TestPrinting(fixtures.TestCommon):
 
         EXPECTED RESULT:  validate the string representation
         """
-        path = ir.files('tests.data').joinpath('text_GBR.jp2')
+        path = ir.files('tests.data.from-openjpeg').joinpath('text_GBR.jp2')
         with self.assertWarns(UserWarning):
             # The brand is wrong, this is JPX, not JP2.
             j = Jp2k(path)
@@ -1376,7 +1383,7 @@ class TestPrinting(fixtures.TestCommon):
                                                   length=109, offset=40)
         actual = str(box)
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.from-openjpeg')
               .joinpath('text_GBR_rreq.txt')
               .read_text()
               .rstrip()
@@ -1425,7 +1432,7 @@ class TestPrinting(fixtures.TestCommon):
 
         actual = str(codestream.segment[2])
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.misc')
               .joinpath('multiple_precinct_size.txt')
               .read_text()
               .rstrip()
@@ -1447,7 +1454,7 @@ class TestPrinting(fixtures.TestCommon):
         actual = '\n'.join(actual.splitlines()[1:])
 
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.misc')
               .joinpath('nemo_dump_short.txt')
               .read_text()
               .rstrip()
@@ -1475,7 +1482,7 @@ class TestPrinting(fixtures.TestCommon):
 
         # shave off the XML and non-main-header segments
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.misc')
               .joinpath('nemo_dump_no_xml.txt')
               .read_text()
               .rstrip()
@@ -1492,7 +1499,9 @@ class TestPrinting(fixtures.TestCommon):
         """
         Verify printing with xml suppressed
         """
-        s = ir.files('tests.data').joinpath('file1_xml.txt').read_text()
+        s = ir.files('tests.data.conformance') \
+              .joinpath('file1_xml.txt') \
+              .read_text()
         elt = ET.fromstring(s)
         xml = ET.ElementTree(elt)
         box = glymur.jp2box.XMLBox(xml=xml, length=439, offset=36)
@@ -1508,7 +1517,7 @@ class TestPrinting(fixtures.TestCommon):
         # Get rid of the file line, that's kind of volatile.
         actual = '\n'.join(actual.splitlines()[1:])
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.misc')
               .joinpath('appended_xml_box.txt')
               .read_text()
               .rstrip()
@@ -1534,7 +1543,7 @@ class TestPrinting(fixtures.TestCommon):
         actual = '\n'.join(actual.splitlines()[1:])
 
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.misc')
               .joinpath('nemo_dump_no_codestream.txt')
               .read_text()
               .rstrip()
@@ -1557,7 +1566,7 @@ class TestPrinting(fixtures.TestCommon):
         actual = '\n'.join(str(jp2).splitlines()[1:])
 
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.misc')
               .joinpath('nemo_dump_no_codestream.txt')
               .read_text()
               .rstrip()
@@ -1578,7 +1587,7 @@ class TestPrinting(fixtures.TestCommon):
         actual = '\n'.join(str(jp2).splitlines()[1:])
 
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.misc')
               .joinpath('nemo.txt')
               .read_text()
               .rstrip()
@@ -1594,30 +1603,30 @@ class TestPrinting(fixtures.TestCommon):
 
         EXPECTED RESULT:  validate the string representation
         """
-        path = ir.files('tests.data').joinpath('p0_02.j2k')
+        path = ir.files('tests.data.conformance').joinpath('p0_02.j2k')
         j = Jp2k(path)
         actual = str(j.codestream.segment[6])
         expected = '0xff30 marker segment @ (132, 0)'
         self.assertEqual(actual, expected)
 
     def test_scalar_implicit_quantization_file(self):
-        path = ir.files('tests.data').joinpath('p0_03.j2k')
+        path = ir.files('tests.data.conformance').joinpath('p0_03.j2k')
         j = Jp2k(path)
         actual = str(j.codestream.segment[3])
         self.assertIn('scalar implicit', actual)
 
     def test_scalar_explicit_quantization_file(self):
-        path = ir.files('tests.data').joinpath('p0_06.j2k')
+        path = ir.files('tests.data.conformance').joinpath('p0_06.j2k')
         j = Jp2k(path)
         actual = str(j.codestream.segment[3])
         self.assertIn('scalar explicit', actual)
 
     def test_non_default_precinct_size(self):
-        path = ir.files('tests.data').joinpath('p1_07.j2k')
+        path = ir.files('tests.data.conformance').joinpath('p1_07.j2k')
         j = Jp2k(path)
         actual = str(j.codestream.segment[3])
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.conformance')
               .joinpath('p1_07.txt')
               .read_text()
               .rstrip()
@@ -1630,7 +1639,7 @@ class TestPrinting(fixtures.TestCommon):
 
         Expected result:  no warnings, the output is verified
         """
-        path = ir.files('tests.data').joinpath('oj-ht-byte.jph')
+        path = ir.files('tests.data.from-openjpeg').joinpath('oj-ht-byte.jph')
 
         with warnings.catch_warnings():
             warnings.simplefilter('error')
@@ -1638,7 +1647,7 @@ class TestPrinting(fixtures.TestCommon):
             actual = str(j.codestream.segment[1])
 
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.from-openjpeg')
               .joinpath('jph_siz.txt')
               .read_text()
               .rstrip()
@@ -1728,7 +1737,7 @@ class TestJp2dump(fixtures.TestCommon):
         """
         the_uuid = UUID('be7acfcb-97a9-42e8-9c71-999491e3afac')
         raw_data = (
-            ir.files('tests.data')
+            ir.files('tests.data.misc')
               .joinpath('simple_rdf.txt')
               .read_text()
               .encode('utf-8')
@@ -1764,7 +1773,9 @@ class TestJp2dump(fixtures.TestCommon):
 
         EXPECTED RESULT:  a UUIDBox string showing that it is invalid
         """
-        box_data = ir.files('tests.data').joinpath('issue549.dat').read_bytes()
+        box_data = ir.files('tests.data.misc') \
+                     .joinpath('issue549.dat') \
+                     .read_bytes()
         bf = BytesIO(box_data[:16] + box_data[20:])
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")

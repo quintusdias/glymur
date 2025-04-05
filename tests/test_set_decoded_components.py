@@ -184,7 +184,7 @@ class TestSuite(unittest.TestCase):
         setting decoded_components would require us to use the read_bands
         method.
         """
-        path = ir.files('tests.data').joinpath('p0_06.j2k')
+        path = ir.files('tests.data.conformance').joinpath('p0_06.j2k')
         j2k = Jp2k(path)
 
         expected = j2k.read_bands()[0]
@@ -196,7 +196,7 @@ class TestSuite(unittest.TestCase):
 
         # verify that without using decoded components, we cannot read the
         # image using the slice protocol
-        path = ir.files('tests.data').joinpath('p0_06.j2k')
+        path = ir.files('tests.data.conformance').joinpath('p0_06.j2k')
         j2k = Jp2k(path)
         with self.assertRaises(RuntimeError):
             j2k[:, :, 0]

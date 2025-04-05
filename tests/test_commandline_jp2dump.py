@@ -47,7 +47,7 @@ class TestSuite(fixtures.TestCommon):
 
         # shave off the  non-main-header segments
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.misc')
               .joinpath('nemo.txt')
               .read_text()
               .rstrip()
@@ -62,7 +62,7 @@ class TestSuite(fixtures.TestCommon):
 
         # shave off the codestream details
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.misc')
               .joinpath('nemo.txt')
               .read_text()
               .rstrip()
@@ -77,7 +77,7 @@ class TestSuite(fixtures.TestCommon):
 
         # shave off the  non-main-header segments
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.misc')
               .joinpath('nemo.txt')
               .read_text()
               .rstrip()
@@ -90,7 +90,7 @@ class TestSuite(fixtures.TestCommon):
         """Verify dumping with -c 2, print entire jp2 jacket, codestream."""
         actual = self.run_jp2dump(['', '-c', '2', self.jp2file])
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.misc')
               .joinpath('nemo.txt')
               .read_text()
               .rstrip()
@@ -118,7 +118,7 @@ class TestSuite(fixtures.TestCommon):
             actual = stdout.getvalue().strip()
 
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.misc')
               .joinpath('goodstuff_codestream_header.txt')
               .read_text()
               .rstrip()
@@ -133,7 +133,7 @@ class TestSuite(fixtures.TestCommon):
             actual = fake_out.getvalue().strip()
 
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.misc')
               .joinpath('goodstuff_with_full_header.txt')
               .read_text()
               .rstrip()
@@ -151,7 +151,7 @@ class TestSuite(fixtures.TestCommon):
         actual = self.run_jp2dump(['', '-s', self.jp2file])
 
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.misc')
               .joinpath('nemo_dump_short.txt')
               .read_text()
               .rstrip()
@@ -161,7 +161,9 @@ class TestSuite(fixtures.TestCommon):
     def test_suppress_xml(self):
         """Verify dumping with -x, suppress XML."""
 
-        s = ir.files('tests.data').joinpath('file1_xml.txt').read_text()
+        s = ir.files('tests.data.conformance') \
+              .joinpath('file1_xml.txt') \
+              .read_text()
         elt = ET.fromstring(s)
         xml = ET.ElementTree(elt)
         box = jp2box.XMLBox(xml=xml, length=439, offset=36)
@@ -174,7 +176,7 @@ class TestSuite(fixtures.TestCommon):
 
         # shave off the XML and non-main-header segments
         expected = (
-            ir.files('tests.data')
+            ir.files('tests.data.misc')
               .joinpath('appended_xml_box.txt')
               .read_text()
               .rstrip()
@@ -189,7 +191,8 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  The warning is suppressed until the very end of the
         output.
         """
-        path = ir.files('tests.data').joinpath('edf_c2_1178956.jp2')
+        path = ir.files('tests.data.from-openjpeg') \
+                 .joinpath('edf_c2_1178956.jp2')
         actual = self.run_jp2dump(['', '-x', str(path)])
         lines = actual.splitlines()
 

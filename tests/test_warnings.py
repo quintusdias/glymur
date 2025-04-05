@@ -43,7 +43,7 @@ class TestSuite(fixtures.TestCommon):
         EXPECTED RESULT:  A warning is issued.  In this case we also end up
         erroring out anyway since we don't get a valid FileType box.
         """
-        path = ir.files('tests.data').joinpath('issue438.jp2')
+        path = ir.files('tests.data.from-openjpeg').joinpath('issue438.jp2')
         with self.assertWarns(UserWarning):
             with self.assertRaises(InvalidJp2kError):
                 Jp2k(path)
@@ -399,7 +399,7 @@ class TestSuite(fixtures.TestCommon):
 
     def test_colr_with_cspace_and_icc(self):
         """Colour specification boxes can't have both."""
-        buffer = ir.files('tests.data').joinpath('sgray.icc').read_bytes()
+        buffer = ir.files('tests.data.misc').joinpath('sgray.icc').read_bytes()
 
         with self.assertWarns(UserWarning):
             colorspace = glymur.core.SRGB

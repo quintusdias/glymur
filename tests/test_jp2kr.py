@@ -84,7 +84,7 @@ class TestJp2kr(fixtures.TestCommon):
 
         Expected response:  the dtype property is np.uint16
         """
-        path = ir.files('tests.data').joinpath('uint16.j2k')
+        path = ir.files('tests.data.misc').joinpath('uint16.j2k')
         j = Jp2kr(path)
         self.assertEqual(j.dtype, np.uint16)
 
@@ -105,7 +105,7 @@ class TestJp2kr(fixtures.TestCommon):
 
         Expected response:  the dtype property is np.int8
         """
-        path = ir.files('tests.data').joinpath('p0_03.j2k')
+        path = ir.files('tests.data.conformance').joinpath('p0_03.j2k')
         j = Jp2kr(path)
         self.assertEqual(j.dtype, np.int8)
 
@@ -115,7 +115,7 @@ class TestJp2kr(fixtures.TestCommon):
 
         Expected response:  TypeError when accessing the dtype property.
         """
-        path = ir.files('tests.data').joinpath('issue392.jp2')
+        path = ir.files('tests.data.from-openjpeg').joinpath('issue392.jp2')
 
         with warnings.catch_warnings():
             # There's a warning due to an unrecognized colorspace.  Don't care
@@ -150,7 +150,7 @@ class TestJp2kr(fixtures.TestCommon):
 
         Expected response:  the ndim attribute/property is 2
         """
-        path = ir.files('tests.data').joinpath('p0_02.j2k')
+        path = ir.files('tests.data.conformance').joinpath('p0_02.j2k')
         j = Jp2kr(path)
         self.assertEqual(j.ndim, 2)
 
@@ -161,7 +161,7 @@ class TestJp2kr(fixtures.TestCommon):
 
         EXPECTED RESPONSE: The image is a list of arrays of unequal size.
         """
-        path = ir.files('tests.data').joinpath('p0_06.j2k')
+        path = ir.files('tests.data.conformance').joinpath('p0_06.j2k')
         d = Jp2kr(path).read_bands()
 
         actual = [band.shape for band in d]
@@ -295,7 +295,7 @@ class TestJp2kr(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        path = ir.files('tests.data').joinpath('nemo.txt')
+        path = ir.files('tests.data.misc').joinpath('nemo.txt')
         with self.assertRaises(InvalidJp2kError):
             Jp2kr(path)
 
@@ -815,7 +815,7 @@ class TestJp2kr(fixtures.TestCommon):
 
         EXPECTED RESULT:  The 2nd image read in is not the same as the first.
         """
-        path = ir.files('tests.data').joinpath('p0_03.j2k')
+        path = ir.files('tests.data.conformance').joinpath('p0_03.j2k')
         j = Jp2kr(path)
         d0 = j[:]
 
@@ -831,7 +831,7 @@ class TestJp2kr(fixtures.TestCommon):
         EXPECTED RESULT:  RuntimeError when an invalid layer number is supplied
         """
         # There are 8 layers, so only values [0-7] are valid.
-        path = ir.files('tests.data').joinpath('p0_03.j2k')
+        path = ir.files('tests.data.conformance').joinpath('p0_03.j2k')
         j = Jp2kr(path)
 
         with self.assertRaises(ValueError):
@@ -850,7 +850,7 @@ class TestJp2kr(fixtures.TestCommon):
 
         EXPECTED RESULT:  The default verbosity setting is False.
         """
-        path = ir.files('tests.data').joinpath('p0_03.j2k')
+        path = ir.files('tests.data.conformance').joinpath('p0_03.j2k')
         j = Jp2kr(path)
 
         self.assertFalse(j.verbose)
@@ -861,7 +861,7 @@ class TestJp2kr(fixtures.TestCommon):
 
         EXPECTED RESULT:  The default layer property value is 0.
         """
-        path = ir.files('tests.data').joinpath('p0_03.j2k')
+        path = ir.files('tests.data.conformance').joinpath('p0_03.j2k')
         j = Jp2kr(path)
 
         self.assertEqual(j.layer, 0)

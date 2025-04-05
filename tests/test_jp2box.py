@@ -354,7 +354,7 @@ class TestFileTypeBox(fixtures.TestCommon):
 
         EXPECTED RESULT:  The brand is verified.
         """
-        path = ir.files("tests.data").joinpath("oj-ht-byte.jph")
+        path = ir.files("tests.data.from-openjpeg").joinpath("oj-ht-byte.jph")
         j = Jp2kr(path)
         self.assertEqual(j.box[1].brand, "jph ")
 
@@ -364,7 +364,7 @@ class TestFileTypeBox(fixtures.TestCommon):
 
         EXPECTED RESULT:  RuntimeError
         """
-        path = ir.files("tests.data").joinpath("issue396.jp2")
+        path = ir.files("tests.data.from-openjpeg").joinpath("issue396.jp2")
         with warnings.catch_warnings():
             # Lots of things wrong with this file.
             warnings.simplefilter("ignore")
@@ -1079,7 +1079,7 @@ class TestJp2Boxes(fixtures.TestCommon):
         EXPECTED RESULT:  An InvalidJp2kError is issued when the file is
         parsed.
         """
-        testfile = ir.files("tests.data").joinpath("no_jp2c.jp2")
+        testfile = ir.files("tests.data.misc").joinpath("no_jp2c.jp2")
 
         with warnings.catch_warnings():
             # Lots of things wrong with this file.
@@ -1489,7 +1489,7 @@ class TestRepr(fixtures.TestCommon):
         """
         the_uuid = UUID("be7acfcb-97a9-42e8-9c71-999491e3afac")
         raw_data = (
-            ir.files("tests.data")
+            ir.files("tests.data.misc")
             .joinpath("simple_rdf.txt")
             .read_text()
             .encode("utf-8")

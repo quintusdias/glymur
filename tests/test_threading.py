@@ -127,7 +127,7 @@ class TestSuite(fixtures.TestCommon):
         Expected Result.  No errors.  If openjpeg is earlier than 2.5.0, there
         will be a warning.
         """
-        path = ir.files('tests.data').joinpath('basn6a08.tif')
+        path = ir.files('tests.data.tiff').joinpath('basn6a08.tif')
 
         sys.argv = [
             '', str(path), str(self.temp_jp2_filename), '--num-threads', '2',

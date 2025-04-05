@@ -130,7 +130,7 @@ class TestSuite(fixtures.TestCommon):
             f.write(buffer)
 
             # XMP
-            xmp_path = ir.files('tests.data').joinpath('issue555.xmp')
+            xmp_path = ir.files('tests.data.misc').joinpath('issue555.xmp')
             txt = xmp_path.read_text()
             xmp = txt + '\0'
             buffer = struct.pack(
@@ -192,7 +192,7 @@ class TestSuite(fixtures.TestCommon):
 
         cls.exif = path
 
-    def test_psnr_commandline(self):
+    def test_psnr(self):
         """
         SCENARIO:  Convert TIFF file to JP2, specify psnr via the command line
 
@@ -231,7 +231,7 @@ class TestSuite(fixtures.TestCommon):
         # PSNR should increase for the remaining images.
         self.assertTrue(np.all(np.diff(psnr[1:])) > 0)
 
-    def test_layers_commandline(self):
+    def test_layers(self):
         """
         SCENARIO:  Convert TIFF file to JP2 with multiple compression layers
         using the command line.
@@ -253,7 +253,7 @@ class TestSuite(fixtures.TestCommon):
         c = j.get_codestream()
         self.assertEqual(c.segment[2].layers, 3)
 
-    def test_commandline_tiff2jp2(self):
+    def test_tiff2jp2(self):
         """
         Scenario:  patch sys such that we can run the command line tiff2jp2
         script.
@@ -278,7 +278,7 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(c.segment[1].xtsiz, 32)
         self.assertEqual(c.segment[1].ytsiz, 32)
 
-    def test_commandline_tiff2jp2_exclude_tags_numeric(self):
+    def test_tiff2jp2_exclude_tags_numeric(self):
         """
         Scenario:  patch sys such that we can run the command line tiff2jp2
         script.  Exclude TileByteCounts and TileByteOffsets, but provide those
@@ -299,7 +299,7 @@ class TestSuite(fixtures.TestCommon):
         self.assertNotIn('TileByteCounts', tags)
         self.assertNotIn('TileOffsets', tags)
 
-    def test_commandline_tiff2jp2_exclude_tags(self):
+    def test_tiff2jp2_exclude_tags(self):
         """
         Scenario:  patch sys such that we can run the command line tiff2jp2
         script.  Exclude TileByteCounts and TileByteOffsets
@@ -320,7 +320,7 @@ class TestSuite(fixtures.TestCommon):
         self.assertNotIn('TileByteCounts', tags)
         self.assertNotIn('TileOffsets', tags)
 
-    def test_commandline_capture_display_resolution(self):
+    def test_capture_display_resolution(self):
         """
         Scenario:  patch sys such that we can run the command
         line tiff2jp2 script.  Supply the --capture-resolution and
@@ -354,7 +354,7 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(j.box[2].box[2].box[1].vertical_resolution, vresd)
         self.assertEqual(j.box[2].box[2].box[1].horizontal_resolution, hresd)
 
-    def test_commandline__capture_display_resolution__tilesize(self):
+    def test_capture_display_resolution__tilesize(self):
         """
         Scenario:  patch sys such that we can run the command line
         tiff2jp2 script.  Supply the --tilesize, --capture-resolution
@@ -389,7 +389,7 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(j.box[2].box[2].box[1].vertical_resolution, vresd)
         self.assertEqual(j.box[2].box[2].box[1].horizontal_resolution, hresd)
 
-    def test_commandline_tiff2jp2_xmp_uuid(self):
+    def test_tiff2jp2_xmp_uuid(self):
         """
         Scenario:  patch sys such that we can run the command line tiff2jp2
         script.  Use the --create-xmp-uuid option.
@@ -418,7 +418,7 @@ class TestSuite(fixtures.TestCommon):
             j.box[-1].data.getroot().values(), ['Public XMP Toolkit Core 3.5']
         )
 
-    def test_icc_profile_commandline(self):
+    def test_icc_profile(self):
         """
         Scenario:  The input TIFF has the ICC profile tag.  Provide the
         --include-icc-profile argument.
@@ -426,7 +426,7 @@ class TestSuite(fixtures.TestCommon):
         Expected Result.  The ICC profile is verified in the
         ColourSpecificationBox.
         """
-        path = ir.files('tests.data').joinpath('basn6a08.tif')
+        path = ir.files('tests.data.tiff').joinpath('basn6a08.tif')
         buffer = path.read_bytes()
         ifd = glymur.lib.tiff.tiff_header(buffer)
         icc_profile = bytes(ifd['ICCProfile'])
@@ -442,7 +442,7 @@ class TestSuite(fixtures.TestCommon):
         # The colour specification box has the profile
         self.assertEqual(j.box[2].box[1].icc_profile, bytes(icc_profile))
 
-    def test_exclude_icc_profile_commandline(self):
+    def test_exclude_icc_profile(self):
         """
         Scenario:  The input TIFF has the ICC profile tag.  Do not provide the
         --include-icc-profile flag.
@@ -451,7 +451,7 @@ class TestSuite(fixtures.TestCommon):
         profile).  The ICC profile tag will be present in the
         JpgTiffExif->JP2 UUID box.
         """
-        path = ir.files('tests.data').joinpath('basn6a08.tif')
+        path = ir.files('tests.data.tiff').joinpath('basn6a08.tif')
 
         sys.argv = ['', str(path), str(self.temp_jp2_filename)]
         command_line.tiff2jp2()
@@ -466,7 +466,7 @@ class TestSuite(fixtures.TestCommon):
         self.assertEqual(colr.colorspace, SRGB)
         self.assertIsNone(colr.icc_profile)
 
-    def test_exclude_icc_profile_commandline__exclude_from_uuid(self):
+    def test_exclude_icc_profile__exclude_from_uuid(self):
         """
         Scenario:  The input TIFF has the ICC profile tag.  Do not specify
         the --include-icc-profile flag.  Specify the 34675 (ICCProfile) tag
@@ -476,7 +476,7 @@ class TestSuite(fixtures.TestCommon):
         ColourSpecificationBox.  The ICC profile tag will be not present in the
         JpgTiffExif->JP2 UUID box.
         """
-        path = ir.files('tests.data').joinpath('basn6a08.tif')
+        path = ir.files('tests.data.tiff').joinpath('basn6a08.tif')
 
         sys.argv = [
             '', str(path), str(self.temp_jp2_filename),

@@ -29,7 +29,8 @@ class TestSuite(fixtures.TestCommon):
         self.p0_06 = ir.files("tests.data").joinpath("p0_06.j2k")
         self.p1_06 = ir.files("tests.data").joinpath("p1_06.j2k")
         self.issue142 = ir.files("tests.data").joinpath("issue142.j2k")
-        self.htj2k = ir.files("tests.data").joinpath("oj-ht-byte.jph")
+        self.htj2k = ir.files("tests.data.from-openjpeg") \
+                       .joinpath("oj-ht-byte.jph")
 
     def test_cap_marker_segment(self):
         """
@@ -132,7 +133,7 @@ class TestSuite(fixtures.TestCommon):
 
         Expected result:  InvalidJp2kError
         """
-        path = ir.files("tests.data").joinpath("p1_06.j2k")
+        path = ir.files("tests.data.conformance").joinpath("p1_06.j2k")
 
         with tempfile.TemporaryDirectory() as tdir:
             with open(path, mode="rb") as ifile:
@@ -149,7 +150,7 @@ class TestSuite(fixtures.TestCommon):
 
         In this case there's only a single tile.
         """
-        path = ir.files("tests.data").joinpath("p0_06.j2k")
+        path = ir.files("tests.data.conformance").joinpath("p0_06.j2k")
         j2k = Jp2k(path)
 
         buffer = b"\xffU\x00\x08\x00@\x00\x00YW"
@@ -167,7 +168,7 @@ class TestSuite(fixtures.TestCommon):
         """
         Verify parsing of the PPT segment
         """
-        path = ir.files("tests.data").joinpath("p1_06.j2k")
+        path = ir.files("tests.data.conformance").joinpath("p1_06.j2k")
         j2k = Jp2k(path)
         c = j2k.get_codestream(header_only=False)
         self.assertEqual(c.segment[6].zppt, 0)
@@ -176,7 +177,7 @@ class TestSuite(fixtures.TestCommon):
         """
         Verify parsing of the PLT segment
         """
-        path = ir.files("tests.data").joinpath("issue142.j2k")
+        path = ir.files("tests.data.from-openjpeg").joinpath("issue142.j2k")
         c = Jp2k(path).get_codestream(header_only=False)
         self.assertEqual(c.segment[7].zplt, 0)
         self.assertEqual(len(c.segment[7].iplt), 59)
@@ -190,7 +191,9 @@ class TestSuite(fixtures.TestCommon):
             # Lots of things wrong with this file.
             warnings.simplefilter("ignore")
 
-            jp2 = Jp2k(ir.files("tests.data").joinpath("edf_c2_1178956.jp2"))
+            p = ir.files("tests.data.from-openjpeg") \
+                  .joinpath("edf_c2_1178956.jp2")
+            jp2 = Jp2k(p)
 
         c = jp2.get_codestream()
         self.assertEqual(c.segment[2].zppm, 0)
@@ -200,7 +203,7 @@ class TestSuite(fixtures.TestCommon):
         """
         Verify parsing of the CRG segment
         """
-        path = ir.files("tests.data").joinpath("p0_03.j2k")
+        path = ir.files("tests.data.conformance").joinpath("p0_03.j2k")
         j2k = Jp2k(path)
         c = j2k.get_codestream()
         self.assertEqual(c.segment[6].xcrg, (65424,))
@@ -210,7 +213,7 @@ class TestSuite(fixtures.TestCommon):
         """
         Verify parsing of the RGN segment
         """
-        path = ir.files("tests.data").joinpath("p0_06.j2k")
+        path = ir.files("tests.data.conformance").joinpath("p0_06.j2k")
         j2k = Jp2k(path)
         c = j2k.get_codestream()
         self.assertEqual(c.segment[-1].crgn, 0)
@@ -264,7 +267,7 @@ class TestSuite(fixtures.TestCommon):
 
         Expected result:  InvalidJp2kError
         """
-        path = ir.files("tests.data").joinpath("issue626.j2k")
+        path = ir.files("tests.data.from-openjpeg").joinpath("issue626.j2k")
         with self.assertRaises(InvalidJp2kError):
             Jp2k(path)
 

@@ -51,9 +51,9 @@ class TestColourSpecificationBox(fixtures.TestCommon):
             height=height, width=width, num_components=num_components
         )
 
-        self.icc_profile = (
-            ir.files("tests.data").joinpath("sgray.icc").read_bytes()
-        )  # noqa : E501
+        self.icc_profile = ir.files("tests.data.misc") \
+                             .joinpath("sgray.icc") \
+                             .read_bytes()
 
     def test_bad_method_printing(self):
         """
@@ -63,7 +63,7 @@ class TestColourSpecificationBox(fixtures.TestCommon):
         EXPECTED RESULT:  Warnings are issued.  Printing the string
         representation should not error out.
         """
-        path = ir.files("tests.data").joinpath("issue405.dat")
+        path = ir.files("tests.data.misc").joinpath("issue405.dat")
         with path.open("rb") as f:
             f.seek(8)
             with warnings.catch_warnings():
@@ -158,7 +158,9 @@ class TestSuite(unittest.TestCase):
     """Test suite for ICC Profile code."""
 
     def setUp(self):
-        self.buffer = ir.files("tests.data").joinpath("sgray.icc").read_bytes()
+        self.buffer = ir.files("tests.data.misc") \
+                        .joinpath("sgray.icc") \
+                        .read_bytes()
 
     def test_bad_rendering_intent(self):
         """
@@ -189,7 +191,7 @@ class TestSuite(unittest.TestCase):
 
         EXPECTED RESULT:  Verify the ICC profile metadata.
         """
-        path = ir.files("tests.data").joinpath("text_GBR.jp2")
+        path = ir.files("tests.data.from-openjpeg").joinpath("text_GBR.jp2")
         with self.assertWarns(UserWarning):
             # The brand is wrong, this is JPX, not JP2.
             j = Jp2k(path)

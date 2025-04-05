@@ -443,7 +443,7 @@ class TestJPX(fixtures.TestCommon):
 
         EXPECTED RESULT:  The box is parsed without error.
         """
-        path = ir.files("tests.data").joinpath("text_GBR.jp2")
+        path = ir.files("tests.data.from-openjpeg").joinpath("text_GBR.jp2")
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             j = Jp2k(path)
@@ -457,7 +457,7 @@ class TestJPX(fixtures.TestCommon):
 
         EXPECTED RESULT:  NotImplementedError
         """
-        path = ir.files("tests.data").joinpath("text_GBR.jp2")
+        path = ir.files("tests.data.from-openjpeg").joinpath("text_GBR.jp2")
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
             j = Jp2k(path)
