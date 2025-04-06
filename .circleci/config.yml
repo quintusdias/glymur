@@ -42,6 +42,8 @@ test-template: &test-template
           export PATH=$HOME/miniconda/bin:$PATH
           source activate glymur
           pytest -n 4 -x
+          pytest --doctest-glob='*.rst' docs/source/how_do_i.rst
+          pytest --doctest-modules glymur
 
 jobs:
   travis-311-no-gdal:
