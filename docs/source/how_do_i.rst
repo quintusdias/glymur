@@ -771,7 +771,7 @@ are wrapped in a BytesIO object, which is fed to the most-excellent Pillow packa
     >>> from PIL import ImageCms
     >>> from io import BytesIO
     >>> # this assumes you have access to the test suite
-    >>> p = pathlib.Path('tests/data/text_GBR.jp2')
+    >>> p = pathlib.Path('tests/data/from-openjpeg/text_GBR.jp2')
     >>> # This next step may produce a harmless warning that has nothing to do with ICC profiles.
     >>> j = Jp2k(p)
     >>> # The 2nd sub box of the 4th box is a ColourSpecification box.
