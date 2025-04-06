@@ -1,3 +1,6 @@
+Apr 06, 2025 - v0.14.1post2
+    Fix doc build for ICC profile example
+
 Apr 06, 2025 - v0.14.1post1
     Fix pyproject.toml for pillow, not PIL
 

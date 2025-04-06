@@ -3,6 +3,12 @@ Changes in glymur 0.14
 ######################
 
 **********************
+Changes in 0.14.1post2
+**********************
+
+    * Fix doc build for ICC profile example
+
+**********************
 Changes in 0.14.1post1
 **********************
 
