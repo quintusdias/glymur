@@ -20,7 +20,7 @@ from .lib import tiff
 
 # Do not change the format of this next line!  Doing so risks breaking
 # setup.py
-version = "0.14.0post1"
+version = "0.14.1"
 
 version_tuple = parse(version).release
 

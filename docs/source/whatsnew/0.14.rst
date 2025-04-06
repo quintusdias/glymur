@@ -3,6 +3,15 @@ Changes in glymur 0.14
 ######################
 
 *****************
+Changes in 0.14.1
+*****************
+
+    * Fix doc builds for API
+    * Add additional API examples for Jp2k, Jp2kr
+    * Fix tilesize reporting
+    * Refactor all of setup.cfg into pyproject.toml
+
+*****************
 Changes in 0.14.0
 *****************
 

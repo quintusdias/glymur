@@ -1,3 +1,9 @@
+Apr 06, 2025 - v0.14.1
+    Fix doc builds for API
+    Add additional API examples for Jp2k, Jp2kr
+    Fix tilesize reporting
+    Refactor all of setup.cfg into pyproject.toml
+
 Mar 19, 2025 - v0.14.0
     Add description of raw IFD for geojp2 UUIDs
     Add feature to convert JPEGs to JP2
