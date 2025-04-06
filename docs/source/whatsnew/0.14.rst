@@ -2,6 +2,12 @@
 Changes in glymur 0.14
 ######################
 
+**********************
+Changes in 0.14.1post1
+**********************
+
+    * Fix pyproject.toml for pillow requirement
+
 *****************
 Changes in 0.14.1
 *****************
