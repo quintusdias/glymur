@@ -12,7 +12,7 @@ import skimage
 
 # local imports
 from . import fixtures
-from glymur.lib import tiff as libtiff
+from glymur.lib import _tiff as libtiff
 
 
 @unittest.skipIf(

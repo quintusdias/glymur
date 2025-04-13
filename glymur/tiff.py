@@ -14,7 +14,7 @@ import numpy as np
 from glymur import Jp2k, set_option
 from glymur.core import SRGB
 from ._core_converter import _2JP2Converter
-from .lib import tiff as libtiff
+from .lib import _tiff as libtiff
 from . import jp2box
 
 # we need a lower case mapping from the tag name to the tag number
