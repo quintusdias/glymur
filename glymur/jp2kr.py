@@ -107,7 +107,7 @@ class Jp2kr(Jp2kBox):
         if not self.path.exists():
             raise FileNotFoundError(f"{self.filename} does not exist.")
 
-        self.parse()
+        self._parse()
         self._initialize_shape()
 
     def _initialize_shape(self):
@@ -393,6 +393,15 @@ class Jp2kr(Jp2kBox):
         return "\n".join(metadata)
 
     def parse(self, force=False):
+        """
+        .. deprecated:: 0.15.0
+        """
+        breakpoint()
+        msg = "Deprecated, do not use."
+        warnings.warn(msg, DeprecationWarning)
+        self._parse(force=force)
+
+    def _parse(self, force=False):
         """Parses the JPEG 2000 file.
 
         Parameters
