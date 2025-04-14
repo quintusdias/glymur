@@ -642,25 +642,6 @@ class Jp2kr(Jp2kBox):
         # Ok, 3 arguments in pargs.
         return data[:, :, bands]
 
-    def read(self, **kwargs):
-        """Read a JPEG 2000 image.
-
-        .. deprecated:: 0.13.5
-           Use numpy-style slicing instead.
-
-        Returns
-        -------
-        img_array : ndarray
-            The image data.
-        """
-
-        if "ignore_pclr_cmap_cdef" in kwargs:
-            self.ignore_pclr_cmap_cdef = kwargs["ignore_pclr_cmap_cdef"]
-            kwargs.pop("ignore_pclr_cmap_cdef")
-        warnings.warn("Use array-style slicing instead.", DeprecationWarning)
-        img = self._read(**kwargs)
-        return img
-
     def _subsampling_sanity_check(self):
         """Check for differing subsample factors."""
         if self._decoded_components is None:
@@ -863,7 +844,7 @@ class Jp2kr(Jp2kBox):
 
         The only time you should ever use this method is when the image has
         different subsampling factors across components.  Otherwise you should
-        use the read method.
+        use numpy-style slicing.
 
         Parameters
         ----------
@@ -975,7 +956,7 @@ class Jp2kr(Jp2kBox):
         return image
 
     def _component2dtype(self, component):
-        """Determin the appropriate numpy datatype for an OpenJPEG component.
+        """Determine the appropriate numpy datatype for an OpenJPEG component.
 
         Parameters
         ----------

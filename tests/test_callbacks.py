@@ -33,7 +33,7 @@ class TestSuite(fixtures.TestCommon):
         with warnings.catch_warnings():
             # Ignore a library warning.
             warnings.simplefilter("ignore")
-            tiledata = j.read(tile=0)
+            tiledata = j._read(tile=0)
 
         with patch("sys.stdout", new=StringIO()) as fake_out:
             glymur.Jp2k(self.temp_j2k_filename, data=tiledata, verbose=True)

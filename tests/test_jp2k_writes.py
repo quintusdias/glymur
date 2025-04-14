@@ -1546,7 +1546,8 @@ class TestSuite(fixtures.TestCommon):
     def test_ignore_pclr_cmap_cdef_on_old_read(self):
         """
         The old "read" interface allowed for passing ignore_pclr_cmap_cdef
-        to read a palette dataset "uninterpolated".
+        to read a palette dataset "uninterpolated", but we have to
+        use properties now.
         """
         jpx = Jp2k(self.jpxfile)
         jpx.ignore_pclr_cmap_cdef = True
@@ -1556,7 +1557,8 @@ class TestSuite(fixtures.TestCommon):
         with warnings.catch_warnings():
             # Ignore a deprecation warning.
             warnings.simplefilter('ignore')
-            actual = jpx2.read(ignore_pclr_cmap_cdef=True)
+            jpx2.ignore_pclr_cmap_cdef = True
+            actual = jpx2._read()
 
         np.testing.assert_array_equal(actual, expected)
 

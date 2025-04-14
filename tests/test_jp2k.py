@@ -368,7 +368,7 @@ class TestJp2k(fixtures.TestCommon):
         with warnings.catch_warnings():
             # Suppress the DeprecationWarning
             warnings.simplefilter("ignore")
-            thumbnail1 = j.read(rlevel=-1)
+            thumbnail1 = j._read(rlevel=-1)
         thumbnail2 = j[::32, ::32]
         np.testing.assert_array_equal(thumbnail1, thumbnail2)
         self.assertEqual(thumbnail1.shape, (25, 15, 3))
@@ -975,7 +975,7 @@ class TestVersion(fixtures.TestCommon):
                     with warnings.catch_warnings():
                         # Suppress a deprecation warning for raw read method.
                         warnings.simplefilter("ignore")
-                        glymur.Jp2k(self.jp2file).read()
+                        glymur.Jp2k(self.jp2file)._read()
                 with self.assertRaises(RuntimeError):
                     glymur.Jp2k(self.jp2file)[:]
 

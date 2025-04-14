@@ -601,12 +601,6 @@ class TestSuite(fixtures.TestCommon):
             with self.assertWarns(UserWarning):
                 glymur.Jp2k(tfile.name)
 
-    @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-    def test_warn_if_using_read_method(self):
-        """Should warn if deprecated read method is called"""
-        with self.assertWarns(DeprecationWarning):
-            Jp2k(self.jp2file).read()
-
     def test_bad_rsiz(self):
         """
         SCENARIO:  The SIZ value parsed from the SIZ segment is invalid.
