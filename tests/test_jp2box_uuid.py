@@ -4,13 +4,14 @@
 # Standard library imports
 import importlib.resources as ir
 import io
+import pathlib
 import shutil
 import struct
 import uuid
 import warnings
 
 # Third party library imports ...
-import lxml.etree
+import lxml.etree as ET
 import numpy as np
 
 # Local imports
@@ -278,7 +279,7 @@ class TestSuite(fixtures.TestCommon):
 
         # The data should be an XMP packet, which gets interpreted as
         # an ElementTree.
-        self.assertTrue(isinstance(jp2.box[-1].data, lxml.etree._ElementTree))
+        self.assertTrue(isinstance(jp2.box[-1].data, ET._ElementTree))
 
     def test_bad_exif_tag(self):
         """
@@ -360,3 +361,25 @@ class TestSuite(fixtures.TestCommon):
 
         expected = 'UTM Zone 16N NAD27"|Clarke, 1866 by Default| '
         self.assertEqual(box.data["GeoAsciiParams"], expected)
+
+    def test_write_entity_expansion(self):
+        """
+        SCENARIO:  Create an XMP UUID box that tries to expand an entity.
+
+        EXPECTED RESULT:  lmxl throws an error
+        """
+        # create a document with a text file in same directory
+
+        p = pathlib.Path('thingone.txt')
+        path = str(p.resolve())
+
+        with p.open(mode='wt') as f:
+            f.write('well hello there')
+
+        text = f'<!DOCTYPE d [<!ENTITY e SYSTEM "file://{path}">]><t>&e;</t>'
+
+        with self.assertRaises(ET.XMLSyntaxError):
+            ubox = glymur.jp2box.UUIDBox(
+                    the_uuid=uuid.UUID("be7acfcb-97a9-42e8-9c71-999491e3afac"),
+                    raw_data=text.encode('utf-8')
+            )
