@@ -1673,16 +1673,17 @@ class TestJp2dump(fixtures.TestCommon):
         with patch('sys.stdout', new=StringIO()) as fake_out:
             print(icpt)
             actual = fake_out.getvalue().strip()
-        expected = ("<class 'glymur.lib.openjp2.ImageComptParmType'>:\n"
-                    "    dx: 0\n"
-                    "    dy: 0\n"
-                    "    w: 0\n"
-                    "    h: 0\n"
-                    "    x0: 0\n"
-                    "    y0: 0\n"
-                    "    prec: 0\n"
-                    "    bpp: 0\n"
-                    "    sgnd: 0")
+        expected = (
+            "<class 'glymur.lib.openjp2.ImageComptParmType'>:\n"
+            "    dx: 0\n"
+            "    dy: 0\n"
+            "    w: 0\n"
+            "    h: 0\n"
+            "    x0: 0\n"
+            "    y0: 0\n"
+            "    prec: 0\n"
+            "    bpp: 0\n"
+            "    sgnd: 0")
         self.assertEqual(actual, expected)
 
     def test_default_image_type(self):
@@ -1700,7 +1701,9 @@ class TestJp2dump(fixtures.TestCommon):
             "    y1: 0\n"
             "    numcomps: 0\n"
             "    color_space: 0\n"
-            "    icc_profile_buf: <(glymur.lib.openjp2|ctypes.wintypes).LP_c_ubyte object at 0x[0-9A-Fa-f]*>\n"  # noqa : E501
+            "    icc_profile_buf: "
+            "<(glymur.lib.openjp2|ctypes.wintypes).LP_c_ubyte "
+            "object at 0x[0-9A-Fa-f]*>\n"
             "    icc_profile_len: 0")
         self.assertRegex(actual, expected)
 
@@ -1709,22 +1712,22 @@ class TestJp2dump(fixtures.TestCommon):
         obj = opj2.ImageCompType()
         actual = str(obj)
         expected = (
-            r'''<class 'glymur.lib.openjp2.ImageCompType'>:\n'''
-            '''    dx: 0\n'''
-            '''    dy: 0\n'''
-            '''    w: 0\n'''
-            '''    h: 0\n'''
-            '''    x0: 0\n'''
-            '''    y0: 0\n'''
-            '''    prec: 0\n'''
-            '''    bpp: 0\n'''
-            '''    sgnd: 0\n'''
-            '''    resno_decoded: 0\n'''
-            '''    factor: 0\n'''
-            '''    data: '''
-            '''<(glymur.lib.openjp2|ctypes.wintypes).LP_c_(int|long) '''
-            '''object at 0x[a-fA-F0-9]+>\n'''
-            '''    alpha: 0\n'''
+            "<class 'glymur.lib.openjp2.ImageCompType'>:\n"
+            "    dx: 0\n"
+            "    dy: 0\n"
+            "    w: 0\n"
+            "    h: 0\n"
+            "    x0: 0\n"
+            "    y0: 0\n"
+            "    prec: 0\n"
+            "    bpp: 0\n"
+            "    sgnd: 0\n"
+            "    resno_decoded: 0\n"
+            "    factor: 0\n"
+            "    data: "
+            "<(glymur.lib.openjp2|ctypes.wintypes).LP_c_(int|long) "
+            "object at 0x[a-fA-F0-9]+>\n"
+            "    alpha: 0\n"
         )
         self.assertRegex(actual, expected)
 
