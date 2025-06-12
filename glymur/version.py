@@ -16,7 +16,7 @@ import numpy as np
 
 # Local imports ...
 from .lib import openjp2 as opj2
-from .lib import tiff
+from .lib import _tiff as tiff
 
 # Do not change the format of this next line!  Doing so risks breaking
 # setup.py

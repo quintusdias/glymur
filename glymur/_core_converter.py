@@ -9,7 +9,7 @@ from uuid import UUID
 
 # local imports
 from . import jp2box
-from .lib.tiff import DATATYPE2FMT
+from .lib._tiff import DATATYPE2FMT
 from .jp2k import Jp2k
 from glymur.core import RESTRICTED_ICC_PROFILE
 
