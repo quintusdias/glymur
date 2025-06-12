@@ -3,6 +3,12 @@ Changes in glymur 0.14
 ######################
 
 *****************
+Changes in 0.14.3
+*****************
+
+    * Fix DeprecationWarning upon import
+
+*****************
 Changes in 0.14.2
 *****************
 
