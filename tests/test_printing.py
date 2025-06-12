@@ -1702,7 +1702,7 @@ class TestJp2dump(fixtures.TestCommon):
             "    numcomps: 0\n"
             "    color_space: 0\n"
             "    icc_profile_buf: "
-            "<(glymur\\.lib\\.openjp2|ctypes\\.wintypes)\\.LP_c_ubyte "
+            "<(glymur\\.lib\\.openjp2|ctypes(\\.wintypes)?)\\.LP_c_ubyte "
             "object at 0x[0-9A-Fa-f]*>\n"
             "    icc_profile_len: 0")
         self.assertRegex(actual, expected)
@@ -1725,7 +1725,7 @@ class TestJp2dump(fixtures.TestCommon):
             "    resno_decoded: 0\n"
             "    factor: 0\n"
             "    data: "
-            "<(glymur\\.lib\\.openjp2|ctypes\\.wintypes)\\.LP_c_(int|long) "
+            "<(glymur\\.lib\\.openjp2|ctypes(\\.wintypes)?)\\.LP_c_(int|long) "
             "object at 0x[a-fA-F0-9]+>\n"
             "    alpha: 0\n"
         )
