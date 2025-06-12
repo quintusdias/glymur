@@ -2,6 +2,7 @@
 This module is deprecated.  No external use, please.
 """
 # standard library imports
+breakpoint()
 import warnings
 
 from ._tiff import *  # noqa : F401, F403

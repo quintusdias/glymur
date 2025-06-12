@@ -428,7 +428,7 @@ class TestSuite(fixtures.TestCommon):
         """
         path = ir.files('tests.data.tiff').joinpath('basn6a08.tif')
         buffer = path.read_bytes()
-        ifd = glymur.lib.tiff.tiff_header(buffer)
+        ifd = glymur.lib._tiff.tiff_header(buffer)
         icc_profile = bytes(ifd['ICCProfile'])
 
         sys.argv = [
