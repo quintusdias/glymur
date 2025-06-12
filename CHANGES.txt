@@ -1,3 +1,10 @@
+Jun 12, 2025 - v0.14.2
+    Fix test suite for python 3.14 regular expressions
+    Remove long-since-deprecated Jp2kr.read method
+    Make Jp2kr.parse method private
+    Make glymur.lib.tiff module private
+    Add doctests into circleci config
+
 Apr 06, 2025 - v0.14.1
     Fix doc builds for API
     Add additional API examples for Jp2k, Jp2kr
