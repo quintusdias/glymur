@@ -526,10 +526,10 @@ class Jp2k(Jp2kr):
         This method can only be used to create JPEG 2000 images that can fit
         in memory.
         """
-        if version.openjpeg_version < "2.3.0":
+        if version.openjpeg_version < "2.4.0":
             msg = (
-                "You must have at least version 2.3.0 of OpenJPEG in order to "
-                "write images."
+                "The minimum supported version of OpenJPEG is 2.4.0.  "
+                f"Your version is {version.openjpeg_version}."
             )
             raise RuntimeError(msg)
 
@@ -1463,10 +1463,10 @@ class _TileWriter(object):
         """Write image data to a JP2/JPX/J2k file.  Intended usage of the
         various parameters follows that of OpenJPEG's opj_compress utility.
         """
-        if version.openjpeg_version < "2.3.0":
+        if version.openjpeg_version < "2.4.0":
             msg = (
-                "You must have at least version 2.3.0 of OpenJPEG "
-                "in order to write images."
+                "The minimum supported version of OpenJPEG is 2.4.0.  "
+                f"Your version is {version.openjpeg_version}."
             )
             raise RuntimeError(msg)
 
