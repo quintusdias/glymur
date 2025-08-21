@@ -71,11 +71,10 @@ def set_option(key, value):
         raise KeyError(f"{key} not valid.")
 
     if key == "lib.num_threads":
-        if version.openjpeg_version < "2.2.0":
+        if version.openjpeg_version < "2.4.0":
             msg = (
-                f"Thread support is not available on versions of OpenJPEG "
-                f"prior to 2.2.0.  Your version is "
-                f"{version.openjpeg_version}."
+                "The minimum supported version of OpenJPEG is 2.4.0.  "
+                f"Your version is {version.openjpeg_version}."
             )
             raise RuntimeError(msg)
         if not opj2.has_thread_support():
