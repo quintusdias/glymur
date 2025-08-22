@@ -7,6 +7,8 @@ $MINICONDA_URL = "http://repo.continuum.io/miniconda/"
 
 function DownloadMiniconda ($python_version, $platform_suffix) {
     $webclient = New-Object System.Net.WebClient
+    $webclient.Headers.Add("User-Agent", "Abraxis/1.0")
+
     $filename = "Miniconda3-latest-Windows-" + $platform_suffix + ".exe"
     $url = $MINICONDA_URL + $filename
 
