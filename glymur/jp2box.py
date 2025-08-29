@@ -50,6 +50,7 @@ from .core import (
     RESTRICTED_ICC_PROFILE,
     ANY_ICC_PROFILE,
     VENDOR_COLOR_METHOD,
+    InvalidJp2kError,
 )
 from .lib._tiff import tiff_header, BadTiffTagDatatype
 from . import get_option
@@ -76,20 +77,6 @@ _APPROXIMATION_MEASURES = {
 _GEOTIFF_UUID = UUID("b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03")
 _EXIF_UUID = UUID(bytes=b"JpgTiffExif->JP2")
 _XMP_UUID = UUID("be7acfcb-97a9-42e8-9c71-999491e3afac")
-
-
-class InvalidJp2kWarning(UserWarning):
-    """Issue this warning in case the file is technically invalid but we can
-    still read the image.
-    """
-
-    pass
-
-
-class InvalidJp2kError(RuntimeError):
-    """Raise this exception in case we cannot parse a valid JP2 file."""
-
-    pass
 
 
 class Jp2kBox(object):

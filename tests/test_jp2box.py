@@ -22,6 +22,7 @@ import numpy as np
 # Local imports ...
 import glymur
 from glymur import Jp2k, Jp2kr
+from glymur.core import InvalidJp2kError
 from glymur.jp2box import (
     ColourSpecificationBox,
     ContiguousCodestreamBox,
@@ -33,7 +34,6 @@ from glymur.jp2box import (
     PaletteBox,
     CaptureResolutionBox,
     UnknownBox,
-    InvalidJp2kError,
 )
 from glymur.core import COLOR, OPACITY, SRGB, GREYSCALE
 from glymur.core import RED, GREEN, BLUE, GREY, WHOLE_IMAGE

@@ -57,7 +57,7 @@ def main():
     with warnings.catch_warnings(record=True) as wctx:
 
         jp2 = Jp2k(path)
-        if jp2._codec_format == lib.openjp2.CODEC_J2K:
+        if jp2.libclient.codec_format == lib.openjp2.CODEC_J2K:
             if codestream_level == 0:
                 print(f'File:  {path.name}')
             elif codestream_level == 1:

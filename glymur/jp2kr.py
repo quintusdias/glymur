@@ -9,8 +9,6 @@ License:  MIT
 
 # Standard library imports...
 from __future__ import annotations
-from contextlib import ExitStack
-import ctypes
 import pathlib
 import struct
 import sys
@@ -21,8 +19,8 @@ import numpy as np
 
 # Local imports...
 from .codestream import Codestream
-from . import core, version, get_option
-from .jp2box import Jp2kBox, FileTypeBox, InvalidJp2kError, InvalidJp2kWarning
+from . import core, version
+from .jp2box import Jp2kBox, FileTypeBox
 from .lib import openjp2 as opj2
 
 
@@ -94,17 +92,15 @@ class Jp2kr(Jp2kBox):
         # Setup some default attributes
         self.box = []
         self._codestream = None
-        self._decoded_components = None
         self._dtype = None
-        self._ignore_pclr_cmap_cdef = False
-        self._layer = 0
         self._ndim = None
         self._parse_count = 0
-        self._verbose = verbose
         self._tilesize_r = None
 
         if not self.path.exists():
             raise FileNotFoundError(f"{self.filename} does not exist.")
+
+        self.libclient = core._OpenJPEG(self.filename, verbose)
 
         self._parse()
         self._initialize_shape()
@@ -114,7 +110,7 @@ class Jp2kr(Jp2kBox):
         initially provisioned, then shape must be computed AFTER we
         have parsed the input file.
         """
-        if self._codec_format == opj2.CODEC_J2K:
+        if self.codec_format == opj2.CODEC_J2K:
             # get the image size from the codestream
             cstr = self.codestream
             height = cstr.segment[1].ysiz
@@ -141,7 +137,15 @@ class Jp2kr(Jp2kBox):
         else:
             self.shape = (height, width, num_components)
 
-        return self._shape
+        return self.shape
+
+    @property
+    def codec_format(self):
+        return self.libclient.codec_format
+
+    @codec_format.setter
+    def codec_format(self, codec_format):
+        self.libclient.codec_format = codec_format
 
     @property
     def ignore_pclr_cmap_cdef(self):
@@ -164,11 +168,31 @@ class Jp2kr(Jp2kBox):
         >>> print(d.shape)
         (1024, 1024)
         """
-        return self._ignore_pclr_cmap_cdef
+        return self.libclient.ignore_pclr_cmap_cdef
 
     @ignore_pclr_cmap_cdef.setter
     def ignore_pclr_cmap_cdef(self, ignore_pclr_cmap_cdef):
-        self._ignore_pclr_cmap_cdef = ignore_pclr_cmap_cdef
+        self.libclient.ignore_pclr_cmap_cdef = ignore_pclr_cmap_cdef
+
+    @property
+    def layer(self):
+        """Zero-based number of quality layer to decode.  Defaults to 0, the
+        highest quality layer.
+        """
+        return self.libclient.layer
+
+    @layer.setter
+    def layer(self, layer):
+        # Set to the indicated value so long as it is valid.
+        cod = next(
+            filter(lambda x: x.marker_id == "COD", self.codestream.segment),
+            None
+        )
+        if layer < 0 or layer >= cod.layers:
+            msg = f"Invalid layer number, must be in range [0, {cod.layers})."
+            raise ValueError(msg)
+
+        self.libclient.layer = layer
 
     @property
     def decoded_components(self):
@@ -187,7 +211,7 @@ class Jp2kr(Jp2kBox):
         >>> print(comp0.shape)
         (1456, 2592)
         """
-        return self._decoded_components
+        return self.libclient.decoded_components
 
     @decoded_components.setter
     def decoded_components(self, components):
@@ -195,7 +219,7 @@ class Jp2kr(Jp2kBox):
         if components is None:
             # This is ok.  It is a special case where we are restoring the
             # original behavior of reading all bands.
-            self._decoded_components = components
+            self.libclient.decoded_components = components
             return
 
         if np.isscalar(components):
@@ -219,27 +243,7 @@ class Jp2kr(Jp2kBox):
             )
             raise ValueError(msg)
 
-        self._decoded_components = components
-
-    @property
-    def layer(self):
-        """Zero-based number of quality layer to decode.  Defaults to 0, the
-        highest quality layer.
-        """
-        return self._layer
-
-    @layer.setter
-    def layer(self, layer):
-        # Set to the indicated value so long as it is valid.
-        cod = next(
-            filter(lambda x: x.marker_id == "COD", self.codestream.segment),
-            None
-        )
-        if layer < 0 or layer >= cod.layers:
-            msg = f"Invalid layer number, must be in range [0, {cod.layers})."
-            raise ValueError(msg)
-
-        self._layer = layer
+        self.libclient.decoded_components = components
 
     @property
     def dtype(self):
@@ -323,17 +327,15 @@ class Jp2kr(Jp2kBox):
         (1456, 2592)
         """
 
-        if not hasattr(self, '_tilesize_w') and self._tilesize_r is None:
+        if self.libclient.tilesize is None:
+            # if not hasattr(self, '_tilesize_w') and self._tilesize_r is None:
             # file was opened as read-only case
             segment = self.codestream.segment[1]
             tilesize = segment.ytsiz, segment.xtsiz
-        elif self._tilesize_w is None:
-            # read-write case, but we are reading not writing
-            segment = self.codestream.segment[1]
-            tilesize = segment.ytsiz, segment.xtsiz
+            self.libclient.tilesize = tilesize
         else:
             # write-only case
-            tilesize = self._tilesize_w
+            tilesize = self.libclient.tilesize
 
         return tilesize
 
@@ -352,11 +354,11 @@ class Jp2kr(Jp2kBox):
         [INFO] tile number 3 / 4
         [INFO] tile number 4 / 4
         """
-        return self._verbose
+        return self.libclient.verbose
 
     @verbose.setter
     def verbose(self, verbose):
-        self._verbose = verbose
+        self.libclient.verbose = verbose
 
     @property
     def shape(self):
@@ -368,11 +370,11 @@ class Jp2kr(Jp2kBox):
         >>> print(jp.shape)
         (1456, 2592, 3)
         """
-        return self._shape
+        return self.libclient.shape
 
     @shape.setter
     def shape(self, shape):
-        self._shape = shape
+        self.libclient.shape = shape
 
     def __repr__(self):
         msg = f"glymur.Jp2kr('{self.path}')"
@@ -395,7 +397,6 @@ class Jp2kr(Jp2kBox):
         """
         .. deprecated:: 0.15.0
         """
-        breakpoint()
         msg = "Deprecated, do not use."
         warnings.warn(msg, DeprecationWarning)
         self._parse(force=force)
@@ -426,12 +427,12 @@ class Jp2kr(Jp2kBox):
             read_buffer = fptr.read(2)
             (signature,) = struct.unpack(">H", read_buffer)
             if signature == 0xFF4F:
-                self._codec_format = opj2.CODEC_J2K
+                self.codec_format = opj2.CODEC_J2K
                 # That's it, we're done.  The codestream object is only
                 # produced upon explicit request.
                 return
 
-            self._codec_format = opj2.CODEC_JP2
+            self.codec_format = opj2.CODEC_JP2
 
             # Should be JP2.
             # First 4 bytes should be 12, the length of the 'jP  ' box.
@@ -450,7 +451,7 @@ class Jp2kr(Jp2kBox):
                 or signature != (13, 10, 135, 10)
             ):
                 msg = f"{self.filename} is not a JPEG 2000 file."
-                raise InvalidJp2kError(msg)
+                raise core.InvalidJp2kError(msg)
 
             # Back up and start again, we know we have a superbox (box of
             # boxes) here.
@@ -468,7 +469,7 @@ class Jp2kr(Jp2kBox):
         # type box.
         if not isinstance(self.box[1], FileTypeBox):
             msg = f"{self.filename} does not contain a valid File Type box."
-            raise InvalidJp2kError(msg)
+            raise core.InvalidJp2kError(msg)
 
         ftyp = self.box[1]
         if ftyp.brand != "jp2 ":
@@ -481,12 +482,12 @@ class Jp2kr(Jp2kBox):
                 "No JP2 header box was located in the outermost jacket of "
                 "boxes."
             )
-            raise InvalidJp2kError(msg)
+            raise core.InvalidJp2kError(msg)
 
         # An IHDR box is required as the first child box of the JP2H box.
         if jp2h.box[0].box_id != "ihdr":
             msg = "A valid IHDR box was not found.  The JP2 file is invalid."
-            raise InvalidJp2kError(msg)
+            raise core.InvalidJp2kError(msg)
 
         # A jp2-branded file cannot contain an "any ICC profile
         colrs = [box for box in jp2h.box if box.box_id == "colr"]
@@ -500,7 +501,7 @@ class Jp2kr(Jp2kBox):
                     "enumerated colorspace or a restricted ICC profile if the "
                     "file type box brand is 'jp2 '."
                 )
-                warnings.warn(msg, InvalidJp2kWarning)
+                warnings.warn(msg, core.InvalidJp2kWarning)
 
         # We need to have one and only one JP2H box if we have a JP2 file.
         num_jp2h_boxes = len([box for box in self.box if box.box_id == "jp2h"])
@@ -509,7 +510,7 @@ class Jp2kr(Jp2kBox):
                 f"This file has {num_jp2h_boxes} JP2H boxes in the outermost "
                 "layer of boxes.  There should only be one."
             )
-            warnings.warn(msg, InvalidJp2kWarning)
+            warnings.warn(msg, core.InvalidJp2kWarning)
 
         # We should have one and only one JP2C box if we have a JP2 file.
         num_jp2c_boxes = len([box for box in self.box if box.box_id == "jp2c"])
@@ -525,7 +526,7 @@ class Jp2kr(Jp2kBox):
                 "A valid JP2C box was not found in the outermost level of JP2 "
                 "boxes.  The JP2 file is invalid."
             )
-            raise InvalidJp2kError(msg)
+            raise core.InvalidJp2kError(msg)
 
         # Make sure that IHDR and SIZ conform on the dimensions.
         ihdr = jp2h.box[0]
@@ -643,17 +644,17 @@ class Jp2kr(Jp2kBox):
 
     def _subsampling_sanity_check(self):
         """Check for differing subsample factors."""
-        if self._decoded_components is None:
+        if self.decoded_components is None:
             dxs = np.array(self.codestream.segment[1].xrsiz)
             dys = np.array(self.codestream.segment[1].yrsiz)
         else:
             dxs = np.array([
                 self.codestream.segment[1].xrsiz[i]
-                for i in self._decoded_components
+                for i in self.decoded_components
             ])
             dys = np.array([
                 self.codestream.segment[1].yrsiz[i]
-                for i in self._decoded_components
+                for i in self.decoded_components
             ])
 
         if np.any(dxs - dxs[0]) or np.any(dys - dys[0]):
@@ -700,134 +701,93 @@ class Jp2kr(Jp2kBox):
             )
             raise RuntimeError(msg)
 
+        rlevel = self._sanitize_rlevel(rlevel)
         self._subsampling_sanity_check()
-        self._populate_dparams(rlevel, tile=tile, area=area)
-        image = self._read_openjp2()
-        return image
 
-    def _read_openjp2(self):
-        """Read a JPEG 2000 image using libopenjp2.
-
-        Returns
-        -------
-        ndarray or lst
-            Either the image as an ndarray or a list of ndarrays, each item
-            corresponding to one band.
-        """
-        with ExitStack() as stack:
-            filename = self.filename
-            stream = opj2.stream_create_default_file_stream(filename, True)
-            stack.callback(opj2.stream_destroy, stream)
-            codec = opj2.create_decompress(self._codec_format)
-            stack.callback(opj2.destroy_codec, codec)
-
-            opj2.set_error_handler(codec, opj2._ERROR_CALLBACK)
-            opj2.set_warning_handler(codec, opj2._WARNING_CALLBACK)
-
-            if self._verbose:
-                opj2.set_info_handler(codec, opj2._INFO_CALLBACK)
-            else:
-                opj2.set_info_handler(codec, None)
-
-            opj2.setup_decoder(codec, self._dparams)
-            if version.openjpeg_version >= "2.2.0":
-                opj2.codec_set_threads(codec, get_option("lib.num_threads"))
-
-            raw_image = opj2.read_header(stream, codec)
-            stack.callback(opj2.image_destroy, raw_image)
-
-            if self._decoded_components is not None:
-                opj2.set_decoded_components(codec, self._decoded_components)
-
-            if self._dparams.nb_tile_to_decode:
-                opj2.get_decoded_tile(
-                    codec, stream, raw_image, self._dparams.tile_index
-                )
-            else:
-                opj2.set_decode_area(
-                    codec,
-                    raw_image,
-                    self._dparams.DA_x0,
-                    self._dparams.DA_y0,
-                    self._dparams.DA_x1,
-                    self._dparams.DA_y1,
-                )
-                opj2.decode(codec, stream, raw_image)
-
-            opj2.end_decompress(codec, stream)
-
-            image = self._extract_image(raw_image)
+        self.libclient.populate_dparams(rlevel, tile=tile, area=area)
+        image = self.libclient.read()
 
         return image
 
-    def _populate_dparams(self, rlevel, tile=None, area=None):
-        """Populate decompression structure with appropriate input parameters.
+    def get_codestream(self, header_only=True):
+        """Retrieve codestream.
+
+        This differs from the codestream property in that segment
+        metadata that lies past the end of the codestream header
+        can be retrieved.
 
         Parameters
         ----------
-        rlevel : int
-            Factor by which to rlevel output resolution.
-        area : tuple
-            Specifies decoding image area,
-            (first_row, first_col, last_row, last_col)
-        tile : int
-            Number of tile to decode.
+        header_only : bool, optional
+            If True, only marker segments in the main header are parsed.
+            Supplying False may impose a large performance penalty.
+
+        Returns
+        -------
+        Codestream
+            Object describing the codestream syntax.
+
+        Examples
+        --------
+        >>> jfile = glymur.data.nemo()
+        >>> jp2 = glymur.Jp2k(jfile)
+        >>> codestream = jp2.get_codestream(header_only=False)
+        >>> print(codestream.segment[1])
+        SIZ marker segment @ (87, 47)
+            Profile:  no profile
+            Reference Grid Height, Width:  (1456 x 2592)
+            Vertical, Horizontal Reference Grid Offset:  (0 x 0)
+            Reference Tile Height, Width:  (1456 x 2592)
+            Vertical, Horizontal Reference Tile Offset:  (0 x 0)
+            Bitdepth:  (8, 8, 8)
+            Signed:  (False, False, False)
+            Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))
+        >>> print(len(codestream.segment))
+        12
+        >>> print(codestream.segment[-1])
+        EOC marker segment @ (1132371, 0)
         """
-        dparam = opj2.set_default_decoder_parameters()
+        with self.path.open("rb") as fptr:
 
-        infile = self.filename.encode()
-        nelts = opj2.PATH_LEN - len(infile)
-        infile += b"0" * nelts
-        dparam.infile = infile
+            # if it's just a raw codestream file, it's easy
+            if self.codec_format == opj2.CODEC_J2K:
+                return self._get_codestream(fptr, self.length, header_only)
 
-        # Return raw codestream components instead of "interpolating" the
-        # colormap?
-        dparam.flags |= 1 if self.ignore_pclr_cmap_cdef else 0
+            # continue assuming JP2, must seek to the JP2C box and past its
+            # header
+            box = next(filter(lambda x: x.box_id == "jp2c", self.box), None)
 
-        dparam.decod_format = self._codec_format
-        dparam.cp_layer = self.layer
+            fptr.seek(box.offset)
+            read_buffer = fptr.read(8)
+            (box_length, _) = struct.unpack(">I4s", read_buffer)
+            if box_length == 0:
+                # The length of the box is presumed to last until the end
+                # of the file.  Compute the effective length of the box.
+                box_length = self.path.stat().st_size - fptr.tell() + 8
+            elif box_length == 1:
+                # Seek past the XL field.
+                read_buffer = fptr.read(8)
+                (box_length,) = struct.unpack(">Q", read_buffer)
 
-        # Must check the specified rlevel against the maximum.
-        if rlevel != 0:
-            # Must check the specified rlevel against the maximum.
-            cod_seg = next(
-                filter(
-                    lambda x: x.marker_id == "COD", self.codestream.segment
-                ),
-                None
+            return self._get_codestream(fptr, box_length - 8, header_only)
+
+    def _get_codestream(self, fptr, length, header_only):
+        """
+        Parsing errors can make for confusing errors sometimes, so catch any
+        such error and add context to it.
+        """
+
+        try:
+            codestream = Codestream(fptr, length, header_only=header_only)
+        except Exception:
+            _, value, traceback = sys.exc_info()
+            msg = (
+                f"The file is invalid "
+                f'because the codestream could not be parsed:  "{value}"'
             )
-            max_rlevel = cod_seg.num_res
-            if rlevel == -1:
-                # -1 is shorthand for the largest rlevel
-                rlevel = max_rlevel
-            elif rlevel < -1 or rlevel > max_rlevel:
-                msg = (
-                    f"rlevel must be in the range [-1, {max_rlevel}] "
-                    "for this image."
-                )
-                raise ValueError(msg)
-
-        dparam.cp_reduce = rlevel
-
-        if area is not None:
-            if area[0] < 0 or area[1] < 0 or area[2] <= 0 or area[3] <= 0:
-                msg = (
-                    f"The upper left corner coordinates must be nonnegative "
-                    f"and the lower right corner coordinates must be positive."
-                    f"  The specified upper left and lower right coordinates "
-                    f"are ({area[0]}, {area[1]}) and ({area[2]}, {area[3]})."
-                )
-                raise ValueError(msg)
-            dparam.DA_y0 = area[0]
-            dparam.DA_x0 = area[1]
-            dparam.DA_y1 = area[2]
-            dparam.DA_x1 = area[3]
-
-        if tile is not None:
-            dparam.tile_index = tile
-            dparam.nb_tile_to_decode = 1
-
-        self._dparams = dparam
+            raise core.InvalidJp2kError(msg).with_traceback(traceback)
+        else:
+            return codestream
 
     def read_bands(
         self,
@@ -876,198 +836,33 @@ class Jp2kr(Jp2kBox):
         >>> jp = glymur.Jp2k(jfile)
         >>> components_lst = jp.read_bands(rlevel=1)
         """
-        if version.openjpeg_version < "2.4.0":
-            msg = (
-                "The minimum supported version of OpenJPEG is 2.4.0.  "
-                f"Your version is {version.openjpeg_version}."
-            )
-            raise RuntimeError(msg)
+        rlevel = self._sanitize_rlevel(rlevel)
 
-        self.ignore_pclr_cmap_cdef = ignore_pclr_cmap_cdef
-        self.layer = layer
-        self._populate_dparams(rlevel, tile=tile, area=area)
-        lst = self._read_openjp2()
-        return lst
-
-    def _extract_image(self, raw_image):
-        """Extract unequally-sized image bands.
-
-        Parameters
-        ----------
-        raw_image : reference to openjpeg ImageType instance
-            The image structure initialized with image characteristics.
-
-        Returns
-        -------
-        list or ndarray
-            If the JPEG 2000 image has unequally-sized components, they are
-            extracted into a list, otherwise a numpy array.
-
-        """
-        ncomps = raw_image.contents.numcomps
-
-        # Make a pass thru the image, see if any of the band datatypes or
-        # dimensions differ.
-        dtypes, nrows, ncols = [], [], []
-        for k in range(raw_image.contents.numcomps):
-            component = raw_image.contents.comps[k]
-            dtypes.append(self._component2dtype(component))
-            nrows.append(component.h)
-            ncols.append(component.w)
-        is_cube = all(
-            r == nrows[0] and c == ncols[0] and d == dtypes[0]
-            for r, c, d in zip(nrows, ncols, dtypes)
+        return self.libclient.read_bands(
+            rlevel, layer, area, tile, verbose, ignore_pclr_cmap_cdef
         )
 
-        if is_cube:
-            image = np.zeros((nrows[0], ncols[0], ncomps), dtypes[0])
-        else:
-            image = []
+    def _sanitize_rlevel(self, rlevel):
 
-        for k in range(raw_image.contents.numcomps):
-            component = raw_image.contents.comps[k]
-
-            self._validate_nonzero_image_size(nrows[k], ncols[k], k)
-
-            addr = ctypes.addressof(component.data.contents)
-            with warnings.catch_warnings():
-                warnings.simplefilter("ignore")
-
-                band_i32 = np.ctypeslib.as_array(
-                    (ctypes.c_int32 * nrows[k] * ncols[k]).from_address(addr)
-                )
-                band = np.reshape(
-                    band_i32.astype(dtypes[k]), (nrows[k], ncols[k])
-                )
-
-                if is_cube:
-                    image[:, :, k] = band
-                else:
-                    image.append(band)
-
-        if is_cube and image.shape[2] == 1:
-            # The third dimension has just a single layer.  Make the image
-            # data 2D instead of 3D.
-            image.shape = image.shape[0:2]
-
-        return image
-
-    def _component2dtype(self, component):
-        """Determine the appropriate numpy datatype for an OpenJPEG component.
-
-        Parameters
-        ----------
-        component : ctypes pointer to ImageCompType (image_comp_t)
-            single image component structure.
-
-        Returns
-        -------
-        builtins.type
-            numpy datatype to be used to construct an image array
-        """
-        if component.prec > 16:
-            msg = f"Unhandled precision: {component.prec} bits."
-            raise ValueError(msg)
-
-        if component.sgnd:
-            if component.prec <= 8:
-                dtype = np.int8
-            else:
-                dtype = np.int16
-        else:
-            if component.prec <= 8:
-                dtype = np.uint8
-            else:
-                dtype = np.uint16
-
-        return dtype
-
-    def get_codestream(self, header_only=True):
-        """Retrieve codestream.
-
-        This differs from the codestream property in that segment
-        metadata that lies past the end of the codestream header
-        can be retrieved.
-
-        Parameters
-        ----------
-        header_only : bool, optional
-            If True, only marker segments in the main header are parsed.
-            Supplying False may impose a large performance penalty.
-
-        Returns
-        -------
-        Codestream
-            Object describing the codestream syntax.
-
-        Examples
-        --------
-        >>> jfile = glymur.data.nemo()
-        >>> jp2 = glymur.Jp2k(jfile)
-        >>> codestream = jp2.get_codestream(header_only=False)
-        >>> print(codestream.segment[1])
-        SIZ marker segment @ (87, 47)
-            Profile:  no profile
-            Reference Grid Height, Width:  (1456 x 2592)
-            Vertical, Horizontal Reference Grid Offset:  (0 x 0)
-            Reference Tile Height, Width:  (1456 x 2592)
-            Vertical, Horizontal Reference Tile Offset:  (0 x 0)
-            Bitdepth:  (8, 8, 8)
-            Signed:  (False, False, False)
-            Vertical, Horizontal Subsampling:  ((1, 1), (1, 1), (1, 1))
-        >>> print(len(codestream.segment))
-        12
-        >>> print(codestream.segment[-1])
-        EOC marker segment @ (1132371, 0)
-        """
-        with self.path.open("rb") as fptr:
-
-            # if it's just a raw codestream file, it's easy
-            if self._codec_format == opj2.CODEC_J2K:
-                return self._get_codestream(fptr, self.length, header_only)
-
-            # continue assuming JP2, must seek to the JP2C box and past its
-            # header
-            box = next(filter(lambda x: x.box_id == "jp2c", self.box), None)
-
-            fptr.seek(box.offset)
-            read_buffer = fptr.read(8)
-            (box_length, _) = struct.unpack(">I4s", read_buffer)
-            if box_length == 0:
-                # The length of the box is presumed to last until the end
-                # of the file.  Compute the effective length of the box.
-                box_length = self.path.stat().st_size - fptr.tell() + 8
-            elif box_length == 1:
-                # Seek past the XL field.
-                read_buffer = fptr.read(8)
-                (box_length,) = struct.unpack(">Q", read_buffer)
-
-            return self._get_codestream(fptr, box_length - 8, header_only)
-
-    def _get_codestream(self, fptr, length, header_only):
-        """
-        Parsing errors can make for confusing errors sometimes, so catch any
-        such error and add context to it.
-        """
-
-        try:
-            codestream = Codestream(fptr, length, header_only=header_only)
-        except Exception:
-            _, value, traceback = sys.exc_info()
-            msg = (
-                f"The file is invalid "
-                f'because the codestream could not be parsed:  "{value}"'
+        # Must check the specified rlevel against the maximum.
+        if rlevel != 0:
+            # Must check the specified rlevel against the maximum.
+            cod_seg = next(
+                filter(
+                    lambda x: x.marker_id == "COD", self.codestream.segment
+                ),
+                None
             )
-            raise InvalidJp2kError(msg).with_traceback(traceback)
-        else:
-            return codestream
+            max_rlevel = cod_seg.num_res
+            if rlevel == -1:
+                # -1 is shorthand for the largest rlevel
+                # Reset it to that largest rlevel.
+                rlevel = max_rlevel
+            elif rlevel < -1 or rlevel > max_rlevel:
+                msg = (
+                    f"rlevel must be in the range [-1, {max_rlevel}] "
+                    "for this image."
+                )
+                raise ValueError(msg)
 
-    def _validate_nonzero_image_size(self, nrows, ncols, component_index):
-        """The image cannot have area of zero."""
-        if nrows == 0 or ncols == 0:
-            # Letting this situation continue would segfault openjpeg.
-            msg = (
-                f"Component {component_index} has dimensions "
-                f"{nrows} x {ncols}"
-            )
-            raise InvalidJp2kError(msg)
+        return rlevel

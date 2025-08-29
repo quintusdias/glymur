@@ -10,8 +10,6 @@ License:  MIT
 # Standard library imports...
 from __future__ import annotations
 from collections import Counter
-from contextlib import ExitStack
-import ctypes
 import pathlib
 import shutil
 import struct
@@ -24,6 +22,7 @@ import numpy as np
 
 # Local imports...
 import glymur
+from .core import InvalidJp2kError
 from . import core, version, get_option
 from .jp2kr import Jp2kr
 from .jp2box import (
@@ -31,7 +30,6 @@ from .jp2box import (
     ContiguousCodestreamBox,
     FileTypeBox,
     ImageHeaderBox,
-    InvalidJp2kError,
     JP2HeaderBox,
     JPEG2000SignatureBox,
 )
@@ -150,44 +148,48 @@ class Jp2k(Jp2kr):
         self.path = pathlib.Path(self.filename)
 
         self._capture_resolution = capture_resolution
-        self._cbsize = cbsize
-        self._cinema2k = cinema2k
-        self._cinema4k = cinema4k
-        self._colorspace = colorspace
-        self._cratios = cratios
         self._display_resolution = display_resolution
-        self._eph = eph
-        self._grid_offset = grid_offset
-        self._irreversible = irreversible
-        self._mct = mct
-        self._modesw = modesw
-        self._numres = numres if numres is not None else 6
-        self._plt = plt
-        self._prog = prog
-        self._psizes = psizes
-        self._psnr = psnr
-        self._sop = sop
-        self._subsam = subsam
-        self._tilesize_w = tilesize
-        self._tlm = tlm
         self._verbose = verbose
 
+        if not hasattr(self, 'libclient'):
+            self.libclient = core._OpenJPEG(self.filename, verbose)
+
         if shape is not None:
-            self._shape = shape
+            self.libclient.shape = shape
         elif data is not None:
-            self._shape = data.shape
+            self.libclient.shape = data.shape
         elif not hasattr(self, "shape"):
             # We must be writing via slicing.
             # Must be determined when writing.
-            self._shape = None
+            self.libclient.shape = None
 
-        if not hasattr(self, "_codec_format"):
+        self.libclient.cbsize = cbsize
+        self.libclient.colorspace = colorspace
+        self.libclient.cratios = cratios
+        self.libclient.cinema2k = cinema2k
+        self.libclient.cinema4k = cinema4k
+        self.libclient.eph = eph
+        self.libclient.grid_offset = grid_offset
+        self.libclient.irreversible = irreversible
+        self.libclient.mct = mct
+        self.libclient.modesw = modesw
+        self.libclient.numres = numres if numres is not None else 6
+        self.libclient.plt = plt
+        self.libclient.prog = prog
+        self.libclient.psizes = psizes
+        self.libclient.psnr = psnr
+        self.libclient.sop = sop
+        self.libclient.subsam = subsam
+        self.libclient.tilesize = tilesize
+        self.libclient.tlm = tlm
+
+        if self.libclient.codec_format is None:
             # Only set codec format if the superclass has not done so, i.e.
             # we are writing instead of reading.
             if self.filename[-4:].endswith((".jp2", ".JP2", ".jpx", "JPX")):
-                self._codec_format = opj2.CODEC_JP2
+                self.libclient.codec_format = opj2.CODEC_JP2
             else:
-                self._codec_format = opj2.CODEC_J2K
+                self.libclient.codec_format = opj2.CODEC_J2K
 
         self._validate_kwargs()
 
@@ -261,31 +263,31 @@ class Jp2k(Jp2kr):
     def _validate_kwargs(self):
         """Validate keyword parameters passed to the constructor."""
         non_cinema_args = (
-            self._mct,
-            self._cratios,
-            self._psnr,
-            self._irreversible,
-            self._cbsize,
-            self._eph,
-            self._grid_offset,
-            self._modesw,
-            self._prog,
-            self._psizes,
-            self._sop,
-            self._subsam,
+            self.libclient.mct,
+            self.libclient.cratios,
+            self.libclient.psnr,
+            self.libclient.irreversible,
+            self.libclient.cbsize,
+            self.libclient.eph,
+            self.libclient.grid_offset,
+            self.libclient.modesw,
+            self.libclient.prog,
+            self.libclient.psizes,
+            self.libclient.sop,
+            self.libclient.subsam,
         )
-        if (self._cinema2k or self._cinema4k) and not all(
+        if (self.libclient.cinema2k or self.libclient.cinema4k) and not all(
             [arg is None or not arg for arg in non_cinema_args]
         ):
             msg = "Do not specify cinema2k/cinema4k along with other options."
             raise InvalidJp2kError(msg)
 
-        if self._psnr is not None:
-            if self._cratios is not None:
+        if self.libclient.psnr is not None:
+            if self.libclient.cratios is not None:
                 msg = "Cannot specify cratios and psnr options together."
                 raise InvalidJp2kError(msg)
 
-            if 0 in self._psnr and self._psnr[-1] != 0:
+            if 0 in self.libclient.psnr and self.libclient.psnr[-1] != 0:
                 msg = (
                     "If a zero value is supplied in the PSNR keyword "
                     "argument, it must be in the final position."
@@ -293,8 +295,11 @@ class Jp2k(Jp2kr):
                 raise InvalidJp2kError(msg)
 
             if (
-                0 in self._psnr and np.any(np.diff(self._psnr[:-1]) < 0)
-                or 0 not in self._psnr and np.any(np.diff(self._psnr) < 0)
+                0 in self.libclient.psnr
+                and np.any(np.diff(self.libclient.psnr[:-1]) < 0)
+                or
+                0 not in self.libclient.psnr
+                and np.any(np.diff(self.libclient.psnr) < 0)
             ):
                 msg = (
                     "PSNR values must be increasing, with one exception - "
@@ -304,14 +309,14 @@ class Jp2k(Jp2kr):
                 raise InvalidJp2kError(msg)
 
         if (
-            self._codec_format == opj2.CODEC_J2K
-            and self._colorspace is not None
+            self.libclient.codec_format == opj2.CODEC_J2K
+            and self.libclient.colorspace is not None
         ):
             msg = "Do not specify a colorspace when writing a raw codestream."
             raise InvalidJp2kError(msg)
 
         if (
-            self._codec_format == opj2.CODEC_J2K
+            self.libclient.codec_format == opj2.CODEC_J2K
             and self._capture_resolution is not None
             and self._display_resolution is not None
         ):
@@ -322,16 +327,16 @@ class Jp2k(Jp2kr):
             raise InvalidJp2kError(msg)
 
         if (
-            self._shape is not None
-            and self._tilesize_w is not None
+            self.libclient.shape is not None
+            and self.libclient.tilesize is not None
             and (
-                self.tilesize[0] > self.shape[0]
-                or self.tilesize[1] > self.shape[1]
+                self.libclient.tilesize[0] > self.shape[0]
+                or self.libclient.tilesize[1] > self.shape[1]
             )
         ):
             msg = (
-                f"The tile size {self.tilesize} cannot exceed the image "
-                f"size {self.shape[:2]}."
+                f"The tile size {self.libclient.tilesize} cannot exceed the "
+                f"image size {self.shape[:2]}."
             )
             raise RuntimeError(msg)
 
@@ -370,363 +375,6 @@ class Jp2k(Jp2kr):
             raise RuntimeError(msg)
 
         return _TileWriter(self)
-
-    def _set_cinema_params(self, cinema_mode, fps):
-        """Populate compression parameters structure for cinema2K.
-
-        Parameters
-        ----------
-        params : ctypes struct
-            Corresponds to compression parameters structure used by the
-            library.
-        cinema_mode : {'cinema2k', 'cinema4k}
-            Use either Cinema2K or Cinema4K profile.
-        fps : {24, 48}
-            Frames per second.
-        """
-        # Cinema modes imply MCT.
-        self._cparams.tcp_mct = 1
-
-        if cinema_mode == "cinema2k":
-            if fps not in [24, 48]:
-                msg = "Cinema2K frame rate must be either 24 or 48."
-                raise ValueError(msg)
-
-            if fps == 24:
-                self._cparams.rsiz = core.OPJ_PROFILE_CINEMA_2K
-                self._cparams.max_comp_size = core.OPJ_CINEMA_24_COMP
-                self._cparams.max_cs_size = core.OPJ_CINEMA_24_CS
-            else:
-                self._cparams.rsiz = core.OPJ_PROFILE_CINEMA_2K
-                self._cparams.max_comp_size = core.OPJ_CINEMA_48_COMP
-                self._cparams.max_cs_size = core.OPJ_CINEMA_48_CS
-
-        else:
-            # cinema4k
-            self._cparams.rsiz = core.OPJ_PROFILE_CINEMA_4K
-
-    def _populate_cparams(self, img_array):
-        """Directs processing of write method arguments.
-
-        Parameters
-        ----------
-        img_array : ndarray
-            Image data to be written to file.
-        kwargs : dictionary
-            Non-image keyword inputs provided to write method.
-        """
-        cparams = opj2.set_default_encoder_parameters()
-
-        outfile = self.filename.encode()
-        num_pad_bytes = opj2.PATH_LEN - len(outfile)
-        outfile += b"0" * num_pad_bytes
-        cparams.outfile = outfile
-
-        cparams.codec_fmt = self._codec_format
-
-        cparams.irreversible = 1 if self._irreversible else 0
-
-        if self._cinema2k:
-            # cinema2k is an integer, so this test is "truthy"
-            self._cparams = cparams
-            self._set_cinema_params("cinema2k", self._cinema2k)
-
-        if self._cinema4k:
-            self._cparams = cparams
-            self._set_cinema_params("cinema4k", self._cinema4k)
-
-        if self._cbsize is not None:
-            cparams.cblockw_init = self._cbsize[1]
-            cparams.cblockh_init = self._cbsize[0]
-
-        if self._cratios is not None:
-            cparams.tcp_numlayers = len(self._cratios)
-            for j, cratio in enumerate(self._cratios):
-                cparams.tcp_rates[j] = cratio
-            cparams.cp_disto_alloc = 1
-
-        cparams.csty |= 0x02 if self._sop else 0
-        cparams.csty |= 0x04 if self._eph else 0
-
-        if self._grid_offset is not None:
-            cparams.image_offset_x0 = self._grid_offset[1]
-            cparams.image_offset_y0 = self._grid_offset[0]
-
-        if self._modesw is not None:
-            # The None check is for backwards compatibility.
-            for shift in range(6):
-                power_of_two = 1 << shift
-                if self._modesw & power_of_two:
-                    cparams.mode |= power_of_two
-
-        cparams.numresolution = self._numres
-
-        if self._prog is not None:
-            cparams.prog_order = core.PROGRESSION_ORDER[self._prog.upper()]
-
-        if self._psnr is not None:
-            cparams.tcp_numlayers = len(self._psnr)
-            for j, snr_layer in enumerate(self._psnr):
-                cparams.tcp_distoratio[j] = snr_layer
-            cparams.cp_fixed_quality = 1
-
-        if self._psizes is not None:
-            for j, (prch, prcw) in enumerate(self._psizes):
-                cparams.prcw_init[j] = prcw
-                cparams.prch_init[j] = prch
-            cparams.csty |= 0x01
-            cparams.res_spec = len(self._psizes)
-
-        if self._subsam is not None:
-            cparams.subsampling_dy = self._subsam[0]
-            cparams.subsampling_dx = self._subsam[1]
-
-        if self._tilesize_w is not None:
-            cparams.cp_tdx = self.tilesize[1]
-            cparams.cp_tdy = self.tilesize[0]
-            cparams.tile_size_on = opj2.TRUE
-
-        if self._mct is None:
-
-            # If the multi component transform was not specified, we infer
-            # that it should be used if the color space is RGB.
-            cparams.tcp_mct = 1 if self._colorspace == opj2.CLRSPC_SRGB else 0
-
-        elif self._mct and self._colorspace == opj2.CLRSPC_GRAY:
-
-            # the MCT was requested, but the colorspace is gray
-            # i.e. 1 component.  NOT ON MY WATCH!
-            msg = (
-                "You cannot specify usage of the multi component transform "
-                "if the colorspace is gray."
-            )
-            raise InvalidJp2kError(msg)
-
-        else:
-
-            # The MCT was either not specified
-            # or it was specified AND the colorspace is going to be RGB.
-            # In either case, we can use the MCT as requested.
-            cparams.tcp_mct = 1 if self._mct else 0
-
-        # Set defaults to lossless to begin.
-        if cparams.tcp_numlayers == 0:
-            cparams.tcp_rates[0] = 0
-            cparams.tcp_numlayers += 1
-            cparams.cp_disto_alloc = 1
-
-        self._validate_compression_params(img_array, cparams)
-
-        self._cparams = cparams
-
-    def _write(self, img_array):
-        """Write image data to a JP2/JPX/J2k file.  Intended usage of the
-        various parameters follows that of OpenJPEG's opj_compress utility.
-
-        This method can only be used to create JPEG 2000 images that can fit
-        in memory.
-        """
-        if version.openjpeg_version < "2.4.0":
-            msg = (
-                "The minimum supported version of OpenJPEG is 2.4.0.  "
-                f"Your version is {version.openjpeg_version}."
-            )
-            raise RuntimeError(msg)
-
-        if hasattr(self, "_cparams"):
-            msg = (
-                "You cannot write image data to a JPEG 2000 file "
-                "that already exists."
-            )
-            raise RuntimeError(msg)
-
-        self._determine_colorspace()
-        self._populate_cparams(img_array)
-
-        if img_array.ndim == 2:
-            # Force the image to be 3D.  This makes it easier to copy the
-            # image data later on.
-            numrows, numcols = img_array.shape
-            img_array = img_array.reshape(numrows, numcols, 1)
-
-        self._populate_comptparms(img_array)
-
-        self._write_openjp2(img_array)
-
-        # if writing the entire image, we need to parse ourselves in case
-        # further operations are needed
-        self.finalize(force_parse=True)
-
-    def _validate_codeblock_size(self, cparams):
-        """Code block dimensions must satisfy certain restrictions.
-
-        They must both be a power of 2 and the total area defined by the width
-        and height cannot be either too great or too small for the codec.
-        """
-        if cparams.cblockw_init != 0 and cparams.cblockh_init != 0:
-            # These fields ARE zero if uninitialized.
-            width = cparams.cblockw_init
-            height = cparams.cblockh_init
-            if height * width > 4096 or height < 4 or width < 4:
-                msg = (
-                    f"The code block area is specified as {height} x {width} "
-                    f"= {height * width} square pixels.  Code block area "
-                    f"cannot exceed 4096 square pixels.  Code block height "
-                    f"and width dimensions must be larger than 4 pixels."
-                )
-                raise InvalidJp2kError(msg)
-            if np.log2(height) != np.floor(np.log2(height)) or np.log2(
-                width
-            ) != np.floor(np.log2(width)):
-                msg = (
-                    f"Bad code block size ({height} x {width}).  "
-                    f"The dimensions must be powers of 2."
-                )
-                raise InvalidJp2kError(msg)
-
-    def _validate_precinct_size(self, cparams):
-        """Precinct dimensions must satisfy certain restrictions if specified.
-
-        They must both be a power of 2 and must both be at least twice the
-        size of their codeblock size counterparts.
-        """
-        code_block_specified = False
-        if cparams.cblockw_init != 0 and cparams.cblockh_init != 0:
-            code_block_specified = True
-
-        if cparams.res_spec != 0:
-            # precinct size was not specified if this field is zero.
-            for j in range(cparams.res_spec):
-                prch = cparams.prch_init[j]
-                prcw = cparams.prcw_init[j]
-                if j == 0 and code_block_specified:
-                    height, width = cparams.cblockh_init, cparams.cblockw_init
-                    if prch < height * 2 or prcw < width * 2:
-                        msg = (
-                            f"The highest resolution precinct size "
-                            f"({prch} x {prcw}) must be at least twice that "
-                            f"of the code block size ({height} x {width})."
-                        )
-                        raise InvalidJp2kError(msg)
-                if (
-                    np.log2(prch) != np.floor(np.log2(prch))
-                    or np.log2(prcw) != np.floor(np.log2(prcw))
-                ):
-                    msg = (
-                        f"Bad precinct size ({prch} x {prcw}).  Precinct "
-                        f"dimensions must be powers of 2."
-                    )
-                    raise InvalidJp2kError(msg)
-
-    def _validate_image_rank(self, img_array):
-        """Images must be either 2D or 3D."""
-        if img_array.ndim == 1 or img_array.ndim > 3:
-            msg = f"{img_array.ndim}D imagery is not allowed."
-            raise InvalidJp2kError(msg)
-
-    def _validate_image_datatype(self, img_array):
-        """Only uint8 and uint16 images are currently supported."""
-        if img_array.dtype != np.uint8 and img_array.dtype != np.uint16:
-            msg = (
-                "Only uint8 and uint16 datatypes are currently supported when "
-                "writing."
-            )
-            raise InvalidJp2kError(msg)
-
-    def _validate_compression_params(self, img_array, cparams):
-        """Check that the compression parameters are valid.
-
-        Parameters
-        ----------
-        img_array : ndarray
-            Image data to be written to file.
-        cparams : CompressionParametersType(ctypes.Structure)
-            Corresponds to cparameters_t type in openjp2 headers.
-        """
-        self._validate_codeblock_size(cparams)
-        self._validate_precinct_size(cparams)
-        self._validate_image_rank(img_array)
-        self._validate_image_datatype(img_array)
-
-    def _determine_colorspace(self):
-        """Determine the colorspace from the supplied inputs."""
-        if self._colorspace is None:
-            # Must infer the colorspace from the image dimensions.
-            if len(self.shape) < 3:
-                # A single channel image is grayscale.
-                self._colorspace = opj2.CLRSPC_GRAY
-            elif self.shape[2] == 1 or self.shape[2] == 2:
-                # A single channel image or an image with two channels is going
-                # to be greyscale.
-                self._colorspace = opj2.CLRSPC_GRAY
-            else:
-                # Anything else must be RGB, right?
-                self._colorspace = opj2.CLRSPC_SRGB
-        else:
-            if self._colorspace.lower() not in ("rgb", "grey", "gray"):
-                msg = f'Invalid colorspace "{self._colorspace}".'
-                raise InvalidJp2kError(msg)
-            elif self._colorspace.lower() == "rgb" and self.shape[2] < 3:
-                msg = "RGB colorspace requires at least 3 components."
-                raise InvalidJp2kError(msg)
-
-            # Turn the colorspace from a string to the enumerated value that
-            # the library expects.
-            COLORSPACE_MAP = {
-                "rgb": opj2.CLRSPC_SRGB,
-                "gray": opj2.CLRSPC_GRAY,
-                "grey": opj2.CLRSPC_GRAY,
-                "ycc": opj2.CLRSPC_YCC,
-            }
-
-            self._colorspace = COLORSPACE_MAP[self._colorspace.lower()]
-
-    def _write_openjp2(self, img_array):
-        """Write JPEG 2000 file using OpenJPEG 2.x interface."""
-        with ExitStack() as stack:
-            image = opj2.image_create(self._comptparms, self._colorspace)
-            stack.callback(opj2.image_destroy, image)
-
-            self._populate_image_struct(image, img_array)
-
-            codec = opj2.create_compress(self._cparams.codec_fmt)
-            stack.callback(opj2.destroy_codec, codec)
-
-            if self._verbose:
-                info_handler = opj2._INFO_CALLBACK
-            else:
-                info_handler = None
-
-            opj2.set_info_handler(codec, info_handler)
-            opj2.set_warning_handler(codec, opj2._WARNING_CALLBACK)
-            opj2.set_error_handler(codec, opj2._ERROR_CALLBACK)
-
-            opj2.setup_encoder(codec, self._cparams, image)
-
-            if self._plt:
-                opj2.encoder_set_extra_options(codec, plt=self._plt)
-
-            if self._tlm:
-                opj2.encoder_set_extra_options(codec, tlm=self._tlm)
-
-            strm = opj2.stream_create_default_file_stream(self.filename, False)
-
-            num_threads = get_option("lib.num_threads")
-            if version.openjpeg_version >= "2.4.0":
-                opj2.codec_set_threads(codec, num_threads)
-            elif num_threads > 1:
-                msg = (
-                    f"Threaded encoding is not supported in library versions "
-                    f"prior to 2.4.0.  Your version is "
-                    f"{version.openjpeg_version}."
-                )
-                warnings.warn(msg, UserWarning)
-
-            stack.callback(opj2.stream_destroy, strm)
-
-            opj2.start_compress(codec, image, strm)
-            opj2.encode(codec, strm)
-            opj2.end_compress(codec, strm)
 
     def append(self, box):
         """
@@ -781,7 +429,7 @@ class Jp2k(Jp2kr):
                 <city>Whoville</city>
             </info>
         """
-        if self._codec_format == opj2.CODEC_J2K:
+        if self.libclient.codec_format == opj2.CODEC_J2K:
             msg = "You cannot append to a J2K file (raw codestream)."
             raise RuntimeError(msg)
 
@@ -964,9 +612,24 @@ class Jp2k(Jp2kr):
 
     def __setitem__(self, index, data):
         """Slicing protocol."""
+
+        if version.openjpeg_version < "2.4.0":
+            msg = (
+                "The minimum supported version of OpenJPEG is 2.4.0.  "
+                f"Your version is {version.openjpeg_version}."
+            )
+            raise RuntimeError(msg)
+
+        if hasattr(self.libclient, "cparams"):
+            msg = (
+                "You cannot rewrite image data to a JPEG 2000 file.  You may "
+                "wish to delete the file first."
+            )
+            raise RuntimeError(msg)
+
         # Need to set this in case it is not set in the constructor.
-        if self._shape is None:
-            self._shape = data.shape
+        if self.libclient.shape is None:
+            self.libclient.shape = data.shape
 
         if (
             isinstance(index, slice)
@@ -977,10 +640,20 @@ class Jp2k(Jp2kr):
             # Case of jp2[:] = data, i.e. write the entire image.
             #
             # Should have a slice object where start = stop = step = None
-            self._write(data)
+            self.libclient.write(data)
+
+            # if writing the entire image, we need to parse ourselves in case
+            # further operations are needed
+            self.finalize(force_parse=True)
+
         elif index is Ellipsis:
             # Case of jp2[...] = data, i.e. write the entire image.
-            self._write(data)
+            self.libclient.write(data)
+
+            # if writing the entire image, we need to parse ourselves in case
+            # further operations are needed
+            self.finalize(force_parse=True)
+
         else:
             msg = "Partial write operations are currently not allowed."
             raise ValueError(msg)
@@ -1056,99 +729,6 @@ class Jp2k(Jp2kr):
                 dtype = np.uint16
 
         return dtype
-
-    def _populate_image_struct(
-        self, image, imgdata, tile_x_factor=1, tile_y_factor=1
-    ):
-        """Populates image struct needed for compression.
-
-        Parameters
-        ----------
-        image : ImageType(ctypes.Structure)
-            Corresponds to image_t type in openjp2 headers.
-        imgdata : ndarray
-            Image data to be written to file.
-        tile_x_factor, tile_y_factor: int
-            Used only when writing tile-by-tile.  In this case, the image data
-            that we have is only the size of a single tile.
-        """
-
-        if len(self.shape) < 3:
-            (numrows, numcols), num_comps = self.shape, 1
-        else:
-            numrows, numcols, num_comps = self.shape
-
-        for k in range(num_comps):
-            self._validate_nonzero_image_size(numrows, numcols, k)
-
-        # set image offset and reference grid
-        image.contents.x0 = self._cparams.image_offset_x0
-        image.contents.y0 = self._cparams.image_offset_y0
-        image.contents.x1 = (
-            image.contents.x0
-            + (numcols - 1) * self._cparams.subsampling_dx * tile_x_factor
-            + 1
-        )
-        image.contents.y1 = (
-            image.contents.y0
-            + (numrows - 1) * self._cparams.subsampling_dy * tile_y_factor
-            + 1
-        )
-
-        if tile_x_factor != 1 or tile_y_factor != 1:
-            # don't stage the data if writing tiles
-            return image
-
-        # Stage the image data to the openjpeg data structure.
-        for k in range(0, num_comps):
-            if self._cparams.rsiz in (
-                core.OPJ_PROFILE_CINEMA_2K,
-                core.OPJ_PROFILE_CINEMA_4K,
-            ):
-                image.contents.comps[k].prec = 12
-                image.contents.comps[k].bpp = 12
-
-            layer = np.ascontiguousarray(imgdata[:, :, k], dtype=np.int32)
-            dest = image.contents.comps[k].data
-            src = layer.ctypes.data
-            ctypes.memmove(dest, src, layer.nbytes)
-
-        return image
-
-    def _populate_comptparms(self, img_array):
-        """Instantiate and populate comptparms structure.
-
-        This structure defines the image components.
-
-        Parameters
-        ----------
-        img_array : ndarray
-            Image data to be written to file.
-        """
-        # Only two precisions are possible.
-        if img_array.dtype == np.uint8:
-            comp_prec = 8
-        else:
-            comp_prec = 16
-
-        if len(self.shape) < 3:
-            (numrows, numcols), num_comps = self.shape, 1
-        else:
-            numrows, numcols, num_comps = self.shape
-
-        comptparms = (opj2.ImageComptParmType * num_comps)()
-        for j in range(num_comps):
-            comptparms[j].dx = self._cparams.subsampling_dx
-            comptparms[j].dy = self._cparams.subsampling_dy
-            comptparms[j].w = numcols
-            comptparms[j].h = numrows
-            comptparms[j].x0 = self._cparams.image_offset_x0
-            comptparms[j].y0 = self._cparams.image_offset_y0
-            comptparms[j].prec = comp_prec
-            comptparms[j].bpp = comp_prec
-            comptparms[j].sgnd = 0
-
-        self._comptparms = comptparms
 
     def _validate_jp2_box_sequence(self, boxes):
         """Run through series of tests for JP2 box legality.
@@ -1504,11 +1084,11 @@ class _TileWriter(object):
 
     def setup_first_tile(self, img_array):
         """Only do these things for the first tile."""
-        self.jp2k._determine_colorspace()
-        self.jp2k._populate_cparams(img_array)
-        self.jp2k._populate_comptparms(img_array)
+        self.jp2k.libclient.determine_colorspace()
+        self.jp2k.libclient.populate_cparams(img_array)
+        self.jp2k.libclient.populate_comptparms(img_array)
 
-        self.codec = opj2.create_compress(self.jp2k._cparams.codec_fmt)
+        self.codec = opj2.create_compress(self.jp2k.codec_format)
 
         if self.jp2k.verbose:
             info_handler = opj2._INFO_CALLBACK
@@ -1520,10 +1100,10 @@ class _TileWriter(object):
         opj2.set_error_handler(self.codec, opj2._ERROR_CALLBACK)
 
         self.image = opj2.image_tile_create(
-            self.jp2k._comptparms, self.jp2k._colorspace
+            self.jp2k.libclient.comptparms, self.jp2k.libclient.colorspace
         )
 
-        self.jp2k._populate_image_struct(
+        self.jp2k.libclient.populate_image_struct(
             self.image,
             img_array,
             tile_x_factor=self.num_tile_cols,
@@ -1532,10 +1112,13 @@ class _TileWriter(object):
         self.image.contents.x1 = self.jp2k.shape[1]
         self.image.contents.y1 = self.jp2k.shape[0]
 
-        opj2.setup_encoder(self.codec, self.jp2k._cparams, self.image)
+        opj2.setup_encoder(self.codec, self.jp2k.libclient.cparams, self.image)
 
-        if self.jp2k._plt:
-            opj2.encoder_set_extra_options(self.codec, plt=self.jp2k._plt)
+        if self.jp2k.libclient.plt:
+            opj2.encoder_set_extra_options(
+                self.codec,
+                plt=self.jp2k.libclient.plt
+            )
 
         self.stream = opj2.stream_create_default_file_stream(
             self.jp2k.filename,

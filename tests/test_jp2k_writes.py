@@ -15,7 +15,7 @@ import skimage
 # local imports
 import glymur
 from glymur import Jp2k
-from glymur.jp2box import InvalidJp2kError
+from glymur.core import InvalidJp2kError
 from . import fixtures
 from .fixtures import OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG
 

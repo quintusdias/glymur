@@ -202,9 +202,10 @@ class TestJp2kr(fixtures.TestCommon):
             warnings.simplefilter("ignore")
             jp2 = Jp2kr(self.jpxfile)
         rgb = jp2[:]
+        self.assertEqual(rgb.shape, (1024, 1024, 3))
+
         jp2.ignore_pclr_cmap_cdef = True
         idx = jp2[:]
-        self.assertEqual(rgb.shape, (1024, 1024, 3))
         self.assertEqual(idx.shape, (1024, 1024))
 
         # Should be able to manually reconstruct the RGB image from the palette
@@ -902,14 +903,13 @@ class TestVersion(fixtures.TestCommon):
         """
         Don't have openjp2 library?  Must error out.
         """
-        exp_error = RuntimeError
-        with patch('glymur.version.openjpeg_version_tuple', new=(1, 5, 0)):
-            with patch('glymur.version.openjpeg_version', new='1.5.0'):
-                with self.assertRaises(exp_error):
+        with patch('glymur.version.openjpeg_version_tuple', new=(0, 0, 0)):
+            with patch('glymur.version.openjpeg_version', new='0.0.0'):
+                with self.assertRaises(RuntimeError):
                     glymur.Jp2kr(self.jp2file).read_bands()
 
 
-class TestComponent(unittest.TestCase):
+class TestOpenJPEGComponent(unittest.TestCase):
     """
     Test how a component's precision translates into a datatype.
     """
@@ -928,7 +928,7 @@ class TestComponent(unittest.TestCase):
         # Fake a data structure that resembles the openjpeg component.
         Component = collections.namedtuple('Component', ['prec', 'sgnd'])
         c = Component(prec=7, sgnd=True)
-        dtype = j._component2dtype(c)
+        dtype = j.libclient.component2dtype(c)
         self.assertEqual(dtype, np.int8)
 
     def test_nbits_lt_16_gt_8(self):
@@ -942,7 +942,7 @@ class TestComponent(unittest.TestCase):
         # Fake a data structure that resembles the openjpeg component.
         Component = collections.namedtuple('Component', ['prec', 'sgnd'])
         c = Component(prec=15, sgnd=True)
-        dtype = j._component2dtype(c)
+        dtype = j.libclient.component2dtype(c)
         self.assertEqual(dtype, np.int16)
 
     def test_nbits_gt_16(self):
@@ -957,7 +957,7 @@ class TestComponent(unittest.TestCase):
         Component = collections.namedtuple('Component', ['prec', 'sgnd'])
         c = Component(prec=17, sgnd=True)
         with self.assertRaises(ValueError):
-            j._component2dtype(c)
+            j.libclient.component2dtype(c)
 
 
 class TestParsing(unittest.TestCase):

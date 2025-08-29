@@ -930,7 +930,7 @@ class TestJp2k(fixtures.TestCommon):
 
         EXPECTED RESULT:  The default verbosity setting is False.
         """
-        path = ir.files("tests.data").joinpath("p0_03.j2k")
+        path = ir.files("tests.data.conformance").joinpath("p0_03.j2k")
         j = Jp2k(path)
 
         self.assertFalse(j.verbose)
@@ -941,7 +941,7 @@ class TestJp2k(fixtures.TestCommon):
 
         EXPECTED RESULT:  The default layer property value is 0.
         """
-        path = ir.files("tests.data").joinpath("p0_03.j2k")
+        path = ir.files("tests.data.conformance").joinpath("p0_03.j2k")
         j = Jp2k(path)
 
         self.assertEqual(j.layer, 0)
