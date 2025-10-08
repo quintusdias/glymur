@@ -12,7 +12,6 @@ from __future__ import annotations
 from contextlib import ExitStack
 import ctypes
 import pathlib
-import re
 import struct
 import sys
 import warnings
@@ -694,11 +693,10 @@ class Jp2kr(Jp2kBox):
         RuntimeError
             If the image has differing subsample factors.
         """
-        if re.match("0|1|2.[012]", version.openjpeg_version):
+        if version.openjpeg_version < '2.4.0':
             msg = (
-                f"You must have a version of OpenJPEG at least as high as "
-                f"2.3.0 before you can read JPEG2000 images with glymur.  "
-                f"Your version is {version.openjpeg_version}"
+                "The minimum supported version of OpenJPEG is 2.4.0.  "
+                f"Your version is {version.openjpeg_version}."
             )
             raise RuntimeError(msg)
 
@@ -878,11 +876,10 @@ class Jp2kr(Jp2kBox):
         >>> jp = glymur.Jp2k(jfile)
         >>> components_lst = jp.read_bands(rlevel=1)
         """
-        if version.openjpeg_version < "2.3.0":
+        if version.openjpeg_version < "2.4.0":
             msg = (
-                f"You must have at least version 2.3.0 of OpenJPEG installed "
-                f"before using this method.  Your version of OpenJPEG is "
-                f"{version.openjpeg_version}."
+                "The minimum supported version of OpenJPEG is 2.4.0.  "
+                f"Your version is {version.openjpeg_version}."
             )
             raise RuntimeError(msg)
 

@@ -11,6 +11,7 @@ workflows:
       - travis-311
       - travis-312
       - travis-313
+      - travis-314
 
 test-template: &test-template
   docker:
@@ -59,4 +60,7 @@ jobs:
     <<: *test-template
 
   travis-313:
+    <<: *test-template
+
+  travis-314:
     <<: *test-template

@@ -107,18 +107,18 @@ class TestSuite(fixtures.TestCommon):
         SCENARIO:  Attempt to encode with threading support.  This feature is
         new as of openjpeg library version 2.4.0.
 
-        EXPECTED RESULT:  In library versions prior to 2.4.0, a warning is
-        issued.
+        EXPECTED RESULT:  OpenJPEG currently must be at least 2.4.0, so no
+        warning is issued.
         """
-        with patch('glymur.jp2k.version.openjpeg_version', new='2.3.0'):
-            glymur.set_option('lib.num_threads', 2)
+        glymur.set_option('lib.num_threads', 2)
 
-            with warnings.catch_warnings(record=True) as w:
-                Jp2k(
-                    self.temp_jp2_filename,
-                    data=np.zeros((128, 128), dtype=np.uint8)
-                )
-                self.assertEqual(len(w), 1)
+        with warnings.catch_warnings(record=True) as w:
+            Jp2k(
+                self.temp_jp2_filename,
+                data=np.zeros((128, 128), dtype=np.uint8)
+            )
+
+            self.assertEqual(len(w), 0)
 
     def test_tiff2jp2_num_threads(self):
         """
@@ -147,7 +147,7 @@ class TestSuite(fixtures.TestCommon):
         openjpeg library is not too old for writing, it's too old for threaded
         writing.  In other words, it's version 2.3.0
 
-        EXPECTED RESULT:  There is a warning, but the image is created.
+        EXPECTED RESULT:  RuntimeError
         """
         expected = skimage.data.astronaut()
 
@@ -162,12 +162,6 @@ class TestSuite(fixtures.TestCommon):
         )
 
         with patch('glymur.version.openjpeg_version', new='2.3.0'):
-            with self.assertWarns(UserWarning):
+            with self.assertRaises(RuntimeError):
                 for tw in j.get_tilewriters():
                     tw[:] = expected
-
-        expected = np.concatenate((expected, expected), axis=0)
-        expected = np.concatenate((expected, expected), axis=1)
-        actual = j[:]
-
-        np.testing.assert_array_equal(actual, expected)
