@@ -3,6 +3,21 @@ Changes in glymur 0.14
 ######################
 
 *****************
+Changes in 0.14.4
+*****************
+
+    * Qualify on python 3.14
+    * Add User-Agent header to powershell script for Appveyor
+    * Remove remaining openjpeg<2.4 artifacts
+    * Remove explicit testing of numpy 1.x
+
+*****************
+Changes in 0.14.3
+*****************
+
+    * Fix import warning
+
+*****************
 Changes in 0.14.2
 *****************
 
