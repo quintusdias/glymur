@@ -12,6 +12,7 @@ import tempfile
 import unittest
 
 # are we anaconda?
+<<<<<<< HEAD
 if 'conda' in sys.version.lower():
     ANACONDA = True
 else:
