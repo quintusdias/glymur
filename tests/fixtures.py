@@ -12,12 +12,10 @@ import tempfile
 import unittest
 
 # are we anaconda?
-try:
-    import conda  # noqa : F401
-except ModuleNotFoundError:
-    ANACONDA = False
-else:
+if 'conda' in sys.version.lower():
     ANACONDA = True
+else:
+    ANACONDA = False
 
 # are we macports?
 if sys.executable.startswith('/opt/local/Library/Frameworks/Python.framework'):
