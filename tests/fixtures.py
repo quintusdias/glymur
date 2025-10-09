@@ -14,7 +14,7 @@ import unittest
 # are we anaconda?
 try:
     import conda  # noqa : F401
-except ImportError:
+except ModuleNotFoundError:
     ANACONDA = False
 else:
     ANACONDA = True
