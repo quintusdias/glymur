@@ -4,6 +4,7 @@ channels:
 dependencies:
     - python>=3.14.0
     - gdal>=3.11.0
+    - libgdal-jp2openjpeg
     - pillow
     - libtiff>=4.7.1
     - lxml>=6.0.2
