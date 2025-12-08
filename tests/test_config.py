@@ -5,7 +5,6 @@ OPENJP2 may be present in some form or other.
 # Standard library imports ...
 import contextlib
 import importlib
-import os
 import pathlib
 import platform
 import unittest
@@ -16,26 +15,6 @@ import warnings
 import glymur
 from glymur import Jp2k
 from .fixtures import TestCommon, OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG  # noqa : E501
-
-
-@contextlib.contextmanager
-def chdir(dirname=None):
-    """
-    This context manager restores the value of the current working directory
-    (cwd) after the enclosed code block completes or raises an exception.  If a
-    directory name is supplied to the context manager then the cwd is changed
-    prior to running the code block.
-
-    Shamelessly lifted from
-    http://www.astropython.org/snippet/2009/10/chdir-context-manager
-    """
-    curdir = os.getcwd()
-    try:
-        if dirname is not None:
-            os.chdir(dirname)
-        yield
-    finally:
-        os.chdir(curdir)
 
 
 @patch("glymur.config.glymurrc_fname", lambda: None)
@@ -331,7 +310,7 @@ class TestSuiteConfigFile(TestCommon):
             f.write("[library]\n")
             f.write(f"openjp2: {expected}\n")
 
-        with chdir(self.glymur_configdir):
+        with contextlib.chdir(self.glymur_configdir):
             # Should be able to load openjp2 as before.
             actual = glymur.config.read_config_file("openjp2")
 
