@@ -17,15 +17,10 @@ from . import fixtures
 from .fixtures import (
     OPENJPEG_NOT_AVAILABLE,
     OPENJPEG_NOT_AVAILABLE_MSG,
-    CANNOT_USE_IMPORTLIB_METADATA
 )
 
 
 @unittest.skipIf(OPENJPEG_NOT_AVAILABLE, OPENJPEG_NOT_AVAILABLE_MSG)
-@unittest.skipIf(
-    CANNOT_USE_IMPORTLIB_METADATA,
-    'missing importlib.metadata.files ?'
-)
 class TestSuite(fixtures.TestJPEGCommon):
 
     def test_smoke(self):
