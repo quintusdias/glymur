@@ -6,11 +6,11 @@ workflows:
   version: 2
   test:
     jobs:
-      - travis-311-no-gdal
-      - travis-311-no-opj
       - travis-311
       - travis-312
       - travis-313
+      - travis-314-no-gdal
+      - travis-314-no-opj
       - travis-314
 
 test-template: &test-template
@@ -47,12 +47,6 @@ test-template: &test-template
           pytest --doctest-modules glymur
 
 jobs:
-  travis-311-no-gdal:
-    <<: *test-template
-
-  travis-311-no-opj:
-    <<: *test-template
-
   travis-311:
     <<: *test-template
 
@@ -60,6 +54,12 @@ jobs:
     <<: *test-template
 
   travis-313:
+    <<: *test-template
+
+  travis-314-no-gdal:
+    <<: *test-template
+
+  travis-314-no-opj:
     <<: *test-template
 
   travis-314:

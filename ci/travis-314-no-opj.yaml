@@ -1,0 +1,13 @@
+name: glymur
+channels:
+    - conda-forge
+dependencies:
+    - python>=3.14.0
+    - gdal>=3.11.0
+    - pillow
+    - libtiff>=4.7.1
+    - lxml>=6.0.2
+    - numpy>=2.3.3
+    - pip
+    - pytest-xdist
+    - scikit-image
