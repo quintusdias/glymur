@@ -6,12 +6,12 @@ workflows:
   version: 2
   test:
     jobs:
-      - 311
-      - 312
-      - 313
-      - 314-no-gdal
-      - 314-no-opj
-      - 314
+      - ci-311
+      - ci-312
+      - ci-313
+      - ci-314-no-gdal
+      - ci-314-no-opj
+      - ci-314
 
 test-template: &test-template
   docker:
@@ -47,20 +47,20 @@ test-template: &test-template
           pytest --doctest-modules glymur
 
 jobs:
-  311:
+  ci-311:
     <<: *test-template
 
-  312:
+  ci-312:
     <<: *test-template
 
-  313:
+  ci-313:
     <<: *test-template
 
-  314-no-gdal:
+  ci-314-no-gdal:
     <<: *test-template
 
-  314-no-opj:
+  ci-314-no-opj:
     <<: *test-template
 
-  314:
+  ci-314:
     <<: *test-template
