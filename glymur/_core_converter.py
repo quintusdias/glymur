@@ -276,11 +276,7 @@ class _2JP2Converter(object):
 
             b.seek(tag_offset)
 
-            try:
-                dtype = tags[tag]["dtype"]
-            except IndexError:
-                breakpoint()
-                pass
+            dtype = tags[tag]["dtype"]
 
             nvalues = tags[tag]["nvalues"]
             payload = tags[tag]["payload"]
