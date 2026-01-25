@@ -3,6 +3,20 @@ Changes in glymur 0.14
 ######################
 
 *****************
+Changes in 0.14.5
+*****************
+
+    * Suppress W291 warning from doctests
+    * Remove two debugging breakpoints
+    * Update CI infrastructure for names
+    * Update testing, deprecate python 3.11
+    * Use importlib.resources instead of importlib.metadata
+    * Remove custom chdir context manager
+    * Use sys.version() to determine if anaconda or not on tests
+    * Add libgdal-jp2openjpeg to CI
+    * Remove broken azure pipelines setup
+
+*****************
 Changes in 0.14.4
 *****************
 
