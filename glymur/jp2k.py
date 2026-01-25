@@ -741,6 +741,7 @@ class Jp2k(Jp2kr):
 
         Examples
         --------
+        # noqa : W291
         >>> import io, shutil, lxml.etree as ET
         >>> _ = shutil.copyfile(glymur.data.nemo(), 'new-nemo.jp2')
         >>> j = glymur.Jp2k('new-nemo.jp2')
