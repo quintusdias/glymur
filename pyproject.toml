@@ -42,9 +42,3 @@ build-backend = "setuptools.build_meta"
 filterwarnings = [
     "ignore::DeprecationWarning:skimage.util.*",
 ]
-addopts = "--flake8"
-
-[dependency-groups]
-test = [
-    "pytest-flake8",
-]
