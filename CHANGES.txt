@@ -1,5 +1,5 @@
-Jan 25, 2025 - v0.14.5
-    Remove two debugging breakpoints
+Jan 26, 2025 - v0.14.6
+    Fix numpy 2.5 deprecation issue
 
 Oct 08, 2025 - v0.14.4
     Qualify on python 3.14
