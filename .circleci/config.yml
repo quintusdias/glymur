@@ -6,6 +6,7 @@ workflows:
   version: 2
   test:
     jobs:
+      - ci-311-np1
       - ci-311
       - ci-312
       - ci-313
@@ -47,6 +48,9 @@ test-template: &test-template
           pytest --doctest-modules glymur
 
 jobs:
+  ci-311-np1:
+    <<: *test-template
+
   ci-311:
     <<: *test-template
 
