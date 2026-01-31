@@ -2,11 +2,11 @@
 
 References
 ----------
-.. [JP2K15444-1i] International Organization for Standardication.  ISO/IEC
+.. [JP2K15444-1i] International Organization for Standardization.  ISO/IEC
    15444-1:2004 - Information technology -- JPEG 2000 image coding system:
    Core coding system
 
-.. [JP2K15444-2m] International Organization for Standardication.  ISO/IEC
+.. [JP2K15444-2m] International Organization for Standardization.  ISO/IEC
    15444-2:2004 - Information technology -- JPEG 2000 image coding system:
    Extensions
 """
@@ -1065,31 +1065,13 @@ class ContiguousCodestreamBox(Jp2kBox):
         offset=-1
     ):
         super().__init__()
-        self._codestream = codestream
+        self.codestream = codestream
         self.length = length
         self.offset = offset
         self.main_header_offset = main_header_offset
 
         # The filename can be set if lazy loading is desired.
         self._filename = None
-
-    @property
-    def codestream(self):
-        if get_option("parse.full_codestream") is True:
-            header_only = False
-        else:
-            header_only = True
-        if self._codestream is None:
-            if self._filename is not None:
-                with open(self._filename, "rb") as fptr:
-                    fptr.seek(self.main_header_offset)
-                    self._codestream = Codestream(
-                        fptr,
-                        self.length,
-                        header_only=header_only
-                    )
-
-        return self._codestream
 
     def __repr__(self):
         msg = "glymur.jp2box.ContiguousCodeStreamBox"
@@ -1134,7 +1116,7 @@ class ContiguousCodestreamBox(Jp2kBox):
         if get_option("parse.full_codestream"):
             codestream = Codestream(fptr, length, header_only=False)
         else:
-            codestream = None
+            codestream = Codestream(fptr, length, header_only=True)
         box = cls(
             codestream,
             main_header_offset=main_header_offset,
@@ -3555,7 +3537,7 @@ class UUIDBox(Jp2kBox):
 
     References
     ----------
-    .. [XMP] International Organization for Standardication.  ISO/IEC
+    .. [XMP] International Organization for Standardization.  ISO/IEC
        16684-1:2012 - Graphic technology -- Extensible metadata platform (XMP)
        specification -- Part 1:  Data model, serialization and core properties
     """
