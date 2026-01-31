@@ -973,10 +973,7 @@ class TestParsing(unittest.TestCase):
         glymur.set_option('parse.full_codestream', False)
 
     def test_main_header(self):
-        """verify that the main header isn't loaded during normal parsing"""
-        # The hidden _main_header attribute should show up after accessing it.
+        """verify that the main header is loaded during normal parsing"""
         jp2 = Jp2kr(self.jp2file)
         jp2c = jp2.box[-1]
-        self.assertIsNone(jp2c._codestream)
-        jp2c.codestream
-        self.assertIsNotNone(jp2c._codestream)
+        self.assertIsNotNone(jp2c.codestream)

@@ -1580,8 +1580,8 @@ class TestPrinting(fixtures.TestCommon):
         """
         Verify printing with the full blown codestream
         """
-        jp2 = Jp2k(self.jp2file)
         glymur.set_option('parse.full_codestream', True)
+        jp2 = Jp2k(self.jp2file)
 
         # Get rid of the file line
         actual = '\n'.join(str(jp2).splitlines()[1:])

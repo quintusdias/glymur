@@ -455,6 +455,13 @@ class Jp2kr(Jp2kBox):
             # boxes) here.
             fptr.seek(0)
             self.box = self.parse_superbox(fptr)
+
+            # Set the codestream property if it is there.  Do this now because
+            # the validation process would otherwise cause another file-open to
+            # occur and re-parse the codestream (if it exists).
+            jp2c = next(filter(lambda x: x.box_id == 'jp2c', self.box), None)
+            self._codestream = jp2c.codestream if jp2c is not None else None
+
             self._validate()
 
         self._parse_count += 1
@@ -984,10 +991,6 @@ class Jp2kr(Jp2kBox):
     def get_codestream(self, header_only=True):
         """Retrieve codestream.
 
-        This differs from the codestream property in that segment
-        metadata that lies past the end of the codestream header
-        can be retrieved.
-
         Parameters
         ----------
         header_only : bool, optional
@@ -1023,43 +1026,40 @@ class Jp2kr(Jp2kBox):
 
             # if it's just a raw codestream file, it's easy
             if self._codec_format == opj2.CODEC_J2K:
-                return self._get_codestream(fptr, self.length, header_only)
+                length = self.length
+            else:
 
-            # continue assuming JP2, must seek to the JP2C box and past its
-            # header
-            box = next(filter(lambda x: x.box_id == "jp2c", self.box), None)
+                # continue assuming JP2, must seek to the JP2C box and past its
+                # header
+                box = next(
+                    filter(lambda x: x.box_id == "jp2c", self.box),
+                    None
+                )
 
-            fptr.seek(box.offset)
-            read_buffer = fptr.read(8)
-            (box_length, _) = struct.unpack(">I4s", read_buffer)
-            if box_length == 0:
-                # The length of the box is presumed to last until the end
-                # of the file.  Compute the effective length of the box.
-                box_length = self.path.stat().st_size - fptr.tell() + 8
-            elif box_length == 1:
-                # Seek past the XL field.
+                fptr.seek(box.offset)
                 read_buffer = fptr.read(8)
-                (box_length,) = struct.unpack(">Q", read_buffer)
+                (box_length, _) = struct.unpack(">I4s", read_buffer)
+                if box_length == 0:
+                    # The length of the box is presumed to last until the end
+                    # of the file.  Compute the effective length of the box.
+                    box_length = self.path.stat().st_size - fptr.tell() + 8
+                elif box_length == 1:
+                    # Seek past the XL field.
+                    read_buffer = fptr.read(8)
+                    (box_length,) = struct.unpack(">Q", read_buffer)
+                length = box_length - 8
 
-            return self._get_codestream(fptr, box_length - 8, header_only)
-
-    def _get_codestream(self, fptr, length, header_only):
-        """
-        Parsing errors can make for confusing errors sometimes, so catch any
-        such error and add context to it.
-        """
-
-        try:
-            codestream = Codestream(fptr, length, header_only=header_only)
-        except Exception:
-            _, value, traceback = sys.exc_info()
-            msg = (
-                f"The file is invalid "
-                f'because the codestream could not be parsed:  "{value}"'
-            )
-            raise InvalidJp2kError(msg).with_traceback(traceback)
-        else:
-            return codestream
+            try:
+                codestream = Codestream(fptr, length, header_only=header_only)
+            except Exception:
+                _, value, traceback = sys.exc_info()
+                msg = (
+                    f"The file is invalid "
+                    f'because the codestream could not be parsed:  "{value}"'
+                )
+                raise InvalidJp2kError(msg).with_traceback(traceback)
+            else:
+                return codestream
 
     def _validate_nonzero_image_size(self, nrows, ncols, component_index):
         """The image cannot have area of zero."""
