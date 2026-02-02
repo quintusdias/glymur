@@ -933,7 +933,14 @@ class Jp2kr(Jp2kBox):
         for k in range(raw_image.contents.numcomps):
             component = raw_image.contents.comps[k]
 
-            self._validate_nonzero_image_size(nrows[k], ncols[k], k)
+            # validate the image size
+            if nrows[k] == 0 or ncols[k] == 0:
+                # Letting this situation continue would segfault openjpeg.
+                msg = (
+                    f"Component {k} has invalid dimensions, "
+                    f"{nrows[k]} x {ncols[k]}"
+                )
+                raise InvalidJp2kError(msg)
 
             addr = ctypes.addressof(component.data.contents)
             with warnings.catch_warnings():
@@ -1060,13 +1067,3 @@ class Jp2kr(Jp2kBox):
                 raise InvalidJp2kError(msg).with_traceback(traceback)
             else:
                 return codestream
-
-    def _validate_nonzero_image_size(self, nrows, ncols, component_index):
-        """The image cannot have area of zero."""
-        if nrows == 0 or ncols == 0:
-            # Letting this situation continue would segfault openjpeg.
-            msg = (
-                f"Component {component_index} has dimensions "
-                f"{nrows} x {ncols}"
-            )
-            raise InvalidJp2kError(msg)

@@ -1079,8 +1079,9 @@ class Jp2k(Jp2kr):
         else:
             numrows, numcols, num_comps = self.shape
 
-        for k in range(num_comps):
-            self._validate_nonzero_image_size(numrows, numcols, k)
+        if 0 in imgdata.shape:
+            msg = f"The image has invalid dimensions, {imgdata.shape}."
+            raise InvalidJp2kError(msg)
 
         # set image offset and reference grid
         image.contents.x0 = self._cparams.image_offset_x0
