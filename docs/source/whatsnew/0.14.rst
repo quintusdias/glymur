@@ -3,6 +3,16 @@ Changes in glymur 0.14
 ######################
 
 *****************
+Changes in 0.14.7
+*****************
+
+    * Refactor image dimension validation
+    * Refactor codestream parsing
+    * Update CI numpy specs
+    * Add CI workflow for numpy<2.0
+
+
+*****************
 Changes in 0.14.6
 *****************
 

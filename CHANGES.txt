@@ -1,4 +1,8 @@
-Jan 26, 2025 - v0.14.6
+Feb 04, 2026 - v0.14.7
+    Refactor image dimension validation
+    Refactor codestream parsing
+
+Jan 26, 2026 - v0.14.6
     Fix numpy 2.5 deprecation issue
 
 Oct 08, 2025 - v0.14.4
