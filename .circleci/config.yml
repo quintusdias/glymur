@@ -7,7 +7,6 @@ workflows:
   test:
     jobs:
       - ci-311-np1
-      - ci-311
       - ci-312
       - ci-313
       - ci-314-no-gdal
