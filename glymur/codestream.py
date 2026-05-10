@@ -25,6 +25,12 @@ from .core import (
 from .lib import openjp2 as opj2
 
 
+class _CustomDict(dict):
+
+    def __missing__(self, key):
+        return f"Unrecognized wavelet transform value ({key})"
+
+
 _PROGRESSION_ORDER_DISPLAY = {
     LRCP: "LRCP",
     RLCP: "RLCP",
@@ -33,10 +39,9 @@ _PROGRESSION_ORDER_DISPLAY = {
     CPRL: "CPRL",
 }
 
-_WAVELET_XFORM_DISPLAY = {
-    WAVELET_XFORM_9X7_IRREVERSIBLE: "9-7 irreversible",
-    WAVELET_XFORM_5X3_REVERSIBLE: "5-3 reversible",
-}
+_WAVELET_XFORM_DISPLAY = _CustomDict()
+_WAVELET_XFORM_DISPLAY[WAVELET_XFORM_9X7_IRREVERSIBLE] = '9-7 irreversible'
+_WAVELET_XFORM_DISPLAY[WAVELET_XFORM_5X3_REVERSIBLE] = '5-3 reversible'
 
 _NO_PROFILE = 0
 _PROFILE_0 = 1
