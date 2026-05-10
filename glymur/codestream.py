@@ -27,8 +27,12 @@ from .lib import openjp2 as opj2
 
 class _CustomDict(dict):
 
+    def __init__(self, *args, _msg_fmt=''):
+        dict.__init__(self, *args)
+        self._msg_fmt = _msg_fmt
+
     def __missing__(self, key):
-        return f"Unrecognized wavelet transform value ({key})"
+        return self._msg_fmt % key
 
 
 _PROGRESSION_ORDER_DISPLAY = {
@@ -39,7 +43,9 @@ _PROGRESSION_ORDER_DISPLAY = {
     CPRL: "CPRL",
 }
 
-_WAVELET_XFORM_DISPLAY = _CustomDict()
+_WAVELET_XFORM_DISPLAY = _CustomDict(
+    _msg_fmt="Unrecognized wavelet transform value ({%s})"
+)
 _WAVELET_XFORM_DISPLAY[WAVELET_XFORM_9X7_IRREVERSIBLE] = '9-7 irreversible'
 _WAVELET_XFORM_DISPLAY[WAVELET_XFORM_5X3_REVERSIBLE] = '5-3 reversible'
 
