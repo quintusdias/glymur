@@ -18,7 +18,7 @@ import numpy as np
 import lxml.etree as ET
 
 import glymur
-from glymur.codestream import LRCP, WAVELET_XFORM_5X3_REVERSIBLE
+from glymur.codestream import LRCP, WAVELET_XFORM_5X3_REVERSIBLE, COCsegment
 from glymur.core import COLOR, RED, GREEN, BLUE, RESTRICTED_ICC_PROFILE
 from glymur.jp2box import BitsPerComponentBox, ColourSpecificationBox
 from glymur.jp2box import LabelBox, UUIDBox
@@ -322,8 +322,9 @@ class TestPrinting(fixtures.TestCommon):
         expected = ("Colour Specification Box (colr) @ (-1, 0)\n"
                     "    Method:  enumerated colorspace\n"
                     "    Precedence:  2\n"
-                    "    Approximation:  invalid (32)\n"
-                    "    Colorspace:  1 (unrecognized)")
+                    "    Approximation:  "
+                    "unrecognized approximation measure value (32)\n"
+                    "    Colorspace:  unrecognized value (1)")
         self.assertEqual(actual, expected)
 
     def test_invalid_colorspace(self):
@@ -1173,7 +1174,8 @@ class TestPrinting(fixtures.TestCommon):
             '        Layer index end:  1\n'
             '        Resolution index end:  33\n'
             '        Component index end:  257\n'
-            '        Progression order:  invalid value: 16'
+            '        Progression order:  '
+            'unrecognized progression order value (16)'
         )
 
         self.assertEqual(actual, expected)
@@ -1653,6 +1655,17 @@ class TestPrinting(fixtures.TestCommon):
               .rstrip()
         )
         self.assertEqual(actual, expected)
+
+    def test_coc_segment_with_unrecognized_wavelet_transform(self):
+        """
+        Scenario:  Print a COC segment that has an unrecognized wavelet
+        transform.
+
+        Expected Result:  should not error out
+        """
+        spcoc = np.array([129, 6, 1, 72, 2, 45, 45, 45, 45, 61, 77])
+        coc = COCsegment(0, 1, spcoc, -1, -1)
+        str(coc)
 
 
 class TestJp2dump(fixtures.TestCommon):

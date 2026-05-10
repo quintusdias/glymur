@@ -5,6 +5,7 @@ dependencies:
     - python=3.12.*
     - gdal>=3.8.0,<3.9.0
     - pillow
+    - pip
     - libtiff>=4.7.0,<4.8.0
     - lxml>=5.0.0
     - numpy>=2.0,<2.3

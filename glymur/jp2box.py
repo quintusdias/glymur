@@ -50,27 +50,35 @@ from .core import (
     RESTRICTED_ICC_PROFILE,
     ANY_ICC_PROFILE,
     VENDOR_COLOR_METHOD,
+    _CustomDict
 )
 from .lib._tiff import tiff_header, BadTiffTagDatatype
 from . import get_option
 from ._iccprofile import _ICCProfile
 
 
-_COLORSPACE_METHODS = {
+_items = {
     ENUMERATED_COLORSPACE: "enumerated colorspace",
     RESTRICTED_ICC_PROFILE: "restricted ICC profile",
     ANY_ICC_PROFILE: "any ICC profile",
     VENDOR_COLOR_METHOD: "vendor color method",
 }
+_COLORSPACE_METHODS = _CustomDict(
+    _msg_fmt="unrecognized colorspace value (%s)",
+    _items=_items
+)
 
-
-_APPROXIMATION_MEASURES = {
+_items = {
     0: "JP2 only",
     1: "accurately represents correct colorspace definition",
     2: "approximates correct colorspace definition, exceptional quality",
     3: "approximates correct colorspace definition, reasonable quality",
     4: "approximates correct colorspace definition, poor quality",
 }
+_APPROXIMATION_MEASURES = _CustomDict(
+    _msg_fmt="unrecognized approximation measure value (%s)",
+    _items=_items
+)
 
 # Three different UUIDs are given special treatment.
 _GEOTIFF_UUID = UUID("b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03")
@@ -434,29 +442,19 @@ class ColourSpecificationBox(Jp2kBox):
 
         lst = []
 
-        try:
-            item = _COLORSPACE_METHODS[self.method]
-        except KeyError:
-            item = f"unrecognized value ({self.method})"
-        text = f"Method:  {item}"
-
+        text = f"Method:  {_COLORSPACE_METHODS[self.method]}"
         lst.append(text)
+
         text = f"Precedence:  {self.precedence}"
         lst.append(text)
 
         if self.approximation != 0:
-            try:
-                dispvalue = _APPROXIMATION_MEASURES[self.approximation]
-            except KeyError:
-                dispvalue = f"invalid ({self.approximation})"
+            dispvalue = _APPROXIMATION_MEASURES[self.approximation]
             text = f"Approximation:  {dispvalue}"
             lst.append(text)
 
         if self.colorspace is not None:
-            try:
-                dispvalue = _COLORSPACE_MAP_DISPLAY[self.colorspace]
-            except KeyError:
-                dispvalue = f"{self.colorspace} (unrecognized)"
+            dispvalue = _COLORSPACE_MAP_DISPLAY[self.colorspace]
             text = f"Colorspace:  {dispvalue}"
         else:
             if self.icc_profile is None:
@@ -631,10 +629,7 @@ class ChannelDefinitionBox(Jp2kBox):
         for association, channel_type, index in zip(
             self.association, self.channel_type, self.index
         ):
-            try:
-                color_type_string = _COLOR_TYPE_MAP_DISPLAY[channel_type]
-            except KeyError:
-                color_type_string = f"invalid ({channel_type})"
+            color_type_string = _COLOR_TYPE_MAP_DISPLAY[channel_type]
 
             association = str(association) if association else "whole image"
             text = f"Channel {index} ({color_type_string}) ==> ({association})"

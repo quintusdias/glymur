@@ -4,7 +4,7 @@ COD marker segment @ (174, 12)
         SOP marker segments:  False
         EPH marker segments:  False
     Coding style parameters:
-        Progression order:  33 (invalid)
+        Progression order:  unrecognized progression order value (33)
         Number of layers:  1
         Multiple component transformation usage:  reversible
         Number of decomposition levels:  5

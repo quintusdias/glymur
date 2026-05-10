@@ -21,22 +21,31 @@ from .core import (
     CPRL,
     WAVELET_XFORM_9X7_IRREVERSIBLE,
     WAVELET_XFORM_5X3_REVERSIBLE,
+    _CustomDict
 )
 from .lib import openjp2 as opj2
 
 
-_PROGRESSION_ORDER_DISPLAY = {
+_items = {
     LRCP: "LRCP",
     RLCP: "RLCP",
     RPCL: "RPCL",
     PCRL: "PCRL",
     CPRL: "CPRL",
 }
+_PROGRESSION_ORDER_DISPLAY = _CustomDict(
+    _msg_fmt="unrecognized progression order value (%s)",
+    _items=_items
+)
 
-_WAVELET_XFORM_DISPLAY = {
-    WAVELET_XFORM_9X7_IRREVERSIBLE: "9-7 irreversible",
-    WAVELET_XFORM_5X3_REVERSIBLE: "5-3 reversible",
+_items = {
+    WAVELET_XFORM_9X7_IRREVERSIBLE: '9-7 irreversible',
+    WAVELET_XFORM_5X3_REVERSIBLE: '5-3 reversible'
 }
+_WAVELET_XFORM_DISPLAY = _CustomDict(
+    _msg_fmt="unrecognized wavelet transform value (%s)",
+    _items=_items
+)
 
 _NO_PROFILE = 0
 _PROFILE_0 = 1
@@ -1167,7 +1176,6 @@ class CODsegment(Segment):
         self.offset = offset
         self.mct = mct
         self.cstyle = cstyle
-        self.xform = xform
 
         self.layers = num_layers
         self._numresolutions = nr
@@ -1187,6 +1195,7 @@ class CODsegment(Segment):
         ]:
             msg = f"Invalid wavelet transform in COD segment: {xform}."
             warnings.warn(msg, UserWarning)
+        self.xform = xform
 
         self.code_block_size = 4 * 2**ycb, 4 * 2**xcb
 
@@ -1224,14 +1233,9 @@ class CODsegment(Segment):
         else:
             mct_str = "unknown"
 
-        try:
-            progression_order = _PROGRESSION_ORDER_DISPLAY[self.prog_order]
-        except KeyError:
-            progression_order = f"{self.prog_order} (invalid)"
-        try:
-            xform = _WAVELET_XFORM_DISPLAY[self.xform]
-        except KeyError:
-            xform = f"{self.xform} (invalid)"
+        progression_order = _PROGRESSION_ORDER_DISPLAY[self.prog_order]
+        xform = _WAVELET_XFORM_DISPLAY[self.xform]
+
         msg = msg.format(
             with_without="with" if (self.scod & 1) else "without",
             sop=((self.scod & 2) > 0),
@@ -1412,10 +1416,7 @@ class PODsegment(Segment):
         )
         for j in range(len(self.rspod)):
 
-            try:
-                progorder = _PROGRESSION_ORDER_DISPLAY[self.ppod[j]]
-            except KeyError:
-                progorder = f"invalid value: {self.ppod[j]}"
+            progorder = _PROGRESSION_ORDER_DISPLAY[self.ppod[j]]
 
             msg += submsg.format(
                 j,

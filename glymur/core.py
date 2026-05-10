@@ -1,5 +1,24 @@
 """Core definitions to be shared amongst the modules."""
 
+
+class _CustomDict(dict):
+    """
+    Use this instead of a normal dictionary when we need a custom message
+    printed instead of dealing with a KeyError.
+    """
+
+    def __init__(self, *args, _msg_fmt='', _items=None):
+        dict.__init__(self, *args)
+        self._msg_fmt = _msg_fmt
+
+        if _items is not None:
+            for key, value in _items.items():
+                self.__setitem__(key, value)
+
+    def __missing__(self, key):
+        return self._msg_fmt % key
+
+
 # Progression order
 LRCP = 0
 RLCP = 1
@@ -101,7 +120,7 @@ E_SRGB = 20
 ROMM_RGB = 21
 
 
-_COLORSPACE_MAP_DISPLAY = {
+_items = {
     CMYK: "CMYK",
     SRGB: "sRGB",
     GREYSCALE: "greyscale",
@@ -109,6 +128,10 @@ _COLORSPACE_MAP_DISPLAY = {
     E_SRGB: "e-sRGB",
     ROMM_RGB: "ROMM-RGB",
 }
+_COLORSPACE_MAP_DISPLAY = _CustomDict(
+    _msg_fmt="unrecognized value (%s)",
+    _items=_items
+)
 
 # enumerated color channel types
 COLOR = 0
@@ -117,12 +140,16 @@ PRE_MULTIPLIED_OPACITY = 2
 _UNSPECIFIED = 65535
 
 
-_COLOR_TYPE_MAP_DISPLAY = {
+_items = {
     COLOR: "color",
     OPACITY: "opacity",
     PRE_MULTIPLIED_OPACITY: "pre-multiplied opacity",
     _UNSPECIFIED: "unspecified",
 }
+_COLOR_TYPE_MAP_DISPLAY = _CustomDict(
+    _msg_fmt="unrecognized value (%s)",
+    _items=_items
+)
 
 # color channel definitions.
 RED = 1

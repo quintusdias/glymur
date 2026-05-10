@@ -6,6 +6,7 @@ dependencies:
     - gdal>=3.11.0
     - libgdal-jp2openjpeg
     - pillow
+    - pip
     - libtiff>=4.7.1
     - lxml>=6.0.2
     - numpy>=2.3.3

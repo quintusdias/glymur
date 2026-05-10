@@ -175,8 +175,7 @@ class Tiff2Jp2k(_2JP2Converter):
                 try:
                     tag_num = TAGNAME2NUM[tag]
                 except KeyError:
-                    msg = f"{tag} is not a recognized TIFF tag"
-                    warnings.warn(msg)
+                    warnings.warn(f"{tag} is not a recognized TIFF tag")
                 else:
                     lst.append(tag_num)
             else:
