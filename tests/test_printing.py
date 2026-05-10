@@ -1173,7 +1173,7 @@ class TestPrinting(fixtures.TestCommon):
             '        Layer index end:  1\n'
             '        Resolution index end:  33\n'
             '        Component index end:  257\n'
-            '        Progression order:  invalid value: 16'
+            '        Progression order:  unrecognized progression order value (16)'
         )
 
         self.assertEqual(actual, expected)

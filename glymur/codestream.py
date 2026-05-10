@@ -35,16 +35,17 @@ class _CustomDict(dict):
         return self._msg_fmt % key
 
 
-_PROGRESSION_ORDER_DISPLAY = {
-    LRCP: "LRCP",
-    RLCP: "RLCP",
-    RPCL: "RPCL",
-    PCRL: "PCRL",
-    CPRL: "CPRL",
-}
+_PROGRESSION_ORDER_DISPLAY = _CustomDict(
+    _msg_fmt="unrecognized progression order value (%s)"
+)
+_PROGRESSION_ORDER_DISPLAY[LRCP] = "LRCP"
+_PROGRESSION_ORDER_DISPLAY[RLCP] = "RLCP"
+_PROGRESSION_ORDER_DISPLAY[RPCL] = "RPCL"
+_PROGRESSION_ORDER_DISPLAY[PCRL] = "PCRL"
+_PROGRESSION_ORDER_DISPLAY[CPRL] = "CPRL"
 
 _WAVELET_XFORM_DISPLAY = _CustomDict(
-    _msg_fmt="Unrecognized wavelet transform value ({%s})"
+    _msg_fmt="unrecognized wavelet transform value (%s)"
 )
 _WAVELET_XFORM_DISPLAY[WAVELET_XFORM_9X7_IRREVERSIBLE] = '9-7 irreversible'
 _WAVELET_XFORM_DISPLAY[WAVELET_XFORM_5X3_REVERSIBLE] = '5-3 reversible'
@@ -1235,11 +1236,9 @@ class CODsegment(Segment):
         else:
             mct_str = "unknown"
 
-        try:
-            progression_order = _PROGRESSION_ORDER_DISPLAY[self.prog_order]
-        except KeyError:
-            progression_order = f"{self.prog_order} (invalid)"
+        progression_order = _PROGRESSION_ORDER_DISPLAY[self.prog_order]
         xform = _WAVELET_XFORM_DISPLAY[self.xform]
+
         msg = msg.format(
             with_without="with" if (self.scod & 1) else "without",
             sop=((self.scod & 2) > 0),
@@ -1420,10 +1419,7 @@ class PODsegment(Segment):
         )
         for j in range(len(self.rspod)):
 
-            try:
-                progorder = _PROGRESSION_ORDER_DISPLAY[self.ppod[j]]
-            except KeyError:
-                progorder = f"invalid value: {self.ppod[j]}"
+            progorder = _PROGRESSION_ORDER_DISPLAY[self.ppod[j]]
 
             msg += submsg.format(
                 j,
