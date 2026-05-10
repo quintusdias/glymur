@@ -1178,7 +1178,6 @@ class CODsegment(Segment):
         self.offset = offset
         self.mct = mct
         self.cstyle = cstyle
-        self.xform = xform
 
         self.layers = num_layers
         self._numresolutions = nr
@@ -1198,6 +1197,7 @@ class CODsegment(Segment):
         ]:
             msg = f"Invalid wavelet transform in COD segment: {xform}."
             warnings.warn(msg, UserWarning)
+        self.xform = xform
 
         self.code_block_size = 4 * 2**ycb, 4 * 2**xcb
 
@@ -1239,10 +1239,7 @@ class CODsegment(Segment):
             progression_order = _PROGRESSION_ORDER_DISPLAY[self.prog_order]
         except KeyError:
             progression_order = f"{self.prog_order} (invalid)"
-        try:
-            xform = _WAVELET_XFORM_DISPLAY[self.xform]
-        except KeyError:
-            xform = f"{self.xform} (invalid)"
+        xform = _WAVELET_XFORM_DISPLAY[self.xform]
         msg = msg.format(
             with_without="with" if (self.scod & 1) else "without",
             sop=((self.scod & 2) > 0),
