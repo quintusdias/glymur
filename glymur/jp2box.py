@@ -50,18 +50,23 @@ from .core import (
     RESTRICTED_ICC_PROFILE,
     ANY_ICC_PROFILE,
     VENDOR_COLOR_METHOD,
+    _CustomDict
 )
 from .lib._tiff import tiff_header, BadTiffTagDatatype
 from . import get_option
 from ._iccprofile import _ICCProfile
 
 
-_COLORSPACE_METHODS = {
+_COLORSPACE_METHODS = _CustomDict(
+    _msg_fmt="unrecognized colorspace value (%s)"
+)
+for key, value in {
     ENUMERATED_COLORSPACE: "enumerated colorspace",
     RESTRICTED_ICC_PROFILE: "restricted ICC profile",
     ANY_ICC_PROFILE: "any ICC profile",
     VENDOR_COLOR_METHOD: "vendor color method",
-}
+}.items():
+    _COLORSPACE_METHODS[key] = value
 
 
 _APPROXIMATION_MEASURES = {

@@ -21,18 +21,9 @@ from .core import (
     CPRL,
     WAVELET_XFORM_9X7_IRREVERSIBLE,
     WAVELET_XFORM_5X3_REVERSIBLE,
+    _CustomDict
 )
 from .lib import openjp2 as opj2
-
-
-class _CustomDict(dict):
-
-    def __init__(self, *args, _msg_fmt=''):
-        dict.__init__(self, *args)
-        self._msg_fmt = _msg_fmt
-
-    def __missing__(self, key):
-        return self._msg_fmt % key
 
 
 _PROGRESSION_ORDER_DISPLAY = _CustomDict(

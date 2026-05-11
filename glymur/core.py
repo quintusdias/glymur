@@ -1,5 +1,20 @@
 """Core definitions to be shared amongst the modules."""
 
+
+class _CustomDict(dict):
+    """
+    Use this instead of a normal dictionary when we need a custom message
+    printed instead of dealing with a KeyError.
+    """
+
+    def __init__(self, *args, _msg_fmt=''):
+        dict.__init__(self, *args)
+        self._msg_fmt = _msg_fmt
+
+    def __missing__(self, key):
+        return self._msg_fmt % key
+
+
 # Progression order
 LRCP = 0
 RLCP = 1
