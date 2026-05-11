@@ -322,7 +322,8 @@ class TestPrinting(fixtures.TestCommon):
         expected = ("Colour Specification Box (colr) @ (-1, 0)\n"
                     "    Method:  enumerated colorspace\n"
                     "    Precedence:  2\n"
-                    "    Approximation:  invalid (32)\n"
+                    "    Approximation:  "
+                    "unrecognized approximation measure value (32)\n"
                     "    Colorspace:  1 (unrecognized)")
         self.assertEqual(actual, expected)
 
