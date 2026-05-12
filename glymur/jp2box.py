@@ -444,29 +444,19 @@ class ColourSpecificationBox(Jp2kBox):
 
         lst = []
 
-        try:
-            item = _COLORSPACE_METHODS[self.method]
-        except KeyError:
-            item = f"unrecognized value ({self.method})"
-        text = f"Method:  {item}"
-
+        text = f"Method:  {_COLORSPACE_METHODS[self.method]}"
         lst.append(text)
+
         text = f"Precedence:  {self.precedence}"
         lst.append(text)
 
         if self.approximation != 0:
-            try:
-                dispvalue = _APPROXIMATION_MEASURES[self.approximation]
-            except KeyError:
-                dispvalue = f"invalid ({self.approximation})"
+            dispvalue = _APPROXIMATION_MEASURES[self.approximation]
             text = f"Approximation:  {dispvalue}"
             lst.append(text)
 
         if self.colorspace is not None:
-            try:
-                dispvalue = _COLORSPACE_MAP_DISPLAY[self.colorspace]
-            except KeyError:
-                dispvalue = f"{self.colorspace} (unrecognized)"
+            dispvalue = _COLORSPACE_MAP_DISPLAY[self.colorspace]
             text = f"Colorspace:  {dispvalue}"
         else:
             if self.icc_profile is None:

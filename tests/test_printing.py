@@ -324,7 +324,7 @@ class TestPrinting(fixtures.TestCommon):
                     "    Precedence:  2\n"
                     "    Approximation:  "
                     "unrecognized approximation measure value (32)\n"
-                    "    Colorspace:  1 (unrecognized)")
+                    "    Colorspace:  unrecognized value (1)")
         self.assertEqual(actual, expected)
 
     def test_invalid_colorspace(self):

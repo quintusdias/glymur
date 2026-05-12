@@ -116,7 +116,10 @@ E_SRGB = 20
 ROMM_RGB = 21
 
 
-_COLORSPACE_MAP_DISPLAY = {
+_COLORSPACE_MAP_DISPLAY = _CustomDict(
+    _msg_fmt="unrecognized value (%s)"
+)
+_d = {
     CMYK: "CMYK",
     SRGB: "sRGB",
     GREYSCALE: "greyscale",
@@ -124,6 +127,8 @@ _COLORSPACE_MAP_DISPLAY = {
     E_SRGB: "e-sRGB",
     ROMM_RGB: "ROMM-RGB",
 }
+for key, value in _d.items():
+    _COLORSPACE_MAP_DISPLAY[key] = value
 
 # enumerated color channel types
 COLOR = 0
