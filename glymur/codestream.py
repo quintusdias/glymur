@@ -26,20 +26,26 @@ from .core import (
 from .lib import openjp2 as opj2
 
 
+_items = {
+    LRCP: "LRCP",
+    RLCP: "RLCP",
+    RPCL: "RPCL",
+    PCRL: "PCRL",
+    CPRL: "CPRL",
+}
 _PROGRESSION_ORDER_DISPLAY = _CustomDict(
-    _msg_fmt="unrecognized progression order value (%s)"
+    _msg_fmt="unrecognized progression order value (%s)",
+    _items=_items
 )
-_PROGRESSION_ORDER_DISPLAY[LRCP] = "LRCP"
-_PROGRESSION_ORDER_DISPLAY[RLCP] = "RLCP"
-_PROGRESSION_ORDER_DISPLAY[RPCL] = "RPCL"
-_PROGRESSION_ORDER_DISPLAY[PCRL] = "PCRL"
-_PROGRESSION_ORDER_DISPLAY[CPRL] = "CPRL"
 
+_items = {
+    WAVELET_XFORM_9X7_IRREVERSIBLE: '9-7 irreversible',
+    WAVELET_XFORM_5X3_REVERSIBLE: '5-3 reversible'
+}
 _WAVELET_XFORM_DISPLAY = _CustomDict(
-    _msg_fmt="unrecognized wavelet transform value (%s)"
+    _msg_fmt="unrecognized wavelet transform value (%s)",
+    _items=_items
 )
-_WAVELET_XFORM_DISPLAY[WAVELET_XFORM_9X7_IRREVERSIBLE] = '9-7 irreversible'
-_WAVELET_XFORM_DISPLAY[WAVELET_XFORM_5X3_REVERSIBLE] = '5-3 reversible'
 
 _NO_PROFILE = 0
 _PROFILE_0 = 1

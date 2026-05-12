@@ -172,7 +172,9 @@ class TestSuite(unittest.TestCase):
         self.buffer = self.buffer[:64] + intent + self.buffer[68:]
 
         icc_profile = _ICCProfile(self.buffer)
-        self.assertEqual(icc_profile.header["Rendering Intent"], "unknown")
+        self.assertEqual(
+            icc_profile.header["Rendering Intent"], "Unknown value (10)"
+        )
 
     def test_version4(self):
         """

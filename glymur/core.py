@@ -7,9 +7,13 @@ class _CustomDict(dict):
     printed instead of dealing with a KeyError.
     """
 
-    def __init__(self, *args, _msg_fmt=''):
+    def __init__(self, *args, _msg_fmt='', _items=None):
         dict.__init__(self, *args)
         self._msg_fmt = _msg_fmt
+
+        if _items is not None:
+            for key, value in _items.items():
+                self.__setitem__(key, value)
 
     def __missing__(self, key):
         return self._msg_fmt % key
@@ -116,10 +120,7 @@ E_SRGB = 20
 ROMM_RGB = 21
 
 
-_COLORSPACE_MAP_DISPLAY = _CustomDict(
-    _msg_fmt="unrecognized value (%s)"
-)
-_d = {
+_items = {
     CMYK: "CMYK",
     SRGB: "sRGB",
     GREYSCALE: "greyscale",
@@ -127,8 +128,10 @@ _d = {
     E_SRGB: "e-sRGB",
     ROMM_RGB: "ROMM-RGB",
 }
-for key, value in _d.items():
-    _COLORSPACE_MAP_DISPLAY[key] = value
+_COLORSPACE_MAP_DISPLAY = _CustomDict(
+    _msg_fmt="unrecognized value (%s)",
+    _items=_items
+)
 
 # enumerated color channel types
 COLOR = 0

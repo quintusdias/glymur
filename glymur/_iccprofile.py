@@ -6,6 +6,9 @@ import struct
 # Third party library imports ...
 import numpy as np
 
+# Local imports
+from .core import _CustomDict
+
 
 class _ICCProfile(object):
     """Container for ICC profile information."""
@@ -48,12 +51,15 @@ class _ICCProfile(object):
         b"FCLR": "15colour",
     }
 
-    rendering_intent_dict = {
+    _items = {
         0: "perceptual",
         1: "media-relative colorimetric",
         2: "saturation",
         3: "ICC-absolute colorimetric",
     }
+    rendering_intent_dict = _CustomDict(
+        _msg_fmt="Unknown value (%s)", _items=_items
+    )
 
     def __init__(self, read_buffer):
         self._raw_buffer = read_buffer

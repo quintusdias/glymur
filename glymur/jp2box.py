@@ -57,19 +57,18 @@ from . import get_option
 from ._iccprofile import _ICCProfile
 
 
-_d = {
+_items = {
     ENUMERATED_COLORSPACE: "enumerated colorspace",
     RESTRICTED_ICC_PROFILE: "restricted ICC profile",
     ANY_ICC_PROFILE: "any ICC profile",
     VENDOR_COLOR_METHOD: "vendor color method",
 }
 _COLORSPACE_METHODS = _CustomDict(
-    _msg_fmt="unrecognized colorspace value (%s)"
+    _msg_fmt="unrecognized colorspace value (%s)",
+    _items=_items
 )
-for key, value in _d.items():
-    _COLORSPACE_METHODS[key] = value
 
-_d = {
+_items = {
     0: "JP2 only",
     1: "accurately represents correct colorspace definition",
     2: "approximates correct colorspace definition, exceptional quality",
@@ -77,10 +76,9 @@ _d = {
     4: "approximates correct colorspace definition, poor quality",
 }
 _APPROXIMATION_MEASURES = _CustomDict(
-    _msg_fmt="unrecognized approximation measure value (%s)"
+    _msg_fmt="unrecognized approximation measure value (%s)",
+    _items=_items
 )
-for key, value in _d.items():
-    _APPROXIMATION_MEASURES[key] = value
 
 # Three different UUIDs are given special treatment.
 _GEOTIFF_UUID = UUID("b14bf8bd-083d-4b43-a5ae-8cd7d5a6ce03")
