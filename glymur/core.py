@@ -140,12 +140,16 @@ PRE_MULTIPLIED_OPACITY = 2
 _UNSPECIFIED = 65535
 
 
-_COLOR_TYPE_MAP_DISPLAY = {
+_items = {
     COLOR: "color",
     OPACITY: "opacity",
     PRE_MULTIPLIED_OPACITY: "pre-multiplied opacity",
     _UNSPECIFIED: "unspecified",
 }
+_COLOR_TYPE_MAP_DISPLAY = _CustomDict(
+    _msg_fmt="unrecognized value (%s)",
+    _items=_items
+)
 
 # color channel definitions.
 RED = 1

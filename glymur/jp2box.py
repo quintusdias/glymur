@@ -629,10 +629,7 @@ class ChannelDefinitionBox(Jp2kBox):
         for association, channel_type, index in zip(
             self.association, self.channel_type, self.index
         ):
-            try:
-                color_type_string = _COLOR_TYPE_MAP_DISPLAY[channel_type]
-            except KeyError:
-                color_type_string = f"invalid ({channel_type})"
+            color_type_string = _COLOR_TYPE_MAP_DISPLAY[channel_type]
 
             association = str(association) if association else "whole image"
             text = f"Channel {index} ({color_type_string}) ==> ({association})"

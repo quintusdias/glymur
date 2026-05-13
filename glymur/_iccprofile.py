@@ -112,10 +112,7 @@ class _ICCProfile(object):
         header["Device Attributes"] = attr
 
         (rval,) = struct.unpack(">I", read_buffer[64:68])
-        try:
-            header["Rendering Intent"] = self.rendering_intent_dict[rval]
-        except KeyError:
-            header["Rendering Intent"] = "unknown"
+        header["Rendering Intent"] = self.rendering_intent_dict[rval]
 
         data = struct.unpack(">iii", read_buffer[68:80])
         header["Illuminant"] = np.array(data, dtype=np.float64) / 65536
