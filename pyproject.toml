@@ -22,7 +22,7 @@ license = 'MIT'
 name = 'Glymur'
 readme = 'README.md'
 requires-python = '>=3.11'
-version = '0.14.7'
+version = '0.14.8'
 
 [project.scripts]
 jp2dump = 'glymur.command_line:main'

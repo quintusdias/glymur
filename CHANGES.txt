@@ -1,3 +1,6 @@
+May 13, 2026 - v0.14.8
+    Fix KeyError on JPH image
+    
 Feb 04, 2026 - v0.14.7
     Refactor image dimension validation
     Refactor codestream parsing

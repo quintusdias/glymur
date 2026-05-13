@@ -3,6 +3,13 @@ Changes in glymur 0.14
 ######################
 
 *****************
+Changes in 0.14.8
+*****************
+
+    * Fix KeyError on JPH image
+    * Remove python 3.11 np2.x from CI testing
+
+*****************
 Changes in 0.14.7
 *****************
 
